@@ -15,6 +15,14 @@ Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
      blocking read of /dev/random.  This allows other nPth threads to
      run while Libgcrypt is gathering entropy.
 
+   - When secure memory is requested by the MPI functions or by
+     gcry_xmalloc_secure, they do not anymore lead to a fatal error if
+     the secure memory pool is used up.  Instead new pools are
+     allocated as needed.  These new pools are not protected against
+     being swapped out (mlock can't be used).  However, these days
+     this is considered a minor issue and can easily be mitigated by
+     using encrypted swap space.
+
 
  * Interface changes relative to the 1.6.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
