@@ -57,6 +57,31 @@ test_secmem (void)
 }
 
 
+static void
+test_secmem_overflow (void)
+{
+  void *a[150];
+  int i;
+
+  memset (a, 0, sizeof a);
+
+  /* Allocating 150*512=75k should require more than one overflow buffer.  */
+  for (i=0; i < DIM(a); i++)
+    {
+      a[i] = gcry_xmalloc_secure (512);
+      if (verbose && !(i %40))
+        gcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
+    }
+
+  if (debug)
+    gcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
+  if (verbose)
+    gcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
+  for (i=0; i < DIM(a); i++)
+    xfree (a[i]);
+}
+
+
 /* This function is called when we ran out of core and there is no way
  * to return that error to the caller (xmalloc or mpi allocation).  */
 static int
@@ -132,10 +157,24 @@ main (int argc, char **argv)
   gcry_set_outofcore_handler (outofcore_handler, NULL);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
+  /* Libgcrypt prints a warning when the first overflow is allocated;
+   * we do not want to see that.  */
+  if (!verbose)
+    gcry_control (GCRYCTL_DISABLE_SECMEM_WARN, 0);
+
+
   test_secmem ();
+  test_secmem_overflow ();
+  /* FIXME: We need to improve the tests, for example by registering
+   * our own log handler and comparing the output of
+   * PRIV_CTL_DUMP_SECMEM_STATS to expected pattern.  */
 
   if (verbose)
-    gcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
+    {
+      gcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
+      gcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
+    }
   info ("All tests completed.  Errors: %d\n", errorcount);
+  gcry_control (GCRYCTL_TERM_SECMEM, 0 , 0);
   return !!errorcount;
 }

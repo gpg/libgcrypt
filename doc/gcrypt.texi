@@ -422,8 +422,11 @@ and freed memory, you need to initialize Libgcrypt this way:
      process might still be running with increased privileges and that
      the secure memory has not been initialized.  */
 
-  /* Allocate a pool of 16k secure memory.  This make the secure memory
-     available and also drops privileges where needed.  */
+  /* Allocate a pool of 16k secure memory.  This makes the secure memory
+     available and also drops privileges where needed.  Note that by
+     using functions like gcry_xmalloc_secure and gcry_mpi_snew Libgcrypt
+     may extend the secure memory pool with memory which lacks the
+     property of not being swapped out to disk.   */
   gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
 
 @anchor{sample-use-resume-secmem}
@@ -667,7 +670,10 @@ it right away.  This command should be executed right after
 This command disables the use of the mlock call for secure memory.
 Disabling the use of mlock may for example be done if an encrypted
 swap space is in use.  This command should be executed right after
-@code{gcry_check_version}.
+@code{gcry_check_version}.  Note that by using functions like
+gcry_xmalloc_secure and gcry_mpi_snew Libgcrypt may extend the secure
+memory pool with memory which lacks the property of not being swapped
+out to disk (but will still be zeroed out on free).
 
 @item GCRYCTL_DISABLE_PRIV_DROP; Arguments: none
 This command sets a global flag to tell the secure memory subsystem
