@@ -367,7 +367,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_DUMP_SECMEM_STATS:
-      _gcry_secmem_dump_stats ();
+      _gcry_secmem_dump_stats (0);
       break;
 
     case GCRYCTL_DROP_PRIVS:
