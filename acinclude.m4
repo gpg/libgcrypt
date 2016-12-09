@@ -242,7 +242,7 @@ int main()
     pool += (pgsize - ((long int)pool % pgsize));
 
     err = mlock( pool, 4096 );
-    if( !err || errno == EPERM )
+    if( !err || errno == EPERM || errno == EGAIN)
         return 0; /* okay */
 
     return 1;  /* hmmm */
