@@ -282,15 +282,15 @@ lock_pool_pages (void *p, size_t n)
 
   if (err)
     {
-      if (errno != EPERM
-#ifdef EAGAIN	/* OpenBSD returns this */
-	  && errno != EAGAIN
+      if (err != EPERM
+#ifdef EAGAIN	/* BSD and also Linux may return EAGAIN */
+	  && err != EAGAIN
 #endif
 #ifdef ENOSYS	/* Some SCOs return this (function not implemented) */
-	  && errno != ENOSYS
+	  && err != ENOSYS
 #endif
 #ifdef ENOMEM  /* Linux might return this. */
-            && errno != ENOMEM
+            && err != ENOMEM
 #endif
 	  )
 	log_error ("can't lock memory: %s\n", strerror (err));
@@ -341,15 +341,15 @@ lock_pool_pages (void *p, size_t n)
 
   if (err)
     {
-      if (errno != EPERM
-#ifdef EAGAIN	/* OpenBSD returns this. */
-	  && errno != EAGAIN
+      if (err != EPERM
+#ifdef EAGAIN	/* BSD and also Linux may return this. */
+	  && err != EAGAIN
 #endif
 #ifdef ENOSYS	/* Some SCOs return this (function not implemented). */
-	  && errno != ENOSYS
+	  && err != ENOSYS
 #endif
 #ifdef ENOMEM  /* Linux might return this. */
-            && errno != ENOMEM
+            && err != ENOMEM
 #endif
 	  )
 	log_error ("can't lock memory: %s\n", strerror (err));
