@@ -1,5 +1,35 @@
-Noteworthy changes in version 1.7.4 (unreleased)  [C21/A1/R_]
+Noteworthy changes in version 1.7.4 (2016-12-09)  [C21/A1/R4]
 ------------------------------------------------
+
+ * Performance:
+
+   - More ARMv8/AArch32 improvements for AES, GCM, SHA-256, and SHA-1.
+
+   - Add ARMv8/AArch32 assembly implementation for Twofish and
+     Camellia.
+
+   - Add bulk processing implementation for ARMv8/AArch32.
+
+   - Add Stribog OIDs.
+
+   - Improve the DRBG performance and sync the code with the Linux
+     version.
+
+ * Internal changes:
+
+   - When secure memory is requested by the MPI functions or by
+     gcry_xmalloc_secure, they do not anymore lead to a fatal error if
+     the secure memory pool is used up.  Instead new pools are
+     allocated as needed.  These new pools are not protected against
+     being swapped out (mlock can't be used).  However, these days
+     this is considered a minor issue and can easily be mitigated by
+     using encrypted swap space.
+
+ * Bug fixes:
+
+   - Fix GOST 28147 CryptoPro-B S-box.
+
+   - Fix error code handling of mlock calls.
 
 
 Noteworthy changes in version 1.7.3 (2016-08-17)  [C21/A1/R3]
