@@ -155,7 +155,7 @@
 #include "g10lib.h"
 #include "random.h"
 #include "rand-internal.h"
-#include "../cipher/bithelp.h"
+#include "../cipher/bufhelp.h"
 
 
 
@@ -546,27 +546,6 @@ drbg_sec_strength (u32 flags)
     return 32;
 }
 
-/*
- * Convert an integer into a byte representation of this integer.
- * The byte representation is big-endian
- *
- * @val value to be converted
- * @buf buffer holding the converted integer -- caller must ensure that
- *      buffer size is at least 32 bit
- */
-static inline void
-drbg_cpu_to_be32 (u32 val, unsigned char *buf)
-{
-  /* FIXME: This may raise a bus error.  */
-  struct s
-  {
-    u32 conv;
-  };
-  struct s *conversion = (struct s *) buf;
-
-  conversion->conv = be_bswap32 (val);
-}
-
 static void
 drbg_add_buf (unsigned char *dst, size_t dstlen,
               unsigned char *add, size_t addlen)
@@ -802,10 +781,10 @@ drbg_ctr_df (drbg_state_t drbg, unsigned char *df_data,
   /* 10.4.2 step 2 -- calculate the entire length of all input data */
   for (; NULL != tempstr; tempstr = tempstr->next)
     inputlen += tempstr->len;
-  drbg_cpu_to_be32 (inputlen, &L_N[0]);
+  buf_put_be32 (&L_N[0], inputlen);
 
   /* 10.4.2 step 3 */
-  drbg_cpu_to_be32 (bytes_to_return, &L_N[4]);
+  buf_put_be32 (&L_N[4], bytes_to_return);
 
   /* 10.4.2 step 5: length is size of L_N, input_string, one byte, padding */
   padlen = (inputlen + sizeof (L_N) + 1) % (drbg_blocklen (drbg));
@@ -838,7 +817,7 @@ drbg_ctr_df (drbg_state_t drbg, unsigned char *df_data,
       /* 10.4.2 step 9.1 - the padding is implicit as the buffer
        * holds zeros after allocation -- even the increment of i
        * is irrelevant as the increment remains within length of i */
-      drbg_cpu_to_be32 (i, iv);
+      buf_put_be32 (iv, i);
       /* 10.4.2 step 9.2 -- BCC and concatenation with temp */
       ret = drbg_ctr_bcc (drbg, temp + templen, K, &S1);
       if (ret)
@@ -1137,7 +1116,7 @@ drbg_hash_df (drbg_state_t drbg,
 
   /* 10.4.1 step 3 */
   input[0] = 1;
-  drbg_cpu_to_be32 ((outlen * 8), &input[1]);
+  buf_put_be32 (&input[1], (outlen * 8));
 
   /* 10.4.1 step 4.1 -- concatenation of data for input into hash */
   drbg_string_fill (&data1, input, 5);
