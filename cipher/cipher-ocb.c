@@ -66,7 +66,7 @@ double_block (unsigned char *b)
   l = buf_get_be64 (b);
   r = buf_get_be64 (b + 8);
 
-  l_0 = (int64_t)l >> 63;
+  l_0 = -(l >> 63);
   l = (l + l) ^ (r >> 63);
   r = (r + r) ^ (l_0 & 135);
 
