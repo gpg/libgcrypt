@@ -80,30 +80,33 @@ extern void _gcry_aes_ocb_enc_armv8_ce (const void *keysched,
                                         const unsigned char *inbuf,
                                         unsigned char *offset,
                                         unsigned char *checksum,
-                                        void **Ls,
+                                        unsigned char *L_table,
                                         size_t nblocks,
-                                        unsigned int nrounds);
+                                        unsigned int nrounds,
+                                        unsigned int blkn);
 extern void _gcry_aes_ocb_dec_armv8_ce (const void *keysched,
                                         unsigned char *outbuf,
                                         const unsigned char *inbuf,
                                         unsigned char *offset,
                                         unsigned char *checksum,
-                                        void **Ls,
+                                        unsigned char *L_table,
                                         size_t nblocks,
-                                        unsigned int nrounds);
+                                        unsigned int nrounds,
+                                        unsigned int blkn);
 extern void _gcry_aes_ocb_auth_armv8_ce (const void *keysched,
                                          const unsigned char *abuf,
                                          unsigned char *offset,
                                          unsigned char *checksum,
-                                         void **Ls,
+                                         unsigned char *L_table,
                                          size_t nblocks,
-                                         unsigned int nrounds);
+                                         unsigned int nrounds,
+                                         unsigned int blkn);
 
 typedef void (*ocb_crypt_fn_t) (const void *keysched, unsigned char *outbuf,
                                 const unsigned char *inbuf,
                                 unsigned char *offset, unsigned char *checksum,
-                                void **Ls, size_t nblocks,
-                                unsigned int nrounds);
+                                unsigned char *L_table, size_t nblocks,
+                                unsigned int nrounds, unsigned int blkn);
 
 void
 _gcry_aes_armv8_ce_setkey (RIJNDAEL_context *ctx, const byte *key)
@@ -334,62 +337,11 @@ _gcry_aes_armv8_ce_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   unsigned int nrounds = ctx->rounds;
   u64 blkn = c->u_mode.ocb.data_nblocks;
-  u64 blkn_offs = blkn - blkn % 32;
-  unsigned int n = 32 - blkn % 32;
-  void *Ls[32];
-  void **l;
-  size_t i;
 
   c->u_mode.ocb.data_nblocks = blkn + nblocks;
 
-  if (nblocks >= 32)
-    {
-      for (i = 0; i < 32; i += 8)
-        {
-          Ls[(i + 0 + n) % 32] = (void *)c->u_mode.ocb.L[0];
-          Ls[(i + 1 + n) % 32] = (void *)c->u_mode.ocb.L[1];
-          Ls[(i + 2 + n) % 32] = (void *)c->u_mode.ocb.L[0];
-          Ls[(i + 3 + n) % 32] = (void *)c->u_mode.ocb.L[2];
-          Ls[(i + 4 + n) % 32] = (void *)c->u_mode.ocb.L[0];
-          Ls[(i + 5 + n) % 32] = (void *)c->u_mode.ocb.L[1];
-          Ls[(i + 6 + n) % 32] = (void *)c->u_mode.ocb.L[0];
-        }
-
-      Ls[(7 + n) % 32] = (void *)c->u_mode.ocb.L[3];
-      Ls[(15 + n) % 32] = (void *)c->u_mode.ocb.L[4];
-      Ls[(23 + n) % 32] = (void *)c->u_mode.ocb.L[3];
-      l = &Ls[(31 + n) % 32];
-
-      /* Process data in 32 block chunks. */
-      while (nblocks >= 32)
-        {
-          blkn_offs += 32;
-          *l = (void *)ocb_get_l(c, blkn_offs);
-
-          crypt_fn(keysched, outbuf, inbuf, c->u_iv.iv, c->u_ctr.ctr, Ls, 32,
-                    nrounds);
-
-          nblocks -= 32;
-          outbuf += 32 * 16;
-          inbuf  += 32 * 16;
-        }
-
-      if (nblocks && l < &Ls[nblocks])
-        {
-          *l = (void *)ocb_get_l(c, 32 + blkn_offs);
-        }
-    }
-  else
-    {
-      for (i = 0; i < nblocks; i++)
-        Ls[i] = (void *)ocb_get_l(c, ++blkn);
-    }
-
-  if (nblocks)
-    {
-      crypt_fn(keysched, outbuf, inbuf, c->u_iv.iv, c->u_ctr.ctr, Ls, nblocks,
-               nrounds);
-    }
+  crypt_fn(keysched, outbuf, inbuf, c->u_iv.iv, c->u_ctr.ctr,
+           c->u_mode.ocb.L[0], nblocks, nrounds, (unsigned int)blkn);
 }
 
 void
@@ -401,61 +353,12 @@ _gcry_aes_armv8_ce_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
   const unsigned char *abuf = abuf_arg;
   unsigned int nrounds = ctx->rounds;
   u64 blkn = c->u_mode.ocb.aad_nblocks;
-  u64 blkn_offs = blkn - blkn % 32;
-  unsigned int n = 32 - blkn % 32;
-  void *Ls[32];
-  void **l;
-  size_t i;
 
   c->u_mode.ocb.aad_nblocks = blkn + nblocks;
 
-  if (nblocks >= 32)
-    {
-      for (i = 0; i < 32; i += 8)
-        {
-          Ls[(i + 0 + n) % 32] = (void *)c->u_mode.ocb.L[0];
-          Ls[(i + 1 + n) % 32] = (void *)c->u_mode.ocb.L[1];
-          Ls[(i + 2 + n) % 32] = (void *)c->u_mode.ocb.L[0];
-          Ls[(i + 3 + n) % 32] = (void *)c->u_mode.ocb.L[2];
-          Ls[(i + 4 + n) % 32] = (void *)c->u_mode.ocb.L[0];
-          Ls[(i + 5 + n) % 32] = (void *)c->u_mode.ocb.L[1];
-          Ls[(i + 6 + n) % 32] = (void *)c->u_mode.ocb.L[0];
-        }
-
-      Ls[(7 + n) % 32] = (void *)c->u_mode.ocb.L[3];
-      Ls[(15 + n) % 32] = (void *)c->u_mode.ocb.L[4];
-      Ls[(23 + n) % 32] = (void *)c->u_mode.ocb.L[3];
-      l = &Ls[(31 + n) % 32];
-
-      /* Process data in 32 block chunks. */
-      while (nblocks >= 32)
-        {
-          blkn_offs += 32;
-          *l = (void *)ocb_get_l(c, blkn_offs);
-
-          _gcry_aes_ocb_auth_armv8_ce(keysched, abuf, c->u_mode.ocb.aad_offset,
-                                      c->u_mode.ocb.aad_sum, Ls, 32, nrounds);
-
-          nblocks -= 32;
-          abuf += 32 * 16;
-        }
-
-      if (nblocks && l < &Ls[nblocks])
-        {
-          *l = (void *)ocb_get_l(c, 32 + blkn_offs);
-        }
-    }
-  else
-    {
-      for (i = 0; i < nblocks; i++)
-        Ls[i] = (void *)ocb_get_l(c, ++blkn);
-    }
-
-  if (nblocks)
-    {
-      _gcry_aes_ocb_auth_armv8_ce(keysched, abuf, c->u_mode.ocb.aad_offset,
-                                  c->u_mode.ocb.aad_sum, Ls, nblocks, nrounds);
-    }
+  _gcry_aes_ocb_auth_armv8_ce(keysched, abuf, c->u_mode.ocb.aad_offset,
+			      c->u_mode.ocb.aad_sum, c->u_mode.ocb.L[0],
+			      nblocks, nrounds, (unsigned int)blkn);
 }
 
 #endif /* USE_ARM_CE */

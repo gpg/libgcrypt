@@ -1021,9 +1021,10 @@ _gcry_aes_ctr_enc_armv8_ce:
  *                                  const unsigned char *inbuf,
  *                                  unsigned char *offset,
  *                                  unsigned char *checksum,
- *                                  void **Ls,
+ *                                  unsigned char *L_table,
  *                                  size_t nblocks,
- *                                  unsigned int nrounds);
+ *                                  unsigned int nrounds,
+ *                                  unsigned int blkn);
  */
 
 .align 3
@@ -1039,6 +1040,7 @@ _gcry_aes_ocb_enc_armv8_ce:
    *    %st+4: Ls => r5
    *    %st+8: nblocks => r6  (0 < nblocks <= 32)
    *    %st+12: nrounds => r7
+   *    %st+16: blkn => lr
    */
 
   vpush {q4-q7}
@@ -1047,6 +1049,7 @@ _gcry_aes_ocb_enc_armv8_ce:
   ldr r4, [sp, #(104+0)]
   ldr r5, [sp, #(104+4)]
   ldr r6, [sp, #(104+8)]
+  ldr lr, [sp, #(104+16)]
 
   cmp r7, #12
   vld1.8 {q0}, [r3] /* load offset */
@@ -1059,6 +1062,7 @@ _gcry_aes_ocb_enc_armv8_ce:
 #define OCB_ENC(bits, ...) \
   .Locb_enc_entry_##bits: \
     cmp r6, #4; \
+    add lr, #1; \
     blo .Locb_enc_loop_##bits; \
     \
   .Locb_enc_loop4_##bits: \
@@ -1067,7 +1071,23 @@ _gcry_aes_ocb_enc_armv8_ce:
     /* Checksum_i = Checksum_{i-1} xor P_i  */ \
     /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */ \
     \
-    ldm r5!, {r8, r9, r10, r11}; \
+    add r9, lr, #1; \
+    add r10, lr, #2; \
+    add r11, lr, #3; \
+    rbit r8, lr; \
+    add lr, lr, #4; \
+    rbit r9, r9; \
+    rbit r10, r10; \
+    rbit r11, r11; \
+    clz r8, r8; /* ntz(i+0) */ \
+    clz r9, r9; /* ntz(i+1) */ \
+    clz r10, r10; /* ntz(i+2) */ \
+    clz r11, r11; /* ntz(i+3) */ \
+    add r8, r5, r8, lsl #4; \
+    add r9, r5, r9, lsl #4; \
+    add r10, r5, r10, lsl #4; \
+    add r11, r5, r11, lsl #4; \
+    \
     sub r6, #4; \
     \
     vld1.8 {q9}, [r8];     /* load L_{ntz(i+0)} */ \
@@ -1120,7 +1140,11 @@ _gcry_aes_ocb_enc_armv8_ce:
     /* Checksum_i = Checksum_{i-1} xor P_i  */ \
     /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */ \
     \
-    ldr r8, [r5], #4; \
+    rbit r8, lr; \
+    add lr, #1; \
+    clz r8, r8; /* ntz(i) */ \
+    add r8, r5, r8, lsl #4; \
+    \
     vld1.8 {q1}, [r2]!; /* load plaintext */ \
     vld1.8 {q2}, [r8]; /* load L_{ntz(i)} */ \
     vld1.8 {q3}, [r4]; /* load checksum */ \
@@ -1171,9 +1195,10 @@ _gcry_aes_ocb_enc_armv8_ce:
  *                                  const unsigned char *inbuf,
  *                                  unsigned char *offset,
  *                                  unsigned char *checksum,
- *                                  void **Ls,
+ *                                  unsigned char *L_table,
  *                                  size_t nblocks,
- *                                  unsigned int nrounds);
+ *                                  unsigned int nrounds,
+ *                                  unsigned int blkn);
  */
 
 .align 3
@@ -1189,6 +1214,7 @@ _gcry_aes_ocb_dec_armv8_ce:
    *    %st+4: Ls => r5
    *    %st+8: nblocks => r6  (0 < nblocks <= 32)
    *    %st+12: nrounds => r7
+   *    %st+16: blkn => lr
    */
 
   vpush {q4-q7}
@@ -1197,6 +1223,7 @@ _gcry_aes_ocb_dec_armv8_ce:
   ldr r4, [sp, #(104+0)]
   ldr r5, [sp, #(104+4)]
   ldr r6, [sp, #(104+8)]
+  ldr lr, [sp, #(104+16)]
 
   cmp r7, #12
   vld1.8 {q0}, [r3] /* load offset */
@@ -1209,6 +1236,7 @@ _gcry_aes_ocb_dec_armv8_ce:
 #define OCB_DEC(bits, ...) \
   .Locb_dec_entry_##bits: \
     cmp r6, #4; \
+    add lr, #1; \
     blo .Locb_dec_loop_##bits; \
     \
   .Locb_dec_loop4_##bits: \
@@ -1217,7 +1245,23 @@ _gcry_aes_ocb_dec_armv8_ce:
     /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */ \
     /* Checksum_i = Checksum_{i-1} xor P_i  */ \
     \
-    ldm r5!, {r8, r9, r10, r11}; \
+    add r9, lr, #1; \
+    add r10, lr, #2; \
+    add r11, lr, #3; \
+    rbit r8, lr; \
+    add lr, lr, #4; \
+    rbit r9, r9; \
+    rbit r10, r10; \
+    rbit r11, r11; \
+    clz r8, r8; /* ntz(i+0) */ \
+    clz r9, r9; /* ntz(i+1) */ \
+    clz r10, r10; /* ntz(i+2) */ \
+    clz r11, r11; /* ntz(i+3) */ \
+    add r8, r5, r8, lsl #4; \
+    add r9, r5, r9, lsl #4; \
+    add r10, r5, r10, lsl #4; \
+    add r11, r5, r11, lsl #4; \
+    \
     sub r6, #4; \
     \
     vld1.8 {q9}, [r8];     /* load L_{ntz(i+0)} */ \
@@ -1270,7 +1314,11 @@ _gcry_aes_ocb_dec_armv8_ce:
     /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */ \
     /* Checksum_i = Checksum_{i-1} xor P_i  */ \
     \
-    ldr r8, [r5], #4; \
+    rbit r8, lr; \
+    add lr, #1; \
+    clz r8, r8; /* ntz(i) */ \
+    add r8, r5, r8, lsl #4; \
+    \
     vld1.8 {q2}, [r8]; /* load L_{ntz(i)} */ \
     vld1.8 {q1}, [r2]!; /* load ciphertext */ \
     subs r6, #1; \
@@ -1320,9 +1368,10 @@ _gcry_aes_ocb_dec_armv8_ce:
  *                                   const unsigned char *abuf,
  *                                   unsigned char *offset,
  *                                   unsigned char *checksum,
- *                                   void **Ls,
+ *                                   unsigned char *L_table,
  *                                   size_t nblocks,
- *                                   unsigned int nrounds);
+ *                                   unsigned int nrounds,
+ *                                   unsigned int blkn);
  */
 
 .align 3
@@ -1337,6 +1386,7 @@ _gcry_aes_ocb_auth_armv8_ce:
    *    %st+0: Ls => r5
    *    %st+4: nblocks => r6  (0 < nblocks <= 32)
    *    %st+8: nrounds => r7
+   *    %st+12: blkn => lr
    */
 
   vpush {q4-q7}
@@ -1344,6 +1394,7 @@ _gcry_aes_ocb_auth_armv8_ce:
   ldr r7, [sp, #(104+8)]
   ldr r5, [sp, #(104+0)]
   ldr r6, [sp, #(104+4)]
+  ldr lr, [sp, #(104+12)]
 
   cmp r7, #12
   vld1.8 {q0}, [r2] /* load offset */
@@ -1356,6 +1407,7 @@ _gcry_aes_ocb_auth_armv8_ce:
 #define OCB_AUTH(bits, ...) \
   .Locb_auth_entry_##bits: \
     cmp r6, #4; \
+    add lr, #1; \
     blo .Locb_auth_loop_##bits; \
     \
   .Locb_auth_loop4_##bits: \
@@ -1363,7 +1415,23 @@ _gcry_aes_ocb_auth_armv8_ce:
     /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */ \
     /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */ \
     \
-    ldm r5!, {r8, r9, r10, r11}; \
+    add r9, lr, #1; \
+    add r10, lr, #2; \
+    add r11, lr, #3; \
+    rbit r8, lr; \
+    add lr, lr, #4; \
+    rbit r9, r9; \
+    rbit r10, r10; \
+    rbit r11, r11; \
+    clz r8, r8; /* ntz(i+0) */ \
+    clz r9, r9; /* ntz(i+1) */ \
+    clz r10, r10; /* ntz(i+2) */ \
+    clz r11, r11; /* ntz(i+3) */ \
+    add r8, r5, r8, lsl #4; \
+    add r9, r5, r9, lsl #4; \
+    add r10, r5, r10, lsl #4; \
+    add r11, r5, r11, lsl #4; \
+    \
     sub r6, #4; \
     \
     vld1.8 {q9}, [r8];     /* load L_{ntz(i+0)} */ \
@@ -1401,8 +1469,12 @@ _gcry_aes_ocb_auth_armv8_ce:
     /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */ \
     /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */ \
     \
-    ldr r8, [r5], #4; \
-    vld1.8 {q2}, [r8]; /* load L_{ntz(i)} */ \
+    rbit r8, lr; \
+    add lr, #1; \
+    clz r8, r8; /* ntz(i) */ \
+    add r8, r5, r8, lsl #4; \
+    \
+    vld1.8 {q2}, [r8];  /* load L_{ntz(i)} */ \
     vld1.8 {q1}, [r1]!; /* load aadtext */ \
     subs r6, #1; \
     veor q0, q0, q2; \
