@@ -1235,7 +1235,6 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   serpent_context_t *ctx = (void *)&c->context.c;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char l_tmp[sizeof(serpent_block_t)];
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
   u64 blkn = c->u_mode.ocb.data_nblocks;
 #else
@@ -1275,9 +1274,8 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  /* Process data in 16 block chunks. */
 	  while (nblocks >= 16)
 	    {
-	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 16;
-	      *l = (uintptr_t)(void *)ocb_get_l(c, l_tmp, blkn - blkn % 16);
+	      *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 16);
 
 	      if (encrypt)
 		_gcry_serpent_avx2_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
@@ -1327,9 +1325,8 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	/* Process data in 8 block chunks. */
 	while (nblocks >= 8)
 	  {
-	    /* l_tmp will be used only every 65536-th block. */
 	    blkn += 8;
-	    *l = (uintptr_t)(void *)ocb_get_l(c, l_tmp, blkn - blkn % 8);
+	    *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 8);
 
 	    if (encrypt)
 	      _gcry_serpent_sse2_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
@@ -1378,9 +1375,8 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  /* Process data in 8 block chunks. */
 	  while (nblocks >= 8)
 	    {
-	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 8;
-	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 8);
+	      *l = ocb_get_l(c,  blkn - blkn % 8);
 
 	      if (encrypt)
 		_gcry_serpent_neon_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
@@ -1410,8 +1406,6 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 #if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
   c->u_mode.ocb.data_nblocks = blkn;
 
-  wipememory(&l_tmp, sizeof(l_tmp));
-
   if (burn_stack_depth)
     _gcry_burn_stack (burn_stack_depth + 4 * sizeof(void *));
 #endif
@@ -1427,7 +1421,6 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 #if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
   serpent_context_t *ctx = (void *)&c->context.c;
   const unsigned char *abuf = abuf_arg;
-  unsigned char l_tmp[sizeof(serpent_block_t)];
   int burn_stack_depth = 2 * sizeof(serpent_block_t);
   u64 blkn = c->u_mode.ocb.aad_nblocks;
 #else
@@ -1465,9 +1458,8 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	  /* Process data in 16 block chunks. */
 	  while (nblocks >= 16)
 	    {
-	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 16;
-	      *l = (uintptr_t)(void *)ocb_get_l(c, l_tmp, blkn - blkn % 16);
+	      *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 16);
 
 	      _gcry_serpent_avx2_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
 					  c->u_mode.ocb.aad_sum, Ls);
@@ -1512,9 +1504,8 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	/* Process data in 8 block chunks. */
 	while (nblocks >= 8)
 	  {
-	    /* l_tmp will be used only every 65536-th block. */
 	    blkn += 8;
-	    *l = (uintptr_t)(void *)ocb_get_l(c, l_tmp, blkn - blkn % 8);
+	    *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 8);
 
 	    _gcry_serpent_sse2_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
 					c->u_mode.ocb.aad_sum, Ls);
@@ -1558,9 +1549,8 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	  /* Process data in 8 block chunks. */
 	  while (nblocks >= 8)
 	    {
-	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 8;
-	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 8);
+	      *l = ocb_get_l(c, blkn - blkn % 8);
 
 	      _gcry_serpent_neon_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
 					  c->u_mode.ocb.aad_sum, Ls);
@@ -1584,8 +1574,6 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
 #if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
   c->u_mode.ocb.aad_nblocks = blkn;
-
-  wipememory(&l_tmp, sizeof(l_tmp));
 
   if (burn_stack_depth)
     _gcry_burn_stack (burn_stack_depth + 4 * sizeof(void *));

@@ -336,7 +336,6 @@ _gcry_aes_armv8_ce_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   u64 blkn = c->u_mode.ocb.data_nblocks;
   u64 blkn_offs = blkn - blkn % 32;
   unsigned int n = 32 - blkn % 32;
-  unsigned char l_tmp[16];
   void *Ls[32];
   void **l;
   size_t i;
@@ -364,9 +363,8 @@ _gcry_aes_armv8_ce_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       /* Process data in 32 block chunks. */
       while (nblocks >= 32)
         {
-          /* l_tmp will be used only every 65536-th block. */
           blkn_offs += 32;
-          *l = (void *)ocb_get_l(c, l_tmp, blkn_offs);
+          *l = (void *)ocb_get_l(c, blkn_offs);
 
           crypt_fn(keysched, outbuf, inbuf, c->u_iv.iv, c->u_ctr.ctr, Ls, 32,
                     nrounds);
@@ -378,13 +376,13 @@ _gcry_aes_armv8_ce_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
       if (nblocks && l < &Ls[nblocks])
         {
-          *l = (void *)ocb_get_l(c, l_tmp, 32 + blkn_offs);
+          *l = (void *)ocb_get_l(c, 32 + blkn_offs);
         }
     }
   else
     {
       for (i = 0; i < nblocks; i++)
-        Ls[i] = (void *)ocb_get_l(c, l_tmp, ++blkn);
+        Ls[i] = (void *)ocb_get_l(c, ++blkn);
     }
 
   if (nblocks)
@@ -392,8 +390,6 @@ _gcry_aes_armv8_ce_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       crypt_fn(keysched, outbuf, inbuf, c->u_iv.iv, c->u_ctr.ctr, Ls, nblocks,
                nrounds);
     }
-
-  wipememory(&l_tmp, sizeof(l_tmp));
 }
 
 void
@@ -407,7 +403,6 @@ _gcry_aes_armv8_ce_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
   u64 blkn = c->u_mode.ocb.aad_nblocks;
   u64 blkn_offs = blkn - blkn % 32;
   unsigned int n = 32 - blkn % 32;
-  unsigned char l_tmp[16];
   void *Ls[32];
   void **l;
   size_t i;
@@ -435,9 +430,8 @@ _gcry_aes_armv8_ce_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
       /* Process data in 32 block chunks. */
       while (nblocks >= 32)
         {
-          /* l_tmp will be used only every 65536-th block. */
           blkn_offs += 32;
-          *l = (void *)ocb_get_l(c, l_tmp, blkn_offs);
+          *l = (void *)ocb_get_l(c, blkn_offs);
 
           _gcry_aes_ocb_auth_armv8_ce(keysched, abuf, c->u_mode.ocb.aad_offset,
                                       c->u_mode.ocb.aad_sum, Ls, 32, nrounds);
@@ -448,13 +442,13 @@ _gcry_aes_armv8_ce_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
 
       if (nblocks && l < &Ls[nblocks])
         {
-          *l = (void *)ocb_get_l(c, l_tmp, 32 + blkn_offs);
+          *l = (void *)ocb_get_l(c, 32 + blkn_offs);
         }
     }
   else
     {
       for (i = 0; i < nblocks; i++)
-        Ls[i] = (void *)ocb_get_l(c, l_tmp, ++blkn);
+        Ls[i] = (void *)ocb_get_l(c, ++blkn);
     }
 
   if (nblocks)
@@ -462,8 +456,6 @@ _gcry_aes_armv8_ce_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
       _gcry_aes_ocb_auth_armv8_ce(keysched, abuf, c->u_mode.ocb.aad_offset,
                                   c->u_mode.ocb.aad_sum, Ls, nblocks, nrounds);
     }
-
-  wipememory(&l_tmp, sizeof(l_tmp));
 }
 
 #endif /* USE_ARM_CE */

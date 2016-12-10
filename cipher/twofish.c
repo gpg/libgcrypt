@@ -1261,7 +1261,6 @@ _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   TWOFISH_context *ctx = (void *)&c->context.c;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char l_tmp[TWOFISH_BLOCKSIZE];
   unsigned int burn, burn_stack_depth = 0;
   u64 blkn = c->u_mode.ocb.data_nblocks;
 
@@ -1273,10 +1272,9 @@ _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     /* Process data in 3 block chunks. */
     while (nblocks >= 3)
       {
-	/* l_tmp will be used only every 65536-th block. */
-	Ls[0] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 1);
-	Ls[1] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 2);
-	Ls[2] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 3);
+	Ls[0] = (uintptr_t)(const void *)ocb_get_l(c, blkn + 1);
+	Ls[1] = (uintptr_t)(const void *)ocb_get_l(c, blkn + 2);
+	Ls[2] = (uintptr_t)(const void *)ocb_get_l(c, blkn + 3);
 	blkn += 3;
 
 	if (encrypt)
@@ -1300,8 +1298,6 @@ _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
   c->u_mode.ocb.data_nblocks = blkn;
 
-  wipememory(&l_tmp, sizeof(l_tmp));
-
   if (burn_stack_depth)
     _gcry_burn_stack (burn_stack_depth + 4 * sizeof(void *));
 #else
@@ -1322,7 +1318,6 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 #ifdef USE_AMD64_ASM
   TWOFISH_context *ctx = (void *)&c->context.c;
   const unsigned char *abuf = abuf_arg;
-  unsigned char l_tmp[TWOFISH_BLOCKSIZE];
   unsigned int burn, burn_stack_depth = 0;
   u64 blkn = c->u_mode.ocb.aad_nblocks;
 
@@ -1334,10 +1329,9 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     /* Process data in 3 block chunks. */
     while (nblocks >= 3)
       {
-	/* l_tmp will be used only every 65536-th block. */
-	Ls[0] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 1);
-	Ls[1] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 2);
-	Ls[2] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 3);
+	Ls[0] = (uintptr_t)(const void *)ocb_get_l(c, blkn + 1);
+	Ls[1] = (uintptr_t)(const void *)ocb_get_l(c, blkn + 2);
+	Ls[2] = (uintptr_t)(const void *)ocb_get_l(c, blkn + 3);
 	blkn += 3;
 
 	twofish_amd64_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
@@ -1355,8 +1349,6 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   }
 
   c->u_mode.ocb.aad_nblocks = blkn;
-
-  wipememory(&l_tmp, sizeof(l_tmp));
 
   if (burn_stack_depth)
     _gcry_burn_stack (burn_stack_depth + 4 * sizeof(void *));

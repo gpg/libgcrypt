@@ -527,92 +527,10 @@ _gcry_aes_ssse3_cbc_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
 }
 
 
-static inline const unsigned char *
-get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 i, unsigned char *iv,
-       unsigned char *ctr, const void **aes_const_ptr,
-       byte ssse3_state[SSSE3_STATE_SIZE], int encrypt)
-{
-  const unsigned char *l;
-  unsigned int ntz;
-
-  if (i & 1)
-    return c->u_mode.ocb.L[0];
-  else if (i & 2)
-    return c->u_mode.ocb.L[1];
-  else if (i & 0xffffffffU)
-    {
-      asm ("rep;bsf %k[low], %k[ntz]\n\t"
-           : [ntz] "=r" (ntz)
-           : [low] "r" (i & 0xffffffffU)
-           : "cc");
-    }
-  else
-    {
-      if (OCB_L_TABLE_SIZE < 32)
-        {
-          ntz = 32;
-        }
-      else if (i)
-        {
-          asm ("rep;bsf %k[high], %k[ntz]\n\t"
-               : [ntz] "=r" (ntz)
-               : [high] "r" (i >> 32)
-               : "cc");
-          ntz += 32;
-        }
-      else
-        {
-          ntz = 64;
-        }
-    }
-
-  if (ntz < OCB_L_TABLE_SIZE)
-    {
-      l = c->u_mode.ocb.L[ntz];
-    }
-  else
-    {
-      /* Store Offset & Checksum before calling external function */
-      asm volatile ("movdqu %%xmm7, %[iv]\n\t"
-                    "movdqu %%xmm6, %[ctr]\n\t"
-                    : [iv] "=m" (*iv),
-                      [ctr] "=m" (*ctr)
-                    :
-                    : "memory" );
-
-      /* Restore SSSE3 state. */
-      vpaes_ssse3_cleanup();
-
-      l = _gcry_cipher_ocb_get_l (c, l_tmp, i);
-
-      /* Save SSSE3 state. */
-      if (encrypt)
-	{
-	  vpaes_ssse3_prepare_enc (*aes_const_ptr);
-	}
-      else
-	{
-	  vpaes_ssse3_prepare_dec (*aes_const_ptr);
-	}
-
-      /* Restore Offset & Checksum */
-      asm volatile ("movdqu %[iv], %%xmm7\n\t"
-                    "movdqu %[ctr], %%xmm6\n\t"
-                    : /* No output */
-                    : [iv] "m" (*iv),
-                      [ctr] "m" (*ctr)
-                    : "memory" );
-    }
-
-  return l;
-}
-
-
 static void
 ssse3_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
                const void *inbuf_arg, size_t nblocks)
 {
-  union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
@@ -635,8 +553,7 @@ ssse3_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
     {
       const unsigned char *l;
 
-      l = get_l(c, l_tmp.x1, ++n, c->u_iv.iv, c->u_ctr.ctr, &aes_const_ptr,
-		ssse3_state, 1);
+      l = ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Checksum_i = Checksum_{i-1} xor P_i  */
@@ -671,7 +588,6 @@ ssse3_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
                 :
                 : "memory" );
 
-  wipememory(&l_tmp, sizeof(l_tmp));
   vpaes_ssse3_cleanup ();
 }
 
@@ -679,7 +595,6 @@ static void
 ssse3_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
                const void *inbuf_arg, size_t nblocks)
 {
-  union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
@@ -702,8 +617,7 @@ ssse3_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
     {
       const unsigned char *l;
 
-      l = get_l(c, l_tmp.x1, ++n, c->u_iv.iv, c->u_ctr.ctr, &aes_const_ptr,
-		ssse3_state, 0);
+      l = ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
@@ -738,7 +652,6 @@ ssse3_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
                 :
                 : "memory" );
 
-  wipememory(&l_tmp, sizeof(l_tmp));
   vpaes_ssse3_cleanup ();
 }
 
@@ -758,7 +671,6 @@ void
 _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
                           size_t nblocks)
 {
-  union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   const unsigned char *abuf = abuf_arg;
   u64 n = c->u_mode.ocb.aad_nblocks;
@@ -780,8 +692,7 @@ _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     {
       const unsigned char *l;
 
-      l = get_l(c, l_tmp.x1, ++n, c->u_mode.ocb.aad_offset,
-                c->u_mode.ocb.aad_sum, &aes_const_ptr, ssse3_state, 1);
+      l = ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
@@ -812,7 +723,6 @@ _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
                 :
                 : "memory" );
 
-  wipememory(&l_tmp, sizeof(l_tmp));
   vpaes_ssse3_cleanup ();
 }
 
