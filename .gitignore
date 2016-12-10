@@ -73,6 +73,7 @@ tests/ac-data
 tests/ac-schemes
 tests/aeswrap
 tests/basic
+tests/basic-disable-all-hwf
 tests/bench-slope
 tests/benchmark
 tests/curves

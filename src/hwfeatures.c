@@ -83,6 +83,12 @@ _gcry_disable_hw_feature (const char *name)
 {
   int i;
 
+  if (!strcmp(name, "all"))
+    {
+      disabled_hw_features = ~0;
+      return 0;
+    }
+
   for (i=0; i < DIM (hwflist); i++)
     if (!strcmp (hwflist[i].desc, name))
       {
@@ -159,15 +165,7 @@ parse_hwf_deny_file (void)
       if (!*p || *p == '#')
         continue;
 
-      for (i=0; i < DIM (hwflist); i++)
-        {
-          if (!strcmp (hwflist[i].desc, p))
-            {
-              disabled_hw_features |= hwflist[i].flag;
-              break;
-            }
-        }
-      if (i == DIM (hwflist))
+      if (_gcry_disable_hw_feature (p) == GPG_ERR_INV_NAME)
         {
 #ifdef HAVE_SYSLOG
           syslog (LOG_USER|LOG_WARNING,
