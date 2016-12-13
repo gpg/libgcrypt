@@ -21,8 +21,8 @@
 
 #include "../src/gcrypt.h"
 
-#ifndef PGMNAME
-# error Macro PGMNAME not defined.
+#ifndef PGM
+# error Macro PGM not defined.
 #endif
 #ifndef _GCRYPT_CONFIG_H_INCLUDED
 # error config.h not included
@@ -70,7 +70,7 @@ die (const char *format, ...)
 #ifdef HAVE_FLOCKFILE
   flockfile (stderr);
 #endif
-  fprintf (stderr, "%s: ", PGMNAME);
+  fprintf (stderr, "%s: ", PGM);
   va_start (arg_ptr, format) ;
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
@@ -92,7 +92,7 @@ fail (const char *format, ...)
 #ifdef HAVE_FLOCKFILE
   flockfile (stderr);
 #endif
-  fprintf (stderr, "%s: ", PGMNAME);
+  fprintf (stderr, "%s: ", PGM);
   va_start (arg_ptr, format);
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
@@ -117,7 +117,7 @@ info (const char *format, ...)
 #ifdef HAVE_FLOCKFILE
   flockfile (stderr);
 #endif
-  fprintf (stderr, "%s: ", PGMNAME);
+  fprintf (stderr, "%s: ", PGM);
   va_start (arg_ptr, format);
   vfprintf (stderr, format, arg_ptr);
   if (*format && format[strlen(format)-1] != '\n')

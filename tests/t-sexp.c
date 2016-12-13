@@ -28,7 +28,7 @@
 #include <assert.h>
 #include "../src/gcrypt-int.h"
 
-#define PGMNAME "t-sexp"
+#define PGM "t-sexp"
 #include "t-common.h"
 
 
@@ -1146,7 +1146,7 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--help"))
         {
           puts (
-"usage: " PGMNAME " [options]\n"
+"usage: " PGM " [options]\n"
 "\n"
 "Options:\n"
 "  --verbose      Show what is going on\n"

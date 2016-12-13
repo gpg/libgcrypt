@@ -26,7 +26,7 @@
 #include <string.h>
 #include <errno.h>
 
-#define PGMNAME "t-secmem"
+#define PGM "t-secmem"
 
 #include "t-common.h"
 #include "../src/gcrypt-testapi.h"
@@ -125,7 +125,7 @@ main (int argc, char **argv)
         }
       else if (!strcmp (*argv, "--help"))
         {
-          fputs ("usage: " PGMNAME " [options]\n"
+          fputs ("usage: " PGM " [options]\n"
                  "Options:\n"
                  "  --verbose       print timings etc.\n"
                  "  --debug         flyswatter\n"

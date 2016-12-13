@@ -31,7 +31,7 @@
 # include <pthread.h>
 #endif
 
-#define PGMNAME "t-lock"
+#define PGM "t-lock"
 
 #include "t-common.h"
 #include "../src/gcrypt-testapi.h"
