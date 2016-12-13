@@ -224,13 +224,13 @@ main (int argc, char **argv)
   else if ((argc > 1) && (! strcmp (argv[1], "--42")))
     verbose = debug = mode42 = 1;
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (! gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
 
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
 
   if (mode42)
     create_42prime ();

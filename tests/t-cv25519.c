@@ -553,13 +553,13 @@ main (int argc, char **argv)
         die ("unknown option '%s'", *argv);
     }
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
   if (debug)
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
-  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
+  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
   start_timer ();
   check_cv25519 ();

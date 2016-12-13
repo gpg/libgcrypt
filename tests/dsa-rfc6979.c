@@ -966,16 +966,16 @@ main (int argc, char **argv)
       debug = 1;
     }
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   /* Check that we test exactly our version - including the patchlevel.  */
   if (strcmp (GCRYPT_VERSION, gcry_check_version (NULL)))
     die ("version mismatch; pgm=%s, library=%s\n",
          GCRYPT_VERSION,gcry_check_version (NULL));
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   /* No valuable keys are create, so we can speed up our RNG. */
-  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 
   check_dsa_rfc6979 ();
 

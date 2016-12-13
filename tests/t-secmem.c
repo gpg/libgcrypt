@@ -70,13 +70,13 @@ test_secmem_overflow (void)
     {
       a[i] = gcry_xmalloc_secure (512);
       if (verbose && !(i %40))
-        gcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
+        xgcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
     }
 
   if (debug)
-    gcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
+    xgcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
   if (verbose)
-    gcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
+    xgcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
   for (i=0; i < DIM(a); i++)
     xfree (a[i]);
 }
@@ -97,7 +97,7 @@ outofcore_handler (void *opaque, size_t req_n, unsigned int flags)
   been_here = 1;
 
   info ("outofcore handler invoked");
-  gcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
+  xgcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
   fail ("out of core%s while allocating %lu bytes",
        (flags & 1)?" in secure memory":"", (unsigned long)req_n);
 
@@ -151,16 +151,16 @@ main (int argc, char **argv)
     die ("version mismatch; pgm=%s, library=%s\n",
          GCRYPT_VERSION, gcry_check_version (NULL));
   if (debug)
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
-  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
+  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  xgcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
   gcry_set_outofcore_handler (outofcore_handler, NULL);
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
   /* Libgcrypt prints a warning when the first overflow is allocated;
    * we do not want to see that.  */
   if (!verbose)
-    gcry_control (GCRYCTL_DISABLE_SECMEM_WARN, 0);
+    xgcry_control (GCRYCTL_DISABLE_SECMEM_WARN, 0);
 
 
   test_secmem ();
@@ -171,10 +171,11 @@ main (int argc, char **argv)
 
   if (verbose)
     {
-      gcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
-      gcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
+      xgcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
+      xgcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
     }
+
   info ("All tests completed.  Errors: %d\n", error_count);
-  gcry_control (GCRYCTL_TERM_SECMEM, 0 , 0);
+  xgcry_control (GCRYCTL_TERM_SECMEM, 0 , 0);
   return !!error_count;
 }

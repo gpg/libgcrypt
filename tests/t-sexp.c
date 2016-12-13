@@ -1169,17 +1169,17 @@ main (int argc, char **argv)
     }
 
   if (debug)
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
-  gcry_control (GCRYCTL_DISABLE_SECMEM_WARN);
-  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+  xgcry_control (GCRYCTL_DISABLE_SECMEM_WARN);
+  xgcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch");
   /* #include "../src/gcrypt-int.h" indicates that internal interfaces
      may be used; thus better do an exact version check. */
   if (strcmp (gcry_check_version (NULL), GCRYPT_VERSION))
     die ("exact version match failed");
-  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
   basic ();
   canon_len ();

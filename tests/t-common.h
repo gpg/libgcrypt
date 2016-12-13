@@ -148,3 +148,13 @@ info (const char *format, ...)
   funlockfile (stderr);
 #endif
 }
+
+
+/* Convenience macro for initializing gcrypt with error checking.  */
+#define xgcry_control(cmd...)                                   \
+  do {                                                          \
+    gcry_error_t err__ = gcry_control (cmd);                    \
+    if (err__)                                                  \
+      die ("line %d: gcry_control (%s) failed: %s",             \
+           __LINE__, #cmd, gcry_strerror (err__));              \
+  } while (0)

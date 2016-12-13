@@ -86,7 +86,7 @@ test_genkey ( int argc, char **argv )
     (void)argc;
     (void)argv;
 
-    gcry_control( GCRYCTL_INIT_SECMEM, 16384, 0 );
+    xgcry_control( GCRYCTL_INIT_SECMEM, 16384, 0 );
     rc = gcry_sexp_build ( &s_parms, NULL, "(genkey(dsa(nbits %d)))", nbits );
     rc = gcry_pk_genkey( &s_key, s_parms );
     if ( rc ) {
