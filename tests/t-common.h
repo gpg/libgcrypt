@@ -50,7 +50,7 @@
 /* Standard global variables.  */
 static int verbose;
 static int debug;
-static int errorcount;
+static int error_count;
 
 /* If we have a decent libgpg-error we can use some gcc attributes.  */
 #ifdef GPGRT_ATTR_NORETURN
@@ -101,8 +101,8 @@ fail (const char *format, ...)
 #ifdef HAVE_FLOCKFILE
   funlockfile (stderr);
 #endif
-  errorcount++;
-  if (errorcount >= 50)
+  error_count++;
+  if (error_count >= 50)
     die ("stopped after 50 errors.");
 }
 

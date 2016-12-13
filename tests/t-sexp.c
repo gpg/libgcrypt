@@ -1188,5 +1188,5 @@ main (int argc, char **argv)
   check_extract_param ();
   bug_1594 ();
 
-  return errorcount? 1:0;
+  return error_count? 1:0;
 }

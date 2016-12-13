@@ -454,5 +454,5 @@ main (int argc, char **argv)
   if (verbose)
     print_accounts ();
 
-  return errorcount ? 1 : 0;
+  return error_count ? 1 : 0;
 }

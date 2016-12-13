@@ -174,7 +174,7 @@ main (int argc, char **argv)
       gcry_control (PRIV_CTL_DUMP_SECMEM_STATS, 0 , 0);
       gcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
     }
-  info ("All tests completed.  Errors: %d\n", errorcount);
+  info ("All tests completed.  Errors: %d\n", error_count);
   gcry_control (GCRYCTL_TERM_SECMEM, 0 , 0);
-  return !!errorcount;
+  return !!error_count;
 }
