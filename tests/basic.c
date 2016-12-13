@@ -30,11 +30,8 @@
 
 #include "../src/gcrypt-int.h"
 
-#ifndef DIM
-# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
-#endif
-
 #define PGM "basic"
+#include "t-common.h"
 
 typedef struct test_spec_pubkey_key
 {
@@ -56,39 +53,9 @@ test_spec_pubkey_t;
 #define FLAG_SIGN  (1 << 1)
 #define FLAG_GRIP  (1 << 2)
 
-static int verbose;
-static int error_count;
 static int in_fips_mode;
-static int die_on_error;
 
 #define MAX_DATA_LEN 128
-
-#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
-#define hexdigitp(a) (digitp (a)                     \
-                      || (*(a) >= 'A' && *(a) <= 'F')  \
-                      || (*(a) >= 'a' && *(a) <= 'f'))
-#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
-                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
-#define xtoi_2(p)   ((xtoi_1(p) * 16) + xtoi_1((p)+1))
-#define xmalloc(a)    gcry_xmalloc ((a))
-#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
-#define xstrdup(a)    gcry_xstrdup ((a))
-#define xfree(a)      gcry_free ((a))
-
-
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  error_count++;
-  if (die_on_error)
-    exit (1);
-}
 
 
 static void
@@ -104,18 +71,6 @@ mismatch (const void *expected, size_t expectedlen,
   for (p = computed; computedlen; p++, computedlen--)
     fprintf (stderr, " %02x", *p);
   fprintf (stderr, "\n");
-}
-
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
 }
 
 
@@ -1593,8 +1548,8 @@ _check_gcm_cipher (unsigned int step)
           err = gcry_cipher_authenticate(hde, tv[i].aad + pos, poslen);
           if (err)
             {
-              fail ("aes-gcm, gcry_cipher_authenticate (%d) (%d:%d) failed: "
-                    "%s\n", i, pos, step, gpg_strerror (err));
+              fail ("aes-gcm, gcry_cipher_authenticate (%d) (%lu:%d) failed: "
+                    "%s\n", i, (unsigned long) pos, step, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -1602,8 +1557,8 @@ _check_gcm_cipher (unsigned int step)
           err = gcry_cipher_authenticate(hdd, tv[i].aad + pos, poslen);
           if (err)
             {
-              fail ("aes-gcm, de gcry_cipher_authenticate (%d) (%d:%d) failed: "
-	            "%s\n", i, pos, step, gpg_strerror (err));
+              fail ("aes-gcm, de gcry_cipher_authenticate (%d) (%lu:%d) failed: "
+	            "%s\n", i, (unsigned long) pos, step, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -1618,8 +1573,8 @@ _check_gcm_cipher (unsigned int step)
                                      tv[i].plaintext + pos, poslen);
           if (err)
             {
-              fail ("aes-gcm, gcry_cipher_encrypt (%d) (%d:%d) failed: %s\n",
-                    i, pos, step, gpg_strerror (err));
+              fail ("aes-gcm, gcry_cipher_encrypt (%d) (%lu:%d) failed: %s\n",
+                    i, (unsigned long) pos, step, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -1636,8 +1591,8 @@ _check_gcm_cipher (unsigned int step)
           err = gcry_cipher_decrypt (hdd, out + pos, poslen, NULL, 0);
           if (err)
             {
-              fail ("aes-gcm, gcry_cipher_decrypt (%d) (%d:%d) failed: %s\n",
-                    i, pos, step, gpg_strerror (err));
+              fail ("aes-gcm, gcry_cipher_decrypt (%d) (%lu:%d) failed: %s\n",
+                    i, (unsigned long) pos, step, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -1750,8 +1705,8 @@ _check_gcm_cipher (unsigned int step)
           if (tv[i].should_fail)
             goto next_tv;
 
-          fail ("aes-gcm, gcry_cipher_gettag(%d, %d) (byte-buf) failed: %s\n",
-                i, taglen2, gpg_strerror (err));
+          fail ("aes-gcm, gcry_cipher_gettag(%d, %lu) (byte-buf) failed: %s\n",
+                i, (unsigned long) taglen2, gpg_strerror (err));
           gcry_cipher_close (hde);
           gcry_cipher_close (hdd);
           return;
@@ -1998,8 +1953,8 @@ _check_poly1305_cipher (unsigned int step)
           err = gcry_cipher_authenticate(hde, tv[i].aad + pos, poslen);
           if (err)
             {
-              fail ("poly1305, gcry_cipher_authenticate (%d) (%d:%d) failed: "
-                    "%s\n", i, pos, step, gpg_strerror (err));
+              fail ("poly1305, gcry_cipher_authenticate (%d) (%lu:%d) failed: "
+                    "%s\n", i, (unsigned long) pos, step, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -2007,8 +1962,8 @@ _check_poly1305_cipher (unsigned int step)
           err = gcry_cipher_authenticate(hdd, tv[i].aad + pos, poslen);
           if (err)
             {
-              fail ("poly1305, de gcry_cipher_authenticate (%d) (%d:%d) failed: "
-	            "%s\n", i, pos, step, gpg_strerror (err));
+              fail ("poly1305, de gcry_cipher_authenticate (%d) (%lu:%d) failed: "
+	            "%s\n", i, (unsigned long) pos, step, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -2023,8 +1978,8 @@ _check_poly1305_cipher (unsigned int step)
                                      tv[i].plaintext + pos, poslen);
           if (err)
             {
-              fail ("poly1305, gcry_cipher_encrypt (%d) (%d:%d) failed: %s\n",
-                    i, pos, step, gpg_strerror (err));
+              fail ("poly1305, gcry_cipher_encrypt (%d) (%lu:%d) failed: %s\n",
+                    i, (unsigned long) pos, step, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -2041,8 +1996,8 @@ _check_poly1305_cipher (unsigned int step)
           err = gcry_cipher_decrypt (hdd, out + pos, poslen, NULL, 0);
           if (err)
             {
-              fail ("poly1305, gcry_cipher_decrypt (%d) (%d:%d) failed: %s\n",
-                    i, pos, step, gpg_strerror (err));
+              fail ("poly1305, gcry_cipher_decrypt (%d) (%lu:%d) failed: %s\n",
+                    i, (unsigned long) pos, step, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -2709,8 +2664,8 @@ check_ccm_cipher (void)
           err = gcry_cipher_info (hde, GCRYCTL_GET_TAGLEN, NULL, &taglen2);
           if (err)
             {
-              fail ("cipher-ccm, gcryctl_get_taglen failed (tv %d): %s\n",
-                    i, gpg_strerror (err));
+              fail ("cipher-ccm, gcryctl_get_taglen failed (tv %lu): %s\n",
+                    (unsigned long) i, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -2718,8 +2673,8 @@ check_ccm_cipher (void)
           if (taglen2 != authlen)
             {
               fail ("cipher-ccm, gcryctl_get_taglen returned bad length"
-                    " (tv %d): got=%zu want=%zu\n",
-                    i, taglen2, authlen);
+                    " (tv %lu): got=%zu want=%zu\n",
+                    (unsigned long) i, taglen2, authlen);
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -2758,8 +2713,8 @@ check_ccm_cipher (void)
                                        split);
           if (err)
             {
-              fail ("cipher-ccm, gcry_cipher_encrypt (%d:%d) failed: %s\n",
-                    i, j, gpg_strerror (err));
+              fail ("cipher-ccm, gcry_cipher_encrypt (%lu:%lu) failed: %s\n",
+                    (unsigned long) i, (unsigned long) j, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -2768,15 +2723,16 @@ check_ccm_cipher (void)
           err = gcry_cipher_gettag (hde, &out[tv[i].plainlen], authlen);
           if (err)
             {
-              fail ("cipher-ccm, gcry_cipher_gettag (%d:%d) failed: %s\n",
-                    i, j, gpg_strerror (err));
+              fail ("cipher-ccm, gcry_cipher_gettag (%lu:%lu) failed: %s\n",
+                    (unsigned long) i, (unsigned long) j, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
             }
 
           if (memcmp (tv[i].ciphertext, out, tv[i].cipherlen))
-            fail ("cipher-ccm, encrypt mismatch entry %d:%d\n", i, j);
+            fail ("cipher-ccm, encrypt mismatch entry %lu:%lu\n",
+		  (unsigned long) i, (unsigned long) j);
 
           err = gcry_cipher_decrypt (hdd, out, tv[i].plainlen - split, NULL, 0);
           if (!err)
@@ -2784,21 +2740,22 @@ check_ccm_cipher (void)
                                        NULL, 0);
           if (err)
             {
-              fail ("cipher-ccm, gcry_cipher_decrypt (%d:%d) failed: %s\n",
-                    i, j, gpg_strerror (err));
+              fail ("cipher-ccm, gcry_cipher_decrypt (%lu:%lu) failed: %s\n",
+                    (unsigned long) i, (unsigned long) j, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
             }
 
           if (memcmp (tv[i].plaintext, out, tv[i].plainlen))
-            fail ("cipher-ccm, decrypt mismatch entry %d:%d\n", i, j);
+            fail ("cipher-ccm, decrypt mismatch entry %lu:%lu\n",
+		  (unsigned long) i, (unsigned long) j);
 
           err = gcry_cipher_checktag (hdd, &out[tv[i].plainlen], authlen);
           if (err)
             {
-              fail ("cipher-ccm, gcry_cipher_checktag (%d:%d) failed: %s\n",
-                    i, j, gpg_strerror (err));
+              fail ("cipher-ccm, gcry_cipher_checktag (%lu:%lu) failed: %s\n",
+                    (unsigned long) i, (unsigned long) j, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -9544,7 +9501,6 @@ main (int argc, char **argv)
 {
   gpg_error_t err;
   int last_argc = -1;
-  int debug = 0;
   int use_fips = 0;
   int selftest_only = 0;
   int pubkey_only = 0;

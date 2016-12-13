@@ -30,49 +30,10 @@
 # include <sys/wait.h>
 #endif
 
-#include "../src/gcrypt-int.h"
-
 #define PGM "random"
+#include "t-common.h"
 
-#ifndef DIM
-# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
-#endif
-
-
-static int verbose;
-static int debug;
 static int with_progress;
-
-/* If we have a decent libgpg-error we can use some gcc attributes.  */
-#ifdef GPGRT_ATTR_NORETURN
-static void die (const char *format, ...) GPGRT_ATTR_NR_PRINTF(1,2);
-static void info (const char *format, ...) GPGRT_ATTR_PRINTF(1,2);
-#endif /*GPGRT_ATTR_NORETURN*/
-
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  fputs ( PGM ": ", stderr);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
-
-
-static void
-info (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  fputs ( PGM ": ", stderr);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-}
 
 
 static void

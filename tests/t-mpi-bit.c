@@ -28,61 +28,9 @@
 #include <assert.h>
 #include <stdarg.h>
 
-#include "../src/gcrypt-int.h"
-
 #define PGM "t-mpi-bit"
+#include "t-common.h"
 
-static const char *wherestr;
-static int verbose;
-static int error_count;
-
-#define xmalloc(a)    gcry_xmalloc ((a))
-#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
-#define xfree(a)      gcry_free ((a))
-#define pass() do { ; } while (0)
-
-static void
-info (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  if (!verbose)
-    return;
-  fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-}
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  if (wherestr)
-    fprintf (stderr, "%s: ", wherestr);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  error_count++;
-}
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  if (wherestr)
-    fprintf (stderr, "%s: ", wherestr);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
 
 /* Allocate a bit string consisting of '0' and '1' from the MPI
    A. Return the LENGTH least significant bits. Caller needs to xfree
@@ -382,7 +330,6 @@ set_bit_with_resize (void)
 int
 main (int argc, char **argv)
 {
-  int debug = 0;
   int i;
 
   if (argc > 1 && !strcmp (argv[1], "--verbose"))

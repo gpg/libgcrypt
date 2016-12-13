@@ -33,43 +33,7 @@
 #endif
 
 #define PGM "mpitests"
-
-static int verbose;
-static int debug;
-static int error_count;
-
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr ;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format) ;
-  vfprintf (stderr, format, arg_ptr );
-  va_end(arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
-    putc ('\n', stderr);
-  exit (1);
-}
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
-    putc ('\n', stderr);
-  error_count++;
-  if (error_count >= 50)
-    die ("stopped after 50 errors.");
-}
+#include "t-common.h"
 
 
 /* Set up some test patterns */

@@ -32,6 +32,11 @@
 #ifndef DIM
 # define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
 #endif
+#define DIMof(type,member)   DIM(((type *)0)->member)
+#define xmalloc(a)    gcry_xmalloc ((a))
+#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
+#define xstrdup(a)    gcry_xstrdup ((a))
+#define xfree(a)      gcry_free ((a))
 #define my_isascii(c) (!((c) & 0x80))
 #define digitp(p)     (*(p) >= '0' && *(p) <= '9')
 #define hexdigitp(a)  (digitp (a)                     \
@@ -48,15 +53,20 @@
 
 
 /* Standard global variables.  */
+static const char *wherestr;
 static int verbose;
 static int debug;
 static int error_count;
+static int die_on_error;
 
 /* If we have a decent libgpg-error we can use some gcc attributes.  */
 #ifdef GPGRT_ATTR_NORETURN
-static void die (const char *format, ...) GPGRT_ATTR_NR_PRINTF(1,2);
-static void fail (const char *format, ...) GPGRT_ATTR_PRINTF(1,2);
-static void info (const char *format, ...) GPGRT_ATTR_PRINTF(1,2);
+static void die (const char *format, ...)
+  GPGRT_ATTR_UNUSED GPGRT_ATTR_NR_PRINTF(1,2);
+static void fail (const char *format, ...)
+  GPGRT_ATTR_UNUSED GPGRT_ATTR_PRINTF(1,2);
+static void info (const char *format, ...) \
+  GPGRT_ATTR_UNUSED GPGRT_ATTR_PRINTF(1,2);
 #endif /*GPGRT_ATTR_NORETURN*/
 
 
@@ -66,11 +76,16 @@ die (const char *format, ...)
 {
   va_list arg_ptr ;
 
+  /* Avoid warning.  */
+  (void) debug;
+
   fflush (stdout);
 #ifdef HAVE_FLOCKFILE
   flockfile (stderr);
 #endif
   fprintf (stderr, "%s: ", PGM);
+  if (wherestr)
+    fprintf (stderr, "%s: ", wherestr);
   va_start (arg_ptr, format) ;
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
@@ -93,6 +108,8 @@ fail (const char *format, ...)
   flockfile (stderr);
 #endif
   fprintf (stderr, "%s: ", PGM);
+  if (wherestr)
+    fprintf (stderr, "%s: ", wherestr);
   va_start (arg_ptr, format);
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
@@ -101,6 +118,8 @@ fail (const char *format, ...)
 #ifdef HAVE_FLOCKFILE
   funlockfile (stderr);
 #endif
+  if (die_on_error)
+    exit (1);
   error_count++;
   if (error_count >= 50)
     die ("stopped after 50 errors.");
@@ -118,6 +137,8 @@ info (const char *format, ...)
   flockfile (stderr);
 #endif
   fprintf (stderr, "%s: ", PGM);
+  if (wherestr)
+    fprintf (stderr, "%s: ", wherestr);
   va_start (arg_ptr, format);
   vfprintf (stderr, format, arg_ptr);
   if (*format && format[strlen(format)-1] != '\n')

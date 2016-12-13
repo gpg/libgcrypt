@@ -35,11 +35,7 @@
 #include <errno.h>
 
 #define PGM "pkbench"
-
-
-static int verbose;
-static int debug;
-static int error_count;
+#include "t-common.h"
 
 
 typedef struct context
@@ -53,31 +49,6 @@ typedef struct context
 
 typedef int (*work_t) (context_t context, unsigned int final);
 
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  fputs ( PGM ": ", stderr);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  error_count++;
-}
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  putchar ('\n');
-  fputs ( PGM ": ", stderr);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
 
 static void
 show_sexp (const char *prefix, gcry_sexp_t a)

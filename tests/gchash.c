@@ -31,6 +31,9 @@
 # include <gcrypt.h>
 #endif
 
+#define PGM "gchash"
+#include "t-common.h"
+
 
 void
 init_gcrypt (void)

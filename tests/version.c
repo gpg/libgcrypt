@@ -36,6 +36,7 @@
 #include "../src/gcrypt-int.h"
 
 #define PGM "version"
+#include "t-common.h"
 
 
 int

@@ -29,66 +29,9 @@
 
 
 #define PGM "keygen"
+#include "t-common.h"
 
-#define xmalloc(a)    gcry_xmalloc ((a))
-#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
-#define xstrdup(a)    gcry_xstrdup ((a))
-#define xfree(a)      gcry_free ((a))
-#define pass()        do { ; } while (0)
-
-
-static int verbose;
-static int debug;
-static int error_count;
 static int in_fips_mode;
-
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr ;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  va_start( arg_ptr, format ) ;
-  vfprintf (stderr, format, arg_ptr );
-  va_end(arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
-    putc ('\n', stderr);
-  exit (1);
-}
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  /* if (wherestr) */
-  /*   fprintf (stderr, "%s: ", wherestr); */
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
-    putc ('\n', stderr);
-  error_count++;
-  if (error_count >= 50)
-    die ("stopped after 50 errors.");
-}
-
-static void
-info (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
-    putc ('\n', stderr);
-  va_end (arg_ptr);
-}
 
 
 /* static void */

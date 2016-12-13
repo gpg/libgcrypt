@@ -55,6 +55,9 @@ de40eedef66cb1afd94c61e285fa9327e01336e804903740a9145ab1f065c2d5  -
 
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,21 +65,7 @@ de40eedef66cb1afd94c61e285fa9327e01336e804903740a9145ab1f065c2d5  -
 #include <errno.h>
 
 #define PGM "genhashdata"
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr ;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format ) ;
-  vfprintf (stderr, format, arg_ptr );
-  va_end(arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
-    putc ('\n', stderr);
-  exit (1);
-}
+#include "t-common.h"
 
 int
 main (int argc, char **argv)

@@ -28,23 +28,12 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "../src/gcrypt-int.h"
+#define PGM "keygrip"
+#include "t-common.h"
 
-static int verbose;
 static int repetitions;
 
 
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
 
 static void
 print_hex (const char *text, const void *buf, size_t n)
@@ -263,7 +252,6 @@ int
 main (int argc, char **argv)
 {
   int last_argc = -1;
-  int debug = 0;
 
   if (argc)
     { argc--; argv++; }

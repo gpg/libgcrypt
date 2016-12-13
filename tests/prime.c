@@ -24,20 +24,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "../src/gcrypt-int.h"
-
-static int verbose;
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
+#define PGM "prime"
+#include "t-common.h"
 
 static void
 check_primes (void)
@@ -227,7 +215,6 @@ create_42prime (void)
 int
 main (int argc, char **argv)
 {
-  int debug = 0;
   int mode42 = 0;
 
   if ((argc > 1) && (! strcmp (argv[1], "--verbose")))

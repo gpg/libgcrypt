@@ -34,9 +34,7 @@
 #include <assert.h>
 #include <unistd.h>
 
-#ifdef _GCRYPT_IN_LIBGCRYPT
-# include "../src/gcrypt-int.h"
-#else
+#ifndef _GCRYPT_IN_LIBGCRYPT
 # include <gcrypt.h>
 # define PACKAGE_BUGREPORT "devnull@example.org"
 # define PACKAGE_VERSION "[build on " __DATE__ " " __TIME__ "]"
@@ -44,22 +42,8 @@
 #include "../src/gcrypt-testapi.h"
 
 #define PGM "fipsdrv"
+#include "t-common.h"
 
-#define my_isascii(c) (!((c) & 0x80))
-#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
-#define hexdigitp(a) (digitp (a)                     \
-                      || (*(a) >= 'A' && *(a) <= 'F')  \
-                      || (*(a) >= 'a' && *(a) <= 'f'))
-#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
-                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
-#define xtoi_2(p)   ((xtoi_1(p) * 16) + xtoi_1((p)+1))
-#define DIM(v)               (sizeof(v)/sizeof((v)[0]))
-#define DIMof(type,member)   DIM(((type *)0)->member)
-
-
-
-/* Verbose mode flag.  */
-static int verbose;
 
 /* Binary input flag.  */
 static int binary_input;
@@ -132,26 +116,6 @@ struct tag_info
   unsigned int ndef:1;   /* The object has an indefinite length.  */
   unsigned int cons:1;   /* This is a constructed object.  */
 };
-
-
-/* If we have a decent libgpg-error we can use some gcc attributes.  */
-#ifdef GPGRT_ATTR_NORETURN
-static void die (const char *format, ...) GPGRT_ATTR_NR_PRINTF(1,2);
-#endif /*GPGRT_ATTR_NORETURN*/
-
-
-/* Print a error message and exit the process with an error code.  */
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  fputs (PGM ": ", stderr);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
 
 
 static void

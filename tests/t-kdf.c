@@ -27,40 +27,9 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "../src/gcrypt-int.h"
 #include "stopwatch.h"
-
-
-#ifndef DIM
-# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
-#endif
-
-/* Program option flags.  */
-static int verbose;
-static int debug;
-static int error_count;
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  error_count++;
-}
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
+#define PGM "t-kdf"
+#include "t-common.h"
 
 
 static void
@@ -1296,10 +1265,10 @@ main (int argc, char **argv)
   if (s2kcount)
     {
       if (argc != 1)
-        die ("usage: t-kdf --s2k S2KCOUNT\n", stderr );
+        die ("usage: t-kdf --s2k S2KCOUNT\n");
       s2kcount = strtoul (*argv, NULL, 10);
       if (!s2kcount)
-        die ("t-kdf: S2KCOUNT must be positive\n", stderr );
+        die ("t-kdf: S2KCOUNT must be positive\n");
     }
 
   if (!gcry_check_version (GCRYPT_VERSION))

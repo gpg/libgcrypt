@@ -28,6 +28,10 @@
 
 #include "../src/gcrypt-int.h"
 
+
+#define PGM "curves"
+#include "t-common.h"
+
 /* Number of curves defined in ../cipger/ecc.c */
 #define N_CURVES 22
 
@@ -64,33 +68,6 @@ static char const sample_key_2[] =
 "  ))";
 static char const sample_key_2_curve[] = "brainpoolP160r1";
 static unsigned int sample_key_2_nbits = 160;
-
-
-/* Program option flags.  */
-static int verbose;
-static int error_count;
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  error_count++;
-}
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
 
 
 static void
@@ -193,8 +170,6 @@ check_get_params (void)
 int
 main (int argc, char **argv)
 {
-  int debug = 0;
-
   if (argc > 1 && !strcmp (argv[1], "--verbose"))
     verbose = 1;
   else if (argc > 1 && !strcmp (argv[1], "--debug"))

@@ -26,58 +26,13 @@
 #include <string.h>
 #include <stdarg.h>
 
-#ifdef _GCRYPT_IN_LIBGCRYPT
-# include "../src/gcrypt-int.h"
-#else
+#ifndef _GCRYPT_IN_LIBGCRYPT
 # include <gcrypt.h>
 #endif
 
+#define PGM "dsa-rfc6979"
+#include "t-common.h"
 
-#define my_isascii(c) (!((c) & 0x80))
-#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
-#define hexdigitp(a) (digitp (a)                     \
-                      || (*(a) >= 'A' && *(a) <= 'F')  \
-                      || (*(a) >= 'a' && *(a) <= 'f'))
-#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
-                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
-#define xtoi_2(p)   ((xtoi_1(p) * 16) + xtoi_1((p)+1))
-#define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
-#define DIMof(type,member)   DIM(((type *)0)->member)
-
-static int verbose;
-static int error_count;
-
-static void
-info (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-}
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  error_count++;
-}
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
 
 static void
 show_sexp (const char *prefix, gcry_sexp_t a)
@@ -1003,8 +958,6 @@ check_dsa_rfc6979 (void)
 int
 main (int argc, char **argv)
 {
-  int debug = 0;
-
   if (argc > 1 && !strcmp (argv[1], "--verbose"))
     verbose = 1;
   else if (argc > 1 && !strcmp (argv[1], "--debug"))

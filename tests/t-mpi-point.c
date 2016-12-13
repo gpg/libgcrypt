@@ -26,29 +26,8 @@
 #include <assert.h>
 #include <stdarg.h>
 
-#include "../src/gcrypt-int.h"
-
 #define PGM "t-mpi-point"
-
-static const char *wherestr;
-static int verbose;
-static int debug;
-static int error_count;
-
-
-#define my_isascii(c) (!((c) & 0x80))
-#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
-#define hexdigitp(a) (digitp (a)                     \
-                      || (*(a) >= 'A' && *(a) <= 'F')  \
-                      || (*(a) >= 'a' && *(a) <= 'f'))
-#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
-                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
-#define xtoi_2(p)   ((xtoi_1(p) * 16) + xtoi_1((p)+1))
-#define xmalloc(a)    gcry_xmalloc ((a))
-#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
-#define xfree(a)      gcry_free ((a))
-#define pass() do { ; } while (0)
-
+#include "t-common.h"
 
 static struct
 {
@@ -167,50 +146,6 @@ static const char sample_ed25519_d[] =
 
 
 static void
-info (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  if (!verbose)
-    return;
-  fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-}
-
-static void
-fail (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  if (wherestr)
-    fprintf (stderr, "%s: ", wherestr);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  error_count++;
-}
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGM);
-  if (wherestr)
-    fprintf (stderr, "%s: ", wherestr);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
-
-
-static void
 print_mpi_2 (const char *text, const char *text2, gcry_mpi_t a)
 {
   gcry_error_t err;
@@ -321,7 +256,7 @@ hex2mpiopa (const char *string)
     die ("hex2mpiopa '%s' failed: parser error\n", string);
   val = gcry_mpi_set_opaque (NULL, buffer, buflen*8);
   if (!buffer)
-    die ("hex2mpiopa '%s' failed: set_opaque error%s\n", string);
+    die ("hex2mpiopa '%s' failed: set_opaque error\n", string);
   return val;
 }
 
@@ -1003,7 +938,7 @@ twistededwards_math (void)
   /* Check: p % 4 == 1 */
   gcry_mpi_mod (w, p, GCRYMPI_CONST_FOUR);
   if (gcry_mpi_cmp_ui (w, 1))
-    fail ("failed assertion: p % 4 == 1\n");
+    fail ("failed assertion: p %% 4 == 1\n");
 
   /* Check: 2^{n-1} mod n == 1 */
   gcry_mpi_sub_ui (a, n, 1);

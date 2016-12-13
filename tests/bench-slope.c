@@ -39,6 +39,7 @@
 #endif
 
 #define PGM "bench-slope"
+#include "t-common.h"
 
 static int verbose;
 static int csv_mode;
@@ -1781,7 +1782,6 @@ int
 main (int argc, char **argv)
 {
   int last_argc = -1;
-  int debug = 0;
 
   if (argc)
     {

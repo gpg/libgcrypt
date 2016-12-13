@@ -35,8 +35,7 @@
 
 
 #define PGM "benchmark"
-
-static int verbose;
+#include "t-common.h"
 
 /* Do encryption tests with large buffers.  */
 static int large_buffers;
@@ -392,24 +391,8 @@ static const char sample_private_elg_key_3072[] =
 "  ))";
 
 
-#define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
-#define DIMof(type,member)   DIM(((type *)0)->member)
 #define BUG() do {fprintf ( stderr, "Ooops at %s:%d\n", __FILE__ , __LINE__ );\
 		  exit(2);} while(0)
-
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr ;
-
-  va_start( arg_ptr, format ) ;
-  putchar ('\n');
-  fputs ( PGM ": ", stderr);
-  vfprintf (stderr, format, arg_ptr );
-  va_end(arg_ptr);
-  exit (1);
-}
 
 
 static void
@@ -1670,7 +1653,6 @@ main( int argc, char **argv )
   int no_blinding = 0;
   int use_random_daemon = 0;
   int use_secmem = 0;
-  int debug = 0;
   int pk_count = 100;
 
   buffer_alignment = 1;
