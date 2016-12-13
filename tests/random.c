@@ -46,7 +46,7 @@ static int with_progress;
 /* If we have a decent libgpg-error we can use some gcc attributes.  */
 #ifdef GPGRT_ATTR_NORETURN
 static void die (const char *format, ...) GPGRT_ATTR_NR_PRINTF(1,2);
-static void inf (const char *format, ...) GPGRT_ATTR_PRINTF(1,2);
+static void info (const char *format, ...) GPGRT_ATTR_PRINTF(1,2);
 #endif /*GPGRT_ATTR_NORETURN*/
 
 
@@ -64,7 +64,7 @@ die (const char *format, ...)
 
 
 static void
-inf (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -80,7 +80,7 @@ print_hex (const char *text, const void *buf, size_t n)
 {
   const unsigned char *p = buf;
 
-  inf ("%s", text);
+  info ("%s", text);
   for (; n; n--, p++)
     fprintf (stderr, "%02X", *p);
   putc ('\n', stderr);
@@ -93,7 +93,7 @@ progress_cb (void *cb_data, const char *what, int printchar,
 {
   (void)cb_data;
 
-  inf ("progress (%s %c %d %d)\n", what, printchar, current, total);
+  info ("progress (%s %c %d %d)\n", what, printchar, current, total);
   fflush (stderr);
 }
 
@@ -159,7 +159,7 @@ check_forking (void)
 {
 #ifdef HAVE_W32_SYSTEM
   if (verbose)
-    inf ("check_forking skipped: not applicable on Windows\n");
+    info ("check_forking skipped: not applicable on Windows\n");
 #else /*!HAVE_W32_SYSTEM*/
   pid_t pid;
   int rp[2];
@@ -168,7 +168,7 @@ check_forking (void)
   char tmp1[16], tmp1c[16], tmp1p[16];
 
   if (verbose)
-    inf ("checking that a fork won't cause the same random output\n");
+    info ("checking that a fork won't cause the same random output\n");
 
   /* We better make sure that the RNG has been initialzied. */
   gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
@@ -224,7 +224,7 @@ check_nonce_forking (void)
 {
 #ifdef HAVE_W32_SYSTEM
   if (verbose)
-    inf ("check_nonce_forking skipped: not applicable on Windows\n");
+    info ("check_nonce_forking skipped: not applicable on Windows\n");
 #else /*!HAVE_W32_SYSTEM*/
   pid_t pid;
   int rp[2];
@@ -233,7 +233,7 @@ check_nonce_forking (void)
   char nonce1[10], nonce1c[10], nonce1p[10];
 
   if (verbose)
-    inf ("checking that a fork won't cause the same nonce output\n");
+    info ("checking that a fork won't cause the same nonce output\n");
 
   /* We won't get the same nonce back if we never initialized the
      nonce subsystem, thus we get one nonce here and forget about
@@ -290,14 +290,14 @@ check_close_random_device (void)
 {
 #ifdef HAVE_W32_SYSTEM
   if (verbose)
-    inf ("check_close_random_device skipped: not applicable on Windows\n");
+    info ("check_close_random_device skipped: not applicable on Windows\n");
 #else /*!HAVE_W32_SYSTEM*/
   pid_t pid;
   int i, status;
   char buf[4];
 
   if (verbose)
-    inf ("checking that close_random_device works\n");
+    info ("checking that close_random_device works\n");
 
   gcry_randomize (buf, sizeof buf, GCRY_STRONG_RANDOM);
   if (verbose)
@@ -349,11 +349,11 @@ check_rng_type_switching (void)
   char tmp1[4];
 
   if (verbose)
-    inf ("checking whether RNG type switching works\n");
+    info ("checking whether RNG type switching works\n");
 
   rngtype = rng_type ();
   if (debug)
-    inf ("rng type: %d\n", rngtype);
+    info ("rng type: %d\n", rngtype);
   initial = rngtype;
   gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
   if (debug)
@@ -365,7 +365,7 @@ check_rng_type_switching (void)
 
   rngtype = rng_type ();
   if (debug)
-    inf ("rng type: %d\n", rngtype);
+    info ("rng type: %d\n", rngtype);
   if (rngtype != initial)
     die ("switching to System RNG unexpectedly succeeded\n");
   gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
@@ -378,7 +378,7 @@ check_rng_type_switching (void)
 
   rngtype = rng_type ();
   if (debug)
-    inf ("rng type: %d\n", rngtype);
+    info ("rng type: %d\n", rngtype);
   if (rngtype != initial)
     die ("switching to FIPS RNG unexpectedly succeeded\n");
   gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
@@ -391,7 +391,7 @@ check_rng_type_switching (void)
 
   rngtype = rng_type ();
   if (debug)
-    inf ("rng type: %d\n", rngtype);
+    info ("rng type: %d\n", rngtype);
   if (rngtype != GCRY_RNG_TYPE_STANDARD)
     die ("switching to standard RNG failed\n");
   gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
@@ -408,18 +408,18 @@ check_early_rng_type_switching (void)
   int rngtype, initial;
 
   if (verbose)
-    inf ("checking whether RNG type switching works in the early stage\n");
+    info ("checking whether RNG type switching works in the early stage\n");
 
   rngtype = rng_type ();
   if (debug)
-    inf ("rng type: %d\n", rngtype);
+    info ("rng type: %d\n", rngtype);
   initial = rngtype;
 
   gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
 
   rngtype = rng_type ();
   if (debug)
-    inf ("rng type: %d\n", rngtype);
+    info ("rng type: %d\n", rngtype);
   if (initial >= GCRY_RNG_TYPE_SYSTEM && rngtype != GCRY_RNG_TYPE_SYSTEM)
     die ("switching to System RNG failed\n");
 
@@ -427,7 +427,7 @@ check_early_rng_type_switching (void)
 
   rngtype = rng_type ();
   if (debug)
-    inf ("rng type: %d\n", rngtype);
+    info ("rng type: %d\n", rngtype);
   if (initial >= GCRY_RNG_TYPE_FIPS && rngtype != GCRY_RNG_TYPE_FIPS)
     die ("switching to FIPS RNG failed\n");
 
@@ -435,7 +435,7 @@ check_early_rng_type_switching (void)
 
   rngtype = rng_type ();
   if (debug)
-    inf ("rng type: %d\n", rngtype);
+    info ("rng type: %d\n", rngtype);
   if (rngtype != GCRY_RNG_TYPE_STANDARD)
     die ("switching to standard RNG failed\n");
 }
@@ -472,7 +472,7 @@ check_drbg_reinit (void)
   gcry_buffer_t pers[1];
 
   if (verbose)
-    inf ("checking DRBG_REINIT\n");
+    info ("checking DRBG_REINIT\n");
 
   memset (pers, 0, sizeof pers);
   pers[0].data = pers_string;
@@ -558,7 +558,7 @@ run_all_rng_tests (const char *program)
   for (idx=0; options[idx]; idx++)
     {
       if (verbose)
-        inf ("now running with options '%s'\n", options[idx]);
+        info ("now running with options '%s'\n", options[idx]);
       strcpy (cmdline, program);
       strcat (cmdline, " --in-recursion");
       if (verbose)

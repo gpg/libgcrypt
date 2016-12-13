@@ -105,7 +105,7 @@ fail (const char *format, ...)
 }
 
 static void
-show (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -201,7 +201,7 @@ test_cv (int testno, const char *k_str, const char *u_str,
   size_t res_len;
 
   if (verbose > 1)
-    show ("Running test %d\n", testno);
+    info ("Running test %d\n", testno);
 
   if (!(buffer = hex2buffer (k_str, &buflen)) || buflen != 32)
     {
@@ -281,8 +281,8 @@ test_cv (int testno, const char *k_str, const char *u_str,
         {
           fail ("gcry_pk_encrypt failed for test %d: %s",
                 testno, "wrong value returned");
-          show ("  expected: '%s'", result_str);
-          show ("       got: '%s'", r0);
+          info ("  expected: '%s'", result_str);
+          info ("       got: '%s'", r0);
         }
       xfree (r0);
     }
@@ -320,7 +320,7 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
   gcry_mpi_t mpi_kk = NULL;
 
   if (verbose > 1)
-    show ("Running test %d: iteration=%d\n", testno, iter);
+    info ("Running test %d: iteration=%d\n", testno, iter);
 
   gcry_mpi_ec_new (&ctx, NULL, "Curve25519");
   Q = gcry_mpi_point_new (0);
@@ -390,8 +390,8 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
       {
         fail ("curv25519 failed for test %d: %s",
               testno, "wrong value returned");
-        show ("  expected: '%s'", result_str);
-        show ("       got: '%s'", r0);
+        info ("  expected: '%s'", result_str);
+        info ("       got: '%s'", r0);
       }
     xfree (r0);
   }
@@ -438,7 +438,7 @@ check_cv25519 (void)
 {
   int ntests;
 
-  show ("Checking Curve25519.\n");
+  info ("Checking Curve25519.\n");
 
   ntests = 0;
 
@@ -632,7 +632,7 @@ main (int argc, char **argv)
   check_cv25519 ();
   stop_timer ();
 
-  show ("All tests completed in %s.  Errors: %d\n",
+  info ("All tests completed in %s.  Errors: %d\n",
         elapsed_time (1), error_count);
   return !!error_count;
 }

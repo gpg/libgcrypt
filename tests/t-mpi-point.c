@@ -167,7 +167,7 @@ static const char sample_ed25519_d[] =
 
 
 static void
-show (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -375,7 +375,7 @@ set_get_point (void)
   gcry_mpi_t x, y, z;
 
   wherestr = "set_get_point";
-  show ("checking point setting functions\n");
+  info ("checking point setting functions\n");
 
   point = gcry_mpi_point_new (0);
   x = gcry_mpi_set_ui (NULL, 17);
@@ -430,7 +430,7 @@ context_alloc (void)
   gcry_mpi_t p, a;
 
   wherestr = "context_alloc";
-  show ("checking context functions\n");
+  info ("checking context functions\n");
 
   p = gcry_mpi_set_ui (NULL, 1);
   a = gcry_mpi_set_ui (NULL, 1);
@@ -537,7 +537,7 @@ context_param (void)
 
   wherestr = "context_param";
 
-  show ("checking standard curves\n");
+  info ("checking standard curves\n");
   for (idx=0; test_curve[idx].desc; idx++)
     {
       /* P-192 and Ed25519 are not supported in fips mode */
@@ -546,7 +546,7 @@ context_param (void)
           if (!strcmp(test_curve[idx].desc, "NIST P-192")
               || !strcmp(test_curve[idx].desc, "Ed25519"))
             {
-	      show("skipping %s in fips mode\n", test_curve[idx].desc );
+	      info ("skipping %s in fips mode\n", test_curve[idx].desc );
               continue;
             }
         }
@@ -579,7 +579,7 @@ context_param (void)
 
     }
 
-  show ("checking sample public key (nistp256)\n");
+  info ("checking sample public key (nistp256)\n");
   q = hex2mpi (sample_p256_q);
   err = gcry_sexp_build (&keyparam, NULL,
                         "(public-key(ecc(curve %s)(q %m)))",
@@ -650,7 +650,7 @@ context_param (void)
   if (gcry_fips_mode_active())
     goto cleanup;
 
-  show ("checking sample public key (Ed25519)\n");
+  info ("checking sample public key (Ed25519)\n");
   q = hex2mpi (sample_ed25519_q);
   gcry_sexp_release (keyparam);
   err = gcry_sexp_build (&keyparam, NULL,
@@ -772,7 +772,7 @@ basic_ec_math (void)
   gcry_mpi_t x, y, z;
 
   wherestr = "basic_ec_math";
-  show ("checking basic math functions for EC\n");
+  info ("checking basic math functions for EC\n");
 
   P = hex2mpi ("0xfffffffffffffffffffffffffffffffeffffffffffffffff");
   A = hex2mpi ("0xfffffffffffffffffffffffffffffffefffffffffffffffc");
@@ -852,7 +852,7 @@ basic_ec_math_simplified (void)
   gcry_sexp_t sexp;
 
   wherestr = "basic_ec_math_simplified";
-  show ("checking basic math functions for EC (variant)\n");
+  info ("checking basic math functions for EC (variant)\n");
 
   d = hex2mpi ("D4EF27E32F8AD8E2A1C6DDEBB1D235A69E3CEF9BCE90273D");
   Q = gcry_mpi_point_new (0);
@@ -969,7 +969,7 @@ twistededwards_math (void)
   gcry_mpi_t w, a, x, y, z, p, n, b, I;
 
   wherestr = "twistededwards_math";
-  show ("checking basic Twisted Edwards math\n");
+  info ("checking basic Twisted Edwards math\n");
 
   err = gcry_mpi_ec_new (&ctx, NULL, "Ed25519");
   if (err)
@@ -1126,6 +1126,6 @@ main (int argc, char **argv)
       twistededwards_math ();
     }
 
-  show ("All tests completed. Errors: %d\n", error_count);
+  info ("All tests completed. Errors: %d\n", error_count);
   return error_count ? 1 : 0;
 }

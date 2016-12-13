@@ -78,7 +78,7 @@ fail (const char *format, ...)
 }
 
 static void
-show (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -197,7 +197,7 @@ check_rsa_keys (void)
   int rc;
 
   if (verbose)
-    show ("creating 2048 bit RSA key\n");
+    info ("creating 2048 bit RSA key\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
@@ -211,7 +211,7 @@ check_rsa_keys (void)
     die ("error generating RSA key: %s\n", gpg_strerror (rc));
 
   if (verbose)
-    show ("creating 1024 bit RSA key\n");
+    info ("creating 1024 bit RSA key\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
@@ -237,7 +237,7 @@ check_rsa_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating 2048 bit RSA key with e=65539\n");
+    info ("creating 2048 bit RSA key with e=65539\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
@@ -257,7 +257,7 @@ check_rsa_keys (void)
 
 
   if (verbose)
-    show ("creating 512 bit RSA key with e=257\n");
+    info ("creating 512 bit RSA key with e=257\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
@@ -274,7 +274,7 @@ check_rsa_keys (void)
     fail ("generating 512 bit RSA key must not work!");
 
   if (verbose && rc && in_fips_mode)
-    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+    info ("... correctly rejected key creation in FIPS mode (%s)\n",
           gpg_strerror (rc));
 
   if (!rc)
@@ -282,7 +282,7 @@ check_rsa_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating 512 bit RSA key with default e\n");
+    info ("creating 512 bit RSA key with default e\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
@@ -299,7 +299,7 @@ check_rsa_keys (void)
     fail ("generating 512 bit RSA key must not work!");
 
   if (verbose && rc && in_fips_mode)
-    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+    info ("... correctly rejected key creation in FIPS mode (%s)\n",
           gpg_strerror (rc));
 
 
@@ -316,7 +316,7 @@ check_elg_keys (void)
   int rc;
 
   if (verbose)
-    show ("creating 1024 bit Elgamal key\n");
+    info ("creating 1024 bit Elgamal key\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (elg\n"
@@ -344,7 +344,7 @@ check_dsa_keys (void)
   /* Check that DSA generation works and that it can grok the qbits
      argument. */
   if (verbose)
-    show ("creating 5 1024 bit DSA keys\n");
+    info ("creating 5 1024 bit DSA keys\n");
   for (i=0; i < 5; i++)
     {
       rc = gcry_sexp_new (&keyparm,
@@ -366,7 +366,7 @@ check_dsa_keys (void)
     }
 
   if (verbose)
-    show ("creating 1536 bit DSA key\n");
+    info ("creating 1536 bit DSA key\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (dsa\n"
@@ -386,7 +386,7 @@ check_dsa_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating 3072 bit DSA key\n");
+    info ("creating 3072 bit DSA key\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (dsa\n"
@@ -404,7 +404,7 @@ check_dsa_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating 2048/256 bit DSA key\n");
+    info ("creating 2048/256 bit DSA key\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (dsa\n"
@@ -422,7 +422,7 @@ check_dsa_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating 2048/224 bit DSA key\n");
+    info ("creating 2048/224 bit DSA key\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (dsa\n"
@@ -488,7 +488,7 @@ check_ecc_keys (void)
   for (testno=0; curves[testno]; testno++)
     {
       if (verbose)
-        show ("creating ECC key using curve %s\n", curves[testno]);
+        info ("creating ECC key using curve %s\n", curves[testno]);
       if (!strcmp (curves[testno], "Ed25519"))
         {
           /* Ed25519 isn't allowed in fips mode */
@@ -519,7 +519,7 @@ check_ecc_keys (void)
     }
 
   if (verbose)
-    show ("creating ECC key using curve Ed25519 for ECDSA\n");
+    info ("creating ECC key using curve Ed25519 for ECDSA\n");
   rc = gcry_sexp_build (&keyparm, NULL, "(genkey(ecc(curve Ed25519)))");
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
@@ -532,7 +532,7 @@ check_ecc_keys (void)
     fail ("generating Ed25519 key must not work!");
 
   if (verbose && rc && in_fips_mode)
-    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+    info ("... correctly rejected key creation in FIPS mode (%s)\n",
           gpg_strerror (rc));
 
   if (!rc)
@@ -545,7 +545,7 @@ check_ecc_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating ECC key using curve Ed25519 for ECDSA (nocomp)\n");
+    info ("creating ECC key using curve Ed25519 for ECDSA (nocomp)\n");
   rc = gcry_sexp_build (&keyparm, NULL,
                         "(genkey(ecc(curve Ed25519)(flags nocomp)))");
   if (rc)
@@ -560,12 +560,12 @@ check_ecc_keys (void)
     fail ("generating Ed25519 key must not work in FIPS mode!");
 
   if (verbose && rc && in_fips_mode)
-    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+    info ("... correctly rejected key creation in FIPS mode (%s)\n",
           gpg_strerror (rc));
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating ECC key using curve NIST P-384 for ECDSA\n");
+    info ("creating ECC key using curve NIST P-384 for ECDSA\n");
 
   /* Must be specified as nistp384 (one word), because ecc_generate
    * uses _gcry_sexp_nth_string which takes the first word of the name
@@ -586,7 +586,7 @@ check_ecc_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating ECC key using curve NIST P-384 for ECDSA (nocomp)\n");
+    info ("creating ECC key using curve NIST P-384 for ECDSA (nocomp)\n");
   rc = gcry_sexp_build (&keyparm, NULL,
                         "(genkey(ecc(curve nistp384)(flags nocomp)))");
   if (rc)
@@ -606,7 +606,7 @@ check_ecc_keys (void)
 
 
   if (verbose)
-    show ("creating ECC key using curve Ed25519 for ECDSA (transient-key)\n");
+    info ("creating ECC key using curve Ed25519 for ECDSA (transient-key)\n");
   rc = gcry_sexp_build (&keyparm, NULL,
                         "(genkey(ecc(curve Ed25519)(flags transient-key)))");
   if (rc)
@@ -621,7 +621,7 @@ check_ecc_keys (void)
     fail ("generating Ed25519 key must not work in FIPS mode!");
 
   if (verbose && rc && in_fips_mode)
-    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+    info ("... correctly rejected key creation in FIPS mode (%s)\n",
           gpg_strerror (rc));
 
   if (!rc)
@@ -633,7 +633,7 @@ check_ecc_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    show ("creating ECC key using curve Ed25519 for ECDSA "
+    info ("creating ECC key using curve Ed25519 for ECDSA "
           "(transient-key no-keytest)\n");
   rc = gcry_sexp_build (&keyparm, NULL,
                         "(genkey(ecc(curve Ed25519)"
@@ -650,7 +650,7 @@ check_ecc_keys (void)
     fail ("generating Ed25519 key must not work in FIPS mode!");
 
   if (verbose && rc && in_fips_mode)
-    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+    info ("... correctly rejected key creation in FIPS mode (%s)\n",
           gpg_strerror (rc));
 
   if (!rc)
@@ -671,7 +671,7 @@ check_nonce (void)
   int oops=0;
 
   if (verbose)
-    show ("checking gcry_create_nonce\n");
+    info ("checking gcry_create_nonce\n");
 
   gcry_create_nonce (a, sizeof a);
   for (i=0; i < 10; i++)

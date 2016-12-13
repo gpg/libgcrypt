@@ -90,7 +90,7 @@ fail (const char *format, ...)
 }
 
 static void
-show (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -185,7 +185,7 @@ read_textline (FILE *fp, int *lineno)
     }
   while (!*line || *line == '#');
   /* if (debug) */
-  /*   show ("read line: '%s'\n", line); */
+  /*   info ("read line: '%s'\n", line); */
   return xstrdup (line);
 }
 
@@ -269,7 +269,7 @@ one_test (int testno, const char *sk, const char *pk,
   size_t sig_r_len, sig_s_len;
 
   if (verbose > 1)
-    show ("Running test %d\n", testno);
+    info ("Running test %d\n", testno);
 
   if (!(buffer = hex2buffer (sk, &buflen)))
     {
@@ -384,8 +384,8 @@ one_test (int testno, const char *sk, const char *pk,
         {
           fail ("gcry_pk_sign failed for test %d: %s",
                 testno, "wrong value returned");
-          show ("  expected: '%s'", sig);
-          show ("       got: '%s'", sig_rs_string);
+          info ("  expected: '%s'", sig);
+          info ("       got: '%s'", sig_rs_string);
         }
     }
 
@@ -417,7 +417,7 @@ check_ed25519 (const char *fname)
   int testno;
   char *sk, *pk, *msg, *sig;
 
-  show ("Checking Ed25519.\n");
+  info ("Checking Ed25519.\n");
 
   fp = fopen (fname, "r");
   if (!fp)
@@ -558,7 +558,7 @@ main (int argc, char **argv)
 
   xfree (fname);
 
-  show ("All tests completed in %s.  Errors: %d\n",
+  info ("All tests completed in %s.  Errors: %d\n",
         elapsed_time (1), error_count);
   return !!error_count;
 }

@@ -42,7 +42,7 @@ static int error_count;
 #define pass() do { ; } while (0)
 
 static void
-show (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -171,7 +171,7 @@ one_bit_only (int highbit)
   int i;
 
   wherestr = "one_bit_only";
-  show ("checking that set_%sbit does only set one bit\n", highbit?"high":"");
+  info ("checking that set_%sbit does only set one bit\n", highbit?"high":"");
 
   a = gcry_mpi_new (0);
   gcry_mpi_randomize (a, 70, GCRY_WEAK_RANDOM);
@@ -207,7 +207,7 @@ test_rshift (int pass)
   int i;
 
   wherestr = "test_rshift";
-  show ("checking that rshift works as expected (pass %d)\n", pass);
+  info ("checking that rshift works as expected (pass %d)\n", pass);
 
   a = gcry_mpi_new (0);
   b = gcry_mpi_new (0);
@@ -222,8 +222,8 @@ test_rshift (int pass)
       rshiftbitstring (result2, i);
       if (strcmp (result, result2))
         {
-          show ("got =%s\n", result);
-          show ("want=%s\n", result2);
+          info ("got =%s\n", result);
+          info ("want=%s\n", result2);
           fail ("rshift by %d failed\n", i);
         }
       xfree (result);
@@ -244,8 +244,8 @@ test_rshift (int pass)
       rshiftbitstring (result2, i);
       if (strcmp (result, result2))
         {
-          show ("got =%s\n", result);
-          show ("want=%s\n", result2);
+          info ("got =%s\n", result);
+          info ("want=%s\n", result2);
           fail ("in-place rshift by %d failed\n", i);
         }
       xfree (result2);
@@ -267,7 +267,7 @@ test_lshift (int pass)
   int i;
 
   wherestr = "test_lshift";
-  show ("checking that lshift works as expected (pass %d)\n", pass);
+  info ("checking that lshift works as expected (pass %d)\n", pass);
 
   for (size_idx=0; size_list[size_idx]; size_idx++)
     {
@@ -289,8 +289,8 @@ test_lshift (int pass)
           xfree (tmpstr);
           if (strcmp (result, result2))
             {
-              show ("got =%s\n", result);
-              show ("want=%s\n", result2);
+              info ("got =%s\n", result);
+              info ("want=%s\n", result2);
               fail ("lshift by %d failed\n", i);
             }
           xfree (result);
@@ -313,8 +313,8 @@ test_lshift (int pass)
           xfree (tmpstr);
           if (strcmp (result, result2))
             {
-              show ("got =%s\n", result);
-              show ("want=%s\n", result2);
+              info ("got =%s\n", result);
+              info ("want=%s\n", result2);
               fail ("in-place lshift by %d failed\n", i);
             }
           xfree (result2);
@@ -338,7 +338,7 @@ set_bit_with_resize (void)
   int i;
 
   wherestr = "set_bit_with_resize";
-  show ("checking that set_bit initializes all limbs\n");
+  info ("checking that set_bit initializes all limbs\n");
 
   a = gcry_mpi_new (1536);
   gcry_mpi_set_bit (a, 1536);
@@ -358,7 +358,7 @@ set_bit_with_resize (void)
   gcry_mpi_release (a);
 
   wherestr = "set_highbit_with_resize";
-  show ("checking that set_highbit initializes all limbs\n");
+  info ("checking that set_highbit initializes all limbs\n");
 
   a = gcry_mpi_new (1536);
   gcry_mpi_set_highbit (a, 1536);
@@ -410,6 +410,6 @@ main (int argc, char **argv)
 
   set_bit_with_resize ();
 
-  show ("All tests completed. Errors: %d\n", error_count);
+  info ("All tests completed. Errors: %d\n", error_count);
   return error_count ? 1 : 0;
 }

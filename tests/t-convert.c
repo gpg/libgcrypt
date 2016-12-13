@@ -45,7 +45,7 @@ static int error_count;
 #define pass() do { ; } while (0)
 
 static void
-show (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -163,7 +163,7 @@ negative_zero (void)
   int i;
 
   if (debug)
-    show ("negative zero printing\n");
+    info ("negative zero printing\n");
 
   a = gcry_mpi_new (0);
   for (i=0; fmts[i].name; i++)
@@ -351,7 +351,7 @@ check_formats (void)
   for (idx=0; idx < DIM(data); idx++)
     {
       if (debug)
-        show ("print test %d\n", data[idx].value);
+        info ("print test %d\n", data[idx].value);
 
       if (data[idx].value < 0)
         {
@@ -371,8 +371,8 @@ check_formats (void)
             {
               fail ("error printing value %d as %s: %s\n",
                     data[idx].value, "HEX", "wrong result");
-              show ("expected: '%s'\n", data[idx].a.hex);
-              show ("     got: '%s'\n", buf);
+              info ("expected: '%s'\n", data[idx].a.hex);
+              info ("     got: '%s'\n", buf);
             }
           gcry_free (buf);
         }
@@ -457,7 +457,7 @@ check_formats (void)
   for (idx=0; idx < DIM(data); idx++)
     {
       if (debug)
-        show ("scan test %d\n", data[idx].value);
+        info ("scan test %d\n", data[idx].value);
 
       if (data[idx].value < 0)
         {
@@ -583,6 +583,6 @@ main (int argc, char **argv)
   negative_zero ();
   check_formats ();
 
-  show ("All tests completed. Errors: %d\n", error_count);
+  info ("All tests completed. Errors: %d\n", error_count);
   return error_count ? 1 : 0;
 }

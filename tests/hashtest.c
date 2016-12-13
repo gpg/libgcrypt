@@ -158,7 +158,7 @@ fail (const char *format, ...)
 }
 
 static void
-show (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -241,10 +241,10 @@ run_selftest (int algo)
     fail ("extended selftest for %s (%d) failed: %s",
           gcry_md_algo_name (algo), algo, gpg_strerror (err));
   else if (err && verbose)
-    show ("extended selftest for %s (%d) not implemented",
+    info ("extended selftest for %s (%d) not implemented",
           gcry_md_algo_name (algo), algo);
   else if (verbose)
-    show ("extended selftest for %s (%d) passed",
+    info ("extended selftest for %s (%d) passed",
           gcry_md_algo_name (algo), algo);
 }
 
@@ -268,7 +268,7 @@ cmp_digest (const unsigned char *digest, size_t digestlen,
     }
   if (!testvectors[idx].algo)
     {
-      show ("%d GiB %+3d %-10s warning: %s",
+      info ("%d GiB %+3d %-10s warning: %s",
             gigs, bytes, gcry_md_algo_name (algo), "no test vector");
       missing_test_vectors++;
       return 1;
@@ -499,7 +499,7 @@ main (int argc, char **argv)
     fail ("Some test vectors are missing");
 
   if (verbose)
-    show ("All tests completed in %s.  Errors: %d\n",
+    info ("All tests completed in %s.  Errors: %d\n",
           elapsed_time (1), error_count);
   return !!error_count;
 }
