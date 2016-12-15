@@ -56,7 +56,7 @@ AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=21
 LIBGCRYPT_LT_AGE=1
-LIBGCRYPT_LT_REVISION=4
+LIBGCRYPT_LT_REVISION=5
 
 
 # If the API is changed in an incompatible way: increment the next counter.
