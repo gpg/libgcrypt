@@ -24,9 +24,17 @@ Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
      using encrypted swap space.
 
 
- * Interface changes relative to the 1.6.0 release:
+ * Interface changes relative to the 1.7.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    GCRYCTL_REINIT_SYSCALL_CLAMP    NEW macro.
+
+
+Noteworthy changes in version 1.7.5 (2016-12-15)  [C21/A1/R5]
+------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix regression in mlock detection [bug#2870].
 
 
 Noteworthy changes in version 1.7.4 (2016-12-09)  [C21/A1/R4]
