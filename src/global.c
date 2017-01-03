@@ -279,7 +279,25 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
   int i;
   const char *s;
 
-  fnc (fp, "version:%s:\n", VERSION);
+  fnc (fp, "version:%s:%x:%s:%x:\n",
+       VERSION, GCRYPT_VERSION_NUMBER,
+       GPGRT_VERSION, GPGRT_VERSION_NUMBER);
+  fnc (fp, "cc:%d:%s:\n",
+#if GPGRT_VERSION_NUMBER >= 0x011b00 /* 1.27 */
+       GPGRT_GCC_VERSION
+#else
+       _GPG_ERR_GCC_VERSION /* Due to a bug in gpg-error.h.  */
+#endif
+       ,
+#ifdef __clang__
+       "clang:" __VERSION__
+#elif __GNUC__
+       "gcc:" __VERSION__
+#else
+       ":"
+#endif
+       );
+
   fnc (fp, "ciphers:%s:\n", LIBGCRYPT_CIPHERS);
   fnc (fp, "pubkeys:%s:\n", LIBGCRYPT_PUBKEY_CIPHERS);
   fnc (fp, "digests:%s:\n", LIBGCRYPT_DIGESTS);

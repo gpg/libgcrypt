@@ -5,6 +5,11 @@ Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
 
    - GCRYCTL_REINIT_SYSCALL_CLAMP allows to init nPth after Libgcrypt.
 
+ * Extended interfaces:
+
+   - GCRYCTL_PRINT_CONFIG does now also print build information for
+     libgpg-error and the used compiler version.
+
  * Internal changes:
 
    - Libgpg-error 1.25 is now required.  This avoids stalling of nPth
