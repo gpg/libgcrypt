@@ -906,10 +906,14 @@ success or an error code on failure.
 Libgcrypt detects certain features of the CPU at startup time.  For
 performance tests it is sometimes required not to use such a feature.
 This option may be used to disable a certain feature; i.e. Libgcrypt
-behaves as if this feature has not been detected.  Note that the
-detection code might be run if the feature has been disabled.  This
-command must be used at initialization time; i.e. before calling
-@code{gcry_check_version}.
+behaves as if this feature has not been detected.  This call can be
+used several times to disable a set of features, or features may be
+given as a colon or comma delimited string.  The special feature
+"all" can be used to disable all available features.
+
+Note that the detection code might be run if the feature has been
+disabled.  This command must be used at initialization time;
+i.e. before calling @code{gcry_check_version}.
 
 @item GCRYCTL_REINIT_SYSCALL_CLAMP; Arguments: none
 

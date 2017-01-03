@@ -42,8 +42,47 @@
 int
 main (int argc, char **argv)
 {
-  (void)argc;
-  (void)argv;
+  int last_argc = -1;
+
+  if (argc)
+    { argc--; argv++; }
+
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose++;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          /* Dummy option */
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--disable-hwf"))
+        {
+          argc--;
+          argv++;
+          if (argc)
+            {
+              if (gcry_control (GCRYCTL_DISABLE_HWF, *argv, NULL))
+                fprintf (stderr,
+                        PGM
+                        ": unknown hardware feature '%s' - option ignored\n",
+                        *argv);
+              argc--;
+              argv++;
+            }
+        }
+    }
+
+  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
 
   xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (strcmp (GCRYPT_VERSION, gcry_check_version (NULL)))

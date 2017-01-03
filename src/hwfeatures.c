@@ -82,20 +82,34 @@ gpg_err_code_t
 _gcry_disable_hw_feature (const char *name)
 {
   int i;
+  size_t n1, n2;
 
-  if (!strcmp(name, "all"))
+  while (name && *name)
     {
-      disabled_hw_features = ~0;
-      return 0;
+      n1 = strcspn (name, ":,");
+      if (!n1)
+        ;
+      else if (n1 == 3 && !strncmp (name, "all", 3))
+        disabled_hw_features = ~0;
+      else
+        {
+          for (i=0; i < DIM (hwflist); i++)
+            {
+              n2 = strlen (hwflist[i].desc);
+              if (n1 == n2 && !strncmp (hwflist[i].desc, name, n2))
+                {
+                  disabled_hw_features |= hwflist[i].flag;
+                  break;
+                }
+            }
+          if (!(i < DIM (hwflist)))
+            return GPG_ERR_INV_NAME;
+        }
+      name += n1;
+      if (*name)
+        name++; /* Skip delimiter ':' or ','.  */
     }
-
-  for (i=0; i < DIM (hwflist); i++)
-    if (!strcmp (hwflist[i].desc, name))
-      {
-        disabled_hw_features |= hwflist[i].flag;
-        return 0;
-      }
-  return GPG_ERR_INV_NAME;
+  return 0;
 }
 
 
@@ -131,7 +145,7 @@ parse_hwf_deny_file (void)
   FILE *fp;
   char buffer[256];
   char *p, *pend;
-  int i, lnr = 0;
+  int lnr = 0;
 
   fp = fopen (fname, "r");
   if (!fp)
