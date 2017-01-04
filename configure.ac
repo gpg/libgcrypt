@@ -2070,6 +2070,11 @@ if test "$found" = "1" ; then
       x86_64-*-*)
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish-amd64.lo"
+
+         if test x"$avx2support" = xyes ; then
+            # Build with the AVX2 implementation
+            GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish-avx2-amd64.lo"
+         fi
       ;;
       arm*-*-*)
          # Build with the assembly implementation

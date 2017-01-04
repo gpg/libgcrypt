@@ -72,6 +72,15 @@
 #  endif
 # endif
 
+/* USE_AVX2 indicates whether to compile with AMD64 AVX2 code. */
+#undef USE_AVX2
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+# if defined(ENABLE_AVX2_SUPPORT)
+#  define USE_AVX2 1
+# endif
+#endif
+
 
 /* Prototype for the self-test function. */
 static const char *selftest(void);
@@ -82,8 +91,25 @@ static const char *selftest(void);
  * that k[i] corresponds to what the Twofish paper calls K[i+8]. */
 typedef struct {
    u32 s[4][256], w[8], k[32];
+
+#ifdef USE_AVX2
+  int use_avx2;
+#endif
 } TWOFISH_context;
 
+
+/* Assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#undef ASM_FUNC_ABI
+#if defined(USE_AVX2)
+# ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+#  define ASM_FUNC_ABI __attribute__((sysv_abi))
+# else
+#  define ASM_FUNC_ABI
+# endif
+#endif
+
+
 /* These two tables are the q0 and q1 permutations, exactly as described in
  * the Twofish paper. */
 
@@ -711,11 +737,65 @@ static gcry_err_code_t
 twofish_setkey (void *context, const byte *key, unsigned int keylen)
 {
   TWOFISH_context *ctx = context;
-  int rc = do_twofish_setkey (ctx, key, keylen);
+  unsigned int hwfeatures = _gcry_get_hw_features ();
+  int rc;
+
+  rc = do_twofish_setkey (ctx, key, keylen);
+
+#ifdef USE_AVX2
+  ctx->use_avx2 = 0;
+  if ((hwfeatures & HWF_INTEL_AVX2) && (hwfeatures & HWF_INTEL_FAST_VPGATHER))
+    {
+      ctx->use_avx2 = 1;
+    }
+#endif
+
+  (void)hwfeatures;
+
   _gcry_burn_stack (23+6*sizeof(void*));
   return rc;
 }
 
+
+#ifdef USE_AVX2
+/* Assembler implementations of Twofish using AVX2.  Process 16 block in
+   parallel.
+ */
+extern void _gcry_twofish_avx2_ctr_enc(const TWOFISH_context *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *ctr) ASM_FUNC_ABI;
+
+extern void _gcry_twofish_avx2_cbc_dec(const TWOFISH_context *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *iv) ASM_FUNC_ABI;
+
+extern void _gcry_twofish_avx2_cfb_dec(const TWOFISH_context *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *iv) ASM_FUNC_ABI;
+
+extern void _gcry_twofish_avx2_ocb_enc(const TWOFISH_context *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *offset,
+				       unsigned char *checksum,
+				       const u64 Ls[16]) ASM_FUNC_ABI;
+
+extern void _gcry_twofish_avx2_ocb_dec(const TWOFISH_context *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *offset,
+				       unsigned char *checksum,
+				       const u64 Ls[16]) ASM_FUNC_ABI;
+
+extern void _gcry_twofish_avx2_ocb_auth(const TWOFISH_context *ctx,
+					const unsigned char *abuf,
+					unsigned char *offset,
+					unsigned char *checksum,
+					const u64 Ls[16]) ASM_FUNC_ABI;
+#endif
 
 
 #ifdef USE_AMD64_ASM
@@ -1111,6 +1191,31 @@ _gcry_twofish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
   unsigned int burn, burn_stack_depth = 0;
   int i;
 
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    {
+      int did_use_avx2 = 0;
+
+      /* Process data in 16 block chunks. */
+      while (nblocks >= 16)
+        {
+          _gcry_twofish_avx2_ctr_enc(ctx, outbuf, inbuf, ctr);
+
+          nblocks -= 16;
+          outbuf += 16 * TWOFISH_BLOCKSIZE;
+          inbuf  += 16 * TWOFISH_BLOCKSIZE;
+          did_use_avx2 = 1;
+        }
+
+      if (did_use_avx2)
+        {
+          /* twofish-avx2 assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+    }
+#endif
+
 #ifdef USE_AMD64_ASM
   {
     /* Process data in 3 block chunks. */
@@ -1169,6 +1274,31 @@ _gcry_twofish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
   unsigned char savebuf[TWOFISH_BLOCKSIZE];
   unsigned int burn, burn_stack_depth = 0;
 
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    {
+      int did_use_avx2 = 0;
+
+      /* Process data in 16 block chunks. */
+      while (nblocks >= 16)
+        {
+          _gcry_twofish_avx2_cbc_dec(ctx, outbuf, inbuf, iv);
+
+          nblocks -= 16;
+          outbuf += 16 * TWOFISH_BLOCKSIZE;
+          inbuf  += 16 * TWOFISH_BLOCKSIZE;
+          did_use_avx2 = 1;
+        }
+
+      if (did_use_avx2)
+        {
+          /* twofish-avx2 assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+    }
+#endif
+
 #ifdef USE_AMD64_ASM
   {
     /* Process data in 3 block chunks. */
@@ -1218,6 +1348,31 @@ _gcry_twofish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn, burn_stack_depth = 0;
 
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    {
+      int did_use_avx2 = 0;
+
+      /* Process data in 16 block chunks. */
+      while (nblocks >= 16)
+        {
+          _gcry_twofish_avx2_cfb_dec(ctx, outbuf, inbuf, iv);
+
+          nblocks -= 16;
+          outbuf += 16 * TWOFISH_BLOCKSIZE;
+          inbuf  += 16 * TWOFISH_BLOCKSIZE;
+          did_use_avx2 = 1;
+        }
+
+      if (did_use_avx2)
+        {
+          /* twofish-avx2 assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+    }
+#endif
+
 #ifdef USE_AMD64_ASM
   {
     /* Process data in 3 block chunks. */
@@ -1263,6 +1418,62 @@ _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn, burn_stack_depth = 0;
   u64 blkn = c->u_mode.ocb.data_nblocks;
+
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    {
+      int did_use_avx2 = 0;
+      u64 Ls[16];
+      unsigned int n = 16 - (blkn % 16);
+      u64 *l;
+      int i;
+
+      if (nblocks >= 16)
+	{
+	  for (i = 0; i < 16; i += 8)
+	    {
+	      /* Use u64 to store pointers for x32 support (assembly function
+	       * assumes 64-bit pointers). */
+	      Ls[(i + 0 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	    }
+
+	  Ls[(7 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
+	  l = &Ls[(15 + n) % 16];
+
+	  /* Process data in 16 block chunks. */
+	  while (nblocks >= 16)
+	    {
+	      blkn += 16;
+	      *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 16);
+
+	      if (encrypt)
+		_gcry_twofish_avx2_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
+					  c->u_ctr.ctr, Ls);
+	      else
+		_gcry_twofish_avx2_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv,
+					  c->u_ctr.ctr, Ls);
+
+	      nblocks -= 16;
+	      outbuf += 16 * TWOFISH_BLOCKSIZE;
+	      inbuf  += 16 * TWOFISH_BLOCKSIZE;
+	      did_use_avx2 = 1;
+	    }
+	}
+
+      if (did_use_avx2)
+	{
+	  /* twofish-avx2 assembly code does not use stack */
+	  if (nblocks == 0)
+	    burn_stack_depth = 0;
+	}
+    }
+#endif
 
   {
     /* Use u64 to store pointers for x32 support (assembly function
@@ -1321,6 +1532,59 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   unsigned int burn, burn_stack_depth = 0;
   u64 blkn = c->u_mode.ocb.aad_nblocks;
 
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    {
+      int did_use_avx2 = 0;
+      u64 Ls[16];
+      unsigned int n = 16 - (blkn % 16);
+      u64 *l;
+      int i;
+
+      if (nblocks >= 16)
+	{
+	  for (i = 0; i < 16; i += 8)
+	    {
+	      /* Use u64 to store pointers for x32 support (assembly function
+	       * assumes 64-bit pointers). */
+	      Ls[(i + 0 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	    }
+
+	  Ls[(7 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
+	  l = &Ls[(15 + n) % 16];
+
+	  /* Process data in 16 block chunks. */
+	  while (nblocks >= 16)
+	    {
+	      blkn += 16;
+	      *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 16);
+
+	      _gcry_twofish_avx2_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
+					  c->u_mode.ocb.aad_sum, Ls);
+
+	      nblocks -= 16;
+	      abuf += 16 * TWOFISH_BLOCKSIZE;
+	      did_use_avx2 = 1;
+	    }
+	}
+
+      if (did_use_avx2)
+	{
+	  /* twofish-avx2 assembly code does not use stack */
+	  if (nblocks == 0)
+	    burn_stack_depth = 0;
+	}
+
+      /* Use generic code to handle smaller chunks... */
+    }
+#endif
+
   {
     /* Use u64 to store pointers for x32 support (assembly function
       * assumes 64-bit pointers). */
@@ -1367,7 +1631,7 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 static const char *
 selftest_ctr (void)
 {
-  const int nblocks = 3+1;
+  const int nblocks = 16+1;
   const int blocksize = TWOFISH_BLOCKSIZE;
   const int context_size = sizeof(TWOFISH_context);
 
@@ -1381,7 +1645,7 @@ selftest_ctr (void)
 static const char *
 selftest_cbc (void)
 {
-  const int nblocks = 3+2;
+  const int nblocks = 16+2;
   const int blocksize = TWOFISH_BLOCKSIZE;
   const int context_size = sizeof(TWOFISH_context);
 
@@ -1395,7 +1659,7 @@ selftest_cbc (void)
 static const char *
 selftest_cfb (void)
 {
-  const int nblocks = 3+2;
+  const int nblocks = 16+2;
   const int blocksize = TWOFISH_BLOCKSIZE;
   const int context_size = sizeof(TWOFISH_context);
 

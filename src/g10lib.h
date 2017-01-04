@@ -196,27 +196,28 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 
 
 /*-- src/hwfeatures.c --*/
-#define HWF_PADLOCK_RNG     (1 << 0)
-#define HWF_PADLOCK_AES     (1 << 1)
-#define HWF_PADLOCK_SHA     (1 << 2)
-#define HWF_PADLOCK_MMUL    (1 << 3)
+#define HWF_PADLOCK_RNG         (1 << 0)
+#define HWF_PADLOCK_AES         (1 << 1)
+#define HWF_PADLOCK_SHA         (1 << 2)
+#define HWF_PADLOCK_MMUL        (1 << 3)
 
-#define HWF_INTEL_CPU       (1 << 4)
-#define HWF_INTEL_FAST_SHLD (1 << 5)
-#define HWF_INTEL_BMI2      (1 << 6)
-#define HWF_INTEL_SSSE3     (1 << 7)
-#define HWF_INTEL_SSE4_1    (1 << 8)
-#define HWF_INTEL_PCLMUL    (1 << 9)
-#define HWF_INTEL_AESNI     (1 << 10)
-#define HWF_INTEL_RDRAND    (1 << 11)
-#define HWF_INTEL_AVX       (1 << 12)
-#define HWF_INTEL_AVX2      (1 << 13)
+#define HWF_INTEL_CPU           (1 << 4)
+#define HWF_INTEL_FAST_SHLD     (1 << 5)
+#define HWF_INTEL_BMI2          (1 << 6)
+#define HWF_INTEL_SSSE3         (1 << 7)
+#define HWF_INTEL_SSE4_1        (1 << 8)
+#define HWF_INTEL_PCLMUL        (1 << 9)
+#define HWF_INTEL_AESNI         (1 << 10)
+#define HWF_INTEL_RDRAND        (1 << 11)
+#define HWF_INTEL_AVX           (1 << 12)
+#define HWF_INTEL_AVX2          (1 << 13)
+#define HWF_INTEL_FAST_VPGATHER (1 << 14)
 
-#define HWF_ARM_NEON        (1 << 14)
-#define HWF_ARM_AES         (1 << 15)
-#define HWF_ARM_SHA1        (1 << 16)
-#define HWF_ARM_SHA2        (1 << 17)
-#define HWF_ARM_PMULL       (1 << 18)
+#define HWF_ARM_NEON            (1 << 15)
+#define HWF_ARM_AES             (1 << 16)
+#define HWF_ARM_SHA1            (1 << 17)
+#define HWF_ARM_SHA2            (1 << 18)
+#define HWF_ARM_PMULL           (1 << 19)
 
 
 gpg_err_code_t _gcry_disable_hw_feature (const char *name);

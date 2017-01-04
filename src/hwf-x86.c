@@ -176,6 +176,7 @@ detect_x86_gnuc (void)
   unsigned int max_cpuid_level;
   unsigned int fms, family, model;
   unsigned int result = 0;
+  unsigned int avoid_vpgather = 0;
 
   (void)os_supports_avx_avx2_registers;
 
@@ -262,11 +263,33 @@ detect_x86_gnuc (void)
 	case 0x47:
 	case 0x4E:
 	case 0x5E:
+	case 0x8E:
+	case 0x9E:
 	case 0x55:
 	case 0x66:
 	  result |= HWF_INTEL_FAST_SHLD;
 	  break;
 	}
+
+      /* These Intel Core processors that have AVX2 have slow VPGATHER and
+       * should be avoided for table-lookup use. */
+      switch (model)
+	{
+	case 0x3C:
+	case 0x3F:
+	case 0x45:
+	case 0x46:
+	  /* Haswell */
+	  avoid_vpgather |= 1;
+	  break;
+	}
+    }
+  else
+    {
+      /* Avoid VPGATHER for non-Intel CPUs as testing is needed to
+       * make sure it is fast enough. */
+
+      avoid_vpgather |= 1;
     }
 
 #ifdef ENABLE_PCLMUL_SUPPORT
@@ -324,6 +347,9 @@ detect_x86_gnuc (void)
       if (features & 0x00000020)
         if (os_supports_avx_avx2_registers)
           result |= HWF_INTEL_AVX2;
+
+      if ((result & HWF_INTEL_AVX2) && !avoid_vpgather)
+        result |= HWF_INTEL_FAST_VPGATHER;
 #endif /*ENABLE_AVX_SUPPORT*/
     }
 
