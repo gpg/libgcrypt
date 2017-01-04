@@ -57,7 +57,7 @@ C_SYMBOL_NAME(_gcry_mpih_rshift:)
 	addq	$2, %rdx
 	jg	.Lendo
 
-	ALIGN(8)			/* minimal alignment for claimed speed */
+	ALIGN(4)			/* minimal alignment for claimed speed */
 .Loop:	movq	-8(%rsi,%rdx,8), %mm6
 	movq	%mm6, %mm2
 	psllq	%mm0, %mm6
