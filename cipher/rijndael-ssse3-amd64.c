@@ -387,8 +387,8 @@ _gcry_aes_ssse3_ctr_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
                     ".Lno_carry%=:\n\t"
 
                     "pshufb %%xmm6, %%xmm7\n\t"
-                    :
-                    : [ctr] "r" (ctr), [ctrlow] "r" (ctrlow)
+                    : [ctrlow] "+r" (ctrlow)
+                    : [ctr] "r" (ctr)
                     : "cc", "memory");
 
       do_vpaes_ssse3_enc (ctx, nrounds, aes_const_ptr);
