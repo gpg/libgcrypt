@@ -3831,6 +3831,343 @@ check_ocb_cipher (void)
   check_ocb_cipher_splitaad ();
 }
 
+
+
+static void
+do_check_xts_cipher (int inplace)
+{
+  /* Note that we use hex strings and not binary strings in TV.  That
+     makes it easier to maintain the test vectors.  */
+  static const struct
+  {
+    int algo;
+    const char *key;    /* NULL means "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F" */
+    const char *iv;
+    const char *plain;
+    const char *ciph;
+  } tv[] = {
+    /* CAVS; hex/XTSGenAES128.rsp; COUNT=100 */
+    { GCRY_CIPHER_AES,
+      "bcb6613c495de4bdad9c19f04e4b3915f9ecb379e1a575b633337e934fca1050",
+      "64981173159d58ac355a20120c8e81f1",
+      "189acacee06dfa7c94484c7dae59e166",
+      "7900191d0f19a97668fdba9def84eedc"
+    },
+    /* CAVS; hex/XTSGenAES128.rsp; COUNT=101 */
+    { GCRY_CIPHER_AES,
+      "b7b93f516aef295eff3a29d837cf1f135347e8a21dae616ff5062b2e8d78ce5e",
+      "873edea653b643bd8bcf51403197ed14",
+      "236f8a5b58dd55f6194ed70c4ac1a17f1fe60ec9a6c454d087ccb77d6b638c47",
+      "22e6a3c6379dcf7599b052b5a749c7f78ad8a11b9f1aa9430cf3aef445682e19"
+    },
+    /* CAVS; hex/XTSGenAES128.rsp; COUNT=301 */
+    { GCRY_CIPHER_AES,
+      "394c97881abd989d29c703e48a72b397a7acf51b59649eeea9b33274d8541df4",
+      "4b15c684a152d485fe9937d39b168c29",
+      "2f3b9dcfbae729583b1d1ffdd16bb6fe2757329435662a78f0",
+      "f3473802e38a3ffef4d4fb8e6aa266ebde553a64528a06463e"
+    },
+    /* CAVS; hex/XTSGenAES128.rsp; COUNT=500 */
+    { GCRY_CIPHER_AES,
+      "783a83ec52a27405dff9de4c57f9c979b360b6a5df88d67ec1a052e6f582a717",
+      "886e975b29bdf6f0c01bb47f61f6f0f5",
+      "b04d84da856b9a59ce2d626746f689a8051dacd6bce3b990aa901e4030648879",
+      "f941039ebab8cac39d59247cbbcb4d816c726daed11577692c55e4ac6d3e6820"
+    },
+    /* CAVS; hex/XTSGenAES256.rsp; COUNT=1 */
+    { GCRY_CIPHER_AES256,
+      "1ea661c58d943a0e4801e42f4b0947149e7f9f8e3e68d0c7505210bd311a0e7c"
+      "d6e13ffdf2418d8d1911c004cda58da3d619b7e2b9141e58318eea392cf41b08",
+      "adf8d92627464ad2f0428e84a9f87564",
+      "2eedea52cd8215e1acc647e810bbc3642e87287f8d2e57e36c0a24fbc12a202e",
+      "cbaad0e2f6cea3f50b37f934d46a9b130b9d54f07e34f36af793e86f73c6d7db"
+    },
+    /* CAVS; hex/XTSGenAES256.rsp; COUNT=101 */
+    { GCRY_CIPHER_AES256,
+      "266c336b3b01489f3267f52835fd92f674374b88b4e1ebd2d36a5f457581d9d0"
+      "42c3eef7b0b7e5137b086496b4d9e6ac658d7196a23f23f036172fdb8faee527",
+      "06b209a7a22f486ecbfadb0f3137ba42",
+      "ca7d65ef8d3dfad345b61ccddca1ad81de830b9e86c7b426d76cb7db766852d9"
+      "81c6b21409399d78f42cc0b33a7bbb06",
+      "c73256870cc2f4dd57acc74b5456dbd776912a128bc1f77d72cdebbf270044b7"
+      "a43ceed29025e1e8be211fa3c3ed002d"
+    },
+    /* CAVS; hex/XTSGenAES256.rsp; COUNT=401 */
+    { GCRY_CIPHER_AES256,
+      "33e89e817ff8d037d6ac5a2296657503f20885d94c483e26449066bd9284d130"
+      "2dbdbb4b66b6b9f4687f13dd028eb6aa528ca91deb9c5f40db93218806033801",
+      "a78c04335ab7498a52b81ed74b48e6cf",
+      "14c3ac31291b075f40788247c3019e88c7b40bac3832da45bbc6c4fe7461371b"
+      "4dfffb63f71c9f8edb98f28ff4f33121",
+      "dead7e587519bc78c70d99279fbe3d9b1ad13cdaae69824e0ab8135413230bfd"
+      "b13babe8f986fbb30d46ab5ec56b916e"
+    },
+    /* From https://github.com/heisencoder/XTS-AES/blob/master/testvals/ */
+    { GCRY_CIPHER_AES,
+      "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0",
+      "9a785634120000000000000000000000",
+      "000102030405060708090a0b0c0d0e0f10",
+      "7fb2e8beccbb5c118aa52ddca31220bb1b"
+    },
+    { GCRY_CIPHER_AES,
+      "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0bfbebdbcbbbab9b8b7b6b5b4b3b2b1b0",
+      "9a785634120000000000000000000000",
+      "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e",
+      "d05bc090a8e04f1b3d3ecdd5baec0fd4edbf9dace45d6f6a7306e64be5dd82"
+    },
+    { GCRY_CIPHER_AES,
+      "2718281828459045235360287471352631415926535897932384626433832795",
+      "00000000000000000000000000000000",
+      "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
+      "20212223",
+      "27A7479BEFA1D476489F308CD4CFA6E288F548E5C4239F91712A587E2B05AC3D"
+      "A96E4BBE"
+    },
+    { GCRY_CIPHER_AES256,
+      "2718281828459045235360287471352662497757247093699959574966967627"
+      "3141592653589793238462643383279502884197169399375105820974944592",
+      "11000000000000000000000000000000",
+      "3A060A8CAD115A6F44572E3759E43C8F8832FEDC28A8E35B357B5CF3EDBEF788"
+      "CAD8BFCB23",
+      "6D1C78A8BAD91DB2924C507CCEDE835F5BADD157DA0AF55C98BBC28CF676F9FA"
+      "61618FA696"
+    },
+    { GCRY_CIPHER_AES256,
+      "2718281828459045235360287471352662497757247093699959574966967627"
+      "3141592653589793238462643383279502884197169399375105820974944592",
+      "11000000000000000000000000000000",
+      "3A060A8CAD115A6F44572E3759E43C8F8832FEDC28A8E35B357B5CF3EDBEF788"
+      "CAD8BFCB23",
+      "6D1C78A8BAD91DB2924C507CCEDE835F5BADD157DA0AF55C98BBC28CF676F9FA"
+      "61618FA696"
+    },
+    { GCRY_CIPHER_AES,
+      "e0e1e2e3e4e5e6e7e8e9eaebecedeeefc0c1c2c3c4c5c6c7c8c9cacbcccdcecf",
+      "21436587a90000000000000000000000",
+      "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+      "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"
+      "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f"
+      "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"
+      "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+      "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+      "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+      "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+      "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"
+      "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f"
+      "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"
+      "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+      "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+      "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+      "0001020304050607",
+      "38b45812ef43a05bd957e545907e223b954ab4aaf088303ad910eadf14b42be6"
+      "8b2461149d8c8ba85f992be970bc621f1b06573f63e867bf5875acafa04e42cc"
+      "bd7bd3c2a0fb1fff791ec5ec36c66ae4ac1e806d81fbf709dbe29e471fad3854"
+      "9c8e66f5345d7c1eb94f405d1ec785cc6f6a68f6254dd8339f9d84057e01a177"
+      "41990482999516b5611a38f41bb6478e6f173f320805dd71b1932fc333cb9ee3"
+      "9936beea9ad96fa10fb4112b901734ddad40bc1878995f8e11aee7d141a2f5d4"
+      "8b7a4e1e7f0b2c04830e69a4fd1378411c2f287edf48c6c4e5c247a19680f7fe"
+      "41cefbd49b582106e3616cbbe4dfb2344b2ae9519391f3e0fb4922254b1d6d2d"
+      "19c6d4d537b3a26f3bcc51588b32f3eca0829b6a5ac72578fb814fb43cf80d64"
+      "a233e3f997a3f02683342f2b33d25b492536b93becb2f5e1a8b82f5b88334272"
+      "9e8ae09d16938841a21a97fb543eea3bbff59f13c1a18449e398701c1ad51648"
+      "346cbc04c27bb2da3b93a1372ccae548fb53bee476f9e9c91773b1bb19828394"
+      "d55d3e1a20ed69113a860b6829ffa847224604435070221b257e8dff783615d2"
+      "cae4803a93aa4334ab482a0afac9c0aeda70b45a481df5dec5df8cc0f423c77a"
+      "5fd46cd312021d4b438862419a791be03bb4d97c0e59578542531ba466a83baf"
+      "92cefc151b5cc1611a167893819b63fb37ec662bc0fc907db74a94468a55a7bc"
+      "8a6b18e86de60290"
+    },
+    { GCRY_CIPHER_AES256,
+      "2718281828459045235360287471352662497757247093699959574966967627"
+      "3141592653589793238462643383279502884197169399375105820974944592",
+      "ffffffff000000000000000000000000",
+      "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+      "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"
+      "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f"
+      "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"
+      "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+      "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+      "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+      "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+      "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"
+      "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f"
+      "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"
+      "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+      "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+      "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+      "bf53d2dade78e822a4d949a9bc6766b01b06a8ef70d26748c6a7fc36d80ae4c5"
+      "520f7c4ab0ac8544424fa405162fef5a6b7f229498063618d39f0003cb5fb8d1"
+      "c86b643497da1ff945c8d3bedeca4f479702a7a735f043ddb1d6aaade3c4a0ac"
+      "7ca7f3fa5279bef56f82cd7a2f38672e824814e10700300a055e1630b8f1cb0e"
+      "919f5e942010a416e2bf48cb46993d3cb6a51c19bacf864785a00bc2ecff15d3"
+      "50875b246ed53e68be6f55bd7e05cfc2b2ed6432198a6444b6d8c247fab941f5"
+      "69768b5c429366f1d3f00f0345b96123d56204c01c63b22ce78baf116e525ed9"
+      "0fdea39fa469494d3866c31e05f295ff21fea8d4e6e13d67e47ce722e9698a1c"
+      "1048d68ebcde76b86fcf976eab8aa9790268b7068e017a8b9b749409514f1053"
+      "027fd16c3786ea1bac5f15cb79711ee2abe82f5cf8b13ae73030ef5b9e4457e7"
+      "5d1304f988d62dd6fc4b94ed38ba831da4b7634971b6cd8ec325d9c61c00f1df"
+      "73627ed3745a5e8489f3a95c69639c32cd6e1d537a85f75cc844726e8a72fc00"
+      "77ad22000f1d5078f6b866318c668f1ad03d5a5fced5219f2eabbd0aa5c0f460"
+      "d183f04404a0d6f469558e81fab24a167905ab4c7878502ad3e38fdbe62a4155"
+      "6cec37325759533ce8f25f367c87bb5578d667ae93f9e2fd99bcbc5f2fbba88c"
+      "f6516139420fcff3b7361d86322c4bd84c82f335abb152c4a93411373aaa8220"
+    }
+  };
+  gpg_error_t err = 0;
+  gcry_cipher_hd_t hde, hdd;
+  int tidx;
+  int got_err = 0;
+
+  if (verbose)
+    fprintf (stderr, "  Starting XTS checks.\n");
+
+  for (tidx = 0; !got_err && tidx < DIM (tv); tidx++)
+    {
+      const char *hexkey = tv[tidx].key;
+      char *key, *iv, *ciph, *plain, *out;
+      size_t keylen, ivlen, ciphlen, plainlen, outlen;
+
+      if (verbose)
+        fprintf (stderr, "    checking XTS mode for %s [%i] (tv %d)\n",
+                 gcry_cipher_algo_name (tv[tidx].algo), tv[tidx].algo, tidx);
+
+      if (!hexkey)
+	hexkey = "000102030405060708090A0B0C0D0E0F"
+	         "101112131415161718191A1B1C1D1E1F";
+
+      /* Convert to hex strings to binary.  */
+      key   = hex2buffer (hexkey, &keylen);
+      iv    = hex2buffer (tv[tidx].iv, &ivlen);
+      plain = hex2buffer (tv[tidx].plain, &plainlen);
+      ciph  = hex2buffer (tv[tidx].ciph, &ciphlen);
+      outlen = plainlen + 5;
+      out   = xmalloc (outlen);
+
+      assert (plainlen == ciphlen);
+      assert (plainlen <= outlen);
+      assert (out);
+
+      err = gcry_cipher_open (&hde, tv[tidx].algo, GCRY_CIPHER_MODE_XTS, 0);
+      if (!err)
+        err = gcry_cipher_open (&hdd, tv[tidx].algo, GCRY_CIPHER_MODE_XTS, 0);
+      if (err)
+        {
+          fail ("cipher-xts, gcry_cipher_open failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          return;
+        }
+
+      err = gcry_cipher_setkey (hde, key, keylen);
+      if (err && in_fips_mode && memcmp(key, key + keylen/2, keylen/2) == 0)
+	{
+	  /* Since both halves of key are the same, fail to set key in FIPS
+	     mode is expected. */
+	  goto next_tv;
+	}
+      if (!err)
+        err = gcry_cipher_setkey (hdd, key, keylen);
+      if (err)
+        {
+          fail ("cipher-xts, gcry_cipher_setkey failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          goto err_out;
+        }
+
+      err = gcry_cipher_setiv (hde, iv, ivlen);
+      if (!err)
+        err = gcry_cipher_setiv (hdd, iv, ivlen);
+      if (err)
+        {
+          fail ("cipher-xts, gcry_cipher_setiv failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          goto err_out;
+        }
+
+      if (inplace)
+	{
+	  memcpy(out, plain, plainlen);
+	  err = gcry_cipher_encrypt (hde, out, plainlen, NULL, 0);
+	}
+      else
+	{
+	  err = gcry_cipher_encrypt (hde, out, outlen, plain, plainlen);
+	}
+      if (err)
+        {
+          fail ("cipher-xts, gcry_cipher_encrypt failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          goto err_out;
+        }
+
+      /* Check that the encrypt output matches the expected cipher text.  */
+      if (memcmp (ciph, out, plainlen))
+        {
+          mismatch (ciph, plainlen, out, plainlen);
+          fail ("cipher-xts, encrypt data mismatch (tv %d)\n", tidx);
+        }
+
+      /* Now for the decryption.  */
+      if (inplace)
+	{
+	  err = gcry_cipher_decrypt (hdd, out, plainlen, NULL, 0);
+	}
+      else
+	{
+	  memcpy(ciph, out, ciphlen);
+	  err = gcry_cipher_decrypt (hdd, out, plainlen, ciph, ciphlen);
+	}
+      if (err)
+        {
+          fail ("cipher-xts, gcry_cipher_decrypt (tv %d) failed: %s\n",
+                tidx, gpg_strerror (err));
+          goto err_out;
+        }
+
+      /* Check that the decrypt output matches the expected plain text.  */
+      if (memcmp (plain, out, plainlen))
+        {
+          mismatch (plain, plainlen, out, plainlen);
+          fail ("cipher-xts, decrypt data mismatch (tv %d)\n", tidx);
+        }
+
+      if (0)
+	{
+err_out:
+	  got_err = 1;
+	}
+
+next_tv:
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+
+      xfree (iv);
+      xfree (ciph);
+      xfree (plain);
+      xfree (key);
+      xfree (out);
+    }
+
+  if (verbose)
+    fprintf (stderr, "  Completed XTS checks.\n");
+}
+
+
+static void
+check_xts_cipher (void)
+{
+  /* Check XTS cipher with separate destination and source buffers for
+   * encryption/decryption. */
+  do_check_xts_cipher(0);
+
+  /* Check XTS cipher with inplace encrypt/decrypt. */
+  do_check_xts_cipher(1);
+}
+
+
 static void
 check_gost28147_cipher (void)
 {
@@ -5233,6 +5570,20 @@ check_bulk_cipher_modes (void)
 /*[14]*/
       { 0x2d, 0x71, 0x54, 0xb9, 0xc5, 0x28, 0x76, 0xff, 0x76, 0xb5,
         0x99, 0x37, 0x99, 0x9d, 0xf7, 0x10, 0x6d, 0x86, 0x4f, 0x3f }
+    },
+    { GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_XTS,
+      "abcdefghijklmnopABCDEFGHIJKLMNOP", 32,
+      "1234567890123456", 16,
+/*[15]*/
+      { 0x71, 0x46, 0x40, 0xb0, 0xed, 0x6f, 0xc4, 0x82, 0x2b, 0x3f,
+        0xb6, 0xf7, 0x81, 0x08, 0x4c, 0x8b, 0xc1, 0x66, 0x4c, 0x1b }
+    },
+    { GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_XTS,
+      "abcdefghijklmnopABCDEFGHIJKLMNOP_abcdefghijklmnopABCDEFGHIJKLMNO", 64,
+      "1234567890123456", 16,
+/*[16]*/
+      { 0x8e, 0xbc, 0xa5, 0x21, 0x0a, 0x4b, 0x53, 0x14, 0x79, 0x81,
+        0x25, 0xad, 0x24, 0x45, 0x98, 0xbd, 0x9f, 0x27, 0x5f, 0x01 }
     }
   };
   gcry_cipher_hd_t hde = NULL;
@@ -5437,15 +5788,16 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   blklen = get_algo_mode_blklen(algo, mode);
 
-  assert (nkey == 32);
+  assert (nkey == 64);
   assert (nplain == 1040);
   assert (sizeof(in_buffer) == nplain + 1);
   assert (sizeof(out_buffer) == sizeof(in_buffer));
   assert (blklen > 0);
 
-  if (mode == GCRY_CIPHER_MODE_CBC && (flags & GCRY_CIPHER_CBC_CTS))
+  if ((mode == GCRY_CIPHER_MODE_CBC && (flags & GCRY_CIPHER_CBC_CTS)) ||
+      mode == GCRY_CIPHER_MODE_XTS)
     {
-      /* TODO: examine why CBC with CTS fails. */
+      /* Input cannot be split in to multiple operations with CTS . */
       blklen = nplain;
     }
 
@@ -5482,6 +5834,11 @@ check_one_cipher_core (int algo, int mode, int flags,
     {
       fail ("pass %d, algo %d, mode %d, keylength problem (%d)\n", pass, algo, mode, keylen);
       return -1;
+    }
+
+  if (mode == GCRY_CIPHER_MODE_XTS)
+    {
+      keylen *= 2;
     }
 
   err = gcry_cipher_open (&hd, algo, mode, flags);
@@ -5695,14 +6052,15 @@ check_one_cipher_core (int algo, int mode, int flags,
 static void
 check_one_cipher (int algo, int mode, int flags)
 {
-  char key[32+1];
+  char key[64+1];
   unsigned char plain[1040+1];
   int bufshift, i;
 
   for (bufshift=0; bufshift < 4; bufshift++)
     {
       /* Pass 0: Standard test.  */
-      memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF", 32);
+      memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF_"
+		   "0123456789abcdef.,;/[]{}-=ABCDEF", 64);
       memcpy (plain, "foobar42FOOBAR17", 16);
       for (i = 16; i < 1040; i += 16)
         {
@@ -5713,25 +6071,25 @@ check_one_cipher (int algo, int mode, int flags)
             plain[i+14]++;
         }
 
-      if (check_one_cipher_core (algo, mode, flags, key, 32, plain, 1040,
+      if (check_one_cipher_core (algo, mode, flags, key, 64, plain, 1040,
                                  bufshift, 0+10*bufshift))
         return;
 
       /* Pass 1: Key not aligned.  */
-      memmove (key+1, key, 32);
-      if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain, 1040,
+      memmove (key+1, key, 64);
+      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain, 1040,
                                  bufshift, 1+10*bufshift))
         return;
 
       /* Pass 2: Key not aligned and data not aligned.  */
       memmove (plain+1, plain, 1040);
-      if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain+1, 1040,
+      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain+1, 1040,
                                  bufshift, 2+10*bufshift))
         return;
 
       /* Pass 3: Key aligned and data not aligned.  */
-      memmove (key, key+1, 32);
-      if (check_one_cipher_core (algo, mode, flags, key, 32, plain+1, 1040,
+      memmove (key, key+1, 64);
+      if (check_one_cipher_core (algo, mode, flags, key, 64, plain+1, 1040,
                                  bufshift, 3+10*bufshift))
         return;
     }
@@ -5831,6 +6189,8 @@ check_ciphers (void)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_GCM, 0);
       if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_OCB_BLOCK_LEN)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_OCB, 0);
+      if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_XTS_BLOCK_LEN)
+        check_one_cipher (algos[i], GCRY_CIPHER_MODE_XTS, 0);
     }
 
   for (i = 0; algos2[i]; i++)
@@ -5874,6 +6234,7 @@ check_cipher_modes(void)
   check_gcm_cipher ();
   check_poly1305_cipher ();
   check_ocb_cipher ();
+  check_xts_cipher ();
   check_gost28147_cipher ();
   check_stream_cipher ();
   check_stream_cipher_large_block ();

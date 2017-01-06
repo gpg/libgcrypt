@@ -1692,6 +1692,23 @@ set to 12 (for 96 bit) or 8 (for 64 bit) provided for the
 
 Note that the use of @code{gcry_cipher_final} is required.
 
+@item  GCRY_CIPHER_MODE_XTS
+@cindex XTS, XTS mode
+XEX-based tweaked-codebook mode with ciphertext stealing (XTS) mode
+is used to implement the AES-XTS as specified in IEEE 1619 Standard
+Architecture for Encrypted Shared Storage Media and NIST SP800-38E.
+
+The XTS mode requires doubling key-length, for example, using 512-bit
+key with AES-256 (@code{GCRY_CIPHER_AES256}). The 128-bit tweak value
+is feed to XTS mode as little-endian byte array using
+@code{gcry_cipher_setiv} function. When encrypting or decrypting,
+full-sized data unit buffers needs to be passed to
+@code{gcry_cipher_encrypt} or @code{gcry_cipher_decrypt}. The tweak
+value is automatically incremented after each call of
+@code{gcry_cipher_encrypt} and @code{gcry_cipher_decrypt}.
+Auto-increment allows avoiding need of setting IV between processing
+of sequential data units.
+
 @end table
 
 @node Working with cipher handles
@@ -1725,9 +1742,9 @@ ChaCha20 stream cipher. The block cipher modes
 @code{GCRY_CIPHER_MODE_CFB}, @code{GCRY_CIPHER_MODE_OFB} and
 @code{GCRY_CIPHER_MODE_CTR}) will work with any block cipher
 algorithm.  GCM mode (@code{GCRY_CIPHER_MODE_CCM}), CCM mode
-(@code{GCRY_CIPHER_MODE_GCM}), and OCB mode
-(@code{GCRY_CIPHER_MODE_OCB}) will only work with block cipher
-algorithms which have the block size of 16 bytes.
+(@code{GCRY_CIPHER_MODE_GCM}), OCB mode (@code{GCRY_CIPHER_MODE_OCB}),
+and XTS mode (@code{GCRY_CIPHER_MODE_XTS}) will only work
+with block cipher algorithms which have the block size of 16 bytes.
 
 The third argument @var{flags} can either be passed as @code{0} or as
 the bit-wise OR of the following constants.

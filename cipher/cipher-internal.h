@@ -146,6 +146,9 @@ struct gcry_cipher_handle
 			const void *inbuf_arg, size_t nblocks, int encrypt);
     size_t (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg,
 		       size_t nblocks);
+    void (*xts_crypt)(gcry_cipher_hd_t c, unsigned char *tweak,
+		      void *outbuf_arg, const void *inbuf_arg,
+		      size_t nblocks, int encrypt);
   } bulk;
 
 
@@ -309,6 +312,12 @@ struct gcry_cipher_handle
 
     } ocb;
 
+    /* Mode specific storage for XTS mode. */
+    struct {
+      /* Pointer to tweak cipher context, allocated after actual
+       * cipher context. */
+      char *tweak_context;
+    } xts;
   } u_mode;
 
   /* What follows are two contexts of the cipher in use.  The first
@@ -459,6 +468,12 @@ gcry_err_code_t _gcry_cipher_ocb_get_tag
 gcry_err_code_t _gcry_cipher_ocb_check_tag
 /*           */ (gcry_cipher_hd_t c,
                  const unsigned char *intag, size_t taglen);
+
+
+/*-- cipher-xts.c --*/
+gcry_err_code_t _gcry_cipher_xts_crypt
+/*           */ (gcry_cipher_hd_t c, unsigned char *outbuf, size_t outbuflen,
+		 const unsigned char *inbuf, size_t inbuflen, int encrypt);
 
 
 /* Return the L-value for block N.  Note: 'cipher_ocb.c' ensures that N

@@ -764,12 +764,15 @@ cipher_bench ( const char *algoname )
     int req_blocksize;
     int authlen;
     int noncelen;
+    int doublekey;
   } modes[] = {
     { GCRY_CIPHER_MODE_ECB, "   ECB/Stream", 1 },
     { GCRY_CIPHER_MODE_CBC, "      CBC", 1 },
     { GCRY_CIPHER_MODE_CFB, "      CFB", 0 },
     { GCRY_CIPHER_MODE_OFB, "      OFB", 0 },
     { GCRY_CIPHER_MODE_CTR, "      CTR", 0 },
+    { GCRY_CIPHER_MODE_XTS, "      XTS", 0,
+      NULL, GCRY_XTS_BLOCK_LEN, 0, 0, 1 },
     { GCRY_CIPHER_MODE_CCM, "      CCM", 0,
       ccm_aead_init, GCRY_CCM_BLOCK_LEN, 8 },
     { GCRY_CIPHER_MODE_GCM, "      GCM", 0,
@@ -841,13 +844,13 @@ cipher_bench ( const char *algoname )
 	       algoname);
       exit (1);
     }
-  if ( keylen > sizeof key )
+  if ( keylen * 2 > sizeof key )
     {
         fprintf (stderr, PGM ": algo %d, keylength problem (%d)\n",
                  algo, keylen );
         exit (1);
     }
-  for (i=0; i < keylen; i++)
+  for (i=0; i < keylen * 2; i++)
     key[i] = i + (clock () & 0xff);
 
   blklen = gcry_cipher_get_algo_blklen (algo);
@@ -863,6 +866,8 @@ cipher_bench ( const char *algoname )
 
   for (modeidx=0; modes[modeidx].mode; modeidx++)
     {
+      size_t modekeylen = keylen * (!!modes[modeidx].doublekey + 1);
+
       if ((blklen > 1 && modes[modeidx].mode == GCRY_CIPHER_MODE_STREAM)
           || (blklen == 1 && modes[modeidx].mode != GCRY_CIPHER_MODE_STREAM))
         continue;
@@ -886,7 +891,7 @@ cipher_bench ( const char *algoname )
 
       if (!cipher_with_keysetup)
         {
-          err = gcry_cipher_setkey (hd, key, keylen);
+          err = gcry_cipher_setkey (hd, key, modekeylen);
           if (err)
             {
               fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
@@ -905,7 +910,7 @@ cipher_bench ( const char *algoname )
         {
           if (cipher_with_keysetup)
             {
-              err = gcry_cipher_setkey (hd, key, keylen);
+              err = gcry_cipher_setkey (hd, key, modekeylen);
               if (err)
                 {
                   fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
@@ -969,7 +974,7 @@ cipher_bench ( const char *algoname )
 
       if (!cipher_with_keysetup)
         {
-          err = gcry_cipher_setkey (hd, key, keylen);
+          err = gcry_cipher_setkey (hd, key, modekeylen);
           if (err)
             {
               fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
@@ -984,7 +989,7 @@ cipher_bench ( const char *algoname )
         {
           if (cipher_with_keysetup)
             {
-              err = gcry_cipher_setkey (hd, key, keylen);
+              err = gcry_cipher_setkey (hd, key, modekeylen);
               if (err)
                 {
                   fprintf (stderr, "gcry_cipher_setkey failed: %s\n",

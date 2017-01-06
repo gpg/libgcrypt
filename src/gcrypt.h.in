@@ -961,7 +961,8 @@ enum gcry_cipher_modes
     GCRY_CIPHER_MODE_GCM      = 9,   /* Galois Counter Mode. */
     GCRY_CIPHER_MODE_POLY1305 = 10,  /* Poly1305 based AEAD mode. */
     GCRY_CIPHER_MODE_OCB      = 11,  /* OCB3 mode.  */
-    GCRY_CIPHER_MODE_CFB8     = 12   /* Cipher feedback (8 bit mode). */
+    GCRY_CIPHER_MODE_CFB8     = 12,  /* Cipher feedback (8 bit mode). */
+    GCRY_CIPHER_MODE_XTS      = 13  /* XTS mode.  */
   };
 
 /* Flags used with the open function. */
@@ -981,6 +982,9 @@ enum gcry_cipher_flags
 
 /* OCB works only with blocks of 128 bits.  */
 #define GCRY_OCB_BLOCK_LEN  (128 / 8)
+
+/* XTS works only with blocks of 128 bits.  */
+#define GCRY_XTS_BLOCK_LEN  (128 / 8)
 
 /* Create a handle for algorithm ALGO to be used in MODE.  FLAGS may
    be given as an bitwise OR of the gcry_cipher_flags values. */

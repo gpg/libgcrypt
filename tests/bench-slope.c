@@ -742,6 +742,126 @@ static struct bench_ops decrypt_ops = {
 };
 
 
+static int
+bench_xts_encrypt_init (struct bench_obj *obj)
+{
+  struct bench_cipher_mode *mode = obj->priv;
+  gcry_cipher_hd_t hd;
+  int err, keylen;
+
+  /* For XTS, benchmark with typical data-unit size (512 byte sectors). */
+  obj->min_bufsize = 512;
+  obj->max_bufsize = 16 * obj->min_bufsize;
+  obj->step_size = obj->min_bufsize;
+  obj->num_measure_repetitions = num_measurement_repetitions;
+
+  err = gcry_cipher_open (&hd, mode->algo, mode->mode, 0);
+  if (err)
+    {
+      fprintf (stderr, PGM ": error opening cipher `%s'\n",
+	       gcry_cipher_algo_name (mode->algo));
+      exit (1);
+    }
+
+  /* Double key-length for XTS. */
+  keylen = gcry_cipher_get_algo_keylen (mode->algo) * 2;
+  if (keylen)
+    {
+      char key[keylen];
+      int i;
+
+      for (i = 0; i < keylen; i++)
+	key[i] = 0x33 ^ (11 - i);
+
+      err = gcry_cipher_setkey (hd, key, keylen);
+      if (err)
+	{
+	  fprintf (stderr, PGM ": gcry_cipher_setkey failed: %s\n",
+		   gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  exit (1);
+	}
+    }
+  else
+    {
+      fprintf (stderr, PGM ": failed to get key length for algorithm `%s'\n",
+	       gcry_cipher_algo_name (mode->algo));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+
+  obj->priv = hd;
+
+  return 0;
+}
+
+static void
+bench_xts_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
+{
+  gcry_cipher_hd_t hd = obj->priv;
+  unsigned int pos;
+  static const char tweak[16] = { 0xff, 0xff, 0xfe, };
+  size_t sectorlen = obj->step_size;
+  char *cbuf = buf;
+  int err;
+
+  gcry_cipher_setiv (hd, tweak, sizeof (tweak));
+
+  /* Process each sector separately. */
+
+  for (pos = 0; pos < buflen; pos += sectorlen, cbuf += sectorlen)
+    {
+      err = gcry_cipher_encrypt (hd, cbuf, sectorlen, cbuf, sectorlen);
+      if (err)
+	{
+	  fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
+		  gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  exit (1);
+	}
+    }
+}
+
+static void
+bench_xts_decrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
+{
+  gcry_cipher_hd_t hd = obj->priv;
+  unsigned int pos;
+  static const char tweak[16] = { 0xff, 0xff, 0xfe, };
+  size_t sectorlen = obj->step_size;
+  char *cbuf = buf;
+  int err;
+
+  gcry_cipher_setiv (hd, tweak, sizeof (tweak));
+
+  /* Process each sector separately. */
+
+  for (pos = 0; pos < buflen; pos += sectorlen, cbuf += sectorlen)
+    {
+      err = gcry_cipher_decrypt (hd, cbuf, sectorlen, cbuf, sectorlen);
+      if (err)
+	{
+	  fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
+		  gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  exit (1);
+	}
+    }
+}
+
+static struct bench_ops xts_encrypt_ops = {
+  &bench_xts_encrypt_init,
+  &bench_encrypt_free,
+  &bench_xts_encrypt_do_bench
+};
+
+static struct bench_ops xts_decrypt_ops = {
+  &bench_xts_encrypt_init,
+  &bench_encrypt_free,
+  &bench_xts_decrypt_do_bench
+};
+
+
 static void
 bench_ccm_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
 {
@@ -1166,6 +1286,8 @@ static struct bench_cipher_mode cipher_modes[] = {
   {GCRY_CIPHER_MODE_OFB, "OFB dec", &decrypt_ops},
   {GCRY_CIPHER_MODE_CTR, "CTR enc", &encrypt_ops},
   {GCRY_CIPHER_MODE_CTR, "CTR dec", &decrypt_ops},
+  {GCRY_CIPHER_MODE_XTS, "XTS enc", &xts_encrypt_ops},
+  {GCRY_CIPHER_MODE_XTS, "XTS dec", &xts_decrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM enc", &ccm_encrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM dec", &ccm_decrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM auth", &ccm_authenticate_ops},
@@ -1219,8 +1341,12 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
   if (mode.mode == GCRY_CIPHER_MODE_GCM && blklen != GCRY_GCM_BLOCK_LEN)
     return;
 
+  /* XTS has restrictions for block-size */
+  if (mode.mode == GCRY_CIPHER_MODE_XTS && blklen != GCRY_XTS_BLOCK_LEN)
+    return;
+
   /* Our OCB implementaion has restrictions for block-size.  */
-  if (mode.mode == GCRY_CIPHER_MODE_OCB && blklen != 16)
+  if (mode.mode == GCRY_CIPHER_MODE_OCB && blklen != GCRY_OCB_BLOCK_LEN)
     return;
 
   bench_print_mode (14, mode.name);
