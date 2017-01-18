@@ -195,50 +195,6 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
       struct timeval tv;
       int rc;
 
-      /* If we collected some bytes update the progress indicator.  We
-         do this always and not just if the select timed out because
-         often just a few bytes are gathered within the timeout
-         period.  */
-      if (any_need_entropy || last_so_far != (want - length) )
-        {
-          last_so_far = want - length;
-          _gcry_random_progress ("need_entropy", 'X',
-                                 (int)last_so_far, (int)want);
-          any_need_entropy = 1;
-        }
-
-      /* If the system has no limit on the number of file descriptors
-         and we encounter an fd which is larger than the fd_set size,
-         we don't use the select at all.  The select code is only used
-         to emit progress messages.  A better solution would be to
-         fall back to poll() if available.  */
-#ifdef FD_SETSIZE
-      if (fd < FD_SETSIZE)
-#endif
-        {
-          FD_ZERO(&rfds);
-          FD_SET(fd, &rfds);
-          tv.tv_sec = delay;
-          tv.tv_usec = delay? 0 : 100000;
-          _gcry_pre_syscall ();
-          rc = select (fd+1, &rfds, NULL, NULL, &tv);
-          _gcry_post_syscall ();
-          if (!rc)
-            {
-              any_need_entropy = 1;
-              delay = 3; /* Use 3 seconds henceforth.  */
-              continue;
-            }
-          else if( rc == -1 )
-            {
-              log_error ("select() error: %s\n", strerror(errno));
-              if (!delay)
-                delay = 1; /* Use 1 second if we encounter an error before
-                              we have ever blocked.  */
-              continue;
-            }
-        }
-
       /* If we have a modern Linux kernel and we want to read from the
        * the non-blocking /dev/urandom, we first try to use the new
        * getrandom syscall.  That call guarantees that the kernel's
@@ -282,6 +238,50 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
             }
         }
 #endif
+
+      /* If we collected some bytes update the progress indicator.  We
+         do this always and not just if the select timed out because
+         often just a few bytes are gathered within the timeout
+         period.  */
+      if (any_need_entropy || last_so_far != (want - length) )
+        {
+          last_so_far = want - length;
+          _gcry_random_progress ("need_entropy", 'X',
+                                 (int)last_so_far, (int)want);
+          any_need_entropy = 1;
+        }
+
+      /* If the system has no limit on the number of file descriptors
+         and we encounter an fd which is larger than the fd_set size,
+         we don't use the select at all.  The select code is only used
+         to emit progress messages.  A better solution would be to
+         fall back to poll() if available.  */
+#ifdef FD_SETSIZE
+      if (fd < FD_SETSIZE)
+#endif
+        {
+          FD_ZERO(&rfds);
+          FD_SET(fd, &rfds);
+          tv.tv_sec = delay;
+          tv.tv_usec = delay? 0 : 100000;
+          _gcry_pre_syscall ();
+          rc = select (fd+1, &rfds, NULL, NULL, &tv);
+          _gcry_post_syscall ();
+          if (!rc)
+            {
+              any_need_entropy = 1;
+              delay = 3; /* Use 3 seconds henceforth.  */
+              continue;
+            }
+          else if( rc == -1 )
+            {
+              log_error ("select() error: %s\n", strerror(errno));
+              if (!delay)
+                delay = 1; /* Use 1 second if we encounter an error before
+                              we have ever blocked.  */
+              continue;
+            }
+        }
 
       do
         {
