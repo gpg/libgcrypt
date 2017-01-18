@@ -2031,7 +2031,6 @@ if test "$found" = "1" ; then
 
          # Build with the SSSE3 implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ssse3-amd64.lo"
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ssse3-amd64-asm.lo"
       ;;
       arm*-*-*)
          # Build with the assembly implementation
