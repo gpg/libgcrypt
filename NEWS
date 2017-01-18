@@ -1,5 +1,12 @@
-Noteworthy changes in version 1.7.6 (unreleased)  [C21/A1/R_]
+Noteworthy changes in version 1.7.6 (2017-01-18)  [C21/A1/R6]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix AES CTR self-check detected failure in the SSSE3 based
+     implementation.
+
+   - Remove gratuitous select before the getrandom syscall.
 
 
 Noteworthy changes in version 1.7.5 (2016-12-15)  [C21/A1/R5]
