@@ -603,7 +603,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   a = mpi_snew (0);
   x = mpi_new (0);
   y = mpi_new (0);
-  r = mpi_new (0);
+  r = mpi_snew (0);
   ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect, 0,
                                      skey->E.p, skey->E.a, skey->E.b);
   b = (ctx->nbits+7)/8;
