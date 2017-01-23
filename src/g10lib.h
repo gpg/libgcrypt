@@ -334,6 +334,7 @@ void __gcry_burn_stack (unsigned int bytes);
 /* Following architectures can handle unaligned accesses fast.  */
 #if defined(HAVE_GCC_ATTRIBUTE_PACKED) && \
     defined(HAVE_GCC_ATTRIBUTE_ALIGNED) && \
+    defined(HAVE_GCC_ATTRIBUTE_MAY_ALIAS) && \
     (defined(__i386__) || defined(__x86_64__) || \
      defined(__powerpc__) || defined(__powerpc64__) || \
      (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED)) || \
@@ -342,7 +343,7 @@ void __gcry_burn_stack (unsigned int bytes);
 typedef struct fast_wipememory_s
 {
   FASTWIPE_T a;
-} __attribute__((packed, aligned(1))) fast_wipememory_t;
+} __attribute__((packed, aligned(1), may_alias)) fast_wipememory_t;
 #else
 #define fast_wipememory2_unaligned_head(_vptr,_vset,_vlen) do { \
               while((size_t)(_vptr)&(sizeof(FASTWIPE_T)-1) && _vlen) \

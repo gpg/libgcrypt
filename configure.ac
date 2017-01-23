@@ -994,6 +994,21 @@ fi
 
 
 #
+# Check whether the compiler supports the GCC style may_alias attribute
+#
+AC_CACHE_CHECK([whether the GCC style may_alias attribute is supported],
+       [gcry_cv_gcc_attribute_may_alias],
+       [gcry_cv_gcc_attribute_may_alias=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[struct { int a; } foo __attribute__ ((may_alias));]])],
+          [gcry_cv_gcc_attribute_may_alias=yes])])
+if test "$gcry_cv_gcc_attribute_may_alias" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ATTRIBUTE_MAY_ALIAS,1,
+     [Defined if a GCC style "__attribute__ ((may_alias))" is supported])
+fi
+
+
+#
 # Check whether the compiler supports 'asm' or '__asm__' keyword for
 # assembler blocks.
 #

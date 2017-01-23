@@ -26,6 +26,7 @@
 #undef BUFHELP_FAST_UNALIGNED_ACCESS
 #if defined(HAVE_GCC_ATTRIBUTE_PACKED) && \
     defined(HAVE_GCC_ATTRIBUTE_ALIGNED) && \
+    defined(HAVE_GCC_ATTRIBUTE_MAY_ALIAS) && \
     (defined(__i386__) || defined(__x86_64__) || \
      (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED)) || \
      defined(__aarch64__))
@@ -43,7 +44,7 @@
 typedef struct bufhelp_int_s
 {
   uintptr_t a;
-} __attribute__((packed, aligned(1))) bufhelp_int_t;
+} __attribute__((packed, aligned(1), may_alias)) bufhelp_int_t;
 #else
 /* Define type with default alignment for other architectures (unaligned
    accessed handled in per byte loops).
@@ -370,7 +371,7 @@ static inline void buf_put_le64(void *_buf, u64 val)
 typedef struct bufhelp_u32_s
 {
   u32 a;
-} __attribute__((packed, aligned(1))) bufhelp_u32_t;
+} __attribute__((packed, aligned(1), may_alias)) bufhelp_u32_t;
 
 /* Functions for loading and storing unaligned u32 values of different
    endianness.  */
@@ -400,7 +401,7 @@ static inline void buf_put_le32(void *_buf, u32 val)
 typedef struct bufhelp_u64_s
 {
   u64 a;
-} __attribute__((packed, aligned(1))) bufhelp_u64_t;
+} __attribute__((packed, aligned(1), may_alias)) bufhelp_u64_t;
 
 /* Functions for loading and storing unaligned u64 values of different
    endianness.  */
