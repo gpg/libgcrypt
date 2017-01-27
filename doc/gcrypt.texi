@@ -5388,6 +5388,13 @@ for entropy.  On some older Windows systems this could help to speed
 up the creation of random numbers but also decreases the amount of
 data used to init the random number generator.
 
+@item GCRYPT_RNDW32_DBG
+@cindex GCRYPT_RNDW32_DBG
+Setting the value of this variable to a positive integer logs
+information about the Windows entropy gatherer using the standard log
+interface.
+
+
 @item HOME
 @cindex HOME
 This is used to locate the socket to connect to the EGD random

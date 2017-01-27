@@ -245,10 +245,11 @@ static RTLGENRANDOM        pRtlGenRandom;
 static int system_rng_available; /* Whether a system RNG is available.  */
 static HCRYPTPROV hRNGProv;      /* Handle to Intel RNG CSP. */
 
-static int debug_me;  /* Debug flag.  */
+/* The debug flag.  Debugging is enabled if the value of the envvar
+ * GCRY_RNDW32_DBG is a postive number.*/
+static int debug_me;
 
 static int system_is_w2000;     /* True if running on W2000.  */
-
 
 
 
@@ -787,11 +788,16 @@ _gcry_rndw32_gather_random (void (*add)(const void*, size_t,
   if (!is_initialized)
     {
       OSVERSIONINFO osvi = { sizeof( osvi ) };
+      const char *s;
+
+      if ((s = getenv ("GCRYPT_RNDW32_DBG")) && atoi (s) > 0)
+        debug_me = 1;
 
       GetVersionEx( &osvi );
       if (osvi.dwPlatformId != VER_PLATFORM_WIN32_NT)
         log_fatal ("can only run on a Windows NT platform\n" );
       system_is_w2000 = (osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 0);
+
       init_system_rng ();
       is_initialized = 1;
     }
