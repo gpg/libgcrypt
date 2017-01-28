@@ -1,5 +1,5 @@
 /* bufhelp.h  -  Some buffer manipulation helpers
- * Copyright (C) 2012 Jussi Kivilinna <jussi.kivilinna@mbnet.fi>
+ * Copyright (C) 2012-2017 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -20,6 +20,7 @@
 #define GCRYPT_BUFHELP_H
 
 
+#include "g10lib.h"
 #include "bithelp.h"
 
 
@@ -88,7 +89,7 @@ buf_cpy(void *_dst, const void *_src, size_t len)
   const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
 
   /* Skip fast processing if buffers are unaligned.  */
-  if (((uintptr_t)dst | (uintptr_t)src) & longmask)
+  if (UNLIKELY(((uintptr_t)dst | (uintptr_t)src) & longmask))
     goto do_bytes;
 #endif
 
@@ -124,7 +125,7 @@ buf_xor(void *_dst, const void *_src1, const void *_src2, size_t len)
   const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
 
   /* Skip fast processing if buffers are unaligned.  */
-  if (((uintptr_t)dst | (uintptr_t)src1 | (uintptr_t)src2) & longmask)
+  if (UNLIKELY(((uintptr_t)dst | (uintptr_t)src1 | (uintptr_t)src2) & longmask))
     goto do_bytes;
 #endif
 
@@ -160,7 +161,7 @@ buf_xor_1(void *_dst, const void *_src, size_t len)
   const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
 
   /* Skip fast processing if buffers are unaligned.  */
-  if (((uintptr_t)dst | (uintptr_t)src) & longmask)
+  if (UNLIKELY(((uintptr_t)dst | (uintptr_t)src) & longmask))
     goto do_bytes;
 #endif
 
@@ -196,7 +197,7 @@ buf_xor_2dst(void *_dst1, void *_dst2, const void *_src, size_t len)
   const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
 
   /* Skip fast processing if buffers are unaligned.  */
-  if (((uintptr_t)src | (uintptr_t)dst1 | (uintptr_t)dst2) & longmask)
+  if (UNLIKELY(((uintptr_t)src | (uintptr_t)dst1 | (uintptr_t)dst2) & longmask))
     goto do_bytes;
 #endif
 
@@ -238,8 +239,8 @@ buf_xor_n_copy_2(void *_dst_xor, const void *_src_xor, void *_srcdst_cpy,
   const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
 
   /* Skip fast processing if buffers are unaligned.  */
-  if (((uintptr_t)src_cpy | (uintptr_t)src_xor | (uintptr_t)dst_xor |
-       (uintptr_t)srcdst_cpy) & longmask)
+  if (UNLIKELY(((uintptr_t)src_cpy | (uintptr_t)src_xor | (uintptr_t)dst_xor |
+       (uintptr_t)srcdst_cpy) & longmask))
     goto do_bytes;
 #endif
 

@@ -75,6 +75,14 @@
 #define GCC_ATTR_UNUSED
 #endif
 
+#if __GNUC__ >= 3
+#define LIKELY( expr )    __builtin_expect( !!(expr), 1 )
+#define UNLIKELY( expr )  __builtin_expect( !!(expr), 0 )
+#else
+#define LIKELY( expr )    (!!(expr))
+#define UNLIKELY( expr )  (!!(expr))
+#endif
+
 /* Gettext macros.  */
 
 #define _(a)  _gcry_gettext(a)
@@ -165,15 +173,15 @@ int _gcry_log_verbosity( int level );
 
 #ifdef JNLIB_GCC_M_FUNCTION
 #define BUG() _gcry_bug( __FILE__ , __LINE__, __FUNCTION__ )
-#define gcry_assert(expr) ((expr)? (void)0 \
+#define gcry_assert(expr) (LIKELY(expr)? (void)0 \
          : _gcry_assert_failed (STR(expr), __FILE__, __LINE__, __FUNCTION__))
 #elif __STDC_VERSION__ >= 199901L
 #define BUG() _gcry_bug( __FILE__ , __LINE__, __func__ )
-#define gcry_assert(expr) ((expr)? (void)0 \
+#define gcry_assert(expr) (LIKELY(expr)? (void)0 \
          : _gcry_assert_failed (STR(expr), __FILE__, __LINE__, __func__))
 #else
 #define BUG() _gcry_bug( __FILE__ , __LINE__ )
-#define gcry_assert(expr) ((expr)? (void)0 \
+#define gcry_assert(expr) (LIKELY(expr)? (void)0 \
          : _gcry_assert_failed (STR(expr), __FILE__, __LINE__))
 #endif
 
@@ -346,7 +354,7 @@ typedef struct fast_wipememory_s
 } __attribute__((packed, aligned(1), may_alias)) fast_wipememory_t;
 #else
 #define fast_wipememory2_unaligned_head(_vptr,_vset,_vlen) do { \
-              while((size_t)(_vptr)&(sizeof(FASTWIPE_T)-1) && _vlen) \
+              while(UNLIKELY((size_t)(_vptr)&(sizeof(FASTWIPE_T)-1)) && _vlen) \
                 { *_vptr=(_vset); _vptr++; _vlen--; } \
                   } while(0)
 typedef struct fast_wipememory_s
