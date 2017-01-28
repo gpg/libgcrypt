@@ -41,7 +41,10 @@
 #endif
 
 
-typedef struct u128_s { u32 a, b, c, d; } u128_t;
+typedef struct u128_s
+{
+  u32 a, b, c, d;
+} __attribute__((packed, aligned(1), may_alias)) u128_t;
 
 
 /* Two macros to be called prior and after the use of AESNI
