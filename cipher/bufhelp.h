@@ -23,10 +23,19 @@
 #include "bithelp.h"
 
 
-#undef BUFHELP_FAST_UNALIGNED_ACCESS
+#undef BUFHELP_UNALIGNED_ACCESS
 #if defined(HAVE_GCC_ATTRIBUTE_PACKED) && \
     defined(HAVE_GCC_ATTRIBUTE_ALIGNED) && \
-    defined(HAVE_GCC_ATTRIBUTE_MAY_ALIAS) && \
+    defined(HAVE_GCC_ATTRIBUTE_MAY_ALIAS)
+/* Compiler is supports attributes needed for automatically issuing unaligned
+   memory access instructions.
+ */
+# define BUFHELP_UNALIGNED_ACCESS 1
+#endif
+
+
+#undef BUFHELP_FAST_UNALIGNED_ACCESS
+#if defined(BUFHELP_UNALIGNED_ACCESS) && \
     (defined(__i386__) || defined(__x86_64__) || \
      (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED)) || \
      defined(__aarch64__))
@@ -290,7 +299,7 @@ buf_eq_const(const void *_a, const void *_b, size_t len)
 }
 
 
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
+#ifndef BUFHELP_UNALIGNED_ACCESS
 
 /* Functions for loading and storing unaligned u32 values of different
    endianness.  */
@@ -373,7 +382,7 @@ static inline void buf_put_le64(void *_buf, u64 val)
   out[0] = val;
 }
 
-#else /*BUFHELP_FAST_UNALIGNED_ACCESS*/
+#else /*BUFHELP_UNALIGNED_ACCESS*/
 
 typedef struct bufhelp_u32_s
 {
@@ -435,6 +444,6 @@ static inline void buf_put_le64(void *_buf, u64 val)
 }
 
 
-#endif /*BUFHELP_FAST_UNALIGNED_ACCESS*/
+#endif /*BUFHELP_UNALIGNED_ACCESS*/
 
 #endif /*GCRYPT_BUFHELP_H*/
