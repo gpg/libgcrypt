@@ -44,6 +44,12 @@
 #define ALIGNED_16 __attribute__ ((aligned (16)))
 
 
+struct u16_unaligned_s
+{
+  u16 a;
+} __attribute__((packed, aligned (1), may_alias));
+
+
 /* Constants structure for generic reflected/non-reflected CRC32 CLMUL
  * functions. */
 struct crc32_consts_s
@@ -345,14 +351,14 @@ crc32_reflected_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
 	}
       else if (inlen == 2)
 	{
-	  data = *((const u16 *)inbuf);
+	  data = ((const struct u16_unaligned_s *)inbuf)->a;
 	  data ^= crc;
 	  data <<= 16;
 	  crc >>= 16;
 	}
       else
 	{
-	  data = *((const u16 *)inbuf);
+	  data = ((const struct u16_unaligned_s *)inbuf)->a;
 	  data |= inbuf[2] << 16;
 	  data ^= crc;
 	  data <<= 8;
@@ -709,14 +715,14 @@ crc32_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
 	}
       else if (inlen == 2)
 	{
-	  data = *((const u16 *)inbuf);
+	  data = ((const struct u16_unaligned_s *)inbuf)->a;
 	  data ^= crc;
 	  data = _gcry_bswap32(data << 16);
 	  crc = _gcry_bswap32(crc >> 16);
 	}
       else
 	{
-	  data = *((const u16 *)inbuf);
+	  data = ((const struct u16_unaligned_s *)inbuf)->a;
 	  data |= inbuf[2] << 16;
 	  data ^= crc;
 	  data = _gcry_bswap32(data << 8);
