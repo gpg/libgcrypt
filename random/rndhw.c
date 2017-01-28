@@ -129,7 +129,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
 #  define RDRAND_LONG	RDRAND_INT
 # endif
 static inline int
-rdrand_long (unsigned long *v)
+rdrand_long (volatile unsigned long *v)
 {
   int ok;
   asm volatile ("1: " RDRAND_LONG "\n\t"
@@ -145,7 +145,7 @@ rdrand_long (unsigned long *v)
 
 
 static inline int
-rdrand_nlong (unsigned long *v, int count)
+rdrand_nlong (volatile unsigned long *v, int count)
 {
   while (count--)
     if (!rdrand_long(v++))
@@ -157,12 +157,12 @@ rdrand_nlong (unsigned long *v, int count)
 static size_t
 poll_drng (add_fn_t add, enum random_origins origin, int fast)
 {
-  volatile char buffer[64] __attribute__ ((aligned (8)));
+  volatile unsigned long buffer[8] __attribute__ ((aligned (8)));
   unsigned int nbytes = sizeof (buffer);
 
   (void)fast;
 
-  if (!rdrand_nlong ((unsigned long *)buffer, sizeof(buffer)/sizeof(long)))
+  if (!rdrand_nlong (buffer, DIM(buffer)))
     return 0;
   (*add)((void *)buffer, nbytes, origin);
   return nbytes;
