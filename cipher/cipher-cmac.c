@@ -42,6 +42,11 @@ cmac_write (gcry_cipher_hd_t c, const byte * inbuf, size_t inlen)
   unsigned int burn = 0;
   unsigned int nblocks;
 
+  /* Tell compiler that we require a cipher with a 64bit or 128 bit block
+   * length, to allow better optimization of this function.  */
+  if (blocksize > 16 || blocksize < 8 || blocksize & (8 - 1))
+    return;
+
   if (!inlen || !inbuf)
     return;
 
@@ -109,6 +114,11 @@ cmac_generate_subkeys (gcry_cipher_hd_t c)
     byte buf[MAX_BLOCKSIZE];
   } u;
 
+  /* Tell compiler that we require a cipher with a 64bit or 128 bit block
+   * length, to allow better optimization of this function.  */
+  if (blocksize > 16 || blocksize < 8 || blocksize & (8 - 1))
+    return;
+
   if (MAX_BLOCKSIZE < blocksize)
     BUG ();
 
@@ -148,6 +158,11 @@ cmac_final (gcry_cipher_hd_t c)
   unsigned int count = c->unused;
   unsigned int burn;
   byte *subkey;
+
+  /* Tell compiler that we require a cipher with a 64bit or 128 bit block
+   * length, to allow better optimization of this function.  */
+  if (blocksize > 16 || blocksize < 8 || blocksize & (8 - 1))
+    return;
 
   if (count == blocksize)
     subkey = c->u_mode.cmac.subkeys[0];        /* K1 */

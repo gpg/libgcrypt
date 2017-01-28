@@ -44,6 +44,11 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
   size_t nblocks = inbuflen / blocksize;
   unsigned int burn, nburn;
 
+  /* Tell compiler that we require a cipher with a 64bit or 128 bit block
+   * length, to allow better optimization of this function.  */
+  if (blocksize > 16 || blocksize < 8 || blocksize & (8 - 1))
+    return GPG_ERR_INV_LENGTH;
+
   if (outbuflen < ((c->flags & GCRY_CIPHER_CBC_MAC)? blocksize : inbuflen))
     return GPG_ERR_BUFFER_TOO_SHORT;
 
@@ -132,6 +137,11 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
   gcry_cipher_decrypt_t dec_fn = c->spec->decrypt;
   size_t nblocks = inbuflen / blocksize;
   unsigned int burn, nburn;
+
+  /* Tell compiler that we require a cipher with a 64bit or 128 bit block
+   * length, to allow better optimization of this function.  */
+  if (blocksize > 16 || blocksize < 8 || blocksize & (8 - 1))
+    return GPG_ERR_INV_LENGTH;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
