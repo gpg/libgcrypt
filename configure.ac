@@ -1000,7 +1000,8 @@ AC_CACHE_CHECK([whether the GCC style may_alias attribute is supported],
        [gcry_cv_gcc_attribute_may_alias],
        [gcry_cv_gcc_attribute_may_alias=no
         AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[struct { int a; } foo __attribute__ ((may_alias));]])],
+          [[typedef struct foo_s { int a; }
+            __attribute__ ((may_alias)) foo_t;]])],
           [gcry_cv_gcc_attribute_may_alias=yes])])
 if test "$gcry_cv_gcc_attribute_may_alias" = "yes" ; then
    AC_DEFINE(HAVE_GCC_ATTRIBUTE_MAY_ALIAS,1,
