@@ -170,7 +170,11 @@ get_xgetbv(void)
 static unsigned int
 detect_x86_gnuc (void)
 {
-  char vendor_id[12+1];
+  union
+  {
+    char c[12+1];
+    unsigned int ui[3];
+  } vendor_id;
   unsigned int features;
   unsigned int os_supports_avx_avx2_registers = 0;
   unsigned int max_cpuid_level;
@@ -183,16 +187,14 @@ detect_x86_gnuc (void)
   if (!is_cpuid_available())
     return 0;
 
-  get_cpuid(0, &max_cpuid_level,
-            (unsigned int *)&vendor_id[0],
-            (unsigned int *)&vendor_id[8],
-            (unsigned int *)&vendor_id[4]);
-  vendor_id[12] = 0;
+  get_cpuid(0, &max_cpuid_level, &vendor_id.ui[0], &vendor_id.ui[2],
+            &vendor_id.ui[1]);
+  vendor_id.c[12] = 0;
 
   if (0)
     ; /* Just to make "else if" and ifdef macros look pretty.  */
 #ifdef ENABLE_PADLOCK_SUPPORT
-  else if (!strcmp (vendor_id, "CentaurHauls"))
+  else if (!strcmp (vendor_id.c, "CentaurHauls"))
     {
       /* This is a VIA CPU.  Check what PadLock features we have.  */
 
@@ -225,12 +227,12 @@ detect_x86_gnuc (void)
         }
     }
 #endif /*ENABLE_PADLOCK_SUPPORT*/
-  else if (!strcmp (vendor_id, "GenuineIntel"))
+  else if (!strcmp (vendor_id.c, "GenuineIntel"))
     {
       /* This is an Intel CPU.  */
       result |= HWF_INTEL_CPU;
     }
-  else if (!strcmp (vendor_id, "AuthenticAMD"))
+  else if (!strcmp (vendor_id.c, "AuthenticAMD"))
     {
       /* This is an AMD CPU.  */
     }
