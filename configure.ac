@@ -958,6 +958,12 @@ if test "$gcry_cv_visibility_attribute" = "yes" \
 fi
 
 
+# Following attribute tests depend on warnings to cause compile to fail,
+# so set -Werror temporarily.
+_gcc_cflags_save=$CFLAGS
+CFLAGS="$CFLAGS -Werror"
+
+
 #
 # Check whether the compiler supports the GCC style aligned attribute
 #
@@ -1007,6 +1013,10 @@ if test "$gcry_cv_gcc_attribute_may_alias" = "yes" ; then
    AC_DEFINE(HAVE_GCC_ATTRIBUTE_MAY_ALIAS,1,
      [Defined if a GCC style "__attribute__ ((may_alias))" is supported])
 fi
+
+
+# Restore flags.
+CFLAGS=$_gcc_cflags_save;
 
 
 #
