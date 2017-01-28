@@ -49,10 +49,17 @@ typedef struct bufhelp_int_s
 /* Define type with default alignment for other architectures (unaligned
    accessed handled in per byte loops).
  */
+#ifdef HAVE_GCC_ATTRIBUTE_MAY_ALIAS
+typedef struct bufhelp_int_s
+{
+  uintptr_t a;
+} __attribute__((may_alias)) bufhelp_int_t;
+#else
 typedef struct bufhelp_int_s
 {
   uintptr_t a;
 } bufhelp_int_t;
+#endif
 #endif
 
 
