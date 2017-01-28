@@ -29,29 +29,29 @@
 #include "./cipher-internal.h"
 
 
-static inline void xts_gfmul_byA (u64 *out, const u64 *in)
+static inline void xts_gfmul_byA (unsigned char *out, const unsigned char *in)
 {
-  u64 hi = le_bswap64 (in[1]);
-  u64 lo = le_bswap64 (in[0]);
+  u64 hi = buf_get_le64 (in + 8);
+  u64 lo = buf_get_le64 (in + 0);
   u64 carry = -(hi >> 63) & 0x87;
 
   hi = (hi << 1) + (lo >> 63);
   lo = (lo << 1) ^ carry;
 
-  out[1] = le_bswap64 (hi);
-  out[0] = le_bswap64 (lo);
+  buf_put_le64 (out + 8, hi);
+  buf_put_le64 (out + 0, lo);
 }
 
 
-static inline void xts_inc128 (u64 *seqno)
+static inline void xts_inc128 (unsigned char *seqno)
 {
-  u64 lo = le_bswap64 (seqno[0]);
-  u64 hi = le_bswap64 (seqno[1]);
+  u64 lo = buf_get_le64 (seqno + 0);
+  u64 hi = buf_get_le64 (seqno + 8);
 
   hi += !(++lo);
 
-  seqno[0] = le_bswap64 (lo);
-  seqno[1] = le_bswap64 (hi);
+  buf_put_le64 (seqno + 0, lo);
+  buf_put_le64 (seqno + 8, hi);
 }
 
 
@@ -117,7 +117,7 @@ _gcry_cipher_xts_crypt (gcry_cipher_hd_t c,
       nblocks--;
 
       /* Generate next tweak. */
-      xts_gfmul_byA ((u64 *)c->u_ctr.ctr, (u64 *)c->u_ctr.ctr);
+      xts_gfmul_byA (c->u_ctr.ctr, c->u_ctr.ctr);
     }
 
   /* Handle remaining data with ciphertext stealing. */
@@ -129,7 +129,7 @@ _gcry_cipher_xts_crypt (gcry_cipher_hd_t c,
 	  gcry_assert (inbuflen < GCRY_XTS_BLOCK_LEN * 2);
 
 	  /* Generate last tweak. */
-	  xts_gfmul_byA (tmp.x64, (u64 *)c->u_ctr.ctr);
+	  xts_gfmul_byA (tmp.x1, c->u_ctr.ctr);
 
 	  /* Decrypt last block first. */
 	  buf_xor (outbuf, inbuf, tmp.x64, GCRY_XTS_BLOCK_LEN);
@@ -158,7 +158,7 @@ _gcry_cipher_xts_crypt (gcry_cipher_hd_t c,
     }
 
   /* Auto-increment data-unit sequence number */
-  xts_inc128 ((u64 *)c->u_iv.iv);
+  xts_inc128 (c->u_iv.iv);
 
   wipememory (&tmp, sizeof(tmp));
   wipememory (c->u_ctr.ctr, sizeof(c->u_ctr.ctr));
