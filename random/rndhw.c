@@ -76,7 +76,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
          ".byte 0x0f, 0xa7, 0xc0\n\t" /* XSTORE RNG. */
          : "=a" (status)
          : "g" (p)
-         : "%rdx", "%rdi", "cc"
+         : "%rdx", "%rdi", "cc", "memory"
          );
 #else
       asm volatile
@@ -85,7 +85,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
          ".byte 0x0f, 0xa7, 0xc0\n\t" /* XSTORE RNG. */
          : "=a" (status)
          : "g" (p)
-         : "%edx", "%edi", "cc"
+         : "%edx", "%edi", "cc", "memory"
          );
 #endif
       if ((status & (1<<6))         /* RNG still enabled.  */
@@ -139,7 +139,7 @@ rdrand_long (volatile unsigned long *v)
                 "2:"
                 : "=r" (ok), "=a" (*v)
                 : "0" (RDRAND_RETRY_LOOPS)
-                : "cc");
+                : "cc", "memory");
   return ok;
 }
 
