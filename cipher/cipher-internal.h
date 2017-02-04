@@ -348,6 +348,14 @@ gcry_err_code_t _gcry_cipher_cfb_decrypt
 /*           */ (gcry_cipher_hd_t c,
                  unsigned char *outbuf, size_t outbuflen,
                  const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_cfb8_encrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_cfb8_decrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 
 
 /*-- cipher-ofb.c --*/

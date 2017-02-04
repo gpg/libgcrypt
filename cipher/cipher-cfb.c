@@ -233,3 +233,89 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
 
   return 0;
 }
+
+
+gcry_err_code_t
+_gcry_cipher_cfb8_encrypt (gcry_cipher_hd_t c,
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
+{
+  gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
+  size_t blocksize = c->spec->blocksize;
+  unsigned int burn, nburn;
+
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  burn = 0;
+
+  while ( inbuflen > 0)
+    {
+      /* Encrypt the IV. */
+      nburn = enc_fn ( &c->context.c, c->lastiv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
+
+      outbuf[0] = c->lastiv[0] ^ inbuf[0];
+
+      /* Bitshift iv by 8 bit to the left */
+      for (int i = 0; i < blocksize-1; i++)
+        c->u_iv.iv[i] = c->u_iv.iv[i+1];
+
+      /* append cipher text to iv */
+      c->u_iv.iv[blocksize-1] = outbuf[0];
+
+      outbuf += 1;
+      inbuf += 1;
+      inbuflen -= 1;
+    }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
+
+  return 0;
+}
+
+
+gcry_err_code_t
+_gcry_cipher_cfb8_decrypt (gcry_cipher_hd_t c,
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
+{
+  gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
+  size_t blocksize = c->spec->blocksize;
+  unsigned int burn, nburn;
+  unsigned char appendee;
+
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  burn = 0;
+
+  while (inbuflen > 0)
+    {
+      /* Encrypt the IV. */
+      nburn = enc_fn ( &c->context.c, c->lastiv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
+
+      /* inbuf might == outbuf, make sure we keep the value
+         so we can append it later */
+      appendee = inbuf[0];
+
+      outbuf[0] = inbuf[0] ^ c->lastiv[0];
+
+      /* Bitshift iv by 8 bit to the left */
+      for (int i = 0; i < blocksize-1; i++)
+        c->u_iv.iv[i] = c->u_iv.iv[i+1];
+
+      c->u_iv.iv[blocksize-1] = appendee;
+
+      outbuf += 1;
+      inbuf += 1;
+      inbuflen -= 1;
+    }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
+
+  return 0;
+}
