@@ -251,6 +251,8 @@ _gcry_cipher_cfb8_encrypt (gcry_cipher_hd_t c,
 
   while ( inbuflen > 0)
     {
+      int i;
+
       /* Encrypt the IV. */
       nburn = enc_fn ( &c->context.c, c->lastiv, c->u_iv.iv );
       burn = nburn > burn ? nburn : burn;
@@ -258,7 +260,7 @@ _gcry_cipher_cfb8_encrypt (gcry_cipher_hd_t c,
       outbuf[0] = c->lastiv[0] ^ inbuf[0];
 
       /* Bitshift iv by 8 bit to the left */
-      for (int i = 0; i < blocksize-1; i++)
+      for (i = 0; i < blocksize-1; i++)
         c->u_iv.iv[i] = c->u_iv.iv[i+1];
 
       /* append cipher text to iv */
@@ -293,6 +295,8 @@ _gcry_cipher_cfb8_decrypt (gcry_cipher_hd_t c,
 
   while (inbuflen > 0)
     {
+      int i;
+
       /* Encrypt the IV. */
       nburn = enc_fn ( &c->context.c, c->lastiv, c->u_iv.iv );
       burn = nburn > burn ? nburn : burn;
@@ -304,7 +308,7 @@ _gcry_cipher_cfb8_decrypt (gcry_cipher_hd_t c,
       outbuf[0] = inbuf[0] ^ c->lastiv[0];
 
       /* Bitshift iv by 8 bit to the left */
-      for (int i = 0; i < blocksize-1; i++)
+      for (i = 0; i < blocksize-1; i++)
         c->u_iv.iv[i] = c->u_iv.iv[i+1];
 
       c->u_iv.iv[blocksize-1] = appendee;
