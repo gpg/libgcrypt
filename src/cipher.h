@@ -120,6 +120,10 @@ void _gcry_sha1_hash_buffer (void *outbuf,
                              const void *buffer, size_t length);
 void _gcry_sha1_hash_buffers (void *outbuf,
                               const gcry_buffer_t *iov, int iovcnt);
+/*-- blake2.c --*/
+gcry_err_code_t _gcry_blake2_init_with_key(void *ctx, unsigned int flags,
+					   const unsigned char *key,
+					   size_t keylen, int algo);
 
 /*-- rijndael.c --*/
 void _gcry_aes_cfb_enc (void *context, unsigned char *iv,
@@ -301,6 +305,14 @@ extern gcry_md_spec_t _gcry_digest_spec_tiger;
 extern gcry_md_spec_t _gcry_digest_spec_tiger1;
 extern gcry_md_spec_t _gcry_digest_spec_tiger2;
 extern gcry_md_spec_t _gcry_digest_spec_whirlpool;
+extern gcry_md_spec_t _gcry_digest_spec_blake2b_512;
+extern gcry_md_spec_t _gcry_digest_spec_blake2b_384;
+extern gcry_md_spec_t _gcry_digest_spec_blake2b_256;
+extern gcry_md_spec_t _gcry_digest_spec_blake2b_160;
+extern gcry_md_spec_t _gcry_digest_spec_blake2s_256;
+extern gcry_md_spec_t _gcry_digest_spec_blake2s_224;
+extern gcry_md_spec_t _gcry_digest_spec_blake2s_160;
+extern gcry_md_spec_t _gcry_digest_spec_blake2s_128;
 
 /* Declarations for the pubkey cipher specifications.  */
 extern gcry_pk_spec_t _gcry_pubkey_spec_rsa;

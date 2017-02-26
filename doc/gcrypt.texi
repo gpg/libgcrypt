@@ -3115,6 +3115,8 @@ are also supported.
 @cindex TIGER, TIGER1, TIGER2
 @cindex HAVAL
 @cindex Whirlpool
+@cindex BLAKE2b-512, BLAKE2b-384, BLAKE2b-256, BLAKE2b-160
+@cindex BLAKE2s-256, BLAKE2s-224, BLAKE2s-160, BLAKE2s-128
 @cindex CRC32
 @table @code
 @item GCRY_MD_NONE
@@ -3239,6 +3241,38 @@ which yields a message digest of 32 bytes.
 This is the 512-bit version of hash algorithm described in GOST R 34.11-2012
 which yields a message digest of 64 bytes.
 
+@item GCRY_MD_BLAKE2B_512
+This is the BLAKE2b-512 algorithm which yields a message digest of 64 bytes.
+See RFC 7693 for the specification.
+
+@item GCRY_MD_BLAKE2B_384
+This is the BLAKE2b-384 algorithm which yields a message digest of 48 bytes.
+See RFC 7693 for the specification.
+
+@item GCRY_MD_BLAKE2B_256
+This is the BLAKE2b-256 algorithm which yields a message digest of 32 bytes.
+See RFC 7693 for the specification.
+
+@item GCRY_MD_BLAKE2B_160
+This is the BLAKE2b-160 algorithm which yields a message digest of 20 bytes.
+See RFC 7693 for the specification.
+
+@item GCRY_MD_BLAKE2S_256
+This is the BLAKE2s-256 algorithm which yields a message digest of 32 bytes.
+See RFC 7693 for the specification.
+
+@item GCRY_MD_BLAKE2S_224
+This is the BLAKE2s-224 algorithm which yields a message digest of 28 bytes.
+See RFC 7693 for the specification.
+
+@item GCRY_MD_BLAKE2S_160
+This is the BLAKE2s-160 algorithm which yields a message digest of 20 bytes.
+See RFC 7693 for the specification.
+
+@item GCRY_MD_BLAKE2S_128
+This is the BLAKE2s-128 algorithm which yields a message digest of 16 bytes.
+See RFC 7693 for the specification.
+
 @end table
 @c end table of hash algorithms
 
@@ -3317,9 +3351,12 @@ be set using the function:
 
 @deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
 
-For use with the HMAC feature, set the MAC key to the value of
-@var{key} of length @var{keylen} bytes.  There is no restriction on
-the length of the key.
+For use with the HMAC feature or BLAKE2 keyed hash, set the MAC key to
+the value of @var{key} of length @var{keylen} bytes.  For HMAC, there
+is no restriction on the length of the key.  For keyed BLAKE2b hash,
+length of the key must be 64 bytes or less.  For keyed BLAKE2s hash,
+length of the key must be 32 bytes or less.
+
 @end deftypefun
 
 

@@ -196,8 +196,8 @@ available_pubkey_ciphers="dsa elgamal rsa ecc"
 enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
-available_digests="crc gostr3411-94 md2 md4 md5 rmd160 sha1 sha256"
-available_digests="$available_digests sha512 sha3 tiger whirlpool stribog"
+available_digests="crc gostr3411-94 md2 md4 md5 rmd160 sha1 sha256 sha512"
+available_digests="$available_digests sha3 tiger whirlpool stribog blake2"
 enabled_digests=""
 
 # Definitions for kdfs (optional ones)
@@ -2408,6 +2408,12 @@ if test "$found" = "1" ; then
          GCRYPT_DIGESTS="$GCRYPT_DIGESTS whirlpool-sse2-amd64.lo"
       ;;
    esac
+fi
+
+LIST_MEMBER(blake2, $enabled_digests)
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS blake2.lo"
+   AC_DEFINE(USE_BLAKE2, 1, [Defined if this module should be included])
 fi
 
 # SHA-1 needs to be included always for example because it is used by
