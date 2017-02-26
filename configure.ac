@@ -1649,7 +1649,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 NEON instructions]
           gcry_cv_gcc_inline_asm_aarch64_neon=no
           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
           [[__asm__(
-                ".arch armv8-a\n\t"
+                ".cpu generic+simd\n\t"
                 "mov w0, \#42;\n\t"
                 "dup v0.8b, w0;\n\t"
                 "ld4 {v0.8b,v1.8b,v2.8b,v3.8b},[x0],\#32;\n\t"
@@ -1674,7 +1674,11 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 Crypto Extension i
           gcry_cv_gcc_inline_asm_aarch64_crypto=no
           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
           [[__asm__(
-                ".arch armv8-a+crypto\n\t"
+                ".cpu generic+simd+crypto\n\t"
+
+                "mov w0, \#42;\n\t"
+                "dup v0.8b, w0;\n\t"
+                "ld4 {v0.8b,v1.8b,v2.8b,v3.8b},[x0],\#32;\n\t"
 
                 "sha1h s0, s0;\n\t"
                 "sha1c q0, s0, v0.4s;\n\t"

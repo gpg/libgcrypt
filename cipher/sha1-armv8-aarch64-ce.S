@@ -23,7 +23,7 @@
     defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
     defined(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO) && defined(USE_SHA1)
 
-.arch armv8-a+crypto
+.cpu generic+simd+crypto
 
 .text
 
