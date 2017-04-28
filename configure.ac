@@ -339,7 +339,7 @@ AC_ARG_ENABLE(endian-check,
 if test x"$endiancheck" = xyes ; then
   AC_C_BIGENDIAN
 else
-  AC_DEFINE(DISABLED_ENDIAN_CHECK,1,[configure did not test for endianess])
+  AC_DEFINE(DISABLED_ENDIAN_CHECK,1,[configure did not test for endianness])
 fi
 
 AC_CHECK_SIZEOF(unsigned short, 2)
@@ -1736,7 +1736,7 @@ AC_REPLACE_FUNCS([getpid clock])
 
 
 #
-# Check wether it is necessary to link against libdl.
+# Check whether it is necessary to link against libdl.
 #
 DL_LIBS=""
 if test "$use_hmac_binary_check" = yes ; then

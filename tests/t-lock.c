@@ -213,7 +213,7 @@ check_nonce_lock (void)
 }
 
 
-/* Initialze all accounts.  */
+/* Initialize all accounts.  */
 static void
 init_accounts (void)
 {

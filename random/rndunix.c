@@ -319,7 +319,7 @@ static struct RI {
     {	"/usr/bin/lpstat", "-t", SC(0.1), NULL, 0, 0, 0, 1 },
     {	"/usr/ucb/lpstat", "-t", SC(0.1), NULL, 0, 0, 0, 0 },
     {	"/usr/bin/tcpdump", "-c 5 -efvvx", SC(1), NULL, 0, 0, 0, 0 },
-    /* This is very environment-dependant.  If network traffic is low, it'll
+    /* This is very environment-dependent.  If network traffic is low, it'll
      * probably time out before delivering 5 packets, which is OK because
      * it'll probably be fixed stuff like ARP anyway */
     {	"/usr/sbin/advfsstat", "-b usr_domain",

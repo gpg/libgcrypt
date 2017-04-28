@@ -1345,7 +1345,7 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
   if (mode.mode == GCRY_CIPHER_MODE_XTS && blklen != GCRY_XTS_BLOCK_LEN)
     return;
 
-  /* Our OCB implementaion has restrictions for block-size.  */
+  /* Our OCB implementation has restrictions for block-size.  */
   if (mode.mode == GCRY_CIPHER_MODE_OCB && blklen != GCRY_OCB_BLOCK_LEN)
     return;
 

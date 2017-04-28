@@ -1006,7 +1006,7 @@ _gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
 /****************
  * Decrypt INBUF to OUTBUF with the mode selected at open.
  * inbuf and outbuf may overlap or be the same.
- * Depending on the mode some some contraints apply to INBUFLEN.
+ * Depending on the mode some some constraints apply to INBUFLEN.
  */
 static gcry_err_code_t
 cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,

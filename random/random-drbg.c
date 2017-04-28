@@ -2433,7 +2433,7 @@ drbg_healthcheck_sanity (struct gcry_drbg_test_vector *test)
     goto outbuf;
   max_addtllen = drbg_max_addtl ();
   max_request_bytes = drbg_max_request_bytes ();
-  /* overflow addtllen with additonal info string */
+  /* overflow addtllen with additional info string */
   drbg_string_fill (&addtl, test->addtla, (max_addtllen + 1));
   len = drbg_generate (drbg, buf, test->expectedlen, &addtl);
   if (len)

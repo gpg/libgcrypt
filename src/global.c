@@ -581,7 +581,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       _gcry_set_preferred_rng_type (0);
       if (!any_init_done)
         {
-          /* Not yet intialized at all.  Set a flag so that we are put
+          /* Not yet initialized at all.  Set a flag so that we are put
              into fips mode during initialization.  */
           force_fips_mode = 1;
         }

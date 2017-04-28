@@ -1381,7 +1381,7 @@ sub rsa_siggen($$$) {
 
 # RSA SigVer test
 # $1: Message to be verified in hex form
-# $2: Hash algoritm
+# $2: Hash algorithm
 # $3: Signature of message in hex form
 # $4: n of the RSA key in hex in hex form
 # $5: e of the RSA key in hex in hex form

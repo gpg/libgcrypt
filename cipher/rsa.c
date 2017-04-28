@@ -710,7 +710,7 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
   if (e_value < 3)
     return GPG_ERR_INV_VALUE;
 
-  /* Our implementaion requires E to be odd.  */
+  /* Our implementation requires E to be odd.  */
   if (!(e_value & 1))
     return GPG_ERR_INV_VALUE;
 

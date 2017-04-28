@@ -95,7 +95,7 @@ section entitled ``GNU General Public License''.
 * Prime numbers::                How to use the Prime number related functions.
 * Utilities::                    Utility functions.
 * Tools::                        Utility tools.
-* Configuration::                Configuration files and evironment variables.
+* Configuration::                Configuration files and environment variables.
 * Architecture::                 How Libgcrypt works internally.
 
 Appendices
@@ -5391,7 +5391,7 @@ Print version of the program and exit.
 @c ****************  Environment Variables  *****************
 @c **********************************************************
 @node Configuration
-@chapter Configuration files and evironment variables
+@chapter Configuration files and environment variables
 
 This chapter describes which files and environment variables can be
 used to change the behaviour of Libgcrypt.
@@ -5869,7 +5869,7 @@ to mix in enough data from the gather modules before returning the
 actual random output.  Process fork detection and protection is
 implemented.
 
-@c FIXME:  The design and implementaion needs a more verbose description.
+@c FIXME:  The design and implementation needs a more verbose description.
 
 The implementation of the nonce generator (for
 @code{gcry_create_nonce}) is a straightforward repeated hash design: A

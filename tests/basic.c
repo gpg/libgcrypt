@@ -5549,7 +5549,7 @@ check_stream_cipher_large_block (void)
 
 
 
-/* Check that our bulk encryption fucntions work properly.  */
+/* Check that our bulk encryption functions work properly.  */
 static void
 check_bulk_cipher_modes (void)
 {

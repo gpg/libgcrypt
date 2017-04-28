@@ -391,7 +391,7 @@ gcry_error_t gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
 /* Release the S-expression object SEXP */
 void gcry_sexp_release (gcry_sexp_t sexp);
 
-/* Calculate the length of an canonized S-expresion in BUFFER and
+/* Calculate the length of an canonized S-expression in BUFFER and
    check for a valid encoding. */
 size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
                             size_t *erroff, gcry_error_t *errcode);
@@ -1669,7 +1669,7 @@ gcry_error_t gcry_prime_group_generator (gcry_mpi_t *r_g,
 void gcry_prime_release_factors (gcry_mpi_t *factors);
 
 
-/* Check wether the number X is prime.  */
+/* Check whether the number X is prime.  */
 gcry_error_t gcry_prime_check (gcry_mpi_t x, unsigned int flags);
 
 

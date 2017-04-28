@@ -124,7 +124,7 @@ struct gcry_cipher_handle
   /* A structure with function pointers for bulk operations.  Due to
      limitations of the module system (we don't want to change the
      API) we need to keep these function pointers here.  The cipher
-     open function intializes them and the actual encryption routines
+     open function initializes them and the actual encryption routines
      use them if they are not NULL.  */
   struct {
     void (*cfb_enc)(void *context, unsigned char *iv,

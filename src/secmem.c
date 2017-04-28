@@ -91,7 +91,7 @@ typedef struct pooldesc_s
 static pooldesc_t mainpool;
 
 
-/* A couple of flags whith some beeing set early. */
+/* A couple of flags whith some being set early. */
 static int disable_secmem;
 static int show_warning;
 static int not_locked;

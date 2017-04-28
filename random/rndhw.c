@@ -61,7 +61,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
 
   /* Peter Gutmann's cryptlib tests again whether the RNG is enabled
      but we don't do so.  We would have to do this also for our AES
-     implementaion and that is definitely too time consuming.  There
+     implementation and that is definitely too time consuming.  There
      would be a race condition anyway.  Thus we assume that the OS
      does not change the Padlock initialization while a user process
      is running.  */

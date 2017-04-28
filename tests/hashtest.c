@@ -1,4 +1,4 @@
-/* hashtest.c - Check the hash fucntions
+/* hashtest.c - Check the hash functions
  * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.

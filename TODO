@@ -18,7 +18,7 @@
 
 * Add attributes to the MPI functions.
 
-* cipher/pubkey.c and pubkey implementaions.
+* cipher/pubkey.c and pubkey implementations.
   Don't rely on the secure memory based wiping function but add an
   extra wiping.
   

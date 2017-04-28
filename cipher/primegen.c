@@ -1301,7 +1301,7 @@ find_x931_prime (const gcry_mpi_t pfirst)
   mpi_set_bit (prime, 0);
 
   /* We use 64 Rabin-Miller rounds which is better and thus
-     sufficient.  We do not have a Lucas test implementaion thus we
+     sufficient.  We do not have a Lucas test implementation thus we
      can't do it in the X9.31 preferred way of running a few
      Rabin-Miller followed by one Lucas test.  */
   while ( !check_prime (prime, val_2, 64, NULL, NULL) )

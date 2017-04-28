@@ -35,7 +35,7 @@
 #define point_free(a)  _gcry_mpi_point_free_parts ((a))
 
 
-/* Print a point using the log fucntions.  If CTX is not NULL affine
+/* Print a point using the log functions.  If CTX is not NULL affine
    coordinates will be printed.  */
 void
 _gcry_mpi_point_log (const char *name, mpi_point_t point, mpi_ec_t ctx)

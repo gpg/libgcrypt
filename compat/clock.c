@@ -23,7 +23,7 @@ clock_t
 _gcry_clock (void)
 {
   assert (CLOCKS_PER_SEC == 1000);
-#warning Replace by a correct implementaion.
+#warning Replace by a correct implementation.
   /* It seems that GetProcessTimes is available in the kernel but
      without a declaration.  If that fails we would need to walk over
      all threads and tally up the GetThreadTimes.  */

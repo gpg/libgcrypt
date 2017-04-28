@@ -184,7 +184,7 @@ typedef struct
   double ssHigh;                  /* Highest readout */
   long ssCount;                   /* Total number of readout */
   char sspadding2[4];             /* Padding of 4 bytes */
-  long double ssTotal;            /* Total amout of all readouts */
+  long double ssTotal;            /* Total amount of all readouts */
   char sspadding3[6];             /* Padding of 6 bytes */
   double ssAlarm1;                /* Temp & fan: high alarm; voltage: % off */
   double ssAlarm2;                /* Temp: low alarm */
@@ -221,7 +221,7 @@ typedef struct
 
 
 
-/* One time intialized handles and function pointers.  We use dynamic
+/* One time initialized handles and function pointers.  We use dynamic
    loading of the DLLs to do without them in case libgcrypt does not
    need any random.  */
 static HANDLE hNetAPI32;
@@ -246,7 +246,7 @@ static int system_rng_available; /* Whether a system RNG is available.  */
 static HCRYPTPROV hRNGProv;      /* Handle to Intel RNG CSP. */
 
 /* The debug flag.  Debugging is enabled if the value of the envvar
- * GCRY_RNDW32_DBG is a postive number.*/
+ * GCRY_RNDW32_DBG is a positive number.*/
 static int debug_me;
 
 static int system_is_w2000;     /* True if running on W2000.  */

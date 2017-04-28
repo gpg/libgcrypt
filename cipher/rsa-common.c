@@ -233,7 +233,7 @@ _gcry_rsa_pkcs1_decode_for_enc (unsigned char **r_result, size_t *r_resultlen,
 }
 
 
-/* Encode {VALUE,VALUELEN} for an NBITS keys and hash algorith ALGO
+/* Encode {VALUE,VALUELEN} for an NBITS keys and hash algorithm ALGO
    using the pkcs#1 block type 1 padding.  On success the result is
    stored as a new MPI at R_RESULT.  On error the value at R_RESULT is
    undefined.

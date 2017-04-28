@@ -333,7 +333,7 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
        * 0x40 for x-only coordinate.
        *
        * For data with older implementation (non-released development
-       * version), it is possibe to have the 0x40 as a part of data.
+       * version), it is possible to have the 0x40 as a part of data.
        * Besides, when data was parsed as MPI, we might have 0x00
        * prefix.
        *
