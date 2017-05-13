@@ -54,7 +54,7 @@
 
 #define UNALIGNED_LDMIA4(ptr, l0, l1, l2, l3) \
         tst ptr, #3; \
-        /*beq 1f;*/ \
+        beq 1f; \
         vpush {d0-d1}; \
         vld1.32 {d0-d1}, [ptr]; \
         add ptr, #16; \
