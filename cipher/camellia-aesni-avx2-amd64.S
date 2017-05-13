@@ -613,7 +613,7 @@
 	vmovdqu y6, 14 * 32(rio); \
 	vmovdqu y7, 15 * 32(rio);
 
-.data
+.text
 .align 32
 
 #define SHUFB_BYTES(idx) \
@@ -752,7 +752,6 @@
 .L0f0f0f0f:
 	.long 0x0f0f0f0f
 
-.text
 
 .align 8
 ELF(.type   __camellia_enc_blk32,@function;)

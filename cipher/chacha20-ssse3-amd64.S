@@ -623,7 +623,6 @@ _gcry_chacha20_amd64_ssse3_blocks:
 	ret
 ELF(.size _gcry_chacha20_amd64_ssse3_blocks,.-_gcry_chacha20_amd64_ssse3_blocks;)
 
-.data
 .align 16;
 .LC:
 .byte 2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13       /* pshufb rotate by 16 */

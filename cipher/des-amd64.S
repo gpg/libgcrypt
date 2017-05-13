@@ -766,7 +766,6 @@ _gcry_3des_amd64_cfb_dec:
 	ret;
 ELF(.size _gcry_3des_amd64_cfb_dec,.-_gcry_3des_amd64_cfb_dec;)
 
-.data
 .align 16
 .L_s1:
 	.quad 0x0010100001010400, 0x0000000000000000

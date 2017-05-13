@@ -368,8 +368,6 @@ _gcry_sha512_transform_amd64_avx:
 ;;; Binary Data
 */
 
-.data
-
 .align 16
 
 /* Mask for byte-swapping a couple of qwords in an XMM register using (v)pshufb. */

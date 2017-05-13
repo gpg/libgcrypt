@@ -1113,7 +1113,6 @@ _gcry_serpent_avx2_ocb_auth:
 	ret;
 ELF(.size _gcry_serpent_avx2_ocb_auth,.-_gcry_serpent_avx2_ocb_auth;)
 
-.data
 .align 16
 
 /* For CTR-mode IV byteswap */

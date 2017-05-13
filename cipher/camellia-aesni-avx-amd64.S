@@ -629,7 +629,7 @@
 	vmovdqu y6, 14 * 16(rio); \
 	vmovdqu y7, 15 * 16(rio);
 
-.data
+.text
 .align 16
 
 #define SHUFB_BYTES(idx) \
@@ -773,7 +773,6 @@
 .L0f0f0f0f:
 	.long 0x0f0f0f0f
 
-.text
 
 .align 8
 ELF(.type   __camellia_enc_blk16,@function;)
@@ -1702,7 +1701,6 @@ ELF(.size _gcry_camellia_aesni_avx_ocb_auth,.-_gcry_camellia_aesni_avx_ocb_auth;
 	vpsllq $(64-(nror)), out, out; \
 	vpaddd t0, out, out;
 
-.data
 
 .align 16
 .Linv_shift_row_and_unpcklbw:
@@ -1735,7 +1733,6 @@ ELF(.size _gcry_camellia_aesni_avx_ocb_auth,.-_gcry_camellia_aesni_avx_ocb_auth;
 .Lsigma6:
 	.long 0xB3E6C1FD, 0xB05688C2;
 
-.text
 
 .align 8
 ELF(.type  __camellia_avx_setup128,@function;)

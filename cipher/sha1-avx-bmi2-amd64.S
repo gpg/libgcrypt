@@ -59,7 +59,7 @@
 
 /* Constants */
 
-.data
+.text
 #define K1  0x5A827999
 #define K2  0x6ED9EBA1
 #define K3  0x8F1BBCDC
@@ -212,7 +212,6 @@
  * _gcry_sha1_transform_amd64_avx_bmi2 (void *ctx, const unsigned char *data,
  *                                      size_t nblks)
  */
-.text
 .globl _gcry_sha1_transform_amd64_avx_bmi2
 ELF(.type _gcry_sha1_transform_amd64_avx_bmi2,@function)
 .align 16

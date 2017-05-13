@@ -496,7 +496,6 @@ _gcry_sha256_transform_amd64_avx:
 	ret
 
 
-.data
 .align 16
 .LK256:
 	.long	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5

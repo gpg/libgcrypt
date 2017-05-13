@@ -735,8 +735,6 @@ _gcry_sha512_transform_amd64_avx2:
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 /*;; Binary Data */
 
-.data
-
 .align 64
 /* K[t] used in SHA512 hashing */
 .LK512:
