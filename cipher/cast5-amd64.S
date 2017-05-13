@@ -24,7 +24,7 @@
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_CAST5)
 
 #if defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS) || !defined(__PIC__)
-#  define GET_EXTERN_POINTER(name, reg) leaq name, reg
+#  define GET_EXTERN_POINTER(name, reg) movabsq $name, reg
 #else
 #  define GET_EXTERN_POINTER(name, reg) movq name@GOTPCREL(%rip), reg
 #endif

@@ -752,7 +752,7 @@ do_encrypt (const RIJNDAEL_context *ctx,
                   "+d" (ax),
                   "+c" (rounds)
                 : "0" (_gcry_aes_amd64_encrypt_block),
-                  [encT] "g" (encT)
+                  [encT] "r" (encT)
                 : "cc", "memory", "r8", "r9", "r10", "r11");
   return ret;
 # endif /* HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS */
@@ -1135,7 +1135,7 @@ do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
                   "+d" (ax),
                   "+c" (rounds)
                 : "0" (_gcry_aes_amd64_decrypt_block),
-                  [dectabs] "g" (&dec_tables)
+                  [dectabs] "r" (&dec_tables)
                 : "cc", "memory", "r8", "r9", "r10", "r11");
   return ret;
 # endif /* HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS */
