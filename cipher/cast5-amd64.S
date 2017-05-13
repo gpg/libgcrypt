@@ -26,7 +26,20 @@
 #if defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS) || !defined(__PIC__)
 #  define GET_EXTERN_POINTER(name, reg) movabsq $name, reg
 #else
-#  define GET_EXTERN_POINTER(name, reg) movq name@GOTPCREL(%rip), reg
+#  ifdef __code_model_large__
+#    define GET_EXTERN_POINTER(name, reg) \
+	       pushq %r15; \
+	       pushq %r14; \
+	    1: leaq 1b(%rip), reg; \
+	       movabsq $_GLOBAL_OFFSET_TABLE_-1b, %r14; \
+	       movabsq $name@GOT, %r15; \
+	       addq %r14, reg; \
+	       popq %r14; \
+	       movq (reg, %r15), reg; \
+	       popq %r15;
+#  else
+#    define GET_EXTERN_POINTER(name, reg) movq name@GOTPCREL(%rip), reg
+#  endif
 #endif
 
 #ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
