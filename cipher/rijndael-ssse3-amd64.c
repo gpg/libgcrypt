@@ -110,6 +110,8 @@ extern void _gcry_aes_ssse3_decrypt_core(void);
                   : \
                   : "r" (ssse3_state) \
                   : "memory" )
+# define PUSH_STACK_PTR
+# define POP_STACK_PTR
 #else
 # define SSSE3_STATE_SIZE 1
 # define vpaes_ssse3_prepare() (void)ssse3_state
@@ -124,18 +126,27 @@ extern void _gcry_aes_ssse3_decrypt_core(void);
                   "pxor	%%xmm7,  %%xmm7 \n\t" \
                   "pxor	%%xmm8,  %%xmm8 \n\t" \
                   ::: "memory" )
+/* Old GCC versions use red-zone of AMD64 SYSV ABI and stack pointer is
+ * not properly adjusted for assembly block. Therefore stack pointer
+ * needs to be manually corrected. */
+# define PUSH_STACK_PTR "subq $128, %%rsp;\n\t"
+# define POP_STACK_PTR  "addq $128, %%rsp;\n\t"
 #endif
 
 #define vpaes_ssse3_prepare_enc() \
     vpaes_ssse3_prepare(); \
-    asm volatile ("callq *%q[core] \n\t" \
+    asm volatile (PUSH_STACK_PTR \
+                  "callq *%q[core] \n\t" \
+                  POP_STACK_PTR \
                   : \
                   : [core] "r" (_gcry_aes_ssse3_enc_preload) \
                   : "rax", "cc", "memory" )
 
 #define vpaes_ssse3_prepare_dec() \
     vpaes_ssse3_prepare(); \
-    asm volatile ("callq *%q[core] \n\t" \
+    asm volatile (PUSH_STACK_PTR \
+                  "callq *%q[core] \n\t" \
+                  POP_STACK_PTR \
                   : \
                   : [core] "r" (_gcry_aes_ssse3_dec_preload) \
                   : "rax", "cc", "memory" )
@@ -155,7 +166,9 @@ _gcry_aes_ssse3_do_setkey (RIJNDAEL_context *ctx, const byte *key)
                 "leaq %[buf], %%rdx"			"\n\t"
                 "movl %[dir], %%ecx"			"\n\t"
                 "movl %[rotoffs], %%r8d"		"\n\t"
+                PUSH_STACK_PTR
                 "callq *%q[core]"			"\n\t"
+                POP_STACK_PTR
                 :
                 : [core] "r" (&_gcry_aes_ssse3_schedule_core),
                   [key] "m" (*key),
@@ -208,7 +221,9 @@ _gcry_aes_ssse3_prepare_decryption (RIJNDAEL_context *ctx)
                 "leaq %[buf], %%rdx"			"\n\t"
                 "movl %[dir], %%ecx"			"\n\t"
                 "movl %[rotoffs], %%r8d"		"\n\t"
+                PUSH_STACK_PTR
                 "callq *%q[core]"			"\n\t"
+                POP_STACK_PTR
                 :
                 : [core] "r" (_gcry_aes_ssse3_schedule_core),
                   [key] "m" (ctx->keyschdec32[0][0]),
@@ -231,7 +246,9 @@ do_vpaes_ssse3_enc (const RIJNDAEL_context *ctx, unsigned int nrounds)
   unsigned int middle_rounds = nrounds - 1;
   const void *keysched = ctx->keyschenc32;
 
-  asm volatile ("callq *%q[core]"			"\n\t"
+  asm volatile (PUSH_STACK_PTR
+		"callq *%q[core]"			"\n\t"
+		POP_STACK_PTR
 		: "+a" (middle_rounds), "+d" (keysched)
 		: [core] "r" (_gcry_aes_ssse3_encrypt_core)
 		: "rcx", "rsi", "rdi", "cc", "memory");
@@ -246,10 +263,12 @@ do_vpaes_ssse3_dec (const RIJNDAEL_context *ctx, unsigned int nrounds)
   unsigned int middle_rounds = nrounds - 1;
   const void *keysched = ctx->keyschdec32;
 
-  asm volatile ("callq *%q[core]"			"\n\t"
-                : "+a" (middle_rounds), "+d" (keysched)
+  asm volatile (PUSH_STACK_PTR
+		"callq *%q[core]"			"\n\t"
+		POP_STACK_PTR
+		: "+a" (middle_rounds), "+d" (keysched)
 		: [core] "r" (_gcry_aes_ssse3_decrypt_core)
-                : "rcx", "rsi", "cc", "memory");
+		: "rcx", "rsi", "cc", "memory");
 }
 
 
