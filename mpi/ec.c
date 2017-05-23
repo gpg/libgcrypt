@@ -1255,7 +1255,12 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       || (ctx->model == MPI_EC_WEIERSTRASS
           && mpi_is_secure (scalar)))
     {
-      /* Simple left to right binary method.  GECC Algorithm 3.27 */
+      /* Simple left to right binary method.  Algorithm 3.27 from
+       * {author={Hankerson, Darrel and Menezes, Alfred J. and Vanstone, Scott},
+       *  title = {Guide to Elliptic Curve Cryptography},
+       *  year = {2003}, isbn = {038795273X},
+       *  url = {http://www.cacr.math.uwaterloo.ca/ecc/},
+       *  publisher = {Springer-Verlag New York, Inc.}} */
       unsigned int nbits;
       int j;
 

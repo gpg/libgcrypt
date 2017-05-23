@@ -306,7 +306,7 @@ generate_std (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       mpi_add_ui (e, e, 2);
     }
 
-  /* calculate the secret key d = e^1 mod phi */
+  /* calculate the secret key d = e^-1 mod phi */
   d = mpi_snew ( nbits );
   mpi_invm (d, e, f );
   /* calculate the inverse of p and q (used for chinese remainder theorem)*/
