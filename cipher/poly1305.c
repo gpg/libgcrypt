@@ -55,7 +55,24 @@ static const poly1305_ops_t poly1305_amd64_sse2_ops = {
   _gcry_poly1305_amd64_sse2_finish_ext
 };
 
-#endif
+#else  /* !POLY1305_USE_SSE2 */
+
+static OPS_FUNC_ABI void poly1305_init_ext_ref32
+/**/                (void *state, const poly1305_key_t *key);
+static OPS_FUNC_ABI unsigned int poly1305_blocks_ref32
+/**/                (void *state, const byte *m, size_t bytes);
+static OPS_FUNC_ABI unsigned int poly1305_finish_ext_ref32
+/**/                (void *state, const byte * m,
+                     size_t remaining, byte mac[POLY1305_TAGLEN]);
+
+static const poly1305_ops_t poly1305_default_ops = {
+  POLY1305_REF_BLOCKSIZE,
+  poly1305_init_ext_ref32,
+  poly1305_blocks_ref32,
+  poly1305_finish_ext_ref32
+};
+
+#endif /* !POLY1305_USE_SSE2 */
 
 
 #ifdef POLY1305_USE_AVX2
@@ -111,6 +128,7 @@ typedef struct poly1305_state_ref32_s
 } poly1305_state_ref32_t;
 
 
+#ifndef POLY1305_USE_SSE2
 static OPS_FUNC_ABI void
 poly1305_init_ext_ref32 (void *state, const poly1305_key_t * key)
 {
@@ -141,8 +159,10 @@ poly1305_init_ext_ref32 (void *state, const poly1305_key_t * key)
 
   st->final = 0;
 }
+#endif /* !POLY1305_USE_SSE2 */
 
 
+#ifndef POLY1305_USE_SSE2
 static OPS_FUNC_ABI unsigned int
 poly1305_blocks_ref32 (void *state, const byte * m, size_t bytes)
 {
@@ -229,8 +249,10 @@ poly1305_blocks_ref32 (void *state, const byte * m, size_t bytes)
 
   return (16 * sizeof (u32) + 5 * sizeof (u64) + 5 * sizeof (void *));
 }
+#endif /* !POLY1305_USE_SSE2 */
 
 
+#ifndef POLY1305_USE_SSE2
 static OPS_FUNC_ABI unsigned int
 poly1305_finish_ext_ref32 (void *state, const byte * m,
 			   size_t remaining, byte mac[POLY1305_TAGLEN])
@@ -347,14 +369,8 @@ poly1305_finish_ext_ref32 (void *state, const byte * m,
   return (13 * sizeof (u32) + sizeof (u64) +
 	  POLY1305_REF_BLOCKSIZE + 6 * sizeof (void *)) + burn;
 }
+#endif /* !POLY1305_USE_SSE2*/
 
-
-static const poly1305_ops_t poly1305_default_ops = {
-  POLY1305_REF_BLOCKSIZE,
-  poly1305_init_ext_ref32,
-  poly1305_blocks_ref32,
-  poly1305_finish_ext_ref32
-};
 
 
 
