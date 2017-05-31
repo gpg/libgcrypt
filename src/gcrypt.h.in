@@ -1333,9 +1333,9 @@ int gcry_md_is_enabled (gcry_md_hd_t a, int algo);
 /* Return true if the digest object A is allocated in "secure" memory. */
 int gcry_md_is_secure (gcry_md_hd_t a);
 
-/* Retrieve various information about the object H.  */
+/* Deprecated: Use gcry_md_is_enabled or gcry_md_is_secure.  */
 gcry_error_t gcry_md_info (gcry_md_hd_t h, int what, void *buffer,
-                          size_t *nbytes);
+                          size_t *nbytes) _GCRY_ATTR_INTERNAL;
 
 /* Retrieve various information about the algorithm ALGO.  */
 gcry_error_t gcry_md_algo_info (int algo, int what, void *buffer,
