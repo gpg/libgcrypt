@@ -454,7 +454,7 @@ init_pool (pooldesc_t *pool, size_t n)
 
   /* Initialize first memory block.  */
   mb = (memblock_t *) pool->mem;
-  mb->size = pool->size;
+  mb->size = pool->size - BLOCK_HEAD_SIZE;
   mb->flags = 0;
 }
 
@@ -610,7 +610,7 @@ _gcry_secmem_malloc_internal (size_t size, int xhint)
   mb = mb_get_new (pool, (memblock_t *) pool->mem, size);
   if (mb)
     {
-      stats_update (pool, size, 0);
+      stats_update (pool, mb->size, 0);
       return &mb->aligned.c;
     }
 
@@ -624,7 +624,7 @@ _gcry_secmem_malloc_internal (size_t size, int xhint)
           mb = mb_get_new (pool, (memblock_t *) pool->mem, size);
           if (mb)
             {
-              stats_update (pool, size, 0);
+              stats_update (pool, mb->size, 0);
               return &mb->aligned.c;
             }
         }
@@ -641,7 +641,7 @@ _gcry_secmem_malloc_internal (size_t size, int xhint)
         return NULL; /* Not enough memory available for a new pool.  */
       /* Initialize first memory block.  */
       mb = (memblock_t *) pool->mem;
-      mb->size = pool->size;
+      mb->size = pool->size - BLOCK_HEAD_SIZE;
       mb->flags = 0;
 
       pool->okay = 1;
@@ -660,7 +660,7 @@ _gcry_secmem_malloc_internal (size_t size, int xhint)
       mb = mb_get_new (pool, (memblock_t *) pool->mem, size);
       if (mb)
         {
-          stats_update (pool, size, 0);
+          stats_update (pool, mb->size, 0);
           return &mb->aligned.c;
         }
     }
