@@ -1,5 +1,12 @@
-Noteworthy changes in version 1.7.7 (unreleased)  [C21/A1/R_]
+Noteworthy changes in version 1.7.7 (2017-06-02)  [C21/A1/R7]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix possible timing attack on EdDSA session key.
+
+   - Fix long standing bug in secure memory implementation which could
+     lead to a segv on free. [bug#3027]
 
 
 Noteworthy changes in version 1.7.6 (2017-01-18)  [C21/A1/R6]
