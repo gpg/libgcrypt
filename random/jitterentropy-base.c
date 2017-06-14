@@ -81,6 +81,7 @@
  *
  * Return: Version number of kcapi library
  */
+#if 0
 unsigned int jent_version(void)
 {
         unsigned int version = 0;
@@ -91,6 +92,7 @@ unsigned int jent_version(void)
 
         return version;
 }
+#endif
 
 /**
  * Update of the loop count used for the next round of
@@ -104,11 +106,11 @@ unsigned int jent_version(void)
  *
  * @return Newly calculated loop counter
  */
-static __u64 jent_loop_shuffle(struct rand_data *ec,
+static u64 jent_loop_shuffle(struct rand_data *ec,
                                unsigned int bits, unsigned int min)
 {
-        __u64 time = 0;
-        __u64 shuffle = 0;
+        u64 time = 0;
+        u64 shuffle = 0;
         unsigned int i = 0;
         unsigned int mask = (1<<bits) - 1;
 
@@ -164,15 +166,15 @@ static __u64 jent_loop_shuffle(struct rand_data *ec,
  *
  * @return Number of loops the folding operation is performed
  */
-static __u64 jent_lfsr_time(struct rand_data *ec, __u64 time,
-                            __u64 loop_cnt)
+static u64 jent_lfsr_time(struct rand_data *ec, u64 time,
+                            u64 loop_cnt)
 {
         unsigned int i;
-        __u64 j = 0;
-        __u64 new = 0;
+        u64 j = 0;
+        u64 new = 0;
 #define MAX_FOLD_LOOP_BIT 4
 #define MIN_FOLD_LOOP_BIT 0
-        __u64 fold_loop_cnt =
+        u64 fold_loop_cnt =
                 jent_loop_shuffle(ec, MAX_FOLD_LOOP_BIT, MIN_FOLD_LOOP_BIT);
 
         /*
@@ -184,7 +186,7 @@ static __u64 jent_lfsr_time(struct rand_data *ec, __u64 time,
         for (j = 0; j < fold_loop_cnt; j++) {
                 new = ec->data;
                 for (i = 1; (DATA_SIZE_BITS) >= i; i++) {
-                        __u64 tmp = time << (DATA_SIZE_BITS - i);
+                        u64 tmp = time << (DATA_SIZE_BITS - i);
 
                         tmp = tmp >> (DATA_SIZE_BITS - 1);
 
@@ -240,13 +242,13 @@ static __u64 jent_lfsr_time(struct rand_data *ec, __u64 time,
  *
  * @return Number of memory access operations
  */
-static unsigned int jent_memaccess(struct rand_data *ec, __u64 loop_cnt)
+static unsigned int jent_memaccess(struct rand_data *ec, u64 loop_cnt)
 {
         unsigned int wrap = 0;
-        __u64 i = 0;
+        u64 i = 0;
 #define MAX_ACC_LOOP_BIT 7
 #define MIN_ACC_LOOP_BIT 0
-        __u64 acc_loop_cnt =
+        u64 acc_loop_cnt =
                 jent_loop_shuffle(ec, MAX_ACC_LOOP_BIT, MIN_ACC_LOOP_BIT);
 
         if (NULL == ec || NULL == ec->mem)
@@ -299,10 +301,10 @@ static unsigned int jent_memaccess(struct rand_data *ec, __u64 loop_cnt)
  *      0 jitter measurement not stuck (good bit)
  *      1 jitter measurement stuck (reject bit)
  */
-static int jent_stuck(struct rand_data *ec, __u64 current_delta)
+static int jent_stuck(struct rand_data *ec, u64 current_delta)
 {
-        __s64 delta2 = ec->last_delta - current_delta;
-        __s64 delta3 = delta2 - ec->last_delta2;
+        int64_t delta2 = ec->last_delta - current_delta;
+        int64_t delta3 = delta2 - ec->last_delta2;
 
         ec->last_delta = current_delta;
         ec->last_delta2 = delta2;
@@ -329,8 +331,8 @@ static int jent_stuck(struct rand_data *ec, __u64 current_delta)
  */
 static int jent_measure_jitter(struct rand_data *ec)
 {
-        __u64 time = 0;
-        __u64 current_delta = 0;
+        u64 time = 0;
+        u64 current_delta = 0;
         int stuck;
 
         /* Invoke one noise source before time measurement to add variations */
@@ -389,8 +391,8 @@ static void jent_stir_pool(struct rand_data *entropy_collector)
          * with two 32 bit variables
          */
         union c {
-                __u64 u64;
-                __u32 u32[2];
+                u64 u64;
+                u32 u32[2];
         };
         /*
          * This constant is derived from the first two 32 bit initialization
@@ -449,7 +451,7 @@ static void jent_gen_entropy(struct rand_data *ec)
         jent_measure_jitter(ec);
 
         while (1) {
-                __u64 prev_data = ec->data;
+                u64 prev_data = ec->data;
 
                 /* If a stuck measurement is received, repeat measurement */
                 if (jent_measure_jitter(ec))
@@ -491,7 +493,7 @@ static void jent_gen_entropy(struct rand_data *ec)
  * The following error codes can occur:
  *      -1	entropy_collector is NULL
  */
-ssize_t jent_read_entropy(struct rand_data *ec, char *data, size_t len)
+static int jent_read_entropy(struct rand_data *ec, char *data, size_t len)
 {
         char *p = data;
         size_t orig_len = len;
@@ -540,8 +542,8 @@ EXPORT_SYMBOL(jent_read_entropy);
  * Initialization logic
  ***************************************************************************/
 
-struct rand_data *jent_entropy_collector_alloc(unsigned int osr,
-                                               unsigned int flags)
+static struct rand_data *jent_entropy_collector_alloc(unsigned int osr,
+                                                        unsigned int flags)
 {
         struct rand_data *entropy_collector;
 
@@ -584,7 +586,7 @@ struct rand_data *jent_entropy_collector_alloc(unsigned int osr,
 EXPORT_SYMBOL(jent_entropy_collector_alloc);
 #endif
 
-void jent_entropy_collector_free(struct rand_data *entropy_collector)
+static void jent_entropy_collector_free(struct rand_data *entropy_collector)
 {
         if (NULL != entropy_collector) {
                 if (NULL != entropy_collector->mem) {
@@ -598,11 +600,11 @@ void jent_entropy_collector_free(struct rand_data *entropy_collector)
 EXPORT_SYMBOL(jent_entropy_collector_free);
 #endif
 
-int jent_entropy_init(void)
+static int jent_entropy_init(void)
 {
         int i;
-        __u64 delta_sum = 0;
-        __u64 old_delta = 0;
+        u64 delta_sum = 0;
+        u64 old_delta = 0;
         int time_backwards = 0;
         int count_var = 0;
         int count_mod = 0;
@@ -633,9 +635,9 @@ int jent_entropy_init(void)
 #define TESTLOOPCOUNT 300
 #define CLEARCACHE 100
         for (i = 0; (TESTLOOPCOUNT + CLEARCACHE) > i; i++) {
-                __u64 time = 0;
-                __u64 time2 = 0;
-                __u64 delta = 0;
+                u64 time = 0;
+                u64 time2 = 0;
+                u64 delta = 0;
                 unsigned int lowdelta = 0;
 
                 jent_get_nstime(&time);
@@ -751,10 +753,10 @@ void jent_gen_entropy_stat(struct rand_data *entropy_collector,
  * Statistical test: obtain the distribution of the LFSR state value from
  * jent_lfsr_time
  */
-void jent_lfsr_time_stat(struct rand_data *ec, __u64 *fold, __u64 *loop_cnt)
+void jent_lfsr_time_stat(struct rand_data *ec, u64 *fold, u64 *loop_cnt)
 {
-        __u64 time = 0;
-        __u64 time2 = 0;
+        u64 time = 0;
+        u64 time2 = 0;
         jent_get_nstime(&time);
         jent_memaccess(ec, 0);
         /* implement the priming logic */
@@ -770,10 +772,10 @@ void jent_lfsr_time_stat(struct rand_data *ec, __u64 *fold, __u64 *loop_cnt)
  * is set, perform the given number of foldings. Otherwise, allow the
  * loop count shuffling to define the number of foldings.
  */
-__u64 jent_lfsr_var_stat(struct rand_data *ec, unsigned int min)
+u64 jent_lfsr_var_stat(struct rand_data *ec, unsigned int min)
 {
-        __u64 time = 0;
-        __u64 time2 = 0;
+        u64 time = 0;
+        u64 time2 = 0;
 
         jent_get_nstime(&time);
         jent_memaccess(ec, min);

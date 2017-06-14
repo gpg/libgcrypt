@@ -39,14 +39,14 @@
  * DAMAGE.
  */
 
-#ifndef _JITTERENTROPY_H
-#define _JITTERENTROPY_H
+#ifndef GCRYPT_JITTERENTROPY_H
+#define GCRYPT_JITTERENTROPY_H
 
-#ifdef __KERNEL__
-#include "jitterentropy-base-kernel.h"
-#else
-#include "jitterentropy-base-user.h"
-#endif /* __KERNEL__ */
+/* #ifdef __KERNEL__ */
+/* #include "jitterentropy-base-kernel.h" */
+/* #else */
+/* #include "jitterentropy-base-user.h" */
+/* #endif /\* __KERNEL__ *\/ */
 
 /* Statistical data from the entropy source */
 struct entropy_stat {
@@ -66,10 +66,10 @@ struct entropy_stat {
                                            other hand, the bit statistics
                                            test is not interested in exact
                                            timing */
-        __u64 collection_begin;		/* timer for beginning of one
+        u64 collection_begin;		/* timer for beginning of one
                                            entropy collection round */
-        __u64 collection_end;		/* timer for end of one round */
-        __u64 old_delta;		/* Time delta of previous round to
+        u64 collection_end;		/* timer for end of one round */
+        u64 old_delta;		        /* Time delta of previous round to
                                            calculate delta of deltas */
         unsigned int setbits;		/* see _jent_calc_statistic */
         unsigned int varbits;		/* see _jent_calc_statistic */
@@ -84,11 +84,11 @@ struct rand_data
          * of the RNG are marked as SENSITIVE. A user must not
          * access that information while the RNG executes its loops to
          * calculate the next random value. */
-        __u64 data;		/* SENSITIVE Actual random number */
-        __u64 prev_time;	/* SENSITIVE Previous time stamp */
-#define DATA_SIZE_BITS ((sizeof(__u64)) * 8)
-        __u64 last_delta;	/* SENSITIVE stuck test */
-        __s64 last_delta2;	/* SENSITIVE stuck test */
+        u64 data;		/* SENSITIVE Actual random number */
+        u64 prev_time;	        /* SENSITIVE Previous time stamp */
+#define DATA_SIZE_BITS ((sizeof(u64)) * 8)
+        u64 last_delta;         /* SENSITIVE stuck test */
+        int64_t last_delta2;	/* SENSITIVE stuck test */
         unsigned int osr;	/* Oversample rate */
         unsigned int stir:1;		/* Post-processing stirring */
         unsigned int disable_unbias:1;	/* Deactivate Von-Neuman unbias */
@@ -121,22 +121,26 @@ struct rand_data
 
 /* Number of low bits of the time value that we want to consider */
 /* get raw entropy */
-ssize_t jent_read_entropy(struct rand_data *ec, char *data, size_t len);
+static int jent_read_entropy (struct rand_data *ec,
+                              char *data, size_t len);
+
 /* initialize an instance of the entropy collector */
-struct rand_data *jent_entropy_collector_alloc(unsigned int osr,
-                                               unsigned int flags);
+static struct rand_data *jent_entropy_collector_alloc (unsigned int osr,
+                                                         unsigned int flags);
+
 /* clearing of entropy collector */
-void jent_entropy_collector_free(struct rand_data *entropy_collector);
+static void jent_entropy_collector_free (struct rand_data *ent_coll);
 
 /* initialization of entropy collector */
-int jent_entropy_init(void);
+static int jent_entropy_init (void);
 
 /* return version number of core library */
-unsigned int jent_version(void);
+/* unsigned int jent_version(void); */
 
 /* -- END of Main interface functions -- */
 
 /* -- BEGIN error codes for init function -- */
+/* FIXME!!! */
 #define ENOTIME         1 /* Timer service not available */
 #define ECOARSETIME	2 /* Timer too coarse for RNG */
 #define ENOMONOTONIC	3 /* Timer is not monotonic increasing */
@@ -148,25 +152,26 @@ unsigned int jent_version(void);
 
 /* -- BEGIN statistical test functions only complied with CONFIG_CRYPTO_CPU_JITTERENTROPY_STAT -- */
 
-void _jent_init_statistic(struct rand_data *entropy_collector);
-void _jent_calc_statistic(struct rand_data *entropy_collector,
-                          struct entropy_stat *stat, unsigned int loop_cnt);
-void _jent_bit_count(struct rand_data *entropy_collector, __u64 prev_data);
-
 #ifdef CONFIG_CRYPTO_CPU_JITTERENTROPY_STAT
-#define jent_init_statistic(x)    do { _jent_init_statistic(x); }    while (0)
-#define jent_calc_statistic(x, y, z) do { _jent_calc_statistic(x, y, z); } while (0)
-#define jent_bit_count(x,y)       do { _jent_bit_count(x, y); }      while (0)
-void jent_gen_entropy_stat(struct rand_data *entropy_collector,
-                           struct entropy_stat *stat);
-void jent_lfsr_time_stat(struct rand_data *ec, __u64 *fold, __u64 *loop_cnt);
-__u64 jent_lfsr_var_stat(struct rand_data *ec, unsigned int min);
+
+static void jent_init_statistic(struct rand_data *entropy_collector);
+static void jent_calc_statistic(struct rand_data *entropy_collector,
+                          struct entropy_stat *stat, unsigned int loop_cnt);
+static void jent_bit_count (struct rand_data *entropy_collector, u64 prev_data);
+
+static void jent_gen_entropy_stat (struct rand_data *entropy_collector,
+                                   struct entropy_stat *stat);
+static void jent_lfsr_time_stat(struct rand_data *ec, u64 *fold, u64 *loop_cnt);
+static u64 jent_lfsr_var_stat(struct rand_data *ec, unsigned int min);
+
 #else /* CONFIG_CRYPTO_CPU_JITTERENTROPY_STAT */
-#define jent_init_statistic(x)    do { if(0) _jent_init_statistic(x); }    while (0)
-#define jent_calc_statistic(x, y, z) do { if(0) _jent_calc_statistic(x, y, z); } while (0)
-#define jent_bit_count(x,y)       do { if(0) _jent_bit_count(x,y); }       while (0)
+
+# define jent_init_statistic(x)       do { } while (0)
+# define jent_calc_statistic(x, y, z) do { } while (0)
+# define jent_bit_count(x,y)          do { (void)(y); } while (0)
+
 #endif /* CONFIG_CRYPTO_CPU_JITTERENTROPY_STAT */
 
 /* -- END of statistical test function -- */
 
-#endif /* _JITTERENTROPY_H */
+#endif /* GCRYPT_JITTERENTROPY_H */
