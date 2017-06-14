@@ -227,6 +227,9 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_ARM_SHA2            (1 << 18)
 #define HWF_ARM_PMULL           (1 << 19)
 
+#define HWF_INTEL_RDTSC         (1 << 20)
+
+
 
 gpg_err_code_t _gcry_disable_hw_feature (const char *name);
 void _gcry_detect_hw_features (void);

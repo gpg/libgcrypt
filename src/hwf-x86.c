@@ -175,7 +175,7 @@ detect_x86_gnuc (void)
     char c[12+1];
     unsigned int ui[3];
   } vendor_id;
-  unsigned int features;
+  unsigned int features, features2;
   unsigned int os_supports_avx_avx2_registers = 0;
   unsigned int max_cpuid_level;
   unsigned int fms, family, model;
@@ -240,8 +240,8 @@ detect_x86_gnuc (void)
   /* Detect Intel features, that might also be supported by other
      vendors.  */
 
-  /* Get CPU family/model/stepping (EAX) and Intel feature flags (ECX).  */
-  get_cpuid(1, &fms, NULL, &features, NULL);
+  /* Get CPU family/model/stepping (EAX) and Intel feature flags (ECX, EDX).  */
+  get_cpuid(1, &fms, NULL, &features, &features2);
 
   family = ((fms & 0xf00) >> 8) + ((fms & 0xff00000) >> 20);
   model = ((fms & 0xf0) >> 4) + ((fms & 0xf0000) >> 12);
@@ -330,6 +330,10 @@ detect_x86_gnuc (void)
   if (features & 0x40000000)
      result |= HWF_INTEL_RDRAND;
 #endif /*ENABLE_DRNG_SUPPORT*/
+
+  /* Test bit 4 of EDX for TSC.  */
+  if (features2 & 0x00000010)
+    result |= HWF_INTEL_RDTSC;
 
   /* Check additional Intel feature flags.  Early Intel P5 processors report
    * too high max_cpuid_level, so don't check level 7 if processor does not

@@ -570,6 +570,7 @@ are
 @item intel-rdrand
 @item intel-avx
 @item intel-avx2
+@item intel-rdtsc
 @item arm-neon
 @end table
 
