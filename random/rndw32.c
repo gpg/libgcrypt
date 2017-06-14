@@ -584,8 +584,8 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
 
     if (hNetAPI32
         && !pNetStatisticsGet (NULL,
-                               is_workstation ? L"LanmanWorkstation" :
-                               L"LanmanServer", 0, 0, &lpBuffer))
+                               (LPWSTR)(is_workstation ? L"LanmanWorkstation" :
+                                        L"LanmanServer"), 0, 0, &lpBuffer))
       {
         if ( debug_me )
           log_debug ("rndw32#slow_gatherer: get netstats\n" );
@@ -776,6 +776,7 @@ _gcry_rndw32_gather_random (void (*add)(const void*, size_t,
                             size_t length, int level )
 {
   static int is_initialized;
+  size_t n;
 
   if (!level)
     return 0;
@@ -807,6 +808,13 @@ _gcry_rndw32_gather_random (void (*add)(const void*, size_t,
                origin, (unsigned int)length, level );
 
   slow_gatherer (add, origin);
+
+  /* Round requested LENGTH up to full 32 bytes.  */
+  n = _gcry_rndjent_poll (add, origin, ((length + 31) / 32) * 32);
+
+  if (debug_me)
+    log_debug ("rndw32#gather_random: jent contributed extra %u bytes\n",
+               (unsigned int)n);
 
   return 0;
 }

@@ -98,7 +98,7 @@ int _gcry_rndunix_gather_random (void (*add) (const void *, size_t,
                                  enum random_origins origin,
                                  size_t length, int level);
 
-/*-- rndelg.c --*/
+/*-- rndegd.c --*/
 int _gcry_rndegd_gather_random (void (*add) (const void *, size_t,
                                              enum random_origins),
                                 enum random_origins origin,
@@ -122,6 +122,12 @@ int _gcry_rndw32ce_gather_random (void (*add) (const void *, size_t,
 void _gcry_rndw32ce_gather_random_fast (void (*add)(const void*, size_t,
                                                     enum random_origins),
                                         enum random_origins origin );
+
+/*-- rndjent.c --*/
+size_t _gcry_rndjent_poll (void (*add)(const void*,
+                                       size_t, enum random_origins),
+                           enum random_origins origin,
+                           size_t length);
 
 /*-- rndhw.c --*/
 int _gcry_rndhw_failed_p (void);

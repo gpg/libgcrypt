@@ -36,6 +36,7 @@ rand-internal.h \
 random-csprng.c \
 random-drbg.c \
 random-system.c \
+rndjent.c \
 rndhw.c
 
 if USE_RANDOM_DAEMON
@@ -48,4 +49,21 @@ rndlinux.c \
 rndegd.c \
 rndunix.c \
 rndw32.c  \
-rndw32ce.c
+rndw32ce.c \
+jitterentropy-base.c jitterentropy.h
+
+
+# The rndjent module needs to be compiled without optimization.  */
+if ENABLE_O_FLAG_MUNGING
+o_flag_munging = sed -e 's/-O\([1-9s][1-9s]*\)/-O0/' -e 's/-Ofast/-O0/g'
+else
+o_flag_munging = cat
+endif
+
+rndjent.o: $(srcdir)/rndjent.c \
+           $(srcdir)/jitterentropy-base.c $(srcdir)/jitterentropy.h
+	`echo $(COMPILE) -c $(srcdir)/rndjent.c | $(o_flag_munging) `
+
+rndjent.lo: $(srcdir)/rndjent.c \
+            $(srcdir)/jitterentropy-base.c $(srcdir)/jitterentropy.h
+	`echo $(LTCOMPILE) -c $(srcdir)/rndjent.c | $(o_flag_munging) `

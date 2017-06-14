@@ -577,6 +577,14 @@ if test "$use_hmac_binary_check" = yes ; then
 fi
 
 
+# Implementation of the --disable-jent-support switch.
+AC_MSG_CHECKING([whether jitter entropy support is requested])
+AC_ARG_ENABLE(jent-support,
+              AC_HELP_STRING([--disable-jent-support],
+                        [Disable support for the Jitter entropy collector]),
+	      jentsupport=$enableval,jentsupport=yes)
+AC_MSG_RESULT($jentsupport)
+
 # Implementation of the --disable-padlock-support switch.
 AC_MSG_CHECKING([whether padlock support is requested])
 AC_ARG_ENABLE(padlock-support,
@@ -1185,6 +1193,7 @@ if test "$mpi_cpu_arch" != "x86" ; then
    avxsupport="n/a"
    avx2support="n/a"
    padlocksupport="n/a"
+   jentsupport="n/a"
    drngsupport="n/a"
 fi
 
@@ -1980,6 +1989,10 @@ if test x"$armcryptosupport" = xyes ; then
   AC_DEFINE(ENABLE_ARM_CRYPTO_SUPPORT,1,
             [Enable support for ARMv8 Crypto Extension instructions.])
 fi
+if test x"$jentsupport" = xyes ; then
+  AC_DEFINE(ENABLE_JENT_SUPPORT, 1,
+            [Enable support for the jitter entropy collector.])
+fi
 if test x"$padlocksupport" = xyes ; then
   AC_DEFINE(ENABLE_PADLOCK_SUPPORT, 1,
             [Enable support for the PadLock engine.])
@@ -2619,6 +2632,7 @@ GCRY_MSG_WRAP([Enabled digest algorithms:],[$enabled_digests])
 GCRY_MSG_WRAP([Enabled kdf algorithms:   ],[$enabled_kdfs])
 GCRY_MSG_WRAP([Enabled pubkey algorithms:],[$enabled_pubkey_ciphers])
 GCRY_MSG_SHOW([Random number generator:  ],[$random])
+GCRY_MSG_SHOW([Try using jitter entropy: ],[$jentsupport])
 GCRY_MSG_SHOW([Using linux capabilities: ],[$use_capabilities])
 GCRY_MSG_SHOW([Try using Padlock crypto: ],[$padlocksupport])
 GCRY_MSG_SHOW([Try using AES-NI crypto:  ],[$aesnisupport])
