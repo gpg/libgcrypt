@@ -35,6 +35,11 @@ static inline u32 ror(u32 x, int n)
 	return ( (x >> (n&(32-1))) | (x << ((32-n)&(32-1))) );
 }
 
+static inline u64 rol64(u64 x, int n)
+{
+  return ( (x << (n&(64-1))) | (x >> ((64-n)&(64-1))) );
+}
+
 /* Byte swap for 32-bit and 64-bit integers.  If available, use compiler
    provided helpers.  */
 #ifdef HAVE_BUILTIN_BSWAP32
