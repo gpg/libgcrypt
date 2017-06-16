@@ -5455,6 +5455,21 @@ are:
 This file can be used to disable the use of hardware based
 optimizations, @pxref{hardware features}.
 
+
+@item /etc/gcrypt/random.conf
+@cindex /etc/gcrypt/random.conf
+This file can be used to globally change parameters of the random
+generator.  The file is a simple text file where empty lines and
+lines with the first non white-space character being '#' are
+ignored.  Supported options are
+
+@table @file
+@item disable-jent
+@cindex disable-jent
+Disable the use of the jitter based entropy generator.
+
+@end table
+
 @item /etc/gcrypt/fips_enabled
 @itemx /proc/sys/crypto/fips_enabled
 @cindex /etc/gcrypt/fips_enabled

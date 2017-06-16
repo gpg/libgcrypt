@@ -29,11 +29,18 @@
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#ifdef HAVE_SYSLOG
+# include <syslog.h>
+#endif /*HAVE_SYSLOG*/
+#include <ctype.h>
 
 #include "g10lib.h"
 #include "random.h"
 #include "rand-internal.h"
 #include "cipher.h"         /* For _gcry_sha1_hash_buffer().  */
+
+/* The name of a file used to globally configure the RNG. */
+#define RANDOM_CONF_FILE "/etc/gcrypt/random.conf"
 
 
 /* If not NULL a progress function called from certain places and the
@@ -78,6 +85,71 @@ _gcry_random_progress (const char *what, int printchar, int current, int total)
 {
   if (progress_cb)
     progress_cb (progress_cb_data, what, printchar, current, total);
+}
+
+
+/* Read a file with configure options.  The file is a simple text file
+ * where empty lines and lines with the first non white-space
+ * character being '#' are ignored.  Supported configure options are:
+ *
+ *  disable-jent - Disable the jitter based extra entropy generator.
+ *                 This sets the RANDOM_CONF_DISABLE_JENT bit.
+ *
+ * The function returns a bit vector with flags read from the file.
+ */
+unsigned int
+_gcry_random_read_conf (void)
+{
+  const char *fname = RANDOM_CONF_FILE;
+  FILE *fp;
+  char buffer[256];
+  char *p, *pend;
+  int lnr = 0;
+  unsigned int result = 0;
+
+  fp = fopen (fname, "r");
+  if (!fp)
+    return result;
+
+  for (;;)
+    {
+      if (!fgets (buffer, sizeof buffer, fp))
+        {
+          if (!feof (fp))
+            {
+#ifdef HAVE_SYSLOG
+              syslog (LOG_USER|LOG_WARNING,
+                      "Libgcrypt warning: error reading '%s', line %d",
+                      fname, lnr);
+#endif /*HAVE_SYSLOG*/
+            }
+          fclose (fp);
+          return result;
+        }
+      lnr++;
+      for (p=buffer; my_isascii (*p) && isspace (*p); p++)
+        ;
+      pend = strchr (p, '\n');
+      if (pend)
+        *pend = 0;
+      pend = p + (*p? (strlen (p)-1):0);
+      for ( ;pend > p; pend--)
+        if (my_isascii (*pend) && isspace (*pend))
+          *pend = 0;
+      if (!*p || *p == '#')
+        continue;
+
+      if (!strcmp (p, "disable-jent"))
+        result |= RANDOM_CONF_DISABLE_JENT;
+      else
+        {
+#ifdef HAVE_SYSLOG
+          syslog (LOG_USER|LOG_WARNING,
+                  "Libgcrypt warning: unknown option in '%s', line %d",
+                  fname, lnr);
+#endif /*HAVE_SYSLOG*/
+        }
+    }
 }
 
 
@@ -202,6 +274,7 @@ _gcry_random_dump_stats (void)
     _gcry_rngdrbg_dump_stats ();
   else
     _gcry_rngcsprng_dump_stats ();
+  _gcry_rndjent_dump_stats ();
 }
 
 

@@ -120,6 +120,11 @@ static int jent_rng_is_initialized;
  * NULL.  Protected by JENT_RNG_LOCK.  */
 struct rand_data *jent_rng_collector;
 
+/* The number of times the core entropy function has been called and
+ * the number of random bytes retrieved.  */
+static unsigned long jent_rng_totalcalls;
+static unsigned long jent_rng_totalbytes;
+
 
 /* Acquire the jent_rng_lock.  */
 static void
@@ -177,13 +182,16 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
           jent_rng_is_initialized = 1;
           jent_entropy_collector_free (jent_rng_collector);
           jent_rng_collector = NULL;
-          if (!jent_entropy_init ())
-            jent_rng_collector = jent_entropy_collector_alloc (1, 0);
+          if ( !(_gcry_random_read_conf () & RANDOM_CONF_DISABLE_JENT))
+            {
+              if (!jent_entropy_init ())
+                jent_rng_collector = jent_entropy_collector_alloc (1, 0);
+            }
         }
 
       if (jent_rng_collector)
         {
-          /* We have a working JENT.  */
+          /* We have a working JENT and it has not been disabled.  */
           char buffer[256];
 
           while (length)
@@ -191,13 +199,16 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
               int rc;
               size_t n = length < sizeof(buffer)? length : sizeof (buffer);
 
+              jent_rng_totalcalls++;
               rc = jent_read_entropy (jent_rng_collector, buffer, n);
               if (rc < 0)
                 break;
               (*add) (buffer, rc, origin);
               length -= rc;
               nbytes += rc;
+              jent_rng_totalbytes += rc;
             }
+          wipememory (buffer, sizeof buffer);
         }
 
       unlock_rng ();
@@ -205,4 +216,24 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
 #endif
 
   return nbytes;
+}
+
+
+/* Log statistical informantion about the use of this module.  */
+void
+_gcry_rndjent_dump_stats (void)
+{
+  /* In theory we would need to lock the stats here.  However this
+     function is usually called during cleanup and then we _might_ run
+     into problems.  */
+
+#ifdef USE_JENT
+  if ((_gcry_get_hw_features () & HWF_INTEL_RDTSC))
+    {
+
+      log_info ("rndjent stat: collector=%p calls=%lu bytes=%lu\n",
+                jent_rng_collector, jent_rng_totalcalls, jent_rng_totalbytes);
+
+    }
+#endif /*USE_JENT*/
 }

@@ -73,9 +73,6 @@ static unsigned int disabled_hw_features;
    available. */
 static unsigned int hw_features;
 
-/* Convenience macros.  */
-#define my_isascii(c) (!((c) & 0x80))
-
 
 
 /* Disable a feature by name.  This function must be called *before*

@@ -35,9 +35,11 @@ enum random_origins
                                     random request.  */
   };
 
+#define RANDOM_CONF_DISABLE_JENT 1
 
 
 /*-- random.c --*/
+unsigned int _gcry_random_read_conf (void);
 void _gcry_random_progress (const char *what, int printchar,
                             int current, int total);
 
@@ -128,6 +130,7 @@ size_t _gcry_rndjent_poll (void (*add)(const void*,
                                        size_t, enum random_origins),
                            enum random_origins origin,
                            size_t length);
+void _gcry_rndjent_dump_stats (void);
 
 /*-- rndhw.c --*/
 int _gcry_rndhw_failed_p (void);

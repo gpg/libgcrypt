@@ -650,5 +650,8 @@ main (int argc, char **argv)
   if (!in_recursion)
     run_all_rng_tests (program);
 
+  if (debug)
+    xgcry_control (GCRYCTL_DUMP_RANDOM_STATS);
+
   return 0;
 }

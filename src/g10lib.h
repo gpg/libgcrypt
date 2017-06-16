@@ -96,6 +96,9 @@
 #define DIM(v) (sizeof(v)/sizeof((v)[0]))
 #define DIMof(type,member)   DIM(((type *)0)->member)
 
+#define my_isascii(c) (!((c) & 0x80))
+
+
 
 
 /*-- src/global.c -*/
