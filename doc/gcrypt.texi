@@ -5468,6 +5468,13 @@ ignored.  Supported options are
 @cindex disable-jent
 Disable the use of the jitter based entropy generator.
 
+@item only-urandom
+@cindex only-urandom
+Always use the non-blocking /dev/urandom or the respective system call
+instead of the blocking /dev/random.  If Libgcrypt is used early in
+the boot process of the system, this option should only be used if the
+system also supports the getrandom system call.
+
 @end table
 
 @item /etc/gcrypt/fips_enabled
@@ -5826,8 +5833,10 @@ Both generators make use of so-called entropy gathering modules:
 
 @table @asis
 @item rndlinux
-Uses the operating system provided
-@file{/dev/random} and @file{/dev/urandom} devices.
+Uses the operating system provided @file{/dev/random} and
+@file{/dev/urandom} devices.  The @file{/dev/gcrypt/random.conf}
+config option @option{only-urandom} can be used to inhibit the use of
+the blocking @file{/dev/random} device.
 
 @item rndunix
 Runs several operating system commands to collect entropy from sources
@@ -5852,6 +5861,12 @@ Extra module to collect additional entropy by utilizing a hardware
 random number generator.  As of now the supported hardware RNG is
 the Padlock engine of VIA (Centaur) CPUs and x86 CPUs with the RDRAND
 instruction.  It is not available in FIPS mode.
+
+@item rndjent
+Extra module to collect additional entropy using a CPU jitter based
+approach.  This is only used on X86 hardware where the RDTSC opcode is
+available.  The @file{/dev/gcrypt/random.conf} config option
+@option{disable-jent} can be used to inhibit the use of this module.
 
 @end table
 

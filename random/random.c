@@ -94,6 +94,8 @@ _gcry_random_progress (const char *what, int printchar, int current, int total)
  *
  *  disable-jent - Disable the jitter based extra entropy generator.
  *                 This sets the RANDOM_CONF_DISABLE_JENT bit.
+ *  only-urandom - Always use /dev/urandom instead of /dev/random.
+ *                 This sets the RANDOM_CONF_ONLY_URANDOM bit.
  *
  * The function returns a bit vector with flags read from the file.
  */
@@ -141,6 +143,8 @@ _gcry_random_read_conf (void)
 
       if (!strcmp (p, "disable-jent"))
         result |= RANDOM_CONF_DISABLE_JENT;
+      else if (!strcmp (p, "only-urandom"))
+        result |= RANDOM_CONF_ONLY_URANDOM;
       else
         {
 #ifdef HAVE_SYSLOG

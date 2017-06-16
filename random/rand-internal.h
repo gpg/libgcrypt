@@ -36,6 +36,7 @@ enum random_origins
   };
 
 #define RANDOM_CONF_DISABLE_JENT 1
+#define RANDOM_CONF_ONLY_URANDOM 2
 
 
 /*-- random.c --*/

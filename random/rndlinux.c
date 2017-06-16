@@ -115,6 +115,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
 {
   static int fd_urandom = -1;
   static int fd_random = -1;
+  static int only_urandom = -1;
   static unsigned char ever_opened;
   int fd;
   int n;
@@ -124,6 +125,17 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
   size_t last_so_far = 0;
   int any_need_entropy = 0;
   int delay;
+
+  /* On the first call read the conf file to check whether we want to
+   * use only urandom.  */
+  if (only_urandom == -1)
+    {
+      if ((_gcry_random_read_conf () & RANDOM_CONF_ONLY_URANDOM))
+        only_urandom = 1;
+      else
+        only_urandom = 0;
+    }
+
 
   if (!add)
     {
@@ -178,7 +190,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
      that we always require the device to be existent but want a more
      graceful behaviour if the rarely needed close operation has been
      used and the device needs to be re-opened later. */
-  if (level >= GCRY_VERY_STRONG_RANDOM)
+  if (level >= GCRY_VERY_STRONG_RANDOM && !only_urandom)
     {
       if (fd_random == -1)
         {

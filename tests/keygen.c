@@ -670,6 +670,7 @@ usage (int mode)
          "  --verbose       be verbose\n"
          "  --debug         flyswatter\n"
          "  --fips          run in FIPS mode\n"
+         "  --no-quick      To not use the quick RNG hack\n"
          "  --progress      print progress indicators\n",
          mode? stderr : stdout);
   if (mode)
@@ -682,6 +683,7 @@ main (int argc, char **argv)
   int last_argc = -1;
   int opt_fips = 0;
   int with_progress = 0;
+  int no_quick = 0;
 
   if (argc)
     { argc--; argv++; }
@@ -720,6 +722,11 @@ main (int argc, char **argv)
           argc--; argv++;
           with_progress = 1;
         }
+      else if (!strcmp (*argv, "--no-quick"))
+        {
+          argc--; argv++;
+          no_quick = 1;
+        }
       else if (!strncmp (*argv, "--", 2))
         die ("unknown option '%s'", *argv);
       else
@@ -740,7 +747,8 @@ main (int argc, char **argv)
   if (debug)
     xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
   /* No valuable keys are create, so we can speed up our RNG. */
-  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  if (!no_quick)
+    xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
   if (with_progress)
     gcry_set_progress_handler (progress_cb, NULL);
 
