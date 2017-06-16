@@ -56,9 +56,9 @@ with any binary distributions derived from the GNU C Library.
 
 
   For files:
-  - random/jitterentropy-base-user.h
   - random/jitterentropy-base.c
   - random/jitterentropy.h
+  - random/rndjent.c (plus common Libgcrypt copyright holders)
 
 #+begin_quote
  * Copyright Stephan Mueller <smueller@chronox.de>, 2013
