@@ -306,7 +306,7 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
       if (jent_rng_collector)
         {
           /* We have a working JENT and it has not been disabled.  */
-          char buffer[256];
+          char buffer[32];
 
           while (length)
             {
@@ -317,10 +317,14 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
               rc = jent_read_entropy (jent_rng_collector, buffer, n);
               if (rc < 0)
                 break;
-              (*add) (buffer, rc, origin);
-              length -= rc;
-              nbytes += rc;
-              jent_rng_totalbytes += rc;
+              /* We need to hash the output to conform to the BSI
+               * NTG.1 specs.  */
+              _gcry_md_hash_buffer (GCRY_MD_SHA256, buffer, buffer, rc);
+              n = rc < 32? rc : 32;
+              (*add) (buffer, n, origin);
+              length -= n;
+              nbytes += n;
+              jent_rng_totalbytes += n;
             }
           wipememory (buffer, sizeof buffer);
         }
