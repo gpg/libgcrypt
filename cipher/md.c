@@ -1028,10 +1028,24 @@ void
 _gcry_md_hash_buffer (int algo, void *digest,
                       const void *buffer, size_t length)
 {
-  if (algo == GCRY_MD_SHA1)
+  if (0)
+    ;
+#if USE_SHA256
+  else if (algo == GCRY_MD_SHA256)
+    _gcry_sha256_hash_buffer (digest, buffer, length);
+#endif
+#if USE_SHA512
+  else if (algo == GCRY_MD_SHA512)
+    _gcry_sha512_hash_buffer (digest, buffer, length);
+#endif
+#if USE_SHA1
+  else if (algo == GCRY_MD_SHA1)
     _gcry_sha1_hash_buffer (digest, buffer, length);
+#endif
+#if USE_RMD160
   else if (algo == GCRY_MD_RMD160 && !fips_mode () )
     _gcry_rmd160_hash_buffer (digest, buffer, length);
+#endif
   else
     {
       /* For the others we do not have a fast function, so we use the
@@ -1091,12 +1105,24 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
   if (hmac && iovcnt < 1)
     return GPG_ERR_INV_ARG;
 
-  if (algo == GCRY_MD_SHA1 && !hmac)
+  if (0)
+    ;
+#if USE_SHA256
+  else if (algo == GCRY_MD_SHA256 && !hmac)
+    _gcry_sha256_hash_buffers (digest, iov, iovcnt);
+#endif
+#if USE_SHA512
+  else if (algo == GCRY_MD_SHA512 && !hmac)
+    _gcry_sha512_hash_buffers (digest, iov, iovcnt);
+#endif
+#if USE_SHA1
+  else if (algo == GCRY_MD_SHA1 && !hmac)
     _gcry_sha1_hash_buffers (digest, iov, iovcnt);
+#endif
   else
     {
       /* For the others we do not have a fast function, so we use the
-	 normal functions. */
+	 normal functions.  */
       gcry_md_hd_t h;
       gpg_err_code_t rc;
       int dlen;
