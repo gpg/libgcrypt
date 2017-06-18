@@ -43,6 +43,8 @@ do_padlock (const RIJNDAEL_context *ctx, unsigned char *bx,
   unsigned char a[16] __attribute__ ((aligned (16)));
   unsigned char b[16] __attribute__ ((aligned (16)));
   unsigned int cword[4] __attribute__ ((aligned (16)));
+  unsigned char *pa = a;
+  unsigned char *pb = b;
   int blocks;
 
   /* The control word fields are:
@@ -63,19 +65,19 @@ do_padlock (const RIJNDAEL_context *ctx, unsigned char *bx,
     ("pushfq\n\t"          /* Force key reload.  */
      "popfq\n\t"
      ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XCRYPT ECB. */
-     : /* No output */
-     : "S" (a), "D" (b), "d" (cword), "b" (ctx->padlockkey), "c" (blocks)
+     : "+S" (pa), "+D" (pb), "+c" (blocks)
+     : "d" (cword), "b" (ctx->padlockkey)
      : "cc", "memory"
      );
 #else
   asm volatile
     ("pushfl\n\t"          /* Force key reload.  */
      "popfl\n\t"
-     "xchg %3, %%ebx\n\t"  /* Load key.  */
+     "xchg %4, %%ebx\n\t"  /* Load key.  */
      ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XCRYPT ECB. */
-     "xchg %3, %%ebx\n"    /* Restore GOT register.  */
-     : /* No output */
-     : "S" (a), "D" (b), "d" (cword), "r" (ctx->padlockkey), "c" (blocks)
+     "xchg %4, %%ebx\n"    /* Restore GOT register.  */
+     : "+S" (pa), "+D" (pb), "+c" (blocks)
+     : "d" (cword), "r" (ctx->padlockkey)
      : "cc", "memory"
      );
 #endif
