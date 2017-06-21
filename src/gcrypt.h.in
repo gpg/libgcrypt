@@ -1691,6 +1691,7 @@ void gcry_log_debugpnt (const char *text,
                         gcry_mpi_point_t point, gcry_ctx_t ctx);
 void gcry_log_debugsxp (const char *text, gcry_sexp_t sexp);
 
+char *gcry_get_config (int mode, const char *what);
 
 /* Log levels used by the internal logging facility. */
 enum gcry_log_levels

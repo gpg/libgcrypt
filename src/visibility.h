@@ -279,6 +279,8 @@ MARK_VISIBLEX (gcry_log_debugmpi)
 MARK_VISIBLEX (gcry_log_debugpnt)
 MARK_VISIBLEX (gcry_log_debugsxp)
 
+MARK_VISIBLEX (gcry_get_config)
+
 /* Functions used to implement macros.  */
 MARK_VISIBLEX (_gcry_mpi_get_const)
 

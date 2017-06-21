@@ -198,18 +198,6 @@ _gcry_log_info( const char *fmt, ... )
     va_end(arg_ptr);
 }
 
-int
-_gcry_log_info_with_dummy_fp (FILE *fp, const char *fmt, ... )
-{
-    va_list arg_ptr;
-
-    (void)fp;
-    va_start( arg_ptr, fmt ) ;
-    _gcry_logv( GCRY_LOG_INFO, fmt, arg_ptr );
-    va_end(arg_ptr);
-    return 0;
-}
-
 void
 _gcry_log_error( const char *fmt, ... )
 {

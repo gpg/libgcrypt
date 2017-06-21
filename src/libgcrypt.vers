@@ -111,6 +111,8 @@ GCRYPT_1.6 {
     gcry_log_debug;
     gcry_log_debughex; gcry_log_debugmpi; gcry_log_debugpnt; gcry_log_debugsxp;
 
+    gcry_get_config;
+
     _gcry_mpi_get_const;
 
     gcry_ctx_release;

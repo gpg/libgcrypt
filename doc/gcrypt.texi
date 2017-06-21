@@ -824,7 +824,8 @@ proper random device.
 This command dumps information pertaining to the configuration of the
 library to the given stream.  If NULL is given for @var{stream}, the log
 system is used.  This command may be used before the initialization has
-been finished but not before a @code{gcry_check_version}.
+been finished but not before a @code{gcry_check_version}.  Note that
+the macro @code{estream_t} can be used instead of @code{gpgrt_stream_t}.
 
 @item GCRYCTL_OPERATIONAL_P; Arguments: none
 This command returns true if the library is in an operational state.
@@ -5233,6 +5234,7 @@ wrong.
 * Memory allocation::   Functions related with memory allocation.
 * Context management::  Functions related with context management.
 * Buffer description::  A data type to describe buffers.
+* Config reporting::    How to return Libgcrypt's configuration.
 @end menu
 
 
@@ -5317,6 +5319,27 @@ of this structure are:
   @end table
 @end deftp
 
+@node Config reporting
+@section How to return Libgcrypt's configuration.
+
+Although @code{GCRYCTL_PRINT_CONFIG} can be used to print
+configuration options, it is sometimes necessary to check them in a
+program.  This can be accomplished by using this function:
+
+@deftypefun {char *} gcry_get_config @
+             (@w{int @var{mode}}, @
+             @w{const char *@var{what}})
+
+This function returns a malloced string with colon delimited configure
+options.  With a value of 0 for @var{mode} this string resembles the
+output of @code{GCRYCTL_PRINT_CONFIG}.  However, if @var{what} is not
+NULL, only the line where the first field (e.g. "cpu-arch") matches
+@var{what} is returned.
+
+Other values than 0 for @var{mode} are not defined.  The caller shall
+free the string using @code{gcry_free}.  On error NULL is returned and
+ERRNO is set; if a value for WHAT is unknow ERRNO will be set to 0.
+@end deftypefun
 
 
 @c **********************************************************

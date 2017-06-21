@@ -2,7 +2,7 @@
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
  *               2004, 2005, 2006, 2008, 2011,
  *               2012  Free Software Foundation, Inc.
- * Copyright (C) 2013, 2014 g10 Code GmbH
+ * Copyright (C) 2013, 2014, 2017 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -273,91 +273,181 @@ _gcry_check_version (const char *req_version)
 
 
 static void
-print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
+print_config (const char *what, gpgrt_stream_t fp)
 {
-  unsigned int hwfeatures, afeature;
   int i;
   const char *s;
 
-  fnc (fp, "version:%s:%x:%s:%x:\n",
-       VERSION, GCRYPT_VERSION_NUMBER,
-       GPGRT_VERSION, GPGRT_VERSION_NUMBER);
-  fnc (fp, "cc:%d:%s:\n",
+  if (!what || !strcmp (what, "version"))
+    {
+      gpgrt_fprintf (fp, "version:%s:%x:%s:%x:\n",
+                     VERSION, GCRYPT_VERSION_NUMBER,
+                     GPGRT_VERSION, GPGRT_VERSION_NUMBER);
+    }
+  if (!what || !strcmp (what, "cc"))
+    {
+      gpgrt_fprintf (fp, "cc:%d:%s:\n",
 #if GPGRT_VERSION_NUMBER >= 0x011b00 /* 1.27 */
-       GPGRT_GCC_VERSION
+                     GPGRT_GCC_VERSION
 #else
-       _GPG_ERR_GCC_VERSION /* Due to a bug in gpg-error.h.  */
+                     _GPG_ERR_GCC_VERSION /* Due to a bug in gpg-error.h.  */
 #endif
-       ,
+                     ,
 #ifdef __clang__
-       "clang:" __VERSION__
+                     "clang:" __VERSION__
 #elif __GNUC__
-       "gcc:" __VERSION__
+                     "gcc:" __VERSION__
 #else
-       ":"
+                     ":"
 #endif
-       );
+                     );
+    }
 
-  fnc (fp, "ciphers:%s:\n", LIBGCRYPT_CIPHERS);
-  fnc (fp, "pubkeys:%s:\n", LIBGCRYPT_PUBKEY_CIPHERS);
-  fnc (fp, "digests:%s:\n", LIBGCRYPT_DIGESTS);
-  fnc (fp, "rnd-mod:"
+  if (!what || !strcmp (what, "ciphers"))
+    gpgrt_fprintf (fp, "ciphers:%s:\n", LIBGCRYPT_CIPHERS);
+  if (!what || !strcmp (what, "pubkeys"))
+    gpgrt_fprintf (fp, "pubkeys:%s:\n", LIBGCRYPT_PUBKEY_CIPHERS);
+  if (!what || !strcmp (what, "digests"))
+    gpgrt_fprintf (fp, "digests:%s:\n", LIBGCRYPT_DIGESTS);
+
+  if (!what || !strcmp (what, "rnd-mod"))
+    {
+      gpgrt_fprintf (fp, "rnd-mod:"
 #if USE_RNDEGD
-                "egd:"
+                     "egd:"
 #endif
 #if USE_RNDLINUX
-                "linux:"
+                     "linux:"
 #endif
 #if USE_RNDUNIX
-                "unix:"
+                     "unix:"
 #endif
 #if USE_RNDW32
-                "w32:"
+                     "w32:"
 #endif
-       "\n");
-  fnc (fp, "cpu-arch:"
-#if defined(HAVE_CPU_ARCH_X86)
-       "x86"
-#elif defined(HAVE_CPU_ARCH_ALPHA)
-       "alpha"
-#elif defined(HAVE_CPU_ARCH_SPARC)
-       "sparc"
-#elif defined(HAVE_CPU_ARCH_MIPS)
-       "mips"
-#elif defined(HAVE_CPU_ARCH_M68K)
-       "m68k"
-#elif defined(HAVE_CPU_ARCH_PPC)
-       "ppc"
-#elif defined(HAVE_CPU_ARCH_ARM)
-       "arm"
-#endif
-       ":\n");
-  fnc (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
-  hwfeatures = _gcry_get_hw_features ();
-  fnc (fp, "hwflist:");
-  for (i=0; (s = _gcry_enum_hw_features (i, &afeature)); i++)
-    if ((hwfeatures & afeature))
-      fnc (fp, "%s:", s);
-  fnc (fp, "\n");
-  /* We use y/n instead of 1/0 for the simple reason that Emacsen's
-     compile error parser would accidentally flag that line when printed
-     during "make check" as an error.  */
-  fnc (fp, "fips-mode:%c:%c:\n",
-       fips_mode ()? 'y':'n',
-       _gcry_enforced_fips_mode ()? 'y':'n' );
-  /* The currently used RNG type.  */
-  {
-    i = _gcry_get_rng_type (0);
-    switch (i)
-      {
-      case GCRY_RNG_TYPE_STANDARD: s = "standard"; break;
-      case GCRY_RNG_TYPE_FIPS:     s = "fips"; break;
-      case GCRY_RNG_TYPE_SYSTEM:   s = "system"; break;
-      default: BUG ();
-      }
-    fnc (fp, "rng-type:%s:%d:\n", s, i);
-  }
+                     "\n");
+    }
 
+  if (!what || !strcmp (what, "cpu-arch"))
+    {
+      gpgrt_fprintf (fp, "cpu-arch:"
+#if defined(HAVE_CPU_ARCH_X86)
+                     "x86"
+#elif defined(HAVE_CPU_ARCH_ALPHA)
+                     "alpha"
+#elif defined(HAVE_CPU_ARCH_SPARC)
+                     "sparc"
+#elif defined(HAVE_CPU_ARCH_MIPS)
+                     "mips"
+#elif defined(HAVE_CPU_ARCH_M68K)
+                     "m68k"
+#elif defined(HAVE_CPU_ARCH_PPC)
+                     "ppc"
+#elif defined(HAVE_CPU_ARCH_ARM)
+                     "arm"
+#endif
+                     ":\n");
+    }
+
+  if (!what || !strcmp (what, "mpi-asm"))
+    gpgrt_fprintf (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
+
+  if (!what || !strcmp (what, "hwflist"))
+    {
+      unsigned int hwfeatures, afeature;
+
+      hwfeatures = _gcry_get_hw_features ();
+      gpgrt_fprintf (fp, "hwflist:");
+      for (i=0; (s = _gcry_enum_hw_features (i, &afeature)); i++)
+        if ((hwfeatures & afeature))
+          gpgrt_fprintf (fp, "%s:", s);
+      gpgrt_fprintf (fp, "\n");
+    }
+
+  if (!what || !strcmp (what, "fips-mode"))
+    {
+      /* We use y/n instead of 1/0 for the stupid reason that
+       * Emacsen's compile error parser would accidentally flag that
+       * line when printed during "make check" as an error.  */
+      gpgrt_fprintf (fp, "fips-mode:%c:%c:\n",
+                     fips_mode ()? 'y':'n',
+                     _gcry_enforced_fips_mode ()? 'y':'n' );
+    }
+
+  if (!what || !strcmp (what, "rng-type"))
+    {
+      /* The currently used RNG type.  */
+      unsigned int jver;
+      int active;
+
+      i = _gcry_get_rng_type (0);
+      switch (i)
+        {
+        case GCRY_RNG_TYPE_STANDARD: s = "standard"; break;
+        case GCRY_RNG_TYPE_FIPS:     s = "fips"; break;
+        case GCRY_RNG_TYPE_SYSTEM:   s = "system"; break;
+        default: BUG ();
+        }
+      jver = _gcry_rndjent_get_version (&active);
+      gpgrt_fprintf (fp, "rng-type:%s:%d:%u:%d:\n", s, i, jver, active);
+    }
+}
+
+
+/* With a MODE of 0 return a malloced string with configured features.
+ * In that case a WHAT of NULL returns everything in the same way
+ * GCRYCTL_PRINT_CONFIG would do.  With a specific WHAT string only
+ * the requested feature is returned (w/o the trailing LF.  On error
+ * NULL is returned.  */
+char *
+_gcry_get_config (int mode, const char *what)
+{
+  gpgrt_stream_t fp;
+  int save_errno;
+  void *data;
+  char *p;
+
+  if (mode)
+    {
+      gpg_err_set_errno (EINVAL);
+      return NULL;
+    }
+
+  fp = gpgrt_fopenmem (0, "w+b,samethread");
+  if (!fp)
+    return NULL;
+
+  print_config (what, fp);
+  if (gpgrt_ferror (fp))
+    {
+      save_errno = errno;
+      gpgrt_fclose (fp);
+      gpg_err_set_errno (save_errno);
+      return NULL;
+    }
+
+  gpgrt_rewind (fp);
+  if (gpgrt_fclose_snatch (fp, &data, NULL))
+    {
+      save_errno = errno;
+      gpgrt_fclose (fp);
+      gpg_err_set_errno (save_errno);
+      return NULL;
+    }
+
+  if (!data)
+    {
+      /* Nothing was printed (unknown value for WHAT).  This is okay,
+       * so clear ERRNO to indicate this. */
+      gpg_err_set_errno (0);
+      return NULL;
+    }
+
+  /* Strip trailing LF.  */
+  if (what && (p = strchr (data, '\n')))
+    *p = 0;
+
+  return data;
 }
 
 
@@ -549,12 +639,21 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       /* This command dumps information pertaining to the
          configuration of libgcrypt to the given stream.  It may be
          used before the initialization has been finished but not
-         before a gcry_version_check. */
+         before a gcry_version_check.  See also gcry_get_config.  */
     case GCRYCTL_PRINT_CONFIG:
       {
         FILE *fp = va_arg (arg_ptr, FILE *);
+        char *tmpstr;
         _gcry_set_preferred_rng_type (0);
-        print_config (fp?fprintf:_gcry_log_info_with_dummy_fp, fp);
+        tmpstr = _gcry_get_config (0, NULL);
+        if (tmpstr)
+          {
+            if (fp)
+              fputs (tmpstr, fp);
+            else
+              log_info ("%s", tmpstr);
+            xfree (tmpstr);
+          }
       }
       break;
 

@@ -1435,6 +1435,12 @@ gcry_log_debugsxp (const char *text, gcry_sexp_t sexp)
   _gcry_log_printsxp (text, sexp);
 }
 
+char *
+gcry_get_config (int mode, const char *what)
+{
+  return _gcry_get_config (mode, what);
+}
+
 void
 gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data)
 {

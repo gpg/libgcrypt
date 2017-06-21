@@ -32,11 +32,57 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <errno.h>
 
 #include "../src/gcrypt-int.h"
 
 #define PGM "version"
 #include "t-common.h"
+
+static void
+test_get_config (void)
+{
+  char *string;
+
+  string = gcry_get_config (0, NULL);
+  if (!string)
+    fail ("gcry_get_config does not return anything: %s\n",
+          gpg_strerror (gpg_error_from_syserror ()));
+  else if ( !strchr (string, '\n') )
+    fail ("gcry_get_config(0, NULL) did not return multiple lines\n");
+
+  xfree (string);
+  string = gcry_get_config (0, "version");
+  if (!string)
+    fail ("gcry_get_config(\"version\") returned NULL: %s\n",
+          gpg_strerror (gpg_error_from_syserror ()));
+  else if ( strchr (string, '\n') )
+    fail ("gcry_get_config(\"version\") returned more than one line\n");
+  else if ( strncmp (string, "version:", 8) )
+    fail ("gcry_get_config(\"version\") returned wrong line\n");
+
+  /* Test an item which is not the first.  */
+  xfree (string);
+  string = gcry_get_config (0, "cpu-arch");
+  if (!string)
+    fail ("gcry_get_config(\"cpu-arch\") returned NULL: %s\n",
+          gpg_strerror (gpg_error_from_syserror ()));
+  else if ( strchr (string, '\n') )
+    fail ("gcry_get_config(\"cpu-arch\") returned more than one line\n");
+  else if ( strncmp (string, "cpu-arch:", 9) )
+    fail ("gcry_get_config(\"cpu-arch\") returned wrong line\n");
+
+  /* Test that an unknown item return sthe correct error.  */
+  xfree (string);
+  string = gcry_get_config (0, "no-such-item");
+  if (string)
+    fail ("gcry_get_config(\"no-such-item\") returned something\n");
+  else if (errno)
+    fail ("gcry_get_config(\"no-such-item\") returned wrong error: %s\n",
+          gpg_strerror (gpg_error_from_syserror ()));
+
+  xfree (string);
+}
 
 
 int
@@ -95,6 +141,9 @@ main (int argc, char **argv)
     }
 
   xgcry_control (GCRYCTL_PRINT_CONFIG, NULL);
+
+  test_get_config ();
+
 
   return 0;
 }

@@ -109,6 +109,8 @@ void _gcry_pre_syscall (void);
 void _gcry_post_syscall (void);
 int _gcry_get_debug_flag (unsigned int mask);
 
+char *_gcry_get_config (int mode, const char *what);
+
 /* Malloc functions and common wrapper macros.  */
 void *_gcry_malloc (size_t n) _GCRY_GCC_ATTR_MALLOC;
 void *_gcry_calloc (size_t n, size_t m) _GCRY_GCC_ATTR_MALLOC;
@@ -163,8 +165,6 @@ void _gcry_log_bug( const char *fmt, ... )   JNLIB_GCC_A_NR_PRINTF(1,2);
 void _gcry_log_fatal( const char *fmt, ... ) JNLIB_GCC_A_NR_PRINTF(1,2);
 void _gcry_log_error( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 void _gcry_log_info( const char *fmt, ... )  JNLIB_GCC_A_PRINTF(1,2);
-int  _gcry_log_info_with_dummy_fp (FILE *fp, const char *fmt, ... )
-                                             JNLIB_GCC_A_PRINTF(2,3);
 void _gcry_log_debug( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 void _gcry_log_printf ( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 void _gcry_log_printhex (const char *text, const void *buffer, size_t length);
@@ -173,6 +173,7 @@ void _gcry_log_printsxp (const char *text, gcry_sexp_t sexp);
 
 void _gcry_set_log_verbosity( int level );
 int _gcry_log_verbosity( int level );
+
 
 #ifdef JNLIB_GCC_M_FUNCTION
 #define BUG() _gcry_bug( __FILE__ , __LINE__, __FUNCTION__ )

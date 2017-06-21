@@ -67,6 +67,7 @@ Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
  * Interface changes relative to the 1.7.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    GCRYCTL_REINIT_SYSCALL_CLAMP    NEW macro.
+   gcry_get_config                 NEW function.
    gcry_md_info                    DEPRECATED.
 
 
