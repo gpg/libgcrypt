@@ -39,6 +39,7 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #ifdef HAVE_STDINT_H
 # include <stdint.h>
 #endif
@@ -52,9 +53,18 @@
  * Decide whether we can support jent at compile time.
  */
 #undef USE_JENT
+#define JENT_USES_RDTSC 1
+#define JENT_USES_GETTIME 2
+#define JENT_USES_READ_REAL_TIME 3
 #ifdef ENABLE_JENT_SUPPORT
 # if defined (__i386__) || defined(__x86_64__)
-#   define USE_JENT 1
+#   define USE_JENT JENT_USES_RDTSC
+# elif defined (HAVE_CLOCK_GETTIME)
+#  if _AIX
+#   define USE_JENT JENT_USES_READ_REAL_TIME
+#  else
+#   define USE_JENT JENT_USES_GETTIME
+#  endif
 # endif
 #endif /*ENABLE_JENT_SUPPORT*/
 
@@ -78,12 +88,50 @@
 static void
 jent_get_nstime(u64 *out)
 {
+#if USE_JENT == JENT_USES_RDTSC
+
   u32 t_eax, t_edx;
 
   asm volatile (".byte 0x0f,0x31\n\t"
                 : "=a" (t_eax), "=d" (t_edx)
                 );
   *out = (((u64)t_edx << 32) | t_eax);
+
+#elif USE_JENT == JENT_USES_GETTIME
+
+  struct timespec tv;
+  u64 tmp;
+
+  /* On Linux we could use CLOCK_MONOTONIC(_RAW), but with
+   * CLOCK_REALTIME we get some nice extra entropy once in a while
+   * from the NTP actions that we want to use as well... though, we do
+   * not rely on that extra little entropy.  */
+  if (!clock_gettime (CLOCK_REALTIME, &tv))
+    {
+      tmp = time.tv_sec;
+      tmp = tmp << 32;
+      tmp = tmp | time.tv_nsec;
+    }
+  else
+    tmp = 0;
+  *out = tmp;
+
+#elif USE_JENT == JENT_USES_READ_REAL_TIME
+
+  /* clock_gettime() on AIX returns a timer value that increments in
+   * steps of 1000.  */
+  u64 tmp = 0;
+
+  timebasestruct_t aixtime;
+  read_real_time (&aixtime, TIMEBASE_SZ);
+  tmp = aixtime.tb_high;
+  tmp = tmp << 32;
+  tmp = tmp | aixtime.tb_low;
+  *out = tmp;
+
+#else
+# error No clock available in jent_get_nstime
+#endif
 }
 
 
@@ -267,6 +315,23 @@ unlock_rng (void)
                gpg_strerror (rc));
 }
 
+
+/* Return true if the JENT RNG code can be run.  It may not yet been
+ * initialized, though.  */
+static int
+is_rng_available (void)
+{
+#if USE_JENT == JENT_USES_RDTSC
+  return !!(_gcry_get_hw_features () & HWF_INTEL_RDTSC);
+#elif USE_JENT == JENT_USES_GETTIME
+  return 2;
+#elif USE_JENT == JENT_USES_READ_REAL_TIME
+  return 3;
+#else  /* Ooops  */
+  return 0;
+#endif
+}
+
 #endif /* USE_JENT */
 
 
@@ -282,11 +347,8 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
 {
   size_t nbytes = 0;
 
-  (void)add;
-  (void)origin;
-
 #ifdef USE_JENT
-  if ((_gcry_get_hw_features () & HWF_INTEL_RDTSC))
+  if ( is_rng_available () )
     {
       lock_rng ();
 
@@ -303,7 +365,7 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
             }
         }
 
-      if (jent_rng_collector)
+      if (jent_rng_collector && add)
         {
           /* We have a working JENT and it has not been disabled.  */
           char buffer[32];
@@ -331,9 +393,43 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
 
       unlock_rng ();
     }
+
+#else
+
+  (void)add;
+  (void)origin;
+
 #endif
 
   return nbytes;
+}
+
+
+/* Return the version number of the JENT RNG.  If the RNG is not
+ * initialized or usable 0 is returned.  If R_ACTIVE is not NULL the
+ * jitter RNG will be initialized and true is stored at R_ACTIVE if
+ * the initialization succeeded.  */
+unsigned int
+_gcry_rndjent_get_version (int *r_active)
+{
+#ifdef USE_JENT
+  if ( is_rng_available () )
+    {
+      if (r_active)
+        {
+          /* Make sure the RNG is initialized.  */
+          _gcry_rndjent_poll (NULL, 0, 0);
+          /* To ease debugging we store 2 for a clock_gettime based
+           * implementation and 1 for a rdtsc based code.  */
+          *r_active = jent_rng_collector? is_rng_available () : 0;
+        }
+      return jent_version ();
+    }
+  else
+    return 0;
+#else
+  return 0;
+#endif
 }
 
 
@@ -346,9 +442,8 @@ _gcry_rndjent_dump_stats (void)
      into problems.  */
 
 #ifdef USE_JENT
-  if ((_gcry_get_hw_features () & HWF_INTEL_RDTSC))
+  if ( is_rng_available () )
     {
-
       log_info ("rndjent stat: collector=%p calls=%lu bytes=%lu\n",
                 jent_rng_collector, jent_rng_totalcalls, jent_rng_totalbytes);
 

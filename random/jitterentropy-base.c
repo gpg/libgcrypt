@@ -81,8 +81,7 @@
  *
  * Return: Version number of kcapi library
  */
-#if 0
-unsigned int jent_version(void)
+static unsigned int jent_version(void)
 {
         unsigned int version = 0;
 
@@ -92,7 +91,6 @@ unsigned int jent_version(void)
 
         return version;
 }
-#endif
 
 /**
  * Update of the loop count used for the next round of
