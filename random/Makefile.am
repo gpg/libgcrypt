@@ -50,7 +50,7 @@ rndegd.c \
 rndunix.c \
 rndw32.c  \
 rndw32ce.c \
-jitterentropy-base.c jitterentropy.h
+jitterentropy-base.c jitterentropy.h jitterentropy-base-user.c
 
 
 # The rndjent module needs to be compiled without optimization.  */

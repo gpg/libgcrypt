@@ -71,103 +71,18 @@
 
 #ifdef USE_JENT
 
-/* When using the libgcrypt secure memory mechanism, all precautions
- * are taken to protect our state. If the user disables secmem during
- * runtime, it is his decision and we thus try not to overrule his
- * decision for less memory protection. */
-#define JENT_CPU_JITTERENTROPY_SECURE_MEMORY 1
-#define jent_zalloc(n) _gcry_calloc_secure (1, (n))
-
-
-
-/*
- * Libgcrypt specific platform dependent functions.
- */
-
-
-static void
-jent_get_nstime(u64 *out)
-{
-#if USE_JENT == JENT_USES_RDTSC
-
-  u32 t_eax, t_edx;
-
-  asm volatile (".byte 0x0f,0x31\n\t"
-                : "=a" (t_eax), "=d" (t_edx)
-                );
-  *out = (((u64)t_edx << 32) | t_eax);
-
-#elif USE_JENT == JENT_USES_GETTIME
-
-  struct timespec tv;
-  u64 tmp;
-
-  /* On Linux we could use CLOCK_MONOTONIC(_RAW), but with
-   * CLOCK_REALTIME we get some nice extra entropy once in a while
-   * from the NTP actions that we want to use as well... though, we do
-   * not rely on that extra little entropy.  */
-  if (!clock_gettime (CLOCK_REALTIME, &tv))
-    {
-      tmp = time.tv_sec;
-      tmp = tmp << 32;
-      tmp = tmp | time.tv_nsec;
-    }
-  else
-    tmp = 0;
-  *out = tmp;
-
-#elif USE_JENT == JENT_USES_READ_REAL_TIME
-
-  /* clock_gettime() on AIX returns a timer value that increments in
-   * steps of 1000.  */
-  u64 tmp = 0;
-
-  timebasestruct_t aixtime;
-  read_real_time (&aixtime, TIMEBASE_SZ);
-  tmp = aixtime.tb_high;
-  tmp = tmp << 32;
-  tmp = tmp | aixtime.tb_low;
-  *out = tmp;
-
-#else
-# error No clock available in jent_get_nstime
-#endif
-}
-
-
-static GPGRT_INLINE void
-jent_zfree (void *ptr, unsigned int len)
-{
-  if (ptr)
-    {
-      wipememory (ptr, len);
-      _gcry_free (ptr);
-    }
-}
-
-static GPGRT_INLINE int
-jent_fips_enabled(void)
-{
-  return fips_mode();
-}
-
-
-/*
- * We source include the actual jitter entropy code.  Note that the
- * included code has been slightly changed from the Linux kernel
- * version for namespace reasons.  We define MODULE so that the
- * EXPORT_SYMBOL macro will not be used.
- */
 #undef CONFIG_CRYPTO_CPU_JITTERENTROPY_STAT
 /* Uncomment the next line to build with statistics.  */
 /* #define CONFIG_CRYPTO_CPU_JITTERENTROPY_STAT 1 */
 
-#undef MODULE
-#define MODULE 1
 
-#ifndef HAVE_STDINT_H
-# error This module needs stdint.h - try ./configure --disable-jent-support
-#endif
+/* Note that we source include the actual jitter entropy code.
+ * Platform dependent code is indirectly included from our own
+ * jitterentropy-user-base.h file.   */
+
+/* Tell jitterentropy* that all functions shall be static.  */
+#define JENT_PRIVATE_COMPILE 1
+
 #include "jitterentropy-base.c"
 
 
@@ -199,52 +114,52 @@ static unsigned long jent_rng_totalbytes;
 static void
 jent_init_statistic (struct rand_data *rand_data)
 {
-  int i;
-  struct entropy_stat *stat = &rand_data->entropy_stat;
+  /* int i; */
+  /* struct entropy_stat *stat = &rand_data->entropy_stat; */
 
-  for (i = 0; i < 64; i++)
-    {
-      stat->bitslot[i] = 0;
-      stat->bitvar[i] = 0;
-    }
+  /* for (i = 0; i < 64; i++) */
+  /*   { */
+  /*     stat->bitslot[i] = 0; */
+  /*     stat->bitvar[i] = 0; */
+  /*   } */
 
-  jent_get_nstime (&stat->collection_begin);
+  /* jent_get_nstime (&stat->collection_begin); */
 }
 
 static void
 jent_bit_count (struct rand_data *rand_data, u64 prev_data)
 {
-  int i;
+  /* int i; */
 
-  if (!rand_data->entropy_stat.enable_bit_test)
-    return;
+  /* if (!rand_data->entropy_stat.enable_bit_test) */
+  /*   return; */
 
-  for (i = 0; i < 64; i++)
-    {
-      /* collect the count of set bits per bit position in the
-       * current ->data field */
-      rand_data->entropy_stat.bitslot[i] += (rand_data->data & 1<<i) ? 1:0;
+  /* for (i = 0; i < 64; i++) */
+  /*   { */
+  /*     /\* collect the count of set bits per bit position in the */
+  /*      * current ->data field *\/ */
+  /*     rand_data->entropy_stat.bitslot[i] += (rand_data->data & 1<<i) ? 1:0; */
 
-      /* collect the count of bit changes between the current
-       * and the previous random data value per bit position */
-      if ((rand_data->data & 1<<i) != (prev_data & 1<<i))
-        rand_data->entropy_stat.bitvar[i] += 1;
-    }
+  /*     /\* collect the count of bit changes between the current */
+  /*      * and the previous random data value per bit position *\/ */
+  /*     if ((rand_data->data & 1<<i) != (prev_data & 1<<i)) */
+  /*       rand_data->entropy_stat.bitvar[i] += 1; */
+  /*   } */
 }
 
 
 static void
 jent_statistic_copy_stat (struct entropy_stat *src, struct entropy_stat *dst)
 {
-  /* not copying bitslot and bitvar as they are not needed for
-   * statistic printout */
-  dst->collection_begin = src->collection_begin;
-  dst->collection_end	= src->collection_end;
-  dst->old_delta	= src->old_delta;
-  dst->setbits		= src->setbits;
-  dst->varbits		= src->varbits;
-  dst->obsbits		= src->obsbits;
-  dst->collection_loop_cnt= src->collection_loop_cnt;
+  /* /\* not copying bitslot and bitvar as they are not needed for */
+  /*  * statistic printout *\/ */
+  /* dst->collection_begin = src->collection_begin; */
+  /* dst->collection_end	= src->collection_end; */
+  /* dst->old_delta	= src->old_delta; */
+  /* dst->setbits		= src->setbits; */
+  /* dst->varbits		= src->varbits; */
+  /* dst->obsbits		= src->obsbits; */
+  /* dst->collection_loop_cnt= src->collection_loop_cnt; */
 }
 
 
@@ -259,30 +174,30 @@ static void
 jent_calc_statistic (struct rand_data *rand_data,
                      struct entropy_stat *target, unsigned int loop_cnt)
 {
-  int i;
-  struct entropy_stat *stat = &rand_data->entropy_stat;
+  /* int i; */
+  /* struct entropy_stat *stat = &rand_data->entropy_stat; */
 
-  jent_get_nstime(&stat->collection_end);
+  /* jent_get_nstime(&stat->collection_end); */
 
-  stat->collection_loop_cnt = loop_cnt;
+  /* stat->collection_loop_cnt = loop_cnt; */
 
-  stat->setbits = 0;
-  stat->varbits = 0;
-  stat->obsbits = 0;
+  /* stat->setbits = 0; */
+  /* stat->varbits = 0; */
+  /* stat->obsbits = 0; */
 
-  for (i = 0; i < DATA_SIZE_BITS; i++)
-    {
-      stat->setbits += stat->bitslot[i];
-      stat->varbits += stat->bitvar[i];
+  /* for (i = 0; i < DATA_SIZE_BITS; i++) */
+  /*   { */
+  /*     stat->setbits += stat->bitslot[i]; */
+  /*     stat->varbits += stat->bitvar[i]; */
 
-      /* This is the sum of set bits in the current observation
-       * of the random data. */
-      stat->obsbits += (rand_data->data & 1<<i) ? 1:0;
-    }
+  /*     /\* This is the sum of set bits in the current observation */
+  /*      * of the random data. *\/ */
+  /*     stat->obsbits += (rand_data->data & 1<<i) ? 1:0; */
+  /*   } */
 
-  jent_statistic_copy_stat(stat, target);
+  /* jent_statistic_copy_stat(stat, target); */
 
-  stat->old_delta = (stat->collection_end - stat->collection_begin);
+  /* stat->old_delta = (stat->collection_end - stat->collection_begin); */
 }
 
 #endif /*CONFIG_CRYPTO_CPU_JITTERENTROPY_STAT*/
@@ -438,8 +353,8 @@ void
 _gcry_rndjent_dump_stats (void)
 {
   /* In theory we would need to lock the stats here.  However this
-     function is usually called during cleanup and then we _might_ run
-     into problems.  */
+   * function is usually called during cleanup and then we _might_ run
+   * into problems.  */
 
 #ifdef USE_JENT
   if ( is_rng_available () )

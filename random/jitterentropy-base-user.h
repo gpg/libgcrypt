@@ -39,65 +39,96 @@
  * DAMAGE.
  */
 
-#ifndef _JITTERENTROPY_BASE_X86_H
-#define _JITTERENTROPY_BASE_X86_H
+#ifndef GCRYPT_JITTERENTROPY_BASE_USER_H
+#define GCRYPT_JITTERENTROPY_BASE_USER_H
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+/*
+ * This is Libgcrypt specific platform dependent code.  We use a
+ * separate file because jitterentropy.h expects such a file.
+ */
 
-#include <config.h>
-#include "g10lib.h"
+#ifndef USE_JENT
+# error This file expects to be included from rndjent.c (via jitterentropy.h)
+#endif
+#ifndef HAVE_STDINT_H
+# error This module needs stdint.h - try ./configure --disable-jent-support
+#endif
 
-typedef uint64_t __u64;
 
-#define RdTSC __asm _emit 0x0f __asm _emit 0x31
+/* When using the libgcrypt secure memory mechanism, all precautions
+ * are taken to protect our state.  If the user disables secmem during
+ * runtime, it is his decision and we thus try not to overrule his
+ * decision for less memory protection.  */
+#define JENT_CPU_JITTERENTROPY_SECURE_MEMORY 1
+#define jent_zalloc(n) _gcry_calloc_secure (1, (n))
 
-static void jent_get_nstime(__u64 *out)
+
+static void
+jent_get_nstime(u64 *out)
 {
-	__u64 ret = 0;
-	_asm {
-		RdTSC
-		mov DWORD PTR ret, eax
-		mov DWORD PTR[ret + 4], edx
-	}
-	*out = ret;
+#if USE_JENT == JENT_USES_RDTSC
+
+  u32 t_eax, t_edx;
+
+  asm volatile (".byte 0x0f,0x31\n\t"
+                : "=a" (t_eax), "=d" (t_edx)
+                );
+  *out = (((u64)t_edx << 32) | t_eax);
+
+#elif USE_JENT == JENT_USES_GETTIME
+
+  struct timespec tv;
+  u64 tmp;
+
+  /* On Linux we could use CLOCK_MONOTONIC(_RAW), but with
+   * CLOCK_REALTIME we get some nice extra entropy once in a while
+   * from the NTP actions that we want to use as well... though, we do
+   * not rely on that extra little entropy.  */
+  if (!clock_gettime (CLOCK_REALTIME, &tv))
+    {
+      tmp = time.tv_sec;
+      tmp = tmp << 32;
+      tmp = tmp | time.tv_nsec;
+    }
+  else
+    tmp = 0;
+  *out = tmp;
+
+#elif USE_JENT == JENT_USES_READ_REAL_TIME
+
+  /* clock_gettime() on AIX returns a timer value that increments in
+   * steps of 1000.  */
+  u64 tmp = 0;
+
+  timebasestruct_t aixtime;
+  read_real_time (&aixtime, TIMEBASE_SZ);
+  tmp = aixtime.tb_high;
+  tmp = tmp << 32;
+  tmp = tmp | aixtime.tb_low;
+  *out = tmp;
+
+#else
+# error No clock available in jent_get_nstime
+#endif
 }
 
-static inline void *jent_zalloc(size_t len)
+
+static GPGRT_INLINE void
+jent_zfree (void *ptr, unsigned int len)
 {
-	void *tmp = NULL;
-
-	/* When using the libgcrypt secure memory mechanism, all precautions
-	 * are taken to protect our state. If the user disables secmem during
-	 * runtime, it is his decision and we thus try not to overrule his
-	 * decision for less memory protection. */
-#define CONFIG_CRYPTO_CPU_JITTERENTROPY_SECURE_MEMORY
-	tmp = gcry_xmalloc_secure(len);
-	if(NULL != tmp)
-		memset(tmp, 0, len);
-	return tmp;
-}
-
-static inline void jent_zfree(void *ptr, unsigned int len)
-{
-	memset(ptr, 0, len);
-	gcry_free(ptr);
-}
-
-static inline int jent_fips_enabled(void)
-{
-        return fips_mode();
-}
-
-/* --- helpers needed in user space -- */
-
-/* note: these helper functions are shamelessly stolen from the kernel :-) */
-
-static inline __u64 rol64(__u64 word, unsigned int shift)
-{
-	return (word << shift) | (word >> (64 - shift));
+  if (ptr)
+    {
+      wipememory (ptr, len);
+      _gcry_free (ptr);
+    }
 }
 
 
-#endif /* _JITTERENTROPY_BASE_X86_H */
+static GPGRT_INLINE int
+jent_fips_enabled(void)
+{
+  return fips_mode();
+}
+
+
+#endif /* GCRYPT_JITTERENTROPY_BASE_USER_H */
