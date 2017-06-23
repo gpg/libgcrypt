@@ -50,7 +50,7 @@ rndegd.c \
 rndunix.c \
 rndw32.c  \
 rndw32ce.c \
-jitterentropy-base.c jitterentropy.h jitterentropy-base-user.c
+jitterentropy-base.c jitterentropy.h jitterentropy-base-user.h
 
 
 # The rndjent module needs to be compiled without optimization.  */
@@ -60,10 +60,10 @@ else
 o_flag_munging = cat
 endif
 
-rndjent.o: $(srcdir)/rndjent.c \
+rndjent.o: $(srcdir)/rndjent.c jitterentropy-base-user.h \
            $(srcdir)/jitterentropy-base.c $(srcdir)/jitterentropy.h
 	`echo $(COMPILE) -c $(srcdir)/rndjent.c | $(o_flag_munging) `
 
-rndjent.lo: $(srcdir)/rndjent.c \
+rndjent.lo: $(srcdir)/rndjent.c jitterentropy-base-user.h \
             $(srcdir)/jitterentropy-base.c $(srcdir)/jitterentropy.h
 	`echo $(LTCOMPILE) -c $(srcdir)/rndjent.c | $(o_flag_munging) `
