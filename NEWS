@@ -1,5 +1,11 @@
-Noteworthy changes in version 1.7.8 (unreleased)  [C21/A1/R8]
+Noteworthy changes in version 1.7.8 (2017-06-29)  [C21/A1/R8]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Mitigate a flush+reload side-channel attack on RSA secret keys
+     dubbed "Sliding right into disaster".  For details see
+     <https://eprint.iacr.org/2017/627>.  [CVE-2017-7526]
 
 
 Noteworthy changes in version 1.7.7 (2017-06-02)  [C21/A1/R7]
