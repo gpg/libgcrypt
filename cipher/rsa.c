@@ -1019,16 +1019,37 @@ secret_core_crt (gcry_mpi_t M, gcry_mpi_t C,
   gcry_mpi_t m1 = mpi_alloc_secure ( Nlimbs + 1 );
   gcry_mpi_t m2 = mpi_alloc_secure ( Nlimbs + 1 );
   gcry_mpi_t h  = mpi_alloc_secure ( Nlimbs + 1 );
+  gcry_mpi_t D_blind = mpi_alloc_secure ( Nlimbs + 1 );
+  gcry_mpi_t r;
+  unsigned int r_nbits;
 
-  /* m1 = c ^ (d mod (p-1)) mod p */
+  r_nbits = mpi_get_nbits (P) / 4;
+  if (r_nbits < 96)
+    r_nbits = 96;
+  r = mpi_alloc_secure ( (r_nbits + BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
+
+  /* d_blind = (d mod (p-1)) + (p-1) * r            */
+  /* m1 = c ^ d_blind mod p */
+  _gcry_mpi_randomize (r, r_nbits, GCRY_WEAK_RANDOM);
+  mpi_set_highbit (r, r_nbits - 1);
   mpi_sub_ui ( h, P, 1 );
+  mpi_mul ( D_blind, h, r );
   mpi_fdiv_r ( h, D, h );
-  mpi_powm ( m1, C, h, P );
+  mpi_add ( D_blind, D_blind, h );
+  mpi_powm ( m1, C, D_blind, P );
 
-  /* m2 = c ^ (d mod (q-1)) mod q */
+  /* d_blind = (d mod (q-1)) + (q-1) * r            */
+  /* m2 = c ^ d_blind mod q */
+  _gcry_mpi_randomize (r, r_nbits, GCRY_WEAK_RANDOM);
+  mpi_set_highbit (r, r_nbits - 1);
   mpi_sub_ui ( h, Q, 1  );
+  mpi_mul ( D_blind, h, r );
   mpi_fdiv_r ( h, D, h );
-  mpi_powm ( m2, C, h, Q );
+  mpi_add ( D_blind, D_blind, h );
+  mpi_powm ( m2, C, D_blind, Q );
+
+  mpi_free ( r );
+  mpi_free ( D_blind );
 
   /* h = u * ( m2 - m1 ) mod q */
   mpi_sub ( h, m2, m1 );
