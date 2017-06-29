@@ -1026,7 +1026,7 @@ secret_core_crt (gcry_mpi_t M, gcry_mpi_t C,
   r_nbits = mpi_get_nbits (P) / 4;
   if (r_nbits < 96)
     r_nbits = 96;
-  r = mpi_alloc_secure ( (r_nbits + BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
+  r = mpi_secure_new (r_nbits);
 
   /* d_blind = (d mod (p-1)) + (p-1) * r            */
   /* m1 = c ^ d_blind mod p */
