@@ -1057,6 +1057,7 @@ secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
       mpi_mul ( h, h, skey->p );
       mpi_add ( output, m1, h );
 
+      mpi_free ( r );
       mpi_free ( D_blind );
       mpi_free ( h );
       mpi_free ( m1 );
