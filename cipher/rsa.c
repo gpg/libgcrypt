@@ -1021,15 +1021,33 @@ secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
       gcry_mpi_t m1 = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
       gcry_mpi_t m2 = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
       gcry_mpi_t h  = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
+      gcry_mpi_t D_blind = mpi_alloc_secure ( mpi_get_nlimbs(skey->n) + 1 );
+      gcry_mpi_t r;
+      unsigned int r_nbits;
 
-      /* m1 = c ^ (d mod (p-1)) mod p */
+      r_nbits = mpi_get_nbits (skey->p) / 4;
+      if (r_nbits < 96)
+        r_nbits = 96;
+      r = mpi_alloc_secure ((r_nbits + BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB);
+
+      /* d_blind = (d mod (p-1)) + (p-1) * r */
+      /* m1 = c ^ d_blind mod p */
+      _gcry_mpi_randomize (r, r_nbits, GCRY_WEAK_RANDOM);
+      mpi_set_highbit (r, r_nbits - 1);
       mpi_sub_ui( h, skey->p, 1  );
-      mpi_fdiv_r( h, skey->d, h );
-      mpi_powm( m1, input, h, skey->p );
-      /* m2 = c ^ (d mod (q-1)) mod q */
+      mpi_mul ( D_blind, h, r );
+      mpi_fdiv_r ( h, skey->d, h );
+      mpi_add ( D_blind, D_blind, h );
+      mpi_powm( m1, input, D_blind, skey->p );
+      /* d_blind = (d mod (q-1)) + (q-1) * r */
+      /* m2 = c ^ d_blind mod q */
+      _gcry_mpi_randomize (r, r_nbits, GCRY_WEAK_RANDOM);
+      mpi_set_highbit (r, r_nbits - 1);
       mpi_sub_ui( h, skey->q, 1  );
-      mpi_fdiv_r( h, skey->d, h );
-      mpi_powm( m2, input, h, skey->q );
+      mpi_mul ( D_blind, h, r );
+      mpi_fdiv_r ( h, skey->d, h );
+      mpi_add ( D_blind, D_blind, h );
+      mpi_powm( m2, input, D_blind, skey->q );
       /* h = u * ( m2 - m1 ) mod q */
       mpi_sub( h, m2, m1 );
       if ( mpi_has_sign ( h ) )
