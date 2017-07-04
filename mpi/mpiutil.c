@@ -256,7 +256,7 @@ mpi_set_secure( gcry_mpi_t a )
       gcry_assert (!ap);
       return;
     }
-  bp = mpi_alloc_limb_space (a->nlimbs, 1);
+  bp = mpi_alloc_limb_space (a->alloced, 1);
   MPN_COPY( bp, ap, a->nlimbs );
   a->d = bp;
   _gcry_mpi_free_limb_space (ap, a->alloced);
