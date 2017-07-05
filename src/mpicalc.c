@@ -232,6 +232,17 @@ do_gcd (void)
 }
 
 static void
+do_lshift (void)
+{
+  if (stackidx < 1)
+    {
+      fputs ("stack underflow\n", stderr);
+      return;
+    }
+  mpi_lshift (stack[stackidx - 1], stack[stackidx - 1], 1);
+}
+
+static void
 do_rshift (void)
 {
   if (stackidx < 1)
@@ -241,7 +252,6 @@ do_rshift (void)
     }
   mpi_rshift (stack[stackidx - 1], stack[stackidx - 1], 1);
 }
-
 
 static void
 do_nbits (void)
@@ -305,6 +315,7 @@ print_help (void)
          "*   multiply      [0] := [1] * [0]          {-1}\n"
          "/   divide        [0] := [1] - [0]          {-1}\n"
          "%   modulo        [0] := [1] % [0]          {-1}\n"
+         "<   left shift    [0] := [0] << 1           {0}\n"
          ">   right shift   [0] := [0] >> 1           {0}\n"
          "++  increment     [0] := [0]++              {0}\n"
          "--  decrement     [0] := [0]--              {0}\n"
@@ -486,6 +497,9 @@ main (int argc, char **argv)
 		  break;
 		case '^':
 		  do_powm ();
+		  break;
+		case '<':
+		  do_lshift ();
 		  break;
 		case '>':
 		  do_rshift ();
