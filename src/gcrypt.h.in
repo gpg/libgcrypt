@@ -189,7 +189,7 @@ int gcry_err_code_to_errno (gcry_err_code_t code);
 gcry_error_t gcry_err_make_from_errno (gcry_err_source_t source, int err);
 
 /* Return an error value with the system error ERR.  */
-gcry_err_code_t gcry_error_from_errno (int err);
+gcry_error_t gcry_error_from_errno (int err);
 
 
 /* NOTE: Since Libgcrypt 1.6 the thread callbacks are not anymore
