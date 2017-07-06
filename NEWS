@@ -63,6 +63,10 @@ Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
    - Fix long standing bug in secure memory implementation which could
      lead to a segv on free. [bug#3027] [also in 1.7.7]
 
+   - Mitigate a flush+reload side-channel attack on RSA secret keys
+     dubbed "Sliding right into disaster".  For details see
+     <https://eprint.iacr.org/2017/627>.  [CVE-2017-7526] [also in 1.7.8]
+
 
  * Interface changes relative to the 1.7.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -73,6 +77,7 @@ Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
 
  * Release dates of 1.7.x versions:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   Version 1.7.8 (2017-06-29)  [C21/A1/R8]
    Version 1.7.7 (2017-06-02)  [C21/A1/R7]
    Version 1.7.6 (2017-01-18)  [C21/A1/R6]
    Version 1.7.5 (2016-12-15)  [C21/A1/R5]
