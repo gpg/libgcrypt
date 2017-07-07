@@ -552,8 +552,8 @@ _gcry_mpi_powm (gcry_mpi_t res,
     struct karatsuba_ctx karactx;
     mpi_ptr_t tp;
 
-    xp_nlimbs = msec? (2 * (msize + 1)):0;
-    xp = xp_marker = mpi_alloc_limb_space( 2 * (msize + 1), msec );
+    xp_nlimbs = msec? size:0;
+    xp = xp_marker = mpi_alloc_limb_space( size, msec );
 
     memset( &karactx, 0, sizeof karactx );
     negative_result = (ep[0] & 1) && bsign;
