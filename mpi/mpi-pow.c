@@ -188,9 +188,15 @@ _gcry_mpi_powm (gcry_mpi_t res,
     mpi_limb_t e;
     mpi_limb_t carry_limb;
     struct karatsuba_ctx karactx;
+    struct gcry_mpi w, u;
 
     xp_nlimbs = msec? size:0;
     xp = xp_marker = mpi_alloc_limb_space( size, msec );
+
+    w.sign = u.sign = 0;
+    w.flags = u.flags = 0;
+    w.alloced = w.nlimbs = size; /* RES->alloc may be longer.  */
+    u.alloced = u.nlimbs = size;
 
     memset( &karactx, 0, sizeof karactx );
     negative_result = (ep[0] & 1) && bsign;
@@ -267,11 +273,11 @@ _gcry_mpi_powm (gcry_mpi_t res,
                     xsize = msize;
                   }
               }
-            if ( (mpi_limb_signed_t)e < 0 )
-              {
-                tp = rp; rp = xp; xp = tp;
-                rsize = xsize;
-              }
+
+            w.d = rp;
+            u.d = xp;
+            mpi_set_cond (&w, &u, ((mpi_limb_signed_t)e < 0));
+
             e <<= 1;
             c--;
           }
