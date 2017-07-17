@@ -51,12 +51,13 @@ m4_define([mym4_full_version],[mym4_version[]mym4_betastring])
 AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 
 # LT Version numbers, remember to change them just *before* a release.
+# !!!NOTE: Already updated for 1.8.0 !!
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=21
-LIBGCRYPT_LT_AGE=1
-LIBGCRYPT_LT_REVISION=3
+LIBGCRYPT_LT_CURRENT=22
+LIBGCRYPT_LT_AGE=2
+LIBGCRYPT_LT_REVISION=0
 
 
 # If the API is changed in an incompatible way: increment the next counter.
