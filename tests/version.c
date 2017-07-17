@@ -43,6 +43,8 @@ static void
 test_get_config (void)
 {
   char *string;
+  const char *s;
+  int i;
 
   string = gcry_get_config (0, NULL);
   if (!string)
@@ -80,6 +82,21 @@ test_get_config (void)
   else if (errno)
     fail ("gcry_get_config(\"no-such-item\") returned wrong error: %s\n",
           gpg_strerror (gpg_error_from_syserror ()));
+
+  /* Check the rng-type.  */
+  xfree (string);
+  string = gcry_get_config (0, "rng-type");
+  if (!string)
+    fail ("gcry_get_config(\"rng-type\") not returned\n");
+  else
+    {
+      for (i=0, s = string; *s; s++)
+        if (*s == ':')
+          i++;
+      if (i < 5)
+        fail ("gcry_get_config(\"rng-type\") has not enough fields\n");
+    }
+
 
   xfree (string);
 }

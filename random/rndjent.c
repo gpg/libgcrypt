@@ -327,6 +327,8 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
 unsigned int
 _gcry_rndjent_get_version (int *r_active)
 {
+  if (r_active)
+    *r_active = 0;
 #ifdef USE_JENT
   if ( is_rng_available () )
     {
