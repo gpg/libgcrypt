@@ -400,6 +400,7 @@ int _gcry_mpi_gcd (gcry_mpi_t g, gcry_mpi_t a, gcry_mpi_t b);
 int _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t m);
 gcry_mpi_point_t _gcry_mpi_point_new (unsigned int nbits);
 void _gcry_mpi_point_release (gcry_mpi_point_t point);
+gcry_mpi_point_t _gcry_mpi_point_copy (gcry_mpi_point_t point);
 void _gcry_mpi_point_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
                          gcry_mpi_point_t point);
 void _gcry_mpi_point_snatch_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
@@ -497,6 +498,8 @@ int _gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
       (p) = NULL;                                \
     }                                            \
   while (0)
+
+#define mpi_point_copy(p)      _gcry_mpi_point_copy((p))
 
 #define mpi_point_get(x,y,z,p)        _gcry_mpi_point_get((x),(y),(z),(p))
 #define mpi_point_snatch_get(x,y,z,p) _gcry_mpi_point_snatch_get((x),(y), \

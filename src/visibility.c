@@ -484,6 +484,12 @@ gcry_mpi_point_release (gcry_mpi_point_t point)
   _gcry_mpi_point_release (point);
 }
 
+gcry_mpi_point_t
+gcry_mpi_point_copy (gcry_mpi_point_t point)
+{
+  return _gcry_mpi_point_copy (point);
+}
+
 void
 gcry_mpi_point_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
                     gcry_mpi_point_t point)

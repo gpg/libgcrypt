@@ -4876,6 +4876,13 @@ Release @var{point} and free all associated resources.  Passing
 @code{NULL} is allowed and ignored.
 @end deftypefun
 
+@deftypefun gcry_mpi_point_t gcry_mpi_point_copy (@w{gcry_mpi_point_t @var{point}})
+
+Allocate and return a new point object and initialize it with
+@var{point}.  If @var{point} is NULL the function is identical to
+@code{gcry_mpi_point_new(0)}.
+@end deftypefun
+
 @deftypefun void gcry_mpi_point_get (@w{gcry_mpi_t @var{x}}, @
  @w{gcry_mpi_t @var{y}}, @w{gcry_mpi_t @var{z}}, @
  @w{gcry_mpi_point_t @var{point}})

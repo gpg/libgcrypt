@@ -139,6 +139,20 @@ point_set (mpi_point_t d, mpi_point_t s)
 }
 
 
+/* Return a copy of POINT. */
+gcry_mpi_point_t
+_gcry_mpi_point_copy (gcry_mpi_point_t point)
+{
+  mpi_point_t newpoint;
+
+  newpoint = _gcry_mpi_point_new (0);
+  if (point)
+    point_set (newpoint, point);
+
+  return newpoint;
+}
+
+
 static void
 point_resize (mpi_point_t p, mpi_ec_t ctx)
 {

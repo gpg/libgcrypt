@@ -246,6 +246,7 @@ MARK_VISIBLEX (gcry_mpi_new)
 MARK_VISIBLEX (gcry_mpi_point_get)
 MARK_VISIBLEX (gcry_mpi_point_new)
 MARK_VISIBLEX (gcry_mpi_point_release)
+MARK_VISIBLEX (gcry_mpi_point_copy)
 MARK_VISIBLEX (gcry_mpi_point_set)
 MARK_VISIBLEX (gcry_mpi_point_snatch_get)
 MARK_VISIBLEX (gcry_mpi_point_snatch_set)
@@ -466,6 +467,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_mpi_point_get          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_point_new          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_point_release      _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_mpi_point_copy         _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_point_set          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_point_snatch_get   _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_point_snatch_set   _gcry_USE_THE_UNDERSCORED_FUNCTION

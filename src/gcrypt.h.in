@@ -698,6 +698,9 @@ gcry_mpi_point_t gcry_mpi_point_new (unsigned int nbits);
 /* Release the object POINT.  POINT may be NULL. */
 void gcry_mpi_point_release (gcry_mpi_point_t point);
 
+/* Return a copy of POINT. */
+gcry_mpi_point_t gcry_mpi_point_copy (gcry_mpi_point_t point);
+
 /* Store the projective coordinates from POINT into X, Y, and Z.  */
 void gcry_mpi_point_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
                          gcry_mpi_point_t point);
@@ -868,6 +871,7 @@ gcry_mpi_t _gcry_mpi_get_const (int no);
       (p) = NULL;                               \
     }                                           \
   while (0)
+#define mpi_point_copy(p)             gcry_mpi_point_copy((p))
 #define mpi_point_get(x,y,z,p)        gcry_mpi_point_get((x),(y),(z),(p))
 #define mpi_point_snatch_get(x,y,z,p) gcry_mpi_point_snatch_get((x),(y),(z),(p))
 #define mpi_point_set(p,x,y,z)        gcry_mpi_point_set((p),(x),(y),(z))

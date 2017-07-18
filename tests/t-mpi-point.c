@@ -306,7 +306,7 @@ ec_p_new (gcry_ctx_t *r_ctx, gcry_mpi_t p, gcry_mpi_t a)
 static void
 set_get_point (void)
 {
-  gcry_mpi_point_t point;
+  gcry_mpi_point_t point, point2;
   gcry_mpi_t x, y, z;
 
   wherestr = "set_get_point";
@@ -350,7 +350,22 @@ set_get_point (void)
       || gcry_mpi_cmp_ui (y, 42) || gcry_mpi_cmp_ui (z, 11371))
     fail ("point_snatch_set/point_get failed\n");
 
+  point2 = gcry_mpi_point_copy (point);
+
+  gcry_mpi_point_get (x, y, z, point2);
+  if (gcry_mpi_cmp_ui (x, 17)
+      || gcry_mpi_cmp_ui (y, 42) || gcry_mpi_cmp_ui (z, 11371))
+    fail ("point_copy failed (1)\n");
+
   gcry_mpi_point_release (point);
+
+  gcry_mpi_point_get (x, y, z, point2);
+  if (gcry_mpi_cmp_ui (x, 17)
+      || gcry_mpi_cmp_ui (y, 42) || gcry_mpi_cmp_ui (z, 11371))
+    fail ("point_copy failed (2)\n");
+
+  gcry_mpi_point_release (point2);
+
   gcry_mpi_release (x);
   gcry_mpi_release (y);
   gcry_mpi_release (z);
