@@ -1,16 +1,35 @@
-Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
+Noteworthy changes in version 1.8.0 (2017-07-18)  [C22/A2/R0]
 ------------------------------------------------
 
  * New interfaces:
 
+   - New cipher mode XTS
+
+   - New hash function Blake-2
+
+   - New function gcry_mpi_point_copy.
+
+   - New function gcry_get_config.
+
    - GCRYCTL_REINIT_SYSCALL_CLAMP allows to init nPth after Libgcrypt.
+
+   - New gobal configuration file /etc/gcrypt/random.conf.
 
  * Extended interfaces:
 
    - GCRYCTL_PRINT_CONFIG does now also print build information for
      libgpg-error and the used compiler version.
 
+   - GCRY_CIPHER_MODE_CFB8 is now supported.
+
+   - Add Stribog OIDs.  [also in 1.7.4]
+
  * Performance:
+
+   - A jitter based entropy collector is now used in addition to the
+     other entropy collectors.
+
+   - Optimized gcry_md_hash_buffers for SHA-256 and SHA-512.
 
    - More ARMv8/AArch32 improvements for AES, GCM, SHA-256, and SHA-1.
      [also in 1.7.4]
@@ -20,8 +39,6 @@ Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
 
    - Add bulk processing implementation for ARMv8/AArch32.
      [also in 1.7.4]
-
-   - Add Stribog OIDs.  [also in 1.7.4]
 
    - Improve the DRBG performance and sync the code with the Linux
      version.  [also in 1.7.4]
@@ -67,14 +84,21 @@ Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
      dubbed "Sliding right into disaster".  For details see
      <https://eprint.iacr.org/2017/627>.  [CVE-2017-7526] [also in 1.7.8]
 
-
  * Interface changes relative to the 1.7.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   GCRYCTL_REINIT_SYSCALL_CLAMP    NEW macro.
    gcry_get_config                 NEW function.
    gcry_mpi_point_copy             NEW function.
+   GCRYCTL_REINIT_SYSCALL_CLAMP    NEW macro.
+   GCRY_MD_BLAKE2B_512             NEW constant.
+   GCRY_MD_BLAKE2B_384             NEW constant.
+   GCRY_MD_BLAKE2B_256             NEW constant.
+   GCRY_MD_BLAKE2B_160             NEW constant.
+   GCRY_MD_BLAKE2S_256             NEW constant.
+   GCRY_MD_BLAKE2S_224             NEW constant.
+   GCRY_MD_BLAKE2S_160             NEW constant.
+   GCRY_MD_BLAKE2S_128             NEW constant.
+   GCRY_CIPHER_MODE_XTS            NEW constant.
    gcry_md_info                    DEPRECATED.
-
 
  * Release dates of 1.7.x versions:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
