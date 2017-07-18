@@ -213,7 +213,6 @@ auto_random_modules="$available_random_modules"
 LIBGCRYPT_THREAD_MODULES=""
 
 # Other definitions.
-print_egd_notice=no
 have_w32_system=no
 have_w32ce_system=no
 have_pthread=no
@@ -2473,7 +2472,6 @@ LIST_MEMBER(unix, $random_modules)
 if test "$found" = "1" ; then
    GCRYPT_RANDOM="$GCRYPT_RANDOM rndunix.lo"
    AC_DEFINE(USE_RNDUNIX, 1, [Defined if the default Unix RNG should be used.])
-   print_egd_notice=yes
 fi
 
 LIST_MEMBER(egd, $random_modules)
@@ -2652,23 +2650,6 @@ cat <<G10EOF
         be used libraries have been been detected for:
          ${gpg_config_script_warn}
         Please check above for warning messages.
-
-G10EOF
-fi
-if test "$print_egd_notice" = "yes"; then
-cat <<G10EOF
-   The performance of the Unix random gatherer module (rndunix) is not
-   very good and it does not keep the entropy pool over multiple
-   invocations of Libgcrypt base applications.  The suggested way to
-   overcome this problem is to use the
-
-                 Entropy Gathering Daemon (EGD)
-
-   which provides a entropy source for the whole system.  It is written
-   in Perl and available at the GnuPG FTP servers.  For more information
-   consult the GnuPG site:
-
-          https://gnupg.org/related_software/swlist.html#egd
 
 G10EOF
 fi
