@@ -17,7 +17,7 @@ Noteworthy changes in version 1.8.0 (2017-07-18)  [C22/A2/R0]
 
    - GCRYCTL_REINIT_SYSCALL_CLAMP allows to init nPth after Libgcrypt.
 
-   - New gobal configuration file /etc/gcrypt/random.conf.
+   - New global configuration file /etc/gcrypt/random.conf.
 
  * Extended interfaces:
 
