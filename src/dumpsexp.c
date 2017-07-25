@@ -546,6 +546,7 @@ parse_and_print (FILE *fp)
           state = IN_DATA;
           printctl ("begindata");
           init_data ();
+	  /* fall through */
         case IN_DATA:
           if (datalen)
             {
