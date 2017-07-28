@@ -717,12 +717,12 @@ lock_seed_file (int fd, const char *fname, int for_write)
    out the same pool and then race for updating it (the last update
    overwrites earlier updates).  They will differentiate only by the
    weak entropy that is added in read_seed_file based on the PID and
-   clock, and up to 16 bytes of weak random non-blockingly.  The
+   clock, and up to 32 bytes from a non-blocking entropy source.  The
    consequence is that the output of these different instances is
    correlated to some extent.  In the perfect scenario, the attacker
    can control (or at least guess) the PID and clock of the
    application, and drain the system's entropy pool to reduce the "up
-   to 16 bytes" above to 0.  Then the dependencies of the initial
+   to 32 bytes" above to 0.  Then the dependencies of the initial
    states of the pools are completely known.  */
 static int
 read_seed_file (void)
@@ -814,12 +814,16 @@ read_seed_file (void)
     add_randomness( &x, sizeof(x), RANDOM_ORIGIN_INIT );
   }
 
-  /* And read a few bytes from our entropy source.  By using a level
-   * of 0 this will not block and might not return anything with some
-   * entropy drivers, however the rndlinux driver will use
-   * /dev/urandom and return some stuff - Do not read too much as we
-   * want to be friendly to the scare system entropy resource. */
-  read_random_source ( RANDOM_ORIGIN_INIT, 16, GCRY_WEAK_RANDOM );
+  /* And read a few bytes from our entropy source.  If we have the
+   * Jitter RNG we can fast get a lot of entropy.  Thus we read 1024
+   * bits from that source.
+   *
+   * Without the Jitter RNG we keep the old method of reading only a
+   * few bytes usually from /dev/urandom which won't block.  */
+  if (_gcry_rndjent_get_version (NULL))
+    read_random_source (RANDOM_ORIGIN_INIT, 128, GCRY_STRONG_RANDOM);
+  else
+    read_random_source (RANDOM_ORIGIN_INIT, 32, GCRY_STRONG_RANDOM);
 
   allow_seed_file_update = 1;
   return 1;
