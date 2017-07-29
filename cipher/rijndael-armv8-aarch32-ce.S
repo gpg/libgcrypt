@@ -24,6 +24,7 @@
     defined(HAVE_GCC_INLINE_ASM_AARCH32_CRYPTO)
 
 .syntax unified
+.arch armv8-a
 .fpu crypto-neon-fp-armv8
 .arm
 

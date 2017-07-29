@@ -1619,6 +1619,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch32 Crypto Extension i
           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
           [[__asm__(
                 ".syntax unified\n\t"
+                ".arch armv8-a\n\t"
                 ".arm\n\t"
                 ".fpu crypto-neon-fp-armv8\n\t"
 
