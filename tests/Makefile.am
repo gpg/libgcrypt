@@ -60,7 +60,7 @@ EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
 	     t-ed25519.inp stopwatch.h hashtest-256g.in \
 	     sha3-224.h sha3-256.h sha3-384.h sha3-512.h \
 	     blake2b.h blake2s.h \
-	     basic-disable-all-hwf.in
+	     basic-disable-all-hwf.in basic_all_hwfeature_combinations.sh
 
 LDADD = $(standard_ldadd) $(GPG_ERROR_LIBS)
 t_lock_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS)
