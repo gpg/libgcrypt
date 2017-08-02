@@ -158,3 +158,41 @@ info (const char *format, ...)
       die ("line %d: gcry_control (%s) failed: %s",             \
            __LINE__, #cmd, gcry_strerror (err__));              \
   } while (0)
+
+
+/* Split a string into colon delimited fields A pointer to each field
+ * is stored in ARRAY.  Stop splitting at ARRAYSIZE fields.  The
+ * function modifies STRING.  The number of parsed fields is returned.
+ * Note that leading and trailing spaces are not removed from the fields.
+ * Example:
+ *
+ *   char *fields[2];
+ *   if (split_fields (string, fields, DIM (fields)) < 2)
+ *     return  // Not enough args.
+ *   foo (fields[0]);
+ *   foo (fields[1]);
+ */
+#ifdef NEED_EXTRA_TEST_SUPPORT
+static int
+split_fields_colon (char *string, char **array, int arraysize)
+{
+  int n = 0;
+  char *p, *pend;
+
+  p = string;
+  do
+    {
+      if (n == arraysize)
+        break;
+      array[n++] = p;
+      pend = strchr (p, ':');
+      if (!pend)
+        break;
+      *pend++ = 0;
+      p = pend;
+    }
+  while (*p);
+
+  return n;
+}
+#endif /*NEED_EXTRA_TEST_SUPPORT*/

@@ -24,16 +24,39 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 #ifndef HAVE_W32_SYSTEM
 # include <signal.h>
-# include <unistd.h>
 # include <sys/wait.h>
 #endif
 
+#include "stopwatch.h"
+
+
 #define PGM "random"
+#define NEED_EXTRA_TEST_SUPPORT 1
 #include "t-common.h"
 
 static int with_progress;
+
+
+/* Prepend FNAME with the srcdir environment variable's value and
+ * return an allocated filename.  */
+static char *
+prepend_srcdir (const char *fname)
+{
+  static const char *srcdir;
+  char *result;
+
+  if (!srcdir && !(srcdir = getenv ("srcdir")))
+    srcdir = ".";
+
+  result = xmalloc (strlen (srcdir) + 1 + strlen (fname) + 1);
+  strcpy (result, srcdir);
+  strcat (result, "/");
+  strcat (result, fname);
+  return result;
+}
 
 
 static void
@@ -537,12 +560,43 @@ run_all_rng_tests (const char *program)
   free (cmdline);
 }
 
+
+static void
+run_benchmark (void)
+{
+  char rndbuf[32];
+  int i, j;
+
+  if (verbose)
+    info ("benchmarking GCRY_STRONG_RANDOM (/dev/urandom)\n");
+
+  start_timer ();
+  gcry_randomize (rndbuf, sizeof rndbuf, GCRY_STRONG_RANDOM);
+  stop_timer ();
+
+  info ("getting first 256 bits: %s", elapsed_time (1));
+
+  for (j=0; j < 5; j++)
+    {
+      start_timer ();
+      for (i=0; i < 100; i++)
+        gcry_randomize (rndbuf, sizeof rndbuf, GCRY_STRONG_RANDOM);
+      stop_timer ();
+
+      info ("100 calls of 256 bits each: %s", elapsed_time (100));
+    }
+
+}
+
+
 int
 main (int argc, char **argv)
 {
   int last_argc = -1;
   int early_rng = 0;
   int in_recursion = 0;
+  int benchmark = 0;
+  int with_seed_file = 0;
   const char *program = NULL;
 
   if (argc)
@@ -586,16 +640,27 @@ main (int argc, char **argv)
           in_recursion = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--benchmark"))
+        {
+          benchmark = 1;
+          argc--; argv++;
+        }
       else if (!strcmp (*argv, "--early-rng-check"))
         {
           early_rng = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--with-seed-file"))
+        {
+          with_seed_file = 1;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--prefer-standard-rng"))
         {
           /* This is anyway the default, but we may want to use it for
              debugging. */
-          xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD);
+          xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE,
+                         GCRY_RNG_TYPE_STANDARD);
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--prefer-fips-rng"))
@@ -608,11 +673,26 @@ main (int argc, char **argv)
           xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--disable-hwf"))
+        {
+          argc--;
+          argv++;
+          if (argc)
+            {
+              if (gcry_control (GCRYCTL_DISABLE_HWF, *argv, NULL))
+                die ("unknown hardware feature `%s'\n", *argv);
+              argc--;
+              argv++;
+            }
+        }
     }
 
 #ifndef HAVE_W32_SYSTEM
   signal (SIGPIPE, SIG_IGN);
 #endif
+
+  if (benchmark && !verbose)
+    verbose = 1;
 
   if (early_rng)
     {
@@ -628,11 +708,25 @@ main (int argc, char **argv)
   if (with_progress)
     gcry_set_progress_handler (progress_cb, NULL);
 
+  if (with_seed_file)
+    {
+      char *fname = prepend_srcdir ("random.seed");
+
+      if (access (fname, F_OK))
+        info ("random seed file '%s' not found\n", fname);
+      gcry_control (GCRYCTL_SET_RANDOM_SEED_FILE, fname);
+      xfree (fname);
+    }
+
   xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
 
-  if (!in_recursion)
+  if (benchmark)
+    {
+      run_benchmark ();
+    }
+  else if (!in_recursion)
     {
       check_forking ();
       check_nonce_forking ();
@@ -640,15 +734,30 @@ main (int argc, char **argv)
     }
   /* For now we do not run the drgb_reinit check from "make check" due
      to its high requirement for entropy.  */
-  if (!getenv ("GCRYPT_IN_REGRESSION_TEST"))
+  if (!benchmark && !getenv ("GCRYPT_IN_REGRESSION_TEST"))
     check_drbg_reinit ();
 
   /* Don't switch RNG in fips mode.  */
-  if (!gcry_fips_mode_active())
+  if (!benchmark && !gcry_fips_mode_active())
     check_rng_type_switching ();
 
-  if (!in_recursion)
+  if (!in_recursion && !benchmark)
     run_all_rng_tests (program);
+
+  /* Print this info last so that it does not influence the
+   * initialization and thus the benchmarking.  */
+  if (!in_recursion && verbose)
+    {
+      char *buf;
+      char *fields[5];
+
+      buf = gcry_get_config (0, "rng-type");
+      if (buf
+          && split_fields_colon (buf, fields, DIM (fields)) >= 5
+          && atoi (fields[4]) > 0)
+        info ("The JENT RNG was active\n");
+      gcry_free (buf);
+    }
 
   if (debug)
     xgcry_control (GCRYCTL_DUMP_RANDOM_STATS);
