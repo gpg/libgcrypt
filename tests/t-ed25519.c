@@ -74,7 +74,7 @@ show_sexp (const char *prefix, gcry_sexp_t a)
 
 
 /* Prepend FNAME with the srcdir environment variable's value and
-   retrun an allocated filename. */
+ * return an allocated filename.  */
 char *
 prepend_srcdir (const char *fname)
 {

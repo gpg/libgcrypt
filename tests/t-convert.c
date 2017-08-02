@@ -435,7 +435,8 @@ check_formats (void)
           if (gcry_mpi_cmp (a, b) || data[idx].a.stdlen != buflen)
             {
               fail ("error scanning value %d from %s: %s (%lu)\n",
-                    data[idx].value, "STD", "wrong result", buflen);
+                    data[idx].value, "STD", "wrong result",
+                    (long unsigned int)buflen);
               showmpi ("expected:", a);
               showmpi ("     got:", b);
             }
@@ -452,7 +453,8 @@ check_formats (void)
           if (gcry_mpi_cmp (a, b) || data[idx].a.sshlen != buflen)
             {
               fail ("error scanning value %d from %s: %s (%lu)\n",
-                    data[idx].value, "SSH", "wrong result", buflen);
+                    data[idx].value, "SSH", "wrong result",
+                    (long unsigned int)buflen);
               showmpi ("expected:", a);
               showmpi ("     got:", b);
             }
@@ -471,7 +473,8 @@ check_formats (void)
           if (gcry_mpi_cmp (a, b) || data[idx].a.usglen != buflen)
             {
               fail ("error scanning value %d from %s: %s (%lu)\n",
-                    data[idx].value, "USG", "wrong result", buflen);
+                    data[idx].value, "USG", "wrong result",
+                    (long unsigned int)buflen);
               showmpi ("expected:", a);
               showmpi ("     got:", b);
             }
@@ -492,7 +495,8 @@ check_formats (void)
               if (gcry_mpi_cmp (a, b) || data[idx].a.pgplen != buflen)
                 {
                   fail ("error scanning value %d from %s: %s (%lu)\n",
-                        data[idx].value, "PGP", "wrong result", buflen);
+                        data[idx].value, "PGP", "wrong result",
+                        (long unsigned int)buflen);
                   showmpi ("expected:", a);
                   showmpi ("     got:", b);
                 }
