@@ -943,6 +943,9 @@ static gcry_md_oid_spec_t oid_spec_sha384[] =
     /* PKCS#1 sha384WithRSAEncryption */
     { "1.2.840.113549.1.1.12" },
 
+    /* SHA384WithECDSA: RFC 7427 (A.3.3.) */
+    { "1.2.840.10045.4.3.3" },
+
     { NULL },
   };
 
