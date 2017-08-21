@@ -66,6 +66,14 @@ struct mpi_ec_ctx_s
     /*   gcry_mpi_t s[10]; */
     /*   gcry_mpi_t c; */
   } t;
+
+  /* Curve specific computation routines for the field.  */
+  void (* mod) (gcry_mpi_t w, mpi_ec_t ec);
+  void (* addm) (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx);
+  void (* subm) (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ec);
+  void (* mulm) (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx);
+  void (* pow2) (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx);
+  void (* mul2) (gcry_mpi_t w, gcry_mpi_t u, mpi_ec_t ctx);
 };
 
 
