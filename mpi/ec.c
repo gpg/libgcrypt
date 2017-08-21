@@ -469,6 +469,13 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
         ctx->t.scratch[i] = mpi_alloc_like (ctx->p);
     }
 
+  ctx->mod = ec_mod;
+  ctx->addm = ec_addm;
+  ctx->subm = ec_subm;
+  ctx->mulm = ec_mulm;
+  ctx->pow2 = ec_pow2;
+  ctx->mul2 = ec_mul2;
+
   /* Prepare for fast reduction.  */
   /* FIXME: need a test for NIST values.  However it does not gain us
      any real advantage, for 384 bits it is actually slower than using
@@ -1177,24 +1184,24 @@ montgomery_ladder (mpi_point_t prd, mpi_point_t sum,
                    mpi_point_t p1, mpi_point_t p2, gcry_mpi_t dif_x,
                    mpi_ec_t ctx)
 {
-  ec_addm (sum->x, p2->x, p2->z, ctx);
-  ec_subm (p2->z, p2->x, p2->z, ctx);
-  ec_addm (prd->x, p1->x, p1->z, ctx);
-  ec_subm (p1->z, p1->x, p1->z, ctx);
-  ec_mulm (p2->x, p1->z, sum->x, ctx);
-  ec_mulm (p2->z, prd->x, p2->z, ctx);
-  ec_pow2 (p1->x, prd->x, ctx);
-  ec_pow2 (p1->z, p1->z, ctx);
-  ec_addm (sum->x, p2->x, p2->z, ctx);
-  ec_subm (p2->z, p2->x, p2->z, ctx);
-  ec_mulm (prd->x, p1->x, p1->z, ctx);
-  ec_subm (p1->z, p1->x, p1->z, ctx);
-  ec_pow2 (sum->x, sum->x, ctx);
-  ec_pow2 (sum->z, p2->z, ctx);
-  ec_mulm (prd->z, p1->z, ctx->a, ctx); /* CTX->A: (a-2)/4 */
-  ec_mulm (sum->z, sum->z, dif_x, ctx);
-  ec_addm (prd->z, p1->x, prd->z, ctx);
-  ec_mulm (prd->z, prd->z, p1->z, ctx);
+  ctx->addm (sum->x, p2->x, p2->z, ctx);
+  ctx->subm (p2->z, p2->x, p2->z, ctx);
+  ctx->addm (prd->x, p1->x, p1->z, ctx);
+  ctx->subm (p1->z, p1->x, p1->z, ctx);
+  ctx->mulm (p2->x, p1->z, sum->x, ctx);
+  ctx->mulm (p2->z, prd->x, p2->z, ctx);
+  ctx->pow2 (p1->x, prd->x, ctx);
+  ctx->pow2 (p1->z, p1->z, ctx);
+  ctx->addm (sum->x, p2->x, p2->z, ctx);
+  ctx->subm (p2->z, p2->x, p2->z, ctx);
+  ctx->mulm (prd->x, p1->x, p1->z, ctx);
+  ctx->subm (p1->z, p1->x, p1->z, ctx);
+  ctx->pow2 (sum->x, sum->x, ctx);
+  ctx->pow2 (sum->z, p2->z, ctx);
+  ctx->mulm (prd->z, p1->z, ctx->a, ctx); /* CTX->A: (a-2)/4 */
+  ctx->mulm (sum->z, sum->z, dif_x, ctx);
+  ctx->addm (prd->z, p1->x, prd->z, ctx);
+  ctx->mulm (prd->z, prd->z, p1->z, ctx);
 }
 
 
