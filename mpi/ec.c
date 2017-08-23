@@ -156,28 +156,17 @@ _gcry_mpi_point_copy (gcry_mpi_point_t point)
 static void
 point_resize (mpi_point_t p, mpi_ec_t ctx)
 {
-  size_t nlimbs;
+  size_t nlimbs = ctx->p->nlimbs;
 
-  if (ctx->model == MPI_EC_MONTGOMERY)
-    {
-      nlimbs = ctx->p->nlimbs;
+  mpi_resize (p->x, nlimbs);
+  p->x->nlimbs = nlimbs;
+  mpi_resize (p->z, nlimbs);
+  p->z->nlimbs = nlimbs;
 
-      mpi_resize (p->x, nlimbs);
-      mpi_resize (p->z, nlimbs);
-      p->x->nlimbs = nlimbs;
-      p->z->nlimbs = nlimbs;
-    }
-  else
+  if (ctx->model != MPI_EC_MONTGOMERY)
     {
-      /*
-       * For now, we allocate enough limbs for our EC computation of ec_*.
-       * Once we will improve ec_* to be constant size (and constant
-       * time), NLIMBS can be ctx->p->nlimbs.
-       */
-      nlimbs = 2*ctx->p->nlimbs+1;
-      mpi_resize (p->x, nlimbs);
       mpi_resize (p->y, nlimbs);
-      mpi_resize (p->z, nlimbs);
+      p->y->nlimbs = nlimbs;
     }
 }
 
@@ -657,6 +646,13 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
 
           mpi_resize (ctx->a, ctx->p->nlimbs);
           ctx->a->nlimbs = ctx->p->nlimbs;
+
+          mpi_resize (ctx->b, ctx->p->nlimbs);
+          ctx->b->nlimbs = ctx->p->nlimbs;
+
+          for (i=0; i< DIM(ctx->t.scratch); i++)
+            ctx->t.scratch[i]->nlimbs = ctx->p->nlimbs;
+
           break;
         }
 
@@ -909,10 +905,21 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
         z = mpi_new (0);
         ec_invm (z, point->z, ctx);
 
+        mpi_resize (z, ctx->p->nlimbs);
+        z->nlimbs = ctx->p->nlimbs;
+
         if (x)
-          ec_mulm (x, point->x, z, ctx);
+          {
+            mpi_resize (x, ctx->p->nlimbs);
+            x->nlimbs = ctx->p->nlimbs;
+            ctx->mulm (x, point->x, z, ctx);
+          }
         if (y)
-          ec_mulm (y, point->y, z, ctx);
+          {
+            mpi_resize (y, ctx->p->nlimbs);
+            y->nlimbs = ctx->p->nlimbs;
+            ctx->mulm (y, point->y, z, ctx);
+          }
 
         _gcry_mpi_release (z);
       }
@@ -1041,41 +1048,41 @@ dup_point_edwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
   /* Compute: (X_3 : Y_3 : Z_3) = 2( X_1 : Y_1 : Z_1 ) */
 
   /* B = (X_1 + Y_1)^2  */
-  ec_addm (B, X1, Y1, ctx);
-  ec_pow2 (B, B, ctx);
+  ctx->addm (B, X1, Y1, ctx);
+  ctx->pow2 (B, B, ctx);
 
   /* C = X_1^2 */
   /* D = Y_1^2 */
-  ec_pow2 (C, X1, ctx);
-  ec_pow2 (D, Y1, ctx);
+  ctx->pow2 (C, X1, ctx);
+  ctx->pow2 (D, Y1, ctx);
 
   /* E = aC */
   if (ctx->dialect == ECC_DIALECT_ED25519)
-    mpi_sub (E, ctx->p, C);
+    ctx->subm (E, ctx->p, C, ctx);
   else
-    ec_mulm (E, ctx->a, C, ctx);
+    ctx->mulm (E, ctx->a, C, ctx);
 
   /* F = E + D */
-  ec_addm (F, E, D, ctx);
+  ctx->addm (F, E, D, ctx);
 
   /* H = Z_1^2 */
-  ec_pow2 (H, Z1, ctx);
+  ctx->pow2 (H, Z1, ctx);
 
   /* J = F - 2H */
-  ec_mul2 (J, H, ctx);
-  ec_subm (J, F, J, ctx);
+  ctx->mul2 (J, H, ctx);
+  ctx->subm (J, F, J, ctx);
 
   /* X_3 = (B - C - D) · J */
-  ec_subm (X3, B, C, ctx);
-  ec_subm (X3, X3, D, ctx);
-  ec_mulm (X3, X3, J, ctx);
+  ctx->subm (X3, B, C, ctx);
+  ctx->subm (X3, X3, D, ctx);
+  ctx->mulm (X3, X3, J, ctx);
 
   /* Y_3 = F · (E - D) */
-  ec_subm (Y3, E, D, ctx);
-  ec_mulm (Y3, Y3, F, ctx);
+  ctx->subm (Y3, E, D, ctx);
+  ctx->mulm (Y3, Y3, F, ctx);
 
   /* Z_3 = F · J */
-  ec_mulm (Z3, F, J, ctx);
+  ctx->mulm (Z3, F, J, ctx);
 
 #undef X1
 #undef Y1
@@ -1293,54 +1300,56 @@ add_points_edwards (mpi_point_t result,
 #define G (ctx->t.scratch[6])
 #define tmp (ctx->t.scratch[7])
 
+  point_resize (result, ctx);
+
   /* Compute: (X_3 : Y_3 : Z_3) = (X_1 : Y_1 : Z_1) + (X_2 : Y_2 : Z_3)  */
 
   /* A = Z1 · Z2 */
-  ec_mulm (A, Z1, Z2, ctx);
+  ctx->mulm (A, Z1, Z2, ctx);
 
   /* B = A^2 */
-  ec_pow2 (B, A, ctx);
+  ctx->pow2 (B, A, ctx);
 
   /* C = X1 · X2 */
-  ec_mulm (C, X1, X2, ctx);
+  ctx->mulm (C, X1, X2, ctx);
 
   /* D = Y1 · Y2 */
-  ec_mulm (D, Y1, Y2, ctx);
+  ctx->mulm (D, Y1, Y2, ctx);
 
   /* E = d · C · D */
-  ec_mulm (E, ctx->b, C, ctx);
-  ec_mulm (E, E, D, ctx);
+  ctx->mulm (E, ctx->b, C, ctx);
+  ctx->mulm (E, E, D, ctx);
 
   /* F = B - E */
-  ec_subm (F, B, E, ctx);
+  ctx->subm (F, B, E, ctx);
 
   /* G = B + E */
-  ec_addm (G, B, E, ctx);
+  ctx->addm (G, B, E, ctx);
 
   /* X_3 = A · F · ((X_1 + Y_1) · (X_2 + Y_2) - C - D) */
-  ec_addm (tmp, X1, Y1, ctx);
-  ec_addm (X3, X2, Y2, ctx);
-  ec_mulm (X3, X3, tmp, ctx);
-  ec_subm (X3, X3, C, ctx);
-  ec_subm (X3, X3, D, ctx);
-  ec_mulm (X3, X3, F, ctx);
-  ec_mulm (X3, X3, A, ctx);
+  ctx->addm (tmp, X1, Y1, ctx);
+  ctx->addm (X3, X2, Y2, ctx);
+  ctx->mulm (X3, X3, tmp, ctx);
+  ctx->subm (X3, X3, C, ctx);
+  ctx->subm (X3, X3, D, ctx);
+  ctx->mulm (X3, X3, F, ctx);
+  ctx->mulm (X3, X3, A, ctx);
 
   /* Y_3 = A · G · (D - aC) */
   if (ctx->dialect == ECC_DIALECT_ED25519)
     {
-      ec_addm (Y3, D, C, ctx);
+      ctx->addm (Y3, D, C, ctx);
     }
   else
     {
-      ec_mulm (Y3, ctx->a, C, ctx);
-      ec_subm (Y3, D, Y3, ctx);
+      ctx->mulm (Y3, ctx->a, C, ctx);
+      ctx->subm (Y3, D, Y3, ctx);
     }
-  ec_mulm (Y3, Y3, G, ctx);
-  ec_mulm (Y3, Y3, A, ctx);
+  ctx->mulm (Y3, Y3, G, ctx);
+  ctx->mulm (Y3, Y3, A, ctx);
 
   /* Z_3 = F · G */
-  ec_mulm (Z3, F, G, ctx);
+  ctx->mulm (Z3, F, G, ctx);
 
 
 #undef X1
@@ -1451,7 +1460,7 @@ sub_points_edwards (mpi_point_t result,
 {
   mpi_point_t p2i = _gcry_mpi_point_new (0);
   point_set (p2i, p2);
-  mpi_sub (p2i->x, ctx->p, p2i->x);
+  ctx->subm (p2i->x, ctx->p, p2i->x, ctx);
   add_points_edwards (result, p1, p2i, ctx);
   _gcry_mpi_point_release (p2i);
 }
@@ -1515,6 +1524,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
           mpi_set_ui (result->x, 0);
           mpi_set_ui (result->y, 1);
           mpi_set_ui (result->z, 1);
+          point_resize (point, ctx);
         }
 
       if (mpi_is_secure (scalar))
@@ -1536,6 +1546,12 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
         }
       else
         {
+          if (ctx->model == MPI_EC_EDWARDS)
+            {
+              point_resize (result, ctx);
+              point_resize (point, ctx);
+            }
+
           for (j=nbits-1; j >= 0; j--)
             {
               _gcry_mpi_ec_dup_point (result, result, ctx);
@@ -1778,19 +1794,21 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
         if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
           goto leave;
 
+        mpi_resize (w, ctx->p->nlimbs);
+        w->nlimbs = ctx->p->nlimbs;
+
         /* a · x^2 + y^2 - 1 - b · x^2 · y^2 == 0 */
-        ec_pow2 (x, x, ctx);
-        ec_pow2 (y, y, ctx);
+        ctx->pow2 (x, x, ctx);
+        ctx->pow2 (y, y, ctx);
         if (ctx->dialect == ECC_DIALECT_ED25519)
-          mpi_sub (w, ctx->p, x);
+          ctx->subm (w, ctx->p, x, ctx);
         else
-          ec_mulm (w, ctx->a, x, ctx);
-        ec_addm (w, w, y, ctx);
-        ec_subm (w, w, mpi_const (MPI_C_ONE), ctx);
-        ec_mulm (x, x, y, ctx);
-        ec_mulm (x, x, ctx->b, ctx);
-        ec_subm (w, w, x, ctx);
-        if (!mpi_cmp_ui (w, 0))
+          ctx->mulm (w, ctx->a, x, ctx);
+        ctx->addm (w, w, y, ctx);
+        ctx->mulm (x, x, y, ctx);
+        ctx->mulm (x, x, ctx->b, ctx);
+        ctx->subm (w, w, x, ctx);
+        if (!mpi_cmp_ui (w, 1))
           res = 1;
       }
       break;

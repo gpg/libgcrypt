@@ -26,6 +26,7 @@
 
 #include "g10lib.h"
 #include "mpi.h"
+#include "mpi-internal.h"
 #include "cipher.h"
 #include "context.h"
 #include "ec-context.h"
@@ -563,13 +564,25 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
         {
           curve->a = scanval (domain_parms[idx].a);
           if (curve->a->sign)
-            mpi_add (curve->a, curve->p, curve->a);
+            {
+              mpi_resize (curve->a, curve->p->nlimbs);
+              _gcry_mpih_sub_n (curve->a->d, curve->p->d,
+                                curve->a->d, curve->p->nlimbs);
+              curve->a->nlimbs = curve->p->nlimbs;
+              curve->a->sign = 0;
+            }
         }
       if (!curve->b)
         {
           curve->b = scanval (domain_parms[idx].b);
           if (curve->b->sign)
-            mpi_add (curve->b, curve->p, curve->b);
+            {
+              mpi_resize (curve->b, curve->p->nlimbs);
+              _gcry_mpih_sub_n (curve->b->d, curve->p->d,
+                                curve->b->d, curve->p->nlimbs);
+              curve->b->nlimbs = curve->p->nlimbs;
+              curve->b->sign = 0;
+            }
         }
       if (!curve->n)
         curve->n = scanval (domain_parms[idx].n);
