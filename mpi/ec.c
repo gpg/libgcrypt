@@ -479,6 +479,11 @@ ec_mulm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   m[0] = (cy * 2 + msb) * 19;
   _gcry_mpih_add_n (wp, wp, m, wsize);
   wp[LIMB_SIZE_25519-1] &= ~(1UL << (255 % BITS_PER_MPI_LIMB));
+
+  m[0] = 0;
+  cy = _gcry_mpih_sub_n (wp, wp, ctx->p->d, wsize);
+  mpih_set_cond (m, ctx->p->d, wsize, (cy != 0UL));
+  _gcry_mpih_add_n (wp, wp, m, wsize);
 }
 
 static void
