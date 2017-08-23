@@ -380,12 +380,6 @@ mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned long set)
 
 /* Routines for 2^255 - 19.  */
 
-static void
-ec_mod_25519 (gcry_mpi_t w, mpi_ec_t ec)
-{
-  _gcry_mpi_mod (w, w, ec->p);
-}
-
 #define LIMB_SIZE_25519 ((256+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB)
 
 static void
@@ -502,7 +496,6 @@ struct field_table {
   const char *p;
 
   /* computation routines for the field.  */
-  void (* mod) (gcry_mpi_t w, mpi_ec_t ctx);
   void (* addm) (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx);
   void (* subm) (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx);
   void (* mulm) (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx);
@@ -513,14 +506,13 @@ struct field_table {
 static const struct field_table field_table[] = {
   {
     "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
-    ec_mod_25519,
     ec_addm_25519,
     ec_subm_25519,
     ec_mulm_25519,
     ec_mul2_25519,
     ec_pow2_25519
   },
-  { NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+  { NULL, NULL, NULL, NULL, NULL, NULL },
 };
 
 /* Force recomputation of all helper variables.  */
@@ -639,7 +631,6 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
         ctx->t.scratch[i] = mpi_alloc_like (ctx->p);
     }
 
-  ctx->mod = ec_mod;
   ctx->addm = ec_addm;
   ctx->subm = ec_subm;
   ctx->mulm = ec_mulm;
@@ -657,7 +648,6 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
 
       if (!mpi_cmp (p, f_p))
         {
-          ctx->mod = field_table[i].mod;
           ctx->addm = field_table[i].addm;
           ctx->subm = field_table[i].subm;
           ctx->mulm = field_table[i].mulm;
