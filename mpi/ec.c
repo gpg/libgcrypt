@@ -396,7 +396,7 @@ ec_addm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   mpi_limb_t n[LIMB_SIZE_25519];
   mpi_limb_t borrow;
 
-  if (w->alloced != wsize || u->alloced != wsize || v->alloced != wsize)
+  if (w->nlimbs != wsize || u->nlimbs != wsize || v->nlimbs != wsize)
     log_bug ("addm_25519: different sizes\n");
 
   memset (n, 0, sizeof n);
@@ -419,7 +419,7 @@ ec_subm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   mpi_limb_t n[LIMB_SIZE_25519];
   mpi_limb_t borrow;
 
-  if (w->alloced != wsize || u->alloced != wsize || v->alloced != wsize)
+  if (w->nlimbs != wsize || u->nlimbs != wsize || v->nlimbs != wsize)
     log_bug ("subm_25519: different sizes\n");
 
   memset (n, 0, sizeof n);
@@ -444,7 +444,7 @@ ec_mulm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   int msb;
 
   (void)ctx;
-  if (w->alloced != wsize || u->alloced != wsize || v->alloced != wsize)
+  if (w->nlimbs != wsize || u->nlimbs != wsize || v->nlimbs != wsize)
     log_bug ("mulm_25519: different sizes\n");
 
   up = u->d;
