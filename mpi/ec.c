@@ -455,13 +455,10 @@ ec_mulm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   m[LIMB_SIZE_25519] += cy;
 
   memset (m, 0, wsize * BYTES_PER_MPI_LIMB);
-  m[0] = m[LIMB_SIZE_25519] * 2 * 19;
-  cy = _gcry_mpih_add_n (wp, wp, m, wsize);
-
   msb = (wp[LIMB_SIZE_25519-1] >> (255 % BITS_PER_MPI_LIMB));
-  m[0] = (cy * 2 + msb) * 19;
-  _gcry_mpih_add_n (wp, wp, m, wsize);
+  m[0] = (m[LIMB_SIZE_25519] * 2 + msb) * 19;
   wp[LIMB_SIZE_25519-1] &= ~(1UL << (255 % BITS_PER_MPI_LIMB));
+  _gcry_mpih_add_n (wp, wp, m, wsize);
 
   m[0] = 0;
   cy = _gcry_mpih_sub_n (wp, wp, ctx->p->d, wsize);
