@@ -115,7 +115,7 @@ static size_t pool_writepos;
 static size_t pool_readpos;
 
 /* This flag is set to true as soon as the pool has been completely
-   filled the first time.  This may happen either by rereading a seed
+   filled the first time.  This may happen either by reading a seed
    file or by adding enough entropy.  */
 static int pool_filled;
 
