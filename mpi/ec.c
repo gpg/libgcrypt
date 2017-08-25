@@ -396,6 +396,29 @@ ec_get_two_inv_p (mpi_ec_t ec)
 }
 
 
+static const char *curve25519_bad_points[] = {
+  "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "0x0000000000000000000000000000000000000000000000000000000000000001",
+  "0x00b8495f16056286fdb1329ceb8d09da6ac49ff1fae35616aeb8413b7c7aebe0",
+  "0x57119fd0dd4e22d8868e1c58c45c44045bef839c55b1d0b1248c50a3bc959c5f",
+  "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec",
+  "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
+  "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffee",
+  NULL
+};
+
+static gcry_mpi_t
+scanval (const char *string)
+{
+  gpg_err_code_t rc;
+  gcry_mpi_t val;
+
+  rc = _gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
+  if (rc)
+    log_fatal ("scanning ECC parameter failed: %s\n", gpg_strerror (rc));
+  return val;
+}
+
 
 /* This function initialized a context for elliptic curve based on the
    field GF(p).  P is the prime specifying this field, A is the first
@@ -434,9 +457,17 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
 
   _gcry_mpi_ec_get_reset (ctx);
 
-  /* Allocate scratch variables.  */
-  for (i=0; i< DIM(ctx->t.scratch); i++)
-    ctx->t.scratch[i] = mpi_alloc_like (ctx->p);
+  if (model == MPI_EC_MONTGOMERY)
+    {
+      for (i=0; i< DIM(ctx->t.scratch) && curve25519_bad_points[i]; i++)
+        ctx->t.scratch[i] = scanval (curve25519_bad_points[i]);
+    }
+  else
+    {
+      /* Allocate scratch variables.  */
+      for (i=0; i< DIM(ctx->t.scratch); i++)
+        ctx->t.scratch[i] = mpi_alloc_like (ctx->p);
+    }
 
   /* Prepare for fast reduction.  */
   /* FIXME: need a test for NIST values.  However it does not gain us
@@ -1571,4 +1602,18 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
   _gcry_mpi_release (y);
 
   return res;
+}
+
+
+int
+_gcry_mpi_ec_bad_point (gcry_mpi_point_t point, mpi_ec_t ctx)
+{
+  int i;
+  gcry_mpi_t x_bad;
+
+  for (i = 0; (x_bad = ctx->t.scratch[i]); i++)
+    if (!mpi_cmp (point->x, x_bad))
+      return 1;
+
+  return 0;
 }

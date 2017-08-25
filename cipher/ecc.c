@@ -1628,9 +1628,22 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (DBG_CIPHER)
     log_printpnt ("ecc_decrypt    kG", &kG, NULL);
 
-  if (!(flags & PUBKEY_FLAG_DJB_TWEAK)
+  if ((flags & PUBKEY_FLAG_DJB_TWEAK))
+    {
       /* For X25519, by its definition, validation should not be done.  */
-      && !_gcry_mpi_ec_curve_point (&kG, ec))
+      /* (Instead, we do output check.)
+       *
+       * However, to mitigate secret key leak from our implementation,
+       * we also do input validation here.  For constant-time
+       * implementation, we can remove this input validation.
+       */
+      if (_gcry_mpi_ec_bad_point (&kG, ec))
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+    }
+  else if (!_gcry_mpi_ec_curve_point (&kG, ec))
     {
       rc = GPG_ERR_INV_DATA;
       goto leave;
