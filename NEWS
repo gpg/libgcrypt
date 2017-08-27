@@ -1,5 +1,10 @@
-Noteworthy changes in version 1.7.9 (unreleased)  [C21/A1/R9]
+Noteworthy changes in version 1.7.9 (2017-08-27)  [C21/A1/R9]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Mitigate a local side-channel attack on Curve25519 dubbed "May
+     the Fourth be With You".  [CVE-2017-0379]
 
 
 Noteworthy changes in version 1.7.8 (2017-06-29)  [C21/A1/R8]
