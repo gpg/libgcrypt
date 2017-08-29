@@ -647,7 +647,7 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
           mpi_resize (ctx->b, ctx->p->nlimbs);
           ctx->b->nlimbs = ctx->p->nlimbs;
 
-          for (i=0; i< DIM(ctx->t.scratch); i++)
+          for (i=0; i< DIM(ctx->t.scratch) && ctx->t.scratch[i]; i++)
             ctx->t.scratch[i]->nlimbs = ctx->p->nlimbs;
 
           break;
