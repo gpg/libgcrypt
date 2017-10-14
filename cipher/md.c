@@ -95,6 +95,9 @@ static gcry_md_spec_t *digest_list[] =
      &_gcry_digest_spec_blake2s_160,
      &_gcry_digest_spec_blake2s_128,
 #endif
+#if USE_SM3
+     &_gcry_digest_spec_sm3,
+#endif
      NULL
   };
 

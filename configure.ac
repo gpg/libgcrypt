@@ -198,6 +198,7 @@ enabled_pubkey_ciphers=""
 # Definitions for message digests.
 available_digests="crc gostr3411-94 md2 md4 md5 rmd160 sha1 sha256 sha512"
 available_digests="$available_digests sha3 tiger whirlpool stribog blake2"
+available_digests="$available_digests sm3"
 enabled_digests=""
 
 # Definitions for kdfs (optional ones)
@@ -2455,6 +2456,12 @@ case "${host}" in
     GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-armv8-aarch64-ce.lo"
   ;;
 esac
+
+LIST_MEMBER(sm3, $enabled_digests)
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS sm3.lo"
+   AC_DEFINE(USE_SM3, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(scrypt, $enabled_kdfs)
 if test "$found" = "1" ; then
