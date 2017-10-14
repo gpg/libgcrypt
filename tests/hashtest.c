@@ -102,6 +102,17 @@ static struct {
     "0c91b91665ceaf7af5102e0ed31aa4f050668ab3c57b1f4763946d567efe66b3"
     "ab9a2016cf238dee5b44eae9f0cdfbf7b7a6eb1e759986273243dc35894706b6" },
 
+  { GCRY_MD_SM3, 256, -64,
+    "4ceb893abeb43965d4cac7626da9a4be895585b5b2f16f302626801308b1c02a" },
+  { GCRY_MD_SM3, 256, -1,
+    "825f01e4f2b6084136abc356fa1b343a9411d844a4dc1474293aad817cd2a48f" },
+  { GCRY_MD_SM3, 256, +0,
+    "d948a4025ac3ea0aa8989f43203411bd22ad17eaa5fd92ebdf9cabf869f1ba1b" },
+  { GCRY_MD_SM3, 256, +1,
+    "4f6d0e260299c1f286ef1dbb4638a0770979f266b6c007c55410ee6849cba2a8" },
+  { GCRY_MD_SM3, 256, +64,
+    "ed34869dbadd62e3bec1f511004d7bbfc9cafa965477cc48843b248293bbe867" },
+
   { 0 }
 };
 
