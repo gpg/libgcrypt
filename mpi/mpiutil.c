@@ -28,6 +28,21 @@
 #include "mpi-internal.h"
 #include "mod-source-info.h"
 
+
+#if SIZEOF_UNSIGNED_INT == 2
+# define MY_UINT_MAX 0xffff
+/* (visual check:      0123 ) */
+#elif SIZEOF_UNSIGNED_INT == 4
+# define MY_UINT_MAX 0xffffffff
+/* (visual check:      01234567 ) */
+#elif SIZEOF_UNSIGNED_INT == 8
+# define MY_UINT_MAX 0xffffffffffffffff
+/* (visual check:      0123456789abcdef ) */
+#else
+# error Need MY_UINT_MAX for this limb size
+#endif
+
+
 /* Constants allocated right away at startup.  */
 static gcry_mpi_t constants[MPI_NUMBER_OF_CONSTANTS];
 
@@ -539,23 +554,27 @@ _gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u)
   return w;
 }
 
+/* If U is non-negative and small enough store it as an unsigned int
+ * at W.  If the value does not fit into an unsigned int or is
+ * negative return GPG_ERR_ERANGE.  Note that we return an unsigned
+ * int so that the value can be used with the bit test functions; in
+ * contrast the other _ui functions take an unsigned long so that on
+ * some platforms they may accept a larger value.  On error the value
+ * at U is not changed. */
 gcry_err_code_t
-_gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u)
+_gcry_mpi_get_ui (unsigned int *w, gcry_mpi_t u)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  unsigned long x = 0;
+  mpi_limb_t x;
 
-  if (w->nlimbs > 1)
-    err = GPG_ERR_TOO_LARGE;
-  else if (w->nlimbs == 1)
-    x = w->d[0];
-  else
-    x = 0;
+  if (u->nlimbs > 1 || u->sign)
+    return GPG_ERR_ERANGE;
 
-  if (! err)
-    *u = x;
+  x = (u->nlimbs == 1) ? u->d[0] : 0;
+  if (sizeof (x) > sizeof (unsigned int) && x > MY_UINT_MAX)
+    return GPG_ERR_ERANGE;
 
-  return err;
+  *w = x;
+  return 0;
 }
 
 

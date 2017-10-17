@@ -205,6 +205,7 @@ test_maxsize (void)
 {
   gpg_error_t err;
   gcry_mpi_t a;
+  unsigned int val;
   char buffer[2+2048]; /* For PGP: 2 length bytes and 16384 bits.  */
 
   memset (buffer, 0x55, sizeof buffer);
@@ -232,7 +233,36 @@ test_maxsize (void)
   err = gcry_mpi_scan (&a, GCRYMPI_FMT_PGP, buffer, sizeof buffer, NULL);
   if (err)
     die ("gcry_mpi_scan did not parse a large PGP: %s\n", gpg_strerror (err));
+
+  /* Let's also test get_ui.  */
+  gcry_mpi_set_ui (a, 0);
+  val = 4711;
+  err = gcry_mpi_get_ui (&val, a);
+  if (err || val != 0)
+    die ("gcry_mpi_get_ui failed at %d: %s\n", __LINE__, gpg_strerror (err));
+
+  gcry_mpi_sub_ui (a, a, 1);
+  val = 4711;
+  err = gcry_mpi_get_ui (&val, a);
+  if (gpg_err_code (err) != GPG_ERR_ERANGE || val != 4711)
+    die ("gcry_mpi_get_ui failed at %d: %s\n", __LINE__, gpg_strerror (err));
+
+  gcry_mpi_set_ui (a, 0xffffffff);
+  val = 4711;
+  err = gcry_mpi_get_ui (&val, a);
+  if (err || val != 0xffffffff)
+    die ("gcry_mpi_get_ui failed at %d: %s\n", __LINE__, gpg_strerror (err));
+
+  if (sizeof (val) == 4)
+    {
+      gcry_mpi_add_ui (a, a, 1);
+      err = gcry_mpi_get_ui (&val, a);
+      if (gpg_err_code (err) != GPG_ERR_ERANGE)
+        die ("gcry_mpi_get_ui failed at %d: %s\n", __LINE__,gpg_strerror (err));
+    }
+
   gcry_mpi_release (a);
+
 }
 
 

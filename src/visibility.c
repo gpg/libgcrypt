@@ -308,7 +308,7 @@ gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u)
 }
 
 gcry_error_t
-gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u)
+gcry_mpi_get_ui (unsigned int *w, gcry_mpi_t u)
 {
   return gpg_error (_gcry_mpi_get_ui (w, u));
 }

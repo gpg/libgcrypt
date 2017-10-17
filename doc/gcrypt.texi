@@ -4578,6 +4578,18 @@ int} as type for @var{u} and thus it is only possible to set @var{w} to
 small values (usually up to the word size of the CPU).
 @end deftypefun
 
+@deftypefun gcry_error_t gcry_mpi_get_ui (@w{unsigned int *@var{w}}, @w{gcry_mpi_t @var{u}})
+
+If @var{u} is not negative and small enough to be stored in an
+@code{unsigned int} variable, store its value at @var{w}.  If the
+value does not fit or is negative return GPG_ERR_ERANGE and do not
+change the value stored at @var{w}.  Note that this function returns
+an @code{unsigned int} so that this value can immediately be used with
+the bit test functions.  This is in contrast to the other "_ui"
+functions which allow for values up to an @code{unsigned long}.
+@end deftypefun
+
+
 @deftypefun void gcry_mpi_swap (@w{gcry_mpi_t @var{a}}, @w{gcry_mpi_t @var{b}})
 
 Swap the values of @var{a} and @var{b}.
@@ -5122,7 +5134,7 @@ currently defined flags are:
 Setting this flag converts @var{a} into an MPI stored in "secure
 memory".  Clearing this flag is not allowed.
 @item GCRYMPI_FLAG_OPAQUE
-This is an interanl flag, indicating the an opaque valuue and not an
+This is an internal flag, indicating the an opaque valuue and not an
 integer is stored.  This is an read-only flag; it may not be set or
 cleared.
 @item GCRYMPI_FLAG_IMMUTABLE

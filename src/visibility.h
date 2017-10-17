@@ -265,6 +265,7 @@ MARK_VISIBLEX (gcry_mpi_set_highbit)
 MARK_VISIBLEX (gcry_mpi_set_opaque)
 MARK_VISIBLEX (gcry_mpi_set_opaque_copy)
 MARK_VISIBLEX (gcry_mpi_set_ui)
+MARK_VISIBLEX (gcry_mpi_get_ui)
 MARK_VISIBLEX (gcry_mpi_snew)
 MARK_VISIBLEX (gcry_mpi_sub)
 MARK_VISIBLEX (gcry_mpi_sub_ui)
@@ -484,6 +485,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_mpi_set_highbit        _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_set_opaque         _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_set_ui             _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_mpi_get_ui             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_snatch             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_snew               _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_sub                _gcry_USE_THE_UNDERSCORED_FUNCTION

@@ -118,7 +118,7 @@ EXPORTS
       gcry_mpi_set_flag  @88
       gcry_mpi_clear_flag  @89
       gcry_mpi_get_flag  @90
-
+      gcry_mpi_get_ui    @91
 
       gcry_cipher_open  @92
       gcry_cipher_close  @93
