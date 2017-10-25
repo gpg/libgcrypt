@@ -444,10 +444,23 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
   return ec;
 }
 
+static byte asn_sm3[] = /* Object ID is 1.2.156.10197.401 */
+  { 0x30, 0x2F, 0x30, 0x0B, 0x06, 0x07, 0x2A, 0x81,
+    0x1C, 0xCF, 0x55, 0x83, 0x11, 0x05, 0x00, 0x04,
+    0x20 };
+
+static gcry_md_oid_spec_t oid_spec_sm3[] =
+  {
+    /* China Electronics Standardization Instutute,
+       OID White paper (2015), Table 6 */
+    { "1.2.156.10197.401" },
+    { NULL },
+  };
+
 gcry_md_spec_t _gcry_digest_spec_sm3 =
   {
     GCRY_MD_SM3, {0, 1},
-    "SM3", NULL, 0, NULL, 32,
+    "SM3", asn_sm3, DIM (asn_sm3), oid_spec_sm3, 32,
     sm3_init, _gcry_md_block_write, sm3_final, sm3_read, NULL,
     sizeof (SM3_CONTEXT),
     run_selftests
