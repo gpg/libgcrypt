@@ -315,21 +315,8 @@ case "${host}" in
         ;;
 esac
 
-#
-# Figure out the name of the random device
-#
-case "${host}" in
-    *-openbsd*)
-        NAME_OF_DEV_RANDOM="/dev/srandom"
-        NAME_OF_DEV_URANDOM="/dev/urandom"
-        ;;
-
-    *)
-        NAME_OF_DEV_RANDOM="/dev/random"
-        NAME_OF_DEV_URANDOM="/dev/urandom"
-        ;;
-esac
-
+NAME_OF_DEV_RANDOM="/dev/random"
+NAME_OF_DEV_URANDOM="/dev/urandom"
 
 AC_ARG_ENABLE(endian-check,
               AC_HELP_STRING([--disable-endian-check],
