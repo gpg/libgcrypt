@@ -25,12 +25,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #define PGM "t-secmem"
 
 #include "t-common.h"
 #include "../src/gcrypt-testapi.h"
 
+
+#define DEFAULT_PAGE_SIZE 4096
+#define MINIMUM_POOL_SIZE 16384
+static size_t pool_size;
+static size_t chunk_size;
 
 static void
 test_secmem (void)
@@ -42,12 +48,12 @@ test_secmem (void)
   memset (a, 0, sizeof a);
 
   /* Allocating 28*512=14k should work in the default 16k pool even
-   * with extrem alignment requirements.  */
+   * with extra alignment requirements.  */
   for (i=0; i < DIM(a); i++)
-    a[i] = gcry_xmalloc_secure (512);
+    a[i] = gcry_xmalloc_secure (chunk_size);
 
   /* Allocating another 2k should fail for the default 16k pool.  */
-  b = gcry_malloc_secure (2048);
+  b = gcry_malloc_secure (chunk_size*4);
   if (b)
     fail ("allocation did not fail as expected\n");
 
@@ -68,7 +74,7 @@ test_secmem_overflow (void)
   /* Allocating 150*512=75k should require more than one overflow buffer.  */
   for (i=0; i < DIM(a); i++)
     {
-      a[i] = gcry_xmalloc_secure (512);
+      a[i] = gcry_xmalloc_secure (chunk_size);
       if (verbose && !(i %40))
         xgcry_control (GCRYCTL_DUMP_SECMEM_STATS, 0 , 0);
     }
@@ -111,6 +117,18 @@ int
 main (int argc, char **argv)
 {
   int last_argc = -1;
+  long int pgsize_val = -1;
+  size_t pgsize;
+
+# if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  pgsize_val = sysconf (_SC_PAGESIZE);
+# elif defined(HAVE_GETPAGESIZE)
+  pgsize_val = getpagesize ();
+# endif
+  pgsize = (pgsize_val > 0)? pgsize_val : DEFAULT_PAGE_SIZE;
+
+  pool_size = (MINIMUM_POOL_SIZE + pgsize - 1) & ~(pgsize - 1);
+  chunk_size = pool_size / 32;
 
   if (argc)
     { argc--; argv++; }
@@ -153,7 +171,7 @@ main (int argc, char **argv)
   if (debug)
     xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
   xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-  xgcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+  xgcry_control (GCRYCTL_INIT_SECMEM, pool_size, 0);
   gcry_set_outofcore_handler (outofcore_handler, NULL);
   xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
