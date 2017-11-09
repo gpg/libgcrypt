@@ -407,7 +407,7 @@ init_pool (pooldesc_t *pool, size_t n)
 # else
     pgsize_val = -1;
 # endif
-    pgsize = (pgsize_val != -1 && pgsize_val > 0)? pgsize_val:DEFAULT_PAGE_SIZE;
+    pgsize = (pgsize_val > 0)? pgsize_val:DEFAULT_PAGE_SIZE;
 
     pool->size = (pool->size + pgsize - 1) & ~(pgsize - 1);
 # ifdef MAP_ANONYMOUS
