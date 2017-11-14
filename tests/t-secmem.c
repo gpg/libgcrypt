@@ -120,11 +120,13 @@ main (int argc, char **argv)
   long int pgsize_val = -1;
   size_t pgsize;
 
+#if HAVE_MMAP
 # if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
   pgsize_val = sysconf (_SC_PAGESIZE);
 # elif defined(HAVE_GETPAGESIZE)
   pgsize_val = getpagesize ();
 # endif
+#endif
   pgsize = (pgsize_val > 0)? pgsize_val : DEFAULT_PAGE_SIZE;
 
   pool_size = (MINIMUM_POOL_SIZE + pgsize - 1) & ~(pgsize - 1);
