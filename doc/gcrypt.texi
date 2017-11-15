@@ -4759,7 +4759,9 @@ Basic arithmetic operations:
 
 @math{@var{q} = @var{dividend} / @var{divisor}}, @math{@var{r} =
 @var{dividend} \bmod @var{divisor}}.  @var{q} and @var{r} may be passed
-as @code{NULL}.  @var{round} should be negative or 0.
+as @code{NULL}.  @var{round} is either negative for floored division
+(rounds towards the next lower integer) or zero for truncated division
+(rounds towards zero).
 @end deftypefun
 
 @deftypefun void gcry_mpi_mod (@w{gcry_mpi_t @var{r}}, @w{gcry_mpi_t @var{dividend}}, @w{gcry_mpi_t @var{divisor}})
