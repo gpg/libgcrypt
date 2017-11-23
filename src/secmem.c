@@ -91,7 +91,7 @@ typedef struct pooldesc_s
 static pooldesc_t mainpool;
 
 
-/* A couple of flags whith some being set early. */
+/* A couple of flags with some being set early.  */
 static int disable_secmem;
 static int show_warning;
 static int not_locked;
@@ -99,6 +99,8 @@ static int no_warning;
 static int suspend_warning;
 static int no_mlock;
 static int no_priv_drop;
+static unsigned int auto_expand;
+
 
 /* Lock protecting accesses to the memory pools.  */
 GPGRT_LOCK_DEFINE (secmem_lock);
@@ -458,6 +460,24 @@ init_pool (pooldesc_t *pool, size_t n)
   mb->flags = 0;
 }
 
+
+/* Enable overflow pool allocation in all cases.  CHUNKSIZE is a hint
+ * on how large to allocate overflow pools.  */
+void
+_gcry_secmem_set_auto_expand (unsigned int chunksize)
+{
+  /* Round up to a multiple of the STANDARD_POOL_SIZE.  */
+  chunksize = ((chunksize + (2*STANDARD_POOL_SIZE) - 1)
+               / STANDARD_POOL_SIZE ) * STANDARD_POOL_SIZE;
+  if (chunksize < STANDARD_POOL_SIZE) /* In case of overflow.  */
+    chunksize = STANDARD_POOL_SIZE;
+
+  SECMEM_LOCK;
+  auto_expand = chunksize;
+  SECMEM_UNLOCK;
+}
+
+
 void
 _gcry_secmem_set_flags (unsigned flags)
 {
@@ -617,7 +637,7 @@ _gcry_secmem_malloc_internal (size_t size, int xhint)
   /* If we are called from xmalloc style function resort to the
    * overflow pools to return memory.  We don't do this in FIPS mode,
    * though. */
-  if (xhint && !fips_mode ())
+  if ((xhint || auto_expand) && !fips_mode ())
     {
       for (pool = pool->next; pool; pool = pool->next)
         {
@@ -635,7 +655,7 @@ _gcry_secmem_malloc_internal (size_t size, int xhint)
       pool = calloc (1, sizeof *pool);
       if (!pool)
         return NULL;  /* Not enough memory for a new pool descriptor.  */
-      pool->size = STANDARD_POOL_SIZE;
+      pool->size = auto_expand? auto_expand : STANDARD_POOL_SIZE;
       pool->mem = malloc (pool->size);
       if (!pool->mem)
         return NULL; /* Not enough memory available for a new pool.  */
