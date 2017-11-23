@@ -531,6 +531,10 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 			       & ~GCRY_SECMEM_FLAG_SUSPEND_WARNING));
       break;
 
+    case 78: /* GCRYCTL_AUTO_EXPAND_SECMEM (backport from 1.9) */
+      _gcry_secmem_set_auto_expand (va_arg (arg_ptr, unsigned int));
+      break;
+
     case GCRYCTL_USE_SECURE_RNDPOOL:
       global_init ();
       _gcry_secure_random_alloc (); /* Put random number into secure memory. */
