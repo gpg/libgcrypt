@@ -1,7 +1,7 @@
 /* sexp.c  -  S-Expression handling
  * Copyright (C) 1999, 2000, 2001, 2002, 2003,
  *               2004, 2006, 2007, 2008, 2011  Free Software Foundation, Inc.
- * Copyright (C) 2013, 2014 g10 Code GmbH
+ * Copyright (C) 2013, 2014, 2017 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -15,9 +15,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1+
  */
 
 
@@ -1429,8 +1429,9 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                 }
               else
                 {
-                  if (_gcry_mpi_print (mpifmt, NULL, 0, &nm, m))
-                    BUG ();
+                  err = _gcry_mpi_print (mpifmt, NULL, 0, &nm, m);
+                  if (err)
+                    goto leave;
 
                   MAKE_SPACE (nm);
                   if (!_gcry_is_secure (c.sexp->d)
@@ -1456,8 +1457,9 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
                   *c.pos++ = ST_DATA;
                   STORE_LEN (c.pos, nm);
-                  if (_gcry_mpi_print (mpifmt, c.pos, nm, &nm, m))
-                    BUG ();
+                  err = _gcry_mpi_print (mpifmt, c.pos, nm, &nm, m);
+                  if (err)
+                    goto leave;
                   c.pos += nm;
                 }
 	    }
@@ -1521,7 +1523,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      char buf[35];
 
 	      ARG_NEXT (aint, int);
-	      sprintf (buf, "%d", aint);
+	      snprintf (buf, sizeof buf, "%d", aint);
 	      alen = strlen (buf);
 	      MAKE_SPACE (alen);
 	      *c.pos++ = ST_DATA;
@@ -1537,7 +1539,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      char buf[35];
 
 	      ARG_NEXT (aint, unsigned int);
-	      sprintf (buf, "%u", aint);
+	      snprintf (buf, sizeof buf, "%u", aint);
 	      alen = strlen (buf);
 	      MAKE_SPACE (alen);
 	      *c.pos++ = ST_DATA;
@@ -1810,7 +1812,7 @@ convert_to_hex (const unsigned char *src, size_t len, char *dest)
     {
       *dest++ = '#';
       for (i=0; i < len; i++, dest += 2 )
-        sprintf (dest, "%02X", src[i]);
+        snprintf (dest, 3, "%02X", src[i]);
       *dest++ = '#';
     }
   return len*2+2;
@@ -1839,7 +1841,7 @@ convert_to_string (const unsigned char *s, size_t len, char *dest)
             default:
               if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0)))
                 {
-                  sprintf (p, "\\x%02x", *s);
+                  snprintf (p, 5, "\\x%02x", *s);
                   p += 4;
                 }
               else
@@ -1999,7 +2001,7 @@ _gcry_sexp_sprint (const gcry_sexp_t list, int mode,
             }
           else
             {
-              sprintf (numbuf, "%u:", (unsigned int)n );
+              snprintf (numbuf, sizeof numbuf, "%u:", (unsigned int)n );
               len += strlen (numbuf) + n;
               if ( buffer )
                 {
