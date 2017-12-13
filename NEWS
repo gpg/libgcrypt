@@ -1,5 +1,21 @@
-Noteworthy changes in version 1.8.2 (unreleased)  [C22/A2/R2]
+Noteworthy changes in version 1.8.2 (2017-12-13)  [C22/A2/R2]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Do not use /dev/srandom on OpenBSD.
+
+   - Fix test suite failure on systems with large pages. [#3351]
+
+   - Fix test suite to not use mmap on Windows.
+
+   - Fix fatal out of secure memory status in the s-expression parser
+     on heavy loaded systems.
+
+ * Other:
+
+   - Backport the auto expand secmem feature from master for use by
+     the forthcoming GnuPG 2.2.4.
 
 
 Noteworthy changes in version 1.8.1 (2017-08-27)  [C22/A2/R1]
