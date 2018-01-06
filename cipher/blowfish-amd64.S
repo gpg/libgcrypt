@@ -24,11 +24,7 @@
     (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -165,6 +161,8 @@ _gcry_blowfish_amd64_do_encrypt:
 	 *	%rsi: u32 *ret_xl
 	 *	%rdx: u32 *ret_xr
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	movl (%rdx), RX0d;
 	shlq $32, RX0;
 	movl (%rsi), RT3d;
@@ -178,6 +176,7 @@ _gcry_blowfish_amd64_do_encrypt:
 	shrq $32, RX0;
 	movl RX0d, (RX2);
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_blowfish_amd64_do_encrypt,.-_gcry_blowfish_amd64_do_encrypt;)
 
@@ -191,6 +190,7 @@ _gcry_blowfish_amd64_encrypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	movq %rsi, %r10;
 
@@ -202,6 +202,7 @@ _gcry_blowfish_amd64_encrypt_block:
 	movq %r10, RIO;
 	write_block();
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_blowfish_amd64_encrypt_block,.-_gcry_blowfish_amd64_encrypt_block;)
 
@@ -215,6 +216,8 @@ _gcry_blowfish_amd64_decrypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	movq %rbp, %r11;
 
 	movq %rsi, %r10;
@@ -238,6 +241,7 @@ _gcry_blowfish_amd64_decrypt_block:
 
 	movq %r11, %rbp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_blowfish_amd64_decrypt_block,.-_gcry_blowfish_amd64_decrypt_block;)
 
@@ -392,6 +396,8 @@ _gcry_blowfish_amd64_ctr_enc:
 	 *	%rdx: src (4 blocks)
 	 *	%rcx: iv (big endian, 64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	pushq %rbp;
 	pushq %rbx;
 	pushq %r12;
@@ -436,6 +442,7 @@ _gcry_blowfish_amd64_ctr_enc:
 	popq %rbx;
 	popq %rbp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_blowfish_amd64_ctr_enc,.-_gcry_blowfish_amd64_ctr_enc;)
 
@@ -449,6 +456,8 @@ _gcry_blowfish_amd64_cbc_dec:
 	 *	%rdx: src (4 blocks)
 	 *	%rcx: iv (64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	pushq %rbp;
 	pushq %rbx;
 	pushq %r12;
@@ -484,6 +493,7 @@ _gcry_blowfish_amd64_cbc_dec:
 	popq %rbx;
 	popq %rbp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_blowfish_amd64_cbc_dec,.-_gcry_blowfish_amd64_cbc_dec;)
 
@@ -497,6 +507,8 @@ _gcry_blowfish_amd64_cfb_dec:
 	 *	%rdx: src (4 blocks)
 	 *	%rcx: iv (64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	pushq %rbp;
 	pushq %rbx;
 	pushq %r12;
@@ -534,6 +546,8 @@ _gcry_blowfish_amd64_cfb_dec:
 	popq %r12;
 	popq %rbx;
 	popq %rbp;
+
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_blowfish_amd64_cfb_dec,.-_gcry_blowfish_amd64_cfb_dec;)
 

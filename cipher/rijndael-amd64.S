@@ -23,17 +23,7 @@
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_AES)
 
-#ifdef __PIC__
-#  define RIP (%rip)
-#else
-#  define RIP
-#endif
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -222,6 +212,8 @@ _gcry_aes_amd64_encrypt_block:
 	 *	%ecx: number of rounds.. 10, 12 or 14
 	 *	%r8:  encryption tables
 	 */
+	ENTER_SYSV_FUNC_PARAMS_5
+
 	subq $(5 * 8), %rsp;
 	movq %rsi, (0 * 8)(%rsp);
 	movl %ecx, (1 * 8)(%rsp);
@@ -265,6 +257,8 @@ _gcry_aes_amd64_encrypt_block:
 	addq $(5 * 8), %rsp;
 
 	movl $(6 * 8), %eax;
+
+	EXIT_SYSV_FUNC
 	ret;
 
 .align 4
@@ -382,6 +376,8 @@ _gcry_aes_amd64_decrypt_block:
 	 *	%ecx: number of rounds.. 10, 12 or 14
 	 *	%r8:  decryption tables
 	 */
+	ENTER_SYSV_FUNC_PARAMS_5
+
 	subq $(5 * 8), %rsp;
 	movq %rsi, (0 * 8)(%rsp);
 	movl %ecx, (1 * 8)(%rsp);
@@ -426,6 +422,8 @@ _gcry_aes_amd64_decrypt_block:
 	addq $(5 * 8), %rsp;
 
 	movl $(6 * 8), %eax;
+
+	EXIT_SYSV_FUNC
 	ret;
 
 .align 4

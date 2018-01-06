@@ -772,23 +772,6 @@ extern void _gcry_3des_amd64_cfb_dec(const void *keys, byte *out,
 
 #define TRIPLEDES_ECB_BURN_STACK (8 * sizeof(void *))
 
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-static inline void
-call_sysv_fn (const void *fn, const void *arg1, const void *arg2,
-              const void *arg3, const void *arg4)
-{
-  /* Call SystemV ABI function without storing non-volatile XMM registers,
-   * as target function does not use vector instruction sets. */
-  asm volatile ("callq *%0\n\t"
-                : "+a" (fn),
-                  "+D" (arg1),
-                  "+S" (arg2),
-                  "+d" (arg3),
-                  "+c" (arg4)
-                :
-                : "cc", "memory", "r8", "r9", "r10", "r11");
-}
-#endif
 
 /*
  * Electronic Codebook Mode Triple-DES encryption/decryption of data
@@ -803,11 +786,7 @@ tripledes_ecb_crypt (struct _tripledes_ctx *ctx, const byte * from,
 
   keys = mode ? ctx->decrypt_subkeys : ctx->encrypt_subkeys;
 
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn (_gcry_3des_amd64_crypt_block, keys, to, from, NULL);
-#else
   _gcry_3des_amd64_crypt_block(keys, to, from);
-#endif
 
   return 0;
 }
@@ -815,31 +794,19 @@ tripledes_ecb_crypt (struct _tripledes_ctx *ctx, const byte * from,
 static inline void
 tripledes_amd64_ctr_enc(const void *keys, byte *out, const byte *in, byte *ctr)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn (_gcry_3des_amd64_ctr_enc, keys, out, in, ctr);
-#else
   _gcry_3des_amd64_ctr_enc(keys, out, in, ctr);
-#endif
 }
 
 static inline void
 tripledes_amd64_cbc_dec(const void *keys, byte *out, const byte *in, byte *iv)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn (_gcry_3des_amd64_cbc_dec, keys, out, in, iv);
-#else
   _gcry_3des_amd64_cbc_dec(keys, out, in, iv);
-#endif
 }
 
 static inline void
 tripledes_amd64_cfb_dec(const void *keys, byte *out, const byte *in, byte *iv)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn (_gcry_3des_amd64_cfb_dec, keys, out, in, iv);
-#else
   _gcry_3des_amd64_cfb_dec(keys, out, in, iv);
-#endif
 }
 
 #else /*USE_AMD64_ASM*/

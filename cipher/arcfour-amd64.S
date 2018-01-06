@@ -18,17 +18,14 @@
 #if defined(USE_ARCFOUR) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .text
 .align 16
 .globl _gcry_arcfour_amd64
 ELF(.type _gcry_arcfour_amd64,@function)
 _gcry_arcfour_amd64:
+	ENTER_SYSV_FUNC_PARAMS_0_4
 	push	%rbp
 	push	%rbx
 	mov	%rdi,		%rbp	# key = ARG(key)
@@ -96,6 +93,7 @@ _gcry_arcfour_amd64:
 	movb	%dl,		(4*256+4)(%rbp)	# key->x = x
 	pop	%rbx
 	pop	%rbp
+	EXIT_SYSV_FUNC
 	ret
 .L__gcry_arcfour_amd64_end:
 ELF(.size _gcry_arcfour_amd64,.L__gcry_arcfour_amd64_end-_gcry_arcfour_amd64)

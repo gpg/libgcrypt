@@ -23,17 +23,7 @@
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_TWOFISH)
 
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
-
-#ifdef __PIC__
-#  define RIP %rip
-#else
-#  define RIP
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -181,6 +171,8 @@ _gcry_twofish_amd64_encrypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	subq $(3 * 8), %rsp;
 	movq %rsi, (0 * 8)(%rsp);
 	movq %rbp, (1 * 8)(%rsp);
@@ -211,6 +203,7 @@ _gcry_twofish_amd64_encrypt_block:
 	movq (1 * 8)(%rsp), %rbp;
 	addq $(3 * 8), %rsp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
@@ -224,6 +217,8 @@ _gcry_twofish_amd64_decrypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	subq $(3 * 8), %rsp;
 	movq %rsi, (0 * 8)(%rsp);
 	movq %rbp, (1 * 8)(%rsp);
@@ -254,6 +249,7 @@ _gcry_twofish_amd64_decrypt_block:
 	movq (1 * 8)(%rsp), %rbp;
 	addq $(3 * 8), %rsp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
@@ -530,6 +526,8 @@ _gcry_twofish_amd64_ctr_enc:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (big endian, 128bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	subq $(8 * 8), %rsp;
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
@@ -599,6 +597,7 @@ _gcry_twofish_amd64_ctr_enc:
 	movq (5 * 8)(%rsp), %r15;
 	addq $(8 * 8), %rsp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_twofish_amd64_ctr_enc,.-_gcry_twofish_amd64_ctr_enc;)
 
@@ -612,6 +611,8 @@ _gcry_twofish_amd64_cbc_dec:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (128bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	subq $(9 * 8), %rsp;
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
@@ -665,6 +666,7 @@ _gcry_twofish_amd64_cbc_dec:
 	movq (5 * 8)(%rsp), %r15;
 	addq $(9 * 8), %rsp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_twofish_amd64_cbc_dec,.-_gcry_twofish_amd64_cbc_dec;)
 
@@ -678,6 +680,8 @@ _gcry_twofish_amd64_cfb_dec:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (128bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	subq $(8 * 8), %rsp;
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
@@ -731,6 +735,7 @@ _gcry_twofish_amd64_cfb_dec:
 	movq (5 * 8)(%rsp), %r15;
 	addq $(8 * 8), %rsp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_twofish_amd64_cfb_dec,.-_gcry_twofish_amd64_cfb_dec;)
 
@@ -746,6 +751,8 @@ _gcry_twofish_amd64_ocb_enc:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[3])
 	 */
+	ENTER_SYSV_FUNC_PARAMS_6
+
 	subq $(8 * 8), %rsp;
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
@@ -838,6 +845,7 @@ _gcry_twofish_amd64_ocb_enc:
 	movq (5 * 8)(%rsp), %r15;
 	addq $(8 * 8), %rsp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_twofish_amd64_ocb_enc,.-_gcry_twofish_amd64_ocb_enc;)
 
@@ -853,6 +861,8 @@ _gcry_twofish_amd64_ocb_dec:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[3])
 	 */
+	ENTER_SYSV_FUNC_PARAMS_6
+
 	subq $(8 * 8), %rsp;
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
@@ -953,6 +963,7 @@ _gcry_twofish_amd64_ocb_dec:
 	movq (5 * 8)(%rsp), %r15;
 	addq $(8 * 8), %rsp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_twofish_amd64_ocb_dec,.-_gcry_twofish_amd64_ocb_dec;)
 
@@ -967,6 +978,8 @@ _gcry_twofish_amd64_ocb_auth:
 	 *	%rcx: checksum
 	 *	%r8 : L pointers (void *L[3])
 	 */
+	ENTER_SYSV_FUNC_PARAMS_5
+
 	subq $(8 * 8), %rsp;
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
@@ -1039,6 +1052,7 @@ _gcry_twofish_amd64_ocb_auth:
 	movq (5 * 8)(%rsp), %r15;
 	addq $(8 * 8), %rsp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_twofish_amd64_ocb_auth,.-_gcry_twofish_amd64_ocb_auth;)
 

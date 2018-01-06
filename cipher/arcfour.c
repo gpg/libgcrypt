@@ -54,21 +54,7 @@ static void
 encrypt_stream (void *context,
                 byte *outbuf, const byte *inbuf, size_t length)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  const void *fn = _gcry_arcfour_amd64;
-  /* Call SystemV ABI function without storing non-volatile XMM registers,
-   * as target function does not use vector instruction sets. */
-  asm volatile ("callq *%0\n\t"
-                : "+a" (fn),
-                  "+D" (context),
-                  "+S" (length),
-                  "+d" (inbuf),
-                  "+c" (outbuf)
-                :
-                : "cc", "memory", "r8", "r9", "r10", "r11");
-#else
   _gcry_arcfour_amd64 (context, length, inbuf, outbuf );
-#endif
 }
 
 #else /*!USE_AMD64_ASM*/

@@ -23,30 +23,7 @@
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_CAST5)
 
-#if defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS) || !defined(__PIC__)
-#  define GET_EXTERN_POINTER(name, reg) movabsq $name, reg
-#else
-#  ifdef __code_model_large__
-#    define GET_EXTERN_POINTER(name, reg) \
-	       pushq %r15; \
-	       pushq %r14; \
-	    1: leaq 1b(%rip), reg; \
-	       movabsq $_GLOBAL_OFFSET_TABLE_-1b, %r14; \
-	       movabsq $name@GOT, %r15; \
-	       addq %r14, reg; \
-	       popq %r14; \
-	       movq (reg, %r15), reg; \
-	       popq %r15;
-#  else
-#    define GET_EXTERN_POINTER(name, reg) movq name@GOTPCREL(%rip), reg
-#  endif
-#endif
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -206,6 +183,8 @@ _gcry_cast5_amd64_encrypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	pushq %rbp;
 	pushq %rbx;
 
@@ -233,6 +212,8 @@ _gcry_cast5_amd64_encrypt_block:
 
 	popq %rbx;
 	popq %rbp;
+
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_cast5_amd64_encrypt_block,.-_gcry_cast5_amd64_encrypt_block;)
 
@@ -246,6 +227,8 @@ _gcry_cast5_amd64_decrypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	pushq %rbp;
 	pushq %rbx;
 
@@ -273,6 +256,8 @@ _gcry_cast5_amd64_decrypt_block:
 
 	popq %rbx;
 	popq %rbp;
+
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_cast5_amd64_decrypt_block,.-_gcry_cast5_amd64_decrypt_block;)
 
@@ -444,6 +429,7 @@ _gcry_cast5_amd64_ctr_enc:
 	 *	%rdx: src (8 blocks)
 	 *	%rcx: iv (big endian, 64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	pushq %rbp;
 	pushq %rbx;
@@ -489,6 +475,8 @@ _gcry_cast5_amd64_ctr_enc:
 	popq %r12;
 	popq %rbx;
 	popq %rbp;
+
+	EXIT_SYSV_FUNC
 	ret
 ELF(.size _gcry_cast5_amd64_ctr_enc,.-_gcry_cast5_amd64_ctr_enc;)
 
@@ -502,6 +490,7 @@ _gcry_cast5_amd64_cbc_dec:
 	 *	%rdx: src (8 blocks)
 	 *	%rcx: iv (64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	pushq %rbp;
 	pushq %rbx;
@@ -542,6 +531,8 @@ _gcry_cast5_amd64_cbc_dec:
 	popq %r12;
 	popq %rbx;
 	popq %rbp;
+
+	EXIT_SYSV_FUNC
 	ret;
 
 ELF(.size _gcry_cast5_amd64_cbc_dec,.-_gcry_cast5_amd64_cbc_dec;)
@@ -556,6 +547,7 @@ _gcry_cast5_amd64_cfb_dec:
 	 *	%rdx: src (8 blocks)
 	 *	%rcx: iv (64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	pushq %rbp;
 	pushq %rbx;
@@ -597,6 +589,8 @@ _gcry_cast5_amd64_cfb_dec:
 	popq %r12;
 	popq %rbx;
 	popq %rbp;
+
+	EXIT_SYSV_FUNC
 	ret;
 
 ELF(.size _gcry_cast5_amd64_cfb_dec,.-_gcry_cast5_amd64_cfb_dec;)

@@ -23,17 +23,7 @@
 #if defined(USE_DES) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 
-#ifdef __PIC__
-#  define RIP (%rip)
-#else
-#  define RIP
-#endif
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -200,6 +190,8 @@ _gcry_3des_amd64_crypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	pushq %rbp;
 	pushq %rbx;
 	pushq %r12;
@@ -208,7 +200,7 @@ _gcry_3des_amd64_crypt_block:
 	pushq %r15;
 	pushq %rsi; /*dst*/
 
-	leaq .L_s1 RIP, SBOXES;
+	leaq .L_s1 rRIP, SBOXES;
 
 	read_block(%rdx, RL0, RR0);
 	initial_permutation(RL0, RR0);
@@ -277,6 +269,7 @@ _gcry_3des_amd64_crypt_block:
 	popq %rbx;
 	popq %rbp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_3des_amd64_crypt_block,.-_gcry_3des_amd64_crypt_block;)
 
@@ -473,7 +466,7 @@ _gcry_3des_amd64_crypt_blk3:
 	 *  RR0d, RL0d, RR1d, RL1d, RR2d, RL2d: 3 output blocks
 	 */
 
-	leaq .L_s1 RIP, SBOXES;
+	leaq .L_s1 rRIP, SBOXES;
 
 	initial_permutation3(RL, RR);
 
@@ -547,6 +540,7 @@ _gcry_3des_amd64_cbc_dec:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	pushq %rbp;
 	pushq %rbx;
@@ -610,6 +604,7 @@ _gcry_3des_amd64_cbc_dec:
 	popq %rbx;
 	popq %rbp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;)
 
@@ -623,6 +618,7 @@ _gcry_3des_amd64_ctr_enc:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	pushq %rbp;
 	pushq %rbx;
@@ -688,6 +684,7 @@ _gcry_3des_amd64_ctr_enc:
 	popq %rbx;
 	popq %rbp;
 
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;)
 
@@ -701,6 +698,8 @@ _gcry_3des_amd64_cfb_dec:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (64bit)
 	 */
+	ENTER_SYSV_FUNC_PARAMS_0_4
+
 	pushq %rbp;
 	pushq %rbx;
 	pushq %r12;
@@ -763,6 +762,8 @@ _gcry_3des_amd64_cfb_dec:
 	popq %r12;
 	popq %rbx;
 	popq %rbp;
+
+	EXIT_SYSV_FUNC
 	ret;
 ELF(.size _gcry_3des_amd64_cfb_dec,.-_gcry_3des_amd64_cfb_dec;)
 

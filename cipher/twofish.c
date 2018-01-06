@@ -829,145 +829,58 @@ extern void _gcry_twofish_amd64_ocb_auth(const TWOFISH_context *ctx,
 					 const byte *abuf, byte *offset,
 					 byte *checksum, const u64 Ls[3]);
 
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-static inline void
-call_sysv_fn (const void *fn, const void *arg1, const void *arg2,
-              const void *arg3, const void *arg4)
-{
-  /* Call SystemV ABI function without storing non-volatile XMM registers,
-   * as target function does not use vector instruction sets. */
-  asm volatile ("callq *%0\n\t"
-                : "+a" (fn),
-                  "+D" (arg1),
-                  "+S" (arg2),
-                  "+d" (arg3),
-                  "+c" (arg4)
-                :
-                : "cc", "memory", "r8", "r9", "r10", "r11");
-}
-
-static inline void
-call_sysv_fn5 (const void *fn, const void *arg1, const void *arg2,
-               const void *arg3, const void *arg4, const void *arg5)
-{
-  /* Call SystemV ABI function without storing non-volatile XMM registers,
-   * as target function does not use vector instruction sets. */
-  asm volatile ("movq %[arg5], %%r8\n\t"
-		"callq *%0\n\t"
-		: "+a" (fn),
-		  "+D" (arg1),
-		  "+S" (arg2),
-		  "+d" (arg3),
-		  "+c" (arg4)
-		: [arg5] "g" (arg5)
-		: "cc", "memory", "r8", "r9", "r10", "r11");
-}
-
-static inline void
-call_sysv_fn6 (const void *fn, const void *arg1, const void *arg2,
-               const void *arg3, const void *arg4, const void *arg5,
-	       const void *arg6)
-{
-  /* Call SystemV ABI function without storing non-volatile XMM registers,
-   * as target function does not use vector instruction sets. */
-  asm volatile ("movq %[arg5], %%r8\n\t"
-		"movq %[arg6], %%r9\n\t"
-		"callq *%0\n\t"
-		: "+a" (fn),
-		  "+D" (arg1),
-		  "+S" (arg2),
-		  "+d" (arg3),
-		  "+c" (arg4)
-		: [arg5] "g" (arg5),
-		  [arg6] "g" (arg6)
-		: "cc", "memory", "r8", "r9", "r10", "r11");
-}
-#endif
-
 static inline void
 twofish_amd64_encrypt_block(const TWOFISH_context *c, byte *out, const byte *in)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn(_gcry_twofish_amd64_encrypt_block, c, out, in, NULL);
-#else
   _gcry_twofish_amd64_encrypt_block(c, out, in);
-#endif
 }
 
 static inline void
 twofish_amd64_decrypt_block(const TWOFISH_context *c, byte *out, const byte *in)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn(_gcry_twofish_amd64_decrypt_block, c, out, in, NULL);
-#else
   _gcry_twofish_amd64_decrypt_block(c, out, in);
-#endif
 }
 
 static inline void
 twofish_amd64_ctr_enc(const TWOFISH_context *c, byte *out, const byte *in,
                       byte *ctr)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn(_gcry_twofish_amd64_ctr_enc, c, out, in, ctr);
-#else
   _gcry_twofish_amd64_ctr_enc(c, out, in, ctr);
-#endif
 }
 
 static inline void
 twofish_amd64_cbc_dec(const TWOFISH_context *c, byte *out, const byte *in,
                       byte *iv)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn(_gcry_twofish_amd64_cbc_dec, c, out, in, iv);
-#else
   _gcry_twofish_amd64_cbc_dec(c, out, in, iv);
-#endif
 }
 
 static inline void
 twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out, const byte *in,
                       byte *iv)
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn(_gcry_twofish_amd64_cfb_dec, c, out, in, iv);
-#else
   _gcry_twofish_amd64_cfb_dec(c, out, in, iv);
-#endif
 }
 
 static inline void
 twofish_amd64_ocb_enc(const TWOFISH_context *ctx, byte *out, const byte *in,
 		      byte *offset, byte *checksum, const u64 Ls[3])
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn6(_gcry_twofish_amd64_ocb_enc, ctx, out, in, offset, checksum, Ls);
-#else
   _gcry_twofish_amd64_ocb_enc(ctx, out, in, offset, checksum, Ls);
-#endif
 }
 
 static inline void
 twofish_amd64_ocb_dec(const TWOFISH_context *ctx, byte *out, const byte *in,
 		      byte *offset, byte *checksum, const u64 Ls[3])
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn6(_gcry_twofish_amd64_ocb_dec, ctx, out, in, offset, checksum, Ls);
-#else
   _gcry_twofish_amd64_ocb_dec(ctx, out, in, offset, checksum, Ls);
-#endif
 }
 
 static inline void
 twofish_amd64_ocb_auth(const TWOFISH_context *ctx, const byte *abuf,
 		       byte *offset, byte *checksum, const u64 Ls[3])
 {
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-  call_sysv_fn5(_gcry_twofish_amd64_ocb_auth, ctx, abuf, offset, checksum, Ls);
-#else
   _gcry_twofish_amd64_ocb_auth(ctx, abuf, offset, checksum, Ls);
-#endif
 }
 
 #elif defined(USE_ARM_ASM)

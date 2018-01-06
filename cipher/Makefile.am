@@ -61,6 +61,7 @@ dsa-common.c rsa-common.c \
 sha1.h
 
 EXTRA_libcipher_la_SOURCES = \
+asm-common-amd64.h \
 arcfour.c arcfour-amd64.S \
 blowfish.c blowfish-amd64.S blowfish-arm.S \
 cast5.c cast5-amd64.S cast5-arm.S \
