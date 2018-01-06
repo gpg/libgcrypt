@@ -146,7 +146,7 @@ struct gcry_cipher_handle
 			const void *inbuf_arg, size_t nblocks, int encrypt);
     size_t (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg,
 		       size_t nblocks);
-    void (*xts_crypt)(gcry_cipher_hd_t c, unsigned char *tweak,
+    void (*xts_crypt)(void *context, unsigned char *tweak,
 		      void *outbuf_arg, const void *inbuf_arg,
 		      size_t nblocks, int encrypt);
   } bulk;

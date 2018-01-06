@@ -3007,4 +3007,295 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 }
 
 
+static const u64 xts_gfmul_const[16] __attribute__ ((aligned (16))) =
+  { 0x87, 0x01 };
+
+
+static void
+_gcry_aes_aesni_xts_enc (RIJNDAEL_context *ctx, unsigned char *tweak,
+			 unsigned char *outbuf, const unsigned char *inbuf,
+			 size_t nblocks)
+{
+  aesni_prepare_2_6_variable;
+
+  aesni_prepare ();
+  aesni_prepare_2_6 ();
+
+  /* Preload Tweak */
+  asm volatile ("movdqu %[tweak], %%xmm5\n\t"
+		"movdqa %[gfmul], %%xmm6\n\t"
+		:
+		: [tweak] "m" (*tweak),
+		  [gfmul] "m" (*xts_gfmul_const)
+		: "memory" );
+
+  for ( ;nblocks >= 4; nblocks -= 4 )
+    {
+      asm volatile ("pshufd $0x13,     %%xmm5,  %%xmm4\n\t"
+		    "movdqu %[inbuf0], %%xmm1\n\t"
+		    "pxor   %%xmm5,    %%xmm1\n\t"
+		    "movdqu %%xmm5,    %[outbuf0]\n\t"
+
+		    "movdqa %%xmm4,    %%xmm0\n\t"
+		    "paddd  %%xmm4,    %%xmm4\n\t"
+		    "psrad  $31,       %%xmm0\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm5\n\t"
+		    : [outbuf0] "=m" (*(outbuf + 0 * 16))
+		    : [inbuf0] "m" (*(inbuf + 0 * 16))
+		    : "memory" );
+
+      asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
+		    "pxor   %%xmm5,    %%xmm2\n\t"
+		    "movdqu %%xmm5,    %[outbuf1]\n\t"
+
+		    "movdqa %%xmm4,    %%xmm0\n\t"
+		    "paddd  %%xmm4,    %%xmm4\n\t"
+		    "psrad  $31,       %%xmm0\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm5\n\t"
+		    : [outbuf1] "=m" (*(outbuf + 1 * 16))
+		    : [inbuf1] "m" (*(inbuf + 1 * 16))
+		    : "memory" );
+
+      asm volatile ("movdqu %[inbuf2], %%xmm3\n\t"
+		    "pxor   %%xmm5,    %%xmm3\n\t"
+		    "movdqu %%xmm5,    %[outbuf2]\n\t"
+
+		    "movdqa %%xmm4,    %%xmm0\n\t"
+		    "paddd  %%xmm4,    %%xmm4\n\t"
+		    "psrad  $31,       %%xmm0\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm5\n\t"
+		    : [outbuf2] "=m" (*(outbuf + 2 * 16))
+		    : [inbuf2] "m" (*(inbuf + 2 * 16))
+		    : "memory" );
+
+      asm volatile ("movdqa %%xmm4,    %%xmm0\n\t"
+		    "movdqu %[inbuf3], %%xmm4\n\t"
+		    "pxor   %%xmm5,    %%xmm4\n\t"
+		    "movdqu %%xmm5,    %[outbuf3]\n\t"
+
+		    "psrad  $31,       %%xmm0\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm5\n\t"
+		    : [outbuf3] "=m" (*(outbuf + 3 * 16))
+		    : [inbuf3] "m" (*(inbuf + 3 * 16))
+		    : "memory" );
+
+      do_aesni_enc_vec4 (ctx);
+
+      asm volatile ("movdqu %[outbuf0], %%xmm0\n\t"
+                    "pxor   %%xmm0,     %%xmm1\n\t"
+		    "movdqu %[outbuf1], %%xmm0\n\t"
+		    "movdqu %%xmm1,     %[outbuf0]\n\t"
+		    "movdqu %[outbuf2], %%xmm1\n\t"
+                    "pxor   %%xmm0,     %%xmm2\n\t"
+		    "movdqu %[outbuf3], %%xmm0\n\t"
+                    "pxor   %%xmm1,     %%xmm3\n\t"
+                    "pxor   %%xmm0,     %%xmm4\n\t"
+		    "movdqu %%xmm2,     %[outbuf1]\n\t"
+		    "movdqu %%xmm3,     %[outbuf2]\n\t"
+		    "movdqu %%xmm4,     %[outbuf3]\n\t"
+		    : [outbuf0] "+m" (*(outbuf + 0 * 16)),
+		      [outbuf1] "+m" (*(outbuf + 1 * 16)),
+		      [outbuf2] "+m" (*(outbuf + 2 * 16)),
+		      [outbuf3] "+m" (*(outbuf + 3 * 16))
+		    :
+		    : "memory" );
+
+      outbuf += BLOCKSIZE * 4;
+      inbuf += BLOCKSIZE * 4;
+    }
+
+  for ( ;nblocks; nblocks-- )
+    {
+      asm volatile ("movdqu %[inbuf],  %%xmm0\n\t"
+		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "movdqa %%xmm5,    %%xmm4\n\t"
+
+		    "pshufd $0x13,     %%xmm5,  %%xmm1\n\t"
+		    "psrad  $31,       %%xmm1\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm1\n\t"
+		    "pxor   %%xmm1,    %%xmm5\n\t"
+		    :
+		    : [inbuf] "m" (*inbuf)
+		    : "memory" );
+
+      do_aesni_enc (ctx);
+
+      asm volatile ("pxor   %%xmm4,    %%xmm0\n\t"
+		    "movdqu %%xmm0,    %[outbuf]\n\t"
+		    : [outbuf] "=m" (*outbuf)
+		    :
+		    : "memory" );
+
+      outbuf += BLOCKSIZE;
+      inbuf += BLOCKSIZE;
+    }
+
+  asm volatile ("movdqu %%xmm5, %[tweak]\n\t"
+		: [tweak] "=m" (*tweak)
+		:
+		: "memory" );
+
+  aesni_cleanup ();
+  aesni_cleanup_2_6 ();
+}
+
+
+static void
+_gcry_aes_aesni_xts_dec (RIJNDAEL_context *ctx, unsigned char *tweak,
+			 unsigned char *outbuf, const unsigned char *inbuf,
+			 size_t nblocks)
+{
+  aesni_prepare_2_6_variable;
+
+  aesni_prepare ();
+  aesni_prepare_2_6 ();
+
+  /* Preload Tweak */
+  asm volatile ("movdqu %[tweak], %%xmm5\n\t"
+		"movdqa %[gfmul], %%xmm6\n\t"
+		:
+		: [tweak] "m" (*tweak),
+		  [gfmul] "m" (*xts_gfmul_const)
+		: "memory" );
+
+  for ( ;nblocks >= 4; nblocks -= 4 )
+    {
+      asm volatile ("pshufd $0x13,     %%xmm5,  %%xmm4\n\t"
+		    "movdqu %[inbuf0], %%xmm1\n\t"
+		    "pxor   %%xmm5,    %%xmm1\n\t"
+		    "movdqu %%xmm5,    %[outbuf0]\n\t"
+
+		    "movdqa %%xmm4,    %%xmm0\n\t"
+		    "paddd  %%xmm4,    %%xmm4\n\t"
+		    "psrad  $31,       %%xmm0\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm5\n\t"
+		    : [outbuf0] "=m" (*(outbuf + 0 * 16))
+		    : [inbuf0] "m" (*(inbuf + 0 * 16))
+		    : "memory" );
+
+      asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
+		    "pxor   %%xmm5,    %%xmm2\n\t"
+		    "movdqu %%xmm5,    %[outbuf1]\n\t"
+
+		    "movdqa %%xmm4,    %%xmm0\n\t"
+		    "paddd  %%xmm4,    %%xmm4\n\t"
+		    "psrad  $31,       %%xmm0\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm5\n\t"
+		    : [outbuf1] "=m" (*(outbuf + 1 * 16))
+		    : [inbuf1] "m" (*(inbuf + 1 * 16))
+		    : "memory" );
+
+      asm volatile ("movdqu %[inbuf2], %%xmm3\n\t"
+		    "pxor   %%xmm5,    %%xmm3\n\t"
+		    "movdqu %%xmm5,    %[outbuf2]\n\t"
+
+		    "movdqa %%xmm4,    %%xmm0\n\t"
+		    "paddd  %%xmm4,    %%xmm4\n\t"
+		    "psrad  $31,       %%xmm0\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm5\n\t"
+		    : [outbuf2] "=m" (*(outbuf + 2 * 16))
+		    : [inbuf2] "m" (*(inbuf + 2 * 16))
+		    : "memory" );
+
+      asm volatile ("movdqa %%xmm4,    %%xmm0\n\t"
+		    "movdqu %[inbuf3], %%xmm4\n\t"
+		    "pxor   %%xmm5,    %%xmm4\n\t"
+		    "movdqu %%xmm5,    %[outbuf3]\n\t"
+
+		    "psrad  $31,       %%xmm0\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm5\n\t"
+		    : [outbuf3] "=m" (*(outbuf + 3 * 16))
+		    : [inbuf3] "m" (*(inbuf + 3 * 16))
+		    : "memory" );
+
+      do_aesni_dec_vec4 (ctx);
+
+      asm volatile ("movdqu %[outbuf0], %%xmm0\n\t"
+                    "pxor   %%xmm0,     %%xmm1\n\t"
+		    "movdqu %[outbuf1], %%xmm0\n\t"
+		    "movdqu %%xmm1,     %[outbuf0]\n\t"
+		    "movdqu %[outbuf2], %%xmm1\n\t"
+                    "pxor   %%xmm0,     %%xmm2\n\t"
+		    "movdqu %[outbuf3], %%xmm0\n\t"
+                    "pxor   %%xmm1,     %%xmm3\n\t"
+                    "pxor   %%xmm0,     %%xmm4\n\t"
+		    "movdqu %%xmm2,     %[outbuf1]\n\t"
+		    "movdqu %%xmm3,     %[outbuf2]\n\t"
+		    "movdqu %%xmm4,     %[outbuf3]\n\t"
+		    : [outbuf0] "+m" (*(outbuf + 0 * 16)),
+		      [outbuf1] "+m" (*(outbuf + 1 * 16)),
+		      [outbuf2] "+m" (*(outbuf + 2 * 16)),
+		      [outbuf3] "+m" (*(outbuf + 3 * 16))
+		    :
+		    : "memory" );
+
+      outbuf += BLOCKSIZE * 4;
+      inbuf += BLOCKSIZE * 4;
+    }
+
+  for ( ;nblocks; nblocks-- )
+    {
+      asm volatile ("movdqu %[inbuf],  %%xmm0\n\t"
+		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "movdqa %%xmm5,    %%xmm4\n\t"
+
+		    "pshufd $0x13,     %%xmm5,  %%xmm1\n\t"
+		    "psrad  $31,       %%xmm1\n\t"
+		    "paddq  %%xmm5,    %%xmm5\n\t"
+		    "pand   %%xmm6,    %%xmm1\n\t"
+		    "pxor   %%xmm1,    %%xmm5\n\t"
+		    :
+		    : [inbuf] "m" (*inbuf)
+		    : "memory" );
+
+      do_aesni_dec (ctx);
+
+      asm volatile ("pxor   %%xmm4,    %%xmm0\n\t"
+		    "movdqu %%xmm0,    %[outbuf]\n\t"
+		    : [outbuf] "=m" (*outbuf)
+		    :
+		    : "memory" );
+
+      outbuf += BLOCKSIZE;
+      inbuf += BLOCKSIZE;
+    }
+
+  asm volatile ("movdqu %%xmm5, %[tweak]\n\t"
+                : [tweak] "=m" (*tweak)
+                :
+                : "memory" );
+
+  aesni_cleanup ();
+  aesni_cleanup_2_6 ();
+}
+
+
+void
+_gcry_aes_aesni_xts_crypt (RIJNDAEL_context *ctx, unsigned char *tweak,
+			   unsigned char *outbuf, const unsigned char *inbuf,
+			   size_t nblocks, int encrypt)
+{
+  if (encrypt)
+    _gcry_aes_aesni_xts_enc(ctx, tweak, outbuf, inbuf, nblocks);
+  else
+    _gcry_aes_aesni_xts_dec(ctx, tweak, outbuf, inbuf, nblocks);
+}
+
 #endif /* USE_AESNI */

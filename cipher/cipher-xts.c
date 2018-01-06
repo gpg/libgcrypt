@@ -93,7 +93,8 @@ _gcry_cipher_xts_crypt (gcry_cipher_hd_t c,
   /* Use a bulk method if available.  */
   if (nblocks && c->bulk.xts_crypt)
     {
-      c->bulk.xts_crypt (c, c->u_ctr.ctr, outbuf, inbuf, nblocks, encrypt);
+      c->bulk.xts_crypt (&c->context.c, c->u_ctr.ctr, outbuf, inbuf, nblocks,
+			 encrypt);
       inbuf  += nblocks * GCRY_XTS_BLOCK_LEN;
       outbuf += nblocks * GCRY_XTS_BLOCK_LEN;
       inbuflen -= nblocks * GCRY_XTS_BLOCK_LEN;
