@@ -2230,6 +2230,10 @@ if test "$found" = "1" ; then
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-amd64-ssse3.lo"
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-amd64-avx2.lo"
       ;;
+      aarch64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-aarch64.lo"
+      ;;
    esac
 
    if test x"$neonsupport" = xyes ; then

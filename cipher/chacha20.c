@@ -73,6 +73,17 @@
 # endif
 #endif
 
+/* USE_AARCH64_SIMD indicates whether to enable ARMv8 SIMD assembly
+ * code. */
+#undef USE_AARCH64_SIMD
+#ifdef ENABLE_NEON_SUPPORT
+# if defined(__AARCH64EL__) \
+       && defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) \
+       && defined(HAVE_GCC_INLINE_ASM_AARCH64_NEON)
+#  define USE_AARCH64_SIMD 1
+# endif
+#endif
+
 /* Assembly implementations use SystemV ABI, ABI conversion and additional
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
@@ -118,6 +129,13 @@ unsigned int _gcry_chacha20_armv7_neon_blocks4(u32 *state, byte *dst,
 					       size_t nblks);
 
 #endif /* USE_ARMV7_NEON */
+
+#ifdef USE_AARCH64_SIMD
+
+unsigned int _gcry_chacha20_aarch64_blocks4(u32 *state, byte *dst,
+					    const byte *src, size_t nblks);
+
+#endif /* USE_AARCH64_SIMD */
 
 
 static const char *selftest (void);
@@ -338,6 +356,10 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 #ifdef USE_ARMV7_NEON
   ctx->use_neon = (features & HWF_ARM_NEON) != 0;
 #endif
+#ifdef USE_AARCH64_SIMD
+  ctx->use_neon = (features & HWF_ARM_NEON) != 0;
+#endif
+
   (void)features;
 
   chacha20_keysetup (ctx, key, keylen);
@@ -427,6 +449,20 @@ chacha20_encrypt_stream (void *context, byte *outbuf, const byte *inbuf,
       nblocks -= nblocks % 4;
       nburn = _gcry_chacha20_armv7_neon_blocks4(ctx->input, outbuf, inbuf,
 						nblocks);
+      burn = nburn > burn ? nburn : burn;
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+
+#ifdef USE_AARCH64_SIMD
+  if (ctx->use_neon && length >= CHACHA20_BLOCK_SIZE * 4)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 4;
+      nburn = _gcry_chacha20_aarch64_blocks4(ctx->input, outbuf, inbuf,
+					     nblocks);
       burn = nburn > burn ? nburn : burn;
       length -= nblocks * CHACHA20_BLOCK_SIZE;
       outbuf += nblocks * CHACHA20_BLOCK_SIZE;
