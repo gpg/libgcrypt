@@ -391,7 +391,7 @@ ec_addm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   borrow = _gcry_mpih_sub_n (wp, wp, ctx->p->d, wsize);
   mpih_set_cond (n, ctx->p->d, wsize, (borrow != 0UL));
   _gcry_mpih_add_n (wp, wp, n, wsize);
-  wp[LIMB_SIZE_25519-1] &= ~(1UL << (255 % BITS_PER_MPI_LIMB));
+  wp[LIMB_SIZE_25519-1] &= ~((mpi_limb_t)1 << (255 % BITS_PER_MPI_LIMB));
 }
 
 static void
@@ -413,7 +413,7 @@ ec_subm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   borrow = _gcry_mpih_sub_n (wp, up, vp, wsize);
   mpih_set_cond (n, ctx->p->d, wsize, (borrow != 0UL));
   _gcry_mpih_add_n (wp, wp, n, wsize);
-  wp[LIMB_SIZE_25519-1] &= ~(1UL << (255 % BITS_PER_MPI_LIMB));
+  wp[LIMB_SIZE_25519-1] &= ~((mpi_limb_t)1 << (255 % BITS_PER_MPI_LIMB));
 }
 
 static void
@@ -436,7 +436,7 @@ ec_mulm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 
   _gcry_mpih_mul_n (n, up, vp, wsize);
   memcpy (wp, n, wsize * BYTES_PER_MPI_LIMB);
-  wp[LIMB_SIZE_25519-1] &= ~(1UL << (255 % BITS_PER_MPI_LIMB));
+  wp[LIMB_SIZE_25519-1] &= ~((mpi_limb_t)1 << (255 % BITS_PER_MPI_LIMB));
 
   memcpy (m, n+LIMB_SIZE_25519-1, (wsize+1) * BYTES_PER_MPI_LIMB);
   _gcry_mpih_rshift (m, m, LIMB_SIZE_25519+1, (255 % BITS_PER_MPI_LIMB));
@@ -457,7 +457,7 @@ ec_mulm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   memset (m, 0, wsize * BYTES_PER_MPI_LIMB);
   msb = (wp[LIMB_SIZE_25519-1] >> (255 % BITS_PER_MPI_LIMB));
   m[0] = (m[LIMB_SIZE_25519] * 2 + msb) * 19;
-  wp[LIMB_SIZE_25519-1] &= ~(1UL << (255 % BITS_PER_MPI_LIMB));
+  wp[LIMB_SIZE_25519-1] &= ~((mpi_limb_t)1 << (255 % BITS_PER_MPI_LIMB));
   _gcry_mpih_add_n (wp, wp, m, wsize);
 
   m[0] = 0;
