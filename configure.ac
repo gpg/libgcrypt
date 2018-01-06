@@ -1402,8 +1402,15 @@ AC_CACHE_CHECK([whether GCC inline assembler supports BMI2 instructions],
         else
           gcry_cv_gcc_inline_asm_bmi2=no
           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[void a(void) {
-              __asm__("rorxl \$23, %%eax, %%edx\\n\\t":::"memory");
+          [[unsigned int a(unsigned int x, unsigned int y) {
+              unsigned int tmp1, tmp2;
+              asm ("rorxl %2, %1, %0"
+                   : "=r" (tmp1)
+                   : "rm0" (x), "J" (32 - ((23) & 31)));
+              asm ("andnl %2, %1, %0"
+                   : "=r" (tmp2)
+                   : "r0" (x), "rm" (y));
+              return tmp1 + tmp2;
             }]])],
           [gcry_cv_gcc_inline_asm_bmi2=yes])
         fi])
