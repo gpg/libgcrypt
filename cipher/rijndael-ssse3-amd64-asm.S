@@ -40,11 +40,7 @@
     (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 
-#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-# define ELF(...)
-#else
-# define ELF(...) __VA_ARGS__
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -54,6 +50,7 @@
 ELF(.type _gcry_aes_ssse3_enc_preload,@function)
 .globl _gcry_aes_ssse3_enc_preload
 _gcry_aes_ssse3_enc_preload:
+	ENTER_SYSV_FUNC_PARAMS_0_4
 	lea	.Laes_consts(%rip), %rax
 	movdqa	          (%rax), %xmm9  # 0F
 	movdqa	.Lk_inv   (%rax), %xmm10 # inv
@@ -62,6 +59,7 @@ _gcry_aes_ssse3_enc_preload:
 	movdqa	.Lk_sb1+16(%rax), %xmm12 # sb1t
 	movdqa	.Lk_sb2   (%rax), %xmm15 # sb2u
 	movdqa	.Lk_sb2+16(%rax), %xmm14 # sb2t
+	EXIT_SYSV_FUNC
 	ret
 ELF(.size _gcry_aes_ssse3_enc_preload,.-_gcry_aes_ssse3_enc_preload)
 
@@ -71,6 +69,7 @@ ELF(.size _gcry_aes_ssse3_enc_preload,.-_gcry_aes_ssse3_enc_preload)
 ELF(.type _gcry_aes_ssse3_dec_preload,@function)
 .globl _gcry_aes_ssse3_dec_preload
 _gcry_aes_ssse3_dec_preload:
+	ENTER_SYSV_FUNC_PARAMS_0_4
 	lea	.Laes_consts(%rip), %rax
 	movdqa	          (%rax), %xmm9   # 0F
 	movdqa	.Lk_inv   (%rax), %xmm10  # inv
@@ -80,6 +79,7 @@ _gcry_aes_ssse3_dec_preload:
 	movdqa	.Lk_dsbd   (%rax), %xmm15 # sbdu
 	movdqa	.Lk_dsbb   (%rax), %xmm14 # sbbu
 	movdqa	.Lk_dsbe   (%rax), %xmm8  # sbeu
+	EXIT_SYSV_FUNC
 	ret
 ELF(.size _gcry_aes_ssse3_dec_preload,.-_gcry_aes_ssse3_dec_preload)
 
@@ -98,11 +98,11 @@ ELF(.size _gcry_aes_ssse3_dec_preload,.-_gcry_aes_ssse3_dec_preload)
 ##  Inputs:
 ##     %xmm0 = input
 ##     %xmm9-%xmm15 as in .Laes_preheat
-##    (%rdx) = scheduled keys
-##     %rax  = nrounds - 1
+##    (%rdi) = scheduled keys
+##     %rsi  = nrounds
 ##
 ##  Output in %xmm0
-##  Clobbers  %xmm1-%xmm4, %r9, %r11, %rax, %rcx
+##  Clobbers  %xmm1-%xmm4, %r9, %r11, %rax, %rcx, %rdx
 ##  Preserves %xmm6 - %xmm7 so you get some local vectors
 ##
 ##
@@ -111,6 +111,9 @@ ELF(.type _gcry_aes_ssse3_encrypt_core,@function)
 .globl _gcry_aes_ssse3_encrypt_core
 _gcry_aes_ssse3_encrypt_core:
 _aes_encrypt_core:
+	ENTER_SYSV_FUNC_PARAMS_0_4
+	mov	%rdi,	%rdx
+	leaq	-1(%rsi), %rax
 	lea	.Laes_consts(%rip), %rcx
 	leaq	.Lk_mc_backward(%rcx), %rdi
 	mov	$16,	%rsi
@@ -185,6 +188,7 @@ _aes_encrypt_core:
 	pshufb  %xmm3,	%xmm0	# 0 = sb1t
 	pxor	%xmm4,	%xmm0	# 0 = A
 	pshufb	.Lk_sr(%rsi,%rcx), %xmm0
+	EXIT_SYSV_FUNC
 	ret
 ELF(.size _aes_encrypt_core,.-_aes_encrypt_core)
 
@@ -198,8 +202,11 @@ ELF(.size _aes_encrypt_core,.-_aes_encrypt_core)
 ELF(.type _gcry_aes_ssse3_decrypt_core,@function)
 _gcry_aes_ssse3_decrypt_core:
 _aes_decrypt_core:
+	ENTER_SYSV_FUNC_PARAMS_0_4
+	mov	%rdi,	%rdx
 	lea	.Laes_consts(%rip), %rcx
-	movl	%eax,	%esi
+	subl	$1,	%esi
+	movl	%esi,   %eax
 	shll	$4,	%esi
 	xorl	$48,	%esi
 	andl	$48,	%esi
@@ -288,6 +295,7 @@ _aes_decrypt_core:
 	pshufb  %xmm3,	%xmm0	# 0 = sb1t
 	pxor	%xmm4,	%xmm0	# 0 = A
 	pshufb	.Lk_sr(%rsi,%rcx), %xmm0
+	EXIT_SYSV_FUNC
 	ret
 ELF(.size _aes_decrypt_core,.-_aes_decrypt_core)
 
@@ -306,6 +314,8 @@ _aes_schedule_core:
 	# rsi = size in bits
 	# rdx = buffer
 	# rcx = direction.  0=encrypt, 1=decrypt
+	# r8 = rotoffs
+	ENTER_SYSV_FUNC_PARAMS_5
 
 	# load the tables
 	lea	.Laes_consts(%rip), %r10
@@ -659,8 +669,9 @@ _aes_schedule_core:
 	pxor	%xmm6,  %xmm6
 	pxor	%xmm7,  %xmm7
 	pxor	%xmm8,  %xmm8
+	EXIT_SYSV_FUNC
 	ret
-ELF(.size _aes_schedule_core,.-_aes_schedule_core)
+ELF(.size _gcry_aes_ssse3_schedule_core,.-_gcry_aes_ssse3_schedule_core)
 
 ########################################################
 ##                                                    ##

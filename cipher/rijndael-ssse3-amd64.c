@@ -58,13 +58,14 @@
 
 
 /* Assembly functions in rijndael-ssse3-amd64-asm.S. Note that these
-   have custom calling convention and need to be called from assembly
-   blocks, not directly. */
+   have custom calling convention (additional XMM parameters). */
 extern void _gcry_aes_ssse3_enc_preload(void);
 extern void _gcry_aes_ssse3_dec_preload(void);
-extern void _gcry_aes_ssse3_schedule_core(void);
-extern void _gcry_aes_ssse3_encrypt_core(void);
-extern void _gcry_aes_ssse3_decrypt_core(void);
+extern void _gcry_aes_ssse3_schedule_core(const void *key, u64 keybits,
+					  void *buffer, u64 decrypt,
+					  u64 rotoffs);
+extern void _gcry_aes_ssse3_encrypt_core(const void *key, u64 nrounds);
+extern void _gcry_aes_ssse3_decrypt_core(const void *key, u64 nrounds);
 
 
 
@@ -110,8 +111,6 @@ extern void _gcry_aes_ssse3_decrypt_core(void);
                   : \
                   : "r" (ssse3_state) \
                   : "memory" )
-# define PUSH_STACK_PTR
-# define POP_STACK_PTR
 #else
 # define SSSE3_STATE_SIZE 1
 # define vpaes_ssse3_prepare() (void)ssse3_state
@@ -126,31 +125,15 @@ extern void _gcry_aes_ssse3_decrypt_core(void);
                   "pxor	%%xmm7,  %%xmm7 \n\t" \
                   "pxor	%%xmm8,  %%xmm8 \n\t" \
                   ::: "memory" )
-/* Old GCC versions use red-zone of AMD64 SYSV ABI and stack pointer is
- * not properly adjusted for assembly block. Therefore stack pointer
- * needs to be manually corrected. */
-# define PUSH_STACK_PTR "subq $128, %%rsp;\n\t"
-# define POP_STACK_PTR  "addq $128, %%rsp;\n\t"
 #endif
 
 #define vpaes_ssse3_prepare_enc() \
     vpaes_ssse3_prepare(); \
-    asm volatile (PUSH_STACK_PTR \
-                  "callq *%q[core] \n\t" \
-                  POP_STACK_PTR \
-                  : \
-                  : [core] "r" (_gcry_aes_ssse3_enc_preload) \
-                  : "rax", "cc", "memory" )
+    _gcry_aes_ssse3_enc_preload();
 
 #define vpaes_ssse3_prepare_dec() \
     vpaes_ssse3_prepare(); \
-    asm volatile (PUSH_STACK_PTR \
-                  "callq *%q[core] \n\t" \
-                  POP_STACK_PTR \
-                  : \
-                  : [core] "r" (_gcry_aes_ssse3_dec_preload) \
-                  : "rax", "cc", "memory" )
-
+    _gcry_aes_ssse3_dec_preload();
 
 
 void
@@ -161,23 +144,7 @@ _gcry_aes_ssse3_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 
   vpaes_ssse3_prepare();
 
-  asm volatile ("leaq %q[key], %%rdi"			"\n\t"
-                "movl %[bits], %%esi"			"\n\t"
-                "leaq %[buf], %%rdx"			"\n\t"
-                "movl %[dir], %%ecx"			"\n\t"
-                "movl %[rotoffs], %%r8d"		"\n\t"
-                PUSH_STACK_PTR
-                "callq *%q[core]"			"\n\t"
-                POP_STACK_PTR
-                :
-                : [core] "r" (&_gcry_aes_ssse3_schedule_core),
-                  [key] "m" (*key),
-                  [bits] "g" (keybits),
-                  [buf] "m" (ctx->keyschenc32[0][0]),
-                  [dir] "g" (0),
-                  [rotoffs] "g" (48)
-                : "r8", "r9", "r10", "r11", "rax", "rcx", "rdx", "rdi", "rsi",
-                  "cc", "memory");
+  _gcry_aes_ssse3_schedule_core(key, keybits, &ctx->keyschenc32[0][0], 0, 48);
 
   /* Save key for setting up decryption. */
   if (keybits > 192)
@@ -216,23 +183,9 @@ _gcry_aes_ssse3_prepare_decryption (RIJNDAEL_context *ctx)
 
   vpaes_ssse3_prepare();
 
-  asm volatile ("leaq %q[key], %%rdi"			"\n\t"
-                "movl %[bits], %%esi"			"\n\t"
-                "leaq %[buf], %%rdx"			"\n\t"
-                "movl %[dir], %%ecx"			"\n\t"
-                "movl %[rotoffs], %%r8d"		"\n\t"
-                PUSH_STACK_PTR
-                "callq *%q[core]"			"\n\t"
-                POP_STACK_PTR
-                :
-                : [core] "r" (_gcry_aes_ssse3_schedule_core),
-                  [key] "m" (ctx->keyschdec32[0][0]),
-                  [bits] "g" (keybits),
-                  [buf] "m" (ctx->keyschdec32[ctx->rounds][0]),
-                  [dir] "g" (1),
-                  [rotoffs] "g" ((keybits == 192) ? 0 : 32)
-                : "r8", "r9", "r10", "r11", "rax", "rcx", "rdx", "rdi", "rsi",
-                  "cc", "memory");
+  _gcry_aes_ssse3_schedule_core(&ctx->keyschdec32[0][0], keybits,
+				&ctx->keyschdec32[ctx->rounds][0], 1,
+				(keybits == 192) ? 0 : 32);
 
   vpaes_ssse3_cleanup();
 }
@@ -243,15 +196,7 @@ _gcry_aes_ssse3_prepare_decryption (RIJNDAEL_context *ctx)
 static inline void
 do_vpaes_ssse3_enc (const RIJNDAEL_context *ctx, unsigned int nrounds)
 {
-  unsigned int middle_rounds = nrounds - 1;
-  const void *keysched = ctx->keyschenc32;
-
-  asm volatile (PUSH_STACK_PTR
-		"callq *%q[core]"			"\n\t"
-		POP_STACK_PTR
-		: "+a" (middle_rounds), "+d" (keysched)
-		: [core] "r" (_gcry_aes_ssse3_encrypt_core)
-		: "rcx", "rsi", "rdi", "cc", "memory");
+  _gcry_aes_ssse3_encrypt_core(ctx->keyschenc32, nrounds);
 }
 
 
@@ -260,15 +205,7 @@ do_vpaes_ssse3_enc (const RIJNDAEL_context *ctx, unsigned int nrounds)
 static inline void
 do_vpaes_ssse3_dec (const RIJNDAEL_context *ctx, unsigned int nrounds)
 {
-  unsigned int middle_rounds = nrounds - 1;
-  const void *keysched = ctx->keyschdec32;
-
-  asm volatile (PUSH_STACK_PTR
-		"callq *%q[core]"			"\n\t"
-		POP_STACK_PTR
-		: "+a" (middle_rounds), "+d" (keysched)
-		: [core] "r" (_gcry_aes_ssse3_decrypt_core)
-		: "rcx", "rsi", "cc", "memory");
+  _gcry_aes_ssse3_decrypt_core(ctx->keyschdec32, nrounds);
 }
 
 
