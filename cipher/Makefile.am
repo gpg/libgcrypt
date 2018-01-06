@@ -78,7 +78,6 @@ gost28147.c gost.h \
 gostr3411-94.c \
 md4.c \
 md5.c \
-poly1305-sse2-amd64.S poly1305-avx2-amd64.S poly1305-armv7-neon.S \
 rijndael.c rijndael-internal.h rijndael-tables.h rijndael-aesni.c \
   rijndael-padlock.c rijndael-amd64.S rijndael-arm.S \
   rijndael-ssse3-amd64.c rijndael-ssse3-amd64-asm.S \

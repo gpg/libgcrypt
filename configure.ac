@@ -2239,19 +2239,6 @@ if test "$found" = "1" ; then
    fi
 fi
 
-case "${host}" in
-   x86_64-*-*)
-      # Build with the assembly implementation
-      GCRYPT_CIPHERS="$GCRYPT_CIPHERS poly1305-sse2-amd64.lo"
-      GCRYPT_CIPHERS="$GCRYPT_CIPHERS poly1305-avx2-amd64.lo"
-   ;;
-esac
-
-if test x"$neonsupport" = xyes ; then
-   # Build with the NEON implementation
-   GCRYPT_CIPHERS="$GCRYPT_CIPHERS poly1305-armv7-neon.lo"
-fi
-
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS dsa.lo"

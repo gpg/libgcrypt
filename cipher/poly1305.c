@@ -1,5 +1,5 @@
 /* poly1305.c  -  Poly1305 internals and generic implementation
- * Copyright (C) 2014 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2014,2017,2018 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -17,11 +17,6 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/* The code is based on public-domain Poly1305 implementation by
- * Andrew Moon at
- *  https://github.com/floodyberry/poly1305-opt
- */
-
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,157 +28,325 @@
 #include "bufhelp.h"
 #include "poly1305-internal.h"
 
+#include "mpi-internal.h"
+#include "longlong.h"
+
 
 static const char *selftest (void);
-
 
 
-#ifdef POLY1305_USE_SSE2
-
-void _gcry_poly1305_amd64_sse2_init_ext(void *state, const poly1305_key_t *key)
-                                       OPS_FUNC_ABI;
-unsigned int _gcry_poly1305_amd64_sse2_finish_ext(void *state, const byte *m,
-						  size_t remaining,
-						  byte mac[16]) OPS_FUNC_ABI;
-unsigned int _gcry_poly1305_amd64_sse2_blocks(void *ctx, const byte *m,
-					      size_t bytes) OPS_FUNC_ABI;
-
-static const poly1305_ops_t poly1305_amd64_sse2_ops = {
-  POLY1305_SSE2_BLOCKSIZE,
-  _gcry_poly1305_amd64_sse2_init_ext,
-  _gcry_poly1305_amd64_sse2_blocks,
-  _gcry_poly1305_amd64_sse2_finish_ext
-};
-
-#else  /* !POLY1305_USE_SSE2 */
-
-static OPS_FUNC_ABI void poly1305_init_ext_ref32
-/**/                (void *state, const poly1305_key_t *key);
-static OPS_FUNC_ABI unsigned int poly1305_blocks_ref32
-/**/                (void *state, const byte *m, size_t bytes);
-static OPS_FUNC_ABI unsigned int poly1305_finish_ext_ref32
-/**/                (void *state, const byte * m,
-                     size_t remaining, byte mac[POLY1305_TAGLEN]);
-
-static const poly1305_ops_t poly1305_default_ops = {
-  POLY1305_REF_BLOCKSIZE,
-  poly1305_init_ext_ref32,
-  poly1305_blocks_ref32,
-  poly1305_finish_ext_ref32
-};
-
-#endif /* !POLY1305_USE_SSE2 */
-
-
-#ifdef POLY1305_USE_AVX2
-
-void _gcry_poly1305_amd64_avx2_init_ext(void *state, const poly1305_key_t *key)
-                                       OPS_FUNC_ABI;
-unsigned int _gcry_poly1305_amd64_avx2_finish_ext(void *state, const byte *m,
-						  size_t remaining,
-						  byte mac[16]) OPS_FUNC_ABI;
-unsigned int _gcry_poly1305_amd64_avx2_blocks(void *ctx, const byte *m,
-					      size_t bytes) OPS_FUNC_ABI;
-
-static const poly1305_ops_t poly1305_amd64_avx2_ops = {
-  POLY1305_AVX2_BLOCKSIZE,
-  _gcry_poly1305_amd64_avx2_init_ext,
-  _gcry_poly1305_amd64_avx2_blocks,
-  _gcry_poly1305_amd64_avx2_finish_ext
-};
-
+#undef USE_MPI_64BIT
+#undef USE_MPI_32BIT
+#if BYTES_PER_MPI_LIMB == 8 && defined(HAVE_U64_TYPEDEF)
+# define USE_MPI_64BIT 1
+#elif BYTES_PER_MPI_LIMB == 4
+# define USE_MPI_32BIT 1
+#else
+# error please implement for this limb size.
 #endif
 
 
-#ifdef POLY1305_USE_NEON
-
-void _gcry_poly1305_armv7_neon_init_ext(void *state, const poly1305_key_t *key)
-                                       OPS_FUNC_ABI;
-unsigned int _gcry_poly1305_armv7_neon_finish_ext(void *state, const byte *m,
-						  size_t remaining,
-						  byte mac[16]) OPS_FUNC_ABI;
-unsigned int _gcry_poly1305_armv7_neon_blocks(void *ctx, const byte *m,
-					      size_t bytes) OPS_FUNC_ABI;
-
-static const poly1305_ops_t poly1305_armv7_neon_ops = {
-  POLY1305_NEON_BLOCKSIZE,
-  _gcry_poly1305_armv7_neon_init_ext,
-  _gcry_poly1305_armv7_neon_blocks,
-  _gcry_poly1305_armv7_neon_finish_ext
-};
-
-#endif
-
-
-/* Reference unoptimized poly1305 implementation using 32 bit * 32 bit = 64 bit
- * multiplication and 64 bit addition.
- */
-
-typedef struct poly1305_state_ref32_s
+static void poly1305_init (poly1305_context_t *ctx,
+			   const byte key[POLY1305_KEYLEN])
 {
-  u32 r[5];
-  u32 h[5];
-  u32 pad[4];
-  byte final;
-} poly1305_state_ref32_t;
+  POLY1305_STATE *st = &ctx->state;
 
+  ctx->leftover = 0;
 
-#ifndef POLY1305_USE_SSE2
-static OPS_FUNC_ABI void
-poly1305_init_ext_ref32 (void *state, const poly1305_key_t * key)
-{
-  poly1305_state_ref32_t *st = (poly1305_state_ref32_t *) state;
-
-  gcry_assert (sizeof (*st) + POLY1305_STATE_ALIGNMENT <=
-	       sizeof (((poly1305_context_t *) 0)->state));
-
-  /* r &= 0xffffffc0ffffffc0ffffffc0fffffff */
-  st->r[0] = (buf_get_le32 (&key->b[0])) & 0x3ffffff;
-  st->r[1] = (buf_get_le32 (&key->b[3]) >> 2) & 0x3ffff03;
-  st->r[2] = (buf_get_le32 (&key->b[6]) >> 4) & 0x3ffc0ff;
-  st->r[3] = (buf_get_le32 (&key->b[9]) >> 6) & 0x3f03fff;
-  st->r[4] = (buf_get_le32 (&key->b[12]) >> 8) & 0x00fffff;
-
-  /* h = 0 */
   st->h[0] = 0;
   st->h[1] = 0;
   st->h[2] = 0;
   st->h[3] = 0;
   st->h[4] = 0;
 
-  /* save pad for later */
-  st->pad[0] = buf_get_le32 (&key->b[16]);
-  st->pad[1] = buf_get_le32 (&key->b[20]);
-  st->pad[2] = buf_get_le32 (&key->b[24]);
-  st->pad[3] = buf_get_le32 (&key->b[28]);
+  st->r[0] = buf_get_le32(key + 0)  & 0x0fffffff;
+  st->r[1] = buf_get_le32(key + 4)  & 0x0ffffffc;
+  st->r[2] = buf_get_le32(key + 8)  & 0x0ffffffc;
+  st->r[3] = buf_get_le32(key + 12) & 0x0ffffffc;
 
-  st->final = 0;
+  st->k[0] = buf_get_le32(key + 16);
+  st->k[1] = buf_get_le32(key + 20);
+  st->k[2] = buf_get_le32(key + 24);
+  st->k[3] = buf_get_le32(key + 28);
 }
-#endif /* !POLY1305_USE_SSE2 */
 
 
-#ifndef POLY1305_USE_SSE2
-static OPS_FUNC_ABI unsigned int
-poly1305_blocks_ref32 (void *state, const byte * m, size_t bytes)
+#ifdef USE_MPI_64BIT
+
+#if defined (__aarch64__) && __GNUC__ >= 4
+
+/* A += B (armv8/aarch64) */
+#define ADD_1305_64(A2, A1, A0, B2, B1, B0) \
+      __asm__ ("adds %0, %3, %0\n" \
+	       "adcs %1, %4, %1\n" \
+	       "adc  %2, %5, %2\n" \
+	       : "+r" (A0), "+r" (A1), "+r" (A2) \
+	       : "r" (B0), "r" (B1), "r" (B2) \
+	       : "cc" )
+
+#endif /* __aarch64__ */
+
+#if defined (__x86_64__) && __GNUC__ >= 4
+
+/* A += B (x86-64) */
+#define ADD_1305_64(A2, A1, A0, B2, B1, B0) \
+      __asm__ ("addq %3, %0\n" \
+	       "adcq %4, %1\n" \
+	       "adcq %5, %2\n" \
+	       : "+r" (A0), "+r" (A1), "+r" (A2) \
+	       : "g" (B0), "g" (B1), "g" (B2) \
+	       : "cc" )
+
+#endif /* __x86_64__ */
+
+#ifndef ADD_1305_64
+/* A += B (generic, mpi) */
+#  define ADD_1305_64(A2, A1, A0, B2, B1, B0) do { \
+    u64 carry; \
+    add_ssaaaa(carry, A0, 0, A0, 0, B0); \
+    add_ssaaaa(A2, A1, A2, A1, B2, B1); \
+    add_ssaaaa(A2, A1, A2, A1, 0, carry); \
+  } while (0)
+#endif
+
+/* H = H * R mod 2¹³⁰-5 */
+#define MUL_MOD_1305_64(H2, H1, H0, R1, R0, R1_MULT5) do { \
+    u64 x0_lo, x0_hi, x1_lo, x1_hi; \
+    u64 t0_lo, t0_hi, t1_lo, t1_hi; \
+    \
+    /* x = a * r (partial mod 2^130-5) */ \
+    umul_ppmm(x0_hi, x0_lo, H0, R0);  /* h0 * r0 */ \
+    umul_ppmm(x1_hi, x1_lo, H0, R1);  /* h0 * r1 */ \
+    \
+    umul_ppmm(t0_hi, t0_lo, H1, R1_MULT5); /* h1 * r1 mod 2^130-5 */ \
+    add_ssaaaa(x0_hi, x0_lo, x0_hi, x0_lo, t0_hi, t0_lo); \
+    umul_ppmm(t1_hi, t1_lo, H1, R0);       /* h1 * r0 */ \
+    add_ssaaaa(x1_hi, x1_lo, x1_hi, x1_lo, t1_hi, t1_lo); \
+    \
+    t1_lo = H2 * R1_MULT5; /* h2 * r1 mod 2^130-5 */ \
+    t1_hi = H2 * R0;       /* h2 * r0 */ \
+    add_ssaaaa(H0, H1, x1_hi, x1_lo, t1_hi, t1_lo); \
+    \
+    /* carry propagation */ \
+    H2 = H0 & 3; \
+    H0 = (H0 >> 2) * 5; /* msb mod 2^130-5 */ \
+    ADD_1305_64(H2, H1, H0, 0, x0_hi, x0_lo); \
+  } while (0)
+
+unsigned int
+poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
+		 byte high_pad)
 {
-  poly1305_state_ref32_t *st = (poly1305_state_ref32_t *) state;
-  const u32 hibit = (st->final) ? 0 : (1 << 24);	/* 1 << 128 */
-  u32 r0, r1, r2, r3, r4;
-  u32 s1, s2, s3, s4;
+  POLY1305_STATE *st = &ctx->state;
+  u64 r0, r1, r1_mult5;
+  u64 h0, h1, h2;
+  u64 m0, m1, m2;
+
+  m2 = high_pad;
+
+  h0 = st->h[0] + ((u64)st->h[1] << 32);
+  h1 = st->h[2] + ((u64)st->h[3] << 32);
+  h2 = st->h[4];
+
+  r0 = st->r[0] + ((u64)st->r[1] << 32);
+  r1 = st->r[2] + ((u64)st->r[3] << 32);
+
+  r1_mult5 = (r1 >> 2) + r1;
+
+  m0 = buf_get_le64(buf + 0);
+  m1 = buf_get_le64(buf + 8);
+  buf += POLY1305_BLOCKSIZE;
+  len -= POLY1305_BLOCKSIZE;
+
+  while (len >= POLY1305_BLOCKSIZE)
+    {
+      /* a = h + m */
+      ADD_1305_64(h2, h1, h0, m2, m1, m0);
+
+      m0 = buf_get_le64(buf + 0);
+      m1 = buf_get_le64(buf + 8);
+
+      /* h = a * r (partial mod 2^130-5) */
+      MUL_MOD_1305_64(h2, h1, h0, r1, r0, r1_mult5);
+
+      buf += POLY1305_BLOCKSIZE;
+      len -= POLY1305_BLOCKSIZE;
+    }
+
+  /* a = h + m */
+  ADD_1305_64(h2, h1, h0, m2, m1, m0);
+
+  /* h = a * r (partial mod 2^130-5) */
+  MUL_MOD_1305_64(h2, h1, h0, r1, r0, r1_mult5);
+
+  st->h[0] = h0;
+  st->h[1] = h0 >> 32;
+  st->h[2] = h1;
+  st->h[3] = h1 >> 32;
+  st->h[4] = h2;
+
+  return 6 * sizeof (void *) + 18 * sizeof (u64);
+}
+
+static unsigned int poly1305_final (poly1305_context_t *ctx,
+				    byte mac[POLY1305_TAGLEN])
+{
+  POLY1305_STATE *st = &ctx->state;
+  unsigned int burn = 0;
+  u64 u, carry;
+  u64 k0, k1;
+  u64 h0, h1;
+  u64 h2;
+
+  /* process the remaining block */
+  if (ctx->leftover)
+    {
+      ctx->buffer[ctx->leftover++] = 1;
+      for (; ctx->leftover < POLY1305_BLOCKSIZE; ctx->leftover++)
+	ctx->buffer[ctx->leftover] = 0;
+      burn = poly1305_blocks (ctx, ctx->buffer, POLY1305_BLOCKSIZE, 0);
+    }
+
+  h0 = st->h[0] + ((u64)st->h[1] << 32);
+  h1 = st->h[2] + ((u64)st->h[3] << 32);
+  h2 = st->h[4];
+
+  k0 = st->k[0] + ((u64)st->k[1] << 32);
+  k1 = st->k[2] + ((u64)st->k[3] << 32);
+
+  /* check if h is more than 2^130-5, by adding 5. */
+  add_ssaaaa(carry, u, 0, h0, 0, 5);
+  add_ssaaaa(carry, u, 0, carry, 0, h1);
+  u = (carry + h2) >> 2; /* u == 0 or 1 */
+
+  /* minus 2^130-5 ... (+5) */
+  u = (-u) & 5;
+  add_ssaaaa(h1, h0, h1, h0, 0, u);
+
+  /* add high part of key + h */
+  add_ssaaaa(h1, h0, h1, h0, k1, k0);
+  buf_put_le64(mac + 0, h0);
+  buf_put_le64(mac + 8, h1);
+
+  /* burn_stack */
+  return 4 * sizeof (void *) + 7 * sizeof (u64) + burn;
+}
+
+#endif /* USE_MPI_64BIT */
+
+#ifdef USE_MPI_32BIT
+
+#ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
+
+/* HI:LO += A * B (arm) */
+#define UMUL_ADD_32(HI, LO, A, B) \
+      __asm__ ("umlal %1, %0, %4, %5" \
+	       : "=r" (HI), "=r" (LO) \
+	       : "0" (HI), "1" (LO), "r" (A), "r" (B) )
+
+/* A += B (arm) */
+#define ADD_1305_32(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0) \
+      __asm__ ("adds %0, %0, %5\n" \
+	       "adcs %1, %1, %6\n" \
+	       "adcs %2, %2, %7\n" \
+	       "adcs %3, %3, %8\n" \
+	       "adc %4, %4, %9\n" \
+	       : "+r" (A0), "+r" (A1), "+r" (A2), "+r" (A3), "+r" (A4) \
+	       : "r" (B0), "r" (B1), "r" (B2), "r" (B3), "r" (B4) \
+	       : "cc" )
+
+#endif /* HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS */
+
+#if defined (__i386__) && __GNUC__ >= 4
+
+/* A += B (i386) */
+#define ADD_1305_32(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0) \
+      __asm__ ("addl %5, %0\n" \
+	       "adcl %6, %1\n" \
+	       "adcl %7, %2\n" \
+	       "adcl %8, %3\n" \
+	       "adcl %9, %4\n" \
+	       : "+r" (A0), "+r" (A1), "+r" (A2), "+r" (A3), "+r" (A4) \
+	       : "g" (B0), "g" (B1), "g" (B2), "g" (B3), "g" (B4) \
+	       : "cc" )
+
+#endif /* __i386__ */
+
+#ifndef UMUL_ADD_32
+/* HI:LO += A * B (generic, mpi) */
+#  define UMUL_ADD_32(HI, LO, A, B) do { \
+    u32 t_lo, t_hi; \
+    umul_ppmm(t_hi, t_lo, A, B); \
+    add_ssaaaa(HI, LO, HI, LO, t_hi, t_lo); \
+  } while (0)
+#endif
+
+#ifndef ADD_1305_32
+/* A += B (generic, mpi) */
+#  define ADD_1305_32(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0) do { \
+    u32 carry0, carry1, carry2; \
+    add_ssaaaa(carry0, A0, 0, A0, 0, B0); \
+    add_ssaaaa(carry1, A1, 0, A1, 0, B1); \
+    add_ssaaaa(carry1, A1, carry1, A1, 0, carry0); \
+    add_ssaaaa(carry2, A2, 0, A2, 0, B2); \
+    add_ssaaaa(carry2, A2, carry2, A2, 0, carry1); \
+    add_ssaaaa(A4, A3, A4, A3, B4, B3); \
+    add_ssaaaa(A4, A3, A4, A3, 0, carry2); \
+  } while (0)
+#endif
+
+/* H = H * R mod 2¹³⁰-5 */
+#define MUL_MOD_1305_32(H4, H3, H2, H1, H0, R3, R2, R1, R0, \
+                        R3_MULT5, R2_MULT5, R1_MULT5) do { \
+    u32 x0_lo, x0_hi, x1_lo, x1_hi, x2_lo, x2_hi, x3_lo, x3_hi; \
+    u32 t0_lo, t0_hi; \
+    \
+    /* x = a * r (partial mod 2^130-5) */ \
+    umul_ppmm(x0_hi, x0_lo, H0, R0);  /* h0 * r0 */ \
+    umul_ppmm(x1_hi, x1_lo, H0, R1);  /* h0 * r1 */ \
+    umul_ppmm(x2_hi, x2_lo, H0, R2);  /* h0 * r2 */ \
+    umul_ppmm(x3_hi, x3_lo, H0, R3);  /* h0 * r3 */ \
+    \
+    UMUL_ADD_32(x0_hi, x0_lo, H1, R3_MULT5); /* h1 * r3 mod 2^130-5 */ \
+    UMUL_ADD_32(x1_hi, x1_lo, H1, R0);       /* h1 * r0 */ \
+    UMUL_ADD_32(x2_hi, x2_lo, H1, R1);       /* h1 * r1 */ \
+    UMUL_ADD_32(x3_hi, x3_lo, H1, R2);       /* h1 * r2 */ \
+    \
+    UMUL_ADD_32(x0_hi, x0_lo, H2, R2_MULT5); /* h2 * r2 mod 2^130-5 */ \
+    UMUL_ADD_32(x1_hi, x1_lo, H2, R3_MULT5); /* h2 * r3 mod 2^130-5 */ \
+    UMUL_ADD_32(x2_hi, x2_lo, H2, R0);       /* h2 * r0 */ \
+    UMUL_ADD_32(x3_hi, x3_lo, H2, R1);       /* h2 * r1 */ \
+    \
+    UMUL_ADD_32(x0_hi, x0_lo, H3, R1_MULT5); /* h3 * r1 mod 2^130-5 */ \
+    H1 = x0_hi; \
+    UMUL_ADD_32(x1_hi, x1_lo, H3, R2_MULT5); /* h3 * r2 mod 2^130-5 */ \
+    UMUL_ADD_32(x2_hi, x2_lo, H3, R3_MULT5); /* h3 * r3 mod 2^130-5 */ \
+    UMUL_ADD_32(x3_hi, x3_lo, H3, R0);       /* h3 * r0 */ \
+    \
+    t0_lo = H4 * R1_MULT5; /* h4 * r1 mod 2^130-5 */ \
+    t0_hi = H4 * R2_MULT5; /* h4 * r2 mod 2^130-5 */ \
+    add_ssaaaa(H2, x1_lo, x1_hi, x1_lo, 0, t0_lo); \
+    add_ssaaaa(H3, x2_lo, x2_hi, x2_lo, 0, t0_hi); \
+    t0_lo = H4 * R3_MULT5; /* h4 * r3 mod 2^130-5 */ \
+    t0_hi = H4 * R0;       /* h4 * r0 */ \
+    add_ssaaaa(H4, x3_lo, x3_hi, x3_lo, t0_hi, t0_lo); \
+    \
+    /* carry propagation */ \
+    H0 = (H4 >> 2) * 5; /* msb mod 2^130-5 */ \
+    H4 = H4 & 3; \
+    ADD_1305_32(H4, H3, H2, H1, H0, 0, x3_lo, x2_lo, x1_lo, x0_lo); \
+  } while (0)
+
+unsigned int
+poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
+		 byte high_pad)
+{
+  POLY1305_STATE *st = &ctx->state;
+  u32 r1_mult5, r2_mult5, r3_mult5;
   u32 h0, h1, h2, h3, h4;
-  u64 d0, d1, d2, d3, d4;
-  u32 c;
+  u32 m0, m1, m2, m3, m4;
 
-  r0 = st->r[0];
-  r1 = st->r[1];
-  r2 = st->r[2];
-  r3 = st->r[3];
-  r4 = st->r[4];
-
-  s1 = r1 * 5;
-  s2 = r2 * 5;
-  s3 = r3 * 5;
-  s4 = r4 * 5;
+  m4 = high_pad;
 
   h0 = st->h[0];
   h1 = st->h[1];
@@ -191,54 +354,27 @@ poly1305_blocks_ref32 (void *state, const byte * m, size_t bytes)
   h3 = st->h[3];
   h4 = st->h[4];
 
-  while (bytes >= POLY1305_REF_BLOCKSIZE)
+  r1_mult5 = (st->r[1] >> 2) + st->r[1];
+  r2_mult5 = (st->r[2] >> 2) + st->r[2];
+  r3_mult5 = (st->r[3] >> 2) + st->r[3];
+
+  while (len >= POLY1305_BLOCKSIZE)
     {
-      /* h += m[i] */
-      h0 += (buf_get_le32 (m + 0)) & 0x3ffffff;
-      h1 += (buf_get_le32 (m + 3) >> 2) & 0x3ffffff;
-      h2 += (buf_get_le32 (m + 6) >> 4) & 0x3ffffff;
-      h3 += (buf_get_le32 (m + 9) >> 6) & 0x3ffffff;
-      h4 += (buf_get_le32 (m + 12) >> 8) | hibit;
+      m0 = buf_get_le32(buf + 0);
+      m1 = buf_get_le32(buf + 4);
+      m2 = buf_get_le32(buf + 8);
+      m3 = buf_get_le32(buf + 12);
 
-      /* h *= r */
-      d0 =
-	((u64) h0 * r0) + ((u64) h1 * s4) +
-	((u64) h2 * s3) + ((u64) h3 * s2) + ((u64) h4 * s1);
-      d1 =
-	((u64) h0 * r1) + ((u64) h1 * r0) +
-	((u64) h2 * s4) + ((u64) h3 * s3) + ((u64) h4 * s2);
-      d2 =
-	((u64) h0 * r2) + ((u64) h1 * r1) +
-	((u64) h2 * r0) + ((u64) h3 * s4) + ((u64) h4 * s3);
-      d3 =
-	((u64) h0 * r3) + ((u64) h1 * r2) +
-	((u64) h2 * r1) + ((u64) h3 * r0) + ((u64) h4 * s4);
-      d4 =
-	((u64) h0 * r4) + ((u64) h1 * r3) +
-	((u64) h2 * r2) + ((u64) h3 * r1) + ((u64) h4 * r0);
+      /* a = h + m */
+      ADD_1305_32(h4, h3, h2, h1, h0, m4, m3, m2, m1, m0);
 
-      /* (partial) h %= p */
-      c = (u32) (d0 >> 26);
-      h0 = (u32) d0 & 0x3ffffff;
-      d1 += c;
-      c = (u32) (d1 >> 26);
-      h1 = (u32) d1 & 0x3ffffff;
-      d2 += c;
-      c = (u32) (d2 >> 26);
-      h2 = (u32) d2 & 0x3ffffff;
-      d3 += c;
-      c = (u32) (d3 >> 26);
-      h3 = (u32) d3 & 0x3ffffff;
-      d4 += c;
-      c = (u32) (d4 >> 26);
-      h4 = (u32) d4 & 0x3ffffff;
-      h0 += c * 5;
-      c = (h0 >> 26);
-      h0 = h0 & 0x3ffffff;
-      h1 += c;
+      /* h = a * r (partial mod 2^130-5) */
+      MUL_MOD_1305_32(h4, h3, h2, h1, h0,
+		      st->r[3], st->r[2], st->r[1], st->r[0],
+		      r3_mult5, r2_mult5, r1_mult5);
 
-      m += POLY1305_REF_BLOCKSIZE;
-      bytes -= POLY1305_REF_BLOCKSIZE;
+      buf += POLY1305_BLOCKSIZE;
+      len -= POLY1305_BLOCKSIZE;
     }
 
   st->h[0] = h0;
@@ -247,185 +383,95 @@ poly1305_blocks_ref32 (void *state, const byte * m, size_t bytes)
   st->h[3] = h3;
   st->h[4] = h4;
 
-  return (16 * sizeof (u32) + 5 * sizeof (u64) + 5 * sizeof (void *));
+  return 6 * sizeof (void *) + 28 * sizeof (u32);
 }
-#endif /* !POLY1305_USE_SSE2 */
 
-
-#ifndef POLY1305_USE_SSE2
-static OPS_FUNC_ABI unsigned int
-poly1305_finish_ext_ref32 (void *state, const byte * m,
-			   size_t remaining, byte mac[POLY1305_TAGLEN])
+static unsigned int poly1305_final (poly1305_context_t *ctx,
+				    byte mac[POLY1305_TAGLEN])
 {
-  poly1305_state_ref32_t *st = (poly1305_state_ref32_t *) state;
-  u32 h0, h1, h2, h3, h4, c;
-  u32 g0, g1, g2, g3, g4;
-  u64 f;
-  u32 mask;
+  POLY1305_STATE *st = &ctx->state;
   unsigned int burn = 0;
+  u32 carry, tmp0, tmp1, tmp2, u;
+  u32 h4, h3, h2, h1, h0;
 
   /* process the remaining block */
-  if (remaining)
+  if (ctx->leftover)
     {
-      byte final[POLY1305_REF_BLOCKSIZE] = { 0 };
-      size_t i;
-      for (i = 0; i < remaining; i++)
-	final[i] = m[i];
-      final[remaining] = 1;
-      st->final = 1;
-      burn = poly1305_blocks_ref32 (st, final, POLY1305_REF_BLOCKSIZE);
+      ctx->buffer[ctx->leftover++] = 1;
+      for (; ctx->leftover < POLY1305_BLOCKSIZE; ctx->leftover++)
+	ctx->buffer[ctx->leftover] = 0;
+      burn = poly1305_blocks (ctx, ctx->buffer, POLY1305_BLOCKSIZE, 0);
     }
 
-  /* fully carry h */
   h0 = st->h[0];
   h1 = st->h[1];
   h2 = st->h[2];
   h3 = st->h[3];
   h4 = st->h[4];
 
-  c = h1 >> 26;
-  h1 = h1 & 0x3ffffff;
-  h2 += c;
-  c = h2 >> 26;
-  h2 = h2 & 0x3ffffff;
-  h3 += c;
-  c = h3 >> 26;
-  h3 = h3 & 0x3ffffff;
-  h4 += c;
-  c = h4 >> 26;
-  h4 = h4 & 0x3ffffff;
-  h0 += c * 5;
-  c = h0 >> 26;
-  h0 = h0 & 0x3ffffff;
-  h1 += c;
+  /* check if h is more than 2^130-5, by adding 5. */
+  add_ssaaaa(carry, tmp0, 0, h0, 0, 5);
+  add_ssaaaa(carry, tmp0, 0, carry, 0, h1);
+  add_ssaaaa(carry, tmp0, 0, carry, 0, h2);
+  add_ssaaaa(carry, tmp0, 0, carry, 0, h3);
+  u = (carry + h4) >> 2; /* u == 0 or 1 */
 
-  /* compute h + -p */
-  g0 = h0 + 5;
-  c = g0 >> 26;
-  g0 &= 0x3ffffff;
-  g1 = h1 + c;
-  c = g1 >> 26;
-  g1 &= 0x3ffffff;
-  g2 = h2 + c;
-  c = g2 >> 26;
-  g2 &= 0x3ffffff;
-  g3 = h3 + c;
-  c = g3 >> 26;
-  g3 &= 0x3ffffff;
-  g4 = h4 + c - (1 << 26);
+  /* minus 2^130-5 ... (+5) */
+  u = (-u) & 5;
+  add_ssaaaa(carry, h0, 0, h0, 0, u);
+  add_ssaaaa(carry, h1, 0, h1, 0, carry);
+  add_ssaaaa(carry, h2, 0, h2, 0, carry);
+  add_ssaaaa(carry, h3, 0, h3, 0, carry);
 
-  /* select h if h < p, or h + -p if h >= p */
-  mask = (g4 >> ((sizeof (u32) * 8) - 1)) - 1;
-  g0 &= mask;
-  g1 &= mask;
-  g2 &= mask;
-  g3 &= mask;
-  g4 &= mask;
-  mask = ~mask;
-  h0 = (h0 & mask) | g0;
-  h1 = (h1 & mask) | g1;
-  h2 = (h2 & mask) | g2;
-  h3 = (h3 & mask) | g3;
-  h4 = (h4 & mask) | g4;
+  /* add high part of key + h */
+  add_ssaaaa(tmp0, h0, 0, h0, 0, st->k[0]);
+  add_ssaaaa(tmp1, h1, 0, h1, 0, st->k[1]);
+  add_ssaaaa(tmp1, h1, tmp1, h1, 0, tmp0);
+  add_ssaaaa(tmp2, h2, 0, h2, 0, st->k[2]);
+  add_ssaaaa(tmp2, h2, tmp2, h2, 0, tmp1);
+  add_ssaaaa(carry, h3, 0, h3, 0, st->k[3]);
+  h3 += tmp2;
 
-  /* h = h % (2^128) */
-  h0 = ((h0) | (h1 << 26)) & 0xffffffff;
-  h1 = ((h1 >> 6) | (h2 << 20)) & 0xffffffff;
-  h2 = ((h2 >> 12) | (h3 << 14)) & 0xffffffff;
-  h3 = ((h3 >> 18) | (h4 << 8)) & 0xffffffff;
-
-  /* mac = (h + pad) % (2^128) */
-  f = (u64) h0 + st->pad[0];
-  h0 = (u32) f;
-  f = (u64) h1 + st->pad[1] + (f >> 32);
-  h1 = (u32) f;
-  f = (u64) h2 + st->pad[2] + (f >> 32);
-  h2 = (u32) f;
-  f = (u64) h3 + st->pad[3] + (f >> 32);
-  h3 = (u32) f;
-
-  buf_put_le32 (mac + 0, h0);
-  buf_put_le32 (mac + 4, h1);
-  buf_put_le32 (mac + 8, h2);
-  buf_put_le32 (mac + 12, h3);
-
-  /* zero out the state */
-  st->h[0] = 0;
-  st->h[1] = 0;
-  st->h[2] = 0;
-  st->h[3] = 0;
-  st->h[4] = 0;
-  st->r[0] = 0;
-  st->r[1] = 0;
-  st->r[2] = 0;
-  st->r[3] = 0;
-  st->r[4] = 0;
-  st->pad[0] = 0;
-  st->pad[1] = 0;
-  st->pad[2] = 0;
-  st->pad[3] = 0;
+  buf_put_le32(mac + 0, h0);
+  buf_put_le32(mac + 4, h1);
+  buf_put_le32(mac + 8, h2);
+  buf_put_le32(mac + 12, h3);
 
   /* burn_stack */
-  return (13 * sizeof (u32) + sizeof (u64) +
-	  POLY1305_REF_BLOCKSIZE + 6 * sizeof (void *)) + burn;
-}
-#endif /* !POLY1305_USE_SSE2*/
-
-
-
-
-
-static inline void *
-poly1305_get_state (poly1305_context_t * ctx)
-{
-  byte *c = ctx->state;
-  c += POLY1305_STATE_ALIGNMENT - 1;
-  c -= (uintptr_t) c & (POLY1305_STATE_ALIGNMENT - 1);
-  return c;
+  return 4 * sizeof (void *) + 10 * sizeof (u32) + burn;
 }
 
-
-static void
-poly1305_init (poly1305_context_t * ctx, const poly1305_key_t * key)
-{
-  void *state = poly1305_get_state (ctx);
-
-  ctx->leftover = 0;
-
-  ctx->ops->init_ext (state, key);
-}
+#endif /* USE_MPI_32BIT */
 
 
 void
-_gcry_poly1305_update (poly1305_context_t * ctx, const byte * m, size_t bytes)
+_gcry_poly1305_update (poly1305_context_t *ctx, const byte *m, size_t bytes)
 {
-  void *state = poly1305_get_state (ctx);
   unsigned int burn = 0;
-  size_t block_size = ctx->ops->block_size;
 
   /* handle leftover */
   if (ctx->leftover)
     {
-      size_t want = (block_size - ctx->leftover);
+      size_t want = (POLY1305_BLOCKSIZE - ctx->leftover);
       if (want > bytes)
 	want = bytes;
       buf_cpy (ctx->buffer + ctx->leftover, m, want);
       bytes -= want;
       m += want;
       ctx->leftover += want;
-      if (ctx->leftover < block_size)
+      if (ctx->leftover < POLY1305_BLOCKSIZE)
 	return;
-      burn = ctx->ops->blocks (state, ctx->buffer, block_size);
+      burn = poly1305_blocks (ctx, ctx->buffer, POLY1305_BLOCKSIZE, 1);
       ctx->leftover = 0;
     }
 
   /* process full blocks */
-  if (bytes >= block_size)
+  if (bytes >= POLY1305_BLOCKSIZE)
     {
-      size_t want = (bytes & ~(block_size - 1));
-      burn = ctx->ops->blocks (state, m, want);
-      m += want;
-      bytes -= want;
+      size_t nblks = bytes / POLY1305_BLOCKSIZE;
+      burn = poly1305_blocks (ctx, m, nblks * POLY1305_BLOCKSIZE, 1);
+      m += nblks * POLY1305_BLOCKSIZE;
+      bytes -= nblks * POLY1305_BLOCKSIZE;
     }
 
   /* store leftover */
@@ -441,12 +487,11 @@ _gcry_poly1305_update (poly1305_context_t * ctx, const byte * m, size_t bytes)
 
 
 void
-_gcry_poly1305_finish (poly1305_context_t * ctx, byte mac[POLY1305_TAGLEN])
+_gcry_poly1305_finish (poly1305_context_t *ctx, byte mac[POLY1305_TAGLEN])
 {
-  void *state = poly1305_get_state (ctx);
   unsigned int burn;
 
-  burn = ctx->ops->finish_ext (state, ctx->buffer, ctx->leftover, mac);
+  burn = poly1305_final (ctx, mac);
 
   _gcry_burn_stack (burn);
 }
@@ -458,8 +503,6 @@ _gcry_poly1305_init (poly1305_context_t * ctx, const byte * key,
 {
   static int initialized;
   static const char *selftest_failed;
-  poly1305_key_t keytmp;
-  unsigned int features = _gcry_get_hw_features ();
 
   if (!initialized)
     {
@@ -475,26 +518,7 @@ _gcry_poly1305_init (poly1305_context_t * ctx, const byte * key,
   if (selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
 
-#ifdef POLY1305_USE_SSE2
-  ctx->ops = &poly1305_amd64_sse2_ops;
-#else
-  ctx->ops = &poly1305_default_ops;
-#endif
-
-#ifdef POLY1305_USE_AVX2
-  if (features & HWF_INTEL_AVX2)
-    ctx->ops = &poly1305_amd64_avx2_ops;
-#endif
-#ifdef POLY1305_USE_NEON
-  if (features & HWF_ARM_NEON)
-    ctx->ops = &poly1305_armv7_neon_ops;
-#endif
-  (void)features;
-
-  buf_cpy (keytmp.b, key, POLY1305_KEYLEN);
-  poly1305_init (ctx, &keytmp);
-
-  wipememory (&keytmp, sizeof (keytmp));
+  poly1305_init (ctx, key);
 
   return 0;
 }
