@@ -33,7 +33,7 @@
 
 /* This is the list of the default ciphers, which are included in
    libgcrypt.  */
-static gcry_cipher_spec_t *cipher_list[] =
+static gcry_cipher_spec_t * const cipher_list[] =
   {
 #if USE_BLOWFISH
      &_gcry_cipher_spec_blowfish,

@@ -29,7 +29,7 @@
 
 /* This is the list of the digest implementations included in
    libgcrypt.  */
-static gcry_mac_spec_t *mac_list[] = {
+static gcry_mac_spec_t * const mac_list[] = {
 #if USE_SHA1
   &_gcry_mac_type_spec_hmac_sha1,
 #endif

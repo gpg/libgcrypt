@@ -31,7 +31,7 @@
 
 /* This is the list of the digest implementations included in
    libgcrypt.  */
-static gcry_md_spec_t *digest_list[] =
+static gcry_md_spec_t * const digest_list[] =
   {
 #if USE_CRC
      &_gcry_digest_spec_crc32,

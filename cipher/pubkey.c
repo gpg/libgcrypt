@@ -34,7 +34,7 @@
 
 /* This is the list of the public-key algorithms included in
    Libgcrypt.  */
-static gcry_pk_spec_t *pubkey_list[] =
+static gcry_pk_spec_t * const pubkey_list[] =
   {
 #if USE_ECC
     &_gcry_pubkey_spec_ecc,
