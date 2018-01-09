@@ -1,5 +1,5 @@
 /* chacha20.c  -  Bernstein's ChaCha20 cipher
- * Copyright (C) 2014 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2014,2017,2018 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -20,15 +20,14 @@
  *   http://cr.yp.to/chacha.html
  */
 
-/* The code is based on salsa20.c and public-domain ChaCha implementations:
- *  chacha-ref.c version 20080118
- *  D. J. Bernstein
- *  Public domain.
- * and
- *  Andrew Moon
- *  https://github.com/floodyberry/chacha-opt
+/*
+ * Based on D. J. Bernstein reference implementation at
+ * http://cr.yp.to/chacha.html:
+ *
+ * chacha-regs.c version 20080118
+ * D. J. Bernstein
+ * Public domain.
  */
-
 
 #include <config.h>
 #include <stdio.h>
@@ -46,295 +45,216 @@
 #define CHACHA20_MIN_IV_SIZE   8        /* Bytes.  */
 #define CHACHA20_MAX_IV_SIZE  12        /* Bytes.  */
 #define CHACHA20_CTR_SIZE     16        /* Bytes.  */
-#define CHACHA20_INPUT_LENGTH (CHACHA20_BLOCK_SIZE / 4)
 
-/* USE_SSE2 indicates whether to compile with Intel SSE2 code. */
-#undef USE_SSE2
-#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
-    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
-# define USE_SSE2 1
-#endif
 
 /* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
 #undef USE_SSSE3
-#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
-    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
-    defined(HAVE_GCC_INLINE_ASM_SSSE3)
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
+   (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_SSSE3 1
 #endif
 
 /* USE_AVX2 indicates whether to compile with Intel AVX2 code. */
 #undef USE_AVX2
-#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
-    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
-    defined(ENABLE_AVX2_SUPPORT)
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_AVX2) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_AVX2 1
 #endif
 
-/* USE_NEON indicates whether to enable ARM NEON assembly code. */
-#undef USE_NEON
+/* USE_ARMV7_NEON indicates whether to enable ARMv7 NEON assembly code. */
+#undef USE_ARMV7_NEON
 #ifdef ENABLE_NEON_SUPPORT
 # if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__) \
      && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
      && defined(HAVE_GCC_INLINE_ASM_NEON)
-#  define USE_NEON 1
+#  define USE_ARMV7_NEON 1
 # endif
-#endif /*ENABLE_NEON_SUPPORT*/
-
-
-struct CHACHA20_context_s;
-
+#endif
 
 /* Assembly implementations use SystemV ABI, ABI conversion and additional
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
 #undef ASM_EXTRA_STACK
-#if (defined(USE_SSE2) || defined(USE_SSSE3) || defined(USE_AVX2)) && \
-    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)
+#if defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)
 # define ASM_FUNC_ABI __attribute__((sysv_abi))
-# define ASM_EXTRA_STACK (10 * 16)
 #else
 # define ASM_FUNC_ABI
-# define ASM_EXTRA_STACK 0
 #endif
 
 
-typedef unsigned int (* chacha20_blocks_t)(u32 *state, const byte *src,
-                                           byte *dst,
-                                           size_t bytes) ASM_FUNC_ABI;
-
 typedef struct CHACHA20_context_s
 {
-  u32 input[CHACHA20_INPUT_LENGTH];
-  u32 pad[CHACHA20_INPUT_LENGTH];
-  chacha20_blocks_t blocks;
+  u32 input[16];
+  unsigned char pad[CHACHA20_BLOCK_SIZE];
   unsigned int unused; /* bytes in the pad.  */
+  int use_ssse3:1;
+  int use_avx2:1;
+  int use_neon:1;
 } CHACHA20_context_t;
 
 
-#ifdef USE_SSE2
-
-unsigned int _gcry_chacha20_amd64_sse2_blocks(u32 *state, const byte *in,
-                                              byte *out,
-                                              size_t bytes) ASM_FUNC_ABI;
-
-#endif /* USE_SSE2 */
-
 #ifdef USE_SSSE3
 
-unsigned int _gcry_chacha20_amd64_ssse3_blocks(u32 *state, const byte *in,
-                                               byte *out,
-                                               size_t bytes) ASM_FUNC_ABI;
+unsigned int _gcry_chacha20_amd64_ssse3_blocks4(u32 *state, byte *dst,
+						const byte *src,
+						size_t nblks) ASM_FUNC_ABI;
 
 #endif /* USE_SSSE3 */
 
 #ifdef USE_AVX2
 
-unsigned int _gcry_chacha20_amd64_avx2_blocks(u32 *state, const byte *in,
-                                              byte *out,
-                                              size_t bytes) ASM_FUNC_ABI;
+unsigned int _gcry_chacha20_amd64_avx2_blocks8(u32 *state, byte *dst,
+					       const byte *src,
+					       size_t nblks) ASM_FUNC_ABI;
 
 #endif /* USE_AVX2 */
 
-#ifdef USE_NEON
+#ifdef USE_ARMV7_NEON
 
-unsigned int _gcry_chacha20_armv7_neon_blocks(u32 *state, const byte *in,
-                                              byte *out,
-                                              size_t bytes) ASM_FUNC_ABI;
+unsigned int _gcry_chacha20_armv7_neon_blocks4(u32 *state, byte *dst,
+					       const byte *src,
+					       size_t nblks);
 
-#endif /* USE_NEON */
+#endif /* USE_ARMV7_NEON */
 
 
-static void chacha20_setiv (void *context, const byte * iv, size_t ivlen);
 static const char *selftest (void);
 
 
+#define ROTATE(v,c)	(rol(v,c))
+#define XOR(v,w)	((v) ^ (w))
+#define PLUS(v,w)	((u32)((v) + (w)))
+#define PLUSONE(v)	(PLUS((v),1))
 
-#define QROUND(a,b,c,d)         \
-  do {                          \
-    a += b; d = rol(d ^ a, 16); \
-    c += d; b = rol(b ^ c, 12); \
-    a += b; d = rol(d ^ a, 8);  \
-    c += d; b = rol(b ^ c, 7);  \
-  } while (0)
+#define QUARTERROUND(a,b,c,d) \
+  a = PLUS(a,b); d = ROTATE(XOR(d,a),16); \
+  c = PLUS(c,d); b = ROTATE(XOR(b,c),12); \
+  a = PLUS(a,b); d = ROTATE(XOR(d,a), 8); \
+  c = PLUS(c,d); b = ROTATE(XOR(b,c), 7);
 
-#define QOUT(ai, bi, ci, di) \
-  DO_OUT(ai); DO_OUT(bi); DO_OUT(ci); DO_OUT(di)
-
-
-#ifndef USE_SSE2
-ASM_FUNC_ABI static unsigned int
-chacha20_blocks (u32 *state, const byte *src, byte *dst, size_t bytes)
-{
-  u32 pad[CHACHA20_INPUT_LENGTH];
-  u32 inp[CHACHA20_INPUT_LENGTH];
-  unsigned int i;
-
-  /* Note: 'bytes' must be multiple of 64 and not zero. */
-
-  inp[0] = state[0];
-  inp[1] = state[1];
-  inp[2] = state[2];
-  inp[3] = state[3];
-  inp[4] = state[4];
-  inp[5] = state[5];
-  inp[6] = state[6];
-  inp[7] = state[7];
-  inp[8] = state[8];
-  inp[9] = state[9];
-  inp[10] = state[10];
-  inp[11] = state[11];
-  inp[12] = state[12];
-  inp[13] = state[13];
-  inp[14] = state[14];
-  inp[15] = state[15];
-
-  do
-    {
-      /* First round. */
-      pad[0] = inp[0];
-      pad[4] = inp[4];
-      pad[8] = inp[8];
-      pad[12] = inp[12];
-      QROUND (pad[0], pad[4], pad[8], pad[12]);
-      pad[1] = inp[1];
-      pad[5] = inp[5];
-      pad[9] = inp[9];
-      pad[13] = inp[13];
-      QROUND (pad[1], pad[5], pad[9], pad[13]);
-      pad[2] = inp[2];
-      pad[6] = inp[6];
-      pad[10] = inp[10];
-      pad[14] = inp[14];
-      QROUND (pad[2], pad[6], pad[10], pad[14]);
-      pad[3] = inp[3];
-      pad[7] = inp[7];
-      pad[11] = inp[11];
-      pad[15] = inp[15];
-      QROUND (pad[3], pad[7], pad[11], pad[15]);
-
-      QROUND (pad[0], pad[5], pad[10], pad[15]);
-      QROUND (pad[1], pad[6], pad[11], pad[12]);
-      QROUND (pad[2], pad[7], pad[8], pad[13]);
-      QROUND (pad[3], pad[4], pad[9], pad[14]);
-
-      for (i = 2; i < 20 - 2; i += 2)
-      {
-        QROUND (pad[0], pad[4], pad[8], pad[12]);
-        QROUND (pad[1], pad[5], pad[9], pad[13]);
-        QROUND (pad[2], pad[6], pad[10], pad[14]);
-        QROUND (pad[3], pad[7], pad[11], pad[15]);
-
-        QROUND (pad[0], pad[5], pad[10], pad[15]);
-        QROUND (pad[1], pad[6], pad[11], pad[12]);
-        QROUND (pad[2], pad[7], pad[8], pad[13]);
-        QROUND (pad[3], pad[4], pad[9], pad[14]);
-      }
-
-      QROUND (pad[0], pad[4], pad[8], pad[12]);
-      QROUND (pad[1], pad[5], pad[9], pad[13]);
-      QROUND (pad[2], pad[6], pad[10], pad[14]);
-      QROUND (pad[3], pad[7], pad[11], pad[15]);
-
-      if (src)
-        {
-#define DO_OUT(idx) buf_put_le32(dst + (idx) * 4, \
-                                 (pad[idx] + inp[idx]) ^ \
-                                  buf_get_le32(src + (idx) * 4))
-          /* Last round. */
-          QROUND (pad[0], pad[5], pad[10], pad[15]);
-          QOUT(0, 5, 10, 15);
-          QROUND (pad[1], pad[6], pad[11], pad[12]);
-          QOUT(1, 6, 11, 12);
-          QROUND (pad[2], pad[7], pad[8], pad[13]);
-          QOUT(2, 7, 8, 13);
-          QROUND (pad[3], pad[4], pad[9], pad[14]);
-          QOUT(3, 4, 9, 14);
-#undef DO_OUT
-        }
-      else
-        {
-#define DO_OUT(idx) buf_put_le32(dst + (idx) * 4, pad[idx] + inp[idx])
-          /* Last round. */
-          QROUND (pad[0], pad[5], pad[10], pad[15]);
-          QOUT(0, 5, 10, 15);
-          QROUND (pad[1], pad[6], pad[11], pad[12]);
-          QOUT(1, 6, 11, 12);
-          QROUND (pad[2], pad[7], pad[8], pad[13]);
-          QOUT(2, 7, 8, 13);
-          QROUND (pad[3], pad[4], pad[9], pad[14]);
-          QOUT(3, 4, 9, 14);
-#undef DO_OUT
-        }
-
-      /* Update counter. */
-      inp[13] += (!++inp[12]);
-
-      bytes -= CHACHA20_BLOCK_SIZE;
-      dst += CHACHA20_BLOCK_SIZE;
-      src += (src) ? CHACHA20_BLOCK_SIZE : 0;
-    }
-  while (bytes >= CHACHA20_BLOCK_SIZE);
-
-  state[12] = inp[12];
-  state[13] = inp[13];
-
-  /* burn_stack */
-  return (2 * CHACHA20_INPUT_LENGTH * sizeof(u32) + 6 * sizeof(void *));
-}
-#endif /*!USE_SSE2*/
-
-#undef QROUND
-#undef QOUT
-
+#define BUF_XOR_LE32(dst, src, offset, x) \
+  buf_put_le32((dst) + (offset), buf_get_le32((src) + (offset)) ^ (x))
 
 static unsigned int
-chacha20_core(u32 *dst, struct CHACHA20_context_s *ctx)
+chacha20_blocks (u32 *input, byte *dst, const byte *src, size_t nblks)
 {
-  return ctx->blocks(ctx->input, NULL, (byte *)dst, CHACHA20_BLOCK_SIZE)
-         + ASM_EXTRA_STACK;
+  u32 x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
+  unsigned int i;
+
+  while (nblks)
+    {
+      x0 = input[0];
+      x1 = input[1];
+      x2 = input[2];
+      x3 = input[3];
+      x4 = input[4];
+      x5 = input[5];
+      x6 = input[6];
+      x7 = input[7];
+      x8 = input[8];
+      x9 = input[9];
+      x10 = input[10];
+      x11 = input[11];
+      x12 = input[12];
+      x13 = input[13];
+      x14 = input[14];
+      x15 = input[15];
+
+      for (i = 20; i > 0; i -= 2)
+	{
+	  QUARTERROUND(x0, x4,  x8, x12)
+	  QUARTERROUND(x1, x5,  x9, x13)
+	  QUARTERROUND(x2, x6, x10, x14)
+	  QUARTERROUND(x3, x7, x11, x15)
+	  QUARTERROUND(x0, x5, x10, x15)
+	  QUARTERROUND(x1, x6, x11, x12)
+	  QUARTERROUND(x2, x7,  x8, x13)
+	  QUARTERROUND(x3, x4,  x9, x14)
+	}
+
+      x0 = PLUS(x0, input[0]);
+      x1 = PLUS(x1, input[1]);
+      x2 = PLUS(x2, input[2]);
+      x3 = PLUS(x3, input[3]);
+      x4 = PLUS(x4, input[4]);
+      x5 = PLUS(x5, input[5]);
+      x6 = PLUS(x6, input[6]);
+      x7 = PLUS(x7, input[7]);
+      x8 = PLUS(x8, input[8]);
+      x9 = PLUS(x9, input[9]);
+      x10 = PLUS(x10, input[10]);
+      x11 = PLUS(x11, input[11]);
+      x12 = PLUS(x12, input[12]);
+      x13 = PLUS(x13, input[13]);
+      x14 = PLUS(x14, input[14]);
+      x15 = PLUS(x15, input[15]);
+
+      input[12] = PLUSONE(input[12]);
+      input[13] = PLUS(input[13], !input[12]);
+
+      BUF_XOR_LE32(dst, src, 0, x0);
+      BUF_XOR_LE32(dst, src, 4, x1);
+      BUF_XOR_LE32(dst, src, 8, x2);
+      BUF_XOR_LE32(dst, src, 12, x3);
+      BUF_XOR_LE32(dst, src, 16, x4);
+      BUF_XOR_LE32(dst, src, 20, x5);
+      BUF_XOR_LE32(dst, src, 24, x6);
+      BUF_XOR_LE32(dst, src, 28, x7);
+      BUF_XOR_LE32(dst, src, 32, x8);
+      BUF_XOR_LE32(dst, src, 36, x9);
+      BUF_XOR_LE32(dst, src, 40, x10);
+      BUF_XOR_LE32(dst, src, 44, x11);
+      BUF_XOR_LE32(dst, src, 48, x12);
+      BUF_XOR_LE32(dst, src, 52, x13);
+      BUF_XOR_LE32(dst, src, 56, x14);
+      BUF_XOR_LE32(dst, src, 60, x15);
+
+      src += CHACHA20_BLOCK_SIZE;
+      dst += CHACHA20_BLOCK_SIZE;
+      nblks--;
+    }
+
+  /* burn_stack */
+  return (17 * sizeof(u32) + 6 * sizeof(void *));
 }
 
 
 static void
-chacha20_keysetup (CHACHA20_context_t * ctx, const byte * key,
+chacha20_keysetup (CHACHA20_context_t *ctx, const byte *key,
                    unsigned int keylen)
 {
-  /* These constants are the little endian encoding of the string
-     "expand 32-byte k".  For the 128 bit variant, the "32" in that
-     string will be fixed up to "16".  */
-  ctx->input[0] = 0x61707865;        /* "apxe"  */
-  ctx->input[1] = 0x3320646e;        /* "3 dn"  */
-  ctx->input[2] = 0x79622d32;        /* "yb-2"  */
-  ctx->input[3] = 0x6b206574;        /* "k et"  */
+  static const char sigma[16] = "expand 32-byte k";
+  static const char tau[16] = "expand 16-byte k";
+  const char *constants;
 
-  ctx->input[4] = buf_get_le32 (key + 0);
-  ctx->input[5] = buf_get_le32 (key + 4);
-  ctx->input[6] = buf_get_le32 (key + 8);
-  ctx->input[7] = buf_get_le32 (key + 12);
-
+  ctx->input[4] = buf_get_le32(key + 0);
+  ctx->input[5] = buf_get_le32(key + 4);
+  ctx->input[6] = buf_get_le32(key + 8);
+  ctx->input[7] = buf_get_le32(key + 12);
   if (keylen == CHACHA20_MAX_KEY_SIZE) /* 256 bits */
     {
-      ctx->input[8] = buf_get_le32 (key + 16);
-      ctx->input[9] = buf_get_le32 (key + 20);
-      ctx->input[10] = buf_get_le32 (key + 24);
-      ctx->input[11] = buf_get_le32 (key + 28);
+      key += 16;
+      constants = sigma;
     }
   else /* 128 bits */
     {
-      ctx->input[8] = ctx->input[4];
-      ctx->input[9] = ctx->input[5];
-      ctx->input[10] = ctx->input[6];
-      ctx->input[11] = ctx->input[7];
-
-      ctx->input[1] -= 0x02000000;        /* Change to "1 dn".  */
-      ctx->input[2] += 0x00000004;        /* Change to "yb-6".  */
+      constants = tau;
     }
+  ctx->input[8] = buf_get_le32(key + 0);
+  ctx->input[9] = buf_get_le32(key + 4);
+  ctx->input[10] = buf_get_le32(key + 8);
+  ctx->input[11] = buf_get_le32(key + 12);
+  ctx->input[0] = buf_get_le32(constants + 0);
+  ctx->input[1] = buf_get_le32(constants + 4);
+  ctx->input[2] = buf_get_le32(constants + 8);
+  ctx->input[3] = buf_get_le32(constants + 12);
 }
 
 
 static void
-chacha20_ivsetup (CHACHA20_context_t * ctx, const byte * iv, size_t ivlen)
+chacha20_ivsetup (CHACHA20_context_t * ctx, const byte *iv, size_t ivlen)
 {
   if (ivlen == CHACHA20_CTR_SIZE)
     {
@@ -367,9 +287,30 @@ chacha20_ivsetup (CHACHA20_context_t * ctx, const byte * iv, size_t ivlen)
 }
 
 
+static void
+chacha20_setiv (void *context, const byte *iv, size_t ivlen)
+{
+  CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
+
+  /* draft-nir-cfrg-chacha20-poly1305-02 defines 96-bit and 64-bit nonce. */
+  if (iv && ivlen != CHACHA20_MAX_IV_SIZE && ivlen != CHACHA20_MIN_IV_SIZE
+      && ivlen != CHACHA20_CTR_SIZE)
+    log_info ("WARNING: chacha20_setiv: bad ivlen=%u\n", (u32) ivlen);
+
+  if (iv && (ivlen == CHACHA20_MAX_IV_SIZE || ivlen == CHACHA20_MIN_IV_SIZE
+             || ivlen == CHACHA20_CTR_SIZE))
+    chacha20_ivsetup (ctx, iv, ivlen);
+  else
+    chacha20_ivsetup (ctx, NULL, 0);
+
+  /* Reset the unused pad bytes counter.  */
+  ctx->unused = 0;
+}
+
+
 static gcry_err_code_t
-chacha20_do_setkey (CHACHA20_context_t * ctx,
-                    const byte * key, unsigned int keylen)
+chacha20_do_setkey (CHACHA20_context_t *ctx,
+                    const byte *key, unsigned int keylen)
 {
   static int initialized;
   static const char *selftest_failed;
@@ -388,25 +329,15 @@ chacha20_do_setkey (CHACHA20_context_t * ctx,
   if (keylen != CHACHA20_MAX_KEY_SIZE && keylen != CHACHA20_MIN_KEY_SIZE)
     return GPG_ERR_INV_KEYLEN;
 
-#ifdef USE_SSE2
-  ctx->blocks = _gcry_chacha20_amd64_sse2_blocks;
-#else
-  ctx->blocks = chacha20_blocks;
-#endif
-
 #ifdef USE_SSSE3
-  if (features & HWF_INTEL_SSSE3)
-    ctx->blocks = _gcry_chacha20_amd64_ssse3_blocks;
+  ctx->use_ssse3 = (features & HWF_INTEL_SSSE3) != 0;
 #endif
 #ifdef USE_AVX2
-  if (features & HWF_INTEL_AVX2)
-    ctx->blocks = _gcry_chacha20_amd64_avx2_blocks;
+  ctx->use_avx2 = (features & HWF_INTEL_AVX2) != 0;
 #endif
-#ifdef USE_NEON
-  if (features & HWF_ARM_NEON)
-    ctx->blocks = _gcry_chacha20_armv7_neon_blocks;
+#ifdef USE_ARMV7_NEON
+  ctx->use_neon = (features & HWF_ARM_NEON) != 0;
 #endif
-
   (void)features;
 
   chacha20_keysetup (ctx, key, keylen);
@@ -419,7 +350,7 @@ chacha20_do_setkey (CHACHA20_context_t * ctx,
 
 
 static gcry_err_code_t
-chacha20_setkey (void *context, const byte * key, unsigned int keylen)
+chacha20_setkey (void *context, const byte *key, unsigned int keylen)
 {
   CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
   gcry_err_code_t rc = chacha20_do_setkey (ctx, key, keylen);
@@ -429,37 +360,19 @@ chacha20_setkey (void *context, const byte * key, unsigned int keylen)
 
 
 static void
-chacha20_setiv (void *context, const byte * iv, size_t ivlen)
+chacha20_encrypt_stream (void *context, byte *outbuf, const byte *inbuf,
+                         size_t length)
 {
+  static const unsigned char zero_pad[CHACHA20_BLOCK_SIZE] = { 0, };
   CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
-
-  /* draft-nir-cfrg-chacha20-poly1305-02 defines 96-bit and 64-bit nonce. */
-  if (iv && ivlen != CHACHA20_MAX_IV_SIZE && ivlen != CHACHA20_MIN_IV_SIZE
-      && ivlen != CHACHA20_CTR_SIZE)
-    log_info ("WARNING: chacha20_setiv: bad ivlen=%u\n", (u32) ivlen);
-
-  if (iv && (ivlen == CHACHA20_MAX_IV_SIZE || ivlen == CHACHA20_MIN_IV_SIZE
-             || ivlen == CHACHA20_CTR_SIZE))
-    chacha20_ivsetup (ctx, iv, ivlen);
-  else
-    chacha20_ivsetup (ctx, NULL, 0);
-
-  /* Reset the unused pad bytes counter.  */
-  ctx->unused = 0;
-}
-
-
-
-/* Note: This function requires LENGTH > 0.  */
-static void
-chacha20_do_encrypt_stream (CHACHA20_context_t * ctx,
-                            byte * outbuf, const byte * inbuf, size_t length)
-{
   unsigned int nburn, burn = 0;
+
+  if (!length)
+    return;
 
   if (ctx->unused)
     {
-      unsigned char *p = (void *) ctx->pad;
+      unsigned char *p = ctx->pad;
       size_t n;
 
       gcry_assert (ctx->unused < CHACHA20_BLOCK_SIZE);
@@ -467,29 +380,73 @@ chacha20_do_encrypt_stream (CHACHA20_context_t * ctx,
       n = ctx->unused;
       if (n > length)
         n = length;
+
       buf_xor (outbuf, inbuf, p + CHACHA20_BLOCK_SIZE - ctx->unused, n);
       length -= n;
       outbuf += n;
       inbuf += n;
       ctx->unused -= n;
+
       if (!length)
         return;
       gcry_assert (!ctx->unused);
     }
 
+#ifdef USE_AVX2
+  if (ctx->use_avx2 && length >= CHACHA20_BLOCK_SIZE * 8)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 8;
+      nburn = _gcry_chacha20_amd64_avx2_blocks8(ctx->input, outbuf, inbuf,
+						nblocks);
+      burn = nburn > burn ? nburn : burn;
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+
+#ifdef USE_SSSE3
+  if (ctx->use_ssse3 && length >= CHACHA20_BLOCK_SIZE * 4)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 4;
+      nburn = _gcry_chacha20_amd64_ssse3_blocks4(ctx->input, outbuf, inbuf,
+						 nblocks);
+      burn = nburn > burn ? nburn : burn;
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+
+#ifdef USE_ARMV7_NEON
+  if (ctx->use_neon && length >= CHACHA20_BLOCK_SIZE * 4)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 4;
+      nburn = _gcry_chacha20_armv7_neon_blocks4(ctx->input, outbuf, inbuf,
+						nblocks);
+      burn = nburn > burn ? nburn : burn;
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+
   if (length >= CHACHA20_BLOCK_SIZE)
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
-      size_t bytes = nblocks * CHACHA20_BLOCK_SIZE;
-      burn = ctx->blocks(ctx->input, inbuf, outbuf, bytes);
-      length -= bytes;
-      outbuf += bytes;
-      inbuf  += bytes;
+      nburn = chacha20_blocks(ctx->input, outbuf, inbuf, nblocks);
+      burn = nburn > burn ? nburn : burn;
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
     }
 
   if (length > 0)
     {
-      nburn = chacha20_core (ctx->pad, ctx);
+      nburn = chacha20_blocks(ctx->input, ctx->pad, zero_pad, 1);
       burn = nburn > burn ? nburn : burn;
 
       buf_xor (outbuf, inbuf, ctx->pad, length);
@@ -497,17 +454,6 @@ chacha20_do_encrypt_stream (CHACHA20_context_t * ctx,
     }
 
   _gcry_burn_stack (burn);
-}
-
-
-static void
-chacha20_encrypt_stream (void *context, byte * outbuf, const byte * inbuf,
-                         size_t length)
-{
-  CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
-
-  if (length)
-    chacha20_do_encrypt_stream (ctx, outbuf, inbuf, length);
 }
 
 
