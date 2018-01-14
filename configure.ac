@@ -2416,6 +2416,13 @@ LIST_MEMBER(blake2, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS blake2.lo"
    AC_DEFINE(USE_BLAKE2, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS blake2b-amd64-avx2.lo"
+      ;;
+   esac
 fi
 
 # SHA-1 needs to be included always for example because it is used by
