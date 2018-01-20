@@ -1743,7 +1743,7 @@ other cipher functions and returns a handle to it in `hd'.  In case of
 an error, an according error code is returned.
 
 The ID of algorithm to use must be specified via @var{algo}.  See
-@xref{Available ciphers}, for a list of supported ciphers and the
+@ref{Available ciphers}, for a list of supported ciphers and the
 according constants.
 
 Besides using the constants directly, the function
@@ -1751,7 +1751,7 @@ Besides using the constants directly, the function
 an algorithm into the according numeric ID.
 
 The cipher mode to use must be specified via @var{mode}.  See
-@xref{Available cipher modes}, for a list of supported cipher modes
+@ref{Available cipher modes}, for a list of supported cipher modes
 and the according constants.  Note that some modes are incompatible
 with some algorithms - in particular, stream mode
 (@code{GCRY_CIPHER_MODE_STREAM}) only works with stream ciphers.
@@ -3310,7 +3310,7 @@ may be given as @code{0} if the algorithms to use are later set using
 @code{gcry_md_enable}. @var{hd} is guaranteed to either receive a valid
 handle or NULL.
 
-For a list of supported algorithms, see @xref{Available hash
+For a list of supported algorithms, see @ref{Available hash
 algorithms}.
 
 The flags allowed for @var{mode} are:
@@ -3329,7 +3329,7 @@ algorithm is not an extendable-output function.  Note that the function
 @code{gcry_md_setkey} must be used to set the MAC key.  The size of the
 MAC is equal to the message digest of the underlying hash algorithm.
 If you want CBC message authentication codes based on a cipher,
-see @xref{Working with cipher handles}.
+see @ref{Working with cipher handles}.
 
 @item GCRY_MD_FLAG_BUGEMU1
 @cindex bug emulation
@@ -3847,7 +3847,7 @@ bitwise OR of constants described below. @var{hd} is guaranteed to either
 receive a valid handle or NULL. @var{ctx} is context object to associate MAC
 object with. @var{ctx} maybe set to NULL.
 
-For a list of supported algorithms, see @xref{Available MAC algorithms}.
+For a list of supported algorithms, see @ref{Available MAC algorithms}.
 
 The flags allowed for @var{mode} are:
 
@@ -5626,7 +5626,7 @@ self-contained functions.  Due to the wide variety of parameters
 required by different algorithms S-expressions, as flexible way to
 convey these parameters, are used.  There is a set of helper functions
 to work with these S-expressions.
-@c see @xref{S-expression Subsystem Architecture}.
+@c see @ref{S-expression Subsystem Architecture}.
 
 Aside of functions to register new algorithms, map algorithms names to
 algorithms identifiers and to lookup properties of a key, the
