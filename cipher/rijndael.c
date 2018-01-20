@@ -211,6 +211,11 @@ extern void _gcry_aes_armv8_ce_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
                                           int encrypt);
 extern void _gcry_aes_armv8_ce_ocb_auth (gcry_cipher_hd_t c,
                                          const void *abuf_arg, size_t nblocks);
+extern void _gcry_aes_armv8_ce_xts_crypt (RIJNDAEL_context *ctx,
+                                          unsigned char *tweak,
+                                          unsigned char *outbuf,
+                                          const unsigned char *inbuf,
+                                          size_t nblocks, int encrypt);
 #endif /*USE_ARM_ASM*/
 
 static unsigned int do_encrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
@@ -1473,6 +1478,13 @@ _gcry_aes_xts_crypt (void *context, unsigned char *tweak,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_ARM_CE
+  else if (ctx->use_arm_ce)
+    {
+      _gcry_aes_armv8_ce_xts_crypt (ctx, tweak, outbuf, inbuf, nblocks, encrypt);
+      burn_depth = 0;
+    }
+#endif /*USE_ARM_CE*/
   else
     {
       tweak_next_lo = buf_get_le64 (tweak + 0);

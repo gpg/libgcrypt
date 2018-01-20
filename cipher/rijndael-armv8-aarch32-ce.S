@@ -1517,6 +1517,317 @@ _gcry_aes_ocb_auth_armv8_ce:
 .size _gcry_aes_ocb_auth_armv8_ce,.-_gcry_aes_ocb_auth_armv8_ce;
 
 
+
+/*
+ * void _gcry_aes_xts_enc_armv8_ce (const void *keysched,
+ *                                  unsigned char *outbuf,
+ *                                  const unsigned char *inbuf,
+ *                                  unsigned char *iv, unsigned int nrounds);
+ */
+
+.align 3
+.globl _gcry_aes_xts_enc_armv8_ce
+.type  _gcry_aes_xts_enc_armv8_ce,%function;
+_gcry_aes_xts_enc_armv8_ce:
+  /* input:
+   *    r0: keysched
+   *    r1: outbuf
+   *    r2: inbuf
+   *    r3: iv
+   *    %st+0: nblocks => r4
+   *    %st+4: nrounds => r5
+   */
+
+  vpush {q4-q7}
+  push {r4-r12,lr} /* 4*16 + 4*10 = 104b */
+  ldr r4, [sp, #(104+0)]
+  ldr r5, [sp, #(104+4)]
+  cmp r4, #0
+  beq .Lxts_enc_skip
+
+  cmp r5, #12
+
+  vld1.8 {q0}, [r3] /* load tweak */
+  mov r7, #0x87;
+
+  aes_preload_keys(r0, r6);
+
+  beq .Lxts_enc_entry_192
+  bhi .Lxts_enc_entry_256
+
+#define CTR_XTS(bits, ...) \
+  .Lxts_enc_entry_##bits: \
+    cmp r4, #4; \
+    blo .Lxts_enc_loop_##bits; \
+    \
+  .Lxts_enc_loop4_##bits: \
+    sub r4, r4, #4; \
+    veor q9, q9, q9; \
+    \
+    vld1.8 {q1-q2}, [r2]!; /* load plaintext */ \
+    veor q1, q1, q0; \
+    cmp r4, #4; \
+    vmov.u32 d18[0], r7; \
+    vst1.8 {q0}, [r1]!; /* store tweak0 to temp */ \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    \
+    vld1.8 {q3-q4}, [r2]!; /* load plaintext */ \
+    veor q2, q2, q0; \
+    vst1.8 {q0}, [r1]!; /* store tweak1 to temp */ \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    \
+    veor q3, q3, q0; \
+    vst1.8 {q0}, [r1]!; /* store tweak2 to temp */ \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    \
+    veor q4, q4, q0; \
+    vst1.8 {q0}, [r1]; /* store tweak3 to temp */ \
+    sub r1, r1, #48; \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    \
+    do_aes_4_##bits(e, mc, q1, q2, q3, q4, ##__VA_ARGS__); \
+    \
+    vld1.8 {q8-q9}, [r1]!; /* load tweak from temp */ \
+    veor q1, q1, q8; \
+    veor q2, q2, q9; \
+    vld1.8 {q8-q9}, [r1]; /* load tweak from temp */ \
+    sub r1, r1, #32; \
+    veor q3, q3, q8; \
+    veor q4, q4, q9; \
+    vst1.8 {q1-q2}, [r1]!; /* store plaintext */ \
+    vst1.8 {q3-q4}, [r1]!; /* store plaintext */ \
+    \
+    bhs .Lxts_enc_loop4_##bits; \
+    cmp r4, #0; \
+    beq .Lxts_enc_done; \
+    \
+  .Lxts_enc_loop_##bits: \
+    \
+    vld1.8 {q1}, [r2]!; /* load ciphertext */ \
+    \
+    veor q9, q9, q9; \
+    veor q1, q1, q0; \
+    vmov.u32 d18[0], r7; \
+    vmov q2, q0; \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    subs r4, r4, #1; \
+    \
+    do_aes_one##bits(e, mc, q1, q1, ##__VA_ARGS__); \
+    \
+    veor q1, q1, q2; \
+    vst1.8 {q1}, [r1]!; /* store plaintext */ \
+    \
+    bne .Lxts_enc_loop_##bits; \
+    b .Lxts_enc_done;
+
+  CTR_XTS(128re, r0, r6)
+  CTR_XTS(192, r0, r6)
+  CTR_XTS(256, r0, r6)
+
+#undef CTR_XTS
+
+.Lxts_enc_done:
+  vst1.8 {q0}, [r3] /* store tweak */
+
+  CLEAR_REG(q0)
+  CLEAR_REG(q1)
+  CLEAR_REG(q2)
+  CLEAR_REG(q3)
+  CLEAR_REG(q8)
+  CLEAR_REG(q9)
+  CLEAR_REG(q10)
+  CLEAR_REG(q11)
+  CLEAR_REG(q12)
+  CLEAR_REG(q13)
+  CLEAR_REG(q14)
+
+.Lxts_enc_skip:
+  pop {r4-r12,lr}
+  vpop {q4-q7}
+  bx lr
+.size _gcry_aes_xts_enc_armv8_ce,.-_gcry_aes_xts_enc_armv8_ce;
+
+
+/*
+ * void _gcry_aes_xts_dec_armv8_ce (const void *keysched,
+ *                                  unsigned char *outbuf,
+ *                                  const unsigned char *inbuf,
+ *                                  unsigned char *iv, unsigned int nrounds);
+ */
+
+.align 3
+.globl _gcry_aes_xts_dec_armv8_ce
+.type  _gcry_aes_xts_dec_armv8_ce,%function;
+_gcry_aes_xts_dec_armv8_ce:
+  /* input:
+   *    r0: keysched
+   *    r1: outbuf
+   *    r2: inbuf
+   *    r3: iv
+   *    %st+0: nblocks => r4
+   *    %st+4: nrounds => r5
+   */
+
+  vpush {q4-q7}
+  push {r4-r12,lr} /* 4*16 + 4*10 = 104b */
+  ldr r4, [sp, #(104+0)]
+  ldr r5, [sp, #(104+4)]
+  cmp r4, #0
+  beq .Lxts_dec_skip
+
+  cmp r5, #12
+
+  vld1.8 {q0}, [r3] /* load tweak */
+  mov r7, #0x87;
+
+  aes_preload_keys(r0, r6);
+
+  beq .Lxts_dec_entry_192
+  bhi .Lxts_dec_entry_256
+
+#define CTR_XTS(bits, ...) \
+  .Lxts_dec_entry_##bits: \
+    cmp r4, #4; \
+    blo .Lxts_dec_loop_##bits; \
+    \
+  .Lxts_dec_loop4_##bits: \
+    sub r4, r4, #4; \
+    veor q9, q9, q9; \
+    \
+    vld1.8 {q1-q2}, [r2]!; /* load plaintext */ \
+    veor q1, q1, q0; \
+    cmp r4, #4; \
+    vmov.u32 d18[0], r7; \
+    vst1.8 {q0}, [r1]!; /* store tweak0 to temp */ \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    \
+    vld1.8 {q3-q4}, [r2]!; /* load plaintext */ \
+    veor q2, q2, q0; \
+    vst1.8 {q0}, [r1]!; /* store tweak1 to temp */ \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    \
+    veor q3, q3, q0; \
+    vst1.8 {q0}, [r1]!; /* store tweak2 to temp */ \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    \
+    veor q4, q4, q0; \
+    vst1.8 {q0}, [r1]; /* store tweak3 to temp */ \
+    sub r1, r1, #48; \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    \
+    do_aes_4_##bits(d, imc, q1, q2, q3, q4, ##__VA_ARGS__); \
+    \
+    vld1.8 {q8-q9}, [r1]!; /* load tweak from temp */ \
+    veor q1, q1, q8; \
+    veor q2, q2, q9; \
+    vld1.8 {q8-q9}, [r1]; /* load tweak from temp */ \
+    sub r1, r1, #32; \
+    veor q3, q3, q8; \
+    veor q4, q4, q9; \
+    vst1.8 {q1-q2}, [r1]!; /* store plaintext */ \
+    vst1.8 {q3-q4}, [r1]!; /* store plaintext */ \
+    \
+    bhs .Lxts_dec_loop4_##bits; \
+    cmp r4, #0; \
+    beq .Lxts_dec_done; \
+    \
+  .Lxts_dec_loop_##bits: \
+    \
+    vld1.8 {q1}, [r2]!; /* load ciphertext */ \
+    \
+    veor q9, q9, q9; \
+    veor q1, q1, q0; \
+    vmov.u32 d18[0], r7; \
+    vmov q2, q0; \
+    \
+    vshr.s64 d16, d1, #63; \
+    vshr.u64 d17, d0, #63; \
+    vadd.u64 q0, q0, q0; \
+    vand d16, d16, d18; \
+    veor q0, q0, q8; \
+    subs r4, r4, #1; \
+    \
+    do_aes_one##bits(d, imc, q1, q1, ##__VA_ARGS__); \
+    \
+    veor q1, q1, q2; \
+    vst1.8 {q1}, [r1]!; /* store plaintext */ \
+    \
+    bne .Lxts_dec_loop_##bits; \
+    b .Lxts_dec_done;
+
+  CTR_XTS(128re, r0, r6)
+  CTR_XTS(192, r0, r6)
+  CTR_XTS(256, r0, r6)
+
+#undef CTR_XTS
+
+.Lxts_dec_done:
+  vst1.8 {q0}, [r3] /* store tweak */
+
+  CLEAR_REG(q0)
+  CLEAR_REG(q1)
+  CLEAR_REG(q2)
+  CLEAR_REG(q3)
+  CLEAR_REG(q8)
+  CLEAR_REG(q9)
+  CLEAR_REG(q10)
+  CLEAR_REG(q11)
+  CLEAR_REG(q12)
+  CLEAR_REG(q13)
+  CLEAR_REG(q14)
+
+.Lxts_dec_skip:
+  pop {r4-r12,lr}
+  vpop {q4-q7}
+  bx lr
+.size _gcry_aes_xts_dec_armv8_ce,.-_gcry_aes_xts_dec_armv8_ce;
+
+
 /*
  * u32 _gcry_aes_sbox4_armv8_ce(u32 in4b);
  */

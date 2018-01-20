@@ -101,12 +101,27 @@ extern void _gcry_aes_ocb_auth_armv8_ce (const void *keysched,
                                          size_t nblocks,
                                          unsigned int nrounds,
                                          unsigned int blkn);
+extern void _gcry_aes_xts_enc_armv8_ce (const void *keysched,
+                                        unsigned char *outbuf,
+                                        const unsigned char *inbuf,
+                                        unsigned char *tweak,
+                                        size_t nblocks, unsigned int nrounds);
+extern void _gcry_aes_xts_dec_armv8_ce (const void *keysched,
+                                        unsigned char *outbuf,
+                                        const unsigned char *inbuf,
+                                        unsigned char *tweak,
+                                        size_t nblocks, unsigned int nrounds);
 
 typedef void (*ocb_crypt_fn_t) (const void *keysched, unsigned char *outbuf,
                                 const unsigned char *inbuf,
                                 unsigned char *offset, unsigned char *checksum,
                                 unsigned char *L_table, size_t nblocks,
                                 unsigned int nrounds, unsigned int blkn);
+
+typedef void (*xts_crypt_fn_t) (const void *keysched, unsigned char *outbuf,
+                                const unsigned char *inbuf,
+                                unsigned char *tweak, size_t nblocks,
+                                unsigned int nrounds);
 
 void
 _gcry_aes_armv8_ce_setkey (RIJNDAEL_context *ctx, const byte *key)
@@ -359,6 +374,19 @@ _gcry_aes_armv8_ce_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
   _gcry_aes_ocb_auth_armv8_ce(keysched, abuf, c->u_mode.ocb.aad_offset,
 			      c->u_mode.ocb.aad_sum, c->u_mode.ocb.L[0],
 			      nblocks, nrounds, (unsigned int)blkn);
+}
+
+void
+_gcry_aes_armv8_ce_xts_crypt (RIJNDAEL_context *ctx, unsigned char *tweak,
+			      unsigned char *outbuf, const unsigned char *inbuf,
+			      size_t nblocks, int encrypt)
+{
+  const void *keysched = encrypt ? ctx->keyschenc32 : ctx->keyschdec32;
+  xts_crypt_fn_t crypt_fn = encrypt ? _gcry_aes_xts_enc_armv8_ce
+                                    : _gcry_aes_xts_dec_armv8_ce;
+  unsigned int nrounds = ctx->rounds;
+
+  crypt_fn(keysched, outbuf, inbuf, tweak, nblocks, nrounds);
 }
 
 #endif /* USE_ARM_CE */

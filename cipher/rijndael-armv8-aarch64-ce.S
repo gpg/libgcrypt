@@ -1277,6 +1277,280 @@ _gcry_aes_ocb_auth_armv8_ce:
 
 
 /*
+ * void _gcry_aes_xts_enc_armv8_ce (const void *keysched,
+ *                                  unsigned char *outbuf,
+ *                                  const unsigned char *inbuf,
+ *                                  unsigned char *tweak, unsigned int nrounds);
+ */
+
+.align 3
+.globl _gcry_aes_xts_enc_armv8_ce
+.type  _gcry_aes_xts_enc_armv8_ce,%function;
+_gcry_aes_xts_enc_armv8_ce:
+  /* input:
+   *    r0: keysched
+   *    r1: outbuf
+   *    r2: inbuf
+   *    r3: tweak
+   *    x4: nblocks
+   *    w5: nrounds
+   */
+
+  cbz x4, .Lxts_enc_skip
+
+  /* load tweak */
+  ld1 {v0.16b}, [x3]
+
+  /* load gfmul mask */
+  mov x6, #0x87
+  mov x7, #0x01
+  mov v16.D[0], x6
+  mov v16.D[1], x7
+
+  aes_preload_keys(x0, w5);
+
+  b.eq .Lxts_enc_entry_192
+  b.hi .Lxts_enc_entry_256
+
+#define XTS_ENC(bits) \
+  .Lxts_enc_entry_##bits: \
+    cmp x4, #4; \
+    b.lo .Lxts_enc_loop_##bits; \
+    \
+  .Lxts_enc_loop4_##bits: \
+    \
+    ext v4.16b, v0.16b, v0.16b, #8; \
+    \
+    sshr v2.2d, v4.2d, #63; \
+    add v5.2d, v0.2d, v0.2d; \
+    and v2.16b, v2.16b, v16.16b; \
+    add v4.2d, v4.2d, v4.2d; \
+    eor v5.16b, v5.16b, v2.16b; \
+    \
+    sshr v2.2d, v4.2d, #63; \
+    add v6.2d, v5.2d, v5.2d; \
+    and v2.16b, v2.16b, v16.16b; \
+    add v4.2d, v4.2d, v4.2d; \
+    eor v6.16b, v6.16b, v2.16b; \
+    \
+    sshr v2.2d, v4.2d, #63; \
+    add v7.2d, v6.2d, v6.2d; \
+    and v2.16b, v2.16b, v16.16b; \
+    add v4.2d, v4.2d, v4.2d; \
+    eor v7.16b, v7.16b, v2.16b; \
+    \
+    sshr v2.2d, v4.2d, #63; \
+    add v3.2d, v7.2d, v7.2d; \
+    and v2.16b, v2.16b, v16.16b; \
+    add v4.2d, v4.2d, v4.2d; \
+    eor v3.16b, v3.16b, v2.16b; \
+    ld1 {v1.16b-v2.16b}, [x2], #32; /* load plaintext */ \
+    st1 {v3.16b}, [x3]; \
+    sub x4, x4, #4; \
+    eor v1.16b, v1.16b, v0.16b; \
+    \
+    ld1 {v3.16b-v4.16b}, [x2], #32; /* load plaintext */ \
+    cmp x4, #4; \
+    eor v2.16b, v2.16b, v5.16b; \
+    eor v3.16b, v3.16b, v6.16b; \
+    eor v4.16b, v4.16b, v7.16b; \
+    \
+    do_aes_4_##bits(e, mc, v1, v2, v3, v4); \
+    \
+    eor v1.16b, v1.16b, v0.16b; \
+    ld1 {v0.16b}, [x3]; \
+    eor v2.16b, v2.16b, v5.16b; \
+    eor v3.16b, v3.16b, v6.16b; \
+    eor v4.16b, v4.16b, v7.16b; \
+    st1 {v1.16b-v4.16b}, [x1], #64; /* store plaintext */ \
+    \
+    b.hs .Lxts_enc_loop4_##bits; \
+    CLEAR_REG(v3); \
+    CLEAR_REG(v4); \
+    CLEAR_REG(v5); \
+    CLEAR_REG(v6); \
+    CLEAR_REG(v7); \
+    cbz x4, .Lxts_enc_done; \
+    \
+  .Lxts_enc_loop_##bits: \
+    \
+    ld1 {v1.16b}, [x2], #16; /* load plaintext */ \
+    ext v3.16b, v0.16b, v0.16b, #8; \
+    mov v2.16b, v0.16b; \
+    sshr v3.2d, v3.2d, #63; \
+    add v0.2d, v0.2d, v0.2d; \
+    and v3.16b, v3.16b, v16.16b; \
+    eor v1.16b, v1.16b, v2.16b; \
+    eor v0.16b, v0.16b, v3.16b; \
+    sub x4, x4, #1; \
+    \
+    do_aes_one##bits(e, mc, v1, v1); \
+    \
+    eor v1.16b, v1.16b, v2.16b; \
+    st1 {v1.16b}, [x1], #16; /* store ciphertext */ \
+    \
+    cbnz x4, .Lxts_enc_loop_##bits; \
+    b .Lxts_enc_done;
+
+  XTS_ENC(128)
+  XTS_ENC(192)
+  XTS_ENC(256)
+
+#undef XTS_ENC
+
+.Lxts_enc_done:
+  aes_clear_keys(w5)
+
+  st1 {v0.16b}, [x3] /* store tweak */
+
+  CLEAR_REG(v0)
+  CLEAR_REG(v1)
+  CLEAR_REG(v2)
+
+.Lxts_enc_skip:
+  ret
+
+.size _gcry_aes_xts_enc_armv8_ce,.-_gcry_aes_xts_enc_armv8_ce;
+
+
+/*
+ * void _gcry_aes_xts_dec_armv8_ce (const void *keysched,
+ *                                  unsigned char *outbuf,
+ *                                  const unsigned char *inbuf,
+ *                                  unsigned char *tweak, unsigned int nrounds);
+ */
+
+.align 3
+.globl _gcry_aes_xts_dec_armv8_ce
+.type  _gcry_aes_xts_dec_armv8_ce,%function;
+_gcry_aes_xts_dec_armv8_ce:
+  /* input:
+   *    r0: keysched
+   *    r1: outbuf
+   *    r2: inbuf
+   *    r3: tweak
+   *    x4: nblocks
+   *    w5: nrounds
+   */
+
+  cbz x4, .Lxts_dec_skip
+
+  /* load tweak */
+  ld1 {v0.16b}, [x3]
+
+  /* load gfmul mask */
+  mov x6, #0x87
+  mov x7, #0x01
+  mov v16.D[0], x6
+  mov v16.D[1], x7
+
+  aes_preload_keys(x0, w5);
+
+  b.eq .Lxts_dec_entry_192
+  b.hi .Lxts_dec_entry_256
+
+#define XTS_DEC(bits) \
+  .Lxts_dec_entry_##bits: \
+    cmp x4, #4; \
+    b.lo .Lxts_dec_loop_##bits; \
+    \
+  .Lxts_dec_loop4_##bits: \
+    \
+    ext v4.16b, v0.16b, v0.16b, #8; \
+    \
+    sshr v2.2d, v4.2d, #63; \
+    add v5.2d, v0.2d, v0.2d; \
+    and v2.16b, v2.16b, v16.16b; \
+    add v4.2d, v4.2d, v4.2d; \
+    eor v5.16b, v5.16b, v2.16b; \
+    \
+    sshr v2.2d, v4.2d, #63; \
+    add v6.2d, v5.2d, v5.2d; \
+    and v2.16b, v2.16b, v16.16b; \
+    add v4.2d, v4.2d, v4.2d; \
+    eor v6.16b, v6.16b, v2.16b; \
+    \
+    sshr v2.2d, v4.2d, #63; \
+    add v7.2d, v6.2d, v6.2d; \
+    and v2.16b, v2.16b, v16.16b; \
+    add v4.2d, v4.2d, v4.2d; \
+    eor v7.16b, v7.16b, v2.16b; \
+    \
+    sshr v2.2d, v4.2d, #63; \
+    add v3.2d, v7.2d, v7.2d; \
+    and v2.16b, v2.16b, v16.16b; \
+    add v4.2d, v4.2d, v4.2d; \
+    eor v3.16b, v3.16b, v2.16b; \
+    ld1 {v1.16b-v2.16b}, [x2], #32; /* load plaintext */ \
+    st1 {v3.16b}, [x3]; \
+    sub x4, x4, #4; \
+    eor v1.16b, v1.16b, v0.16b; \
+    \
+    ld1 {v3.16b-v4.16b}, [x2], #32; /* load plaintext */ \
+    cmp x4, #4; \
+    eor v2.16b, v2.16b, v5.16b; \
+    eor v3.16b, v3.16b, v6.16b; \
+    eor v4.16b, v4.16b, v7.16b; \
+    \
+    do_aes_4_##bits(d, imc, v1, v2, v3, v4); \
+    \
+    eor v1.16b, v1.16b, v0.16b; \
+    ld1 {v0.16b}, [x3]; \
+    eor v2.16b, v2.16b, v5.16b; \
+    eor v3.16b, v3.16b, v6.16b; \
+    eor v4.16b, v4.16b, v7.16b; \
+    st1 {v1.16b-v4.16b}, [x1], #64; /* store plaintext */ \
+    \
+    b.hs .Lxts_dec_loop4_##bits; \
+    CLEAR_REG(v3); \
+    CLEAR_REG(v4); \
+    CLEAR_REG(v5); \
+    CLEAR_REG(v6); \
+    CLEAR_REG(v7); \
+    cbz x4, .Lxts_dec_done; \
+    \
+  .Lxts_dec_loop_##bits: \
+    \
+    ld1 {v1.16b}, [x2], #16; /* load plaintext */ \
+    ext v3.16b, v0.16b, v0.16b, #8; \
+    mov v2.16b, v0.16b; \
+    sshr v3.2d, v3.2d, #63; \
+    add v0.2d, v0.2d, v0.2d; \
+    and v3.16b, v3.16b, v16.16b; \
+    eor v1.16b, v1.16b, v2.16b; \
+    eor v0.16b, v0.16b, v3.16b; \
+    sub x4, x4, #1; \
+    \
+    do_aes_one##bits(d, imc, v1, v1); \
+    \
+    eor v1.16b, v1.16b, v2.16b; \
+    st1 {v1.16b}, [x1], #16; /* store ciphertext */ \
+    \
+    cbnz x4, .Lxts_dec_loop_##bits; \
+    b .Lxts_dec_done;
+
+  XTS_DEC(128)
+  XTS_DEC(192)
+  XTS_DEC(256)
+
+#undef XTS_DEC
+
+.Lxts_dec_done:
+  aes_clear_keys(w5)
+
+  st1 {v0.16b}, [x3] /* store tweak */
+
+  CLEAR_REG(v0)
+  CLEAR_REG(v1)
+  CLEAR_REG(v2)
+
+.Lxts_dec_skip:
+  ret
+
+.size _gcry_aes_xts_dec_armv8_ce,.-_gcry_aes_xts_dec_armv8_ce;
+
+
+/*
  * u32 _gcry_aes_sbox4_armv8_ce(u32 in4b);
  */
 .align 3
