@@ -1722,6 +1722,12 @@ value is automatically incremented after each call of
 Auto-increment allows avoiding need of setting IV between processing
 of sequential data units.
 
+@item  GCRY_CIPHER_MODE_EAX
+@cindex EAX, EAX mode
+EAX is an Authenticated Encryption with Associated Data (AEAD) block cipher
+mode by Bellare, Rogaway, and Wagner (see
+@uref{http://web.cs.ucdavis.edu/~rogaway/papers/eax.html}).
+
 @end table
 
 @node Working with cipher handles
@@ -1752,12 +1758,13 @@ with some algorithms - in particular, stream mode
 Poly1305 AEAD mode (@code{GCRY_CIPHER_MODE_POLY1305}) only works with
 ChaCha20 stream cipher. The block cipher modes
 (@code{GCRY_CIPHER_MODE_ECB}, @code{GCRY_CIPHER_MODE_CBC},
-@code{GCRY_CIPHER_MODE_CFB}, @code{GCRY_CIPHER_MODE_OFB} and
-@code{GCRY_CIPHER_MODE_CTR}) will work with any block cipher
-algorithm.  GCM mode (@code{GCRY_CIPHER_MODE_CCM}), CCM mode
-(@code{GCRY_CIPHER_MODE_GCM}), OCB mode (@code{GCRY_CIPHER_MODE_OCB}),
-and XTS mode (@code{GCRY_CIPHER_MODE_XTS}) will only work
-with block cipher algorithms which have the block size of 16 bytes.
+@code{GCRY_CIPHER_MODE_CFB}, @code{GCRY_CIPHER_MODE_OFB},
+@code{GCRY_CIPHER_MODE_CTR} and @code{GCRY_CIPHER_MODE_EAX}) will work
+with any block cipher algorithm.  GCM mode
+(@code{GCRY_CIPHER_MODE_CCM}), CCM mode (@code{GCRY_CIPHER_MODE_GCM}),
+OCB mode (@code{GCRY_CIPHER_MODE_OCB}), and XTS mode
+(@code{GCRY_CIPHER_MODE_XTS}) will only work with block cipher
+algorithms which have the block size of 16 bytes.
 
 The third argument @var{flags} can either be passed as @code{0} or as
 the bit-wise OR of the following constants.

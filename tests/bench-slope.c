@@ -1231,6 +1231,53 @@ static struct bench_ops ocb_authenticate_ops = {
   &bench_ocb_authenticate_do_bench
 };
 
+static void
+bench_eax_encrypt_do_bench (struct bench_obj *obj, void *buf,
+			    size_t buflen)
+{
+  char nonce[16] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88,
+                     0x00, 0x00, 0x01, 0x00 };
+  bench_aead_encrypt_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
+}
+
+static void
+bench_eax_decrypt_do_bench (struct bench_obj *obj, void *buf,
+			    size_t buflen)
+{
+  char nonce[16] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88,
+                     0x00, 0x00, 0x01, 0x00 };
+  bench_aead_decrypt_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
+}
+
+static void
+bench_eax_authenticate_do_bench (struct bench_obj *obj, void *buf,
+				 size_t buflen)
+{
+  char nonce[16] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88,
+                     0x00, 0x00, 0x01, 0x00 };
+  bench_aead_authenticate_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
+}
+
+static struct bench_ops eax_encrypt_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_eax_encrypt_do_bench
+};
+
+static struct bench_ops eax_decrypt_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_eax_decrypt_do_bench
+};
+
+static struct bench_ops eax_authenticate_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_eax_authenticate_do_bench
+};
 
 static void
 bench_poly1305_encrypt_do_bench (struct bench_obj *obj, void *buf,
@@ -1291,6 +1338,9 @@ static struct bench_cipher_mode cipher_modes[] = {
   {GCRY_CIPHER_MODE_CCM, "CCM enc", &ccm_encrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM dec", &ccm_decrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM auth", &ccm_authenticate_ops},
+  {GCRY_CIPHER_MODE_EAX, "EAX enc",  &eax_encrypt_ops},
+  {GCRY_CIPHER_MODE_EAX, "EAX dec",  &eax_decrypt_ops},
+  {GCRY_CIPHER_MODE_EAX, "EAX auth", &eax_authenticate_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM enc", &gcm_encrypt_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM dec", &gcm_decrypt_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM auth", &gcm_authenticate_ops},

@@ -109,6 +109,25 @@ typedef union
 } cipher_context_alignment_t;
 
 
+/* Storage structure for CMAC, for CMAC and EAX modes. */
+typedef struct {
+  /* The initialization vector. Also contains tag after finalization. */
+  union {
+    cipher_context_alignment_t iv_align;
+    unsigned char iv[MAX_BLOCKSIZE];
+  } u_iv;
+
+  /* Subkeys for tag creation, not cleared by gcry_cipher_reset. */
+  unsigned char subkeys[2][MAX_BLOCKSIZE];
+
+  /* Space to save partial input lengths for MAC. */
+  unsigned char macbuf[MAX_BLOCKSIZE];
+
+  int mac_unused;  /* Number of unprocessed bytes in MACBUF. */
+  unsigned int tag:1; /* Set to 1 if tag has been finalized.  */
+} gcry_cmac_context_t;
+
+
 /* The handle structure.  */
 struct gcry_cipher_handle
 {
@@ -197,7 +216,7 @@ struct gcry_cipher_handle
 
       unsigned char s0[GCRY_CCM_BLOCK_LEN];
 
-      unsigned int nonce:1;/* Set to 1 if nonce has been set.  */
+      unsigned int nonce:1; /* Set to 1 if nonce has been set.  */
       unsigned int lengths:1; /* Set to 1 if CCM length parameters has been
                                  processed.  */
     } ccm;
@@ -217,12 +236,16 @@ struct gcry_cipher_handle
     } poly1305;
 
     /* Mode specific storage for CMAC mode. */
-    struct {
-      unsigned int tag:1; /* Set to 1 if tag has been finalized.  */
+    gcry_cmac_context_t cmac;
 
-      /* Subkeys for tag creation, not cleared by gcry_cipher_reset. */
-      unsigned char subkeys[2][MAX_BLOCKSIZE];
-    } cmac;
+    /* Mode specific storage for EAX mode. */
+    struct {
+      /* CMAC for header (AAD). */
+      gcry_cmac_context_t cmac_header;
+
+      /* CMAC for ciphertext. */
+      gcry_cmac_context_t cmac_ciphertext;
+    } eax;
 
     /* Mode specific storage for GCM mode. */
     struct {
@@ -235,7 +258,6 @@ struct gcry_cipher_handle
       /* Space to save partial input lengths for MAC. */
       unsigned char macbuf[GCRY_CCM_BLOCK_LEN];
       int mac_unused;  /* Number of unprocessed bytes in MACBUF. */
-
 
       /* byte counters for GCM */
       u32 aadlen[2];
@@ -309,7 +331,6 @@ struct gcry_cipher_handle
          processed.  */
       unsigned int data_finalized:1;
       unsigned int aad_finalized:1;
-
     } ocb;
 
     /* Mode specific storage for XTS mode. */
@@ -404,6 +425,42 @@ gcry_err_code_t _gcry_cipher_ccm_get_tag
 gcry_err_code_t _gcry_cipher_ccm_check_tag
 /*           */ (gcry_cipher_hd_t c,
                  const unsigned char *intag, size_t taglen);
+
+
+/*-- cipher-cmac.c --*/
+gcry_err_code_t _gcry_cmac_generate_subkeys
+/*           */ (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx);
+gcry_err_code_t _gcry_cmac_write
+/*           */ (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
+		 const byte * inbuf, size_t inlen);
+gcry_err_code_t _gcry_cmac_final
+/*           */ (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx);
+void _gcry_cmac_reset (gcry_cmac_context_t *ctx);
+
+
+/*-- cipher-eax.c --*/
+gcry_err_code_t _gcry_cipher_eax_encrypt
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outbuf, size_t outbuflen,
+                   const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_eax_decrypt
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outbuf, size_t outbuflen,
+                   const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_eax_set_nonce
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *nonce, size_t noncelen);
+gcry_err_code_t _gcry_cipher_eax_authenticate
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *aadbuf, size_t aadbuflen);
+gcry_err_code_t _gcry_cipher_eax_get_tag
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outtag, size_t taglen);
+gcry_err_code_t _gcry_cipher_eax_check_tag
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *intag, size_t taglen);
+gcry_err_code_t _gcry_cipher_eax_setkey
+/*           */   (gcry_cipher_hd_t c);
 
 
 /*-- cipher-gcm.c --*/

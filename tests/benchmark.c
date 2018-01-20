@@ -779,6 +779,8 @@ cipher_bench ( const char *algoname )
       NULL, GCRY_GCM_BLOCK_LEN, GCRY_GCM_BLOCK_LEN },
     { GCRY_CIPHER_MODE_OCB, "      OCB", 1,
       NULL, 16, 16, 15 },
+    { GCRY_CIPHER_MODE_EAX, "      EAX", 0,
+      NULL, 0, 8, 8 },
     { GCRY_CIPHER_MODE_STREAM, "", 0 },
     {0}
   };

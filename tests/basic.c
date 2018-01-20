@@ -1347,7 +1347,7 @@ check_ofb_cipher (void)
 static void
 _check_gcm_cipher (unsigned int step)
 {
-  struct tv
+  static const struct tv
   {
     int algo;
     char key[MAX_DATA_LEN];
@@ -1891,9 +1891,542 @@ check_gcm_cipher (void)
 
 
 static void
+_check_eax_cipher (unsigned int step)
+{
+  static const struct tv
+  {
+    int algo;
+    char key[MAX_DATA_LEN];
+    char nonce[MAX_DATA_LEN];
+    int noncelen;
+    unsigned char header[MAX_DATA_LEN];
+    int headerlen;
+    unsigned char plaintext[MAX_DATA_LEN];
+    int inlen;
+    char out[MAX_DATA_LEN];
+    char tag[MAX_DATA_LEN];
+    int taglen;
+    int should_fail;
+  } tv[] =
+    {
+      /* Test vectors from http://www.cs.ucdavis.edu/~rogaway/papers/eax.pdf */
+      { GCRY_CIPHER_AES,
+        "\x23\x39\x52\xDE\xE4\xD5\xED\x5F\x9B\x9C\x6D\x6F\xF8\x0F\xF4\x78",
+        "\x62\xEC\x67\xF9\xC3\xA4\xA4\x07\xFC\xB2\xA8\xC4\x90\x31\xA8\xB3", 16,
+        "\x6B\xFB\x91\x4F\xD0\x7E\xAE\x6B", 8,
+        "",
+        0,
+        "",
+        "\xE0\x37\x83\x0E\x83\x89\xF2\x7B\x02\x5A\x2D\x65\x27\xE7\x9D\x01", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\x91\x94\x5D\x3F\x4D\xCB\xEE\x0B\xF4\x5E\xF5\x22\x55\xF0\x95\xA4",
+        "\xBE\xCA\xF0\x43\xB0\xA2\x3D\x84\x31\x94\xBA\x97\x2C\x66\xDE\xBD", 16,
+        "\xFA\x3B\xFD\x48\x06\xEB\x53\xFA", 8,
+        "\xF7\xFB",
+        2,
+        "\x19\xDD",
+        "\x5C\x4C\x93\x31\x04\x9D\x0B\xDA\xB0\x27\x74\x08\xF6\x79\x67\xE5", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\x01\xF7\x4A\xD6\x40\x77\xF2\xE7\x04\xC0\xF6\x0A\xDA\x3D\xD5\x23",
+        "\x70\xC3\xDB\x4F\x0D\x26\x36\x84\x00\xA1\x0E\xD0\x5D\x2B\xFF\x5E", 16,
+        "\x23\x4A\x34\x63\xC1\x26\x4A\xC6", 8,
+        "\x1A\x47\xCB\x49\x33",
+        5,
+        "\xD8\x51\xD5\xBA\xE0",
+        "\x3A\x59\xF2\x38\xA2\x3E\x39\x19\x9D\xC9\x26\x66\x26\xC4\x0F\x80", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\xD0\x7C\xF6\xCB\xB7\xF3\x13\xBD\xDE\x66\xB7\x27\xAF\xD3\xC5\xE8",
+        "\x84\x08\xDF\xFF\x3C\x1A\x2B\x12\x92\xDC\x19\x9E\x46\xB7\xD6\x17", 16,
+        "\x33\xCC\xE2\xEA\xBF\xF5\xA7\x9D", 8,
+        "\x48\x1C\x9E\x39\xB1",
+        5,
+        "\x63\x2A\x9D\x13\x1A",
+        "\xD4\xC1\x68\xA4\x22\x5D\x8E\x1F\xF7\x55\x93\x99\x74\xA7\xBE\xDE", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\x35\xB6\xD0\x58\x00\x05\xBB\xC1\x2B\x05\x87\x12\x45\x57\xD2\xC2",
+        "\xFD\xB6\xB0\x66\x76\xEE\xDC\x5C\x61\xD7\x42\x76\xE1\xF8\xE8\x16", 16,
+        "\xAE\xB9\x6E\xAE\xBE\x29\x70\xE9", 8,
+        "\x40\xD0\xC0\x7D\xA5\xE4",
+        6,
+        "\x07\x1D\xFE\x16\xC6\x75",
+        "\xCB\x06\x77\xE5\x36\xF7\x3A\xFE\x6A\x14\xB7\x4E\xE4\x98\x44\xDD", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\xBD\x8E\x6E\x11\x47\x5E\x60\xB2\x68\x78\x4C\x38\xC6\x2F\xEB\x22",
+        "\x6E\xAC\x5C\x93\x07\x2D\x8E\x85\x13\xF7\x50\x93\x5E\x46\xDA\x1B", 16,
+        "\xD4\x48\x2D\x1C\xA7\x8D\xCE\x0F", 8,
+        "\x4D\xE3\xB3\x5C\x3F\xC0\x39\x24\x5B\xD1\xFB\x7D",
+        12,
+        "\x83\x5B\xB4\xF1\x5D\x74\x3E\x35\x0E\x72\x84\x14",
+        "\xAB\xB8\x64\x4F\xD6\xCC\xB8\x69\x47\xC5\xE1\x05\x90\x21\x0A\x4F", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\x7C\x77\xD6\xE8\x13\xBE\xD5\xAC\x98\xBA\xA4\x17\x47\x7A\x2E\x7D",
+        "\x1A\x8C\x98\xDC\xD7\x3D\x38\x39\x3B\x2B\xF1\x56\x9D\xEE\xFC\x19", 16,
+        "\x65\xD2\x01\x79\x90\xD6\x25\x28", 8,
+        "\x8B\x0A\x79\x30\x6C\x9C\xE7\xED\x99\xDA\xE4\xF8\x7F\x8D\xD6\x16\x36",
+        17,
+        "\x02\x08\x3E\x39\x79\xDA\x01\x48\x12\xF5\x9F\x11\xD5\x26\x30\xDA\x30",
+        "\x13\x73\x27\xD1\x06\x49\xB0\xAA\x6E\x1C\x18\x1D\xB6\x17\xD7\xF2", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\x5F\xFF\x20\xCA\xFA\xB1\x19\xCA\x2F\xC7\x35\x49\xE2\x0F\x5B\x0D",
+        "\xDD\xE5\x9B\x97\xD7\x22\x15\x6D\x4D\x9A\xFF\x2B\xC7\x55\x98\x26", 16,
+        "\x54\xB9\xF0\x4E\x6A\x09\x18\x9A", 8,
+        "\x1B\xDA\x12\x2B\xCE\x8A\x8D\xBA\xF1\x87\x7D\x96\x2B\x85\x92\xDD"
+        "\x2D\x56",
+        18,
+        "\x2E\xC4\x7B\x2C\x49\x54\xA4\x89\xAF\xC7\xBA\x48\x97\xED\xCD\xAE"
+        "\x8C\xC3",
+        "\x3B\x60\x45\x05\x99\xBD\x02\xC9\x63\x82\x90\x2A\xEF\x7F\x83\x2A", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\xA4\xA4\x78\x2B\xCF\xFD\x3E\xC5\xE7\xEF\x6D\x8C\x34\xA5\x61\x23",
+        "\xB7\x81\xFC\xF2\xF7\x5F\xA5\xA8\xDE\x97\xA9\xCA\x48\xE5\x22\xEC", 16,
+        "\x89\x9A\x17\x58\x97\x56\x1D\x7E", 8,
+        "\x6C\xF3\x67\x20\x87\x2B\x85\x13\xF6\xEA\xB1\xA8\xA4\x44\x38\xD5"
+        "\xEF\x11",
+        18,
+        "\x0D\xE1\x8F\xD0\xFD\xD9\x1E\x7A\xF1\x9F\x1D\x8E\xE8\x73\x39\x38"
+        "\xB1\xE8",
+        "\xE7\xF6\xD2\x23\x16\x18\x10\x2F\xDB\x7F\xE5\x5F\xF1\x99\x17\x00", 16,
+        0
+      },
+      { GCRY_CIPHER_AES,
+        "\x83\x95\xFC\xF1\xE9\x5B\xEB\xD6\x97\xBD\x01\x0B\xC7\x66\xAA\xC3",
+        "\x22\xE7\xAD\xD9\x3C\xFC\x63\x93\xC5\x7E\xC0\xB3\xC1\x7D\x6B\x44", 16,
+        "\x12\x67\x35\xFC\xC3\x20\xD2\x5A", 8,
+        "\xCA\x40\xD7\x44\x6E\x54\x5F\xFA\xED\x3B\xD1\x2A\x74\x0A\x65\x9F"
+        "\xFB\xBB\x3C\xEA\xB7",
+        21,
+        "\xCB\x89\x20\xF8\x7A\x6C\x75\xCF\xF3\x96\x27\xB5\x6E\x3E\xD1\x97"
+        "\xC5\x52\xD2\x95\xA7",
+        "\xCF\xC4\x6A\xFC\x25\x3B\x46\x52\xB1\xAF\x37\x95\xB1\x24\xAB\x6E", 16,
+        0
+      },
+      /* Negative test for bad tag. */
+      { GCRY_CIPHER_AES,
+        "\x23\x39\x52\xDE\xE4\xD5\xED\x5F\x9B\x9C\x6D\x6F\xF8\x0F\xF4\x78",
+        "\x62\xEC\x67\xF9\xC3\xA4\xA4\x07\xFC\xB2\xA8\xC4\x90\x31\xA8\xB3", 16,
+        "\x6B\xFB\x91\x4F\xD0\x7E\xAE\x6B", 8,
+        "",
+        0,
+        "",
+        "\x00\x37\x83\x0E\x83\x89\xF2\x7B\x02\x5A\x2D\x65\x27\xE7\x9D\x01", 16,
+        1
+      },
+      /* Test vectors from libtomcrypt. */
+      {
+        GCRY_CIPHER_AES,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
+        "", 0,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x9a\xd0\x7e\x7d\xbf\xf3\x01\xf5\x05\xde\x59\x6b\x96\x15\xdf\xff", 16,
+        0
+      },
+      {
+        GCRY_CIPHER_AES,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f", 16,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x1c\xe1\x0d\x3e\xff\xd4\xca\xdb\xe2\xe4\x4b\x58\xd6\x0a\xb9\xec", 16,
+        0
+      },
+      {
+        GCRY_CIPHER_AES,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
+        "", 0,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f", 16,
+        "",
+        0,
+        "",
+        "\x3a\x69\x8f\x7a\x27\x0e\x51\xb0\xf6\x5b\x3d\x3e\x47\x19\x3c\xff", 16,
+        0
+      },
+      {
+        GCRY_CIPHER_AES,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f", 16,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f", 16,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+        "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+        32,
+        "\x29\xd8\x78\xd1\xa3\xbe\x85\x7b\x6f\xb8\xc8\xea\x59\x50\xa7\x78"
+        "\x33\x1f\xbf\x2c\xcf\x33\x98\x6f\x35\xe8\xcf\x12\x1d\xcb\x30\xbc",
+        "\x4f\xbe\x03\x38\xbe\x1c\x8c\x7e\x1d\x7a\xe7\xe4\x5b\x92\xc5\x87", 16,
+        0
+      },
+      {
+        GCRY_CIPHER_AES,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e", 15,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d", 14,
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+        "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c",
+        29,
+        "\xdd\x25\xc7\x54\xc5\xb1\x7c\x59\x28\xb6\x9b\x73\x15\x5f\x7b\xb8"
+        "\x88\x8f\xaf\x37\x09\x1a\xd9\x2c\x8a\x24\xdb\x86\x8b",
+        "\x0d\x1a\x14\xe5\x22\x24\xff\xd2\x3a\x05\xfa\x02\xcd\xef\x52\xda", 16,
+        0
+      },
+    };
+
+  gcry_cipher_hd_t hde, hdd;
+  unsigned char out[MAX_DATA_LEN];
+  unsigned char tag[16];
+  int i, keylen;
+  gcry_error_t err = 0;
+  size_t pos, poslen, taglen2;
+  int byteNum;
+
+  if (verbose)
+    fprintf (stderr, "  Starting EAX checks.\n");
+
+  for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
+    {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+          continue;
+        }
+
+      if (verbose)
+        fprintf (stderr, "    checking EAX mode for %s [%i]\n",
+                 gcry_cipher_algo_name (tv[i].algo),
+                 tv[i].algo);
+      err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_EAX, 0);
+      if (!err)
+        err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_EAX, 0);
+      if (err)
+        {
+          fail ("aes-eax, gcry_cipher_open failed: %s\n", gpg_strerror (err));
+          return;
+        }
+
+      keylen = gcry_cipher_get_algo_keylen(tv[i].algo);
+      if (!keylen)
+        {
+          fail ("aes-eax, gcry_cipher_get_algo_keylen failed\n");
+          return;
+        }
+
+      err = gcry_cipher_setkey (hde, tv[i].key, keylen);
+      if (!err)
+        err = gcry_cipher_setkey (hdd, tv[i].key, keylen);
+      if (err)
+        {
+          fail ("aes-eax, gcry_cipher_setkey failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_setiv (hde, tv[i].nonce, tv[i].noncelen);
+      if (!err)
+        err = gcry_cipher_setiv (hdd, tv[i].nonce, tv[i].noncelen);
+      if (err)
+        {
+          fail ("aes-eax, gcry_cipher_setiv failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_info (hde, GCRYCTL_GET_TAGLEN, NULL, &taglen2);
+      if (err)
+        {
+          fail ("cipher-eax, gcryctl_get_taglen failed (tv %d): %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+      if (taglen2 != 16)
+        {
+          fail ("cipher-eax, gcryctl_get_taglen returned bad length"
+                " (tv %d): got=%zu want=%d\n",
+                i, taglen2, 16);
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      for (pos = 0; pos < tv[i].headerlen; pos += step)
+        {
+          poslen = (pos + step < tv[i].headerlen) ?
+                    step : tv[i].headerlen - pos;
+
+          err = gcry_cipher_authenticate(hde, tv[i].header + pos, poslen);
+          if (err)
+            {
+              fail ("aes-eax, gcry_cipher_authenticate (%d) (%lu:%d) failed: "
+                    "%s\n", i, (unsigned long) pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+          err = gcry_cipher_authenticate(hdd, tv[i].header + pos, poslen);
+          if (err)
+            {
+              fail ("aes-eax, de gcry_cipher_authenticate (%d) (%lu:%d) failed: "
+	            "%s\n", i, (unsigned long) pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      for (pos = 0; pos < tv[i].inlen; pos += step)
+        {
+          poslen = (pos + step < tv[i].inlen) ? step : tv[i].inlen - pos;
+
+          err = gcry_cipher_encrypt (hde, out + pos, poslen,
+                                     tv[i].plaintext + pos, poslen);
+          if (err)
+            {
+              fail ("aes-eax, gcry_cipher_encrypt (%d) (%lu:%d) failed: %s\n",
+                    i, (unsigned long) pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      if (memcmp (tv[i].out, out, tv[i].inlen))
+        fail ("aes-eax, encrypt mismatch entry %d (step %d)\n", i, step);
+
+      for (pos = 0; pos < tv[i].inlen; pos += step)
+        {
+          poslen = (pos + step < tv[i].inlen) ? step : tv[i].inlen - pos;
+
+          err = gcry_cipher_decrypt (hdd, out + pos, poslen, NULL, 0);
+          if (err)
+            {
+              fail ("aes-eax, gcry_cipher_decrypt (%d) (%lu:%d) failed: %s\n",
+                    i, (unsigned long) pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      if (memcmp (tv[i].plaintext, out, tv[i].inlen))
+        fail ("aes-eax, decrypt mismatch entry %d (step %d)\n", i, step);
+
+      taglen2 = tv[i].taglen ? tv[i].taglen : 16;
+
+      err = gcry_cipher_gettag (hde, out, taglen2);
+      if (err)
+        {
+          if (tv[i].should_fail)
+            goto next_tv;
+
+          fail ("aes-eax, gcry_cipher_gettag(%d) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      if ((memcmp (tv[i].tag, out, taglen2) != 0) ^ tv[i].should_fail)
+        fail ("aes-eax, encrypt tag mismatch entry %d\n", i);
+
+      err = gcry_cipher_checktag (hdd, tv[i].tag, taglen2);
+      if (err)
+        {
+          if (tv[i].should_fail)
+            goto next_tv;
+
+          fail ("aes-eax, gcry_cipher_checktag(%d) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_reset(hde);
+      if (!err)
+        err = gcry_cipher_reset(hdd);
+      if (err)
+        {
+          fail ("aes-eax, gcry_cipher_reset (%d) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      /* gcry_cipher_reset clears the IV */
+      err = gcry_cipher_setiv (hde, tv[i].nonce, tv[i].noncelen);
+      if (!err)
+        err = gcry_cipher_setiv (hdd, tv[i].nonce, tv[i].noncelen);
+      if (err)
+        {
+          fail ("aes-eax, gcry_cipher_setiv failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      /* this time we authenticate, encrypt and decrypt one byte at a time */
+      for (byteNum = 0; byteNum < tv[i].headerlen; ++byteNum)
+        {
+          err = gcry_cipher_authenticate(hde, tv[i].header + byteNum, 1);
+          if (err)
+            {
+              fail ("aes-eax, gcry_cipher_authenticate (%d) (byte-buf) failed: "
+                    "%s\n", i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+          err = gcry_cipher_authenticate(hdd, tv[i].header + byteNum, 1);
+          if (err)
+            {
+              fail ("aes-eax, de gcry_cipher_authenticate (%d) (byte-buf) "
+	            "failed: %s\n", i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      for (byteNum = 0; byteNum < tv[i].inlen; ++byteNum)
+        {
+          err = gcry_cipher_encrypt (hde, out+byteNum, 1,
+                                     (tv[i].plaintext) + byteNum,
+                                     1);
+          if (err)
+            {
+              fail ("aes-eax, gcry_cipher_encrypt (%d) (byte-buf) failed: %s\n",
+                    i,  gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      if (memcmp (tv[i].out, out, tv[i].inlen))
+        fail ("aes-eax, encrypt mismatch entry %d, (byte-buf)\n", i);
+
+      /* Test output to larger than 16-byte buffer. */
+      taglen2 = tv[i].taglen ? tv[i].taglen : 16 + 1;
+
+      err = gcry_cipher_gettag (hde, tag, taglen2);
+      if (err)
+        {
+          if (tv[i].should_fail)
+            goto next_tv;
+
+          fail ("aes-eax, gcry_cipher_gettag(%d, %lu) (byte-buf) failed: %s\n",
+                i, (unsigned long) taglen2, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      taglen2 = tv[i].taglen ? tv[i].taglen : 16;
+
+      if ((memcmp (tv[i].tag, tag, taglen2) != 0) ^ tv[i].should_fail)
+        fail ("aes-eax, encrypt tag mismatch entry %d, (byte-buf)\n", i);
+
+      for (byteNum = 0; byteNum < tv[i].inlen; ++byteNum)
+        {
+          err = gcry_cipher_decrypt (hdd, out+byteNum, 1, NULL, 0);
+          if (err)
+            {
+              fail ("aes-eax, gcry_cipher_decrypt (%d) (byte-buf) failed: %s\n",
+                    i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      if (memcmp (tv[i].plaintext, out, tv[i].inlen))
+        fail ("aes-eax, decrypt mismatch entry %d\n", i);
+
+      err = gcry_cipher_checktag (hdd, tv[i].tag, taglen2);
+      if (err)
+        {
+          if (tv[i].should_fail)
+            goto next_tv;
+
+          fail ("aes-eax, gcry_cipher_checktag(%d) (byte-buf) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_checktag (hdd, tag, 17);
+      if (!err)
+        {
+          fail ("aes-eax, gcry_cipher_checktag(%d) did not fail for invalid "
+	        " tag length of '%d'\n", i, 17);
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      if (tv[i].should_fail)
+        {
+          fail ("aes-eax, negative test succeeded %d\n", i);
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+    next_tv:
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+    }
+  if (verbose)
+    fprintf (stderr, "  Completed EAX checks.\n");
+}
+
+
+static void
+check_eax_cipher (void)
+{
+  /* Large buffers, no splitting. */
+  _check_eax_cipher(0xffffffff);
+  /* Split input to one byte buffers. */
+  _check_eax_cipher(1);
+  /* Split input to 7 byte buffers. */
+  _check_eax_cipher(7);
+  /* Split input to 16 byte buffers. */
+  _check_eax_cipher(16);
+}
+
+
+static void
 _check_poly1305_cipher (unsigned int step)
 {
-  struct tv
+  static const struct tv
   {
     int algo;
     const char *key;
@@ -5813,6 +6346,7 @@ get_algo_mode_blklen (int algo, int mode)
     case GCRY_CIPHER_MODE_CTR:
     case GCRY_CIPHER_MODE_CCM:
     case GCRY_CIPHER_MODE_GCM:
+    case GCRY_CIPHER_MODE_EAX:
     case GCRY_CIPHER_MODE_POLY1305:
       return 1;
     }
@@ -5894,7 +6428,7 @@ check_one_cipher_core (int algo, int mode, int flags,
   if ((mode == GCRY_CIPHER_MODE_CBC && (flags & GCRY_CIPHER_CBC_CTS)) ||
       mode == GCRY_CIPHER_MODE_XTS)
     {
-      /* Input cannot be split in to multiple operations with CTS . */
+      /* Input cannot be split in to multiple operations with CTS. */
       blklen = nplain;
     }
 
@@ -6281,6 +6815,7 @@ check_ciphers (void)
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CBC, 0);
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_CTS);
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CTR, 0);
+      check_one_cipher (algos[i], GCRY_CIPHER_MODE_EAX, 0);
       if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_CCM_BLOCK_LEN)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_CCM, 0);
       if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_GCM_BLOCK_LEN)
@@ -6333,6 +6868,7 @@ check_cipher_modes(void)
   check_poly1305_cipher ();
   check_ocb_cipher ();
   check_xts_cipher ();
+  check_eax_cipher ();
   check_gost28147_cipher ();
   check_stream_cipher ();
   check_stream_cipher_large_block ();
