@@ -190,8 +190,8 @@ _gcry_chacha20_amd64_ssse3_blocks4:
 	mov $20, ROUND;
 
 	/* Construct counter vectors X12 and X13 */
-	vmovdqa .Linc_counter RIP, X0;
-	vmovdqa .Lunsigned_cmp RIP, X2;
+	movdqa .Linc_counter RIP, X0;
+	movdqa .Lunsigned_cmp RIP, X2;
 	pbroadcastd((12 * 4)(INPUT), X12);
 	pbroadcastd((13 * 4)(INPUT), X13);
 	paddd X0, X12;
