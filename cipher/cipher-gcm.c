@@ -1,6 +1,6 @@
 /* cipher-gcm.c  - Generic Galois Counter Mode implementation
  * Copyright (C) 2013 Dmitry Eremin-Solenikov
- * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013, 2018 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -556,6 +556,77 @@ do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte *buf,
 }
 
 
+static gcry_err_code_t
+gcm_ctr_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
+                 const byte *inbuf, size_t inbuflen)
+{
+  gcry_err_code_t err = 0;
+
+  while (inbuflen)
+    {
+      u32 nblocks_to_overflow;
+      u32 num_ctr_increments;
+      u32 curr_ctr_low;
+      size_t currlen = inbuflen;
+      byte ctr_copy[GCRY_GCM_BLOCK_LEN];
+      int fix_ctr = 0;
+
+      /* GCM CTR increments only least significant 32-bits, without carry
+       * to upper 96-bits of counter.  Using generic CTR implementation
+       * directly would carry 32-bit overflow to upper 96-bit.  Detect
+       * if input length is long enough to cause overflow, and limit
+       * input length so that CTR overflow happen but updated CTR value is
+       * not used to encrypt further input.  After overflow, upper 96 bits
+       * of CTR are restored to cancel out modification done by generic CTR
+       * encryption. */
+
+      if (inbuflen > c->unused)
+        {
+          curr_ctr_low = gcm_add32_be128 (c->u_ctr.ctr, 0);
+
+          /* Number of CTR increments this inbuflen would cause. */
+          num_ctr_increments = (inbuflen - c->unused) / GCRY_GCM_BLOCK_LEN +
+                               !!((inbuflen - c->unused) % GCRY_GCM_BLOCK_LEN);
+
+          if ((u32)(num_ctr_increments + curr_ctr_low) < curr_ctr_low)
+            {
+              nblocks_to_overflow = 0xffffffffU - curr_ctr_low + 1;
+              currlen = nblocks_to_overflow * GCRY_GCM_BLOCK_LEN + c->unused;
+              if (currlen > inbuflen)
+                {
+                  currlen = inbuflen;
+                }
+
+              fix_ctr = 1;
+              buf_cpy(ctr_copy, c->u_ctr.ctr, GCRY_GCM_BLOCK_LEN);
+            }
+        }
+
+      err = _gcry_cipher_ctr_encrypt(c, outbuf, outbuflen, inbuf, currlen);
+      if (err != 0)
+        return err;
+
+      if (fix_ctr)
+        {
+          /* Lower 32-bits of CTR should now be zero. */
+          gcry_assert(gcm_add32_be128 (c->u_ctr.ctr, 0) == 0);
+
+          /* Restore upper part of CTR. */
+          buf_cpy(c->u_ctr.ctr, ctr_copy, GCRY_GCM_BLOCK_LEN - sizeof(u32));
+
+          wipememory(ctr_copy, sizeof(ctr_copy));
+        }
+
+      inbuflen -= currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      outbuf += currlen;
+    }
+
+  return err;
+}
+
+
 gcry_err_code_t
 _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
                           byte *outbuf, size_t outbuflen,
@@ -595,7 +666,7 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  err = _gcry_cipher_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
+  err = gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
   if (err != 0)
     return err;
 
@@ -642,7 +713,7 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
 
   do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, inbuf, inbuflen, 0);
 
-  return _gcry_cipher_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
+  return gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
 }
 
 
