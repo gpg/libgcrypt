@@ -30,6 +30,14 @@
 #include "cipher.h"
 #include "hash-common.h"
 
+/* USE_AVX indicates whether to compile with Intel AVX code. */
+#undef USE_AVX
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_AVX) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+# define USE_AVX 1
+#endif
+
 /* USE_AVX2 indicates whether to compile with Intel AVX2 code. */
 #undef USE_AVX2
 #if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_AVX2) && \
@@ -121,6 +129,9 @@ typedef struct BLAKE2S_CONTEXT_S
   byte buf[BLAKE2S_BLOCKBYTES];
   size_t buflen;
   size_t outlen;
+#ifdef USE_AVX
+  unsigned int use_avx:1;
+#endif
 } BLAKE2S_CONTEXT;
 
 typedef unsigned int (*blake2_transform_t)(void *S, const void *inblk,
@@ -479,8 +490,9 @@ static inline void blake2s_increment_counter(BLAKE2S_STATE *S, const int inc)
   S->t[1] += (S->t[0] < (u32)inc) - (inc < 0);
 }
 
-static unsigned int blake2s_transform(void *vS, const void *inblks,
-				      size_t nblks)
+static unsigned int blake2s_transform_generic(BLAKE2S_STATE *S,
+                                              const void *inblks,
+                                              size_t nblks)
 {
   static const byte blake2s_sigma[10][16] =
   {
@@ -495,7 +507,6 @@ static unsigned int blake2s_transform(void *vS, const void *inblks,
     {  6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5 },
     { 10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0 },
   };
-  BLAKE2S_STATE *S = vS;
   unsigned int burn = 0;
   const byte* in = inblks;
   u32 m[16];
@@ -594,6 +605,33 @@ static unsigned int blake2s_transform(void *vS, const void *inblks,
   return burn;
 }
 
+#ifdef USE_AVX
+unsigned int _gcry_blake2s_transform_amd64_avx(BLAKE2S_STATE *S,
+                                               const void *inblks,
+                                               size_t nblks) ASM_FUNC_ABI;
+#endif
+
+static unsigned int blake2s_transform(void *ctx, const void *inblks,
+                                      size_t nblks)
+{
+  BLAKE2S_CONTEXT *c = ctx;
+  unsigned int nburn;
+
+  if (0)
+    {}
+#ifdef USE_AVX
+  if (c->use_avx)
+    nburn = _gcry_blake2s_transform_amd64_avx(&c->state, inblks, nblks);
+#endif
+  else
+    nburn = blake2s_transform_generic(&c->state, inblks, nblks);
+
+  if (nburn)
+    nburn += ASM_EXTRA_STACK;
+
+  return nburn;
+}
+
 static void blake2s_final(void *ctx)
 {
   BLAKE2S_CONTEXT *c = ctx;
@@ -609,7 +647,7 @@ static void blake2s_final(void *ctx)
     memset (c->buf + c->buflen, 0, BLAKE2S_BLOCKBYTES - c->buflen); /* Padding */
   blake2s_set_lastblock (S);
   blake2s_increment_counter (S, (int)c->buflen - BLAKE2S_BLOCKBYTES);
-  burn = blake2s_transform (S, c->buf, 1);
+  burn = blake2s_transform (ctx, c->buf, 1);
 
   /* Output full hash to buffer */
   for (i = 0; i < 8; ++i)
@@ -685,10 +723,16 @@ static gcry_err_code_t blake2s_init_ctx(void *ctx, unsigned int flags,
 					unsigned int dbits)
 {
   BLAKE2S_CONTEXT *c = ctx;
+  unsigned int features = _gcry_get_hw_features ();
 
+  (void)features;
   (void)flags;
 
   memset (c, 0, sizeof (*c));
+
+#ifdef USE_AVX
+  c->use_avx = !!(features & HWF_INTEL_AVX);
+#endif
 
   c->outlen = dbits / 8;
   c->buflen = 0;

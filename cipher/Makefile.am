@@ -107,7 +107,7 @@ rfc2268.c \
 camellia.c camellia.h camellia-glue.c camellia-aesni-avx-amd64.S \
   camellia-aesni-avx2-amd64.S camellia-arm.S camellia-aarch64.S \
 blake2.c \
-  blake2b-amd64-avx2.S
+  blake2b-amd64-avx2.S blake2s-amd64-avx.S
 
 gost28147.lo: gost-sb.h
 gost-sb.h: gost-s-box
