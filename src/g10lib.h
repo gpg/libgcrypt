@@ -224,14 +224,14 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_INTEL_AVX           (1 << 12)
 #define HWF_INTEL_AVX2          (1 << 13)
 #define HWF_INTEL_FAST_VPGATHER (1 << 14)
+#define HWF_INTEL_RDTSC         (1 << 15)
+#define HWF_INTEL_SHAEXT        (1 << 16)
 
-#define HWF_ARM_NEON            (1 << 15)
-#define HWF_ARM_AES             (1 << 16)
-#define HWF_ARM_SHA1            (1 << 17)
-#define HWF_ARM_SHA2            (1 << 18)
-#define HWF_ARM_PMULL           (1 << 19)
-
-#define HWF_INTEL_RDTSC         (1 << 20)
+#define HWF_ARM_NEON            (1 << 17)
+#define HWF_ARM_AES             (1 << 18)
+#define HWF_ARM_SHA1            (1 << 19)
+#define HWF_ARM_SHA2            (1 << 20)
+#define HWF_ARM_PMULL           (1 << 21)
 
 
 

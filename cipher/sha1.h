@@ -29,6 +29,7 @@ typedef struct
   unsigned int use_ssse3:1;
   unsigned int use_avx:1;
   unsigned int use_bmi2:1;
+  unsigned int use_shaext:1;
   unsigned int use_neon:1;
   unsigned int use_arm_ce:1;
 } SHA1_CONTEXT;

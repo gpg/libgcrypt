@@ -588,6 +588,14 @@ AC_ARG_ENABLE(aesni-support,
 	      aesnisupport=$enableval,aesnisupport=yes)
 AC_MSG_RESULT($aesnisupport)
 
+# Implementation of the --disable-shaext-support switch.
+AC_MSG_CHECKING([whether SHAEXT support is requested])
+AC_ARG_ENABLE(shaext-support,
+              AC_HELP_STRING([--disable-shaext-support],
+                 [Disable support for the Intel SHAEXT instructions]),
+              shaextsupport=$enableval,shaextsupport=yes)
+AC_MSG_RESULT($shaextsupport)
+
 # Implementation of the --disable-pclmul-support switch.
 AC_MSG_CHECKING([whether PCLMUL support is requested])
 AC_ARG_ENABLE(pclmul-support,
@@ -1175,6 +1183,7 @@ AM_CONDITIONAL(MPI_MOD_C_UDIV_QRNND, test "$mpi_mod_c_udiv_qrnnd" = yes)
 # Reset non applicable feature flags.
 if test "$mpi_cpu_arch" != "x86" ; then
    aesnisupport="n/a"
+   shaextsupport="n/a"
    pclmulsupport="n/a"
    sse41support="n/a"
    avxsupport="n/a"
@@ -1328,6 +1337,34 @@ if test "$gcry_cv_gcc_inline_asm_pclmul" = "yes" ; then
    AC_DEFINE(HAVE_GCC_INLINE_ASM_PCLMUL,1,
      [Defined if inline assembler supports PCLMUL instructions])
 fi
+
+
+#
+# Check whether GCC inline assembler supports SHA Extensions instructions.
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports SHA Extensions instructions],
+       [gcry_cv_gcc_inline_asm_shaext],
+       [if test "$mpi_cpu_arch" != "x86" ; then
+          gcry_cv_gcc_inline_asm_shaext="n/a"
+        else
+          gcry_cv_gcc_inline_asm_shaext=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) {
+              __asm__("sha1rnds4 \$0, %%xmm1, %%xmm3\n\t":::"cc");
+              __asm__("sha1nexte %%xmm1, %%xmm3\n\t":::"cc");
+              __asm__("sha1msg1 %%xmm1, %%xmm3\n\t":::"cc");
+              __asm__("sha1msg2 %%xmm1, %%xmm3\n\t":::"cc");
+              __asm__("sha256rnds2 %%xmm0, %%xmm1, %%xmm3\n\t":::"cc");
+              __asm__("sha256msg1 %%xmm1, %%xmm3\n\t":::"cc");
+              __asm__("sha256msg2 %%xmm1, %%xmm3\n\t":::"cc");
+            }]])],
+          [gcry_cv_gcc_inline_asm_shaext=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_shaext" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_SHAEXT,1,
+     [Defined if inline assembler supports SHA Extensions instructions])
+fi
+
 
 #
 # Check whether GCC inline assembler supports SSE4.1 instructions.
@@ -1921,6 +1958,11 @@ if test x"$aesnisupport" = xyes ; then
     aesnisupport="no (unsupported by compiler)"
   fi
 fi
+if test x"$shaextsupport" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_shaext" != "yes" ; then
+    shaextsupport="no (unsupported by compiler)"
+  fi
+fi
 if test x"$pclmulsupport" = xyes ; then
   if test "$gcry_cv_gcc_inline_asm_pclmul" != "yes" ; then
     pclmulsupport="no (unsupported by compiler)"
@@ -1959,6 +2001,10 @@ fi
 if test x"$aesnisupport" = xyes ; then
   AC_DEFINE(ENABLE_AESNI_SUPPORT, 1,
             [Enable support for Intel AES-NI instructions.])
+fi
+if test x"$shaextsupport" = xyes ; then
+  AC_DEFINE(ENABLE_SHAEXT_SUPPORT, 1,
+            [Enable support for Intel SHAEXT instructions.])
 fi
 if test x"$pclmulsupport" = xyes ; then
   AC_DEFINE(ENABLE_PCLMUL_SUPPORT, 1,
@@ -2449,6 +2495,13 @@ case "${host}" in
   ;;
 esac
 
+case "$mpi_cpu_arch" in
+  x86)
+    # Build with the SHAEXT implementation
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-intel-shaext.lo"
+  ;;
+esac
+
 LIST_MEMBER(sm3, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sm3.lo"
@@ -2634,6 +2687,7 @@ GCRY_MSG_SHOW([Try using jitter entropy: ],[$jentsupport])
 GCRY_MSG_SHOW([Using linux capabilities: ],[$use_capabilities])
 GCRY_MSG_SHOW([Try using Padlock crypto: ],[$padlocksupport])
 GCRY_MSG_SHOW([Try using AES-NI crypto:  ],[$aesnisupport])
+GCRY_MSG_SHOW([Try using Intel SHAEXT:   ],[$shaextsupport])
 GCRY_MSG_SHOW([Try using Intel PCLMUL:   ],[$pclmulsupport])
 GCRY_MSG_SHOW([Try using Intel SSE4.1:   ],[$sse41support])
 GCRY_MSG_SHOW([Try using DRNG (RDRAND):  ],[$drngsupport])

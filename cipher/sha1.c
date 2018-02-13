@@ -68,6 +68,14 @@
 # define USE_BMI2 1
 #endif
 
+/* USE_SHAEXT indicates whether to compile with Intel SHA Extension code. */
+#undef USE_SHAEXT
+#if defined(HAVE_GCC_INLINE_ASM_SHAEXT) && \
+    defined(HAVE_GCC_INLINE_ASM_SSE41) && \
+    defined(ENABLE_SHAEXT_SUPPORT)
+# define USE_SHAEXT 1
+#endif
+
 /* USE_NEON indicates whether to enable ARM NEON assembly code. */
 #undef USE_NEON
 #ifdef ENABLE_NEON_SUPPORT
@@ -137,6 +145,10 @@ sha1_init (void *context, unsigned int flags)
 #endif
 #ifdef USE_BMI2
   hd->use_bmi2 = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_BMI2);
+#endif
+#ifdef USE_SHAEXT
+  hd->use_shaext = (features & HWF_INTEL_SHAEXT)
+                   && (features & HWF_INTEL_SSE4_1);
 #endif
 #ifdef USE_NEON
   hd->use_neon = (features & HWF_ARM_NEON) != 0;
@@ -311,7 +323,8 @@ transform_blk (void *ctx, const unsigned char *data)
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
 #undef ASM_EXTRA_STACK
-#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_BMI2)
+#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_BMI2) || \
+    defined(USE_SHAEXT)
 # ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
 #  define ASM_FUNC_ABI __attribute__((sysv_abi))
 #  define ASM_EXTRA_STACK (10 * 16)
@@ -340,6 +353,13 @@ _gcry_sha1_transform_amd64_avx_bmi2 (void *state, const unsigned char *data,
                                      size_t nblks) ASM_FUNC_ABI;
 #endif
 
+#ifdef USE_SHAEXT
+/* Does not need ASM_FUNC_ABI */
+unsigned int
+_gcry_sha1_transform_intel_shaext (void *state, const unsigned char *data,
+                                   size_t nblks);
+#endif
+
 
 static unsigned int
 transform (void *ctx, const unsigned char *data, size_t nblks)
@@ -347,29 +367,53 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
   SHA1_CONTEXT *hd = ctx;
   unsigned int burn;
 
+#ifdef USE_SHAEXT
+  if (hd->use_shaext)
+    {
+      burn = _gcry_sha1_transform_intel_shaext (&hd->h0, data, nblks);
+      burn += burn ? 4 * sizeof(void*) + ASM_EXTRA_STACK : 0;
+      return burn;
+    }
+#endif
 #ifdef USE_BMI2
   if (hd->use_bmi2)
-    return _gcry_sha1_transform_amd64_avx_bmi2 (&hd->h0, data, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
+    {
+      burn = _gcry_sha1_transform_amd64_avx_bmi2 (&hd->h0, data, nblks);
+      burn += burn ? 4 * sizeof(void*) + ASM_EXTRA_STACK : 0;
+      return burn;
+    }
 #endif
 #ifdef USE_AVX
   if (hd->use_avx)
-    return _gcry_sha1_transform_amd64_avx (&hd->h0, data, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
+    {
+      burn = _gcry_sha1_transform_amd64_avx (&hd->h0, data, nblks);
+      burn += burn ? 4 * sizeof(void*) + ASM_EXTRA_STACK : 0;
+      return burn;
+    }
 #endif
 #ifdef USE_SSSE3
   if (hd->use_ssse3)
-    return _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
+    {
+      burn = _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data, nblks);
+      burn += burn ? 4 * sizeof(void*) + ASM_EXTRA_STACK : 0;
+      return burn;
+    }
 #endif
 #ifdef USE_ARM_CE
   if (hd->use_arm_ce)
-    return _gcry_sha1_transform_armv8_ce (&hd->h0, data, nblks);
+    {
+      burn = _gcry_sha1_transform_armv8_ce (&hd->h0, data, nblks);
+      burn += burn ? 4 * sizeof(void*) : 0;
+      return burn;
+    }
 #endif
 #ifdef USE_NEON
   if (hd->use_neon)
-    return _gcry_sha1_transform_armv7_neon (&hd->h0, data, nblks)
-           + 4 * sizeof(void*);
+    {
+      burn = _gcry_sha1_transform_armv7_neon (&hd->h0, data, nblks);
+      burn += burn ? 4 * sizeof(void*) : 0;
+      return burn;
+    }
 #endif
 
   do

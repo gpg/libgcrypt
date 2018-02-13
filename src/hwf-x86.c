@@ -357,6 +357,10 @@ detect_x86_gnuc (void)
       if ((result & HWF_INTEL_AVX2) && !avoid_vpgather)
         result |= HWF_INTEL_FAST_VPGATHER;
 #endif /*ENABLE_AVX_SUPPORT*/
+
+      /* Test bit 29 for SHA Extensions. */
+      if (features & (1 << 29))
+          result |= HWF_INTEL_SHAEXT;
     }
 
   return result;

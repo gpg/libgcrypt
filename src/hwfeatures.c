@@ -58,6 +58,7 @@ static struct
     { HWF_INTEL_AVX2,          "intel-avx2" },
     { HWF_INTEL_FAST_VPGATHER, "intel-fast-vpgather" },
     { HWF_INTEL_RDTSC,         "intel-rdtsc" },
+    { HWF_INTEL_SHAEXT,        "intel-shaext" },
     { HWF_ARM_NEON,            "arm-neon" },
     { HWF_ARM_AES,             "arm-aes" },
     { HWF_ARM_SHA1,            "arm-sha1" },
