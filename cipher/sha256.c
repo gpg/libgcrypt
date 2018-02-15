@@ -75,6 +75,14 @@
 # define USE_AVX2 1
 #endif
 
+/* USE_SHAEXT indicates whether to compile with Intel SHA Extension code. */
+#undef USE_SHAEXT
+#if defined(HAVE_GCC_INLINE_ASM_SHAEXT) && \
+    defined(HAVE_GCC_INLINE_ASM_SSE41) && \
+    defined(ENABLE_SHAEXT_SUPPORT)
+# define USE_SHAEXT 1
+#endif
+
 /* USE_ARM_CE indicates whether to enable ARMv8 Crypto Extension assembly
  * code. */
 #undef USE_ARM_CE
@@ -102,6 +110,9 @@ typedef struct {
 #endif
 #ifdef USE_AVX2
   unsigned int use_avx2:1;
+#endif
+#ifdef USE_SHAEXT
+  unsigned int use_shaext:1;
 #endif
 #ifdef USE_ARM_CE
   unsigned int use_arm_ce:1;
@@ -147,6 +158,10 @@ sha256_init (void *context, unsigned int flags)
 #ifdef USE_AVX2
   hd->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
 #endif
+#ifdef USE_SHAEXT
+  hd->use_shaext = (features & HWF_INTEL_SHAEXT)
+                   && (features & HWF_INTEL_SSE4_1);
+#endif
 #ifdef USE_ARM_CE
   hd->use_arm_ce = (features & HWF_ARM_SHA2) != 0;
 #endif
@@ -187,6 +202,10 @@ sha224_init (void *context, unsigned int flags)
 #endif
 #ifdef USE_AVX2
   hd->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
+#endif
+#ifdef USE_SHAEXT
+  hd->use_shaext = (features & HWF_INTEL_SHAEXT)
+                   && (features & HWF_INTEL_SSE4_1);
 #endif
 #ifdef USE_ARM_CE
   hd->use_arm_ce = (features & HWF_ARM_SHA2) != 0;
@@ -350,7 +369,8 @@ transform_blk (void *ctx, const unsigned char *data)
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
 #undef ASM_EXTRA_STACK
-#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_AVX2)
+#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_AVX2) || \
+    defined(USE_SHAEXT)
 # ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
 #  define ASM_FUNC_ABI __attribute__((sysv_abi))
 #  define ASM_EXTRA_STACK (10 * 16)
@@ -379,6 +399,14 @@ unsigned int _gcry_sha256_transform_amd64_avx2(const void *input_data,
                                                size_t num_blks) ASM_FUNC_ABI;
 #endif
 
+#ifdef USE_SHAEXT
+/* Does not need ASM_FUNC_ABI */
+unsigned int
+_gcry_sha256_transform_intel_shaext(u32 state[8],
+                                    const unsigned char *input_data,
+                                    size_t num_blks);
+#endif
+
 #ifdef USE_ARM_CE
 unsigned int _gcry_sha256_transform_armv8_ce(u32 state[8],
                                              const void *input_data,
@@ -391,27 +419,49 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
   SHA256_CONTEXT *hd = ctx;
   unsigned int burn;
 
+#ifdef USE_SHAEXT
+  if (hd->use_shaext)
+    {
+      burn = _gcry_sha256_transform_intel_shaext (&hd->h0, data, nblks);
+      burn += burn ? 4 * sizeof(void*) + ASM_EXTRA_STACK : 0;
+      return burn;
+    }
+#endif
+
 #ifdef USE_AVX2
   if (hd->use_avx2)
-    return _gcry_sha256_transform_amd64_avx2 (data, &hd->h0, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
+    {
+      burn = _gcry_sha256_transform_amd64_avx2 (data, &hd->h0, nblks);
+      burn += burn ? 4 * sizeof(void*) + ASM_EXTRA_STACK : 0;
+      return burn;
+    }
 #endif
 
 #ifdef USE_AVX
   if (hd->use_avx)
-    return _gcry_sha256_transform_amd64_avx (data, &hd->h0, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
+    {
+      burn = _gcry_sha256_transform_amd64_avx (data, &hd->h0, nblks);
+      burn += burn ? 4 * sizeof(void*) + ASM_EXTRA_STACK : 0;
+      return burn;
+    }
 #endif
 
 #ifdef USE_SSSE3
   if (hd->use_ssse3)
-    return _gcry_sha256_transform_amd64_ssse3 (data, &hd->h0, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
+    {
+      burn = _gcry_sha256_transform_amd64_ssse3 (data, &hd->h0, nblks);
+      burn += burn ? 4 * sizeof(void*) + ASM_EXTRA_STACK : 0;
+      return burn;
+    }
 #endif
 
 #ifdef USE_ARM_CE
   if (hd->use_arm_ce)
-    return _gcry_sha256_transform_armv8_ce (&hd->h0, data, nblks);
+    {
+      burn = _gcry_sha256_transform_armv8_ce (&hd->h0, data, nblks);
+      burn += burn ? 4 * sizeof(void*) : 0;
+      return burn;
+    }
 #endif
 
   do

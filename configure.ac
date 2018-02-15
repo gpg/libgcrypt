@@ -2395,6 +2395,13 @@ if test "$found" = "1" ; then
          GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-armv8-aarch64-ce.lo"
       ;;
    esac
+
+   case "$mpi_cpu_arch" in
+     x86)
+       # Build with the SHAEXT implementation
+       GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-intel-shaext.lo"
+     ;;
+   esac
 fi
 
 LIST_MEMBER(sha512, $enabled_digests)
