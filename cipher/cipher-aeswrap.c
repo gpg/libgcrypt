@@ -70,15 +70,15 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
   a = outbuf;  /* We store A directly in OUTBUF.  */
   b = c->u_ctr.ctr;  /* B is also used to concatenate stuff.  */
 
+  /* Copy the inbuf to the outbuf. */
+  memmove (r+8, inbuf, inbuflen);
+
   /* If an IV has been set we use that IV as the Alternative Initial
      Value; if it has not been set we use the standard value.  */
   if (c->marks.iv)
     memcpy (a, c->u_iv.iv, 8);
   else
     memset (a, 0xa6, 8);
-
-  /* Copy the inbuf to the outbuf. */
-  memmove (r+8, inbuf, inbuflen);
 
   memset (t, 0, sizeof t); /* t := 0.  */
 
