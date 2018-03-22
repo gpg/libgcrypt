@@ -290,13 +290,19 @@ buf_eq_const(const void *_a, const void *_b, size_t len)
 {
   const byte *a = _a;
   const byte *b = _b;
-  size_t diff, i;
+  int ab, ba;
+  size_t i;
 
   /* Constant-time compare. */
-  for (i = 0, diff = 0; i < len; i++)
-    diff -= !!(a[i] - b[i]);
+  for (i = 0, ab = 0, ba = 0; i < len; i++)
+    {
+      /* If a[i] != b[i], either ab or ba will be negative. */
+      ab |= a[i] - b[i];
+      ba |= b[i] - a[i];
+    }
 
-  return !diff;
+  /* 'ab | ba' is negative when buffers are not equal. */
+  return (ab | ba) >= 0;
 }
 
 
