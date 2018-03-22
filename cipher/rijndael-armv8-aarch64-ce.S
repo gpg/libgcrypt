@@ -17,7 +17,7 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include "asm-common-aarch64.h"
 
 #if defined(__AARCH64EL__) && \
     defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
@@ -239,7 +239,7 @@
  */
 .align 3
 .globl _gcry_aes_enc_armv8_ce
-.type  _gcry_aes_enc_armv8_ce,%function;
+ELF(.type  _gcry_aes_enc_armv8_ce,%function;)
 _gcry_aes_enc_armv8_ce:
   /* input:
    *    x0: keysched
@@ -291,7 +291,7 @@ _gcry_aes_enc_armv8_ce:
   CLEAR_REG(vk13)
   CLEAR_REG(vk14)
   b .Lenc1_tail
-.size _gcry_aes_enc_armv8_ce,.-_gcry_aes_enc_armv8_ce;
+ELF(.size _gcry_aes_enc_armv8_ce,.-_gcry_aes_enc_armv8_ce;)
 
 
 /*
@@ -301,7 +301,7 @@ _gcry_aes_enc_armv8_ce:
  */
 .align 3
 .globl _gcry_aes_dec_armv8_ce
-.type  _gcry_aes_dec_armv8_ce,%function;
+ELF(.type  _gcry_aes_dec_armv8_ce,%function;)
 _gcry_aes_dec_armv8_ce:
   /* input:
    *    x0: keysched
@@ -353,7 +353,7 @@ _gcry_aes_dec_armv8_ce:
   CLEAR_REG(vk13)
   CLEAR_REG(vk14)
   b .Ldec1_tail
-.size _gcry_aes_dec_armv8_ce,.-_gcry_aes_dec_armv8_ce;
+ELF(.size _gcry_aes_dec_armv8_ce,.-_gcry_aes_dec_armv8_ce;)
 
 
 /*
@@ -366,7 +366,7 @@ _gcry_aes_dec_armv8_ce:
 
 .align 3
 .globl _gcry_aes_cbc_enc_armv8_ce
-.type  _gcry_aes_cbc_enc_armv8_ce,%function;
+ELF(.type  _gcry_aes_cbc_enc_armv8_ce,%function;)
 _gcry_aes_cbc_enc_armv8_ce:
   /* input:
    *    x0: keysched
@@ -419,7 +419,7 @@ _gcry_aes_cbc_enc_armv8_ce:
 
 .Lcbc_enc_skip:
   ret
-.size _gcry_aes_cbc_enc_armv8_ce,.-_gcry_aes_cbc_enc_armv8_ce;
+ELF(.size _gcry_aes_cbc_enc_armv8_ce,.-_gcry_aes_cbc_enc_armv8_ce;)
 
 /*
  * void _gcry_aes_cbc_dec_armv8_ce (const void *keysched,
@@ -430,7 +430,7 @@ _gcry_aes_cbc_enc_armv8_ce:
 
 .align 3
 .globl _gcry_aes_cbc_dec_armv8_ce
-.type  _gcry_aes_cbc_dec_armv8_ce,%function;
+ELF(.type  _gcry_aes_cbc_dec_armv8_ce,%function;)
 _gcry_aes_cbc_dec_armv8_ce:
   /* input:
    *    x0: keysched
@@ -515,7 +515,7 @@ _gcry_aes_cbc_dec_armv8_ce:
 
 .Lcbc_dec_skip:
   ret
-.size _gcry_aes_cbc_dec_armv8_ce,.-_gcry_aes_cbc_dec_armv8_ce;
+ELF(.size _gcry_aes_cbc_dec_armv8_ce,.-_gcry_aes_cbc_dec_armv8_ce;)
 
 
 /*
@@ -527,7 +527,7 @@ _gcry_aes_cbc_dec_armv8_ce:
 
 .align 3
 .globl _gcry_aes_ctr_enc_armv8_ce
-.type  _gcry_aes_ctr_enc_armv8_ce,%function;
+ELF(.type  _gcry_aes_ctr_enc_armv8_ce,%function;)
 _gcry_aes_ctr_enc_armv8_ce:
   /* input:
    *    r0: keysched
@@ -669,7 +669,7 @@ _gcry_aes_ctr_enc_armv8_ce:
 .Lctr_enc_skip:
   ret
 
-.size _gcry_aes_ctr_enc_armv8_ce,.-_gcry_aes_ctr_enc_armv8_ce;
+ELF(.size _gcry_aes_ctr_enc_armv8_ce,.-_gcry_aes_ctr_enc_armv8_ce;)
 
 
 /*
@@ -681,7 +681,7 @@ _gcry_aes_ctr_enc_armv8_ce:
 
 .align 3
 .globl _gcry_aes_cfb_enc_armv8_ce
-.type  _gcry_aes_cfb_enc_armv8_ce,%function;
+ELF(.type  _gcry_aes_cfb_enc_armv8_ce,%function;)
 _gcry_aes_cfb_enc_armv8_ce:
   /* input:
    *    r0: keysched
@@ -732,7 +732,7 @@ _gcry_aes_cfb_enc_armv8_ce:
 
 .Lcfb_enc_skip:
   ret
-.size _gcry_aes_cfb_enc_armv8_ce,.-_gcry_aes_cfb_enc_armv8_ce;
+ELF(.size _gcry_aes_cfb_enc_armv8_ce,.-_gcry_aes_cfb_enc_armv8_ce;)
 
 
 /*
@@ -744,7 +744,7 @@ _gcry_aes_cfb_enc_armv8_ce:
 
 .align 3
 .globl _gcry_aes_cfb_dec_armv8_ce
-.type  _gcry_aes_cfb_dec_armv8_ce,%function;
+ELF(.type  _gcry_aes_cfb_dec_armv8_ce,%function;)
 _gcry_aes_cfb_dec_armv8_ce:
   /* input:
    *    r0: keysched
@@ -829,7 +829,7 @@ _gcry_aes_cfb_dec_armv8_ce:
 
 .Lcfb_dec_skip:
   ret
-.size _gcry_aes_cfb_dec_armv8_ce,.-_gcry_aes_cfb_dec_armv8_ce;
+ELF(.size _gcry_aes_cfb_dec_armv8_ce,.-_gcry_aes_cfb_dec_armv8_ce;)
 
 
 /*
@@ -846,7 +846,7 @@ _gcry_aes_cfb_dec_armv8_ce:
 
 .align 3
 .globl _gcry_aes_ocb_enc_armv8_ce
-.type  _gcry_aes_ocb_enc_armv8_ce,%function;
+ELF(.type  _gcry_aes_ocb_enc_armv8_ce,%function;)
 _gcry_aes_ocb_enc_armv8_ce:
   /* input:
    *    x0: keysched
@@ -979,7 +979,7 @@ _gcry_aes_ocb_enc_armv8_ce:
   CLEAR_REG(v16)
 
   ret
-.size _gcry_aes_ocb_enc_armv8_ce,.-_gcry_aes_ocb_enc_armv8_ce;
+ELF(.size _gcry_aes_ocb_enc_armv8_ce,.-_gcry_aes_ocb_enc_armv8_ce;)
 
 
 /*
@@ -996,7 +996,7 @@ _gcry_aes_ocb_enc_armv8_ce:
 
 .align 3
 .globl _gcry_aes_ocb_dec_armv8_ce
-.type  _gcry_aes_ocb_dec_armv8_ce,%function;
+ELF(.type  _gcry_aes_ocb_dec_armv8_ce,%function;)
 _gcry_aes_ocb_dec_armv8_ce:
   /* input:
    *    x0: keysched
@@ -1129,7 +1129,7 @@ _gcry_aes_ocb_dec_armv8_ce:
   CLEAR_REG(v16)
 
   ret
-.size _gcry_aes_ocb_dec_armv8_ce,.-_gcry_aes_ocb_dec_armv8_ce;
+ELF(.size _gcry_aes_ocb_dec_armv8_ce,.-_gcry_aes_ocb_dec_armv8_ce;)
 
 
 /*
@@ -1145,7 +1145,7 @@ _gcry_aes_ocb_dec_armv8_ce:
 
 .align 3
 .globl _gcry_aes_ocb_auth_armv8_ce
-.type  _gcry_aes_ocb_auth_armv8_ce,%function;
+ELF(.type  _gcry_aes_ocb_auth_armv8_ce,%function;)
 _gcry_aes_ocb_auth_armv8_ce:
   /* input:
    *    x0: keysched
@@ -1273,7 +1273,7 @@ _gcry_aes_ocb_auth_armv8_ce:
   CLEAR_REG(v16)
 
   ret
-.size _gcry_aes_ocb_auth_armv8_ce,.-_gcry_aes_ocb_auth_armv8_ce;
+ELF(.size _gcry_aes_ocb_auth_armv8_ce,.-_gcry_aes_ocb_auth_armv8_ce;)
 
 
 /*
@@ -1285,7 +1285,7 @@ _gcry_aes_ocb_auth_armv8_ce:
 
 .align 3
 .globl _gcry_aes_xts_enc_armv8_ce
-.type  _gcry_aes_xts_enc_armv8_ce,%function;
+ELF(.type  _gcry_aes_xts_enc_armv8_ce,%function;)
 _gcry_aes_xts_enc_armv8_ce:
   /* input:
    *    r0: keysched
@@ -1410,7 +1410,7 @@ _gcry_aes_xts_enc_armv8_ce:
 .Lxts_enc_skip:
   ret
 
-.size _gcry_aes_xts_enc_armv8_ce,.-_gcry_aes_xts_enc_armv8_ce;
+ELF(.size _gcry_aes_xts_enc_armv8_ce,.-_gcry_aes_xts_enc_armv8_ce;)
 
 
 /*
@@ -1422,7 +1422,7 @@ _gcry_aes_xts_enc_armv8_ce:
 
 .align 3
 .globl _gcry_aes_xts_dec_armv8_ce
-.type  _gcry_aes_xts_dec_armv8_ce,%function;
+ELF(.type  _gcry_aes_xts_dec_armv8_ce,%function;)
 _gcry_aes_xts_dec_armv8_ce:
   /* input:
    *    r0: keysched
@@ -1547,7 +1547,7 @@ _gcry_aes_xts_dec_armv8_ce:
 .Lxts_dec_skip:
   ret
 
-.size _gcry_aes_xts_dec_armv8_ce,.-_gcry_aes_xts_dec_armv8_ce;
+ELF(.size _gcry_aes_xts_dec_armv8_ce,.-_gcry_aes_xts_dec_armv8_ce;)
 
 
 /*
@@ -1555,7 +1555,7 @@ _gcry_aes_xts_dec_armv8_ce:
  */
 .align 3
 .globl _gcry_aes_sbox4_armv8_ce
-.type  _gcry_aes_sbox4_armv8_ce,%function;
+ELF(.type  _gcry_aes_sbox4_armv8_ce,%function;)
 _gcry_aes_sbox4_armv8_ce:
   /* See "Gouvêa, C. P. L. & López, J. Implementing GCM on ARMv8. Topics in
    * Cryptology — CT-RSA 2015" for details.
@@ -1568,7 +1568,7 @@ _gcry_aes_sbox4_armv8_ce:
   mov w0, v0.S[0]
   CLEAR_REG(v0)
   ret
-.size _gcry_aes_sbox4_armv8_ce,.-_gcry_aes_sbox4_armv8_ce;
+ELF(.size _gcry_aes_sbox4_armv8_ce,.-_gcry_aes_sbox4_armv8_ce;)
 
 
 /*
@@ -1576,13 +1576,13 @@ _gcry_aes_sbox4_armv8_ce:
  */
 .align 3
 .globl _gcry_aes_invmixcol_armv8_ce
-.type  _gcry_aes_invmixcol_armv8_ce,%function;
+ELF(.type  _gcry_aes_invmixcol_armv8_ce,%function;)
 _gcry_aes_invmixcol_armv8_ce:
   ld1 {v0.16b}, [x1]
   aesimc v0.16b, v0.16b
   st1 {v0.16b}, [x0]
   CLEAR_REG(v0)
   ret
-.size _gcry_aes_invmixcol_armv8_ce,.-_gcry_aes_invmixcol_armv8_ce;
+ELF(.size _gcry_aes_invmixcol_armv8_ce,.-_gcry_aes_invmixcol_armv8_ce;)
 
 #endif

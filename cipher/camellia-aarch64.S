@@ -19,7 +19,7 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include "asm-common-aarch64.h"
 
 #if defined(__AARCH64EL__)
 #ifdef HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS
@@ -55,12 +55,12 @@
 #define RT0 w15
 #define RT1 w16
 #define RT2 w17
-#define RT3 w18
+#define RT3 w19
 
 #define xRT0 x15
 #define xRT1 x16
 #define xRT2 x17
-#define xRT3 x18
+#define xRT3 x19
 
 #ifdef __AARCH64EL__
   #define host_to_be(reg, rtmp) \
@@ -198,9 +198,10 @@
 	str_output_be(RDST, YL, YR, XL, XR, RT0, RT1);
 
 .globl _gcry_camellia_arm_encrypt_block
-.type   _gcry_camellia_arm_encrypt_block,@function;
+ELF(.type   _gcry_camellia_arm_encrypt_block,@function;)
 
 _gcry_camellia_arm_encrypt_block:
+	stp x19, x30, [sp, #-16]!
 	/* input:
 	 *	x0: keytable
 	 *	x1: dst
@@ -227,6 +228,7 @@ _gcry_camellia_arm_encrypt_block:
 
 	outunpack(24);
 
+	ldp x19, x30, [sp], #16
 	ret;
 .ltorg
 
@@ -236,14 +238,16 @@ _gcry_camellia_arm_encrypt_block:
 
 	outunpack(32);
 
+	ldp x19, x30, [sp], #16
 	ret;
 .ltorg
-.size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;
+ELF(.size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;)
 
 .globl _gcry_camellia_arm_decrypt_block
-.type   _gcry_camellia_arm_decrypt_block,@function;
+ELF(.type   _gcry_camellia_arm_decrypt_block,@function;)
 
 _gcry_camellia_arm_decrypt_block:
+	stp x19, x30, [sp, #-16]!
 	/* input:
 	 *	x0: keytable
 	 *	x1: dst
@@ -271,6 +275,7 @@ _gcry_camellia_arm_decrypt_block:
 
 	outunpack(0);
 
+	ldp x19, x30, [sp], #16
 	ret;
 .ltorg
 
@@ -281,11 +286,11 @@ _gcry_camellia_arm_decrypt_block:
 
 	b .Ldec_128;
 .ltorg
-.size _gcry_camellia_arm_decrypt_block,.-_gcry_camellia_arm_decrypt_block;
+ELF(.size _gcry_camellia_arm_decrypt_block,.-_gcry_camellia_arm_decrypt_block;)
 
 /* Encryption/Decryption tables */
 .globl _gcry_camellia_arm_tables
-.type  _gcry_camellia_arm_tables,@object;
+ELF(.type  _gcry_camellia_arm_tables,@object;)
 .balign 32
 _gcry_camellia_arm_tables:
 .Lcamellia_sp1110:
@@ -551,7 +556,7 @@ _gcry_camellia_arm_tables:
 .long 0xc7c7c700, 0x008f8f8f, 0xe300e3e3, 0xf4f400f4
 .long 0x80808000, 0x00010101, 0x40004040, 0xc7c700c7
 .long 0x9e9e9e00, 0x003d3d3d, 0x4f004f4f, 0x9e9e009e
-.size _gcry_camellia_arm_tables,.-_gcry_camellia_arm_tables;
+ELF(.size _gcry_camellia_arm_tables,.-_gcry_camellia_arm_tables;)
 
 #endif /*HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS*/
 #endif /*__AARCH64EL__*/

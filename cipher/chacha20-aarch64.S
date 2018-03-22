@@ -27,7 +27,7 @@
  * Public domain.
  */
 
-#include <config.h>
+#include "asm-common-aarch64.h"
 
 #if defined(__AARCH64EL__) && \
     defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
@@ -38,9 +38,15 @@
 
 .text
 
+#ifdef _WIN32
+#define GET_DATA_POINTER(reg, name) \
+	adrp    reg, name ; \
+	add     reg, reg, #:lo12:name ;
+#else
 #define GET_DATA_POINTER(reg, name) \
 	adrp    reg, :got:name ; \
 	ldr     reg, [reg, #:got_lo12:name] ;
+#endif
 
 /* register macros */
 #define INPUT     x0
@@ -148,7 +154,7 @@ chacha20_data:
 
 .align 3
 .globl _gcry_chacha20_aarch64_blocks4
-.type _gcry_chacha20_aarch64_blocks4,%function;
+ELF(.type _gcry_chacha20_aarch64_blocks4,%function;)
 
 _gcry_chacha20_aarch64_blocks4:
 	/* input:
@@ -303,6 +309,6 @@ _gcry_chacha20_aarch64_blocks4:
 
 	eor x0, x0, x0
 	ret
-.size _gcry_chacha20_aarch64_blocks4, .-_gcry_chacha20_aarch64_blocks4;
+ELF(.size _gcry_chacha20_aarch64_blocks4, .-_gcry_chacha20_aarch64_blocks4;)
 
 #endif

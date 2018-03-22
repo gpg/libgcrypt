@@ -1119,10 +1119,6 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARMv8/Aarch64 assembly i
                 "eor x0, x0, x30, ror #12;\n\t"
                 "add x0, x0, x30, asr #12;\n\t"
                 "eor v0.16b, v0.16b, v31.16b;\n\t"
-
-                /* Test if '.type' and '.size' are supported.  */
-                ".size asmfunc,.-asmfunc;\n\t"
-                ".type asmfunc,@function;\n\t"
             );]])],
           [gcry_cv_gcc_aarch64_platform_as_ok=yes])])
 if test "$gcry_cv_gcc_aarch64_platform_as_ok" = "yes" ; then

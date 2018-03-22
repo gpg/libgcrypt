@@ -18,7 +18,7 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include "asm-common-aarch64.h"
 
 #if defined(__AARCH64EL__)
 #ifdef HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS
@@ -217,7 +217,7 @@
 	ror1(RD);
 
 .globl _gcry_twofish_arm_encrypt_block
-.type   _gcry_twofish_arm_encrypt_block,%function;
+ELF(.type   _gcry_twofish_arm_encrypt_block,%function;)
 
 _gcry_twofish_arm_encrypt_block:
 	/* input:
@@ -263,10 +263,10 @@ _gcry_twofish_arm_encrypt_block:
 
 	ret;
 .ltorg
-.size _gcry_twofish_arm_encrypt_block,.-_gcry_twofish_arm_encrypt_block;
+ELF(.size _gcry_twofish_arm_encrypt_block,.-_gcry_twofish_arm_encrypt_block;)
 
 .globl _gcry_twofish_arm_decrypt_block
-.type   _gcry_twofish_arm_decrypt_block,%function;
+ELF(.type   _gcry_twofish_arm_decrypt_block,%function;)
 
 _gcry_twofish_arm_decrypt_block:
 	/* input:
@@ -311,7 +311,7 @@ _gcry_twofish_arm_decrypt_block:
 	str_output_le(RDST, RA, RB, RC, RD, RT0, RT1);
 
 	ret;
-.size _gcry_twofish_arm_decrypt_block,.-_gcry_twofish_arm_decrypt_block;
+ELF(.size _gcry_twofish_arm_decrypt_block,.-_gcry_twofish_arm_decrypt_block;)
 
 #endif /*HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS*/
 #endif /*__AARCH64EL__*/

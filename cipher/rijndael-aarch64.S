@@ -18,7 +18,7 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include "asm-common-aarch64.h"
 
 #if defined(__AARCH64EL__)
 #ifdef HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS
@@ -206,7 +206,7 @@
 	addroundkey(rna, rnb, rnc, rnd, ra, rb, rc, rd, dummy);
 
 .globl _gcry_aes_arm_encrypt_block
-.type   _gcry_aes_arm_encrypt_block,%function;
+ELF(.type   _gcry_aes_arm_encrypt_block,%function;)
 
 _gcry_aes_arm_encrypt_block:
 	/* input:
@@ -285,7 +285,7 @@ _gcry_aes_arm_encrypt_block:
 	lastencround(11, RNA, RNB, RNC, RND, RA, RB, RC, RD);
 
 	b .Lenc_done;
-.size _gcry_aes_arm_encrypt_block,.-_gcry_aes_arm_encrypt_block;
+ELF(.size _gcry_aes_arm_encrypt_block,.-_gcry_aes_arm_encrypt_block;)
 
 #define addroundkey_dec(round, ra, rb, rc, rd, rna, rnb, rnc, rnd) \
 	ldr rna, [CTX, #(((round) * 16) + 0 * 4)]; \
@@ -429,7 +429,7 @@ _gcry_aes_arm_encrypt_block:
 	addroundkey(rna, rnb, rnc, rnd, ra, rb, rc, rd, dummy);
 
 .globl _gcry_aes_arm_decrypt_block
-.type   _gcry_aes_arm_decrypt_block,%function;
+ELF(.type   _gcry_aes_arm_decrypt_block,%function;)
 
 _gcry_aes_arm_decrypt_block:
 	/* input:
@@ -504,7 +504,7 @@ _gcry_aes_arm_decrypt_block:
 	decround(9, RA, RB, RC, RD, RNA, RNB, RNC, RND, preload_first_key);
 
 	b .Ldec_tail;
-.size _gcry_aes_arm_decrypt_block,.-_gcry_aes_arm_decrypt_block;
+ELF(.size _gcry_aes_arm_decrypt_block,.-_gcry_aes_arm_decrypt_block;)
 
 #endif /*HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS*/
 #endif /*__AARCH64EL__ */

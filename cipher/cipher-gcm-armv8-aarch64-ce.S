@@ -17,7 +17,7 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include "asm-common-aarch64.h"
 
 #if defined(__AARCH64EL__) && \
     defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
@@ -174,7 +174,7 @@ gcry_gcm_reduction_constant:
  */
 .align 3
 .globl _gcry_ghash_armv8_ce_pmull
-.type  _gcry_ghash_armv8_ce_pmull,%function;
+ELF(.type  _gcry_ghash_armv8_ce_pmull,%function;)
 _gcry_ghash_armv8_ce_pmull:
   /* input:
    *    x0: gcm_key
@@ -360,7 +360,7 @@ _gcry_ghash_armv8_ce_pmull:
 .Ldo_nothing:
   mov x0, #0
   ret
-.size _gcry_ghash_armv8_ce_pmull,.-_gcry_ghash_armv8_ce_pmull;
+ELF(.size _gcry_ghash_armv8_ce_pmull,.-_gcry_ghash_armv8_ce_pmull;)
 
 
 /*
@@ -368,7 +368,7 @@ _gcry_ghash_armv8_ce_pmull:
  */
 .align 3
 .globl _gcry_ghash_setup_armv8_ce_pmull
-.type  _gcry_ghash_setup_armv8_ce_pmull,%function;
+ELF(.type  _gcry_ghash_setup_armv8_ce_pmull,%function;)
 _gcry_ghash_setup_armv8_ce_pmull:
   /* input:
    *	x0: gcm_key
@@ -408,6 +408,6 @@ _gcry_ghash_setup_armv8_ce_pmull:
   st1 {rh5.16b-rh6.16b}, [x1]
 
   ret
-.size _gcry_ghash_setup_armv8_ce_pmull,.-_gcry_ghash_setup_armv8_ce_pmull;
+ELF(.size _gcry_ghash_setup_armv8_ce_pmull,.-_gcry_ghash_setup_armv8_ce_pmull;)
 
 #endif
