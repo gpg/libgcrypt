@@ -986,7 +986,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
 
      On AMD64, TSC is always available and intrinsic is provided for accessing
      it.  */
-#ifdef __WIN64__
+#ifdef __x86_64__
     {
       unsigned __int64 aint64;
 
@@ -1024,7 +1024,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
           (*add) (&aword, sizeof (aword), origin );
         }
     }
-#endif /*__WIN64__*/
+#endif /*__x86_64__*/
 
 
 }
