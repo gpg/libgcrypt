@@ -2905,7 +2905,9 @@ Use the given value.
 
 @noindent
 If this parameter is not used, Libgcrypt uses for historic reasons
-65537.
+65537.  Note that the value must fit into a 32 bit unsigned variable
+and that the usual C prefixes are considered (e.g. 017 gives 15).
+
 
 @item qbits @var{n}
 This is only meanigful for DSA keys.  If it is given the DSA key is

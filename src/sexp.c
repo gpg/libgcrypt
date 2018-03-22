@@ -401,7 +401,7 @@ _gcry_sexp_vlist( const gcry_sexp_t a, ... )
 
 /****************
  * Append n to the list a
- * Returns: a new ist (which maybe a)
+ * Returns: a new list (which maybe a)
  */
 gcry_sexp_t
 _gcry_sexp_append( const gcry_sexp_t a, const gcry_sexp_t n )
