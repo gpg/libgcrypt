@@ -170,27 +170,27 @@ _gcry_chacha20_aarch64_blocks4:
 	mov ROUND, #20;
 	ld1 {VTMP1.16b-VTMP3.16b}, [INPUT_POS];
 
-	dup X12.4s, X15.4s[0];
-	dup X13.4s, X15.4s[1];
+	dup X12.4s, X15.s[0];
+	dup X13.4s, X15.s[1];
 	ldr CTR, [INPUT_CTR];
 	add X12.4s, X12.4s, VCTR.4s;
-	dup X0.4s, VTMP1.4s[0];
-	dup X1.4s, VTMP1.4s[1];
-	dup X2.4s, VTMP1.4s[2];
-	dup X3.4s, VTMP1.4s[3];
-	dup X14.4s, X15.4s[2];
+	dup X0.4s, VTMP1.s[0];
+	dup X1.4s, VTMP1.s[1];
+	dup X2.4s, VTMP1.s[2];
+	dup X3.4s, VTMP1.s[3];
+	dup X14.4s, X15.s[2];
 	cmhi VTMP0.4s, VCTR.4s, X12.4s;
-	dup X15.4s, X15.4s[3];
+	dup X15.4s, X15.s[3];
 	add CTR, CTR, #4; /* Update counter */
-	dup X4.4s, VTMP2.4s[0];
-	dup X5.4s, VTMP2.4s[1];
-	dup X6.4s, VTMP2.4s[2];
-	dup X7.4s, VTMP2.4s[3];
+	dup X4.4s, VTMP2.s[0];
+	dup X5.4s, VTMP2.s[1];
+	dup X6.4s, VTMP2.s[2];
+	dup X7.4s, VTMP2.s[3];
 	sub X13.4s, X13.4s, VTMP0.4s;
-	dup X8.4s, VTMP3.4s[0];
-	dup X9.4s, VTMP3.4s[1];
-	dup X10.4s, VTMP3.4s[2];
-	dup X11.4s, VTMP3.4s[3];
+	dup X8.4s, VTMP3.s[0];
+	dup X9.4s, VTMP3.s[1];
+	dup X10.4s, VTMP3.s[2];
+	dup X11.4s, VTMP3.s[3];
 	mov X12_TMP.16b, X12.16b;
 	mov X13_TMP.16b, X13.16b;
 	str CTR, [INPUT_CTR];
@@ -208,19 +208,19 @@ _gcry_chacha20_aarch64_blocks4:
 	PLUS(X12, X12_TMP);        /* INPUT + 12 * 4 + counter */
 	PLUS(X13, X13_TMP);        /* INPUT + 13 * 4 + counter */
 
-	dup VTMP2.4s, VTMP0.4s[0]; /* INPUT + 0 * 4 */
-	dup VTMP3.4s, VTMP0.4s[1]; /* INPUT + 1 * 4 */
-	dup X12_TMP.4s, VTMP0.4s[2]; /* INPUT + 2 * 4 */
-	dup X13_TMP.4s, VTMP0.4s[3]; /* INPUT + 3 * 4 */
+	dup VTMP2.4s, VTMP0.s[0]; /* INPUT + 0 * 4 */
+	dup VTMP3.4s, VTMP0.s[1]; /* INPUT + 1 * 4 */
+	dup X12_TMP.4s, VTMP0.s[2]; /* INPUT + 2 * 4 */
+	dup X13_TMP.4s, VTMP0.s[3]; /* INPUT + 3 * 4 */
 	PLUS(X0, VTMP2);
 	PLUS(X1, VTMP3);
 	PLUS(X2, X12_TMP);
 	PLUS(X3, X13_TMP);
 
-	dup VTMP2.4s, VTMP1.4s[0]; /* INPUT + 4 * 4 */
-	dup VTMP3.4s, VTMP1.4s[1]; /* INPUT + 5 * 4 */
-	dup X12_TMP.4s, VTMP1.4s[2]; /* INPUT + 6 * 4 */
-	dup X13_TMP.4s, VTMP1.4s[3]; /* INPUT + 7 * 4 */
+	dup VTMP2.4s, VTMP1.s[0]; /* INPUT + 4 * 4 */
+	dup VTMP3.4s, VTMP1.s[1]; /* INPUT + 5 * 4 */
+	dup X12_TMP.4s, VTMP1.s[2]; /* INPUT + 6 * 4 */
+	dup X13_TMP.4s, VTMP1.s[3]; /* INPUT + 7 * 4 */
 	ld1 {VTMP0.16b, VTMP1.16b}, [INPUT_POS];
 	mov INPUT_POS, INPUT;
 	PLUS(X4, VTMP2);
@@ -228,12 +228,12 @@ _gcry_chacha20_aarch64_blocks4:
 	PLUS(X6, X12_TMP);
 	PLUS(X7, X13_TMP);
 
-	dup VTMP2.4s, VTMP0.4s[0]; /* INPUT + 8 * 4 */
-	dup VTMP3.4s, VTMP0.4s[1]; /* INPUT + 9 * 4 */
-	dup X12_TMP.4s, VTMP0.4s[2]; /* INPUT + 10 * 4 */
-	dup X13_TMP.4s, VTMP0.4s[3]; /* INPUT + 11 * 4 */
-	dup VTMP0.4s, VTMP1.4s[2]; /* INPUT + 14 * 4 */
-	dup VTMP1.4s, VTMP1.4s[3]; /* INPUT + 15 * 4 */
+	dup VTMP2.4s, VTMP0.s[0]; /* INPUT + 8 * 4 */
+	dup VTMP3.4s, VTMP0.s[1]; /* INPUT + 9 * 4 */
+	dup X12_TMP.4s, VTMP0.s[2]; /* INPUT + 10 * 4 */
+	dup X13_TMP.4s, VTMP0.s[3]; /* INPUT + 11 * 4 */
+	dup VTMP0.4s, VTMP1.s[2]; /* INPUT + 14 * 4 */
+	dup VTMP1.4s, VTMP1.s[3]; /* INPUT + 15 * 4 */
 	PLUS(X8, VTMP2);
 	PLUS(X9, VTMP3);
 	PLUS(X10, X12_TMP);
