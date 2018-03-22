@@ -501,11 +501,12 @@ void
 __gcry_burn_stack (unsigned int bytes)
 {
 #ifdef HAVE_VLA
+    static void *(*volatile memset_ptr)(void *, int, size_t) = (void *)memset;
     /* (bytes == 0 ? 1 : bytes) == (!bytes + bytes) */
     unsigned int buflen = ((!bytes + bytes) + 63) & ~63;
-    volatile char buf[buflen];
+    char buf[buflen];
 
-    wipememory (buf, sizeof buf);
+    memset_ptr (buf, 0, sizeof buf);
 #else
     volatile char buf[64];
 
