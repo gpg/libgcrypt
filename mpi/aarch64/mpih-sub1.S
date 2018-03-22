@@ -22,6 +22,7 @@
 
 #include "sysdep.h"
 #include "asm-syntax.h"
+#include "asm-common-aarch64.h"
 
 /*******************
  *  mpi_limb_t
@@ -34,7 +35,7 @@
 .text
 
 .globl _gcry_mpih_sub_n
-.type  _gcry_mpih_sub_n,%function
+ELF(.type  _gcry_mpih_sub_n,%function)
 _gcry_mpih_sub_n:
 	and	x5, x3, #3;
 	subs	xzr, xzr, xzr; /* prepare carry flag for sub */
@@ -68,4 +69,4 @@ _gcry_mpih_sub_n:
 .Lend:
 	cset	x0, cc;
 	ret;
-.size _gcry_mpih_sub_n,.-_gcry_mpih_sub_n;
+ELF(.size _gcry_mpih_sub_n,.-_gcry_mpih_sub_n;)

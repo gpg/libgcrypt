@@ -22,6 +22,7 @@
 
 #include "sysdep.h"
 #include "asm-syntax.h"
+#include "asm-common-aarch64.h"
 
 /*******************
  *  mpi_limb_t
@@ -34,7 +35,7 @@
 .text
 
 .globl _gcry_mpih_add_n
-.type  _gcry_mpih_add_n,%function
+ELF(.type  _gcry_mpih_add_n,%function)
 _gcry_mpih_add_n:
 	and	x5, x3, #3;
 	adds	xzr, xzr, xzr; /* clear carry flag */
@@ -68,4 +69,4 @@ _gcry_mpih_add_n:
 .Lend:
 	adc	x0, xzr, xzr;
 	ret;
-.size _gcry_mpih_add_n,.-_gcry_mpih_add_n;
+ELF(.size _gcry_mpih_add_n,.-_gcry_mpih_add_n;)

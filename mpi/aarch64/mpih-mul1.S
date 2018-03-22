@@ -22,6 +22,7 @@
 
 #include "sysdep.h"
 #include "asm-syntax.h"
+#include "asm-common-aarch64.h"
 
 /*******************
  * mpi_limb_t
@@ -34,7 +35,7 @@
 .text
 
 .globl _gcry_mpih_mul_1
-.type  _gcry_mpih_mul_1,%function
+ELF(.type  _gcry_mpih_mul_1,%function)
 _gcry_mpih_mul_1:
 	and	x5, x2, #3;
 	mov	x4, xzr;
@@ -93,4 +94,4 @@ _gcry_mpih_mul_1:
 .Lend:
 	mov	x0, x4;
 	ret;
-.size _gcry_mpih_mul_1,.-_gcry_mpih_mul_1;
+ELF(.size _gcry_mpih_mul_1,.-_gcry_mpih_mul_1;)
