@@ -33,7 +33,7 @@
 #define CTX x0
 #define RDST x1
 #define RSRC x2
-#define RKEYBITS x3
+#define RKEYBITS w3
 
 #define RTAB1 x4
 #define RTAB2 x5
