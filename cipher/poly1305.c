@@ -130,7 +130,7 @@ static void poly1305_init (poly1305_context_t *ctx,
     /* carry propagation */ \
     H2 = H0 & 3; \
     H0 = (H0 >> 2) * 5; /* msb mod 2^130-5 */ \
-    ADD_1305_64(H2, H1, H0, 0, x0_hi, x0_lo); \
+    ADD_1305_64(H2, H1, H0, (u64)0, x0_hi, x0_lo); \
   } while (0)
 
 unsigned int
