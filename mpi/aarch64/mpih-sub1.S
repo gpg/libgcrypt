@@ -29,7 +29,7 @@
  *  _gcry_mpih_sub_n( mpi_ptr_t res_ptr,	x0
  *		   mpi_ptr_t s1_ptr,		x1
  *		   mpi_ptr_t s2_ptr,		x2
- *		   mpi_size_t size)		x3
+ *		   mpi_size_t size)		w3
  */
 
 .text
@@ -37,34 +37,34 @@
 .globl _gcry_mpih_sub_n
 ELF(.type  _gcry_mpih_sub_n,%function)
 _gcry_mpih_sub_n:
-	and	x5, x3, #3;
+	and	w5, w3, #3;
 	subs	xzr, xzr, xzr; /* prepare carry flag for sub */
 
-	cbz	x5, .Large_loop;
+	cbz	w5, .Large_loop;
 
 .Loop:
 	ldr	x4, [x1], #8;
-	sub	x3, x3, #1;
+	sub	w3, w3, #1;
 	ldr	x11, [x2], #8;
-	and	x5, x3, #3;
+	and	w5, w3, #3;
 	sbcs	x4, x4, x11;
 	str	x4, [x0], #8;
-	cbz	x3, .Lend;
-	cbnz	x5, .Loop;
+	cbz	w3, .Lend;
+	cbnz	w5, .Loop;
 
 .Large_loop:
 	ldp	x4, x6, [x1], #16;
 	ldp	x5, x7, [x2], #16;
 	ldp	x8, x10, [x1], #16;
 	ldp	x9, x11, [x2], #16;
-	sub	x3, x3, #4;
+	sub	w3, w3, #4;
 	sbcs	x4, x4, x5;
 	sbcs	x6, x6, x7;
 	sbcs	x8, x8, x9;
 	sbcs	x10, x10, x11;
 	stp	x4, x6, [x0], #16;
 	stp	x8, x10, [x0], #16;
-	cbnz	x3, .Large_loop;
+	cbnz	w3, .Large_loop;
 
 .Lend:
 	cset	x0, cc;

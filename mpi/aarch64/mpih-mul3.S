@@ -28,7 +28,7 @@
  * mpi_limb_t
  * _gcry_mpih_submul_1( mpi_ptr_t res_ptr,	x0
  *		     mpi_ptr_t s1_ptr,		x1
- *		     mpi_size_t s1_size,	x2
+ *		     mpi_size_t s1_size,	w2
  *		     mpi_limb_t s2_limb)	x3
  */
 
@@ -37,9 +37,9 @@
 .globl _gcry_mpih_submul_1
 ELF(.type  _gcry_mpih_submul_1,%function)
 _gcry_mpih_submul_1:
-	and	x5, x2, #3;
+	and	w5, w2, #3;
 	mov	x7, xzr;
-	cbz	x5, .Large_loop;
+	cbz	w5, .Large_loop;
 
 	subs	xzr, xzr, xzr;
 
@@ -47,26 +47,26 @@ _gcry_mpih_submul_1:
 	ldr	x4, [x1], #8;
 	cinc	x7, x7, cc;
 	ldr	x5, [x0];
-	sub	x2, x2, #1;
+	sub	w2, w2, #1;
 
 	mul	x6, x4, x3;
 	subs	x5, x5, x7;
 	umulh	x4, x4, x3;
-	and	x10, x2, #3;
+	and	w10, w2, #3;
 
 	cset	x7, cc;
 	subs	x5, x5, x6;
 	add	x7, x7, x4;
 	str	x5, [x0], #8;
 
-	cbz	x2, .Loop_end;
-	cbnz	x10, .Loop;
+	cbz	w2, .Loop_end;
+	cbnz	w10, .Loop;
 
 	cinc	x7, x7, cc;
 
 .Large_loop:
 	ldp	x4, x8, [x1], #16;
-	sub	x2, x2, #4;
+	sub	w2, w2, #4;
 	ldp	x5, x9, [x0];
 
 	mul	x6, x4, x3;
@@ -111,7 +111,7 @@ _gcry_mpih_submul_1:
 	str	x9, [x0], #8;
 	cinc	x7, x7, cc;
 
-	cbnz	x2, .Large_loop;
+	cbnz	w2, .Large_loop;
 
 	mov	x0, x7;
 	ret;

@@ -28,7 +28,7 @@
  * mpi_limb_t
  * _gcry_mpih_mul_1( mpi_ptr_t res_ptr,		x0
  *		  mpi_ptr_t s1_ptr,		x1
- *		  mpi_size_t s1_size,		x2
+ *		  mpi_size_t s1_size,		w2
  *		  mpi_limb_t s2_limb)		x3
  */
 
@@ -37,27 +37,27 @@
 .globl _gcry_mpih_mul_1
 ELF(.type  _gcry_mpih_mul_1,%function)
 _gcry_mpih_mul_1:
-	and	x5, x2, #3;
+	and	w5, w2, #3;
 	mov	x4, xzr;
 
-	cbz	x5, .Large_loop;
+	cbz	w5, .Large_loop;
 
 .Loop:
 	ldr	x5, [x1], #8;
-	sub	x2, x2, #1;
+	sub	w2, w2, #1;
 	mul	x9, x5, x3;
 	umulh	x10, x5, x3;
-	and	x5, x2, #3;
+	and	w5, w2, #3;
 	adds	x4, x4, x9;
 	str	x4, [x0], #8;
 	adc	x4, x10, xzr;
 
-	cbz	x2, .Lend;
-	cbnz	x5, .Loop;
+	cbz	w2, .Lend;
+	cbnz	w5, .Loop;
 
 .Large_loop:
 	ldp	x5, x6, [x1];
-	sub	x2, x2, #4;
+	sub	w2, w2, #4;
 
 	mul	x9, x5, x3;
 	ldp	x7, x8, [x1, #16];
@@ -89,7 +89,7 @@ _gcry_mpih_mul_1:
 	str	x4, [x0], #8;
 	adc	x4, x16, xzr;
 
-	cbnz	x2, .Large_loop;
+	cbnz	w2, .Large_loop;
 
 .Lend:
 	mov	x0, x4;

@@ -1157,8 +1157,8 @@ _gcry_aes_ocb_auth_armv8_ce:
    *    w6: nrounds => w7
    *    w7: blkn => w12
    */
-  mov x12, x7
-  mov x7, x6
+  mov w12, w7
+  mov w7, w6
   mov x6, x5
   mov x5, x4
   mov x4, x3
@@ -1280,7 +1280,9 @@ ELF(.size _gcry_aes_ocb_auth_armv8_ce,.-_gcry_aes_ocb_auth_armv8_ce;)
  * void _gcry_aes_xts_enc_armv8_ce (const void *keysched,
  *                                  unsigned char *outbuf,
  *                                  const unsigned char *inbuf,
- *                                  unsigned char *tweak, unsigned int nrounds);
+ *                                  unsigned char *tweak,
+ *                                  size_t nblocks,
+ *                                  unsigned int nrounds);
  */
 
 .align 3
@@ -1417,7 +1419,9 @@ ELF(.size _gcry_aes_xts_enc_armv8_ce,.-_gcry_aes_xts_enc_armv8_ce;)
  * void _gcry_aes_xts_dec_armv8_ce (const void *keysched,
  *                                  unsigned char *outbuf,
  *                                  const unsigned char *inbuf,
- *                                  unsigned char *tweak, unsigned int nrounds);
+ *                                  unsigned char *tweak,
+ *                                  size_t nblocks,
+ *                                  unsigned int nrounds);
  */
 
 .align 3

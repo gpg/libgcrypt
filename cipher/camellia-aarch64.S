@@ -206,7 +206,7 @@ _gcry_camellia_arm_encrypt_block:
 	 *	x0: keytable
 	 *	x1: dst
 	 *	x2: src
-	 *	x3: keybitlen
+	 *	w3: keybitlen
 	 */
 
 	adr RTAB1,  _gcry_camellia_arm_tables;
@@ -252,7 +252,7 @@ _gcry_camellia_arm_decrypt_block:
 	 *	x0: keytable
 	 *	x1: dst
 	 *	x2: src
-	 *	x3: keybitlen
+	 *	w3: keybitlen
 	 */
 
 	adr RTAB1,  _gcry_camellia_arm_tables;
