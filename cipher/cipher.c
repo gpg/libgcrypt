@@ -90,6 +90,114 @@ static gcry_cipher_spec_t * const cipher_list[] =
     NULL
   };
 
+/* Cipher implementations starting with index 0 (enum gcry_cipher_algos) */
+static gcry_cipher_spec_t * const cipher_list_algo0[] =
+  {
+    NULL, /* GCRY_CIPHER_NONE */
+#ifdef USE_IDEA
+    &_gcry_cipher_spec_idea,
+#else
+    NULL,
+#endif
+#if USE_DES
+    &_gcry_cipher_spec_tripledes,
+#else
+    NULL,
+#endif
+#if USE_CAST5
+    &_gcry_cipher_spec_cast5,
+#else
+    NULL,
+#endif
+#if USE_BLOWFISH
+    &_gcry_cipher_spec_blowfish,
+#else
+    NULL,
+#endif
+    NULL, /* GCRY_CIPHER_SAFER_SK128 */
+    NULL, /* GCRY_CIPHER_DES_SK */
+#if USE_AES
+    &_gcry_cipher_spec_aes,
+    &_gcry_cipher_spec_aes192,
+    &_gcry_cipher_spec_aes256,
+#else
+    NULL,
+    NULL,
+    NULL,
+#endif
+#if USE_TWOFISH
+    &_gcry_cipher_spec_twofish
+#else
+    NULL
+#endif
+  };
+
+/* Cipher implementations starting with index 301 (enum gcry_cipher_algos) */
+static gcry_cipher_spec_t * const cipher_list_algo301[] =
+  {
+#if USE_ARCFOUR
+    &_gcry_cipher_spec_arcfour,
+#else
+    NULL,
+#endif
+#if USE_DES
+    &_gcry_cipher_spec_des,
+#else
+    NULL,
+#endif
+#if USE_TWOFISH
+    &_gcry_cipher_spec_twofish128,
+#else
+    NULL,
+#endif
+#if USE_SERPENT
+    &_gcry_cipher_spec_serpent128,
+    &_gcry_cipher_spec_serpent192,
+    &_gcry_cipher_spec_serpent256,
+#else
+    NULL,
+    NULL,
+    NULL,
+#endif
+#if USE_RFC2268
+    &_gcry_cipher_spec_rfc2268_40,
+    &_gcry_cipher_spec_rfc2268_128,
+#else
+    NULL,
+    NULL,
+#endif
+#if USE_SEED
+    &_gcry_cipher_spec_seed,
+#else
+    NULL,
+#endif
+#if USE_CAMELLIA
+    &_gcry_cipher_spec_camellia128,
+    &_gcry_cipher_spec_camellia192,
+    &_gcry_cipher_spec_camellia256,
+#else
+    NULL,
+    NULL,
+    NULL,
+#endif
+#if USE_SALSA20
+    &_gcry_cipher_spec_salsa20,
+    &_gcry_cipher_spec_salsa20r12,
+#else
+    NULL,
+    NULL,
+#endif
+#if USE_GOST28147
+    &_gcry_cipher_spec_gost28147,
+#else
+    NULL,
+#endif
+#if USE_CHACHA20
+    &_gcry_cipher_spec_chacha20
+#else
+    NULL,
+#endif
+  };
 
 
 
@@ -105,15 +213,19 @@ map_algo (int algo)
 static gcry_cipher_spec_t *
 spec_from_algo (int algo)
 {
-  int idx;
-  gcry_cipher_spec_t *spec;
+  gcry_cipher_spec_t *spec = NULL;
 
   algo = map_algo (algo);
 
-  for (idx = 0; (spec = cipher_list[idx]); idx++)
-    if (algo == spec->algo)
-      return spec;
-  return NULL;
+  if (algo >= 0 && algo < DIM(cipher_list_algo0))
+    spec = cipher_list_algo0[algo];
+  else if (algo >= 301 && algo < 301 + DIM(cipher_list_algo301))
+    spec = cipher_list_algo301[algo - 301];
+
+  if (spec)
+    gcry_assert (spec->algo == algo);
+
+  return spec;
 }
 
 

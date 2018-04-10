@@ -101,6 +101,143 @@ static gcry_md_spec_t * const digest_list[] =
      NULL
   };
 
+/* Digest implementations starting with index 0 (enum gcry_md_algos) */
+static gcry_md_spec_t * const digest_list_algo0[] =
+  {
+    NULL, /* GCRY_MD_NONE */
+#if USE_MD5
+    &_gcry_digest_spec_md5,
+#else
+    NULL,
+#endif
+#if USE_SHA1
+    &_gcry_digest_spec_sha1,
+#else
+    NULL,
+#endif
+#if USE_RMD160
+    &_gcry_digest_spec_rmd160,
+#else
+    NULL,
+#endif
+    NULL, /* Unused index 4 */
+#if USE_MD2
+    &_gcry_digest_spec_md2,
+#else
+    NULL,
+#endif
+#if USE_TIGER
+    &_gcry_digest_spec_tiger,
+#else
+    NULL,
+#endif
+    NULL, /* GCRY_MD_HAVAL */
+#if USE_SHA256
+    &_gcry_digest_spec_sha256,
+#else
+    NULL,
+#endif
+#if USE_SHA512
+    &_gcry_digest_spec_sha384,
+    &_gcry_digest_spec_sha512,
+#else
+    NULL,
+    NULL,
+#endif
+#if USE_SHA256
+    &_gcry_digest_spec_sha224
+#else
+    NULL
+#endif
+  };
+
+/* Digest implementations starting with index 301 (enum gcry_md_algos) */
+static gcry_md_spec_t * const digest_list_algo301[] =
+  {
+#if USE_MD4
+    &_gcry_digest_spec_md4,
+#else
+    NULL,
+#endif
+#if USE_CRC
+    &_gcry_digest_spec_crc32,
+    &_gcry_digest_spec_crc32_rfc1510,
+    &_gcry_digest_spec_crc24_rfc2440,
+#else
+    NULL,
+    NULL,
+    NULL,
+#endif
+#if USE_WHIRLPOOL
+    &_gcry_digest_spec_whirlpool,
+#else
+    NULL,
+#endif
+#if USE_TIGER
+    &_gcry_digest_spec_tiger1,
+    &_gcry_digest_spec_tiger2,
+#else
+    NULL,
+    NULL,
+#endif
+#if USE_GOST_R_3411_94
+    &_gcry_digest_spec_gost3411_94,
+#else
+    NULL,
+#endif
+#if USE_GOST_R_3411_12
+    &_gcry_digest_spec_stribog_256,
+    &_gcry_digest_spec_stribog_512,
+#else
+    NULL,
+    NULL,
+#endif
+#if USE_GOST_R_3411_94
+    &_gcry_digest_spec_gost3411_cp,
+#else
+    NULL,
+#endif
+#if USE_SHA3
+    &_gcry_digest_spec_sha3_224,
+    &_gcry_digest_spec_sha3_256,
+    &_gcry_digest_spec_sha3_384,
+    &_gcry_digest_spec_sha3_512,
+    &_gcry_digest_spec_shake128,
+    &_gcry_digest_spec_shake256,
+#else
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+#endif
+#if USE_BLAKE2
+    &_gcry_digest_spec_blake2b_512,
+    &_gcry_digest_spec_blake2b_384,
+    &_gcry_digest_spec_blake2b_256,
+    &_gcry_digest_spec_blake2b_160,
+    &_gcry_digest_spec_blake2s_256,
+    &_gcry_digest_spec_blake2s_224,
+    &_gcry_digest_spec_blake2s_160,
+    &_gcry_digest_spec_blake2s_128,
+#else
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+#endif
+#if USE_SM3
+    &_gcry_digest_spec_sm3
+#else
+    NULL
+#endif
+  };
+
 
 typedef struct gcry_md_list
 {
@@ -118,7 +255,7 @@ struct gcry_md_context
   size_t actual_handle_size;     /* Allocated size of this handle. */
   FILE  *debug;
   struct {
-    unsigned int secure: 1;
+    unsigned int secure:1;
     unsigned int finalized:1;
     unsigned int bugemu1:1;
     unsigned int hmac:1;
@@ -153,15 +290,19 @@ map_algo (int algo)
 static gcry_md_spec_t *
 spec_from_algo (int algo)
 {
-  int idx;
-  gcry_md_spec_t *spec;
+  gcry_md_spec_t *spec = NULL;
 
   algo = map_algo (algo);
 
-  for (idx = 0; (spec = digest_list[idx]); idx++)
-    if (algo == spec->algo)
-      return spec;
-  return NULL;
+  if (algo >= 0 && algo < DIM(digest_list_algo0))
+    spec = digest_list_algo0[algo];
+  else if (algo >= 301 && algo < 301 + DIM(digest_list_algo301))
+    spec = digest_list_algo301[algo - 301];
+
+  if (spec)
+    gcry_assert (spec->algo == algo);
+
+  return spec;
 }
 
 
