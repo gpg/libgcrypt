@@ -49,6 +49,7 @@ static gcry_mac_spec_t * const mac_list[] = {
 #endif
 #ifdef USE_GOST_R_3411_94
   &_gcry_mac_type_spec_hmac_gost3411_94,
+  &_gcry_mac_type_spec_hmac_gost3411_cp,
 #endif
 #ifdef USE_GOST_R_3411_12
   &_gcry_mac_type_spec_hmac_stribog256,
@@ -68,6 +69,19 @@ static gcry_mac_spec_t * const mac_list[] = {
 #endif
 #if USE_MD4
   &_gcry_mac_type_spec_hmac_md4,
+#endif
+#if USE_BLAKE2
+  &_gcry_mac_type_spec_hmac_blake2b_512,
+  &_gcry_mac_type_spec_hmac_blake2b_384,
+  &_gcry_mac_type_spec_hmac_blake2b_256,
+  &_gcry_mac_type_spec_hmac_blake2b_160,
+  &_gcry_mac_type_spec_hmac_blake2s_256,
+  &_gcry_mac_type_spec_hmac_blake2s_224,
+  &_gcry_mac_type_spec_hmac_blake2s_160,
+  &_gcry_mac_type_spec_hmac_blake2s_128,
+#endif
+#if USE_SM3
+  &_gcry_mac_type_spec_hmac_sm3,
 #endif
 #if USE_BLOWFISH
   &_gcry_mac_type_spec_cmac_blowfish,

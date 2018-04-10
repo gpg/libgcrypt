@@ -142,6 +142,7 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_512;
 #endif
 #ifdef USE_GOST_R_3411_94
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_gost3411_94;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_gost3411_cp;
 #endif
 #ifdef USE_GOST_R_3411_12
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_stribog256;
@@ -161,6 +162,19 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_md5;
 #endif
 #if USE_MD4
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_md4;
+#endif
+#if USE_BLAKE2
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2b_512;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2b_384;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2b_256;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2b_160;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2s_256;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2s_224;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2s_160;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2s_128;
+#endif
+#if USE_SM3
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sm3;
 #endif
 
 /*

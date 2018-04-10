@@ -67,10 +67,30 @@ map_mac_algo_to_md (int mac_algo)
       return GCRY_MD_WHIRLPOOL;
     case GCRY_MAC_HMAC_GOSTR3411_94:
       return GCRY_MD_GOSTR3411_94;
+    case GCRY_MAC_HMAC_GOSTR3411_CP:
+      return GCRY_MD_GOSTR3411_CP;
     case GCRY_MAC_HMAC_STRIBOG256:
       return GCRY_MD_STRIBOG256;
     case GCRY_MAC_HMAC_STRIBOG512:
       return GCRY_MD_STRIBOG512;
+    case GCRY_MAC_HMAC_BLAKE2B_512:
+      return GCRY_MD_BLAKE2B_512;
+    case GCRY_MAC_HMAC_BLAKE2B_384:
+      return GCRY_MD_BLAKE2B_384;
+    case GCRY_MAC_HMAC_BLAKE2B_256:
+      return GCRY_MD_BLAKE2B_256;
+    case GCRY_MAC_HMAC_BLAKE2B_160:
+      return GCRY_MD_BLAKE2B_160;
+    case GCRY_MAC_HMAC_BLAKE2S_256:
+      return GCRY_MD_BLAKE2S_256;
+    case GCRY_MAC_HMAC_BLAKE2S_224:
+      return GCRY_MD_BLAKE2S_224;
+    case GCRY_MAC_HMAC_BLAKE2S_160:
+      return GCRY_MD_BLAKE2S_160;
+    case GCRY_MAC_HMAC_BLAKE2S_128:
+      return GCRY_MD_BLAKE2S_128;
+    case GCRY_MAC_HMAC_SM3:
+      return GCRY_MD_SM3;
     }
 }
 
@@ -267,6 +287,10 @@ gcry_mac_spec_t _gcry_mac_type_spec_hmac_gost3411_94 = {
   GCRY_MAC_HMAC_GOSTR3411_94, {0, 0}, "HMAC_GOSTR3411_94",
   &hmac_ops
 };
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_gost3411_cp = {
+  GCRY_MAC_HMAC_GOSTR3411_CP, {0, 0}, "HMAC_GOSTR3411_CP",
+  &hmac_ops
+};
 #endif
 #ifdef USE_GOST_R_3411_12
 gcry_mac_spec_t _gcry_mac_type_spec_hmac_stribog256 = {
@@ -312,6 +336,46 @@ gcry_mac_spec_t _gcry_mac_type_spec_hmac_md4 = {
 #if USE_MD2
 gcry_mac_spec_t _gcry_mac_type_spec_hmac_md2 = {
   GCRY_MAC_HMAC_MD2, {0, 0}, "HMAC_MD2",
+  &hmac_ops
+};
+#endif
+#if USE_BLAKE2
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2b_512 = {
+  GCRY_MAC_HMAC_BLAKE2B_512, {0, 0}, "HMAC_BLAKE2B_512",
+  &hmac_ops
+};
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2b_384 = {
+  GCRY_MAC_HMAC_BLAKE2B_384, {0, 0}, "HMAC_BLAKE2B_384",
+  &hmac_ops
+};
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2b_256 = {
+  GCRY_MAC_HMAC_BLAKE2B_256, {0, 0}, "HMAC_BLAKE2B_256",
+  &hmac_ops
+};
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2b_160 = {
+  GCRY_MAC_HMAC_BLAKE2B_160, {0, 0}, "HMAC_BLAKE2B_160",
+  &hmac_ops
+};
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2s_256 = {
+  GCRY_MAC_HMAC_BLAKE2S_256, {0, 0}, "HMAC_BLAKE2S_256",
+  &hmac_ops
+};
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2s_224 = {
+  GCRY_MAC_HMAC_BLAKE2S_224, {0, 0}, "HMAC_BLAKE2S_224",
+  &hmac_ops
+};
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2s_160 = {
+  GCRY_MAC_HMAC_BLAKE2S_160, {0, 0}, "HMAC_BLAKE2S_160",
+  &hmac_ops
+};
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_blake2s_128 = {
+  GCRY_MAC_HMAC_BLAKE2S_128, {0, 0}, "HMAC_BLAKE2S_128",
+  &hmac_ops
+};
+#endif
+#if USE_SM3
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_sm3 = {
+  GCRY_MAC_HMAC_SM3, {0, 0}, "HMAC_SM3",
   &hmac_ops
 };
 #endif
