@@ -68,7 +68,7 @@ done | sort | (
   while read opts; do
     currn=$nbasic
     curr_jobs=($(jobs -p))
-    while [ "${#curr_jobs[@]}" -ge "8" ]; do
+    while [ "${#curr_jobs[@]}" -ge "$njobs" ]; do
       # Wait for one job to complete
       wait ${retcodes[$nwait]}
       retval=$?
