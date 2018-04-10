@@ -703,6 +703,7 @@ md_setkey (gcry_md_hd_t h, const unsigned char *key, size_t keylen)
     {
       switch (r->spec->algo)
 	{
+#if USE_BLAKE2
 	/* TODO? add spec->init_with_key? */
 	case GCRY_MD_BLAKE2B_512:
 	case GCRY_MD_BLAKE2B_384:
@@ -719,6 +720,7 @@ md_setkey (gcry_md_hd_t h, const unsigned char *key, size_t keylen)
 					     ? GCRY_MD_FLAG_BUGEMU1:0,
 					   key, keylen, r->spec->algo);
 	  break;
+#endif
 	default:
 	  rc = GPG_ERR_DIGEST_ALGO;
 	  break;
