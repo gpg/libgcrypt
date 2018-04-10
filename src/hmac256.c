@@ -24,8 +24,7 @@
     internal consistency checks.  It should not be used for sensitive
     data because no mechanisms to clear the stack etc are used.
 
-    This module may be used standalone and requires only a few
-    standard definitions to be provided in a config.h file.
+    This module may be used standalone.
 
     Types:
 
@@ -46,7 +45,19 @@
                            for testing this included module.
  */
 
+#ifdef STANDALONE
+#include <stdint.h>
+#define HAVE_U32_TYPEDEF 1
+typedef uint32_t u32;
+#define VERSION "standalone"
+/* For GCC, we can detect endianness.  If not GCC, please define manually.  */
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define WORDS_BIGENDIAN 1
+#endif
+#else
 #include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,13 +67,11 @@
 # include <fcntl.h> /* We need setmode().  */
 #endif
 
-/* For a native WindowsCE binary we need to include gpg-error.h to
-   provide a replacement for strerror.  In other cases we need a
-   replacement macro for gpg_err_set_errno.  */
-#ifdef __MINGW32CE__
-# include <gpg-error.h>
+#ifdef STANDALONE
+#define xtrymalloc(a) malloc((a))
+#define gpg_err_set_errno(a) (errno = (a))
 #else
-# define gpg_err_set_errno(a) (errno = (a))
+#include "g10lib.h"
 #endif
 
 #include "hmac256.h"
@@ -296,7 +305,7 @@ _gcry_hmac256_new (const void *key, size_t keylen)
 {
   hmac256_context_t hd;
 
-  hd = malloc (sizeof *hd);
+  hd = xtrymalloc (sizeof *hd);
   if (!hd)
     return NULL;
 
@@ -469,7 +478,7 @@ _gcry_hmac256_file (void *result, size_t resultsize, const char *filename,
     }
 
   buffer_size = 32768;
-  buffer = malloc (buffer_size);
+  buffer = xtrymalloc (buffer_size);
   if (!buffer)
     {
       fclose (fp);
