@@ -334,11 +334,13 @@ _gcry_rndjent_get_version (int *r_active)
     {
       if (r_active)
         {
+          lock_rng ();
           /* Make sure the RNG is initialized.  */
           _gcry_rndjent_poll (NULL, 0, 0);
           /* To ease debugging we store 2 for a clock_gettime based
            * implementation and 1 for a rdtsc based code.  */
           *r_active = jent_rng_collector? is_rng_available () : 0;
+          unlock_rng ();
         }
       return jent_version ();
     }
