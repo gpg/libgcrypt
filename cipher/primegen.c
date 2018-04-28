@@ -935,20 +935,25 @@ is_prime (gcry_mpi_t n, int steps, unsigned int *count)
         }
       else
         {
-          _gcry_mpi_randomize( x, nbits, GCRY_WEAK_RANDOM );
+          /* We need to loop to avoid an X with value 0 or 1.  */
+          do
+            {
+              _gcry_mpi_randomize (x, nbits, GCRY_WEAK_RANDOM);
 
-          /* Make sure that the number is smaller than the prime and
-             keep the randomness of the high bit. */
-          if ( mpi_test_bit ( x, nbits-2) )
-            {
-              mpi_set_highbit ( x, nbits-2); /* Clear all higher bits. */
+              /* Make sure that the number is smaller than the prime
+               * and keep the randomness of the high bit. */
+              if (mpi_test_bit (x, nbits-2))
+                {
+                  mpi_set_highbit (x, nbits-2); /* Clear all higher bits. */
+                }
+              else
+                {
+                  mpi_set_highbit (x, nbits-2);
+                  mpi_clear_bit (x, nbits-2);
+                }
             }
-          else
-            {
-              mpi_set_highbit( x, nbits-2 );
-              mpi_clear_bit( x, nbits-2 );
-            }
-          gcry_assert (mpi_cmp (x, nminus1) < 0 && mpi_cmp_ui (x, 1) > 0);
+          while (mpi_cmp_ui (x, 1) <= 0);
+          gcry_assert (mpi_cmp (x, nminus1) < 0);
 	}
       mpi_powm ( y, x, q, n);
       if ( mpi_cmp_ui(y, 1) && mpi_cmp( y, nminus1 ) )
