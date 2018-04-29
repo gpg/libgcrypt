@@ -1851,8 +1851,19 @@ AC_ARG_ENABLE(optimization,
                          CFLAGS=`echo $CFLAGS | sed 's/-O[[0-9]]//'`
                        fi])
 
+AC_MSG_NOTICE([checking for cc features])
 # CFLAGS mangling when using gcc.
 if test "$GCC" = yes; then
+    AC_MSG_CHECKING([if gcc supports -fno-delete-null-pointer-checks])
+    _gcc_cflags_save=$CFLAGS
+    CFLAGS="-fno-delete-null-pointer-checks"
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[])],_gcc_wopt=yes,_gcc_wopt=no)
+    AC_MSG_RESULT($_gcc_wopt)
+    CFLAGS=$_gcc_cflags_save;
+    if test x"$_gcc_wopt" = xyes ; then
+       CFLAGS="$CFLAGS -fno-delete-null-pointer-checks"
+    fi
+
     CFLAGS="$CFLAGS -Wall"
     if test "$USE_MAINTAINER_MODE" = "yes"; then
         CFLAGS="$CFLAGS -Wcast-align -Wshadow -Wstrict-prototypes"
@@ -1884,7 +1895,6 @@ if test "$GCC" = yes; then
           CFLAGS="$CFLAGS -Wpointer-arith"
         fi
     fi
-
 fi
 
 # Check whether as(1) supports a noeexecstack feature.  This test
