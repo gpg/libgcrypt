@@ -54,15 +54,19 @@ _gcry_mpi_cmp_ui (gcry_mpi_t u, unsigned long v)
 }
 
 
-int
-_gcry_mpi_cmp (gcry_mpi_t u, gcry_mpi_t v)
+/* Helper for _gcry_mpi_cmp and _gcry_mpi_cmpabs.  */
+static int
+do_mpi_cmp (gcry_mpi_t u, gcry_mpi_t v, int absmode)
 {
   mpi_size_t usize;
   mpi_size_t vsize;
+  int usign;
+  int vsign;
   int cmp;
 
   if (mpi_is_opaque (u) || mpi_is_opaque (v))
     {
+      /* We have no signan and thus ABSMODE has no efeect here.  */
       if (mpi_is_opaque (u) && !mpi_is_opaque (v))
         return -1;
       if (!mpi_is_opaque (u) && mpi_is_opaque (v))
@@ -82,26 +86,42 @@ _gcry_mpi_cmp (gcry_mpi_t u, gcry_mpi_t v)
 
       usize = u->nlimbs;
       vsize = v->nlimbs;
+      usign = absmode? 0 : u->sign;
+      vsign = absmode? 0 : v->sign;
 
       /* Compare sign bits.  */
 
-      if (!u->sign && v->sign)
+      if (!usign && vsign)
         return 1;
-      if (u->sign && !v->sign)
+      if (usign && !vsign)
         return -1;
 
       /* U and V are either both positive or both negative.  */
 
-      if (usize != vsize && !u->sign && !v->sign)
+      if (usize != vsize && !usign && !vsign)
         return usize - vsize;
-      if (usize != vsize && u->sign && v->sign)
+      if (usize != vsize && usign && vsign)
         return vsize + usize;
       if (!usize )
         return 0;
       if (!(cmp = _gcry_mpih_cmp (u->d, v->d, usize)))
         return 0;
-      if ((cmp < 0?1:0) == (u->sign?1:0))
+      if ((cmp < 0?1:0) == (usign?1:0))
         return 1;
     }
   return -1;
+}
+
+
+int
+_gcry_mpi_cmp (gcry_mpi_t u, gcry_mpi_t v)
+{
+  return do_mpi_cmp (u, v, 0);
+}
+
+/* Compare only the absolute values.  */
+int
+_gcry_mpi_cmpabs (gcry_mpi_t u, gcry_mpi_t v)
+{
+  return do_mpi_cmp (u, v, 1);
 }
