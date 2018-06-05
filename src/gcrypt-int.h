@@ -368,6 +368,7 @@ int _gcry_mpi_is_neg (gcry_mpi_t a);
 void _gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u);
 void _gcry_mpi_abs (gcry_mpi_t w);
 int _gcry_mpi_cmp (const gcry_mpi_t u, const gcry_mpi_t v);
+int _gcry_mpi_cmpabs (const gcry_mpi_t u, const gcry_mpi_t v);
 int _gcry_mpi_cmp_ui (const gcry_mpi_t u, unsigned long v);
 gpg_err_code_t _gcry_mpi_scan (gcry_mpi_t *ret_mpi, enum gcry_mpi_format format,
                               const void *buffer, size_t buflen,
@@ -469,6 +470,7 @@ int _gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 #define mpi_abs( w )           _gcry_mpi_abs( (w) )
 #define mpi_neg( w, u)         _gcry_mpi_neg( (w), (u) )
 #define mpi_cmp( u, v )        _gcry_mpi_cmp( (u), (v) )
+#define mpi_cmpabs( u, v )     _gcry_mpi_cmpabs( (u), (v) )
 #define mpi_cmp_ui( u, v )     _gcry_mpi_cmp_ui( (u), (v) )
 #define mpi_is_neg( a )        _gcry_mpi_is_neg ((a))
 
