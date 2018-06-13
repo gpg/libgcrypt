@@ -50,6 +50,8 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   const void *abuf;
   unsigned int abits, qbits;
   mpi_ec_t ctx;
+  gcry_mpi_t b;                /* Random number needed for blinding.  */
+  gcry_mpi_t bi;               /* multiplicative inverse of B.        */
 
   if (DBG_CIPHER)
     log_mpidump ("ecdsa sign hash  ", input );
@@ -60,6 +62,15 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   rc = _gcry_dsa_normalize_hash (input, &hash, qbits);
   if (rc)
     return rc;
+
+  b  = mpi_snew (qbits);
+  bi = mpi_snew (qbits);
+  do
+    {
+      _gcry_mpi_randomize (b, qbits, GCRY_WEAK_RANDOM);
+      mpi_mod (b, b, skey->E.n);
+    }
+  while (!mpi_invm (bi, b, skey->E.n));
 
   k = NULL;
   dr = mpi_alloc (0);
@@ -115,8 +126,11 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
         }
       while (!mpi_cmp_ui (r, 0));
 
-      mpi_mulm (dr, skey->d, r, skey->E.n); /* dr = d*r mod n  */
-      mpi_addm (sum, hash, dr, skey->E.n);  /* sum = hash + (d*r) mod n  */
+      mpi_mulm (dr, b, skey->d, skey->E.n);
+      mpi_mulm (dr, dr, r, skey->E.n);      /* dr = d*r mod n (blinded with b) */
+      mpi_mulm (sum, b, hash, skey->E.n);
+      mpi_addm (sum, sum, dr, skey->E.n);   /* sum = hash + (d*r) mod n  (blinded with b) */
+      mpi_mulm (sum, bi, sum, skey->E.n);   /* undo blinding by b^-1 */
       mpi_invm (k_1, k, skey->E.n);         /* k_1 = k^(-1) mod n  */
       mpi_mulm (s, k_1, sum, skey->E.n);    /* s = k^(-1)*(hash+(d*r)) mod n */
     }
@@ -129,6 +143,8 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
     }
 
  leave:
+  mpi_free (b);
+  mpi_free (bi);
   _gcry_mpi_ec_free (ctx);
   point_free (&I);
   mpi_free (x);
