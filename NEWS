@@ -1,5 +1,20 @@
-Noteworthy changes in version 1.8.3 (unreleased)  [C22/A2/R3]
+Noteworthy changes in version 1.8.3 (2018-06-13)  [C22/A2/R3]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Use blinding for ECDSA signing to mitigate a novel side-channel
+     attack.  [#4011,CVE-2018-0495]
+
+   - Fix incorrect counter overflow handling for GCM when using an IV
+     size other than 96 bit.  [#3764]
+
+   - Fix incorrect output of AES-keywrap mode for in-place encryption
+     on some platforms.
+
+   - Fix the gcry_mpi_ec_curve_point point validation function.
+
+   - Fix rare assertion failure in gcry_prime_check.
 
 
 Noteworthy changes in version 1.8.2 (2017-12-13)  [C22/A2/R2]
