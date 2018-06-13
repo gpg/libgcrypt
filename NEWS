@@ -1,11 +1,41 @@
 Noteworthy changes in version 1.9.0 (unreleased)  [C22/A3/R0]
 ------------------------------------------------
 
+ * Bug fixes
+
+   - Use blinding for ECDSA signing to mitigate a novel side-channel
+     attack.  [#4011,CVE-2018-0495] [also in 1.8.3, 1.7.10]
+
+   - Fix incorrect counter overflow handling for GCM when using an IV
+     size other than 96 bit.  [#3764] [also in 1.8.3, 1.7.10]
+
+   - Fix incorrect output of AES-keywrap mode for in-place encryption
+     on some platforms.  [also in 1.8.3, 1.7.10]
+
+   - Fix the gcry_mpi_ec_curve_point point validation function.
+     [also in 1.8.3, 1.7.10]
+
+   - Fix rare assertion failure in gcry_prime_check.  [also in 1.8.3]
+
+   - Do not use /dev/srandom on OpenBSD.  [also in 1.8.2]
+
+   - Fix test suite failure on systems with large pages. [#3351]
+     [also in 1.8.2]
+
+   - Fix test suite to not use mmap on Windows.  [also in 1.8.2]
+
+   - Fix fatal out of secure memory status in the s-expression parser
+     on heavy loaded systems.  [also in 1.8.2]
 
  * Interface changes relative to the 1.8.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    gcry_mpi_get_ui                 NEW function.
    GCRYCTL_AUTO_EXPAND_SECMEM      NEW control code.
+
+ * Release dates of 1.8.x versions:
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   Version 1.8.2 (2017-12-13)
+   Version 1.8.3 (2018-06-13)
 
 
 Noteworthy changes in version 1.8.1 (2017-08-27)  [C22/A2/R1]
@@ -129,11 +159,13 @@ Noteworthy changes in version 1.8.0 (2017-07-18)  [C22/A2/R0]
 
  * Release dates of 1.7.x versions:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   Version 1.7.8 (2017-06-29)  [C21/A1/R8]
-   Version 1.7.7 (2017-06-02)  [C21/A1/R7]
-   Version 1.7.6 (2017-01-18)  [C21/A1/R6]
-   Version 1.7.5 (2016-12-15)  [C21/A1/R5]
-   Version 1.7.4 (2016-12-09)  [C21/A1/R4]
+   Version 1.7.10 (2018-06-13) [C21/A1/R10]
+   Version 1.7.9  (2017-08-27) [C21/A1/R9]
+   Version 1.7.8  (2017-06-29) [C21/A1/R8]
+   Version 1.7.7  (2017-06-02) [C21/A1/R7]
+   Version 1.7.6  (2017-01-18) [C21/A1/R6]
+   Version 1.7.5  (2016-12-15) [C21/A1/R5]
+   Version 1.7.4  (2016-12-09) [C21/A1/R4]
 
 
 Noteworthy changes in version 1.7.3 (2016-08-17)  [C21/A1/R3]
