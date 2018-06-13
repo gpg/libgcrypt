@@ -1,5 +1,18 @@
-Noteworthy changes in version 1.7.10 (unreleased)  [C21/A1/R10]
+Noteworthy changes in version 1.7.10 (2018-06-13)  [C21/A1/R10]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - Use blinding for ECDSA signing to mitigate a novel side-channel
+     attack.  [#4011,CVE-2018-0495]
+
+   - Fix incorrect counter overflow handling for GCM when using an IV
+     size other than 96 bit.  [#3764]
+
+   - Fix incorrect output of AES-keywrap mode for in-place encryption
+     on some platforms.
+
+   - Fix the gcry_mpi_ec_curve_point point validation function.
 
 
 Noteworthy changes in version 1.7.9 (2017-08-27)  [C21/A1/R9]
