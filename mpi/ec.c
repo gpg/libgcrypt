@@ -1504,6 +1504,15 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
   y = mpi_new (0);
   w = mpi_new (0);
 
+  /* Check that the point is in range.  This needs to be done here and
+   * not after conversion to affine coordinates.  */
+  if (mpi_cmpabs (point->x, ctx->p) >= 0)
+    goto leave;
+  if (mpi_cmpabs (point->y, ctx->p) >= 0)
+    goto leave;
+  if (mpi_cmpabs (point->z, ctx->p) >= 0)
+    goto leave;
+
   switch (ctx->model)
     {
     case MPI_EC_WEIERSTRASS:
