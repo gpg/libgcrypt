@@ -4472,14 +4472,15 @@ an @code{gcry_mpi_t} variable is expected that must be set to
 is expected.  For example
 
 @example
-  _gcry_sexp_extract_param (key, NULL, "n/x+e d-'foo'",
-                            &mpi_n, &mpi_x, &mpi_e, &mpi_foo, NULL)
+  gcry_sexp_extract_param (key, NULL, "n/x+e d-'foo'",
+                           &mpi_n, &mpi_x, &mpi_e, &mpi_d, &mpi_foo, NULL)
 @end example
 
 stores the parameter 'n' from @var{key} as an unsigned MPI into
 @var{mpi_n}, the parameter 'x' as an opaque MPI into @var{mpi_x}, the
-parameter 'e' again as an unsigned MPI into @var{mpi_e}, and the
-parameter 'foo' as a signed MPI.
+parameters 'e' and 'd' again as an unsigned MPI into @var{mpi_e} and
+@var{mpi_d} and finally the parameter 'foo' as a signed MPI into
+@var{mpi_foo}.
 
 @var{path} is an optional string used to locate a token.  The
 exclamation mark separated tokens are used via
