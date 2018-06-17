@@ -945,6 +945,28 @@ gcry_err_code_t _gcry_blake2_init_with_key(void *ctx, unsigned int flags,
     int err = blake2##bs##_init_ctx (ctx, flags, NULL, 0, dbits); \
     gcry_assert (err == 0); \
   } \
+  static void \
+  _gcry_blake2##bs##_##dbits##_hash_buffer(void *outbuf, \
+        const void *buffer, size_t length) \
+  { \
+    BLAKE2##BS##_CONTEXT hd; \
+    blake2##bs##_##dbits##_init (&hd, 0); \
+    blake2##bs##_write (&hd, buffer, length); \
+    blake2##bs##_final (&hd); \
+    memcpy (outbuf, blake2##bs##_read (&hd), dbits / 8); \
+  } \
+  static void \
+  _gcry_blake2##bs##_##dbits##_hash_buffers(void *outbuf, \
+        const gcry_buffer_t *iov, int iovcnt) \
+  { \
+    BLAKE2##BS##_CONTEXT hd; \
+    blake2##bs##_##dbits##_init (&hd, 0); \
+    for (;iovcnt > 0; iov++, iovcnt--) \
+      blake2##bs##_write (&hd, (const char*)iov[0].data + iov[0].off, \
+                          iov[0].len); \
+    blake2##bs##_final (&hd); \
+    memcpy (outbuf, blake2##bs##_read (&hd), dbits / 8); \
+  } \
   static byte blake2##bs##_##dbits##_asn[] = { 0x30 }; \
   static gcry_md_oid_spec_t oid_spec_blake2##bs##_##dbits[] = \
     { \
@@ -958,7 +980,8 @@ gcry_err_code_t _gcry_blake2_init_with_key(void *ctx, unsigned int flags,
       DIM (blake2##bs##_##dbits##_asn), oid_spec_blake2##bs##_##dbits, \
       dbits / 8, blake2##bs##_##dbits##_init, blake2##bs##_write, \
       blake2##bs##_final, blake2##bs##_read, NULL, \
-      NULL, NULL, \
+      _gcry_blake2##bs##_##dbits##_hash_buffer, \
+      _gcry_blake2##bs##_##dbits##_hash_buffers, \
       sizeof (BLAKE2##BS##_CONTEXT), selftests_blake2##bs \
     };
 
