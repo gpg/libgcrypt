@@ -57,7 +57,7 @@ enum module_states
    that fips mode is the default unless changed by the initialization
    code. To check whether fips mode is enabled, use the function
    fips_mode()! */
-static int no_fips_mode_required;
+int _gcry_no_fips_mode_required;
 
 /* Flag to indicate that we are in the enforced FIPS mode.  */
 static int enforced_fips_mode;
@@ -118,7 +118,7 @@ _gcry_initialize_fips_mode (int force)
   /* If the calling application explicitly requested fipsmode, do so.  */
   if (force)
     {
-      gcry_assert (!no_fips_mode_required);
+      gcry_assert (!_gcry_no_fips_mode_required);
       goto leave;
     }
 
@@ -129,7 +129,7 @@ _gcry_initialize_fips_mode (int force)
      actually used.  The file itself may be empty.  */
   if ( !access (FIPS_FORCE_FILE, F_OK) )
     {
-      gcry_assert (!no_fips_mode_required);
+      gcry_assert (!_gcry_no_fips_mode_required);
       goto leave;
     }
 
@@ -148,7 +148,7 @@ _gcry_initialize_fips_mode (int force)
           {
             /* System is in fips mode.  */
             fclose (fp);
-            gcry_assert (!no_fips_mode_required);
+            gcry_assert (!_gcry_no_fips_mode_required);
             goto leave;
           }
         fclose (fp);
@@ -171,10 +171,10 @@ _gcry_initialize_fips_mode (int force)
   }
 
   /* Fips not not requested, set flag.  */
-  no_fips_mode_required = 1;
+  _gcry_no_fips_mode_required = 1;
 
  leave:
-  if (!no_fips_mode_required)
+  if (!_gcry_no_fips_mode_required)
     {
       /* Yes, we are in FIPS mode.  */
       FILE *fp;
@@ -265,7 +265,7 @@ _gcry_fips_mode (void)
   /* No locking is required because we have the requirement that this
      variable is only initialized once with no other threads
      existing.  */
-  return !no_fips_mode_required;
+  return !_gcry_no_fips_mode_required;
 }
 
 

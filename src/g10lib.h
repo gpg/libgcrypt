@@ -422,10 +422,20 @@ gpg_err_code_t _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
 
 /*-- fips.c --*/
 
+extern int _gcry_no_fips_mode_required;
+
 void _gcry_initialize_fips_mode (int force);
 
 int _gcry_fips_mode (void);
-#define fips_mode() _gcry_fips_mode ()
+
+/* This macro returns true if fips mode is enabled.  This is
+   independent of the fips required finite state machine and only used
+   to enable fips specific code.
+
+   No locking is required because we have the requirement that this
+   variable is only initialized once with no other threads
+   existing.  */
+#define fips_mode() (!_gcry_no_fips_mode_required)
 
 int _gcry_enforced_fips_mode (void);
 
@@ -453,7 +463,11 @@ void _gcry_fips_signal_error (const char *srcfile,
 #endif
 
 int _gcry_fips_is_operational (void);
-#define fips_is_operational()   (_gcry_global_is_operational ())
+
+/* Return true if the library is in the operational state.  */
+#define fips_is_operational()   \
+	(!fips_mode () || _gcry_fips_is_operational ())
+
 #define fips_not_operational()  (GPG_ERR_NOT_OPERATIONAL)
 
 int _gcry_fips_test_operational (void);
