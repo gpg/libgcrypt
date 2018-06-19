@@ -39,20 +39,17 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
   size_t n;
   unsigned char *ivp;
   int i;
-  size_t blocksize = c->spec->blocksize;
+  size_t blocksize_shift = _gcry_blocksize_shift(c);
+  size_t blocksize = 1 << blocksize_shift;
+  size_t blocksize_mask = blocksize - 1;
   gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
-  size_t nblocks = inbuflen / blocksize;
+  size_t nblocks = inbuflen >> blocksize_shift;
   unsigned int burn, nburn;
 
-  /* Tell compiler that we require a cipher with a 64bit or 128 bit block
-   * length, to allow better optimization of this function.  */
-  if (blocksize > 16 || blocksize < 8 || blocksize & (8 - 1))
-    return GPG_ERR_INV_LENGTH;
-
-  if (outbuflen < ((c->flags & GCRY_CIPHER_CBC_MAC)? blocksize : inbuflen))
+  if (outbuflen < ((c->flags & GCRY_CIPHER_CBC_MAC) ? blocksize : inbuflen))
     return GPG_ERR_BUFFER_TOO_SHORT;
 
-  if ((inbuflen % blocksize)
+  if ((inbuflen & blocksize_mask)
       && !(inbuflen > blocksize
            && (c->flags & GCRY_CIPHER_CBC_CTS)))
     return GPG_ERR_INV_LENGTH;
@@ -61,7 +58,7 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
 
   if ((c->flags & GCRY_CIPHER_CBC_CTS) && inbuflen > blocksize)
     {
-      if ((inbuflen % blocksize) == 0)
+      if ((inbuflen & blocksize_mask) == 0)
 	nblocks--;
     }
 
@@ -69,9 +66,9 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
     {
       c->bulk.cbc_enc (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks,
                        (c->flags & GCRY_CIPHER_CBC_MAC));
-      inbuf  += nblocks * blocksize;
+      inbuf += nblocks << blocksize_shift;
       if (!(c->flags & GCRY_CIPHER_CBC_MAC))
-        outbuf += nblocks * blocksize;
+        outbuf += nblocks << blocksize_shift;
     }
   else
     {
@@ -83,7 +80,7 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
           nburn = enc_fn ( &c->context.c, outbuf, outbuf );
           burn = nburn > burn ? nburn : burn;
           ivp = outbuf;
-          inbuf  += blocksize;
+          inbuf += blocksize;
           if (!(c->flags & GCRY_CIPHER_CBC_MAC))
             outbuf += blocksize;
         }
@@ -99,10 +96,10 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
       size_t restbytes;
       unsigned char b;
 
-      if ((inbuflen % blocksize) == 0)
+      if ((inbuflen & blocksize_mask) == 0)
         restbytes = blocksize;
       else
-        restbytes = inbuflen % blocksize;
+        restbytes = inbuflen & blocksize_mask;
 
       outbuf -= blocksize;
       for (ivp = c->u_iv.iv, i = 0; i < restbytes; i++)
@@ -133,20 +130,17 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
 {
   size_t n;
   int i;
-  size_t blocksize = c->spec->blocksize;
+  size_t blocksize_shift = _gcry_blocksize_shift(c);
+  size_t blocksize = 1 << blocksize_shift;
+  size_t blocksize_mask = blocksize - 1;
   gcry_cipher_decrypt_t dec_fn = c->spec->decrypt;
-  size_t nblocks = inbuflen / blocksize;
+  size_t nblocks = inbuflen >> blocksize_shift;
   unsigned int burn, nburn;
-
-  /* Tell compiler that we require a cipher with a 64bit or 128 bit block
-   * length, to allow better optimization of this function.  */
-  if (blocksize > 16 || blocksize < 8 || blocksize & (8 - 1))
-    return GPG_ERR_INV_LENGTH;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
 
-  if ((inbuflen % blocksize)
+  if ((inbuflen & blocksize_mask)
       && !(inbuflen > blocksize
            && (c->flags & GCRY_CIPHER_CBC_CTS)))
     return GPG_ERR_INV_LENGTH;
@@ -156,7 +150,7 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
   if ((c->flags & GCRY_CIPHER_CBC_CTS) && inbuflen > blocksize)
     {
       nblocks--;
-      if ((inbuflen % blocksize) == 0)
+      if ((inbuflen & blocksize_mask) == 0)
 	nblocks--;
       buf_cpy (c->lastiv, c->u_iv.iv, blocksize);
     }
@@ -164,8 +158,8 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
   if (c->bulk.cbc_dec)
     {
       c->bulk.cbc_dec (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks);
-      inbuf  += nblocks * blocksize;
-      outbuf += nblocks * blocksize;
+      inbuf  += nblocks << blocksize_shift;
+      outbuf += nblocks << blocksize_shift;
     }
   else
     {
@@ -186,10 +180,10 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
     {
       size_t restbytes;
 
-      if ((inbuflen % blocksize) == 0)
+      if ((inbuflen & blocksize_mask) == 0)
         restbytes = blocksize;
       else
-        restbytes = inbuflen % blocksize;
+        restbytes = inbuflen & blocksize_mask;
 
       buf_cpy (c->lastiv, c->u_iv.iv, blocksize );         /* Save Cn-2. */
       buf_cpy (c->u_iv.iv, inbuf + blocksize, restbytes ); /* Save Cn. */

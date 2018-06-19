@@ -563,4 +563,14 @@ ocb_get_l (gcry_cipher_hd_t c, u64 n)
   return c->u_mode.ocb.L[ntz];
 }
 
+
+/* Return bit-shift of blocksize. */
+static inline unsigned int _gcry_blocksize_shift(gcry_cipher_hd_t c)
+{
+  /* Only blocksizes 8 and 16 are used. Return value in such way
+   * that compiler can optimize calling functions based on this.  */
+  return c->spec->blocksize == 8 ? 3 : 4;
+}
+
+
 #endif /*G10_CIPHER_INTERNAL_H*/

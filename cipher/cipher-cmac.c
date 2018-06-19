@@ -38,18 +38,14 @@ _gcry_cmac_write (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
 		  const byte * inbuf, size_t inlen)
 {
   gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
-  const unsigned int blocksize = c->spec->blocksize;
+  size_t blocksize_shift = _gcry_blocksize_shift(c);
+  size_t blocksize = 1 << blocksize_shift;
   byte outbuf[MAX_BLOCKSIZE];
   unsigned int burn = 0;
   unsigned int nblocks;
 
   if (ctx->tag)
     return GPG_ERR_INV_STATE;
-
-  /* Tell compiler that we require a cipher with a 64bit or 128 bit block
-   * length, to allow better optimization of this function.  */
-  if (blocksize > 16 || blocksize < 8 || blocksize & (8 - 1))
-    return GPG_ERR_INV_CIPHER_MODE;
 
   if (!inbuf)
     return GPG_ERR_INV_ARG;
@@ -78,12 +74,12 @@ _gcry_cmac_write (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
 
   if (c->bulk.cbc_enc && inlen > blocksize)
     {
-      nblocks = inlen / blocksize;
-      nblocks -= (nblocks * blocksize == inlen);
+      nblocks = inlen >> blocksize_shift;
+      nblocks -= ((nblocks << blocksize_shift) == inlen);
 
       c->bulk.cbc_enc (&c->context.c, ctx->u_iv.iv, outbuf, inbuf, nblocks, 1);
-      inbuf += nblocks * blocksize;
-      inlen -= nblocks * blocksize;
+      inbuf += nblocks << blocksize_shift;
+      inlen -= nblocks << blocksize_shift;
 
       wipememory (outbuf, sizeof (outbuf));
     }
