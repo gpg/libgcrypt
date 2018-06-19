@@ -170,10 +170,12 @@ do_arcfour_setkey (void *context, const byte *key, unsigned int keylen)
 }
 
 static gcry_err_code_t
-arcfour_setkey ( void *context, const byte *key, unsigned int keylen )
+arcfour_setkey ( void *context, const byte *key, unsigned int keylen,
+                 gcry_cipher_hd_t hd )
 {
   ARCFOUR_context *ctx = (ARCFOUR_context *) context;
   gcry_err_code_t rc = do_arcfour_setkey (ctx, key, keylen );
+  (void)hd;
   return rc;
 }
 
@@ -193,11 +195,11 @@ selftest(void)
   static const byte ciphertext_1[] =
     { 0xF1, 0x38, 0x29, 0xC9, 0xDE };
 
-  arcfour_setkey( &ctx, key_1, sizeof(key_1));
+  arcfour_setkey( &ctx, key_1, sizeof(key_1), NULL);
   encrypt_stream( &ctx, scratch, plaintext_1, sizeof(plaintext_1));
   if ( memcmp (scratch, ciphertext_1, sizeof (ciphertext_1)))
     return "Arcfour encryption test 1 failed.";
-  arcfour_setkey( &ctx, key_1, sizeof(key_1));
+  arcfour_setkey( &ctx, key_1, sizeof(key_1), NULL);
   encrypt_stream(&ctx, scratch, scratch, sizeof(plaintext_1)); /* decrypt */
   if ( memcmp (scratch, plaintext_1, sizeof (plaintext_1)))
     return "Arcfour decryption test 1 failed.";

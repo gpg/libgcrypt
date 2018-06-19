@@ -72,7 +72,8 @@ typedef struct {
 #endif
 } CAST5_context;
 
-static gcry_err_code_t cast_setkey (void *c, const byte *key, unsigned keylen);
+static gcry_err_code_t cast_setkey (void *c, const byte *key, unsigned keylen,
+                                    gcry_cipher_hd_t hd);
 static unsigned int encrypt_block (void *c, byte *outbuf, const byte *inbuf);
 static unsigned int decrypt_block (void *c, byte *outbuf, const byte *inbuf);
 
@@ -825,7 +826,7 @@ selftest(void)
     byte buffer[8];
     const char *r;
 
-    cast_setkey( &c, key, 16 );
+    cast_setkey( &c, key, 16, NULL );
     encrypt_block( &c, buffer, plain );
     if( memcmp( buffer, cipher, 8 ) )
 	return "1";
@@ -846,10 +847,10 @@ selftest(void)
 			0x80,0xAC,0x05,0xB8,0xE8,0x3D,0x69,0x6E };
 
 	for(i=0; i < 1000000; i++ ) {
-	    cast_setkey( &c, b0, 16 );
+	    cast_setkey( &c, b0, 16, NULL );
 	    encrypt_block( &c, a0, a0 );
 	    encrypt_block( &c, a0+8, a0+8 );
-	    cast_setkey( &c, a0, 16 );
+	    cast_setkey( &c, a0, 16, NULL );
 	    encrypt_block( &c, b0, b0 );
 	    encrypt_block( &c, b0+8, b0+8 );
 	}
@@ -991,10 +992,12 @@ do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
 }
 
 static gcry_err_code_t
-cast_setkey (void *context, const byte *key, unsigned keylen )
+cast_setkey (void *context, const byte *key, unsigned keylen,
+             gcry_cipher_hd_t hd )
 {
   CAST5_context *c = (CAST5_context *) context;
   gcry_err_code_t rc = do_cast_setkey (c, key, keylen);
+  (void)hd;
   return rc;
 }
 

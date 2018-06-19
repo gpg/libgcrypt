@@ -734,11 +734,14 @@ do_twofish_setkey (TWOFISH_context *ctx, const byte *key, const unsigned keylen)
 }
 
 static gcry_err_code_t
-twofish_setkey (void *context, const byte *key, unsigned int keylen)
+twofish_setkey (void *context, const byte *key, unsigned int keylen,
+                gcry_cipher_hd_t hd)
 {
   TWOFISH_context *ctx = context;
   unsigned int hwfeatures = _gcry_get_hw_features ();
   int rc;
+
+  (void)hd;
 
   rc = do_twofish_setkey (ctx, key, keylen);
 
@@ -1623,7 +1626,7 @@ selftest (void)
     0x05, 0x93, 0x1C, 0xB6, 0xD4, 0x08, 0xE7, 0xFA
   };
 
-  twofish_setkey (&ctx, key, sizeof(key));
+  twofish_setkey (&ctx, key, sizeof(key), NULL);
   twofish_encrypt (&ctx, scratch, plaintext);
   if (memcmp (scratch, ciphertext, sizeof (ciphertext)))
     return "Twofish-128 test encryption failed.";
@@ -1631,7 +1634,7 @@ selftest (void)
   if (memcmp (scratch, plaintext, sizeof (plaintext)))
     return "Twofish-128 test decryption failed.";
 
-  twofish_setkey (&ctx, key_256, sizeof(key_256));
+  twofish_setkey (&ctx, key_256, sizeof(key_256), NULL);
   twofish_encrypt (&ctx, scratch, plaintext_256);
   if (memcmp (scratch, ciphertext_256, sizeof (ciphertext_256)))
     return "Twofish-256 test encryption failed.";
@@ -1713,13 +1716,13 @@ main()
   /* Encryption test. */
   for (i = 0; i < 125; i++)
     {
-      twofish_setkey (&ctx, buffer[0], sizeof (buffer[0]));
+      twofish_setkey (&ctx, buffer[0], sizeof (buffer[0]), NULL);
       for (j = 0; j < 1000; j++)
         twofish_encrypt (&ctx, buffer[2], buffer[2]);
-      twofish_setkey (&ctx, buffer[1], sizeof (buffer[1]));
+      twofish_setkey (&ctx, buffer[1], sizeof (buffer[1]), NULL);
       for (j = 0; j < 1000; j++)
         twofish_encrypt (&ctx, buffer[3], buffer[3]);
-      twofish_setkey (&ctx, buffer[2], sizeof (buffer[2])*2);
+      twofish_setkey (&ctx, buffer[2], sizeof (buffer[2])*2, NULL);
       for (j = 0; j < 1000; j++) {
         twofish_encrypt (&ctx, buffer[0], buffer[0]);
         twofish_encrypt (&ctx, buffer[1], buffer[1]);
@@ -1731,15 +1734,15 @@ main()
   /* Decryption test. */
   for (i = 0; i < 125; i++)
     {
-      twofish_setkey (&ctx, buffer[2], sizeof (buffer[2])*2);
+      twofish_setkey (&ctx, buffer[2], sizeof (buffer[2])*2, NULL);
       for (j = 0; j < 1000; j++) {
         twofish_decrypt (&ctx, buffer[0], buffer[0]);
         twofish_decrypt (&ctx, buffer[1], buffer[1]);
       }
-      twofish_setkey (&ctx, buffer[1], sizeof (buffer[1]));
+      twofish_setkey (&ctx, buffer[1], sizeof (buffer[1]), NULL);
       for (j = 0; j < 1000; j++)
         twofish_decrypt (&ctx, buffer[3], buffer[3]);
-      twofish_setkey (&ctx, buffer[0], sizeof (buffer[0]));
+      twofish_setkey (&ctx, buffer[0], sizeof (buffer[0]), NULL);
       for (j = 0; j < 1000; j++)
         twofish_decrypt (&ctx, buffer[2], buffer[2]);
     }

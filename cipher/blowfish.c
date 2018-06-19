@@ -67,7 +67,8 @@ typedef struct {
     u32 p[BLOWFISH_ROUNDS+2];
 } BLOWFISH_context;
 
-static gcry_err_code_t bf_setkey (void *c, const byte *key, unsigned keylen);
+static gcry_err_code_t bf_setkey (void *c, const byte *key, unsigned keylen,
+                                  gcry_cipher_hd_t hd);
 static unsigned int encrypt_block (void *bc, byte *outbuf, const byte *inbuf);
 static unsigned int decrypt_block (void *bc, byte *outbuf, const byte *inbuf);
 
@@ -853,7 +854,7 @@ selftest(void)
   const char *r;
 
   bf_setkey( (void *) &c,
-             (const unsigned char*)"abcdefghijklmnopqrstuvwxyz", 26 );
+             (const unsigned char*)"abcdefghijklmnopqrstuvwxyz", 26, NULL );
   encrypt_block( (void *) &c, buffer, plain );
   if( memcmp( buffer, "\x32\x4E\xD0\xFE\xF4\x13\xA2\x03", 8 ) )
     return "Blowfish selftest failed (1).";
@@ -861,7 +862,7 @@ selftest(void)
   if( memcmp( buffer, plain, 8 ) )
     return "Blowfish selftest failed (2).";
 
-  bf_setkey( (void *) &c, key3, 8 );
+  bf_setkey( (void *) &c, key3, 8, NULL );
   encrypt_block( (void *) &c, buffer, plain3 );
   if( memcmp( buffer, cipher3, 8 ) )
     return "Blowfish selftest failed (3).";
@@ -1051,10 +1052,12 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
 
 
 static gcry_err_code_t
-bf_setkey (void *context, const byte *key, unsigned keylen)
+bf_setkey (void *context, const byte *key, unsigned keylen,
+           gcry_cipher_hd_t hd)
 {
   BLOWFISH_context *c = (BLOWFISH_context *) context;
   gcry_err_code_t rc = do_bf_setkey (c, key, keylen);
+  (void)hd;
   return rc;
 }
 

@@ -372,10 +372,12 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 
 
 static gcry_err_code_t
-chacha20_setkey (void *context, const byte *key, unsigned int keylen)
+chacha20_setkey (void *context, const byte *key, unsigned int keylen,
+                 gcry_cipher_hd_t hd)
 {
   CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
   gcry_err_code_t rc = chacha20_do_setkey (ctx, key, keylen);
+  (void)hd;
   _gcry_burn_stack (4 + sizeof (void *) + 4 * sizeof (void *));
   return rc;
 }
@@ -551,7 +553,7 @@ selftest (void)
   /* 16-byte alignment required for amd64 implementation. */
   ctx = (CHACHA20_context_t *)((uintptr_t)(ctxbuf + 15) & ~(uintptr_t)15);
 
-  chacha20_setkey (ctx, key_1, sizeof key_1);
+  chacha20_setkey (ctx, key_1, sizeof key_1, NULL);
   chacha20_setiv (ctx, nonce_1, sizeof nonce_1);
   scratch[sizeof (scratch) - 1] = 0;
   chacha20_encrypt_stream (ctx, scratch, plaintext_1, sizeof plaintext_1);
@@ -559,7 +561,7 @@ selftest (void)
     return "ChaCha20 encryption test 1 failed.";
   if (scratch[sizeof (scratch) - 1])
     return "ChaCha20 wrote too much.";
-  chacha20_setkey (ctx, key_1, sizeof (key_1));
+  chacha20_setkey (ctx, key_1, sizeof (key_1), NULL);
   chacha20_setiv (ctx, nonce_1, sizeof nonce_1);
   chacha20_encrypt_stream (ctx, scratch, scratch, sizeof plaintext_1);
   if (memcmp (scratch, plaintext_1, sizeof plaintext_1))
@@ -567,12 +569,12 @@ selftest (void)
 
   for (i = 0; i < sizeof buf; i++)
     buf[i] = i;
-  chacha20_setkey (ctx, key_1, sizeof key_1);
+  chacha20_setkey (ctx, key_1, sizeof key_1, NULL);
   chacha20_setiv (ctx, nonce_1, sizeof nonce_1);
   /*encrypt */
   chacha20_encrypt_stream (ctx, buf, buf, sizeof buf);
   /*decrypt */
-  chacha20_setkey (ctx, key_1, sizeof key_1);
+  chacha20_setkey (ctx, key_1, sizeof key_1, NULL);
   chacha20_setiv (ctx, nonce_1, sizeof nonce_1);
   chacha20_encrypt_stream (ctx, buf, buf, 1);
   chacha20_encrypt_stream (ctx, buf + 1, buf + 1, (sizeof buf) - 1 - 1);
@@ -582,13 +584,13 @@ selftest (void)
     if (buf[i] != (byte) i)
       return "ChaCha20 encryption test 2 failed.";
 
-  chacha20_setkey (ctx, key_1, sizeof key_1);
+  chacha20_setkey (ctx, key_1, sizeof key_1, NULL);
   chacha20_setiv (ctx, nonce_1, sizeof nonce_1);
   /* encrypt */
   for (i = 0; i < sizeof buf; i++)
     chacha20_encrypt_stream (ctx, &buf[i], &buf[i], 1);
   /* decrypt */
-  chacha20_setkey (ctx, key_1, sizeof key_1);
+  chacha20_setkey (ctx, key_1, sizeof key_1, NULL);
   chacha20_setiv (ctx, nonce_1, sizeof nonce_1);
   chacha20_encrypt_stream (ctx, buf, buf, sizeof buf);
   for (i = 0; i < sizeof buf; i++)

@@ -204,7 +204,8 @@ extern void _gcry_camellia_aesni_avx2_ocb_auth(CAMELLIA_context *ctx,
 static const char *selftest(void);
 
 static gcry_err_code_t
-camellia_setkey(void *c, const byte *key, unsigned keylen)
+camellia_setkey(void *c, const byte *key, unsigned keylen,
+                gcry_cipher_hd_t hd)
 {
   CAMELLIA_context *ctx=c;
   static int initialized=0;
@@ -212,6 +213,8 @@ camellia_setkey(void *c, const byte *key, unsigned keylen)
 #if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
   unsigned int hwf = _gcry_get_hw_features ();
 #endif
+
+  (void)hd;
 
   if(keylen!=16 && keylen!=24 && keylen!=32)
     return GPG_ERR_INV_KEYLEN;
@@ -991,7 +994,7 @@ selftest(void)
       0x20,0xef,0x7c,0x91,0x9e,0x3a,0x75,0x09
     };
 
-  camellia_setkey(&ctx,key_128,sizeof(key_128));
+  camellia_setkey(&ctx,key_128,sizeof(key_128),NULL);
   camellia_encrypt(&ctx,scratch,plaintext);
   if(memcmp(scratch,ciphertext_128,sizeof(ciphertext_128))!=0)
     return "CAMELLIA-128 test encryption failed.";
@@ -999,7 +1002,7 @@ selftest(void)
   if(memcmp(scratch,plaintext,sizeof(plaintext))!=0)
     return "CAMELLIA-128 test decryption failed.";
 
-  camellia_setkey(&ctx,key_192,sizeof(key_192));
+  camellia_setkey(&ctx,key_192,sizeof(key_192),NULL);
   camellia_encrypt(&ctx,scratch,plaintext);
   if(memcmp(scratch,ciphertext_192,sizeof(ciphertext_192))!=0)
     return "CAMELLIA-192 test encryption failed.";
@@ -1007,7 +1010,7 @@ selftest(void)
   if(memcmp(scratch,plaintext,sizeof(plaintext))!=0)
     return "CAMELLIA-192 test decryption failed.";
 
-  camellia_setkey(&ctx,key_256,sizeof(key_256));
+  camellia_setkey(&ctx,key_256,sizeof(key_256),NULL);
   camellia_encrypt(&ctx,scratch,plaintext);
   if(memcmp(scratch,ciphertext_256,sizeof(ciphertext_256))!=0)
     return "CAMELLIA-256 test encryption failed.";

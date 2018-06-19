@@ -39,10 +39,13 @@
 #include "gost-sb.h"
 
 static gcry_err_code_t
-gost_setkey (void *c, const byte *key, unsigned keylen)
+gost_setkey (void *c, const byte *key, unsigned keylen,
+             gcry_cipher_hd_t hd)
 {
   int i;
   GOST28147_context *ctx = c;
+
+  (void)hd;
 
   if (keylen != 256 / 8)
     return GPG_ERR_INV_KEYLEN;

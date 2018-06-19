@@ -748,12 +748,15 @@ serpent_setkey_internal (serpent_context_t *context,
 /* Initialize CTX with the key KEY of KEY_LENGTH bytes.  */
 static gcry_err_code_t
 serpent_setkey (void *ctx,
-		const byte *key, unsigned int key_length)
+		const byte *key, unsigned int key_length,
+                gcry_cipher_hd_t hd)
 {
   serpent_context_t *context = ctx;
   static const char *serpent_test_ret;
   static int serpent_init_done;
   gcry_err_code_t ret = GPG_ERR_NO_ERROR;
+
+  (void)hd;
 
   if (! serpent_init_done)
     {

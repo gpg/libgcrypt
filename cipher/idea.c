@@ -258,10 +258,12 @@ do_setkey( IDEA_context *c, const byte *key, unsigned int keylen )
 }
 
 static gcry_err_code_t
-idea_setkey (void *context, const byte *key, unsigned int keylen)
+idea_setkey (void *context, const byte *key, unsigned int keylen,
+             gcry_cipher_hd_t hd)
 {
     IDEA_context *ctx = context;
     int rc = do_setkey (ctx, key, keylen);
+    (void)hd;
     _gcry_burn_stack (23+6*sizeof(void*));
     return rc;
 }

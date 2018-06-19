@@ -513,9 +513,11 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 
 
 static gcry_err_code_t
-rijndael_setkey (void *context, const byte *key, const unsigned keylen)
+rijndael_setkey (void *context, const byte *key, const unsigned keylen,
+                 gcry_cipher_hd_t hd)
 {
   RIJNDAEL_context *ctx = context;
+  (void)hd;
   return do_setkey (ctx, key, keylen);
 }
 
@@ -1580,7 +1582,7 @@ selftest_basic_128 (void)
   if (!ctx)
     return "failed to allocate memory";
 
-  rijndael_setkey (ctx, key_128, sizeof (key_128));
+  rijndael_setkey (ctx, key_128, sizeof (key_128), NULL);
   rijndael_encrypt (ctx, scratch, plaintext_128);
   if (memcmp (scratch, ciphertext_128, sizeof (ciphertext_128)))
     {
@@ -1623,7 +1625,7 @@ selftest_basic_192 (void)
   ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
   if (!ctx)
     return "failed to allocate memory";
-  rijndael_setkey (ctx, key_192, sizeof(key_192));
+  rijndael_setkey (ctx, key_192, sizeof(key_192), NULL);
   rijndael_encrypt (ctx, scratch, plaintext_192);
   if (memcmp (scratch, ciphertext_192, sizeof (ciphertext_192)))
     {
@@ -1668,7 +1670,7 @@ selftest_basic_256 (void)
   ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
   if (!ctx)
     return "failed to allocate memory";
-  rijndael_setkey (ctx, key_256, sizeof(key_256));
+  rijndael_setkey (ctx, key_256, sizeof(key_256), NULL);
   rijndael_encrypt (ctx, scratch, plaintext_256);
   if (memcmp (scratch, ciphertext_256, sizeof (ciphertext_256)))
     {

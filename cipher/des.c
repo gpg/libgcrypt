@@ -197,7 +197,8 @@ static unsigned int do_tripledes_encrypt(void *context, byte *outbuf,
 static unsigned int do_tripledes_decrypt(void *context, byte *outbuf,
 					 const byte *inbuf );
 static gcry_err_code_t do_tripledes_setkey(void *context, const byte *key,
-                                           unsigned keylen);
+                                           unsigned keylen,
+                                           gcry_cipher_hd_t hd);
 
 static int initialized;
 
@@ -1053,7 +1054,8 @@ is_weak_key ( const byte *key )
 
 /* Alternative setkey for selftests; need larger key than default. */
 static gcry_err_code_t
-bulk_selftest_setkey (void *context, const byte *__key, unsigned __keylen)
+bulk_selftest_setkey (void *context, const byte *__key, unsigned __keylen,
+                      gcry_cipher_hd_t hd)
 {
   static const unsigned char key[24] ATTR_ALIGNED_16 = {
       0x66,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
@@ -1061,10 +1063,11 @@ bulk_selftest_setkey (void *context, const byte *__key, unsigned __keylen)
       0x18,0x2A,0x39,0x47,0x5E,0x6F,0x75,0x82
     };
 
+  (void)hd;
   (void)__key;
   (void)__keylen;
 
-  return do_tripledes_setkey(context, key, sizeof(key));
+  return do_tripledes_setkey(context, key, sizeof(key), NULL);
 }
 
 
@@ -1316,9 +1319,12 @@ selftest (void)
 
 
 static gcry_err_code_t
-do_tripledes_setkey ( void *context, const byte *key, unsigned keylen )
+do_tripledes_setkey ( void *context, const byte *key, unsigned keylen,
+                      gcry_cipher_hd_t hd )
 {
   struct _tripledes_ctx *ctx = (struct _tripledes_ctx *) context;
+
+  (void)hd;
 
   if( keylen != 24 )
     return GPG_ERR_INV_KEYLEN;
@@ -1380,9 +1386,12 @@ do_tripledes_decrypt( void *context, byte *outbuf, const byte *inbuf )
 }
 
 static gcry_err_code_t
-do_des_setkey (void *context, const byte *key, unsigned keylen)
+do_des_setkey (void *context, const byte *key, unsigned keylen,
+               gcry_cipher_hd_t hd)
 {
   struct _des_ctx *ctx = (struct _des_ctx *) context;
+
+  (void)hd;
 
   if (keylen != 8)
     return GPG_ERR_INV_KEYLEN;

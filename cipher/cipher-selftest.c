@@ -105,7 +105,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
   ciphertext = plaintext2 + nblocks * blocksize;
 
   /* Initialize ctx */
-  if (setkey_func (ctx, key, sizeof(key)) != GPG_ERR_NO_ERROR)
+  if (setkey_func (ctx, key, sizeof(key), NULL) != GPG_ERR_NO_ERROR)
    {
      xfree(mem);
      return "setkey failed";
@@ -228,7 +228,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
   ciphertext = plaintext2 + nblocks * blocksize;
 
   /* Initialize ctx */
-  if (setkey_func (ctx, key, sizeof(key)) != GPG_ERR_NO_ERROR)
+  if (setkey_func (ctx, key, sizeof(key), NULL) != GPG_ERR_NO_ERROR)
    {
      xfree(mem);
      return "setkey failed";
@@ -351,7 +351,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
   ciphertext2 = ciphertext + nblocks * blocksize;
 
   /* Initialize ctx */
-  if (setkey_func (ctx, key, sizeof(key)) != GPG_ERR_NO_ERROR)
+  if (setkey_func (ctx, key, sizeof(key), NULL) != GPG_ERR_NO_ERROR)
    {
      xfree(mem);
      return "setkey failed";

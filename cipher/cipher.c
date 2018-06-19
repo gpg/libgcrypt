@@ -793,7 +793,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	}
     }
 
-  rc = c->spec->setkey (&c->context.c, key, keylen);
+  rc = c->spec->setkey (&c->context.c, key, keylen, c);
   if (!rc)
     {
       /* Duplicate initial context.  */
@@ -823,7 +823,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	case GCRY_CIPHER_MODE_XTS:
 	  /* Setup tweak cipher with second part of XTS key. */
 	  rc = c->spec->setkey (c->u_mode.xts.tweak_context, key + keylen,
-				keylen);
+				keylen, c);
 	  if (!rc)
 	    {
 	      /* Duplicate initial tweak context.  */
