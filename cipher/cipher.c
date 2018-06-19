@@ -200,6 +200,8 @@ static gcry_cipher_spec_t * const cipher_list_algo301[] =
   };
 
 
+static void _gcry_cipher_setup_mode_ops(gcry_cipher_hd_t c, int mode);
+
 
 static int
 map_algo (int algo)
@@ -706,6 +708,9 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
               break;
             }
 
+          /* Setup mode routines. */
+          _gcry_cipher_setup_mode_ops(h, mode);
+
           /* Setup defaults depending on the mode.  */
           switch (mode)
             {
@@ -723,8 +728,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
             default:
               break;
             }
-
-	}
+        }
     }
 
   /* Done.  */
@@ -994,91 +998,39 @@ do_ecb_decrypt (gcry_cipher_hd_t c,
 }
 
 
-/****************
- * Encrypt INBUF to OUTBUF with the mode selected at open.
- * inbuf and outbuf may overlap or be the same.
- * Depending on the mode some constraints apply to INBUFLEN.
- */
 static gcry_err_code_t
-cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
-		const byte *inbuf, size_t inbuflen)
+do_stream_encrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, size_t outbuflen,
+                const unsigned char *inbuf, size_t inbuflen)
+{
+  (void)outbuflen;
+  c->spec->stencrypt (&c->context.c, outbuf, (void *)inbuf, inbuflen);
+  return 0;
+}
+
+static gcry_err_code_t
+do_stream_decrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, size_t outbuflen,
+                const unsigned char *inbuf, size_t inbuflen)
+{
+  (void)outbuflen;
+  c->spec->stdecrypt (&c->context.c, outbuf, (void *)inbuf, inbuflen);
+  return 0;
+}
+
+
+static gcry_err_code_t
+do_encrypt_none_unknown (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
+                         const byte *inbuf, size_t inbuflen)
 {
   gcry_err_code_t rc;
 
-  if (c->mode != GCRY_CIPHER_MODE_NONE && !c->marks.key)
-    {
-      log_error ("cipher_encrypt: key not set\n");
-      return GPG_ERR_MISSING_KEY;
-    }
+  (void)outbuflen;
 
   switch (c->mode)
     {
-    case GCRY_CIPHER_MODE_ECB:
-      rc = do_ecb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CBC:
-      if (!(c->flags & GCRY_CIPHER_CBC_CTS))
-        rc = _gcry_cipher_cbc_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      else
-        rc = _gcry_cipher_cbc_cts_encrypt (c, outbuf, outbuflen, inbuf,
-                                           inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CFB:
-      rc = _gcry_cipher_cfb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CFB8:
-      rc = _gcry_cipher_cfb8_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_OFB:
-      rc = _gcry_cipher_ofb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CTR:
-      rc = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_AESWRAP:
-      rc = _gcry_cipher_aeswrap_encrypt (c, outbuf, outbuflen,
-                                         inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CCM:
-      rc = _gcry_cipher_ccm_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
     case GCRY_CIPHER_MODE_CMAC:
       rc = GPG_ERR_INV_CIPHER_MODE;
-      break;
-
-    case GCRY_CIPHER_MODE_EAX:
-      rc = _gcry_cipher_eax_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_GCM:
-      rc = _gcry_cipher_gcm_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_POLY1305:
-      rc = _gcry_cipher_poly1305_encrypt (c, outbuf, outbuflen,
-					  inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_OCB:
-      rc = _gcry_cipher_ocb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_XTS:
-      rc = _gcry_cipher_xts_crypt (c, outbuf, outbuflen, inbuf, inbuflen, 1);
-      break;
-
-    case GCRY_CIPHER_MODE_STREAM:
-      c->spec->stencrypt (&c->context.c,
-                          outbuf, (byte*)/*arggg*/inbuf, inbuflen);
-      rc = 0;
       break;
 
     case GCRY_CIPHER_MODE_NONE:
@@ -1104,120 +1056,18 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
   return rc;
 }
 
-
-/****************
- * Encrypt IN and write it to OUT.  If IN is NULL, in-place encryption has
- * been requested.
- */
-gcry_err_code_t
-_gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
-                      const void *in, size_t inlen)
-{
-  gcry_err_code_t rc;
-
-  if (!in)  /* Caller requested in-place encryption.  */
-    {
-      in = out;
-      inlen = outsize;
-    }
-
-  rc = cipher_encrypt (h, out, outsize, in, inlen);
-
-  /* Failsafe: Make sure that the plaintext will never make it into
-     OUT if the encryption returned an error.  */
-  if (rc && out)
-    memset (out, 0x42, outsize);
-
-  return rc;
-}
-
-
-
-/****************
- * Decrypt INBUF to OUTBUF with the mode selected at open.
- * inbuf and outbuf may overlap or be the same.
- * Depending on the mode some some constraints apply to INBUFLEN.
- */
 static gcry_err_code_t
-cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
-                const byte *inbuf, size_t inbuflen)
+do_decrypt_none_unknown (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
+                         const byte *inbuf, size_t inbuflen)
 {
   gcry_err_code_t rc;
 
-  if (c->mode != GCRY_CIPHER_MODE_NONE && !c->marks.key)
-    {
-      log_error ("cipher_decrypt: key not set\n");
-      return GPG_ERR_MISSING_KEY;
-    }
+  (void)outbuflen;
 
   switch (c->mode)
     {
-    case GCRY_CIPHER_MODE_ECB:
-      rc = do_ecb_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CBC:
-      if (!(c->flags & GCRY_CIPHER_CBC_CTS))
-        rc = _gcry_cipher_cbc_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      else
-        rc = _gcry_cipher_cbc_cts_decrypt (c, outbuf, outbuflen, inbuf,
-                                          inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CFB:
-      rc = _gcry_cipher_cfb_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CFB8:
-      rc = _gcry_cipher_cfb8_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_OFB:
-      rc = _gcry_cipher_ofb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CTR:
-      rc = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_AESWRAP:
-      rc = _gcry_cipher_aeswrap_decrypt (c, outbuf, outbuflen,
-                                         inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CCM:
-      rc = _gcry_cipher_ccm_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
     case GCRY_CIPHER_MODE_CMAC:
       rc = GPG_ERR_INV_CIPHER_MODE;
-      break;
-
-    case GCRY_CIPHER_MODE_EAX:
-      rc = _gcry_cipher_eax_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_GCM:
-      rc = _gcry_cipher_gcm_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_POLY1305:
-      rc = _gcry_cipher_poly1305_decrypt (c, outbuf, outbuflen,
-					  inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_OCB:
-      rc = _gcry_cipher_ocb_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_XTS:
-      rc = _gcry_cipher_xts_crypt (c, outbuf, outbuflen, inbuf, inbuflen, 0);
-      break;
-
-    case GCRY_CIPHER_MODE_STREAM:
-      c->spec->stdecrypt (&c->context.c,
-                          outbuf, (byte*)/*arggg*/inbuf, inbuflen);
-      rc = 0;
       break;
 
     case GCRY_CIPHER_MODE_NONE:
@@ -1244,6 +1094,43 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
 }
 
 
+/****************
+ * Encrypt IN and write it to OUT.  If IN is NULL, in-place encryption has
+ * been requested.
+ */
+gcry_err_code_t
+_gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
+                      const void *in, size_t inlen)
+{
+  gcry_err_code_t rc;
+
+  if (!in)  /* Caller requested in-place encryption.  */
+    {
+      in = out;
+      inlen = outsize;
+    }
+
+  if (h->mode != GCRY_CIPHER_MODE_NONE && !h->marks.key)
+    {
+      log_error ("cipher_decrypt: key not set\n");
+      return GPG_ERR_MISSING_KEY;
+    }
+
+  rc = h->mode_ops.encrypt (h, out, outsize, in, inlen);
+
+  /* Failsafe: Make sure that the plaintext will never make it into
+     OUT if the encryption returned an error.  */
+  if (rc && out)
+    memset (out, 0x42, outsize);
+
+  return rc;
+}
+
+
+/****************
+ * Decrypt IN and write it to OUT.  If IN is NULL, in-place encryption has
+ * been requested.
+ */
 gcry_err_code_t
 _gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
                       const void *in, size_t inlen)
@@ -1254,9 +1141,14 @@ _gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
       inlen = outsize;
     }
 
-  return cipher_decrypt (h, out, outsize, in, inlen);
-}
+  if (h->mode != GCRY_CIPHER_MODE_NONE && !h->marks.key)
+    {
+      log_error ("cipher_decrypt: key not set\n");
+      return GPG_ERR_MISSING_KEY;
+    }
 
+  return h->mode_ops.decrypt (h, out, outsize, in, inlen);
+}
 
 
 /****************
@@ -1287,36 +1179,9 @@ _gcry_cipher_setkey (gcry_cipher_hd_t hd, const void *key, size_t keylen)
 gcry_err_code_t
 _gcry_cipher_setiv (gcry_cipher_hd_t hd, const void *iv, size_t ivlen)
 {
-  gcry_err_code_t rc = 0;
-
-  switch (hd->mode)
-    {
-      case GCRY_CIPHER_MODE_CCM:
-        rc = _gcry_cipher_ccm_set_nonce (hd, iv, ivlen);
-        break;
-
-      case GCRY_CIPHER_MODE_EAX:
-        rc =  _gcry_cipher_eax_set_nonce (hd, iv, ivlen);
-        break;
-
-      case GCRY_CIPHER_MODE_GCM:
-        rc =  _gcry_cipher_gcm_setiv (hd, iv, ivlen);
-        break;
-
-      case GCRY_CIPHER_MODE_POLY1305:
-        rc =  _gcry_cipher_poly1305_setiv (hd, iv, ivlen);
-        break;
-
-      case GCRY_CIPHER_MODE_OCB:
-        rc = _gcry_cipher_ocb_set_nonce (hd, iv, ivlen);
-        break;
-
-      default:
-        rc = cipher_setiv (hd, iv, ivlen);
-        break;
-    }
-  return rc;
+  return hd->mode_ops.setiv (hd, iv, ivlen);
 }
+
 
 /* Set counter for CTR mode.  (CTR,CTRLEN) must denote a buffer of
    block size length, or (NULL,0) to set the CTR to the all-zero
@@ -1351,42 +1216,21 @@ _gcry_cipher_getctr (gcry_cipher_hd_t hd, void *ctr, size_t ctrlen)
   return 0;
 }
 
+
 gcry_err_code_t
 _gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
                            size_t abuflen)
 {
   gcry_err_code_t rc;
 
-  switch (hd->mode)
+  if (hd->mode_ops.authenticate)
     {
-    case GCRY_CIPHER_MODE_CCM:
-      rc = _gcry_cipher_ccm_authenticate (hd, abuf, abuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_CMAC:
-      rc = _gcry_cipher_cmac_authenticate (hd, abuf, abuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_EAX:
-      rc = _gcry_cipher_eax_authenticate (hd, abuf, abuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_GCM:
-      rc = _gcry_cipher_gcm_authenticate (hd, abuf, abuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_POLY1305:
-      rc = _gcry_cipher_poly1305_authenticate (hd, abuf, abuflen);
-      break;
-
-    case GCRY_CIPHER_MODE_OCB:
-      rc = _gcry_cipher_ocb_authenticate (hd, abuf, abuflen);
-      break;
-
-    default:
+      rc = hd->mode_ops.authenticate (hd, abuf, abuflen);
+    }
+  else
+    {
       log_error ("gcry_cipher_authenticate: invalid mode %d\n", hd->mode);
       rc = GPG_ERR_INV_CIPHER_MODE;
-      break;
     }
 
   return rc;
@@ -1398,36 +1242,14 @@ _gcry_cipher_gettag (gcry_cipher_hd_t hd, void *outtag, size_t taglen)
 {
   gcry_err_code_t rc;
 
-  switch (hd->mode)
+  if (hd->mode_ops.get_tag)
     {
-    case GCRY_CIPHER_MODE_CCM:
-      rc = _gcry_cipher_ccm_get_tag (hd, outtag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_CMAC:
-      rc = _gcry_cipher_cmac_get_tag (hd, outtag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_EAX:
-      rc = _gcry_cipher_eax_get_tag (hd, outtag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_GCM:
-      rc = _gcry_cipher_gcm_get_tag (hd, outtag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_POLY1305:
-      rc = _gcry_cipher_poly1305_get_tag (hd, outtag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_OCB:
-      rc = _gcry_cipher_ocb_get_tag (hd, outtag, taglen);
-      break;
-
-    default:
+      rc = hd->mode_ops.get_tag (hd, outtag, taglen);
+    }
+  else
+    {
       log_error ("gcry_cipher_gettag: invalid mode %d\n", hd->mode);
       rc = GPG_ERR_INV_CIPHER_MODE;
-      break;
     }
 
   return rc;
@@ -1439,39 +1261,185 @@ _gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag, size_t taglen)
 {
   gcry_err_code_t rc;
 
-  switch (hd->mode)
+  if (hd->mode_ops.check_tag)
     {
-    case GCRY_CIPHER_MODE_CCM:
-      rc = _gcry_cipher_ccm_check_tag (hd, intag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_CMAC:
-      rc = _gcry_cipher_cmac_check_tag (hd, intag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_EAX:
-      rc = _gcry_cipher_eax_check_tag (hd, intag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_GCM:
-      rc = _gcry_cipher_gcm_check_tag (hd, intag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_POLY1305:
-      rc = _gcry_cipher_poly1305_check_tag (hd, intag, taglen);
-      break;
-
-    case GCRY_CIPHER_MODE_OCB:
-      rc = _gcry_cipher_ocb_check_tag (hd, intag, taglen);
-      break;
-
-    default:
+      rc = hd->mode_ops.check_tag (hd, intag, taglen);
+    }
+  else
+    {
       log_error ("gcry_cipher_checktag: invalid mode %d\n", hd->mode);
       rc = GPG_ERR_INV_CIPHER_MODE;
-      break;
     }
 
   return rc;
+}
+
+
+
+static void
+_gcry_cipher_setup_mode_ops(gcry_cipher_hd_t c, int mode)
+{
+  /* Setup encryption and decryption routines. */
+  switch (mode)
+    {
+    case GCRY_CIPHER_MODE_STREAM:
+      c->mode_ops.encrypt = do_stream_encrypt;
+      c->mode_ops.decrypt = do_stream_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_ECB:
+      c->mode_ops.encrypt = do_ecb_encrypt;
+      c->mode_ops.decrypt = do_ecb_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_CBC:
+      if (!(c->flags & GCRY_CIPHER_CBC_CTS))
+        {
+          c->mode_ops.encrypt = _gcry_cipher_cbc_encrypt;
+          c->mode_ops.decrypt = _gcry_cipher_cbc_decrypt;
+        }
+      else
+        {
+          c->mode_ops.encrypt = _gcry_cipher_cbc_cts_encrypt;
+          c->mode_ops.decrypt = _gcry_cipher_cbc_cts_decrypt;
+        }
+      break;
+
+    case GCRY_CIPHER_MODE_CFB:
+      c->mode_ops.encrypt = _gcry_cipher_cfb_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_cfb_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_CFB8:
+      c->mode_ops.encrypt = _gcry_cipher_cfb8_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_cfb8_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_OFB:
+      c->mode_ops.encrypt = _gcry_cipher_ofb_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_ofb_encrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_CTR:
+      c->mode_ops.encrypt = _gcry_cipher_ctr_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_ctr_encrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_AESWRAP:
+      c->mode_ops.encrypt = _gcry_cipher_aeswrap_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_aeswrap_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_CCM:
+      c->mode_ops.encrypt = _gcry_cipher_ccm_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_ccm_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_EAX:
+      c->mode_ops.encrypt = _gcry_cipher_eax_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_eax_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_GCM:
+      c->mode_ops.encrypt = _gcry_cipher_gcm_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_gcm_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_POLY1305:
+      c->mode_ops.encrypt = _gcry_cipher_poly1305_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_poly1305_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_OCB:
+      c->mode_ops.encrypt = _gcry_cipher_ocb_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_ocb_decrypt;
+      break;
+
+    case GCRY_CIPHER_MODE_XTS:
+      c->mode_ops.encrypt = _gcry_cipher_xts_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_xts_decrypt;
+      break;
+
+    default:
+      c->mode_ops.encrypt = do_encrypt_none_unknown;
+      c->mode_ops.decrypt = do_decrypt_none_unknown;
+      break;
+    }
+
+  /* Setup IV setting routine. */
+  switch (mode)
+    {
+    case GCRY_CIPHER_MODE_CCM:
+      c->mode_ops.setiv = _gcry_cipher_ccm_set_nonce;
+      break;
+
+    case GCRY_CIPHER_MODE_EAX:
+      c->mode_ops.setiv = _gcry_cipher_eax_set_nonce;
+      break;
+
+    case GCRY_CIPHER_MODE_GCM:
+      c->mode_ops.setiv =  _gcry_cipher_gcm_setiv;
+      break;
+
+    case GCRY_CIPHER_MODE_POLY1305:
+      c->mode_ops.setiv = _gcry_cipher_poly1305_setiv;
+      break;
+
+    case GCRY_CIPHER_MODE_OCB:
+      c->mode_ops.setiv = _gcry_cipher_ocb_set_nonce;
+      break;
+
+    default:
+      c->mode_ops.setiv = cipher_setiv;
+      break;
+    }
+
+
+  /* Setup authentication routines for AEAD modes. */
+  switch (mode)
+    {
+    case GCRY_CIPHER_MODE_CCM:
+      c->mode_ops.authenticate = _gcry_cipher_ccm_authenticate;
+      c->mode_ops.get_tag      = _gcry_cipher_ccm_get_tag;
+      c->mode_ops.check_tag    = _gcry_cipher_ccm_check_tag;
+      break;
+
+    case GCRY_CIPHER_MODE_CMAC:
+      c->mode_ops.authenticate = _gcry_cipher_cmac_authenticate;
+      c->mode_ops.get_tag      = _gcry_cipher_cmac_get_tag;
+      c->mode_ops.check_tag    = _gcry_cipher_cmac_check_tag;
+      break;
+
+    case GCRY_CIPHER_MODE_EAX:
+      c->mode_ops.authenticate = _gcry_cipher_eax_authenticate;
+      c->mode_ops.get_tag      = _gcry_cipher_eax_get_tag;
+      c->mode_ops.check_tag    = _gcry_cipher_eax_check_tag;
+      break;
+
+    case GCRY_CIPHER_MODE_GCM:
+      c->mode_ops.authenticate = _gcry_cipher_gcm_authenticate;
+      c->mode_ops.get_tag      = _gcry_cipher_gcm_get_tag;
+      c->mode_ops.check_tag    = _gcry_cipher_gcm_check_tag;
+      break;
+
+    case GCRY_CIPHER_MODE_POLY1305:
+      c->mode_ops.authenticate = _gcry_cipher_poly1305_authenticate;
+      c->mode_ops.get_tag      = _gcry_cipher_poly1305_get_tag;
+      c->mode_ops.check_tag    = _gcry_cipher_poly1305_check_tag;
+      break;
+
+    case GCRY_CIPHER_MODE_OCB:
+      c->mode_ops.authenticate = _gcry_cipher_ocb_authenticate;
+      c->mode_ops.get_tag      = _gcry_cipher_ocb_get_tag;
+      c->mode_ops.check_tag    = _gcry_cipher_ocb_check_tag;
+      break;
+
+    default:
+      c->mode_ops.authenticate = NULL;
+      c->mode_ops.get_tag      = NULL;
+      c->mode_ops.check_tag    = NULL;
+      break;
+    }
 }
 
 

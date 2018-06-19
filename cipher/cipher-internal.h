@@ -140,6 +140,25 @@ struct gcry_cipher_handle
      interface does not easily allow to retrieve this value. */
   int algo;
 
+  /* A structure with function pointers for mode operations. */
+  struct {
+    gcry_err_code_t (*encrypt)(gcry_cipher_hd_t c,
+                               unsigned char *outbuf, size_t outbuflen,
+                               const unsigned char *inbuf, size_t inbuflen);
+    gcry_err_code_t (*decrypt)(gcry_cipher_hd_t c,
+                               unsigned char *outbuf, size_t outbuflen,
+                               const unsigned char *inbuf, size_t inbuflen);
+    gcry_err_code_t (*setiv)(gcry_cipher_hd_t c, const unsigned char *iv,
+                             size_t ivlen);
+
+    gcry_err_code_t (*authenticate)(gcry_cipher_hd_t c,
+                                    const unsigned char *abuf, size_t abuflen);
+    gcry_err_code_t (*get_tag)(gcry_cipher_hd_t c, unsigned char *outtag,
+                               size_t taglen);
+    gcry_err_code_t (*check_tag)(gcry_cipher_hd_t c, const unsigned char *intag,
+                                 size_t taglen);
+  } mode_ops;
+
   /* A structure with function pointers for bulk operations.  Due to
      limitations of the module system (we don't want to change the
      API) we need to keep these function pointers here.  The cipher
@@ -544,9 +563,12 @@ gcry_err_code_t _gcry_cipher_ocb_check_tag
 
 
 /*-- cipher-xts.c --*/
-gcry_err_code_t _gcry_cipher_xts_crypt
+gcry_err_code_t _gcry_cipher_xts_encrypt
 /*           */ (gcry_cipher_hd_t c, unsigned char *outbuf, size_t outbuflen,
-		 const unsigned char *inbuf, size_t inbuflen, int encrypt);
+		 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_xts_decrypt
+/*           */ (gcry_cipher_hd_t c, unsigned char *outbuf, size_t outbuflen,
+		 const unsigned char *inbuf, size_t inbuflen);
 
 
 /* Return the L-value for block N.  Note: 'cipher_ocb.c' ensures that N

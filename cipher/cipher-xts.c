@@ -169,3 +169,21 @@ _gcry_cipher_xts_crypt (gcry_cipher_hd_t c,
 
   return 0;
 }
+
+
+gcry_err_code_t
+_gcry_cipher_xts_encrypt (gcry_cipher_hd_t c,
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
+{
+  return _gcry_cipher_xts_crypt (c, outbuf, outbuflen, inbuf, inbuflen, 1);
+}
+
+
+gcry_err_code_t
+_gcry_cipher_xts_decrypt (gcry_cipher_hd_t c,
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
+{
+  return _gcry_cipher_xts_crypt (c, outbuf, outbuflen, inbuf, inbuflen, 0);
+}
