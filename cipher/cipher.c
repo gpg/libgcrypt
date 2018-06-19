@@ -503,7 +503,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 		     | GCRY_CIPHER_ENABLE_SYNC
 		     | GCRY_CIPHER_CBC_CTS
 		     | GCRY_CIPHER_CBC_MAC))
-	  || (flags & GCRY_CIPHER_CBC_CTS & GCRY_CIPHER_CBC_MAC)))
+	  || ((flags & GCRY_CIPHER_CBC_CTS) && (flags & GCRY_CIPHER_CBC_MAC))))
     err = GPG_ERR_CIPHER_ALGO;
 
   /* check that a valid mode has been requested */
