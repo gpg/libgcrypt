@@ -1018,7 +1018,11 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
       break;
 
     case GCRY_CIPHER_MODE_CBC:
-      rc = _gcry_cipher_cbc_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
+      if (!(c->flags & GCRY_CIPHER_CBC_CTS))
+        rc = _gcry_cipher_cbc_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
+      else
+        rc = _gcry_cipher_cbc_cts_encrypt (c, outbuf, outbuflen, inbuf,
+                                           inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_CFB:
@@ -1153,7 +1157,11 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
       break;
 
     case GCRY_CIPHER_MODE_CBC:
-      rc = _gcry_cipher_cbc_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
+      if (!(c->flags & GCRY_CIPHER_CBC_CTS))
+        rc = _gcry_cipher_cbc_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
+      else
+        rc = _gcry_cipher_cbc_cts_decrypt (c, outbuf, outbuflen, inbuf,
+                                          inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_CFB:

@@ -359,6 +359,14 @@ gcry_err_code_t _gcry_cipher_cbc_decrypt
 /*           */ (gcry_cipher_hd_t c,
                  unsigned char *outbuf, size_t outbuflen,
                  const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_cbc_cts_encrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_cbc_cts_decrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 
 /*-- cipher-cfb.c --*/
 gcry_err_code_t _gcry_cipher_cfb_encrypt
