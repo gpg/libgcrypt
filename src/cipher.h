@@ -115,6 +115,7 @@ gcry_err_code_t _gcry_cipher_cmac_set_subkeys
 /*-- rmd160.c --*/
 void _gcry_rmd160_hash_buffer (void *outbuf,
                                const void *buffer, size_t length);
+
 /*-- sha1.c --*/
 void _gcry_sha1_hash_buffer (void *outbuf,
                              const void *buffer, size_t length);

@@ -958,6 +958,7 @@ gcry_err_code_t _gcry_blake2_init_with_key(void *ctx, unsigned int flags,
       DIM (blake2##bs##_##dbits##_asn), oid_spec_blake2##bs##_##dbits, \
       dbits / 8, blake2##bs##_##dbits##_init, blake2##bs##_write, \
       blake2##bs##_final, blake2##bs##_read, NULL, \
+      NULL, NULL, \
       sizeof (BLAKE2##BS##_CONTEXT), selftests_blake2##bs \
     };
 

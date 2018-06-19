@@ -1174,46 +1174,52 @@ void
 _gcry_md_hash_buffer (int algo, void *digest,
                       const void *buffer, size_t length)
 {
-  if (0)
-    ;
-#if USE_SHA256
-  else if (algo == GCRY_MD_SHA256)
-    _gcry_sha256_hash_buffer (digest, buffer, length);
-#endif
-#if USE_SHA512
-  else if (algo == GCRY_MD_SHA512)
-    _gcry_sha512_hash_buffer (digest, buffer, length);
-#endif
-#if USE_SHA1
-  else if (algo == GCRY_MD_SHA1)
-    _gcry_sha1_hash_buffer (digest, buffer, length);
-#endif
-#if USE_RMD160
-  else if (algo == GCRY_MD_RMD160 && !fips_mode () )
-    _gcry_rmd160_hash_buffer (digest, buffer, length);
-#endif
+  gcry_md_spec_t *spec;
+
+  spec = spec_from_algo (algo);
+  if (!spec)
+    {
+      log_debug ("md_hash_buffer: algorithm %d not available\n", algo);
+      return;
+    }
+
+  if (algo == GCRY_MD_MD5 && fips_mode ())
+    {
+      _gcry_inactivate_fips_mode ("MD5 used");
+      if (_gcry_enforced_fips_mode () )
+        {
+          /* We should never get to here because we do not register
+             MD5 in enforced fips mode.  */
+          _gcry_fips_noreturn ();
+        }
+    }
+
+  if (spec->hash_buffer != NULL)
+    {
+      spec->hash_buffer (digest, buffer, length);
+    }
+  else if (spec->hash_buffers != NULL)
+    {
+      gcry_buffer_t iov;
+
+      iov.size = 0;
+      iov.data = (void *)buffer;
+      iov.off = 0;
+      iov.len = length;
+
+      spec->hash_buffers (digest, &iov, 1);
+    }
   else
     {
       /* For the others we do not have a fast function, so we use the
-	 normal functions. */
+         normal functions. */
       gcry_md_hd_t h;
       gpg_err_code_t err;
 
-      if (algo == GCRY_MD_MD5 && fips_mode ())
-        {
-          _gcry_inactivate_fips_mode ("MD5 used");
-          if (_gcry_enforced_fips_mode () )
-            {
-              /* We should never get to here because we do not register
-                 MD5 in enforced fips mode.  */
-              _gcry_fips_noreturn ();
-            }
-        }
-
       err = md_open (&h, algo, 0);
       if (err)
-	log_bug ("gcry_md_open failed for algo %d: %s",
-                 algo, gpg_strerror (gcry_error(err)));
+        log_bug ("gcry_md_open failed for algo %d: %s",
+                algo, gpg_strerror (gcry_error(err)));
       md_write (h, (byte *) buffer, length);
       md_final (h);
       memcpy (digest, md_read (h, algo), md_digest_length (algo));
@@ -1240,6 +1246,7 @@ gpg_err_code_t
 _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
                        const gcry_buffer_t *iov, int iovcnt)
 {
+  gcry_md_spec_t *spec;
   int hmac;
 
   if (!iov || iovcnt < 0)
@@ -1251,38 +1258,35 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
   if (hmac && iovcnt < 1)
     return GPG_ERR_INV_ARG;
 
-  if (0)
-    ;
-#if USE_SHA256
-  else if (algo == GCRY_MD_SHA256 && !hmac)
-    _gcry_sha256_hash_buffers (digest, iov, iovcnt);
-#endif
-#if USE_SHA512
-  else if (algo == GCRY_MD_SHA512 && !hmac)
-    _gcry_sha512_hash_buffers (digest, iov, iovcnt);
-#endif
-#if USE_SHA1
-  else if (algo == GCRY_MD_SHA1 && !hmac)
-    _gcry_sha1_hash_buffers (digest, iov, iovcnt);
-#endif
+  spec = spec_from_algo (algo);
+  if (!spec)
+    {
+      log_debug ("md_hash_buffers: algorithm %d not available\n", algo);
+      return GPG_ERR_DIGEST_ALGO;
+    }
+
+  if (algo == GCRY_MD_MD5 && fips_mode ())
+    {
+      _gcry_inactivate_fips_mode ("MD5 used");
+      if (_gcry_enforced_fips_mode () )
+        {
+          /* We should never get to here because we do not register
+             MD5 in enforced fips mode.  */
+          _gcry_fips_noreturn ();
+        }
+    }
+
+  if (!hmac && spec->hash_buffers)
+    {
+      spec->hash_buffers (digest, iov, iovcnt);
+    }
   else
     {
       /* For the others we do not have a fast function, so we use the
-	 normal functions.  */
+         normal functions.  */
       gcry_md_hd_t h;
       gpg_err_code_t rc;
       int dlen;
-
-      if (algo == GCRY_MD_MD5 && fips_mode ())
-        {
-          _gcry_inactivate_fips_mode ("MD5 used");
-          if (_gcry_enforced_fips_mode () )
-            {
-              /* We should never get to here because we do not register
-                 MD5 in enforced fips mode.  */
-              _gcry_fips_noreturn ();
-            }
-        }
 
       /* Detect SHAKE128 like algorithms which we can't use because
        * our API does not allow for a variable length digest.  */

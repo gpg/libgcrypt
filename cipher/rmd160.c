@@ -486,6 +486,21 @@ _gcry_rmd160_hash_buffer (void *outbuf, const void *buffer, size_t length )
   memcpy ( outbuf, hd.bctx.buf, 20 );
 }
 
+/* Variant of the above shortcut function using a multiple buffers.  */
+static void
+_gcry_rmd160_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+{
+  RMD160_CONTEXT hd;
+
+  rmd160_init (&hd, 0);
+  for (;iovcnt > 0; iov++, iovcnt--)
+    _gcry_md_block_write (&hd,
+                          (const char*)iov[0].data + iov[0].off, iov[0].len);
+  rmd160_final ( &hd );
+  memcpy ( outbuf, hd.bctx.buf, 20 );
+}
+
+
 static byte asn[15] = /* Object ID is 1.3.36.3.2.1 */
   { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x24, 0x03,
     0x02, 0x01, 0x05, 0x00, 0x04, 0x14 };
@@ -504,5 +519,6 @@ gcry_md_spec_t _gcry_digest_spec_rmd160 =
     GCRY_MD_RMD160, {0, 0},
     "RIPEMD160", asn, DIM (asn), oid_spec_rmd160, 20,
     rmd160_init, _gcry_md_block_write, rmd160_final, rmd160_read, NULL,
+    _gcry_rmd160_hash_buffer, _gcry_rmd160_hash_buffers,
     sizeof (RMD160_CONTEXT)
   };

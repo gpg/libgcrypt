@@ -178,5 +178,6 @@ gcry_md_spec_t _gcry_digest_spec_md2 =
     GCRY_MD_MD2, {0, 0},
     "MD2", asn, DIM (asn), oid_spec_md2, 16,
     md2_init, _gcry_md_block_write, md2_final, md2_read, NULL,
+    NULL, NULL,
     sizeof (MD2_CONTEXT)
   };

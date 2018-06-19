@@ -1221,6 +1221,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_224 =
     GCRY_MD_SHA3_224, {0, 1},
     "SHA3-224", sha3_224_asn, DIM (sha3_224_asn), oid_spec_sha3_224, 28,
     sha3_224_init, keccak_write, keccak_final, keccak_read, NULL,
+    NULL, NULL,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -1229,6 +1230,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_256 =
     GCRY_MD_SHA3_256, {0, 1},
     "SHA3-256", sha3_256_asn, DIM (sha3_256_asn), oid_spec_sha3_256, 32,
     sha3_256_init, keccak_write, keccak_final, keccak_read, NULL,
+    NULL, NULL,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -1237,6 +1239,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_384 =
     GCRY_MD_SHA3_384, {0, 1},
     "SHA3-384", sha3_384_asn, DIM (sha3_384_asn), oid_spec_sha3_384, 48,
     sha3_384_init, keccak_write, keccak_final, keccak_read, NULL,
+    NULL, NULL,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -1245,6 +1248,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_512 =
     GCRY_MD_SHA3_512, {0, 1},
     "SHA3-512", sha3_512_asn, DIM (sha3_512_asn), oid_spec_sha3_512, 64,
     sha3_512_init, keccak_write, keccak_final, keccak_read, NULL,
+    NULL, NULL,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -1253,6 +1257,7 @@ gcry_md_spec_t _gcry_digest_spec_shake128 =
     GCRY_MD_SHAKE128, {0, 1},
     "SHAKE128", shake128_asn, DIM (shake128_asn), oid_spec_shake128, 0,
     shake128_init, keccak_write, keccak_final, NULL, keccak_extract,
+    NULL, NULL,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -1261,6 +1266,7 @@ gcry_md_spec_t _gcry_digest_spec_shake256 =
     GCRY_MD_SHAKE256, {0, 1},
     "SHAKE256", shake256_asn, DIM (shake256_asn), oid_spec_shake256, 0,
     shake256_init, keccak_write, keccak_final, NULL, keccak_extract,
+    NULL, NULL,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
