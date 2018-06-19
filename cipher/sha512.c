@@ -113,102 +113,7 @@ typedef struct
 {
   gcry_md_block_ctx_t bctx;
   SHA512_STATE state;
-#ifdef USE_ARM_NEON_ASM
-  unsigned int use_neon:1;
-#endif
-#ifdef USE_SSSE3
-  unsigned int use_ssse3:1;
-#endif
-#ifdef USE_AVX
-  unsigned int use_avx:1;
-#endif
-#ifdef USE_AVX2
-  unsigned int use_avx2:1;
-#endif
 } SHA512_CONTEXT;
-
-static unsigned int
-transform (void *context, const unsigned char *data, size_t nblks);
-
-static void
-sha512_init (void *context, unsigned int flags)
-{
-  SHA512_CONTEXT *ctx = context;
-  SHA512_STATE *hd = &ctx->state;
-  unsigned int features = _gcry_get_hw_features ();
-
-  (void)flags;
-
-  hd->h0 = U64_C(0x6a09e667f3bcc908);
-  hd->h1 = U64_C(0xbb67ae8584caa73b);
-  hd->h2 = U64_C(0x3c6ef372fe94f82b);
-  hd->h3 = U64_C(0xa54ff53a5f1d36f1);
-  hd->h4 = U64_C(0x510e527fade682d1);
-  hd->h5 = U64_C(0x9b05688c2b3e6c1f);
-  hd->h6 = U64_C(0x1f83d9abfb41bd6b);
-  hd->h7 = U64_C(0x5be0cd19137e2179);
-
-  ctx->bctx.nblocks = 0;
-  ctx->bctx.nblocks_high = 0;
-  ctx->bctx.count = 0;
-  ctx->bctx.blocksize = 128;
-  ctx->bctx.bwrite = transform;
-
-#ifdef USE_ARM_NEON_ASM
-  ctx->use_neon = (features & HWF_ARM_NEON) != 0;
-#endif
-#ifdef USE_SSSE3
-  ctx->use_ssse3 = (features & HWF_INTEL_SSSE3) != 0;
-#endif
-#ifdef USE_AVX
-  ctx->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD);
-#endif
-#ifdef USE_AVX2
-  ctx->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
-#endif
-
-  (void)features;
-}
-
-static void
-sha384_init (void *context, unsigned int flags)
-{
-  SHA512_CONTEXT *ctx = context;
-  SHA512_STATE *hd = &ctx->state;
-  unsigned int features = _gcry_get_hw_features ();
-
-  (void)flags;
-
-  hd->h0 = U64_C(0xcbbb9d5dc1059ed8);
-  hd->h1 = U64_C(0x629a292a367cd507);
-  hd->h2 = U64_C(0x9159015a3070dd17);
-  hd->h3 = U64_C(0x152fecd8f70e5939);
-  hd->h4 = U64_C(0x67332667ffc00b31);
-  hd->h5 = U64_C(0x8eb44a8768581511);
-  hd->h6 = U64_C(0xdb0c2e0d64f98fa7);
-  hd->h7 = U64_C(0x47b5481dbefa4fa4);
-
-  ctx->bctx.nblocks = 0;
-  ctx->bctx.nblocks_high = 0;
-  ctx->bctx.count = 0;
-  ctx->bctx.blocksize = 128;
-  ctx->bctx.bwrite = transform;
-
-#ifdef USE_ARM_NEON_ASM
-  ctx->use_neon = (features & HWF_ARM_NEON) != 0;
-#endif
-#ifdef USE_SSSE3
-  ctx->use_ssse3 = (features & HWF_INTEL_SSSE3) != 0;
-#endif
-#ifdef USE_AVX
-  ctx->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD);
-#endif
-#ifdef USE_AVX2
-  ctx->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
-#endif
-
-  (void)features;
-}
 
 
 static const u64 k[] =
@@ -255,6 +160,193 @@ static const u64 k[] =
     U64_C(0x5fcb6fab3ad6faec), U64_C(0x6c44198c4a475817)
   };
 
+
+/* AMD64 assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#undef ASM_FUNC_ABI
+#undef ASM_EXTRA_STACK
+#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_AVX2)
+# ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+#  define ASM_FUNC_ABI __attribute__((sysv_abi))
+#  define ASM_EXTRA_STACK (10 * 16 + 4 * sizeof(void *))
+# else
+#  define ASM_FUNC_ABI
+#  define ASM_EXTRA_STACK 0
+# endif
+#endif
+
+
+#ifdef USE_ARM_NEON_ASM
+unsigned int _gcry_sha512_transform_armv7_neon (SHA512_STATE *hd,
+                                                const unsigned char *data,
+                                                const u64 k[], size_t num_blks);
+
+static unsigned int
+do_sha512_transform_armv7_neon(void *ctx, const unsigned char *data,
+                               size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_armv7_neon (&hd->state, data, k, nblks);
+}
+#endif
+
+#ifdef USE_SSSE3
+unsigned int _gcry_sha512_transform_amd64_ssse3(const void *input_data,
+                                                void *state,
+                                                size_t num_blks) ASM_FUNC_ABI;
+
+static unsigned int
+do_sha512_transform_amd64_ssse3(void *ctx, const unsigned char *data,
+                                size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_amd64_ssse3 (data, &hd->state, nblks)
+         + ASM_EXTRA_STACK;
+}
+#endif
+
+#ifdef USE_AVX
+unsigned int _gcry_sha512_transform_amd64_avx(const void *input_data,
+                                              void *state,
+                                              size_t num_blks) ASM_FUNC_ABI;
+
+static unsigned int
+do_sha512_transform_amd64_avx(void *ctx, const unsigned char *data,
+                              size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_amd64_avx (data, &hd->state, nblks)
+         + ASM_EXTRA_STACK;
+}
+#endif
+
+#ifdef USE_AVX2
+unsigned int _gcry_sha512_transform_amd64_avx2(const void *input_data,
+                                               void *state,
+                                               size_t num_blks) ASM_FUNC_ABI;
+
+static unsigned int
+do_sha512_transform_amd64_avx2(void *ctx, const unsigned char *data,
+                               size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_amd64_avx2 (data, &hd->state, nblks)
+         + ASM_EXTRA_STACK;
+}
+#endif
+
+
+#ifdef USE_ARM_ASM
+unsigned int _gcry_sha512_transform_arm (SHA512_STATE *hd,
+					 const unsigned char *data,
+					 const u64 k[], size_t num_blks);
+
+static unsigned int
+do_transform_generic (void *context, const unsigned char *data, size_t nblks)
+{
+  SHA512_CONTEXT *hd = context;
+  return _gcry_sha512_transform_armv7_neon (&hd->state, data, k, nblks);
+}
+#else
+static unsigned int
+do_transform_generic (void *context, const unsigned char *data, size_t nblks);
+#endif
+
+
+static void
+sha512_init (void *context, unsigned int flags)
+{
+  SHA512_CONTEXT *ctx = context;
+  SHA512_STATE *hd = &ctx->state;
+  unsigned int features = _gcry_get_hw_features ();
+
+  (void)flags;
+  (void)k;
+
+  hd->h0 = U64_C(0x6a09e667f3bcc908);
+  hd->h1 = U64_C(0xbb67ae8584caa73b);
+  hd->h2 = U64_C(0x3c6ef372fe94f82b);
+  hd->h3 = U64_C(0xa54ff53a5f1d36f1);
+  hd->h4 = U64_C(0x510e527fade682d1);
+  hd->h5 = U64_C(0x9b05688c2b3e6c1f);
+  hd->h6 = U64_C(0x1f83d9abfb41bd6b);
+  hd->h7 = U64_C(0x5be0cd19137e2179);
+
+  ctx->bctx.nblocks = 0;
+  ctx->bctx.nblocks_high = 0;
+  ctx->bctx.count = 0;
+  ctx->bctx.blocksize = 128;
+
+  /* Order of feature checks is important here; last match will be
+   * selected.  Keep slower implementations at the top and faster at
+   * the bottom.  */
+  ctx->bctx.bwrite = do_transform_generic;
+#ifdef USE_ARM_NEON_ASM
+  if ((features & HWF_ARM_NEON) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_armv7_neon;
+#endif
+#ifdef USE_SSSE3
+  if ((features & HWF_INTEL_SSSE3) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_amd64_ssse3;
+#endif
+#ifdef USE_AVX
+  if ((features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD))
+    ctx->bctx.bwrite = do_sha512_transform_amd64_avx;
+#endif
+#ifdef USE_AVX2
+  if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
+    ctx->bctx.bwrite = do_sha512_transform_amd64_avx2;
+#endif
+  (void)features;
+}
+
+static void
+sha384_init (void *context, unsigned int flags)
+{
+  SHA512_CONTEXT *ctx = context;
+  SHA512_STATE *hd = &ctx->state;
+  unsigned int features = _gcry_get_hw_features ();
+
+  (void)flags;
+
+  hd->h0 = U64_C(0xcbbb9d5dc1059ed8);
+  hd->h1 = U64_C(0x629a292a367cd507);
+  hd->h2 = U64_C(0x9159015a3070dd17);
+  hd->h3 = U64_C(0x152fecd8f70e5939);
+  hd->h4 = U64_C(0x67332667ffc00b31);
+  hd->h5 = U64_C(0x8eb44a8768581511);
+  hd->h6 = U64_C(0xdb0c2e0d64f98fa7);
+  hd->h7 = U64_C(0x47b5481dbefa4fa4);
+
+  ctx->bctx.nblocks = 0;
+  ctx->bctx.nblocks_high = 0;
+  ctx->bctx.count = 0;
+  ctx->bctx.blocksize = 128;
+
+  /* Order of feature checks is important here; last match will be
+   * selected.  Keep slower implementations at the top and faster at
+   * the bottom.  */
+  ctx->bctx.bwrite = do_transform_generic;
+#ifdef USE_ARM_NEON_ASM
+  if ((features & HWF_ARM_NEON) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_armv7_neon;
+#endif
+#ifdef USE_SSSE3
+  if ((features & HWF_INTEL_SSSE3) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_amd64_ssse3;
+#endif
+#ifdef USE_AVX
+  if ((features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD))
+    ctx->bctx.bwrite = do_sha512_transform_amd64_avx;
+#endif
+#ifdef USE_AVX2
+  if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
+    ctx->bctx.bwrite = do_sha512_transform_amd64_avx2;
+#endif
+  (void)features;
+}
+
+
 #ifndef USE_ARM_ASM
 
 static inline u64
@@ -291,372 +383,240 @@ Sum1 (u64 x)
  * Transform the message W which consists of 16 64-bit-words
  */
 static unsigned int
-transform_blk (SHA512_STATE *hd, const unsigned char *data)
+do_transform_generic (void *context, const unsigned char *data, size_t nblks)
 {
-  u64 a, b, c, d, e, f, g, h;
-  u64 w[16];
-  int t;
+  SHA512_CONTEXT *ctx = context;
+  SHA512_STATE *hd = &ctx->state;
 
-  /* get values from the chaining vars */
-  a = hd->h0;
-  b = hd->h1;
-  c = hd->h2;
-  d = hd->h3;
-  e = hd->h4;
-  f = hd->h5;
-  g = hd->h6;
-  h = hd->h7;
+  do
+    {
+      u64 a, b, c, d, e, f, g, h;
+      u64 w[16];
+      int t;
 
-  for ( t = 0; t < 16; t++ )
-    w[t] = buf_get_be64(data + t * 8);
+      /* get values from the chaining vars */
+      a = hd->h0;
+      b = hd->h1;
+      c = hd->h2;
+      d = hd->h3;
+      e = hd->h4;
+      f = hd->h5;
+      g = hd->h6;
+      h = hd->h7;
+
+      for ( t = 0; t < 16; t++ )
+        w[t] = buf_get_be64(data + t * 8);
 
 #define S0(x) (ROTR((x),1) ^ ROTR((x),8) ^ ((x)>>7))
 #define S1(x) (ROTR((x),19) ^ ROTR((x),61) ^ ((x)>>6))
 
-  for (t = 0; t < 80 - 16; )
-    {
-      u64 t1, t2;
+      for (t = 0; t < 80 - 16; )
+        {
+          u64 t1, t2;
 
-      /* Performance on a AMD Athlon(tm) Dual Core Processor 4050e
-         with gcc 4.3.3 using gcry_md_hash_buffer of each 10000 bytes
-         initialized to 0,1,2,3...255,0,... and 1000 iterations:
+          t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[0];
+          w[0] += S1 (w[14]) + w[9] + S0 (w[1]);
+          t2 = Sum0 (a) + Maj (a, b, c);
+          d += t1;
+          h = t1 + t2;
 
-         Not unrolled with macros:  440ms
-         Unrolled with macros:      350ms
-         Unrolled with inline:      330ms
-      */
-#if 0 /* Not unrolled.  */
-      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[t%16];
-      w[t%16] += S1 (w[(t - 2)%16]) + w[(t - 7)%16] + S0 (w[(t - 15)%16]);
-      t2 = Sum0 (a) + Maj (a, b, c);
-      h = g;
-      g = f;
-      f = e;
-      e = d + t1;
-      d = c;
-      c = b;
-      b = a;
-      a = t1 + t2;
-      t++;
-#else /* Unrolled to interweave the chain variables.  */
-      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[0];
-      w[0] += S1 (w[14]) + w[9] + S0 (w[1]);
-      t2 = Sum0 (a) + Maj (a, b, c);
-      d += t1;
-      h = t1 + t2;
+          t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+1] + w[1];
+          w[1] += S1 (w[15]) + w[10] + S0 (w[2]);
+          t2 = Sum0 (h) + Maj (h, a, b);
+          c += t1;
+          g  = t1 + t2;
 
-      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+1] + w[1];
-      w[1] += S1 (w[15]) + w[10] + S0 (w[2]);
-      t2 = Sum0 (h) + Maj (h, a, b);
-      c += t1;
-      g  = t1 + t2;
+          t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+2] + w[2];
+          w[2] += S1 (w[0]) + w[11] + S0 (w[3]);
+          t2 = Sum0 (g) + Maj (g, h, a);
+          b += t1;
+          f  = t1 + t2;
 
-      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+2] + w[2];
-      w[2] += S1 (w[0]) + w[11] + S0 (w[3]);
-      t2 = Sum0 (g) + Maj (g, h, a);
-      b += t1;
-      f  = t1 + t2;
+          t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+3] + w[3];
+          w[3] += S1 (w[1]) + w[12] + S0 (w[4]);
+          t2 = Sum0 (f) + Maj (f, g, h);
+          a += t1;
+          e  = t1 + t2;
 
-      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+3] + w[3];
-      w[3] += S1 (w[1]) + w[12] + S0 (w[4]);
-      t2 = Sum0 (f) + Maj (f, g, h);
-      a += t1;
-      e  = t1 + t2;
+          t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+4] + w[4];
+          w[4] += S1 (w[2]) + w[13] + S0 (w[5]);
+          t2 = Sum0 (e) + Maj (e, f, g);
+          h += t1;
+          d  = t1 + t2;
 
-      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+4] + w[4];
-      w[4] += S1 (w[2]) + w[13] + S0 (w[5]);
-      t2 = Sum0 (e) + Maj (e, f, g);
-      h += t1;
-      d  = t1 + t2;
+          t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+5] + w[5];
+          w[5] += S1 (w[3]) + w[14] + S0 (w[6]);
+          t2 = Sum0 (d) + Maj (d, e, f);
+          g += t1;
+          c  = t1 + t2;
 
-      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+5] + w[5];
-      w[5] += S1 (w[3]) + w[14] + S0 (w[6]);
-      t2 = Sum0 (d) + Maj (d, e, f);
-      g += t1;
-      c  = t1 + t2;
+          t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+6] + w[6];
+          w[6] += S1 (w[4]) + w[15] + S0 (w[7]);
+          t2 = Sum0 (c) + Maj (c, d, e);
+          f += t1;
+          b  = t1 + t2;
 
-      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+6] + w[6];
-      w[6] += S1 (w[4]) + w[15] + S0 (w[7]);
-      t2 = Sum0 (c) + Maj (c, d, e);
-      f += t1;
-      b  = t1 + t2;
+          t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+7] + w[7];
+          w[7] += S1 (w[5]) + w[0] + S0 (w[8]);
+          t2 = Sum0 (b) + Maj (b, c, d);
+          e += t1;
+          a  = t1 + t2;
 
-      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+7] + w[7];
-      w[7] += S1 (w[5]) + w[0] + S0 (w[8]);
-      t2 = Sum0 (b) + Maj (b, c, d);
-      e += t1;
-      a  = t1 + t2;
+          t1 = h + Sum1 (e) + Ch (e, f, g) + k[t+8] + w[8];
+          w[8] += S1 (w[6]) + w[1] + S0 (w[9]);
+          t2 = Sum0 (a) + Maj (a, b, c);
+          d += t1;
+          h  = t1 + t2;
 
-      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t+8] + w[8];
-      w[8] += S1 (w[6]) + w[1] + S0 (w[9]);
-      t2 = Sum0 (a) + Maj (a, b, c);
-      d += t1;
-      h  = t1 + t2;
+          t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+9] + w[9];
+          w[9] += S1 (w[7]) + w[2] + S0 (w[10]);
+          t2 = Sum0 (h) + Maj (h, a, b);
+          c += t1;
+          g  = t1 + t2;
 
-      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+9] + w[9];
-      w[9] += S1 (w[7]) + w[2] + S0 (w[10]);
-      t2 = Sum0 (h) + Maj (h, a, b);
-      c += t1;
-      g  = t1 + t2;
+          t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+10] + w[10];
+          w[10] += S1 (w[8]) + w[3] + S0 (w[11]);
+          t2 = Sum0 (g) + Maj (g, h, a);
+          b += t1;
+          f  = t1 + t2;
 
-      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+10] + w[10];
-      w[10] += S1 (w[8]) + w[3] + S0 (w[11]);
-      t2 = Sum0 (g) + Maj (g, h, a);
-      b += t1;
-      f  = t1 + t2;
+          t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+11] + w[11];
+          w[11] += S1 (w[9]) + w[4] + S0 (w[12]);
+          t2 = Sum0 (f) + Maj (f, g, h);
+          a += t1;
+          e  = t1 + t2;
 
-      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+11] + w[11];
-      w[11] += S1 (w[9]) + w[4] + S0 (w[12]);
-      t2 = Sum0 (f) + Maj (f, g, h);
-      a += t1;
-      e  = t1 + t2;
+          t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+12] + w[12];
+          w[12] += S1 (w[10]) + w[5] + S0 (w[13]);
+          t2 = Sum0 (e) + Maj (e, f, g);
+          h += t1;
+          d  = t1 + t2;
 
-      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+12] + w[12];
-      w[12] += S1 (w[10]) + w[5] + S0 (w[13]);
-      t2 = Sum0 (e) + Maj (e, f, g);
-      h += t1;
-      d  = t1 + t2;
+          t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+13] + w[13];
+          w[13] += S1 (w[11]) + w[6] + S0 (w[14]);
+          t2 = Sum0 (d) + Maj (d, e, f);
+          g += t1;
+          c  = t1 + t2;
 
-      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+13] + w[13];
-      w[13] += S1 (w[11]) + w[6] + S0 (w[14]);
-      t2 = Sum0 (d) + Maj (d, e, f);
-      g += t1;
-      c  = t1 + t2;
+          t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+14] + w[14];
+          w[14] += S1 (w[12]) + w[7] + S0 (w[15]);
+          t2 = Sum0 (c) + Maj (c, d, e);
+          f += t1;
+          b  = t1 + t2;
 
-      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+14] + w[14];
-      w[14] += S1 (w[12]) + w[7] + S0 (w[15]);
-      t2 = Sum0 (c) + Maj (c, d, e);
-      f += t1;
-      b  = t1 + t2;
+          t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+15] + w[15];
+          w[15] += S1 (w[13]) + w[8] + S0 (w[0]);
+          t2 = Sum0 (b) + Maj (b, c, d);
+          e += t1;
+          a  = t1 + t2;
 
-      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+15] + w[15];
-      w[15] += S1 (w[13]) + w[8] + S0 (w[0]);
-      t2 = Sum0 (b) + Maj (b, c, d);
-      e += t1;
-      a  = t1 + t2;
+          t += 16;
+        }
 
-      t += 16;
-#endif
-    }
+      for (; t < 80; )
+        {
+          u64 t1, t2;
 
-  for (; t < 80; )
-    {
-      u64 t1, t2;
+          t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[0];
+          t2 = Sum0 (a) + Maj (a, b, c);
+          d += t1;
+          h  = t1 + t2;
 
-#if 0 /* Not unrolled.  */
-      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[t%16];
-      t2 = Sum0 (a) + Maj (a, b, c);
-      h = g;
-      g = f;
-      f = e;
-      e = d + t1;
-      d = c;
-      c = b;
-      b = a;
-      a = t1 + t2;
-      t++;
-#else /* Unrolled to interweave the chain variables.  */
-      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[0];
-      t2 = Sum0 (a) + Maj (a, b, c);
-      d += t1;
-      h  = t1 + t2;
+          t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+1] + w[1];
+          t2 = Sum0 (h) + Maj (h, a, b);
+          c += t1;
+          g  = t1 + t2;
 
-      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+1] + w[1];
-      t2 = Sum0 (h) + Maj (h, a, b);
-      c += t1;
-      g  = t1 + t2;
+          t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+2] + w[2];
+          t2 = Sum0 (g) + Maj (g, h, a);
+          b += t1;
+          f  = t1 + t2;
 
-      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+2] + w[2];
-      t2 = Sum0 (g) + Maj (g, h, a);
-      b += t1;
-      f  = t1 + t2;
+          t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+3] + w[3];
+          t2 = Sum0 (f) + Maj (f, g, h);
+          a += t1;
+          e  = t1 + t2;
 
-      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+3] + w[3];
-      t2 = Sum0 (f) + Maj (f, g, h);
-      a += t1;
-      e  = t1 + t2;
+          t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+4] + w[4];
+          t2 = Sum0 (e) + Maj (e, f, g);
+          h += t1;
+          d  = t1 + t2;
 
-      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+4] + w[4];
-      t2 = Sum0 (e) + Maj (e, f, g);
-      h += t1;
-      d  = t1 + t2;
+          t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+5] + w[5];
+          t2 = Sum0 (d) + Maj (d, e, f);
+          g += t1;
+          c  = t1 + t2;
 
-      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+5] + w[5];
-      t2 = Sum0 (d) + Maj (d, e, f);
-      g += t1;
-      c  = t1 + t2;
+          t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+6] + w[6];
+          t2 = Sum0 (c) + Maj (c, d, e);
+          f += t1;
+          b  = t1 + t2;
 
-      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+6] + w[6];
-      t2 = Sum0 (c) + Maj (c, d, e);
-      f += t1;
-      b  = t1 + t2;
+          t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+7] + w[7];
+          t2 = Sum0 (b) + Maj (b, c, d);
+          e += t1;
+          a  = t1 + t2;
 
-      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+7] + w[7];
-      t2 = Sum0 (b) + Maj (b, c, d);
-      e += t1;
-      a  = t1 + t2;
+          t1 = h + Sum1 (e) + Ch (e, f, g) + k[t+8] + w[8];
+          t2 = Sum0 (a) + Maj (a, b, c);
+          d += t1;
+          h  = t1 + t2;
 
-      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t+8] + w[8];
-      t2 = Sum0 (a) + Maj (a, b, c);
-      d += t1;
-      h  = t1 + t2;
+          t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+9] + w[9];
+          t2 = Sum0 (h) + Maj (h, a, b);
+          c += t1;
+          g  = t1 + t2;
 
-      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+9] + w[9];
-      t2 = Sum0 (h) + Maj (h, a, b);
-      c += t1;
-      g  = t1 + t2;
+          t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+10] + w[10];
+          t2 = Sum0 (g) + Maj (g, h, a);
+          b += t1;
+          f  = t1 + t2;
 
-      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+10] + w[10];
-      t2 = Sum0 (g) + Maj (g, h, a);
-      b += t1;
-      f  = t1 + t2;
+          t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+11] + w[11];
+          t2 = Sum0 (f) + Maj (f, g, h);
+          a += t1;
+          e  = t1 + t2;
 
-      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+11] + w[11];
-      t2 = Sum0 (f) + Maj (f, g, h);
-      a += t1;
-      e  = t1 + t2;
+          t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+12] + w[12];
+          t2 = Sum0 (e) + Maj (e, f, g);
+          h += t1;
+          d  = t1 + t2;
 
-      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+12] + w[12];
-      t2 = Sum0 (e) + Maj (e, f, g);
-      h += t1;
-      d  = t1 + t2;
+          t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+13] + w[13];
+          t2 = Sum0 (d) + Maj (d, e, f);
+          g += t1;
+          c  = t1 + t2;
 
-      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+13] + w[13];
-      t2 = Sum0 (d) + Maj (d, e, f);
-      g += t1;
-      c  = t1 + t2;
+          t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+14] + w[14];
+          t2 = Sum0 (c) + Maj (c, d, e);
+          f += t1;
+          b  = t1 + t2;
 
-      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+14] + w[14];
-      t2 = Sum0 (c) + Maj (c, d, e);
-      f += t1;
-      b  = t1 + t2;
+          t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+15] + w[15];
+          t2 = Sum0 (b) + Maj (b, c, d);
+          e += t1;
+          a  = t1 + t2;
 
-      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+15] + w[15];
-      t2 = Sum0 (b) + Maj (b, c, d);
-      e += t1;
-      a  = t1 + t2;
+          t += 16;
+        }
 
-      t += 16;
-#endif
-    }
+      /* Update chaining vars.  */
+      hd->h0 += a;
+      hd->h1 += b;
+      hd->h2 += c;
+      hd->h3 += d;
+      hd->h4 += e;
+      hd->h5 += f;
+      hd->h6 += g;
+      hd->h7 += h;
 
-  /* Update chaining vars.  */
-  hd->h0 += a;
-  hd->h1 += b;
-  hd->h2 += c;
-  hd->h3 += d;
-  hd->h4 += e;
-  hd->h5 += f;
-  hd->h6 += g;
-  hd->h7 += h;
-
-  return /* burn_stack */ (8 + 16) * sizeof(u64) + sizeof(u32) +
-                          3 * sizeof(void*);
-}
-#endif /*!USE_ARM_ASM*/
-
-/* AMD64 assembly implementations use SystemV ABI, ABI conversion and additional
- * stack to store XMM6-XMM15 needed on Win64. */
-#undef ASM_FUNC_ABI
-#undef ASM_EXTRA_STACK
-#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_AVX2)
-# ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-#  define ASM_FUNC_ABI __attribute__((sysv_abi))
-#  define ASM_EXTRA_STACK (10 * 16)
-# else
-#  define ASM_FUNC_ABI
-#  define ASM_EXTRA_STACK 0
-# endif
-#endif
-
-
-#ifdef USE_ARM_NEON_ASM
-void _gcry_sha512_transform_armv7_neon (SHA512_STATE *hd,
-					const unsigned char *data,
-					const u64 k[], size_t num_blks);
-#endif
-
-#ifdef USE_ARM_ASM
-unsigned int _gcry_sha512_transform_arm (SHA512_STATE *hd,
-					 const unsigned char *data,
-					 const u64 k[], size_t num_blks);
-#endif
-
-#ifdef USE_SSSE3
-unsigned int _gcry_sha512_transform_amd64_ssse3(const void *input_data,
-                                                void *state,
-                                                size_t num_blks) ASM_FUNC_ABI;
-#endif
-
-#ifdef USE_AVX
-unsigned int _gcry_sha512_transform_amd64_avx(const void *input_data,
-                                              void *state,
-                                              size_t num_blks) ASM_FUNC_ABI;
-#endif
-
-#ifdef USE_AVX2
-unsigned int _gcry_sha512_transform_amd64_avx2(const void *input_data,
-                                               void *state,
-                                               size_t num_blks) ASM_FUNC_ABI;
-#endif
-
-
-static unsigned int
-transform (void *context, const unsigned char *data, size_t nblks)
-{
-  SHA512_CONTEXT *ctx = context;
-  unsigned int burn;
-
-#ifdef USE_AVX2
-  if (ctx->use_avx2)
-    return _gcry_sha512_transform_amd64_avx2 (data, &ctx->state, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
-#endif
-
-#ifdef USE_AVX
-  if (ctx->use_avx)
-    return _gcry_sha512_transform_amd64_avx (data, &ctx->state, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
-#endif
-
-#ifdef USE_SSSE3
-  if (ctx->use_ssse3)
-    return _gcry_sha512_transform_amd64_ssse3 (data, &ctx->state, nblks)
-           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
-#endif
-
-#ifdef USE_ARM_NEON_ASM
-  if (ctx->use_neon)
-    {
-      _gcry_sha512_transform_armv7_neon (&ctx->state, data, k, nblks);
-
-      /* _gcry_sha512_transform_armv7_neon does not store sensitive data
-       * to stack.  */
-      return /* no burn_stack */ 0;
-    }
-#endif
-
-#ifdef USE_ARM_ASM
-  burn = _gcry_sha512_transform_arm (&ctx->state, data, k, nblks);
-#else
-  do
-    {
-      burn = transform_blk (&ctx->state, data) + 3 * sizeof(void*);
       data += 128;
     }
   while (--nblks);
 
-#ifdef ASM_EXTRA_STACK
-  /* 'transform_blk' is typically inlined and XMM6-XMM15 are stored at
-   *  the prologue of this function. Therefore need to add ASM_EXTRA_STACK to
-   *  here too.
-   */
-  burn += ASM_EXTRA_STACK;
-#endif
-#endif
-
-  return burn;
+  return (8 + 16) * sizeof(u64) + sizeof(u32) + 3 * sizeof(void*);
 }
+#endif /*!USE_ARM_ASM*/
 
 
 /* The routine final terminates the computation and
@@ -713,7 +673,7 @@ sha512_final (void *context)
   /* append the 128 bit count */
   buf_put_be64(hd->bctx.buf + 112, msb);
   buf_put_be64(hd->bctx.buf + 120, lsb);
-  stack_burn_depth = transform (hd, hd->bctx.buf, 1);
+  stack_burn_depth = (*hd->bctx.bwrite) (hd, hd->bctx.buf, 1);
   _gcry_burn_stack (stack_burn_depth);
 
   p = hd->bctx.buf;

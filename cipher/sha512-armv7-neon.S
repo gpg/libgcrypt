@@ -443,6 +443,7 @@ _gcry_sha512_transform_armv7_neon:
 	veor.u64 %q2, %q2;
 	veor.u64 %q3, %q3;
 
+	eor %r0, %r0;
 	pop {%pc};
 .size _gcry_sha512_transform_armv7_neon,.-_gcry_sha512_transform_armv7_neon;
 
