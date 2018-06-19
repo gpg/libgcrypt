@@ -175,11 +175,11 @@ _gcry_aes_ssse3_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 
 
 /* Make a decryption key from an encryption key. */
-void
-_gcry_aes_ssse3_prepare_decryption (RIJNDAEL_context *ctx)
+static inline void
+do_ssse3_prepare_decryption (RIJNDAEL_context *ctx,
+                             byte ssse3_state[SSSE3_STATE_SIZE])
 {
   unsigned int keybits = (ctx->rounds - 10) * 32 + 128;
-  byte ssse3_state[SSSE3_STATE_SIZE];
 
   vpaes_ssse3_prepare();
 
@@ -188,6 +188,14 @@ _gcry_aes_ssse3_prepare_decryption (RIJNDAEL_context *ctx)
 				(keybits == 192) ? 0 : 32);
 
   vpaes_ssse3_cleanup();
+}
+
+void
+_gcry_aes_ssse3_prepare_decryption (RIJNDAEL_context *ctx)
+{
+  byte ssse3_state[SSSE3_STATE_SIZE];
+
+  do_ssse3_prepare_decryption(ctx, ssse3_state);
 }
 
 
@@ -232,9 +240,9 @@ _gcry_aes_ssse3_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
 
 
 void
-_gcry_aes_ssse3_cfb_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                        const unsigned char *inbuf, unsigned char *iv,
-                        size_t nblocks)
+_gcry_aes_ssse3_cfb_enc (RIJNDAEL_context *ctx, unsigned char *iv,
+                         unsigned char *outbuf, const unsigned char *inbuf,
+                         size_t nblocks)
 {
   unsigned int nrounds = ctx->rounds;
   byte ssse3_state[SSSE3_STATE_SIZE];
@@ -271,9 +279,9 @@ _gcry_aes_ssse3_cfb_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
 
 
 void
-_gcry_aes_ssse3_cbc_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                        const unsigned char *inbuf, unsigned char *iv,
-                        size_t nblocks, int cbc_mac)
+_gcry_aes_ssse3_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
+                         unsigned char *outbuf, const unsigned char *inbuf,
+                         size_t nblocks, int cbc_mac)
 {
   unsigned int nrounds = ctx->rounds;
   byte ssse3_state[SSSE3_STATE_SIZE];
@@ -316,9 +324,9 @@ _gcry_aes_ssse3_cbc_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
 
 
 void
-_gcry_aes_ssse3_ctr_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                        const unsigned char *inbuf, unsigned char *ctr,
-                        size_t nblocks)
+_gcry_aes_ssse3_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
+                         unsigned char *outbuf, const unsigned char *inbuf,
+                         size_t nblocks)
 {
   static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
     { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
@@ -384,7 +392,7 @@ _gcry_aes_ssse3_ctr_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
 
 unsigned int
 _gcry_aes_ssse3_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
-                        const unsigned char *src)
+                         const unsigned char *src)
 {
   unsigned int nrounds = ctx->rounds;
   byte ssse3_state[SSSE3_STATE_SIZE];
@@ -405,9 +413,9 @@ _gcry_aes_ssse3_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
 
 
 void
-_gcry_aes_ssse3_cfb_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                        const unsigned char *inbuf, unsigned char *iv,
-                        size_t nblocks)
+_gcry_aes_ssse3_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
+                         unsigned char *outbuf, const unsigned char *inbuf,
+                         size_t nblocks)
 {
   unsigned int nrounds = ctx->rounds;
   byte ssse3_state[SSSE3_STATE_SIZE];
@@ -445,12 +453,18 @@ _gcry_aes_ssse3_cfb_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
 
 
 void
-_gcry_aes_ssse3_cbc_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                        const unsigned char *inbuf, unsigned char *iv,
-                        size_t nblocks)
+_gcry_aes_ssse3_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
+                         unsigned char *outbuf, const unsigned char *inbuf,
+                         size_t nblocks)
 {
   unsigned int nrounds = ctx->rounds;
   byte ssse3_state[SSSE3_STATE_SIZE];
+
+  if ( !ctx->decryption_prepared )
+    {
+      do_ssse3_prepare_decryption ( ctx, ssse3_state );
+      ctx->decryption_prepared = 1;
+    }
 
   vpaes_ssse3_prepare_dec ();
 
@@ -563,6 +577,12 @@ ssse3_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
   unsigned int nrounds = ctx->rounds;
   byte ssse3_state[SSSE3_STATE_SIZE];
 
+  if ( !ctx->decryption_prepared )
+    {
+      do_ssse3_prepare_decryption ( ctx, ssse3_state );
+      ctx->decryption_prepared = 1;
+    }
+
   vpaes_ssse3_prepare_dec ();
 
   /* Preload Offset and Checksum */
@@ -616,7 +636,7 @@ ssse3_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 
-void
+size_t
 _gcry_aes_ssse3_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
                           const void *inbuf_arg, size_t nblocks, int encrypt)
 {
@@ -624,10 +644,12 @@ _gcry_aes_ssse3_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
     ssse3_ocb_enc(c, outbuf_arg, inbuf_arg, nblocks);
   else
     ssse3_ocb_dec(c, outbuf_arg, inbuf_arg, nblocks);
+
+  return 0;
 }
 
 
-void
+size_t
 _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
                           size_t nblocks)
 {
@@ -683,6 +705,8 @@ _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
                 : "memory" );
 
   vpaes_ssse3_cleanup ();
+
+  return 0;
 }
 
 #endif /* USE_SSSE3 */

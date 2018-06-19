@@ -371,8 +371,8 @@ _gcry_aes_aesni_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 
 
 /* Make a decryption key from an encryption key. */
-void
-_gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
+static inline void
+do_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 {
   /* The AES-NI decrypt instructions use the Equivalent Inverse
      Cipher, thus we can't use the the standard decrypt key
@@ -381,8 +381,6 @@ _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
   u128_t *dkey = (u128_t *)ctx->keyschdec;
   int rr;
   int r;
-
-  aesni_prepare();
 
 #define DO_AESNI_AESIMC() \
   asm volatile ("movdqa %[ekey], %%xmm1\n\t" \
@@ -419,7 +417,13 @@ _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
   dkey[r] = ekey[0];
 
 #undef DO_AESNI_AESIMC
+}
 
+void
+_gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
+{
+  aesni_prepare();
+  do_aesni_prepare_decryption (ctx);
   aesni_cleanup();
 }
 
@@ -1696,8 +1700,8 @@ _gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
 
 
 void
-_gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                         const unsigned char *inbuf, unsigned char *iv,
+_gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *iv,
+                         unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
 {
   aesni_prepare ();
@@ -1732,8 +1736,8 @@ _gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
 
 
 void
-_gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                         const unsigned char *inbuf, unsigned char *iv,
+_gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
+                         unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks, int cbc_mac)
 {
   aesni_prepare_2_6_variable;
@@ -1778,8 +1782,8 @@ _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
 
 
 void
-_gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                         const unsigned char *inbuf, unsigned char *ctr,
+_gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
+                         unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
 {
   static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
@@ -1851,8 +1855,8 @@ _gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
 
 
 void
-_gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
-                         const unsigned char *inbuf, unsigned char *iv,
+_gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
+                         unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
 {
   aesni_prepare_2_6_variable;
@@ -2006,14 +2010,20 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
 
 
 void
-_gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
-			 const unsigned char *inbuf, unsigned char *iv,
-			 size_t nblocks)
+_gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
+                         unsigned char *outbuf, const unsigned char *inbuf,
+                         size_t nblocks)
 {
   aesni_prepare_2_6_variable;
 
   aesni_prepare ();
   aesni_prepare_2_6();
+
+  if ( !ctx->decryption_prepared )
+    {
+      do_aesni_prepare_decryption ( ctx );
+      ctx->decryption_prepared = 1;
+    }
 
   asm volatile
     ("movdqu %[iv], %%xmm5\n\t"	/* use xmm5 as fast IV storage */
@@ -2477,6 +2487,12 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
   aesni_prepare ();
   aesni_prepare_2_6 ();
 
+  if ( !ctx->decryption_prepared )
+    {
+      do_aesni_prepare_decryption ( ctx );
+      ctx->decryption_prepared = 1;
+    }
+
   /* Preload Offset and Checksum */
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
                 "movdqu %[ctr], %%xmm6\n\t"
@@ -2761,7 +2777,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 
-void
+size_t
 _gcry_aes_aesni_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
                           const void *inbuf_arg, size_t nblocks, int encrypt)
 {
@@ -2769,10 +2785,12 @@ _gcry_aes_aesni_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
     aesni_ocb_enc(c, outbuf_arg, inbuf_arg, nblocks);
   else
     aesni_ocb_dec(c, outbuf_arg, inbuf_arg, nblocks);
+
+  return 0;
 }
 
 
-void
+size_t
 _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
                           size_t nblocks)
 {
@@ -3004,6 +3022,8 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
   aesni_cleanup ();
   aesni_cleanup_2_6 ();
+
+  return 0;
 }
 
 
@@ -3158,6 +3178,12 @@ _gcry_aes_aesni_xts_dec (RIJNDAEL_context *ctx, unsigned char *tweak,
 
   aesni_prepare ();
   aesni_prepare_2_6 ();
+
+  if ( !ctx->decryption_prepared )
+    {
+      do_aesni_prepare_decryption ( ctx );
+      ctx->decryption_prepared = 1;
+    }
 
   /* Preload Tweak */
   asm volatile ("movdqu %[tweak], %%xmm5\n\t"
