@@ -1690,7 +1690,7 @@ Associated Data (AEAD) block cipher mode, which is specified in
 @item  GCRY_CIPHER_MODE_POLY1305
 @cindex Poly1305 based AEAD mode with ChaCha20
 This mode implements the Poly1305 Authenticated Encryption with Associated
-Data (AEAD) mode according to RFC-7539. This mode can be used with ChaCha20
+Data (AEAD) mode according to RFC-8439. This mode can be used with ChaCha20
 stream cipher.
 
 @item  GCRY_CIPHER_MODE_OCB

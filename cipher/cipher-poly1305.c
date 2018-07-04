@@ -1,4 +1,4 @@
-/* cipher-poly1305.c  -  Poly1305 based AEAD cipher mode, RFC-7539
+/* cipher-poly1305.c  -  Poly1305 based AEAD cipher mode, RFC-8439
  * Copyright (C) 2014 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
