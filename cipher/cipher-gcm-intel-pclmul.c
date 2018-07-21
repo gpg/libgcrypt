@@ -248,7 +248,8 @@ static inline void gfmul_pclmul_aggr4(void)
 void
 _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
 {
-  u64 tmp[2];
+  static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
+    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 #if defined(__x86_64__) && defined(__WIN64__)
   char win64tmp[3 * 16];
 
@@ -262,15 +263,19 @@ _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
 #endif
 
   /* Swap endianness of hsub. */
-  tmp[0] = buf_get_be64(c->u_mode.gcm.u_ghash_key.key + 8);
-  tmp[1] = buf_get_be64(c->u_mode.gcm.u_ghash_key.key + 0);
-  buf_cpy (c->u_mode.gcm.u_ghash_key.key, tmp, GCRY_GCM_BLOCK_LEN);
+  asm volatile ("movdqu (%[key]), %%xmm0\n\t"
+                "pshufb %[be_mask], %%xmm0\n\t"
+                "movdqu %%xmm0, (%[key])\n\t"
+                :
+                : [key] "r" (c->u_mode.gcm.u_ghash_key.key),
+                  [be_mask] "m" (*be_mask)
+                : "memory");
 
 #ifdef __x86_64__
-  asm volatile ("movdqu %[h_1], %%xmm0\n\t"
-                "movdqa %%xmm0, %%xmm1\n\t"
+  asm volatile ("movdqa %%xmm0, %%xmm1\n\t"
                 :
-                : [h_1] "m" (*tmp));
+                :
+                : "memory");
 
   gfmul_pclmul (); /* H•H => H² */
 
@@ -324,8 +329,6 @@ _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
                 ::: "cc" );
 #endif
 #endif
-
-  wipememory (tmp, sizeof(tmp));
 }
 
 

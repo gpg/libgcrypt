@@ -150,7 +150,7 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u64 *gcmM)
   u32 A;
   int i;
 
-  buf_xor (V, result, buf, 16);
+  cipher_block_xor (V, result, buf, 16);
   V[0] = be_bswap64 (V[0]);
   V[1] = be_bswap64 (V[1]);
 
@@ -259,7 +259,7 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
   u32 T[3];
   int i;
 
-  buf_xor (V, result, buf, 16); /* V is big-endian */
+  cipher_block_xor (V, result, buf, 16); /* V is big-endian */
 
   /* First round can be manually tweaked based on fact that 'tmp' is zero. */
   i = 15;
@@ -342,7 +342,7 @@ do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
 #else
   unsigned long T[4];
 
-  buf_xor (V, result, buf, 16);
+  cipher_block_xor (V, result, buf, 16);
   for (i = 0; i < 4; i++)
     {
       V[i] = (V[i] & 0x00ff00ff) << 8 | (V[i] & 0xff00ff00) >> 8;
@@ -358,7 +358,7 @@ do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
       for (j = 0x80; j; j >>= 1)
         {
           if (hsub[i] & j)
-            buf_xor (p, p, V, 16);
+            cipher_block_xor (p, p, V, 16);
           if (bshift (V))
             V[0] ^= 0xe1000000;
         }
@@ -598,7 +598,7 @@ gcm_ctr_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
                 }
 
               fix_ctr = 1;
-              buf_cpy(ctr_copy, c->u_ctr.ctr, GCRY_GCM_BLOCK_LEN);
+              cipher_block_cpy(ctr_copy, c->u_ctr.ctr, GCRY_GCM_BLOCK_LEN);
             }
         }
 
@@ -928,8 +928,8 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
       /* Add bitlengths to tag. */
       do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, (byte*)bitlengths,
                    GCRY_GCM_BLOCK_LEN, 1);
-      buf_xor (c->u_mode.gcm.u_tag.tag, c->u_mode.gcm.tagiv,
-               c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN);
+      cipher_block_xor (c->u_mode.gcm.u_tag.tag, c->u_mode.gcm.tagiv,
+                        c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN);
       c->marks.tag = 1;
 
       wipememory (bitlengths, sizeof (bitlengths));

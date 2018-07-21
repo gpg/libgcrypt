@@ -72,7 +72,7 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
       /* Encrypt the IV (and save the current one). */
       nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       burn = nburn > burn ? nburn : burn;
-      buf_xor(outbuf, c->u_iv.iv, inbuf, blocksize);
+      cipher_block_xor(outbuf, c->u_iv.iv, inbuf, blocksize);
       outbuf += blocksize;
       inbuf += blocksize;
       inbuflen -= blocksize;

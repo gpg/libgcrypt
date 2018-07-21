@@ -1161,7 +1161,7 @@ _gcry_twofish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
         burn_stack_depth = burn;
 
       /* XOR the input with the encrypted counter and store in output.  */
-      buf_xor(outbuf, tmpbuf, inbuf, TWOFISH_BLOCKSIZE);
+      cipher_block_xor(outbuf, tmpbuf, inbuf, TWOFISH_BLOCKSIZE);
       outbuf += TWOFISH_BLOCKSIZE;
       inbuf  += TWOFISH_BLOCKSIZE;
       /* Increment the counter.  */
@@ -1243,7 +1243,7 @@ _gcry_twofish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
       if (burn > burn_stack_depth)
         burn_stack_depth = burn;
 
-      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, TWOFISH_BLOCKSIZE);
+      cipher_block_xor_n_copy_2(outbuf, savebuf, iv, inbuf, TWOFISH_BLOCKSIZE);
       inbuf += TWOFISH_BLOCKSIZE;
       outbuf += TWOFISH_BLOCKSIZE;
     }
@@ -1315,7 +1315,7 @@ _gcry_twofish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
       if (burn > burn_stack_depth)
         burn_stack_depth = burn;
 
-      buf_xor_n_copy(outbuf, iv, inbuf, TWOFISH_BLOCKSIZE);
+      cipher_block_xor_n_copy(outbuf, iv, inbuf, TWOFISH_BLOCKSIZE);
       outbuf += TWOFISH_BLOCKSIZE;
       inbuf += TWOFISH_BLOCKSIZE;
     }

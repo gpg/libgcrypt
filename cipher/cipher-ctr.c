@@ -77,24 +77,38 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
     {
       unsigned char tmp[MAX_BLOCKSIZE];
 
-      do {
-        nburn = enc_fn (&c->context.c, tmp, c->u_ctr.ctr);
-        burn = nburn > burn ? nburn : burn;
+      do
+        {
+          nburn = enc_fn (&c->context.c, tmp, c->u_ctr.ctr);
+          burn = nburn > burn ? nburn : burn;
 
-        for (i = blocksize; i > 0; i--)
-          {
-            c->u_ctr.ctr[i-1]++;
-            if (c->u_ctr.ctr[i-1] != 0)
-              break;
-          }
+          for (i = blocksize; i > 0; i--)
+            {
+              c->u_ctr.ctr[i-1]++;
+              if (c->u_ctr.ctr[i-1] != 0)
+                break;
+            }
 
-        n = blocksize < inbuflen ? blocksize : inbuflen;
-        buf_xor(outbuf, inbuf, tmp, n);
+          if (inbuflen < blocksize)
+            break;
+          n = blocksize;
+          cipher_block_xor(outbuf, inbuf, tmp, blocksize);
 
-        inbuflen -= n;
-        outbuf += n;
-        inbuf += n;
-      } while (inbuflen);
+          inbuflen -= n;
+          outbuf += n;
+          inbuf += n;
+        }
+      while (inbuflen);
+
+      if (inbuflen)
+        {
+          n = inbuflen;
+          buf_xor(outbuf, inbuf, tmp, inbuflen);
+
+          inbuflen -= n;
+          outbuf += n;
+          inbuf += n;
+        }
 
       /* Save the unused bytes of the counter.  */
       c->unused = blocksize - n;

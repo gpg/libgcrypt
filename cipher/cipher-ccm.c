@@ -67,7 +67,8 @@ do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
       if (unused > 0)
         {
           /* Process one block from macbuf.  */
-          buf_xor(c->u_iv.iv, c->u_iv.iv, c->u_mode.ccm.macbuf, blocksize);
+          cipher_block_xor(c->u_iv.iv, c->u_iv.iv, c->u_mode.ccm.macbuf,
+                           blocksize);
           set_burn (burn, enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv ));
 
           unused = 0;
@@ -86,7 +87,7 @@ do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
         {
           while (inlen >= blocksize)
             {
-              buf_xor(c->u_iv.iv, c->u_iv.iv, inbuf, blocksize);
+              cipher_block_xor(c->u_iv.iv, c->u_iv.iv, inbuf, blocksize);
 
               set_burn (burn, enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv ));
 
@@ -272,7 +273,7 @@ _gcry_cipher_ccm_tag (gcry_cipher_hd_t c, unsigned char *outbuf,
       burn = do_cbc_mac (c, NULL, 0, 1); /* Perform final padding.  */
 
       /* Add S_0 */
-      buf_xor (c->u_iv.iv, c->u_iv.iv, c->u_mode.ccm.s0, 16);
+      cipher_block_xor (c->u_iv.iv, c->u_iv.iv, c->u_mode.ccm.s0, 16);
 
       wipememory (c->u_ctr.ctr, 16);
       wipememory (c->u_mode.ccm.s0, 16);

@@ -82,7 +82,7 @@ static void
 double_block_cpy (unsigned char *d, const unsigned char *s)
 {
   if (d != s)
-    buf_cpy (d, s, OCB_BLOCK_LEN);
+    cipher_block_cpy (d, s, OCB_BLOCK_LEN);
   double_block (d);
 }
 
@@ -181,8 +181,8 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
   nburn = c->spec->encrypt (&c->context.c, ktop, ktop);
   burn = nburn > burn ? nburn : burn;
   /* Stretch = Ktop || (Ktop[1..64] xor Ktop[9..72]) */
-  buf_cpy (stretch, ktop, OCB_BLOCK_LEN);
-  buf_xor (stretch + OCB_BLOCK_LEN, ktop, ktop + 1, 8);
+  cipher_block_cpy (stretch, ktop, OCB_BLOCK_LEN);
+  cipher_block_xor (stretch + OCB_BLOCK_LEN, ktop, ktop + 1, 8);
   /* Offset_0 = Stretch[1+bottom..128+bottom]
      (We use the IV field to store the offset) */
   bit_copy (c->u_iv.iv, stretch, bottom, OCB_BLOCK_LEN);
@@ -267,18 +267,18 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
             }
           else
             {
-              buf_cpy (l_tmp, ocb_get_l (c, c->u_mode.ocb.aad_nblocks),
-                       OCB_BLOCK_LEN);
+              cipher_block_cpy (l_tmp, ocb_get_l (c, c->u_mode.ocb.aad_nblocks),
+                                OCB_BLOCK_LEN);
             }
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-          buf_xor_1 (c->u_mode.ocb.aad_offset, l_tmp, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_mode.ocb.aad_offset, l_tmp, OCB_BLOCK_LEN);
           /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
-          buf_xor (l_tmp, c->u_mode.ocb.aad_offset,
-                   c->u_mode.ocb.aad_leftover, OCB_BLOCK_LEN);
+          cipher_block_xor (l_tmp, c->u_mode.ocb.aad_offset,
+                            c->u_mode.ocb.aad_leftover, OCB_BLOCK_LEN);
           nburn = c->spec->encrypt (&c->context.c, l_tmp, l_tmp);
           burn = nburn > burn ? nburn : burn;
-          buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
 
           c->u_mode.ocb.aad_nleftover = 0;
         }
@@ -309,12 +309,13 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
           ocb_get_L_big(c, c->u_mode.ocb.aad_nblocks, l_tmp);
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-          buf_xor_1 (c->u_mode.ocb.aad_offset, l_tmp, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_mode.ocb.aad_offset, l_tmp, OCB_BLOCK_LEN);
           /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
-          buf_xor (l_tmp, c->u_mode.ocb.aad_offset, abuf, OCB_BLOCK_LEN);
+          cipher_block_xor (l_tmp, c->u_mode.ocb.aad_offset, abuf,
+                            OCB_BLOCK_LEN);
           nburn = c->spec->encrypt (&c->context.c, l_tmp, l_tmp);
           burn = nburn > burn ? nburn : burn;
-          buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
 
           abuf += OCB_BLOCK_LEN;
           abuflen -= OCB_BLOCK_LEN;
@@ -349,14 +350,15 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
           gcry_assert(c->u_mode.ocb.aad_nblocks & table_size_mask);
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-          buf_xor_1 (c->u_mode.ocb.aad_offset,
-                     ocb_get_l (c, c->u_mode.ocb.aad_nblocks),
-                     OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_mode.ocb.aad_offset,
+                              ocb_get_l (c, c->u_mode.ocb.aad_nblocks),
+                              OCB_BLOCK_LEN);
           /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
-          buf_xor (l_tmp, c->u_mode.ocb.aad_offset, abuf, OCB_BLOCK_LEN);
+          cipher_block_xor (l_tmp, c->u_mode.ocb.aad_offset, abuf,
+                            OCB_BLOCK_LEN);
           nburn = c->spec->encrypt (&c->context.c, l_tmp, l_tmp);
           burn = nburn > burn ? nburn : burn;
-          buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
 
           abuf += OCB_BLOCK_LEN;
           abuflen -= OCB_BLOCK_LEN;
@@ -397,18 +399,18 @@ ocb_aad_finalize (gcry_cipher_hd_t c)
   if (c->u_mode.ocb.aad_nleftover)
     {
       /* Offset_* = Offset_m xor L_*  */
-      buf_xor_1 (c->u_mode.ocb.aad_offset,
-                 c->u_mode.ocb.L_star, OCB_BLOCK_LEN);
+      cipher_block_xor_1 (c->u_mode.ocb.aad_offset,
+                          c->u_mode.ocb.L_star, OCB_BLOCK_LEN);
       /* CipherInput = (A_* || 1 || zeros(127-bitlen(A_*))) xor Offset_*  */
       buf_cpy (l_tmp, c->u_mode.ocb.aad_leftover, c->u_mode.ocb.aad_nleftover);
       memset (l_tmp + c->u_mode.ocb.aad_nleftover, 0,
               OCB_BLOCK_LEN - c->u_mode.ocb.aad_nleftover);
       l_tmp[c->u_mode.ocb.aad_nleftover] = 0x80;
-      buf_xor_1 (l_tmp, c->u_mode.ocb.aad_offset, OCB_BLOCK_LEN);
+      cipher_block_xor_1 (l_tmp, c->u_mode.ocb.aad_offset, OCB_BLOCK_LEN);
       /* Sum = Sum_m xor ENCIPHER(K, CipherInput)  */
       nburn = c->spec->encrypt (&c->context.c, l_tmp, l_tmp);
       burn = nburn > burn ? nburn : burn;
-      buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
+      cipher_block_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
 
       c->u_mode.ocb.aad_nleftover = 0;
     }
@@ -431,7 +433,7 @@ ocb_checksum (unsigned char *chksum, const unsigned char *plainbuf,
   while (nblks > 0)
     {
       /* Checksum_i = Checksum_{i-1} xor P_i  */
-      buf_xor_1(chksum, plainbuf, OCB_BLOCK_LEN);
+      cipher_block_xor_1(chksum, plainbuf, OCB_BLOCK_LEN);
 
       plainbuf += OCB_BLOCK_LEN;
       nblks--;
@@ -491,12 +493,12 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
             }
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-          buf_xor_1 (c->u_iv.iv, l_tmp, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_iv.iv, l_tmp, OCB_BLOCK_LEN);
           /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-          buf_xor (outbuf, c->u_iv.iv, inbuf, OCB_BLOCK_LEN);
+          cipher_block_xor (outbuf, c->u_iv.iv, inbuf, OCB_BLOCK_LEN);
           nburn = crypt_fn (&c->context.c, outbuf, outbuf);
           burn = nburn > burn ? nburn : burn;
-          buf_xor_1 (outbuf, c->u_iv.iv, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (outbuf, c->u_iv.iv, OCB_BLOCK_LEN);
 
           if (!encrypt)
             {
@@ -551,14 +553,14 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
               gcry_assert(c->u_mode.ocb.data_nblocks & table_size_mask);
 
               /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-              buf_xor_1 (c->u_iv.iv,
-                         ocb_get_l (c, c->u_mode.ocb.data_nblocks),
-                         OCB_BLOCK_LEN);
+              cipher_block_xor_1 (c->u_iv.iv,
+                                  ocb_get_l (c, c->u_mode.ocb.data_nblocks),
+                                  OCB_BLOCK_LEN);
               /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-              buf_xor (outbuf, c->u_iv.iv, inbuf, OCB_BLOCK_LEN);
+              cipher_block_xor (outbuf, c->u_iv.iv, inbuf, OCB_BLOCK_LEN);
               nburn = crypt_fn (&c->context.c, outbuf, outbuf);
               burn = nburn > burn ? nburn : burn;
-              buf_xor_1 (outbuf, c->u_iv.iv, OCB_BLOCK_LEN);
+              cipher_block_xor_1 (outbuf, c->u_iv.iv, OCB_BLOCK_LEN);
 
               inbuf += OCB_BLOCK_LEN;
               inbuflen -= OCB_BLOCK_LEN;
@@ -584,7 +586,7 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
       unsigned char pad[OCB_BLOCK_LEN];
 
       /* Offset_* = Offset_m xor L_*  */
-      buf_xor_1 (c->u_iv.iv, c->u_mode.ocb.L_star, OCB_BLOCK_LEN);
+      cipher_block_xor_1 (c->u_iv.iv, c->u_mode.ocb.L_star, OCB_BLOCK_LEN);
       /* Pad = ENCIPHER(K, Offset_*) */
       nburn = c->spec->encrypt (&c->context.c, pad, c->u_iv.iv);
       burn = nburn > burn ? nburn : burn;
@@ -596,7 +598,7 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
           buf_cpy (l_tmp, inbuf, inbuflen);
           memset (l_tmp + inbuflen, 0, OCB_BLOCK_LEN - inbuflen);
           l_tmp[inbuflen] = 0x80;
-          buf_xor_1 (c->u_ctr.ctr, l_tmp, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_ctr.ctr, l_tmp, OCB_BLOCK_LEN);
           /* C_* = P_* xor Pad[1..bitlen(P_*)] */
           buf_xor (outbuf, inbuf, pad, inbuflen);
         }
@@ -604,13 +606,13 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
         {
           /* P_* = C_* xor Pad[1..bitlen(C_*)] */
           /* Checksum_* = Checksum_m xor (P_* || 1 || zeros(127-bitlen(P_*))) */
-          buf_cpy (l_tmp, pad, OCB_BLOCK_LEN);
+          cipher_block_cpy (l_tmp, pad, OCB_BLOCK_LEN);
           buf_cpy (l_tmp, inbuf, inbuflen);
-          buf_xor_1 (l_tmp, pad, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (l_tmp, pad, OCB_BLOCK_LEN);
           l_tmp[inbuflen] = 0x80;
           buf_cpy (outbuf, l_tmp, inbuflen);
 
-          buf_xor_1 (c->u_ctr.ctr, l_tmp, OCB_BLOCK_LEN);
+          cipher_block_xor_1 (c->u_ctr.ctr, l_tmp, OCB_BLOCK_LEN);
         }
     }
 
@@ -618,8 +620,10 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
   if (c->marks.finalize)
     {
       /* Tag = ENCIPHER(K, Checksum xor Offset xor L_$) xor HASH(K,A) */
-      buf_xor (c->u_mode.ocb.tag, c->u_ctr.ctr, c->u_iv.iv, OCB_BLOCK_LEN);
-      buf_xor_1 (c->u_mode.ocb.tag, c->u_mode.ocb.L_dollar, OCB_BLOCK_LEN);
+      cipher_block_xor (c->u_mode.ocb.tag, c->u_ctr.ctr, c->u_iv.iv,
+                        OCB_BLOCK_LEN);
+      cipher_block_xor_1 (c->u_mode.ocb.tag, c->u_mode.ocb.L_dollar,
+                          OCB_BLOCK_LEN);
       nburn = c->spec->encrypt (&c->context.c,
                                 c->u_mode.ocb.tag, c->u_mode.ocb.tag);
       burn = nburn > burn ? nburn : burn;
@@ -672,7 +676,8 @@ compute_tag_if_needed (gcry_cipher_hd_t c)
   if (!c->marks.tag)
     {
       ocb_aad_finalize (c);
-      buf_xor_1 (c->u_mode.ocb.tag, c->u_mode.ocb.aad_sum, OCB_BLOCK_LEN);
+      cipher_block_xor_1 (c->u_mode.ocb.tag, c->u_mode.ocb.aad_sum,
+                          OCB_BLOCK_LEN);
       c->marks.tag = 1;
     }
 }

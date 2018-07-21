@@ -157,8 +157,8 @@ _gcry_cipher_eax_set_nonce (gcry_cipher_hd_t c, const byte *nonce,
   if (err != 0)
     return err;
 
-  buf_cpy (c->u_iv.iv, nonce_cmac.u_iv.iv, MAX_BLOCKSIZE);
-  buf_cpy (c->u_ctr.ctr, nonce_cmac.u_iv.iv, MAX_BLOCKSIZE);
+  cipher_block_cpy (c->u_iv.iv, nonce_cmac.u_iv.iv, MAX_BLOCKSIZE);
+  cipher_block_cpy (c->u_ctr.ctr, nonce_cmac.u_iv.iv, MAX_BLOCKSIZE);
 
   wipememory (&nonce_cmac, sizeof(nonce_cmac));
 
@@ -201,9 +201,10 @@ _gcry_cipher_eax_tag (gcry_cipher_hd_t c,
       if (err != 0)
 	return err;
 
-      buf_xor_1 (c->u_iv.iv, c->u_mode.eax.cmac_header.u_iv.iv, MAX_BLOCKSIZE);
-      buf_xor_1 (c->u_iv.iv, c->u_mode.eax.cmac_ciphertext.u_iv.iv,
-		 MAX_BLOCKSIZE);
+      cipher_block_xor_1 (c->u_iv.iv, c->u_mode.eax.cmac_header.u_iv.iv,
+                          MAX_BLOCKSIZE);
+      cipher_block_xor_1 (c->u_iv.iv, c->u_mode.eax.cmac_ciphertext.u_iv.iv,
+                          MAX_BLOCKSIZE);
 
       _gcry_cmac_reset (&c->u_mode.eax.cmac_header);
       _gcry_cmac_reset (&c->u_mode.eax.cmac_ciphertext);

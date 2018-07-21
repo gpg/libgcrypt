@@ -450,7 +450,21 @@ static inline void buf_put_le64(void *_buf, u64 val)
   out->a = le_bswap64(val);
 }
 
-
 #endif /*BUFHELP_UNALIGNED_ACCESS*/
+
+
+/* Host-endian get/put macros */
+#ifdef WORDS_BIGENDIAN
+# define buf_get_he32 buf_get_be32
+# define buf_put_he32 buf_put_be32
+# define buf_get_he64 buf_get_be64
+# define buf_put_he64 buf_put_be64
+#else
+# define buf_get_he32 buf_get_le32
+# define buf_put_he32 buf_put_le32
+# define buf_get_he64 buf_get_le64
+# define buf_put_he64 buf_put_le64
+#endif
+
 
 #endif /*GCRYPT_BUFHELP_H*/

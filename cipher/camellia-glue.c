@@ -430,7 +430,7 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
       /* Encrypt the counter. */
       Camellia_EncryptBlock(ctx->keybitlength, ctr, ctx->keytable, tmpbuf);
       /* XOR the input with the encrypted counter and store in output.  */
-      buf_xor(outbuf, tmpbuf, inbuf, CAMELLIA_BLOCK_SIZE);
+      cipher_block_xor(outbuf, tmpbuf, inbuf, CAMELLIA_BLOCK_SIZE);
       outbuf += CAMELLIA_BLOCK_SIZE;
       inbuf  += CAMELLIA_BLOCK_SIZE;
       /* Increment the counter.  */
@@ -523,7 +523,8 @@ _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
          the intermediate result to SAVEBUF.  */
       Camellia_DecryptBlock(ctx->keybitlength, inbuf, ctx->keytable, savebuf);
 
-      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, CAMELLIA_BLOCK_SIZE);
+      cipher_block_xor_n_copy_2(outbuf, savebuf, iv, inbuf,
+                                CAMELLIA_BLOCK_SIZE);
       inbuf += CAMELLIA_BLOCK_SIZE;
       outbuf += CAMELLIA_BLOCK_SIZE;
     }
@@ -605,7 +606,7 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
   for ( ;nblocks; nblocks-- )
     {
       Camellia_EncryptBlock(ctx->keybitlength, iv, ctx->keytable, iv);
-      buf_xor_n_copy(outbuf, iv, inbuf, CAMELLIA_BLOCK_SIZE);
+      cipher_block_xor_n_copy(outbuf, iv, inbuf, CAMELLIA_BLOCK_SIZE);
       outbuf += CAMELLIA_BLOCK_SIZE;
       inbuf  += CAMELLIA_BLOCK_SIZE;
     }

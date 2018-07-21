@@ -66,7 +66,7 @@ _gcry_cmac_write (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
       for (; inlen && ctx->mac_unused < blocksize; inlen--)
         ctx->macbuf[ctx->mac_unused++] = *inbuf++;
 
-      buf_xor (ctx->u_iv.iv, ctx->u_iv.iv, ctx->macbuf, blocksize);
+      cipher_block_xor (ctx->u_iv.iv, ctx->u_iv.iv, ctx->macbuf, blocksize);
       set_burn (burn, enc_fn (&c->context.c, ctx->u_iv.iv, ctx->u_iv.iv));
 
       ctx->mac_unused = 0;
@@ -86,7 +86,7 @@ _gcry_cmac_write (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
   else
     while (inlen > blocksize)
       {
-        buf_xor (ctx->u_iv.iv, ctx->u_iv.iv, inbuf, blocksize);
+        cipher_block_xor (ctx->u_iv.iv, ctx->u_iv.iv, inbuf, blocksize);
         set_burn (burn, enc_fn (&c->context.c, ctx->u_iv.iv, ctx->u_iv.iv));
         inlen -= blocksize;
         inbuf += blocksize;
@@ -181,9 +181,9 @@ _gcry_cmac_final (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx)
         ctx->macbuf[count++] = 0;
     }
 
-  buf_xor (ctx->macbuf, ctx->macbuf, subkey, blocksize);
+  cipher_block_xor (ctx->macbuf, ctx->macbuf, subkey, blocksize);
 
-  buf_xor (ctx->u_iv.iv, ctx->u_iv.iv, ctx->macbuf, blocksize);
+  cipher_block_xor (ctx->u_iv.iv, ctx->u_iv.iv, ctx->macbuf, blocksize);
   burn = c->spec->encrypt (&c->context.c, ctx->u_iv.iv, ctx->u_iv.iv);
   if (burn)
     _gcry_burn_stack (burn + 4 * sizeof (void *));

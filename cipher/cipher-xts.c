@@ -107,10 +107,10 @@ _gcry_cipher_xts_crypt (gcry_cipher_hd_t c,
   while (nblocks)
     {
       /* Xor-Encrypt/Decrypt-Xor block. */
-      buf_xor (tmp.x64, inbuf, c->u_ctr.ctr, GCRY_XTS_BLOCK_LEN);
+      cipher_block_xor (tmp.x64, inbuf, c->u_ctr.ctr, GCRY_XTS_BLOCK_LEN);
       nburn = crypt_fn (&c->context.c, tmp.x1, tmp.x1);
       burn = nburn > burn ? nburn : burn;
-      buf_xor (outbuf, tmp.x64, c->u_ctr.ctr, GCRY_XTS_BLOCK_LEN);
+      cipher_block_xor (outbuf, tmp.x64, c->u_ctr.ctr, GCRY_XTS_BLOCK_LEN);
 
       outbuf += GCRY_XTS_BLOCK_LEN;
       inbuf += GCRY_XTS_BLOCK_LEN;
@@ -133,10 +133,10 @@ _gcry_cipher_xts_crypt (gcry_cipher_hd_t c,
 	  xts_gfmul_byA (tmp.x1, c->u_ctr.ctr);
 
 	  /* Decrypt last block first. */
-	  buf_xor (outbuf, inbuf, tmp.x64, GCRY_XTS_BLOCK_LEN);
+	  cipher_block_xor (outbuf, inbuf, tmp.x64, GCRY_XTS_BLOCK_LEN);
 	  nburn = crypt_fn (&c->context.c, outbuf, outbuf);
 	  burn = nburn > burn ? nburn : burn;
-	  buf_xor (outbuf, outbuf, tmp.x64, GCRY_XTS_BLOCK_LEN);
+	  cipher_block_xor (outbuf, outbuf, tmp.x64, GCRY_XTS_BLOCK_LEN);
 
 	  inbuflen -= GCRY_XTS_BLOCK_LEN;
 	  inbuf += GCRY_XTS_BLOCK_LEN;
@@ -147,15 +147,15 @@ _gcry_cipher_xts_crypt (gcry_cipher_hd_t c,
       outbuf -= GCRY_XTS_BLOCK_LEN;
 
       /* Steal ciphertext from previous block. */
-      buf_cpy (tmp.x64, outbuf, GCRY_XTS_BLOCK_LEN);
+      cipher_block_cpy (tmp.x64, outbuf, GCRY_XTS_BLOCK_LEN);
       buf_cpy (tmp.x64, inbuf, inbuflen);
       buf_cpy (outbuf + GCRY_XTS_BLOCK_LEN, outbuf, inbuflen);
 
       /* Decrypt/Encrypt last block. */
-      buf_xor (tmp.x64, tmp.x64, c->u_ctr.ctr, GCRY_XTS_BLOCK_LEN);
+      cipher_block_xor (tmp.x64, tmp.x64, c->u_ctr.ctr, GCRY_XTS_BLOCK_LEN);
       nburn = crypt_fn (&c->context.c, tmp.x1, tmp.x1);
       burn = nburn > burn ? nburn : burn;
-      buf_xor (outbuf, tmp.x64, c->u_ctr.ctr, GCRY_XTS_BLOCK_LEN);
+      cipher_block_xor (outbuf, tmp.x64, c->u_ctr.ctr, GCRY_XTS_BLOCK_LEN);
     }
 
   /* Auto-increment data-unit sequence number */

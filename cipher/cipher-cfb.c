@@ -87,7 +87,7 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
           nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
           burn = nburn > burn ? nburn : burn;
           /* XOR the input with the IV and store input into IV.  */
-          buf_xor_2dst(outbuf, c->u_iv.iv, inbuf, blocksize);
+          cipher_block_xor_2dst(outbuf, c->u_iv.iv, inbuf, blocksize);
           outbuf += blocksize;
           inbuf += blocksize;
           inbuflen -= blocksize;
@@ -97,11 +97,11 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
   if ( inbuflen >= blocksize )
     {
       /* Save the current IV and then encrypt the IV. */
-      buf_cpy( c->lastiv, c->u_iv.iv, blocksize );
+      cipher_block_cpy( c->lastiv, c->u_iv.iv, blocksize );
       nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       burn = nburn > burn ? nburn : burn;
       /* XOR the input with the IV and store input into IV */
-      buf_xor_2dst(outbuf, c->u_iv.iv, inbuf, blocksize);
+      cipher_block_xor_2dst(outbuf, c->u_iv.iv, inbuf, blocksize);
       outbuf += blocksize;
       inbuf += blocksize;
       inbuflen -= blocksize;
@@ -109,7 +109,7 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
   if ( inbuflen )
     {
       /* Save the current IV and then encrypt the IV. */
-      buf_cpy( c->lastiv, c->u_iv.iv, blocksize );
+      cipher_block_cpy( c->lastiv, c->u_iv.iv, blocksize );
       nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       burn = nburn > burn ? nburn : burn;
       c->unused = blocksize;
@@ -185,7 +185,7 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
           nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
           burn = nburn > burn ? nburn : burn;
           /* XOR the input with the IV and store input into IV. */
-          buf_xor_n_copy(outbuf, c->u_iv.iv, inbuf, blocksize);
+          cipher_block_xor_n_copy(outbuf, c->u_iv.iv, inbuf, blocksize);
           outbuf += blocksize;
           inbuf += blocksize;
           inbuflen -= blocksize;
@@ -195,11 +195,11 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
   if (inbuflen >= blocksize )
     {
       /* Save the current IV and then encrypt the IV. */
-      buf_cpy ( c->lastiv, c->u_iv.iv, blocksize);
+      cipher_block_cpy ( c->lastiv, c->u_iv.iv, blocksize);
       nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       burn = nburn > burn ? nburn : burn;
       /* XOR the input with the IV and store input into IV */
-      buf_xor_n_copy(outbuf, c->u_iv.iv, inbuf, blocksize);
+      cipher_block_xor_n_copy(outbuf, c->u_iv.iv, inbuf, blocksize);
       outbuf += blocksize;
       inbuf += blocksize;
       inbuflen -= blocksize;
@@ -208,7 +208,7 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
   if (inbuflen)
     {
       /* Save the current IV and then encrypt the IV. */
-      buf_cpy ( c->lastiv, c->u_iv.iv, blocksize );
+      cipher_block_cpy ( c->lastiv, c->u_iv.iv, blocksize );
       nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       burn = nburn > burn ? nburn : burn;
       c->unused = blocksize;

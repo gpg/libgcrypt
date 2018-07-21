@@ -1002,7 +1002,7 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
       /* Encrypt the counter. */
       serpent_encrypt_internal(ctx, ctr, tmpbuf);
       /* XOR the input with the encrypted counter and store in output.  */
-      buf_xor(outbuf, tmpbuf, inbuf, sizeof(serpent_block_t));
+      cipher_block_xor(outbuf, tmpbuf, inbuf, sizeof(serpent_block_t));
       outbuf += sizeof(serpent_block_t);
       inbuf  += sizeof(serpent_block_t);
       /* Increment the counter.  */
@@ -1117,7 +1117,8 @@ _gcry_serpent_cbc_dec(void *context, unsigned char *iv,
          the intermediate result to SAVEBUF.  */
       serpent_decrypt_internal (ctx, inbuf, savebuf);
 
-      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, sizeof(serpent_block_t));
+      cipher_block_xor_n_copy_2(outbuf, savebuf, iv, inbuf,
+                                sizeof(serpent_block_t));
       inbuf += sizeof(serpent_block_t);
       outbuf += sizeof(serpent_block_t);
     }
@@ -1221,7 +1222,7 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
   for ( ;nblocks; nblocks-- )
     {
       serpent_encrypt_internal(ctx, iv, iv);
-      buf_xor_n_copy(outbuf, iv, inbuf, sizeof(serpent_block_t));
+      cipher_block_xor_n_copy(outbuf, iv, inbuf, sizeof(serpent_block_t));
       outbuf += sizeof(serpent_block_t);
       inbuf  += sizeof(serpent_block_t);
     }

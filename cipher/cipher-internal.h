@@ -603,4 +603,145 @@ static inline unsigned int _gcry_blocksize_shift(gcry_cipher_hd_t c)
 }
 
 
+/* Optimized function for cipher block copying */
+static inline void
+cipher_block_cpy(void *_dst, const void *_src, size_t blocksize)
+{
+  byte *dst = _dst;
+  const byte *src = _src;
+  u64 s[2];
+
+  if (blocksize == 8)
+    {
+      buf_put_he64(dst + 0, buf_get_he64(src + 0));
+    }
+  else /* blocksize == 16 */
+    {
+      s[0] = buf_get_he64(src + 0);
+      s[1] = buf_get_he64(src + 8);
+      buf_put_he64(dst + 0, s[0]);
+      buf_put_he64(dst + 8, s[1]);
+    }
+}
+
+
+/* Optimized function for cipher block xoring */
+static inline void
+cipher_block_xor(void *_dst, const void *_src1, const void *_src2,
+                 size_t blocksize)
+{
+  byte *dst = _dst;
+  const byte *src1 = _src1;
+  const byte *src2 = _src2;
+  u64 s1[2];
+  u64 s2[2];
+
+  if (blocksize == 8)
+    {
+      buf_put_he64(dst + 0, buf_get_he64(src1 + 0) ^ buf_get_he64(src2 + 0));
+    }
+  else /* blocksize == 16 */
+    {
+      s1[0] = buf_get_he64(src1 + 0);
+      s1[1] = buf_get_he64(src1 + 8);
+      s2[0] = buf_get_he64(src2 + 0);
+      s2[1] = buf_get_he64(src2 + 8);
+      buf_put_he64(dst + 0, s1[0] ^ s2[0]);
+      buf_put_he64(dst + 8, s1[1] ^ s2[1]);
+    }
+}
+
+
+/* Optimized function for in-place cipher block xoring */
+static inline void
+cipher_block_xor_1(void *_dst, const void *_src, size_t blocksize)
+{
+  cipher_block_xor (_dst, _dst, _src, blocksize);
+}
+
+
+/* Optimized function for cipher block xoring with two destination cipher
+   blocks.  Used mainly by CFB mode encryption.  */
+static inline void
+cipher_block_xor_2dst(void *_dst1, void *_dst2, const void *_src,
+                      size_t blocksize)
+{
+  byte *dst1 = _dst1;
+  byte *dst2 = _dst2;
+  const byte *src = _src;
+  u64 d2[2];
+  u64 s[2];
+
+  if (blocksize == 8)
+    {
+      d2[0] = buf_get_he64(dst2 + 0) ^ buf_get_he64(src + 0);
+      buf_put_he64(dst2 + 0, d2[0]);
+      buf_put_he64(dst1 + 0, d2[0]);
+    }
+  else /* blocksize == 16 */
+    {
+      s[0] = buf_get_he64(src + 0);
+      s[1] = buf_get_he64(src + 8);
+      d2[0] = buf_get_he64(dst2 + 0);
+      d2[1] = buf_get_he64(dst2 + 8);
+      d2[0] = d2[0] ^ s[0];
+      d2[1] = d2[1] ^ s[1];
+      buf_put_he64(dst2 + 0, d2[0]);
+      buf_put_he64(dst2 + 8, d2[1]);
+      buf_put_he64(dst1 + 0, d2[0]);
+      buf_put_he64(dst1 + 8, d2[1]);
+    }
+}
+
+
+/* Optimized function for combined cipher block xoring and copying.
+   Used by mainly CBC mode decryption.  */
+static inline void
+cipher_block_xor_n_copy_2(void *_dst_xor, const void *_src_xor,
+                          void *_srcdst_cpy, const void *_src_cpy,
+                          size_t blocksize)
+{
+  byte *dst_xor = _dst_xor;
+  byte *srcdst_cpy = _srcdst_cpy;
+  const byte *src_xor = _src_xor;
+  const byte *src_cpy = _src_cpy;
+  u64 sc[2];
+  u64 sx[2];
+  u64 sdc[2];
+
+  if (blocksize == 8)
+    {
+      sc[0] = buf_get_he64(src_cpy + 0);
+      buf_put_he64(dst_xor + 0,
+                   buf_get_he64(srcdst_cpy + 0) ^ buf_get_he64(src_xor + 0));
+      buf_put_he64(srcdst_cpy + 0, sc[0]);
+    }
+  else /* blocksize == 16 */
+    {
+      sc[0] = buf_get_he64(src_cpy + 0);
+      sc[1] = buf_get_he64(src_cpy + 8);
+      sx[0] = buf_get_he64(src_xor + 0);
+      sx[1] = buf_get_he64(src_xor + 8);
+      sdc[0] = buf_get_he64(srcdst_cpy + 0);
+      sdc[1] = buf_get_he64(srcdst_cpy + 8);
+      sx[0] ^= sdc[0];
+      sx[1] ^= sdc[1];
+      buf_put_he64(dst_xor + 0, sx[0]);
+      buf_put_he64(dst_xor + 8, sx[1]);
+      buf_put_he64(srcdst_cpy + 0, sc[0]);
+      buf_put_he64(srcdst_cpy + 8, sc[1]);
+    }
+}
+
+
+/* Optimized function for combined cipher block xoring and copying.
+   Used by mainly CFB mode decryption.  */
+static inline void
+cipher_block_xor_n_copy(void *_dst_xor, void *_srcdst_cpy, const void *_src,
+                        size_t blocksize)
+{
+  cipher_block_xor_n_copy_2(_dst_xor, _src, _srcdst_cpy, _src, blocksize);
+}
+
+
 #endif /*G10_CIPHER_INTERNAL_H*/

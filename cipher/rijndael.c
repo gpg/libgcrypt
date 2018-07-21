@@ -831,7 +831,7 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
           /* Encrypt the IV. */
           burn_depth = encrypt_fn (ctx, iv, iv);
           /* XOR the input with the IV and store input into IV.  */
-          buf_xor_2dst(outbuf, iv, inbuf, BLOCKSIZE);
+          cipher_block_xor_2dst(outbuf, iv, inbuf, BLOCKSIZE);
           outbuf += BLOCKSIZE;
           inbuf  += BLOCKSIZE;
         }
@@ -891,7 +891,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
 
       for ( ;nblocks; nblocks-- )
         {
-          buf_xor(outbuf, inbuf, last_iv, BLOCKSIZE);
+          cipher_block_xor(outbuf, inbuf, last_iv, BLOCKSIZE);
 
           burn_depth = encrypt_fn (ctx, outbuf, outbuf);
 
@@ -902,7 +902,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
         }
 
       if (last_iv != iv)
-        buf_cpy (iv, last_iv, BLOCKSIZE);
+        cipher_block_cpy (iv, last_iv, BLOCKSIZE);
     }
 
   if (burn_depth)
@@ -962,7 +962,7 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
           /* Encrypt the counter. */
           burn_depth = encrypt_fn (ctx, tmp.x1, ctr);
           /* XOR the input with the encrypted counter and store in output.  */
-          buf_xor(outbuf, tmp.x1, inbuf, BLOCKSIZE);
+          cipher_block_xor(outbuf, tmp.x1, inbuf, BLOCKSIZE);
           outbuf += BLOCKSIZE;
           inbuf  += BLOCKSIZE;
           /* Increment the counter.  */
@@ -1207,7 +1207,7 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
       for ( ;nblocks; nblocks-- )
         {
           burn_depth = encrypt_fn (ctx, iv, iv);
-          buf_xor_n_copy(outbuf, iv, inbuf, BLOCKSIZE);
+          cipher_block_xor_n_copy(outbuf, iv, inbuf, BLOCKSIZE);
           outbuf += BLOCKSIZE;
           inbuf  += BLOCKSIZE;
         }
@@ -1272,7 +1272,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 
           burn_depth = decrypt_fn (ctx, savebuf, inbuf);
 
-          buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOCKSIZE);
+          cipher_block_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOCKSIZE);
           inbuf += BLOCKSIZE;
           outbuf += BLOCKSIZE;
         }
@@ -1330,15 +1330,15 @@ _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
           const unsigned char *l = ocb_get_l(c, i);
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-          buf_xor_1 (c->u_iv.iv, l, BLOCKSIZE);
-          buf_cpy (l_tmp.x1, inbuf, BLOCKSIZE);
+          cipher_block_xor_1 (c->u_iv.iv, l, BLOCKSIZE);
+          cipher_block_cpy (l_tmp.x1, inbuf, BLOCKSIZE);
           /* Checksum_i = Checksum_{i-1} xor P_i  */
-          buf_xor_1 (c->u_ctr.ctr, l_tmp.x1, BLOCKSIZE);
+          cipher_block_xor_1 (c->u_ctr.ctr, l_tmp.x1, BLOCKSIZE);
           /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-          buf_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
+          cipher_block_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
           burn_depth = encrypt_fn (ctx, l_tmp.x1, l_tmp.x1);
-          buf_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
-          buf_cpy (outbuf, l_tmp.x1, BLOCKSIZE);
+          cipher_block_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
+          cipher_block_cpy (outbuf, l_tmp.x1, BLOCKSIZE);
 
           inbuf += BLOCKSIZE;
           outbuf += BLOCKSIZE;
@@ -1360,15 +1360,15 @@ _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
           const unsigned char *l = ocb_get_l(c, i);
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-          buf_xor_1 (c->u_iv.iv, l, BLOCKSIZE);
-          buf_cpy (l_tmp.x1, inbuf, BLOCKSIZE);
+          cipher_block_xor_1 (c->u_iv.iv, l, BLOCKSIZE);
+          cipher_block_cpy (l_tmp.x1, inbuf, BLOCKSIZE);
           /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-          buf_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
+          cipher_block_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
           burn_depth = decrypt_fn (ctx, l_tmp.x1, l_tmp.x1);
-          buf_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
+          cipher_block_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
           /* Checksum_i = Checksum_{i-1} xor P_i  */
-          buf_xor_1 (c->u_ctr.ctr, l_tmp.x1, BLOCKSIZE);
-          buf_cpy (outbuf, l_tmp.x1, BLOCKSIZE);
+          cipher_block_xor_1 (c->u_ctr.ctr, l_tmp.x1, BLOCKSIZE);
+          cipher_block_cpy (outbuf, l_tmp.x1, BLOCKSIZE);
 
           inbuf += BLOCKSIZE;
           outbuf += BLOCKSIZE;
@@ -1424,11 +1424,12 @@ _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
           const unsigned char *l = ocb_get_l(c, i);
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-          buf_xor_1 (c->u_mode.ocb.aad_offset, l, BLOCKSIZE);
+          cipher_block_xor_1 (c->u_mode.ocb.aad_offset, l, BLOCKSIZE);
           /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
-          buf_xor (l_tmp.x1, c->u_mode.ocb.aad_offset, abuf, BLOCKSIZE);
+          cipher_block_xor (l_tmp.x1, c->u_mode.ocb.aad_offset, abuf,
+                            BLOCKSIZE);
           burn_depth = encrypt_fn (ctx, l_tmp.x1, l_tmp.x1);
-          buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp.x1, BLOCKSIZE);
+          cipher_block_xor_1 (c->u_mode.ocb.aad_sum, l_tmp.x1, BLOCKSIZE);
 
           abuf += BLOCKSIZE;
         }

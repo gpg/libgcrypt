@@ -37,6 +37,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
+#include "cipher-internal.h"
 #include "cipher-selftest.h"
 
 #define BLOWFISH_BLOCKSIZE 8
@@ -660,7 +661,7 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       /* Encrypt the counter. */
       do_encrypt_block(ctx, tmpbuf, ctr);
       /* XOR the input with the encrypted counter and store in output.  */
-      buf_xor(outbuf, tmpbuf, inbuf, BLOWFISH_BLOCKSIZE);
+      cipher_block_xor(outbuf, tmpbuf, inbuf, BLOWFISH_BLOCKSIZE);
       outbuf += BLOWFISH_BLOCKSIZE;
       inbuf  += BLOWFISH_BLOCKSIZE;
       /* Increment the counter.  */
@@ -728,7 +729,7 @@ _gcry_blowfish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
          the intermediate result to SAVEBUF.  */
       do_decrypt_block (ctx, savebuf, inbuf);
 
-      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOWFISH_BLOCKSIZE);
+      cipher_block_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOWFISH_BLOCKSIZE);
       inbuf += BLOWFISH_BLOCKSIZE;
       outbuf += BLOWFISH_BLOCKSIZE;
     }
@@ -785,7 +786,7 @@ _gcry_blowfish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
   for ( ;nblocks; nblocks-- )
     {
       do_encrypt_block(ctx, iv, iv);
-      buf_xor_n_copy(outbuf, iv, inbuf, BLOWFISH_BLOCKSIZE);
+      cipher_block_xor_n_copy(outbuf, iv, inbuf, BLOWFISH_BLOCKSIZE);
       outbuf += BLOWFISH_BLOCKSIZE;
       inbuf  += BLOWFISH_BLOCKSIZE;
     }

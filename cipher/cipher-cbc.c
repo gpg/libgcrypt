@@ -56,7 +56,7 @@ cbc_encrypt_inner(gcry_cipher_hd_t c, unsigned char *outbuf,
 
       for (n=0; n < nblocks; n++ )
         {
-          buf_xor (outbuf, inbuf, ivp, blocksize);
+          cipher_block_xor (outbuf, inbuf, ivp, blocksize);
           nburn = enc_fn ( &c->context.c, outbuf, outbuf );
           burn = nburn > burn ? nburn : burn;
           ivp = outbuf;
@@ -66,7 +66,7 @@ cbc_encrypt_inner(gcry_cipher_hd_t c, unsigned char *outbuf,
         }
 
       if (ivp != c->u_iv.iv)
-        buf_cpy (c->u_iv.iv, ivp, blocksize);
+        cipher_block_cpy (c->u_iv.iv, ivp, blocksize);
     }
 
   return burn;
@@ -156,7 +156,7 @@ _gcry_cipher_cbc_cts_encrypt (gcry_cipher_hd_t c,
 
       nburn = enc_fn (&c->context.c, outbuf, outbuf);
       burn = nburn > burn ? nburn : burn;
-      buf_cpy (c->u_iv.iv, outbuf, blocksize);
+      cipher_block_cpy (c->u_iv.iv, outbuf, blocksize);
     }
 
   if (burn > 0)
@@ -190,7 +190,8 @@ cbc_decrypt_inner(gcry_cipher_hd_t c, unsigned char *outbuf,
              storage here because it is not used otherwise.  */
           nburn = dec_fn ( &c->context.c, c->lastiv, inbuf );
           burn = nburn > burn ? nburn : burn;
-          buf_xor_n_copy_2 (outbuf, c->lastiv, c->u_iv.iv, inbuf, blocksize);
+          cipher_block_xor_n_copy_2 (outbuf, c->lastiv, c->u_iv.iv, inbuf,
+                                     blocksize);
           inbuf  += blocksize;
           outbuf += blocksize;
         }
@@ -252,7 +253,7 @@ _gcry_cipher_cbc_cts_decrypt (gcry_cipher_hd_t c,
       nblocks--;
       if ((inbuflen & blocksize_mask) == 0)
 	nblocks--;
-      buf_cpy (c->lastiv, c->u_iv.iv, blocksize);
+      cipher_block_cpy (c->lastiv, c->u_iv.iv, blocksize);
     }
 
   burn = cbc_decrypt_inner(c, outbuf, inbuf, nblocks, blocksize);
@@ -268,7 +269,7 @@ _gcry_cipher_cbc_cts_decrypt (gcry_cipher_hd_t c,
       else
         restbytes = inbuflen & blocksize_mask;
 
-      buf_cpy (c->lastiv, c->u_iv.iv, blocksize );         /* Save Cn-2. */
+      cipher_block_cpy (c->lastiv, c->u_iv.iv, blocksize ); /* Save Cn-2. */
       buf_cpy (c->u_iv.iv, inbuf + blocksize, restbytes ); /* Save Cn. */
 
       nburn = dec_fn ( &c->context.c, outbuf, inbuf );
@@ -280,7 +281,7 @@ _gcry_cipher_cbc_cts_decrypt (gcry_cipher_hd_t c,
         c->u_iv.iv[i] = outbuf[i];
       nburn = dec_fn (&c->context.c, outbuf, c->u_iv.iv);
       burn = nburn > burn ? nburn : burn;
-      buf_xor(outbuf, outbuf, c->lastiv, blocksize);
+      cipher_block_xor(outbuf, outbuf, c->lastiv, blocksize);
       /* c->lastiv is now really lastlastiv, does this matter? */
     }
 

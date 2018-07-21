@@ -44,6 +44,7 @@
 #include "cipher.h"
 #include "bithelp.h"
 #include "bufhelp.h"
+#include "cipher-internal.h"
 #include "cipher-selftest.h"
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
@@ -634,7 +635,7 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       /* Encrypt the counter. */
       do_encrypt_block(ctx, tmpbuf, ctr);
       /* XOR the input with the encrypted counter and store in output.  */
-      buf_xor(outbuf, tmpbuf, inbuf, CAST5_BLOCKSIZE);
+      cipher_block_xor(outbuf, tmpbuf, inbuf, CAST5_BLOCKSIZE);
       outbuf += CAST5_BLOCKSIZE;
       inbuf  += CAST5_BLOCKSIZE;
       /* Increment the counter.  */
@@ -702,7 +703,7 @@ _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
          the intermediate result to SAVEBUF.  */
       do_decrypt_block (ctx, savebuf, inbuf);
 
-      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, CAST5_BLOCKSIZE);
+      cipher_block_xor_n_copy_2(outbuf, savebuf, iv, inbuf, CAST5_BLOCKSIZE);
       inbuf += CAST5_BLOCKSIZE;
       outbuf += CAST5_BLOCKSIZE;
     }
@@ -758,7 +759,7 @@ _gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
   for ( ;nblocks; nblocks-- )
     {
       do_encrypt_block(ctx, iv, iv);
-      buf_xor_n_copy(outbuf, iv, inbuf, CAST5_BLOCKSIZE);
+      cipher_block_xor_n_copy(outbuf, iv, inbuf, CAST5_BLOCKSIZE);
       outbuf += CAST5_BLOCKSIZE;
       inbuf  += CAST5_BLOCKSIZE;
     }
