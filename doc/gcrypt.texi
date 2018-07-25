@@ -3203,7 +3203,7 @@ This is the SHA-384 algorithm which yields a message digest of 48 bytes.
 See FIPS 180-2 for the specification.
 
 @item GCRY_MD_SHA512
-This is the SHA-384 algorithm which yields a message digest of 64 bytes.
+This is the SHA-512 algorithm which yields a message digest of 64 bytes.
 See FIPS 180-2 for the specification.
 
 @item GCRY_MD_SHA3_224
