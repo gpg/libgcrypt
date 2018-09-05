@@ -220,17 +220,16 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
       struct timeval tv;
       int rc;
 
-      /* If we have a modern Linux kernel and we want to read from the
-       * the non-blocking /dev/urandom, we first try to use the new
+      /* If we have a modern Linux kernel, we first try to use the new
        * getrandom syscall.  That call guarantees that the kernel's
        * RNG has been properly seeded before returning any data.  This
        * is different from /dev/urandom which may, due to its
        * non-blocking semantics, return data even if the kernel has
-       * not been properly seeded.  Unfortunately we need to use a
+       * not been properly seeded.  And it differs from /dev/random by never
+       * blocking once the kernel is seeded. Unfortunately we need to use a
        * syscall and not a new device and thus we are not able to use
        * select(2) to have a timeout. */
 #if defined(__linux__) && defined(HAVE_SYSCALL) && defined(__NR_getrandom)
-      if (fd == fd_urandom)
         {
           long ret;
           size_t nbytes;
@@ -247,7 +246,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
             }
           while (ret == -1 && errno == EINTR);
           if (ret == -1 && errno == ENOSYS)
-            ; /* The syscall is not supported - fallback to /dev/urandom.  */
+            ; /* The syscall is not supported - fallback to pulling from fd.  */
           else
             { /* The syscall is supported.  Some sanity checks.  */
               if (ret == -1)
