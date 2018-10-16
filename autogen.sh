@@ -1,6 +1,6 @@
 #! /bin/sh
 # autogen.sh
-# Copyright (C) 2003, 2014 g10 Code GmbH
+# Copyright (C) 2003, 2014, 2017, 2018 g10 Code GmbH
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -15,7 +15,7 @@
 # configure it for the respective package.  It is maintained as part of
 # GnuPG and source copied by other packages.
 #
-# Version: 2014-01-10
+# Version: 2018-07-10
 
 configure_ac="configure.ac"
 
@@ -41,7 +41,7 @@ fatal () {
 
 info () {
     if [ -z "${SILENT}" ]; then
-      echo "autogen.sh:" "$*"
+      echo "autogen.sh:" "$*" >&2
     fi
 }
 
@@ -70,6 +70,8 @@ MSGMERGE=${GETTEXT_PREFIX}${MSGMERGE:-msgmerge}${GETTEXT_SUFFIX}
 DIE=no
 FORCE=
 SILENT=
+PRINT_HOST=no
+PRINT_BUILD=no
 tmp=$(dirname "$0")
 tsdir=$(cd "${tmp}"; pwd)
 
@@ -77,7 +79,18 @@ if [ -n "${AUTOGEN_SH_SILENT}" ]; then
   SILENT=" --silent"
 fi
 if test x"$1" = x"--help"; then
-  echo "usage: ./autogen.sh [--silent] [--force] [--build-TYPE] [ARGS]"
+  echo "usage: ./autogen.sh [OPTIONS] [ARGS]"
+  echo "  Options:"
+  echo "    --silent       Silent operation"
+  echo "    --force        Pass --force to autoconf"
+  echo "    --find-version Helper for configure.ac"
+  echo "    --git-build    Run all commands to  build from a Git"
+  echo "    --print-host   Print only the host triplet"
+  echo "    --print-build  Print only the build platform triplet"
+  echo "    --build-TYPE   Configure to cross build for TYPE"
+  echo ""
+  echo "  ARGS are passed to configure in --build-TYPE mode."
+  echo "  Configuration for this script is expected in autogen.rc"
   exit 0
 fi
 if test x"$1" = x"--silent"; then
@@ -86,6 +99,14 @@ if test x"$1" = x"--silent"; then
 fi
 if test x"$1" = x"--force"; then
   FORCE=" --force"
+  shift
+fi
+if test x"$1" = x"--print-host"; then
+  PRINT_HOST=yes
+  shift
+fi
+if test x"$1" = x"--print-build"; then
+  PRINT_BUILD=yes
   shift
 fi
 
@@ -133,6 +154,15 @@ amd64_toolprefixes=
 myhost=""
 myhostsub=""
 case "$1" in
+    --find-version)
+        myhost="find-version"
+        SILENT=" --silent"
+        shift
+        ;;
+    --git-build)
+        myhost="git-build"
+        shift
+        ;;
     --build-w32)
         myhost="w32"
         shift
@@ -161,6 +191,25 @@ esac
 die_p
 
 
+# **** GIT BUILD ****
+# This is a helper to build from git.
+if [ "$myhost" = "git-build" ]; then
+    tmp="$(pwd)"
+    cd "$tsdir" || fatal "error cd-ing to $tsdir"
+    ./autogen.sh || fatal "error running ./autogen.sh"
+    cd "$tmp"   || fatal "error cd-ing back to $tmp"
+    die_p
+    "$tsdir"/configure || fatal "error running $tsdir/configure"
+    die_p
+    make || fatal "error running make"
+    die_p
+    make check || fatal "error running male check"
+    die_p
+    exit 0
+fi
+# **** end GIT BUILD ****
+
+
 # Source our configuration
 if [ -f "${tsdir}/autogen.rc" ]; then
     . "${tsdir}/autogen.rc"
@@ -172,16 +221,78 @@ if [ -f "$HOME/.gnupg-autogen.rc" ]; then
     . "$HOME/.gnupg-autogen.rc"
 fi
 
+
+# **** FIND VERSION ****
+# This is a helper for the configure.ac M4 magic
+# Called
+#   ./autogen.sh --find-version PACKAGE MAJOR MINOR [MICRO]
+# returns a complete version string with automatic beta numbering.
+if [ "$myhost" = "find-version" ]; then
+    package="$1"
+    major="$2"
+    minor="$3"
+    micro="$4"
+
+    if [ -z "$package" -o -z "$major" -o -z "$minor" ]; then
+      echo "usage: ./autogen.sh --find-version PACKAGE MAJOR MINOR [MICRO]" >&2
+      exit 1
+    fi
+
+    if [ -z "$micro" ]; then
+      matchstr1="$package-$major.[0-9]*"
+      matchstr2="$package-$major-base"
+      vers="$major.$minor"
+    else
+      matchstr1="$package-$major.$minor.[0-9]*"
+      matchstr2="$package-$major.$minor-base"
+      vers="$major.$minor.$micro"
+    fi
+
+    beta=no
+    if [ -e .git ]; then
+      ingit=yes
+      tmp=$(git describe --match "${matchstr1}" --long 2>/dev/null)
+      tmp=$(echo "$tmp" | sed s/^"$package"//)
+      if [ -n "$tmp" ]; then
+          tmp=$(echo "$tmp" | sed s/^"$package"//  \
+                | awk -F- '$3!=0 && $3 !~ /^beta/ {print"-beta"$3}')
+      else
+          tmp=$(git describe --match "${matchstr2}" --long 2>/dev/null \
+                | awk -F- '$4!=0{print"-beta"$4}')
+      fi
+      [ -n "$tmp" ] && beta=yes
+      rev=$(git rev-parse --short HEAD | tr -d '\n\r')
+      rvd=$((0x$(echo ${rev} | dd bs=1 count=4 2>/dev/null)))
+    else
+      ingit=no
+      beta=yes
+      tmp="-unknown"
+      rev="0000000"
+      rvd="0"
+    fi
+
+    echo "$package-$vers$tmp:$beta:$ingit:$vers$tmp:$vers:$tmp:$rev:$rvd:"
+    exit 0
+fi
+# **** end FIND VERSION ****
+
+
+if [ ! -f "$tsdir/build-aux/config.guess" ]; then
+    fatal "$tsdir/build-aux/config.guess not found"
+    exit 1
+fi
+build=`$tsdir/build-aux/config.guess`
+if [ $PRINT_BUILD = yes ]; then
+    echo "$build"
+    exit 0
+fi
+
+
+
 # ******************
 #  W32 build script
 # ******************
 if [ "$myhost" = "w32" ]; then
-    if [ ! -f "$tsdir/build-aux/config.guess" ]; then
-        fatal "$tsdir/build-aux/config.guess not found"
-        exit 1
-    fi
-    build=`$tsdir/build-aux/config.guess`
-
     case $myhostsub in
         ce)
           w32root="$w32ce_root"
@@ -222,6 +333,10 @@ if [ "$myhost" = "w32" ]; then
         fi
         die_p
     fi
+    if [ $PRINT_HOST = yes ]; then
+        echo "$host"
+        exit 0
+    fi
 
     if [ -f "$tsdir/config.log" ]; then
         if ! head $tsdir/config.log | grep "$host" >/dev/null; then
@@ -232,7 +347,8 @@ if [ "$myhost" = "w32" ]; then
 
     $tsdir/configure --enable-maintainer-mode ${SILENT} \
              --prefix=${w32root}  \
-             --host=${host} --build=${build} \
+             --host=${host} --build=${build} SYSROOT=${w32root} \
+             PKG_CONFIG_LIBDIR=${w32root}/lib/pkgconfig \
              ${configure_opts} ${extraoptions} "$@"
     rc=$?
     exit $rc
@@ -242,13 +358,6 @@ fi
 # ***** AMD64 cross build script *******
 # Used to cross-compile for AMD64 (for testing)
 if [ "$myhost" = "amd64" ]; then
-    shift
-    if [ ! -f $tsdir/build-aux/config.guess ]; then
-        echo "$tsdir/build-aux/config.guess not found" >&2
-        exit 1
-    fi
-    build=`$tsdir/build-aux/config.guess`
-
     [ -z "$amd64root" ] && amd64root="$HOME/amd64root"
     info "Using $amd64root as standard install directory"
     replace_sysroot
@@ -268,6 +377,10 @@ if [ "$myhost" = "amd64" ]; then
         echo "Cross compiler kit not installed" >&2
         echo "Stop." >&2
         exit 1
+    fi
+    if [ $PRINT_HOST = yes ]; then
+        echo "$host"
+        exit 0
     fi
 
     if [ -f "$tsdir/config.log" ]; then
@@ -341,13 +454,16 @@ fi
 
 # Check the git setup.
 if [ -d .git ]; then
-  CP="cp -a"
-  [ -z "${SILENT}" ] && CP="$CP -v"
+  CP="cp -p"
+  # If we have a GNU cp we can add -v
+  if cp --version >/dev/null 2>/dev/null; then
+    [ -z "${SILENT}" ] && CP="$CP -v"
+  fi
   if [ -f .git/hooks/pre-commit.sample -a ! -f .git/hooks/pre-commit ] ; then
     [ -z "${SILENT}" ] && cat <<EOF
 *** Activating trailing whitespace git pre-commit hook. ***
     For more information see this thread:
-      http://mail.gnome.org/archives/desktop-devel-list/2009-May/msg00084html
+      https://mail.gnome.org/archives/desktop-devel-list/2009-May/msg00084.html
     To deactivate this pre-commit hook again move .git/hooks/pre-commit
     and .git/hooks/pre-commit.sample out of the way.
 EOF
@@ -371,6 +487,10 @@ EOF
 EOF
       $CP build-aux/git-hooks/commit-msg .git/hooks/commit-msg
       chmod +x  .git/hooks/commit-msg
+      if [ x"${display_name}" != x ]; then
+         git config format.subjectPrefix "PATCH ${display_name}"
+         git config sendemail.to "${patches_to}"
+      fi
   fi
 fi
 

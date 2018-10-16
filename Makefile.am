@@ -38,14 +38,12 @@ EXTRA_DIST = autogen.sh autogen.rc README.GIT LICENSES      	           \
              ChangeLog-2011 build-aux/ChangeLog-2011 doc/ChangeLog-2011    \
              m4/ChangeLog-2011 cipher/ChangeLog-2011 src/ChangeLog-2011    \
              random/ChangeLog-2011 tests/ChangeLog-2011 mpi/ChangeLog-2011 \
-             build-aux/git-log-footer build-aux/git-log-fix
+             build-aux/git-log-footer build-aux/git-log-fix VERSION
 
 DISTCLEANFILES =
 
 
-# Add all the files listed in "distfiles" files to the distribution,
-# apply version number s to some files and create a VERSION file which
-# we need for the Prereq: patch file trick.
+# Add all the files listed in "distfiles" files to the distribution
 dist-hook: gen-ChangeLog
 	@set -e; \
 	 for file in `cd $(top_srcdir); \
@@ -56,8 +54,6 @@ dist-hook: gen-ChangeLog
 		|| cp -p $(top_srcdir)/$$dir/$$i $(distdir)/$$dir/$$i; \
 	    done ; \
 	done
-	@set -e; \
-	echo "$(VERSION)" > $(distdir)/VERSION
 
 distcheck-hook:
 	set -e; ( \

@@ -28,36 +28,41 @@ min_automake_version="1.14"
 # bump the version number immediately after the release and do another
 # commit and push so that the git magic is able to work.  See below
 # for the LT versions.
-m4_define(mym4_version_major, [1])
-m4_define(mym4_version_minor, [9])
-m4_define(mym4_version_micro, [0])
+m4_define([mym4_package],[libgcrypt])
+m4_define([mym4_major], [1])
+m4_define([mym4_minor], [9])
+m4_define([mym4_micro], [0])
 
-# Below is m4 magic to extract and compute the revision number, the
-# decimalized short revision number, a beta version string, and a flag
-# indicating a development version (mym4_isgit). Note that the m4
-# processing is done by autoconf and not during the configure run.
-m4_define(mym4_version,
-          [mym4_version_major.mym4_version_minor.mym4_version_micro])
-m4_define([mym4_revision],
-          m4_esyscmd([git rev-parse --short HEAD | tr -d '\n\r']))
-m4_define([mym4_revision_dec],
-          m4_esyscmd_s([echo $((0x$(echo ]mym4_revision[|head -c 4)))]))
-m4_define([mym4_betastring],
-          m4_esyscmd_s([git describe --match 'libgcrypt-[0-9].*[0-9]' --long|\
-                        awk -F- '$3!=0{print"-beta"$3}']))
-m4_define([mym4_isgit],m4_if(mym4_betastring,[],[no],[yes]))
-m4_define([mym4_full_version],[mym4_version[]mym4_betastring])
-
-AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
+# Below is m4 magic to extract and compute the git revision number,
+# the decimalized short revision number, a beta version string and a
+# flag indicating a development version (mym4_isbeta).  Note that the
+# m4 processing is done by autoconf and not during the configure run.
+m4_define([mym4_verslist], m4_split(m4_esyscmd([./autogen.sh --find-version] \
+                           mym4_package mym4_major mym4_minor mym4_micro),[:]))
+m4_define([mym4_isbeta],       m4_argn(2, mym4_verslist))
+m4_define([mym4_version],      m4_argn(4, mym4_verslist))
+m4_define([mym4_revision],     m4_argn(7, mym4_verslist))
+m4_define([mym4_revision_dec], m4_argn(8, mym4_verslist))
+m4_esyscmd([echo ]mym4_version[>VERSION])
+AC_INIT([mym4_package],[mym4_version], [https://bugs.gnupg.org])
 
 # LT Version numbers, remember to change them just *before* a release.
+#   (Code changed:			REVISION++)
+#   (Interfaces added/removed/changed:	CURRENT++, REVISION=0)
+#   (Interfaces added:			AGE++)
+#   (Interfaces removed:		AGE=0)
+#
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=23
 LIBGCRYPT_LT_AGE=3
 LIBGCRYPT_LT_REVISION=0
+################################################
 
+AC_SUBST(LIBGCRYPT_LT_CURRENT)
+AC_SUBST(LIBGCRYPT_LT_AGE)
+AC_SUBST(LIBGCRYPT_LT_REVISION)
 
 # If the API is changed in an incompatible way: increment the next counter.
 #
@@ -68,9 +73,6 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 # If you change the required gpg-error version, please remove
 # unnecessary error code defines in src/gcrypt-int.h.
 NEED_GPG_ERROR_VERSION=1.25
-
-PACKAGE=$PACKAGE_NAME
-VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
@@ -123,18 +125,6 @@ AH_VERBATIM([_REENTRANT],
 ])
 
 
-AC_SUBST(LIBGCRYPT_LT_CURRENT)
-AC_SUBST(LIBGCRYPT_LT_AGE)
-AC_SUBST(LIBGCRYPT_LT_REVISION)
-AC_SUBST(PACKAGE)
-AC_SUBST(VERSION)
-AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
-AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
-VERSION_NUMBER=m4_esyscmd(printf "0x%02x%02x%02x" mym4_version_major \
-                          mym4_version_minor mym4_version_micro)
-AC_SUBST(VERSION_NUMBER)
-
-
 ######################
 ##  Basic checks.  ### (we need some results later on (e.g. $GCC)
 ######################
@@ -155,6 +145,10 @@ AC_PROG_INSTALL
 AC_PROG_AWK
 
 AC_GNU_SOURCE
+
+VERSION_NUMBER=m4_esyscmd(printf "0x%02x%02x%02x" mym4_major \
+                          mym4_minor mym4_micro)
+AC_SUBST(VERSION_NUMBER)
 
 # We need to compile and run a program on the build machine.  A
 # comment in libgpg-error says that the AC_PROG_CC_FOR_BUILD macro in
@@ -2642,9 +2636,11 @@ AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION",
                    [GIT commit id revision used to build this package])
 
 changequote(,)dnl
-BUILD_FILEVERSION=`echo "$VERSION" | sed 's/\([0-9.]*\).*/\1./;s/\./,/g'`
+BUILD_VERSION=`echo "$PACKAGE_VERSION" | sed 's/\([0-9.]*\).*/\1./'`
 changequote([,])dnl
-BUILD_FILEVERSION="${BUILD_FILEVERSION}mym4_revision_dec"
+BUILD_VERSION="${BUILD_VERSION}mym4_revision_dec"
+BUILD_FILEVERSION=`echo "${BUILD_VERSION}" | tr . ,`
+AC_SUBST(BUILD_VERSION)
 AC_SUBST(BUILD_FILEVERSION)
 
 AC_ARG_ENABLE([build-timestamp],
