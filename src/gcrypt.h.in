@@ -1318,7 +1318,7 @@ gpg_error_t gcry_md_extract (gcry_md_hd_t hd, int algo, void *buffer,
                              size_t length);
 
 /* Convenience function to calculate the hash from the data in BUFFER
-   of size LENGTH using the algorithm ALGO avoiding the creating of a
+   of size LENGTH using the algorithm ALGO avoiding the creation of a
    hash object.  The hash is returned in the caller provided buffer
    DIGEST which must be large enough to hold the digest of the given
    algorithm. */

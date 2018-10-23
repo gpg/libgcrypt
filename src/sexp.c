@@ -2232,7 +2232,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
   gcry_mpi_t *array[20];
   char arrayisdesc[20];
   int idx;
-  gcry_sexp_t l1;
+  gcry_sexp_t l1 = NULL;
   int mode = '+'; /* Default to GCRYMPI_FMT_USG.  */
   gcry_sexp_t freethis = NULL;
 
