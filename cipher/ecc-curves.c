@@ -1193,7 +1193,7 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
   if (!strcmp (name, "q.x") && ec->Q && ec->Q->x)
     return mpi_is_const (ec->Q->x) && !copy? ec->Q->x : mpi_copy (ec->Q->x);
   if (!strcmp (name, "q.y") && ec->Q && ec->Q->y)
-    return mpi_is_const (ec->G->y) && !copy? ec->Q->y : mpi_copy (ec->Q->y);
+    return mpi_is_const (ec->Q->y) && !copy? ec->Q->y : mpi_copy (ec->Q->y);
 
   /* If the base point has been requested, return it in standard
      encoding.  */
