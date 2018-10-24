@@ -658,7 +658,10 @@ _gcry_secmem_malloc_internal (size_t size, int xhint)
       pool->size = auto_expand? auto_expand : STANDARD_POOL_SIZE;
       pool->mem = malloc (pool->size);
       if (!pool->mem)
-        return NULL; /* Not enough memory available for a new pool.  */
+        {
+          free (pool);
+          return NULL; /* Not enough memory available for a new pool.  */
+        }
       /* Initialize first memory block.  */
       mb = (memblock_t *) pool->mem;
       mb->size = pool->size - BLOCK_HEAD_SIZE;
