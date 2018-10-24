@@ -40,75 +40,89 @@ libcipher_la_DEPENDENCIES = $(GCRYPT_MODULES)
 libcipher_la_LIBADD = $(GCRYPT_MODULES)
 
 libcipher_la_SOURCES = \
-cipher.c cipher-internal.h \
-cipher-cbc.c cipher-cfb.c cipher-ofb.c cipher-ctr.c cipher-aeswrap.c \
-cipher-ccm.c cipher-cmac.c cipher-gcm.c cipher-gcm-intel-pclmul.c \
-  cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
-cipher-poly1305.c cipher-ocb.c cipher-xts.c cipher-eax.c \
-cipher-selftest.c cipher-selftest.h \
-pubkey.c pubkey-internal.h pubkey-util.c \
-md.c \
-mac.c mac-internal.h \
-mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
-poly1305.c poly1305-internal.h \
-kdf.c kdf-internal.h \
-hmac-tests.c \
-bithelp.h  \
-bufhelp.h  \
-primegen.c  \
-hash-common.c hash-common.h \
-dsa-common.c rsa-common.c \
-sha1.h
+	cipher.c cipher-internal.h \
+	cipher-cbc.c \
+	cipher-cfb.c \
+	cipher-ofb.c \
+	cipher-ctr.c \
+	cipher-aeswrap.c \
+	cipher-ccm.c \
+	cipher-cmac.c \
+	cipher-gcm.c cipher-gcm-intel-pclmul.c \
+	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
+	cipher-poly1305.c \
+	cipher-ocb.c \
+	cipher-xts.c \
+	cipher-eax.c \
+	cipher-selftest.c cipher-selftest.h \
+	pubkey.c pubkey-internal.h pubkey-util.c \
+	md.c \
+	mac.c mac-internal.h \
+	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
+	poly1305.c poly1305-internal.h \
+	kdf.c kdf-internal.h \
+	hmac-tests.c \
+	bithelp.h  \
+	bufhelp.h  \
+	primegen.c  \
+	hash-common.c hash-common.h \
+	dsa-common.c rsa-common.c \
+	sha1.h
 
 EXTRA_libcipher_la_SOURCES = \
-asm-common-amd64.h \
-arcfour.c arcfour-amd64.S \
-blowfish.c blowfish-amd64.S blowfish-arm.S \
-cast5.c cast5-amd64.S cast5-arm.S \
-chacha20.c chacha20-amd64-ssse3.S chacha20-amd64-avx2.S chacha20-armv7-neon.S \
-  chacha20-aarch64.S \
-crc.c \
-  crc-intel-pclmul.c \
-des.c des-amd64.S \
-dsa.c \
-elgamal.c \
-ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
-ecc-ecdsa.c ecc-eddsa.c ecc-gost.c \
-idea.c \
-gost28147.c gost.h \
-gostr3411-94.c \
-md4.c \
-md5.c \
-rijndael.c rijndael-internal.h rijndael-tables.h rijndael-aesni.c \
-  rijndael-padlock.c rijndael-amd64.S rijndael-arm.S \
-  rijndael-ssse3-amd64.c rijndael-ssse3-amd64-asm.S \
-  rijndael-armv8-ce.c rijndael-armv8-aarch32-ce.S rijndael-armv8-aarch64-ce.S \
-  rijndael-aarch64.S \
-rmd160.c \
-rsa.c \
-salsa20.c salsa20-amd64.S salsa20-armv7-neon.S \
-scrypt.c \
-seed.c \
-serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S serpent-armv7-neon.S \
-sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
-  sha1-armv7-neon.S sha1-armv8-aarch32-ce.S sha1-armv8-aarch64-ce.S \
-  sha1-intel-shaext.c \
-sha256.c sha256-ssse3-amd64.S sha256-avx-amd64.S sha256-avx2-bmi2-amd64.S \
-  sha256-armv8-aarch32-ce.S sha256-armv8-aarch64-ce.S sha256-intel-shaext.c \
-sha512.c sha512-ssse3-amd64.S sha512-avx-amd64.S sha512-avx2-bmi2-amd64.S \
-  sha512-armv7-neon.S sha512-arm.S \
-sm3.c \
-keccak.c keccak_permute_32.h keccak_permute_64.h keccak-armv7-neon.S \
-stribog.c \
-tiger.c \
-whirlpool.c whirlpool-sse2-amd64.S \
-twofish.c twofish-amd64.S twofish-arm.S twofish-aarch64.S \
-  twofish-avx2-amd64.S \
-rfc2268.c \
-camellia.c camellia.h camellia-glue.c camellia-aesni-avx-amd64.S \
-  camellia-aesni-avx2-amd64.S camellia-arm.S camellia-aarch64.S \
-blake2.c \
-  blake2b-amd64-avx2.S blake2s-amd64-avx.S
+	asm-common-amd64.h \
+	asm-common-aarch64.h \
+	arcfour.c arcfour-amd64.S \
+	blowfish.c blowfish-amd64.S blowfish-arm.S \
+	cast5.c cast5-amd64.S cast5-arm.S \
+	chacha20.c chacha20-amd64-ssse3.S chacha20-amd64-avx2.S \
+	chacha20-armv7-neon.S chacha20-aarch64.S \
+	crc.c crc-intel-pclmul.c \
+	des.c des-amd64.S \
+	dsa.c \
+	elgamal.c \
+	ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
+	ecc-ecdsa.c ecc-eddsa.c ecc-gost.c \
+	idea.c \
+	gost28147.c gost.h \
+	gostr3411-94.c \
+	md4.c \
+	md5.c \
+	rijndael.c rijndael-internal.h rijndael-tables.h   \
+	rijndael-aesni.c rijndael-padlock.c                \
+	rijndael-amd64.S rijndael-arm.S                    \
+	rijndael-ssse3-amd64.c rijndael-ssse3-amd64-asm.S  \
+	rijndael-armv8-ce.c rijndael-armv8-aarch32-ce.S    \
+	rijndael-armv8-aarch64-ce.S rijndael-aarch64.S     \
+	rmd160.c \
+	rsa.c \
+	salsa20.c salsa20-amd64.S salsa20-armv7-neon.S \
+	scrypt.c \
+	seed.c \
+	serpent.c serpent-sse2-amd64.S \
+	serpent-avx2-amd64.S serpent-armv7-neon.S \
+	sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
+	sha1-armv7-neon.S sha1-armv8-aarch32-ce.S sha1-armv8-aarch64-ce.S \
+	sha1-intel-shaext.c \
+	sha256.c sha256-ssse3-amd64.S sha256-avx-amd64.S \
+	sha256-avx2-bmi2-amd64.S \
+	sha256-armv8-aarch32-ce.S sha256-armv8-aarch64-ce.S \
+	sha256-intel-shaext.c \
+	sha512.c sha512-ssse3-amd64.S sha512-avx-amd64.S \
+	sha512-avx2-bmi2-amd64.S \
+	sha512-armv7-neon.S sha512-arm.S \
+	sm3.c \
+	keccak.c keccak_permute_32.h keccak_permute_64.h keccak-armv7-neon.S \
+	stribog.c \
+	tiger.c \
+	whirlpool.c whirlpool-sse2-amd64.S \
+	twofish.c twofish-amd64.S twofish-arm.S twofish-aarch64.S \
+	twofish-avx2-amd64.S \
+	rfc2268.c \
+	camellia.c camellia.h camellia-glue.c camellia-aesni-avx-amd64.S \
+	camellia-aesni-avx2-amd64.S camellia-arm.S camellia-aarch64.S \
+	blake2.c \
+	blake2b-amd64-avx2.S blake2s-amd64-avx.S
 
 gost28147.lo: gost-sb.h
 gost-sb.h: gost-s-box
