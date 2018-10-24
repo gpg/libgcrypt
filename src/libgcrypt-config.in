@@ -96,7 +96,19 @@ while test $# -gt 0; do
 	--exec-prefix)
 	    echo_exec_prefix=yes
 	    ;;
-	--version)
+        --variable=*)
+            case "${1#*=}" in
+                prefix) echo "$prefix" ;;
+                exec_prefix) echo "$exec_prefix" ;;
+                host) echo "$my_host" ;;
+                api_version) echo "$api_version" ;;
+		symmetric_ciphers) echo "$symmetric_ciphers" ;;
+		asymmetric_ciphers) echo "$asymmetric_ciphers" ;;
+		digests) echo "$digests" ;;
+            esac
+            exit 0
+            ;;
+	--modversion|--version)
 	    echo_version=yes
 	    ;;
         --api-version)
