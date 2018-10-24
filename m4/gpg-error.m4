@@ -70,7 +70,7 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\1/'`
     req_minor=`echo $min_gpg_error_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
-    gpg_error_config_version=`$GPG_ERROR_CONFIG $gpg_error_config_args --version`
+    gpg_error_config_version=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --version`
     major=`echo $gpg_error_config_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     minor=`echo $gpg_error_config_version | \
@@ -86,13 +86,15 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
     fi
   fi
   if test $ok = yes; then
-    GPG_ERROR_CFLAGS=`$GPG_ERROR_CONFIG $gpg_error_config_args --cflags`
-    GPG_ERROR_LIBS=`$GPG_ERROR_CONFIG $gpg_error_config_args --libs`
-    GPG_ERROR_MT_CFLAGS=`$GPG_ERROR_CONFIG $gpg_error_config_args --mt --cflags 2>/dev/null`
-    GPG_ERROR_MT_LIBS=`$GPG_ERROR_CONFIG $gpg_error_config_args --mt --libs 2>/dev/null`
+    GPG_ERROR_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --cflags`
+    GPG_ERROR_LIBS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --libs`
+    GPG_ERROR_MT_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --variable=mtcflags 2>/dev/null`
+    GPG_ERROR_MT_CFLAGS="$GPG_ERROR_CFLAGS${GPG_ERROR_CFLAGS:+ }$GPG_ERROR_MT_CFLAGS"
+    GPG_ERROR_MT_LIBS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --variable=mtlibs 2>/dev/null`
+    GPG_ERROR_MT_LIBS="$GPG_ERROR_LIBS${GPG_ERROR_LIBS:+ }$GPG_ERROR_MT_LIBS"
     AC_MSG_RESULT([yes ($gpg_error_config_version)])
     ifelse([$2], , :, [$2])
-    gpg_error_config_host=`$GPG_ERROR_CONFIG $gpg_error_config_args --host 2>/dev/null || echo none`
+    gpg_error_config_host=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --variable=host 2>/dev/null || echo none`
     if test x"$gpg_error_config_host" != xnone ; then
       if test x"$gpg_error_config_host" != x"$host" ; then
   AC_MSG_WARN([[
@@ -100,7 +102,7 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
 *** The config script $GPG_ERROR_CONFIG was
 *** built for $gpg_error_config_host and thus may not match the
 *** used host $host.
-*** You may want to use the configure option --with-gpg-error-prefix
+*** You may want to use the configure option --with-libgpg-error-prefix
 *** to specify a matching config script or use \$SYSROOT.
 ***]])
         gpg_config_script_warn="$gpg_config_script_warn libgpg-error"
