@@ -111,14 +111,10 @@ case "${host}" in
         ac_cv_sys_symbol_underscore=yes
         ;;
     *)
-      if test "$cross_compiling" = yes; then
-        if test "x$ac_cv_sys_symbol_underscore" = x ; then
-           ac_cv_sys_symbol_underscore=yes
-        fi
-      else
+      if test "$cross_compiling" != yes; then
          tmp_do_check="yes"
       fi
-       ;;
+      ;;
 esac
 if test "$tmp_do_check" = "yes"; then
   AC_REQUIRE([AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE])
