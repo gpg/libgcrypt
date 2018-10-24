@@ -760,7 +760,10 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
                                      pkey->E.p, pkey->E.a, pkey->E.b);
   b = ctx->nbits/8;
   if (b != 256/8)
-    return GPG_ERR_INTERNAL; /* We only support 256 bit. */
+    {
+      rc = GPG_ERR_INTERNAL; /* We only support 256 bit. */
+      goto leave;
+    }
 
   /* Decode and check the public key.  */
   rc = _gcry_ecc_eddsa_decodepoint (pk, ctx, &Q, &encpk, &encpklen);
