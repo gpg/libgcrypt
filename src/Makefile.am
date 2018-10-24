@@ -20,8 +20,11 @@
 
 ## Process this file with automake to produce Makefile.in
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libgcrypt.pc
+
 EXTRA_DIST = libgcrypt-config.in libgcrypt.m4 libgcrypt.vers \
-             gcrypt.h.in libgcrypt.def
+             gcrypt.h.in libgcrypt.def libgcrypt.pc.in
 
 bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal

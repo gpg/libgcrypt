@@ -2670,6 +2670,7 @@ doc/Makefile
 src/Makefile
 src/gcrypt.h
 src/libgcrypt-config
+src/libgcrypt.pc
 src/versioninfo.rc
 tests/Makefile
 ])
