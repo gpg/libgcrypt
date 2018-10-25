@@ -1,5 +1,5 @@
 # gpg-error.m4 - autoconf macro to detect libgpg-error.
-# Copyright (C) 2002, 2003, 2004, 2011, 2014 g10 Code GmbH
+# Copyright (C) 2002, 2003, 2004, 2011, 2014, 2018 g10 Code GmbH
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -9,7 +9,7 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
-# Last-changed: 2014-10-02
+# Last-changed: 2018-10-25
 
 
 dnl AM_PATH_GPG_ERROR([MINIMUM-VERSION,
@@ -61,7 +61,7 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
   fi
 
   AC_PATH_PROG(GPG_ERROR_CONFIG, gpg-error-config, no)
-  min_gpg_error_version=ifelse([$1], ,0.0,$1)
+  min_gpg_error_version=ifelse([$1], ,1.33,$1)
   AC_MSG_CHECKING(for GPG Error - version >= $min_gpg_error_version)
   ok=no
   if test "$GPG_ERROR_CONFIG" != "no" \
@@ -70,7 +70,7 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\1/'`
     req_minor=`echo $min_gpg_error_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
-    gpg_error_config_version=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --version`
+    gpg_error_config_version=`CC=$CC $GPG_ERROR_CONFIG --version`
     major=`echo $gpg_error_config_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     minor=`echo $gpg_error_config_version | \
@@ -86,15 +86,15 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
     fi
   fi
   if test $ok = yes; then
-    GPG_ERROR_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --cflags`
-    GPG_ERROR_LIBS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --libs`
-    GPG_ERROR_MT_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --variable=mtcflags 2>/dev/null`
+    GPG_ERROR_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG --cflags`
+    GPG_ERROR_LIBS=`CC=$CC $GPG_ERROR_CONFIG --libs`
+    GPG_ERROR_MT_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG --variable=mtcflags 2>/dev/null`
     GPG_ERROR_MT_CFLAGS="$GPG_ERROR_CFLAGS${GPG_ERROR_CFLAGS:+ }$GPG_ERROR_MT_CFLAGS"
-    GPG_ERROR_MT_LIBS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --variable=mtlibs 2>/dev/null`
+    GPG_ERROR_MT_LIBS=`CC=$CC $GPG_ERROR_CONFIG --variable=mtlibs 2>/dev/null`
     GPG_ERROR_MT_LIBS="$GPG_ERROR_LIBS${GPG_ERROR_LIBS:+ }$GPG_ERROR_MT_LIBS"
     AC_MSG_RESULT([yes ($gpg_error_config_version)])
     ifelse([$2], , :, [$2])
-    gpg_error_config_host=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --variable=host 2>/dev/null || echo none`
+    gpg_error_config_host=`CC=$CC $GPG_ERROR_CONFIG --variable=host 2>/dev/null || echo none`
     if test x"$gpg_error_config_host" != xnone ; then
       if test x"$gpg_error_config_host" != x"$host" ; then
   AC_MSG_WARN([[
