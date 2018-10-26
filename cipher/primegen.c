@@ -758,7 +758,8 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
   if (nbits < 16)
     log_fatal ("can't generate a prime with less than %d bits\n", 16);
 
-  mods = xmalloc (no_of_small_prime_numbers * sizeof *mods);
+  mods = (secret? xmalloc_secure (no_of_small_prime_numbers * sizeof *mods)
+          /* */ : xmalloc (no_of_small_prime_numbers * sizeof *mods));
   /* Make nbits fit into gcry_mpi_t implementation. */
   val_2  = mpi_alloc_set_ui( 2 );
   val_3 = mpi_alloc_set_ui( 3);
