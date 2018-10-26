@@ -26,14 +26,10 @@
 
     The download canonical location for libgcrypt is:
 
-      ftp://ftp.gnupg.org/gcrypt/libgcrypt/
-    or
       https://gnupg.org/ftp/gcrypt/libgcrypt/
 
     To build libgcrypt you need libgpg-error:
 
-      ftp://ftp.gnupg.org/gcrypt/libgpg-error/
-    or
       https://gnupg.org/ftp/gcrypt/libgpg-error/
 
     You should get the latest versions of course.
@@ -192,6 +188,9 @@
 
     Build Problems
     --------------
+
+    If you have a problem with a a certain release, please first check
+    the Release-info URL given in the NEWS file.
 
     We can't check all assembler files, so if you have problems
     assembling them (or the program crashes) use --disable-asm with

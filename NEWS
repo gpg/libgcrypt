@@ -1,5 +1,24 @@
-Noteworthy changes in version 1.8.4 (unreleased)  [C22/A2/R4]
+Noteworthy changes in version 1.8.4 (2018-10-26)  [C22/A2/R4]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix infinite loop due to applications using fork the wrong
+     way.  [#3491]
+
+   - Fix possible leak of a few bits of secret primes to pageable
+     memory.  [#3848]
+
+   - Fix possible hang in the RNG (1.8.3 only).  [#4034]
+
+   - Several minor fixes.  [#4102,#4208,#4209,#4210,#4211,#4212]
+
+ * Performance:
+
+   - On Linux always make use of getrandom if possible and then use
+     its /dev/urandom behaviour.  [#3894]
+
+ Release-info: https://dev.gnupg.org/T4234
 
 
 Noteworthy changes in version 1.8.3 (2018-06-13)  [C22/A2/R3]
@@ -20,7 +39,7 @@ Noteworthy changes in version 1.8.3 (2018-06-13)  [C22/A2/R3]
 
    - Fix rare assertion failure in gcry_prime_check.
 
- Release info at <https://dev.gnupg.org/T4016>.
+ Release-info: https://dev.gnupg.org/T4016
 
 
 Noteworthy changes in version 1.8.2 (2017-12-13)  [C22/A2/R2]
