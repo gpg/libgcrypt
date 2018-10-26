@@ -62,15 +62,21 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
 
   AC_PATH_PROG(GPG_ERROR_CONFIG, gpg-error-config, no)
   min_gpg_error_version=ifelse([$1], ,1.33,$1)
-  AC_MSG_CHECKING(for GPG Error - version >= $min_gpg_error_version)
   ok=no
-  if test "$GPG_ERROR_CONFIG" != "no" \
-     && test -f "$GPG_ERROR_CONFIG" ; then
+  if test "$GPG_ERROR_CONFIG" = "no"; then
+    AC_PATH_PROG(GPGRT_CONFIG, gpgrt-config, no)
+    if CC=$CC $GPGRT_CONFIG gpg-error >/dev/null 2>&1; then
+      GPG_ERROR_CONFIG="$GPGRT_CONFIG gpg-error"
+      gpg_error_config_version=`CC=$CC $GPG_ERROR_CONFIG --modversion`
+    fi
+  else
+    gpg_error_config_version=`CC=$CC $GPG_ERROR_CONFIG --version`
+  fi
+  if test "$GPG_ERROR_CONFIG" != "no"; then
     req_major=`echo $min_gpg_error_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\1/'`
     req_minor=`echo $min_gpg_error_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
-    gpg_error_config_version=`CC=$CC $GPG_ERROR_CONFIG --version`
     major=`echo $gpg_error_config_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     minor=`echo $gpg_error_config_version | \
@@ -84,7 +90,14 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
             fi
         fi
     fi
+    if test -z "$GPGRT_CONFIG"; then
+      if test "$major" -gt 1 -o "$major" -eq 1 -a "$minor" -ge 33; then
+        AC_PATH_PROG(GPGRT_CONFIG, gpgrt-config, no)
+        GPG_ERROR_CONFIG="$GPGRT_CONFIG gpg-error"
+      fi
+    fi
   fi
+  AC_MSG_CHECKING(for GPG Error - version >= $min_gpg_error_version)
   if test $ok = yes; then
     GPG_ERROR_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG --cflags`
     GPG_ERROR_LIBS=`CC=$CC $GPG_ERROR_CONFIG --libs`
