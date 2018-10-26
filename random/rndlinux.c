@@ -104,9 +104,10 @@ open_device (const char *name, int retry)
 
 
 /* Note that the caller needs to make sure that this function is only
-   called by one thread at a time.  The function returns 0 on success
-   or true on failure (in which case the caller will signal a fatal
-   error).  */
+ * called by one thread at a time.  The function returns 0 on success
+ * or true on failure (in which case the caller will signal a fatal
+ * error).  This function should be entered only by one thread at a
+ * time. */
 int
 _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
                                           enum random_origins),
@@ -117,6 +118,11 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
   static int fd_random = -1;
   static int only_urandom = -1;
   static unsigned char ever_opened;
+  static volatile pid_t my_pid; /* The volatile is there to make sure
+                                 * the compiler does not optimize the
+                                 * code away in case the getpid
+                                 * function is badly attributed. */
+  volatile pid_t apid;
   int fd;
   int n;
   byte buffer[768];
@@ -130,12 +136,12 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
    * use only urandom.  */
   if (only_urandom == -1)
     {
+      my_pid = getpid ();
       if ((_gcry_random_read_conf () & RANDOM_CONF_ONLY_URANDOM))
         only_urandom = 1;
       else
         only_urandom = 0;
     }
-
 
   if (!add)
     {
@@ -151,6 +157,25 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
           fd_urandom = -1;
         }
       return 0;
+    }
+
+  /* Detect a fork and close the devices so that we don't use the old
+   * file descriptors.  Note that open_device will be called in retry
+   * mode if the devices was opened by the parent process.  */
+  apid = getpid ();
+  if (my_pid != apid)
+    {
+      if (fd_random != -1)
+        {
+          close (fd_random);
+          fd_random = -1;
+        }
+      if (fd_urandom != -1)
+        {
+          close (fd_urandom);
+          fd_urandom = -1;
+        }
+      my_pid = apid;
     }
 
 
