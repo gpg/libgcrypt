@@ -81,7 +81,11 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
     req_micro=`echo $min_libgcrypt_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\3/'`
-    libgcrypt_config_version=`CC=$CC $LIBGCRYPT_CONFIG --modversion`
+    if test -z "$use_gpgrt_config"; then
+      libgcrypt_config_version=`CC=$CC $LIBGCRYPT_CONFIG --version`
+    else
+      libgcrypt_config_version=`CC=$CC $LIBGCRYPT_CONFIG --modversion`
+    fi
     major=`echo $libgcrypt_config_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     minor=`echo $libgcrypt_config_version | \
@@ -113,7 +117,11 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
      # If we have a recent libgcrypt, we should also check that the
      # API is compatible
      if test "$req_libgcrypt_api" -gt 0 ; then
-        tmp=`CC=$CC $LIBGCRYPT_CONFIG --variable=api_version 2>/dev/null || echo 0`
+        if test -z "$use_gpgrt_config"; then
+           tmp=`CC=$CC $LIBGCRYPT_CONFIG --api-version 2>/dev/null || echo 0`
+	else
+           tmp=`CC=$CC $LIBGCRYPT_CONFIG --variable=api_version 2>/dev/null || echo 0`
+	fi
         if test "$tmp" -gt 0 ; then
            AC_MSG_CHECKING([LIBGCRYPT API version])
            if test "$req_libgcrypt_api" -eq "$tmp" ; then
@@ -129,7 +137,11 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
     LIBGCRYPT_CFLAGS=`CC=$CC $LIBGCRYPT_CONFIG --cflags`
     LIBGCRYPT_LIBS=`CC=$CC $LIBGCRYPT_CONFIG --libs`
     ifelse([$2], , :, [$2])
-    libgcrypt_config_host=`CC=$CC $LIBGCRYPT_CONFIG --variable=host 2>/dev/null || echo none`
+    if test -z "$use_gpgrt_config"; then
+      libgcrypt_config_host=`CC=$CC $LIBGCRYPT_CONFIG --host 2>/dev/null || echo none`
+    else
+      libgcrypt_config_host=`CC=$CC $LIBGCRYPT_CONFIG --variable=host 2>/dev/null || echo none`
+    fi
     if test x"$libgcrypt_config_host" != xnone ; then
       if test x"$libgcrypt_config_host" != x"$host" ; then
   AC_MSG_WARN([[

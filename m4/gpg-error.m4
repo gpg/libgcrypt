@@ -9,7 +9,7 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
-# Last-changed: 2018-10-25
+# Last-changed: 2018-10-26
 
 
 dnl AM_PATH_GPG_ERROR([MINIMUM-VERSION,
@@ -63,10 +63,13 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
   AC_PATH_PROG(GPG_ERROR_CONFIG, gpg-error-config, no)
   min_gpg_error_version=ifelse([$1], ,1.33,$1)
   ok=no
+
+  use_gpgrt_config=""
   if test "$GPG_ERROR_CONFIG" = "no"; then
     AC_PATH_PROG(GPGRT_CONFIG, gpgrt-config, no)
     if CC=$CC $GPGRT_CONFIG gpg-error >/dev/null 2>&1; then
       GPG_ERROR_CONFIG="$GPGRT_CONFIG gpg-error"
+      use_gpgrt_config=yes
       gpg_error_config_version=`CC=$CC $GPG_ERROR_CONFIG --modversion`
     fi
   else
@@ -94,6 +97,7 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
       if test "$major" -gt 1 -o "$major" -eq 1 -a "$minor" -ge 33; then
         AC_PATH_PROG(GPGRT_CONFIG, gpgrt-config, no)
         GPG_ERROR_CONFIG="$GPGRT_CONFIG gpg-error"
+        use_gpgrt_config=yes
       fi
     fi
   fi
@@ -101,18 +105,27 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
   if test $ok = yes; then
     GPG_ERROR_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG --cflags`
     GPG_ERROR_LIBS=`CC=$CC $GPG_ERROR_CONFIG --libs`
-    GPG_ERROR_MT_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG --variable=mtcflags 2>/dev/null`
-    GPG_ERROR_MT_CFLAGS="$GPG_ERROR_CFLAGS${GPG_ERROR_CFLAGS:+ }$GPG_ERROR_MT_CFLAGS"
-    GPG_ERROR_MT_LIBS=`CC=$CC $GPG_ERROR_CONFIG --variable=mtlibs 2>/dev/null`
-    GPG_ERROR_MT_LIBS="$GPG_ERROR_LIBS${GPG_ERROR_LIBS:+ }$GPG_ERROR_MT_LIBS"
+    if test -z "$use_gpgrt_config"; then
+      GPG_ERROR_MT_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --mt --cflags 2>/dev/null`
+      GPG_ERROR_MT_LIBS=`CC=$CC $GPG_ERROR_CONFIG $gpg_error_config_args --mt --libs 2>/dev/null`
+    else
+      GPG_ERROR_MT_CFLAGS=`CC=$CC $GPG_ERROR_CONFIG --variable=mtcflags 2>/dev/null`
+      GPG_ERROR_MT_CFLAGS="$GPG_ERROR_CFLAGS${GPG_ERROR_CFLAGS:+ }$GPG_ERROR_MT_CFLAGS"
+      GPG_ERROR_MT_LIBS=`CC=$CC $GPG_ERROR_CONFIG --variable=mtlibs 2>/dev/null`
+      GPG_ERROR_MT_LIBS="$GPG_ERROR_LIBS${GPG_ERROR_LIBS:+ }$GPG_ERROR_MT_LIBS"
+    fi
     AC_MSG_RESULT([yes ($gpg_error_config_version)])
     ifelse([$2], , :, [$2])
-    gpg_error_config_host=`CC=$CC $GPG_ERROR_CONFIG --variable=host 2>/dev/null || echo none`
+    if test -z "$use_gpgrt_config"; then
+      gpg_error_config_host=`CC=$CC $GPG_ERROR_CONFIG --host 2>/dev/null || echo none`
+    else
+      gpg_error_config_host=`CC=$CC $GPG_ERROR_CONFIG --variable=host 2>/dev/null || echo none`
+    fi
     if test x"$gpg_error_config_host" != xnone ; then
       if test x"$gpg_error_config_host" != x"$host" ; then
   AC_MSG_WARN([[
 ***
-*** The config script $GPG_ERROR_CONFIG was
+*** The config script "$GPG_ERROR_CONFIG" was
 *** built for $gpg_error_config_host and thus may not match the
 *** used host $host.
 *** You may want to use the configure option --with-libgpg-error-prefix
