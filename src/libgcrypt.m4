@@ -52,16 +52,15 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
      fi
   fi
 
-  if test x"${LIBGCRYPT_CONFIG}" = x ; then
-    if test x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
-      if CC=$CC $GPGRT_CONFIG libgcrypt >/dev/null 2>&1; then
-        LIBGCRYPT_CONFIG="$GPGRT_CONFIG libgcrypt"
-        libgcrypt_config_by_gpgrt=yes
-      fi
+  use_gpgrt_config=""
+  if test x"${LIBGCRYPT_CONFIG}" = x -a x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
+    if CC=$CC $GPGRT_CONFIG libgcrypt >/dev/null 2>&1; then
+      LIBGCRYPT_CONFIG="$GPGRT_CONFIG libgcrypt"
+      use_gpgrt_config=yes
     fi
   fi
-  if test -z "$libgcrypt_config_by_gpgrt"; then
-    AC_PATH_TOOL(LIBGCRYPT_CONFIG, libgcrypt-config, no)
+  if test -z "$use_gpgrt_config"; then
+    AC_PATH_PROG(LIBGCRYPT_CONFIG, libgcrypt-config, no)
   fi
 
   tmp=ifelse([$1], ,1:1.2.0,$1)
