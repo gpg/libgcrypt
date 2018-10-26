@@ -1,6 +1,6 @@
 		    Libgcrypt - The GNU Crypto Library
 		   ------------------------------------
-                             Version 1.8
+                             Version 1.9
 
        Copyright (C) 1989,1991-2018 Free Software Foundation, Inc.
        Copyright (C) 2012-2018 g10 Code GmbH
@@ -192,6 +192,9 @@
 
     Build Problems
     --------------
+
+    If you have a problem with a a certain release, please first check
+    the Release-info URL given in the NEWS file.
 
     We can't check all assembler files, so if you have problems
     assembling them (or the program crashes) use --disable-asm with
