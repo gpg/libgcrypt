@@ -21,7 +21,7 @@
 # internal archive and before uploading this to the public server,
 # manual tests should be run and the git release tagged and pushed.
 # Adjust as needed.
-RELEASE_ARCHIVE_DIR  = wk@vigenere:tarballs/libgpg-error/
+RELEASE_ARCHIVE_DIR  = wk@vigenere:tarballs/libgcrypt/v1.8/
 # The key used to sign the released sources.  Adjust as needed.
 RELEASE_SIGNING_KEY  = D8692123C4065DEA5E0F3AB5249B39D24F25E3B6
 

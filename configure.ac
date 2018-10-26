@@ -30,7 +30,7 @@ min_automake_version="1.14"
 # for the LT versions.
 m4_define(mym4_version_major, [1])
 m4_define(mym4_version_minor, [8])
-m4_define(mym4_version_micro, [4])
+m4_define(mym4_version_micro, [5])
 
 # Below is m4 magic to extract and compute the revision number, the
 # decimalized short revision number, a beta version string, and a flag
@@ -50,13 +50,13 @@ m4_define([mym4_full_version],[mym4_version[]mym4_betastring])
 
 AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 
-# LT Version numbers, remember to change them just *before* a release.
+# LT Version numbers: In this branch we only change the revision.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=22
 LIBGCRYPT_LT_AGE=2
-LIBGCRYPT_LT_REVISION=4
+LIBGCRYPT_LT_REVISION=5
 
 
 # If the API is changed in an incompatible way: increment the next counter.
