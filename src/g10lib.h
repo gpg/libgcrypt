@@ -102,6 +102,7 @@
 
 
 /*-- src/global.c -*/
+extern int _gcry_global_any_init_done;
 int _gcry_global_is_operational (void);
 gcry_err_code_t _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr);
 void _gcry_check_heap (const void *a);
@@ -466,7 +467,9 @@ int _gcry_fips_is_operational (void);
 
 /* Return true if the library is in the operational state.  */
 #define fips_is_operational()   \
-	(!fips_mode () || _gcry_fips_is_operational ())
+        (!_gcry_global_any_init_done ? \
+                _gcry_global_is_operational() : \
+                (!fips_mode () || _gcry_global_is_operational ()))
 
 #define fips_not_operational()  (GPG_ERR_NOT_OPERATIONAL)
 
