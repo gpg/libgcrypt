@@ -2588,7 +2588,7 @@ GCRYPT_HWF_MODULES=
 case "$mpi_cpu_arch" in
      x86)
         AC_DEFINE(HAVE_CPU_ARCH_X86, 1,   [Defined for the x86 platforms])
-        GCRYPT_HWF_MODULES="hwf-x86.lo"
+        GCRYPT_HWF_MODULES="libgcrypt_la-hwf-x86.lo"
         ;;
      alpha)
         AC_DEFINE(HAVE_CPU_ARCH_ALPHA, 1, [Defined for Alpha platforms])
@@ -2607,11 +2607,11 @@ case "$mpi_cpu_arch" in
         ;;
      arm)
         AC_DEFINE(HAVE_CPU_ARCH_ARM, 1,   [Defined for ARM platforms])
-        GCRYPT_HWF_MODULES="hwf-arm.lo"
+        GCRYPT_HWF_MODULES="libgcrypt_la-hwf-arm.lo"
         ;;
      aarch64)
         AC_DEFINE(HAVE_CPU_ARCH_ARM, 1,   [Defined for ARM AArch64 platforms])
-        GCRYPT_HWF_MODULES="hwf-arm.lo"
+        GCRYPT_HWF_MODULES="libgcrypt_la-hwf-arm.lo"
         ;;
 esac
 AC_SUBST([GCRYPT_HWF_MODULES])
