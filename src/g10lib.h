@@ -427,8 +427,6 @@ extern int _gcry_no_fips_mode_required;
 
 void _gcry_initialize_fips_mode (int force);
 
-int _gcry_fips_mode (void);
-
 /* This macro returns true if fips mode is enabled.  This is
    independent of the fips required finite state machine and only used
    to enable fips specific code.

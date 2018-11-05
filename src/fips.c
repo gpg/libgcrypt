@@ -255,25 +255,11 @@ unlock_fsm (void)
 }
 
 
-/* This function returns true if fips mode is enabled.  This is
-   independent of the fips required finite state machine and only used
-   to enable fips specific code.  Please use the fips_mode macro
-   instead of calling this function directly. */
-int
-_gcry_fips_mode (void)
-{
-  /* No locking is required because we have the requirement that this
-     variable is only initialized once with no other threads
-     existing.  */
-  return !_gcry_no_fips_mode_required;
-}
-
-
 /* Return a flag telling whether we are in the enforced fips mode.  */
 int
 _gcry_enforced_fips_mode (void)
 {
-  if (!_gcry_fips_mode ())
+  if (!fips_mode ())
     return 0;
   return enforced_fips_mode;
 }
@@ -292,7 +278,7 @@ _gcry_set_enforced_fips_mode (void)
 void
 _gcry_inactivate_fips_mode (const char *text)
 {
-  gcry_assert (_gcry_fips_mode ());
+  gcry_assert (fips_mode ());
 
   if (_gcry_enforced_fips_mode () )
     {
@@ -323,7 +309,7 @@ _gcry_is_fips_mode_inactive (void)
 {
   int flag;
 
-  if (!_gcry_fips_mode ())
+  if (!fips_mode ())
     return 0;
   lock_fsm ();
   flag = inactive_fips_mode;
