@@ -1088,7 +1088,6 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 /* Powerpc 64 bit support taken from gmp-4.1.2. */
 /* We should test _IBMR2 here when we add assembly support for the system
    vendor compilers.  */
-#if 0 /* Not yet enabled because we don't have hardware for a test. */
 #if (defined (_ARCH_PPC) || defined (__powerpc__)) && W_TYPE_SIZE == 64
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   do {									\
@@ -1141,7 +1140,6 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 #define SMUL_TIME 14  /* ??? */
 #define UDIV_TIME 120 /* ??? */
 #endif /* 64-bit PowerPC.  */
-#endif /* if 0 */
 
 /***************************************
  **************  PYR  ******************
