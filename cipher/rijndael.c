@@ -264,6 +264,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
   unsigned int hwfeatures;
 #endif
 
+  (void)hd;
+
   /* The on-the-fly self tests are only run in non-fips mode. In fips
      mode explicit self-tests are required.  Actually the on-the-fly
      self-tests are not fully thread-safe and it might happen that a
