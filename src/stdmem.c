@@ -224,19 +224,23 @@ void
 _gcry_private_free (void *a)
 {
   unsigned char *p = a;
+  unsigned char *freep;
 
   if (!p)
     return;
-  if (use_m_guard )
+  if (use_m_guard)
     {
-      _gcry_private_check_heap(p);
-      if (! _gcry_secmem_free (p - EXTRA_ALIGN - 4))
-        {
-          free (p - EXTRA_ALIGN - 4);
-	}
+      _gcry_private_check_heap (p);
+      freep = p - EXTRA_ALIGN - 4;
     }
-  else if (!_gcry_secmem_free (p))
+  else
     {
-      free(p);
+      freep = p;
+    }
+
+  if (!_gcry_private_is_secure (freep) ||
+      !_gcry_secmem_free (freep))
+    {
+      free (freep);
     }
 }
