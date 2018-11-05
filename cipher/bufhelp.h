@@ -35,277 +35,6 @@
 #endif
 
 
-#undef BUFHELP_FAST_UNALIGNED_ACCESS
-#if defined(BUFHELP_UNALIGNED_ACCESS) && \
-    (defined(__i386__) || defined(__x86_64__) || \
-     (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED)) || \
-     defined(__aarch64__))
-/* These architectures are able of unaligned memory accesses and can
-   handle those fast.
- */
-# define BUFHELP_FAST_UNALIGNED_ACCESS 1
-#endif
-
-
-#ifdef BUFHELP_FAST_UNALIGNED_ACCESS
-/* Define type with one-byte alignment on architectures with fast unaligned
-   memory accesses.
- */
-typedef struct bufhelp_int_s
-{
-  uintptr_t a;
-} __attribute__((packed, aligned(1), may_alias)) bufhelp_int_t;
-#else
-/* Define type with default alignment for other architectures (unaligned
-   accessed handled in per byte loops).
- */
-#ifdef HAVE_GCC_ATTRIBUTE_MAY_ALIAS
-typedef struct bufhelp_int_s
-{
-  uintptr_t a;
-} __attribute__((may_alias)) bufhelp_int_t;
-#else
-typedef struct bufhelp_int_s
-{
-  uintptr_t a;
-} bufhelp_int_t;
-#endif
-#endif
-
-
-/* Optimized function for small buffer copying */
-static inline void
-buf_cpy(void *_dst, const void *_src, size_t len)
-{
-#if __GNUC__ >= 4 && (defined(__x86_64__) || defined(__i386__))
-  /* For AMD64 and i386, memcpy is faster.  */
-  memcpy(_dst, _src, len);
-#else
-  byte *dst = _dst;
-  const byte *src = _src;
-  bufhelp_int_t *ldst;
-  const bufhelp_int_t *lsrc;
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-  const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
-
-  /* Skip fast processing if buffers are unaligned.  */
-  if (UNLIKELY(((uintptr_t)dst | (uintptr_t)src) & longmask))
-    goto do_bytes;
-#endif
-
-  ldst = (bufhelp_int_t *)(void *)dst;
-  lsrc = (const bufhelp_int_t *)(const void *)src;
-
-  for (; len >= sizeof(bufhelp_int_t); len -= sizeof(bufhelp_int_t))
-    (ldst++)->a = (lsrc++)->a;
-
-  dst = (byte *)ldst;
-  src = (const byte *)lsrc;
-
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-do_bytes:
-#endif
-  /* Handle tail.  */
-  for (; len; len--)
-    *dst++ = *src++;
-#endif /*__GNUC__ >= 4 && (__x86_64__ || __i386__)*/
-}
-
-
-/* Optimized function for buffer xoring */
-static inline void
-buf_xor(void *_dst, const void *_src1, const void *_src2, size_t len)
-{
-  byte *dst = _dst;
-  const byte *src1 = _src1;
-  const byte *src2 = _src2;
-  bufhelp_int_t *ldst;
-  const bufhelp_int_t *lsrc1, *lsrc2;
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-  const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
-
-  /* Skip fast processing if buffers are unaligned.  */
-  if (UNLIKELY(((uintptr_t)dst | (uintptr_t)src1 | (uintptr_t)src2) & longmask))
-    goto do_bytes;
-#endif
-
-  ldst = (bufhelp_int_t *)(void *)dst;
-  lsrc1 = (const bufhelp_int_t *)(const void *)src1;
-  lsrc2 = (const bufhelp_int_t *)(const void *)src2;
-
-  for (; len >= sizeof(bufhelp_int_t); len -= sizeof(bufhelp_int_t))
-    (ldst++)->a = (lsrc1++)->a ^ (lsrc2++)->a;
-
-  dst = (byte *)ldst;
-  src1 = (const byte *)lsrc1;
-  src2 = (const byte *)lsrc2;
-
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-do_bytes:
-#endif
-  /* Handle tail.  */
-  for (; len; len--)
-    *dst++ = *src1++ ^ *src2++;
-}
-
-
-/* Optimized function for in-place buffer xoring. */
-static inline void
-buf_xor_1(void *_dst, const void *_src, size_t len)
-{
-  byte *dst = _dst;
-  const byte *src = _src;
-  bufhelp_int_t *ldst;
-  const bufhelp_int_t *lsrc;
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-  const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
-
-  /* Skip fast processing if buffers are unaligned.  */
-  if (UNLIKELY(((uintptr_t)dst | (uintptr_t)src) & longmask))
-    goto do_bytes;
-#endif
-
-  ldst = (bufhelp_int_t *)(void *)dst;
-  lsrc = (const bufhelp_int_t *)(const void *)src;
-
-  for (; len >= sizeof(bufhelp_int_t); len -= sizeof(bufhelp_int_t))
-    (ldst++)->a ^= (lsrc++)->a;
-
-  dst = (byte *)ldst;
-  src = (const byte *)lsrc;
-
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-do_bytes:
-#endif
-  /* Handle tail.  */
-  for (; len; len--)
-    *dst++ ^= *src++;
-}
-
-
-/* Optimized function for buffer xoring with two destination buffers.  Used
-   mainly by CFB mode encryption.  */
-static inline void
-buf_xor_2dst(void *_dst1, void *_dst2, const void *_src, size_t len)
-{
-  byte *dst1 = _dst1;
-  byte *dst2 = _dst2;
-  const byte *src = _src;
-  bufhelp_int_t *ldst1, *ldst2;
-  const bufhelp_int_t *lsrc;
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-  const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
-
-  /* Skip fast processing if buffers are unaligned.  */
-  if (UNLIKELY(((uintptr_t)src | (uintptr_t)dst1 | (uintptr_t)dst2) & longmask))
-    goto do_bytes;
-#endif
-
-  ldst1 = (bufhelp_int_t *)(void *)dst1;
-  ldst2 = (bufhelp_int_t *)(void *)dst2;
-  lsrc = (const bufhelp_int_t *)(const void *)src;
-
-  for (; len >= sizeof(bufhelp_int_t); len -= sizeof(bufhelp_int_t))
-    (ldst1++)->a = ((ldst2++)->a ^= (lsrc++)->a);
-
-  dst1 = (byte *)ldst1;
-  dst2 = (byte *)ldst2;
-  src = (const byte *)lsrc;
-
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-do_bytes:
-#endif
-  /* Handle tail.  */
-  for (; len; len--)
-    *dst1++ = (*dst2++ ^= *src++);
-}
-
-
-/* Optimized function for combined buffer xoring and copying.  Used by mainly
-   CBC mode decryption.  */
-static inline void
-buf_xor_n_copy_2(void *_dst_xor, const void *_src_xor, void *_srcdst_cpy,
-		 const void *_src_cpy, size_t len)
-{
-  byte *dst_xor = _dst_xor;
-  byte *srcdst_cpy = _srcdst_cpy;
-  const byte *src_xor = _src_xor;
-  const byte *src_cpy = _src_cpy;
-  byte temp;
-  bufhelp_int_t *ldst_xor, *lsrcdst_cpy;
-  const bufhelp_int_t *lsrc_cpy, *lsrc_xor;
-  uintptr_t ltemp;
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-  const unsigned int longmask = sizeof(bufhelp_int_t) - 1;
-
-  /* Skip fast processing if buffers are unaligned.  */
-  if (UNLIKELY(((uintptr_t)src_cpy | (uintptr_t)src_xor | (uintptr_t)dst_xor |
-       (uintptr_t)srcdst_cpy) & longmask))
-    goto do_bytes;
-#endif
-
-  ldst_xor = (bufhelp_int_t *)(void *)dst_xor;
-  lsrc_xor = (const bufhelp_int_t *)(void *)src_xor;
-  lsrcdst_cpy = (bufhelp_int_t *)(void *)srcdst_cpy;
-  lsrc_cpy = (const bufhelp_int_t *)(const void *)src_cpy;
-
-  for (; len >= sizeof(bufhelp_int_t); len -= sizeof(bufhelp_int_t))
-    {
-      ltemp = (lsrc_cpy++)->a;
-      (ldst_xor++)->a = (lsrcdst_cpy)->a ^ (lsrc_xor++)->a;
-      (lsrcdst_cpy++)->a = ltemp;
-    }
-
-  dst_xor = (byte *)ldst_xor;
-  src_xor = (const byte *)lsrc_xor;
-  srcdst_cpy = (byte *)lsrcdst_cpy;
-  src_cpy = (const byte *)lsrc_cpy;
-
-#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
-do_bytes:
-#endif
-  /* Handle tail.  */
-  for (; len; len--)
-    {
-      temp = *src_cpy++;
-      *dst_xor++ = *srcdst_cpy ^ *src_xor++;
-      *srcdst_cpy++ = temp;
-    }
-}
-
-
-/* Optimized function for combined buffer xoring and copying.  Used by mainly
-   CFB mode decryption.  */
-static inline void
-buf_xor_n_copy(void *_dst_xor, void *_srcdst_cpy, const void *_src, size_t len)
-{
-  buf_xor_n_copy_2(_dst_xor, _src, _srcdst_cpy, _src, len);
-}
-
-
-/* Constant-time compare of two buffers.  Returns 1 if buffers are equal,
-   and 0 if buffers differ.  */
-static inline int
-buf_eq_const(const void *_a, const void *_b, size_t len)
-{
-  const byte *a = _a;
-  const byte *b = _b;
-  int ab, ba;
-  size_t i;
-
-  /* Constant-time compare. */
-  for (i = 0, ab = 0, ba = 0; i < len; i++)
-    {
-      /* If a[i] != b[i], either ab or ba will be negative. */
-      ab |= a[i] - b[i];
-      ba |= b[i] - a[i];
-    }
-
-  /* 'ab | ba' is negative when buffers are not equal. */
-  return (ab | ba) >= 0;
-}
-
-
 #ifndef BUFHELP_UNALIGNED_ACCESS
 
 /* Functions for loading and storing unaligned u32 values of different
@@ -465,6 +194,190 @@ static inline void buf_put_le64(void *_buf, u64 val)
 # define buf_get_he64 buf_get_le64
 # define buf_put_he64 buf_put_le64
 #endif
+
+
+
+/* Optimized function for small buffer copying */
+static inline void
+buf_cpy(void *_dst, const void *_src, size_t len)
+{
+  byte *dst = _dst;
+  const byte *src = _src;
+
+#if __GNUC__ >= 4
+  if (!__builtin_constant_p (len))
+    {
+      memcpy(_dst, _src, len);
+      return;
+    }
+#endif
+
+  while (len >= sizeof(u64))
+    {
+      buf_put_he64(dst, buf_get_he64(src));
+      dst += sizeof(u64);
+      src += sizeof(u64);
+      len -= sizeof(u64);
+    }
+
+  if (len >= sizeof(u32))
+    {
+      buf_put_he32(dst, buf_get_he32(src));
+      dst += sizeof(u32);
+      src += sizeof(u32);
+      len -= sizeof(u32);
+    }
+
+  /* Handle tail.  */
+  for (; len; len--)
+    *dst++ = *src++;
+}
+
+
+/* Optimized function for buffer xoring */
+static inline void
+buf_xor(void *_dst, const void *_src1, const void *_src2, size_t len)
+{
+  byte *dst = _dst;
+  const byte *src1 = _src1;
+  const byte *src2 = _src2;
+
+  while (len >= sizeof(u64))
+    {
+      buf_put_he64(dst, buf_get_he64(src1) ^ buf_get_he64(src2));
+      dst += sizeof(u64);
+      src1 += sizeof(u64);
+      src2 += sizeof(u64);
+      len -= sizeof(u64);
+    }
+
+  if (len > sizeof(u32))
+    {
+      buf_put_he32(dst, buf_get_he32(src1) ^ buf_get_he32(src2));
+      dst += sizeof(u32);
+      src1 += sizeof(u32);
+      src2 += sizeof(u32);
+      len -= sizeof(u32);
+    }
+
+  /* Handle tail.  */
+  for (; len; len--)
+    *dst++ = *src1++ ^ *src2++;
+}
+
+
+/* Optimized function for buffer xoring with two destination buffers.  Used
+   mainly by CFB mode encryption.  */
+static inline void
+buf_xor_2dst(void *_dst1, void *_dst2, const void *_src, size_t len)
+{
+  byte *dst1 = _dst1;
+  byte *dst2 = _dst2;
+  const byte *src = _src;
+
+  while (len >= sizeof(u64))
+    {
+      u64 temp = buf_get_he64(dst2) ^ buf_get_he64(src);
+      buf_put_he64(dst2, temp);
+      buf_put_he64(dst1, temp);
+      dst2 += sizeof(u64);
+      dst1 += sizeof(u64);
+      src += sizeof(u64);
+      len -= sizeof(u64);
+    }
+
+  if (len >= sizeof(u32))
+    {
+      u32 temp = buf_get_he32(dst2) ^ buf_get_he32(src);
+      buf_put_he32(dst2, temp);
+      buf_put_he32(dst1, temp);
+      dst2 += sizeof(u32);
+      dst1 += sizeof(u32);
+      src += sizeof(u32);
+      len -= sizeof(u32);
+    }
+
+  /* Handle tail.  */
+  for (; len; len--)
+    *dst1++ = (*dst2++ ^= *src++);
+}
+
+
+/* Optimized function for combined buffer xoring and copying.  Used by mainly
+   CBC mode decryption.  */
+static inline void
+buf_xor_n_copy_2(void *_dst_xor, const void *_src_xor, void *_srcdst_cpy,
+		 const void *_src_cpy, size_t len)
+{
+  byte *dst_xor = _dst_xor;
+  byte *srcdst_cpy = _srcdst_cpy;
+  const byte *src_xor = _src_xor;
+  const byte *src_cpy = _src_cpy;
+
+  while (len >= sizeof(u64))
+    {
+      u64 temp = buf_get_he64(src_cpy);
+      buf_put_he64(dst_xor, buf_get_he64(srcdst_cpy) ^ buf_get_he64(src_xor));
+      buf_put_he64(srcdst_cpy, temp);
+      dst_xor += sizeof(u64);
+      srcdst_cpy += sizeof(u64);
+      src_xor += sizeof(u64);
+      src_cpy += sizeof(u64);
+      len -= sizeof(u64);
+    }
+
+  if (len >= sizeof(u32))
+    {
+      u32 temp = buf_get_he32(src_cpy);
+      buf_put_he32(dst_xor, buf_get_he32(srcdst_cpy) ^ buf_get_he32(src_xor));
+      buf_put_he32(srcdst_cpy, temp);
+      dst_xor += sizeof(u32);
+      srcdst_cpy += sizeof(u32);
+      src_xor += sizeof(u32);
+      src_cpy += sizeof(u32);
+      len -= sizeof(u32);
+    }
+
+  /* Handle tail.  */
+  for (; len; len--)
+    {
+      byte temp = *src_cpy++;
+      *dst_xor++ = *srcdst_cpy ^ *src_xor++;
+      *srcdst_cpy++ = temp;
+    }
+}
+
+
+/* Optimized function for combined buffer xoring and copying.  Used by mainly
+   CFB mode decryption.  */
+static inline void
+buf_xor_n_copy(void *_dst_xor, void *_srcdst_cpy, const void *_src, size_t len)
+{
+  buf_xor_n_copy_2(_dst_xor, _src, _srcdst_cpy, _src, len);
+}
+
+
+/* Constant-time compare of two buffers.  Returns 1 if buffers are equal,
+   and 0 if buffers differ.  */
+static inline int
+buf_eq_const(const void *_a, const void *_b, size_t len)
+{
+  const byte *a = _a;
+  const byte *b = _b;
+  int ab, ba;
+  size_t i;
+
+  /* Constant-time compare. */
+  for (i = 0, ab = 0, ba = 0; i < len; i++)
+    {
+      /* If a[i] != b[i], either ab or ba will be negative. */
+      ab |= a[i] - b[i];
+      ba |= b[i] - a[i];
+    }
+
+  /* 'ab | ba' is negative when buffers are not equal. */
+  return (ab | ba) >= 0;
+}
 
 
 #endif /*GCRYPT_BUFHELP_H*/
