@@ -32,6 +32,8 @@
 
 static int verbosity_level = 0;
 
+static void *(*volatile memset_ptr)(void *, int, size_t) = (void *)memset;
+
 static void (*fatal_error_handler)(void*,int, const char*) = NULL;
 static void *fatal_error_handler_value = 0;
 static void (*log_handler)(void*,int, const char*, va_list) = NULL;
@@ -498,22 +500,28 @@ _gcry_strtokenize (const char *string, const char *delim)
 
 
 void
+_gcry_wipememory2 (void *ptr, int set, size_t len)
+{
+  memset_ptr (ptr, set, len);
+}
+
+
+void
 __gcry_burn_stack (unsigned int bytes)
 {
 #ifdef HAVE_VLA
-    static void *(*volatile memset_ptr)(void *, int, size_t) = (void *)memset;
-    /* (bytes == 0 ? 1 : bytes) == (!bytes + bytes) */
-    unsigned int buflen = ((!bytes + bytes) + 63) & ~63;
-    char buf[buflen];
+  /* (bytes == 0 ? 1 : bytes) == (!bytes + bytes) */
+  unsigned int buflen = ((!bytes + bytes) + 63) & ~63;
+  char buf[buflen];
 
-    memset_ptr (buf, 0, sizeof buf);
+  memset_ptr (buf, 0, buflen);
 #else
-    volatile char buf[64];
+  volatile char buf[64];
 
-    wipememory (buf, sizeof buf);
+  wipememory (buf, sizeof buf);
 
-    if (bytes > sizeof buf)
-        _gcry_burn_stack (bytes - sizeof buf);
+  if (bytes > sizeof buf)
+      _gcry_burn_stack (bytes - sizeof buf);
 #endif
 }
 
