@@ -859,6 +859,21 @@ fi
 
 
 #
+# Check for __sync_synchronize intrinsic.
+#
+AC_CACHE_CHECK(for __sync_synchronize,
+       [gcry_cv_have_sync_synchronize],
+       [gcry_cv_have_sync_synchronize=no
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+          [__sync_synchronize(); return 0;])],
+          [gcry_cv_have_sync_synchronize=yes])])
+if test "$gcry_cv_have_sync_synchronize" = "yes" ; then
+   AC_DEFINE(HAVE_SYNC_SYNCHRONIZE, 1,
+             [Defined if compiler has '__sync_synchronize' intrinsic])
+fi
+
+
+#
 # Check for VLA support (variable length arrays).
 #
 AC_CACHE_CHECK(whether the variable length arrays are supported,
