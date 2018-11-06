@@ -57,6 +57,23 @@
 #endif
 
 
+/* Copy of ocb_get_l needed here as GCC is unable to inline ocb_get_l
+   because of 'pragma target'. */
+static inline const unsigned char *
+aes_ocb_get_l (gcry_cipher_hd_t c, u64 n)
+{
+  unsigned long ntz;
+
+  /* Assumes that N != 0. */
+  asm ("rep;bsfl %k[low], %k[ntz]\n\t"
+        : [ntz] "=r" (ntz)
+        : [low] "r" ((unsigned long)n)
+        : "cc");
+
+  return c->u_mode.ocb.L[ntz];
+}
+
+
 /* Assembly functions in rijndael-ssse3-amd64-asm.S. Note that these
    have custom calling convention (additional XMM parameters). */
 extern void _gcry_aes_ssse3_enc_preload(void);
@@ -528,7 +545,7 @@ ssse3_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
     {
       const unsigned char *l;
 
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Checksum_i = Checksum_{i-1} xor P_i  */
@@ -597,7 +614,7 @@ ssse3_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
     {
       const unsigned char *l;
 
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
@@ -673,7 +690,7 @@ _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     {
       const unsigned char *l;
 
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */

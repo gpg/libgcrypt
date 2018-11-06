@@ -47,6 +47,23 @@ typedef struct u128_s
 } __attribute__((packed, aligned(1), may_alias)) u128_t;
 
 
+/* Copy of ocb_get_l needed here as GCC is unable to inline ocb_get_l
+   because of 'pragma target'. */
+static inline const unsigned char *
+aes_ocb_get_l (gcry_cipher_hd_t c, u64 n)
+{
+  unsigned long ntz;
+
+  /* Assumes that N != 0. */
+  asm ("rep;bsfl %k[low], %k[ntz]\n\t"
+        : [ntz] "=r" (ntz)
+        : [low] "r" ((unsigned long)n)
+        : "cc");
+
+  return c->u_mode.ocb.L[ntz];
+}
+
+
 /* Two macros to be called prior and after the use of AESNI
    instructions.  There should be no external function calls between
    the use of these macros.  There purpose is to make sure that the
@@ -2199,7 +2216,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 
   for ( ;nblocks && n % 4; nblocks-- )
     {
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Checksum_i = Checksum_{i-1} xor P_i  */
@@ -2241,7 +2258,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
       for ( ;nblocks >= 8 ; nblocks -= 8 )
 	{
 	  n += 4;
-	  l = ocb_get_l(c, n);
+	  l = aes_ocb_get_l(c, n);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  /* Checksum_i = Checksum_{i-1} xor P_i  */
@@ -2285,7 +2302,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 			: "memory" );
 
 	  n += 4;
-	  l = ocb_get_l(c, n);
+	  l = aes_ocb_get_l(c, n);
 
 	  asm volatile ("movdqu %[inbuf4], %%xmm8\n\t"
 			"pxor   %%xmm7,    %%xmm5\n\t"
@@ -2364,7 +2381,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
   for ( ;nblocks >= 4 ; nblocks -= 4 )
     {
       n += 4;
-      l = ocb_get_l(c, n);
+      l = aes_ocb_get_l(c, n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Checksum_i = Checksum_{i-1} xor P_i  */
@@ -2433,7 +2450,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 
   for ( ;nblocks; nblocks-- )
     {
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Checksum_i = Checksum_{i-1} xor P_i  */
@@ -2503,7 +2520,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 
   for ( ;nblocks && n % 4; nblocks-- )
     {
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
@@ -2545,7 +2562,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
       for ( ;nblocks >= 8 ; nblocks -= 8 )
 	{
 	  n += 4;
-	  l = ocb_get_l(c, n);
+	  l = aes_ocb_get_l(c, n);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
@@ -2585,7 +2602,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 			: "memory" );
 
 	  n += 4;
-	  l = ocb_get_l(c, n);
+	  l = aes_ocb_get_l(c, n);
 
 	  asm volatile ("movdqu %[inbuf4], %%xmm8\n\t"
 			"pxor   %%xmm7,    %%xmm5\n\t"
@@ -2668,7 +2685,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
   for ( ;nblocks >= 4 ; nblocks -= 4 )
     {
       n += 4;
-      l = ocb_get_l(c, n);
+      l = aes_ocb_get_l(c, n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
@@ -2737,7 +2754,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 
   for ( ;nblocks; nblocks-- )
     {
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
@@ -2813,7 +2830,7 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
   for ( ;nblocks && n % 4; nblocks-- )
     {
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
@@ -2853,7 +2870,7 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
       for ( ;nblocks >= 8 ; nblocks -= 8 )
 	{
 	  n += 4;
-	  l = ocb_get_l(c, n);
+	  l = aes_ocb_get_l(c, n);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
@@ -2885,7 +2902,7 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 			: "memory" );
 
 	  n += 4;
-	  l = ocb_get_l(c, n);
+	  l = aes_ocb_get_l(c, n);
 
 	  asm volatile ("movdqu %[abuf4],  %%xmm8\n\t"
 			"pxor   %%xmm7,    %%xmm5\n\t"
@@ -2938,7 +2955,7 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   for ( ;nblocks >= 4 ; nblocks -= 4 )
     {
       n += 4;
-      l = ocb_get_l(c, n);
+      l = aes_ocb_get_l(c, n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
@@ -2989,7 +3006,7 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
   for ( ;nblocks; nblocks-- )
     {
-      l = ocb_get_l(c, ++n);
+      l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
