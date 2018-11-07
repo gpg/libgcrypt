@@ -77,6 +77,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
     {
       unsigned char tmp[MAX_BLOCKSIZE];
 
+      n = blocksize;
       do
         {
           nburn = enc_fn (&c->context.c, tmp, c->u_ctr.ctr);
@@ -91,7 +92,6 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
 
           if (inbuflen < blocksize)
             break;
-          n = blocksize;
           cipher_block_xor(outbuf, inbuf, tmp, blocksize);
 
           inbuflen -= n;
