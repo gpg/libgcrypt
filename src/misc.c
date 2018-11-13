@@ -32,6 +32,8 @@
 
 static int verbosity_level = 0;
 
+/* Prevent compiler from optimizing away the call to memset by accessing
+   memset through volatile pointer. */
 static void *(*volatile memset_ptr)(void *, int, size_t) = (void *)memset;
 
 static void (*fatal_error_handler)(void*,int, const char*) = NULL;
@@ -500,8 +502,37 @@ _gcry_strtokenize (const char *string, const char *delim)
 
 
 void
-_gcry_wipememory2 (void *ptr, int set, size_t len)
+_gcry_fast_wipememory (void *ptr, size_t len)
 {
+  /* Note: This function is called from wipememory/wipememory2 only if LEN
+     is large or unknown at compile time. New wipe function alternatives
+     need to be checked before adding to this function. New implementations
+     need to be faster than wipememory/wipememory2 macros in 'misc.h'.
+
+     Following implementations were found to have suboptimal performance:
+
+     - [_WIN32/mingw32] SecureZeroMemory; Inline function, equivalent to
+       volatile byte buffer set: while(buflen--) (volatile char *)(buf++)=set;
+   */
+#ifdef HAVE_EXPLICIT_BZERO
+  explicit_bzero (ptr, len);
+#else
+  memset_ptr (ptr, 0, len);
+#endif
+}
+
+
+void
+_gcry_fast_wipememory2 (void *ptr, int set, size_t len)
+{
+#ifdef HAVE_EXPLICIT_BZERO
+  if (set == 0)
+    {
+      explicit_bzero (ptr, len);
+      return;
+    }
+#endif
+
   memset_ptr (ptr, set, len);
 }
 
@@ -514,11 +545,11 @@ __gcry_burn_stack (unsigned int bytes)
   unsigned int buflen = ((!bytes + bytes) + 63) & ~63;
   char buf[buflen];
 
-  memset_ptr (buf, 0, buflen);
+  _gcry_fast_wipememory (buf, buflen);
 #else
   volatile char buf[64];
 
-  wipememory (buf, sizeof buf);
+  _gcry_fast_wipememory (buf, sizeof buf);
 
   if (bytes > sizeof buf)
       _gcry_burn_stack (bytes - sizeof buf);
