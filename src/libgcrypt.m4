@@ -9,7 +9,7 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
-# Last-changed: 2018-10-29
+# Last-changed: 2018-11-13
 
 
 dnl AM_PATH_LIBGCRYPT([MINIMUM-VERSION,
@@ -36,8 +36,20 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
   if test x"${LIBGCRYPT_CONFIG}" = x ; then
      if test x"${libgcrypt_config_prefix}" != x ; then
         LIBGCRYPT_CONFIG="${libgcrypt_config_prefix}/bin/libgcrypt-config"
-     else
-       case "${SYSROOT}" in
+     fi
+  fi
+
+  use_gpgrt_config=""
+  if test x"${LIBGCRYPT_CONFIG}" = x -a x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
+    if $GPGRT_CONFIG libgcrypt --exists; then
+      LIBGCRYPT_CONFIG="$GPGRT_CONFIG libgcrypt"
+      AC_MSG_NOTICE([Use gpgrt-config as libgcrypt-config])
+      use_gpgrt_config=yes
+    fi
+  fi
+  if test -z "$use_gpgrt_config"; then
+    if test x"${LIBGCRYPT_CONFIG}" = x ; then
+      case "${SYSROOT}" in
          /*)
            if test -x "${SYSROOT}/bin/libgcrypt-config" ; then
              LIBGCRYPT_CONFIG="${SYSROOT}/bin/libgcrypt-config"
@@ -48,18 +60,8 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
           *)
            AC_MSG_WARN([Ignoring \$SYSROOT as it is not an absolute path.])
            ;;
-       esac
-     fi
-  fi
-
-  use_gpgrt_config=""
-  if test x"${LIBGCRYPT_CONFIG}" = x -a x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
-    if $GPGRT_CONFIG libgcrypt --exists; then
-      LIBGCRYPT_CONFIG="$GPGRT_CONFIG libgcrypt"
-      use_gpgrt_config=yes
+      esac
     fi
-  fi
-  if test -z "$use_gpgrt_config"; then
     AC_PATH_PROG(LIBGCRYPT_CONFIG, libgcrypt-config, no)
   fi
 
