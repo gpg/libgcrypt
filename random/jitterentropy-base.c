@@ -642,6 +642,8 @@ int jent_entropy_init(void)
 	int count_stuck = 0;
 	struct rand_data ec;
 
+	memset(&ec, 0, sizeof(ec));
+
 	/* We could perform statistical tests here, but the problem is
 	 * that we only have a few loop counts to do testing. These
 	 * loop counts may show some slight skew and we produce
