@@ -39,6 +39,9 @@
 /* Prevent compiler from issuing SSE instructions between asm blocks. */
 #  pragma GCC target("no-sse")
 #endif
+#if __clang__
+#  pragma clang attribute push (__attribute__((target("no-sse"))), apply_to = function)
+#endif
 
 
 #define ALWAYS_INLINE inline __attribute__((always_inline))
@@ -3513,5 +3516,9 @@ _gcry_aes_aesni_xts_crypt (RIJNDAEL_context *ctx, unsigned char *tweak,
   else
     _gcry_aes_aesni_xts_dec(ctx, tweak, outbuf, inbuf, nblocks);
 }
+
+#if __clang__
+#  pragma clang attribute pop
+#endif
 
 #endif /* USE_AESNI */

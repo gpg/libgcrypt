@@ -55,6 +55,9 @@
 /* Prevent compiler from issuing SSE instructions between asm blocks. */
 #  pragma GCC target("no-sse")
 #endif
+#if __clang__
+#  pragma clang attribute push (__attribute__((target("no-sse"))), apply_to = function)
+#endif
 
 
 /* Copy of ocb_get_l needed here as GCC is unable to inline ocb_get_l
@@ -725,5 +728,9 @@ _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
   return 0;
 }
+
+#if __clang__
+#  pragma clang attribute pop
+#endif
 
 #endif /* USE_SSSE3 */

@@ -39,6 +39,9 @@
 /* Prevent compiler from issuing SSE instructions between asm blocks. */
 #  pragma GCC target("no-sse")
 #endif
+#if __clang__
+#  pragma clang attribute push (__attribute__((target("no-sse"))), apply_to = function)
+#endif
 
 
 #define ALIGNED_16 __attribute__ ((aligned (16)))
@@ -921,5 +924,9 @@ _gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
                : "memory");
 #endif
 }
+
+#if __clang__
+#  pragma clang attribute pop
+#endif
 
 #endif /* USE_INTEL_PCLMUL */

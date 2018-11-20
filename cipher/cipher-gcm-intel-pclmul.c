@@ -37,6 +37,9 @@
 /* Prevent compiler from issuing SSE instructions between asm blocks. */
 #  pragma GCC target("no-sse")
 #endif
+#if __clang__
+#  pragma clang attribute push (__attribute__((target("no-sse"))), apply_to = function)
+#endif
 
 
 /*
@@ -473,5 +476,9 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
 
   return 0;
 }
+
+#if __clang__
+#  pragma clang attribute pop
+#endif
 
 #endif /* GCM_USE_INTEL_PCLMUL */

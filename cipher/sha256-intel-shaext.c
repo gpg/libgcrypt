@@ -29,6 +29,9 @@
 /* Prevent compiler from issuing SSE instructions between asm blocks. */
 #  pragma GCC target("no-sse")
 #endif
+#if __clang__
+#  pragma clang attribute push (__attribute__((target("no-sse"))), apply_to = function)
+#endif
 
 /* Two macros to be called prior and after the use of SHA-EXT
    instructions.  There should be no external function calls between
@@ -348,5 +351,9 @@ _gcry_sha256_transform_intel_shaext(u32 state[8], const unsigned char *data,
   shaext_cleanup (abef_save, cdgh_save);
   return 0;
 }
+
+#if __clang__
+#  pragma clang attribute pop
+#endif
 
 #endif /* HAVE_GCC_INLINE_ASM_SHA_EXT */
