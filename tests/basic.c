@@ -4411,11 +4411,114 @@ do_check_ocb_cipher (int inplace)
       "1792A4E31E0755FB03E31B22116E6C2DDF9EFD6E33D536F1"
       "A0124B0A55BAE884ED93481529C76B6AD0C515F4D1CDD4FD"
       "AC4F02AA"
+    },
+    { GCRY_CIPHER_AES, 12, "0F0E0D0C0B0A09080706050403020100",
+      "BBAA9988776655443322110D",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F2021222324252627",
+      /* test vector for checksumming */
+      "01000000000000000000000000000000"
+      "02000000000000000000000000000000"
+      "04000000000000000000000000000000"
+      "08000000000000000000000000000000"
+      "10000000000000000000000000000000"
+      "20000000000000000000000000000000"
+      "40000000000000000000000000000000"
+      "80000000000000000000000000000000"
+      "00010000000000000000000000000000"
+      "00020000000000000000000000000000"
+      "00040000000000000000000000000000"
+      "00080000000000000000000000000000"
+      "00100000000000000000000000000000"
+      "00200000000000000000000000000000"
+      "00400000000000000000000000000000"
+      "00800000000000000000000000000000"
+      "00000100000000000000000000000000"
+      "00000200000000000000000000000000"
+      "00000400000000000000000000000000"
+      "00000800000000000000000000000000"
+      "00001000000000000000000000000000"
+      "00002000000000000000000000000000"
+      "00004000000000000000000000000000"
+      "00008000000000000000000000000000"
+      "00000001000000000000000000000000"
+      "00000002000000000000000000000000"
+      "00000004000000000000000000000000"
+      "00000008000000000000000000000000"
+      "00000010000000000000000000000000"
+      "00000020000000000000000000000000"
+      "00000040000000000000000000000000"
+      "00000080000000000000000000000000"
+      "00000000010000000000000000000000"
+      "00000000020000000000000000000000"
+      "00000000040000000000000000000000"
+      "00000000080000000000000000000000"
+      "00000000100000000000000000000000"
+      "00000000200000000000000000000000"
+      "00000000400000000000000000000000"
+      "00000000800000000000000000000000"
+      "00000000000100000000000000000000"
+      "00000000000200000000000000000000"
+      "00000000000400000000000000000000"
+      "00000000000800000000000000000000"
+      "00000000001000000000000000000000"
+      "00000000002000000000000000000000"
+      "00000000004000000000000000000000"
+      "00000000008000000000000000000000",
+      "01105c6e36f6ac480f022c51e31ed702"
+      "90fda4b7b783194d4b4be8e4e1e2dff4"
+      "6a0804d1c5f9f808ea7933e31c063233"
+      "2bf65a22b20bb13cde3b80b3682ba965"
+      "b1207c58916f7856fa9968b410e50dee"
+      "98b35c071163d1b352b9bbccd09fde29"
+      "b850f40e71a8ae7d2e2d577f5ee39c46"
+      "7fa28130b50a123c29958e4665dda9a5"
+      "e0793997f8f19633a96392141d6e0e88"
+      "77850ed4364065d1d2f8746e2f1d5fd1"
+      "996cdde03215306503a30e41f58ef3c4"
+      "400365cfea4fa6381157c12a46598edf"
+      "18604854462ec66e3d3cf26d4723cb6a"
+      "9d801095048086a606fdb9192760889b"
+      "a8ce2e70e1b55a469137a9e2e6734565"
+      "283cb1e2c74f37e0854d03e33f8ba499"
+      "ef5d9af4edfce077c6280338f0a64286"
+      "2e6bc27ebd5a4c91b3778e22631251c8"
+      "c5bb75a10945597a9d6c274fc82d3338"
+      "b403a0a549d1375f26e71ef22bce0941"
+      "93ea87e2ed72fce0546148c351eec3be"
+      "867bb1b96070c377fff3c98e21562beb"
+      "475cfe28abcaaedf49981f6599b15140"
+      "ea6130d24407079f18ba9d4a8960b082"
+      "b39c57320e2e064f02fde88c23112146"
+      "1cac3655868aef584714826ee4f361fb"
+      "e6d692e1589cbb9dd3c74fa628df2a1f"
+      "3b0029b1d62b7e9978013ed3c793c1dd"
+      "1f184c8f7022a853cac40b74ac749aa3"
+      "f33f0d14732dfda0f2c3c20591bf1f5a"
+      "710ec0d0bca342baa5146068a78ff58c"
+      "66316312b7a98af35a0f4e92799b4047"
+      "f047ae61f25c28d232ce5c168cc745d6"
+      "6da13cb0f9e38a696635dba7a21571cf"
+      "cd64ec8cc33db7879f59a90d9edd00f6"
+      "a899e39ab36b9269a3ac04ebad9326bf"
+      "53cd9b400168a61714cd628a4056d236"
+      "bd8622c76daa54cb65f5db2fe03bafbe"
+      "0b23549ae31136f607293e8093a21934"
+      "74fd5e9c2451b4c8e0499e6ad34fafc8"
+      "ab77722a282f7f84b14ddebf7e696300"
+      "c1ef92d4a0263c6cca104530f996e272"
+      "f58992ff68d642b071a5848dc4acf2ae"
+      "28fb1f27ae0f297d5136a7a0a4a03e89"
+      "b588755b8217a1c62773790e69261269"
+      "19f45daf7b3ccf18e3fc590a9a0e172f"
+      "033ac4d13c3decc4c62d7de718ace802"
+      "140452dc850989f6762e3578bbb04be3"
+      "1a237c599c4649f4e586b2de"
     }
   };
   gpg_error_t err = 0;
   gcry_cipher_hd_t hde, hdd;
-  unsigned char out[MAX_DATA_LEN];
+  unsigned char out[1024];
   unsigned char tag[16];
   int tidx;
 
@@ -4548,7 +4651,7 @@ do_check_ocb_cipher (int inplace)
             }
           else
             {
-              err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+              err = gcry_cipher_encrypt (hde, out, sizeof(out),
                                          plain, plainlen);
             }
         }
@@ -4605,7 +4708,7 @@ do_check_ocb_cipher (int inplace)
             }
           else
             {
-              unsigned char tmp[MAX_DATA_LEN];
+              unsigned char tmp[sizeof(out)];
 
               memcpy(tmp, out, plainlen);
               err = gcry_cipher_decrypt (hdd, out, plainlen, tmp, plainlen);
@@ -4696,7 +4799,7 @@ check_ocb_cipher_largebuf_split (int algo, int keylen, const char *tagexpect,
     }
 
   for (i = 0; i < buflen; i++)
-    inbuf[i] = 'a';
+    inbuf[i] = (i + 181081) * 5039;
 
   err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
   if (!err)
@@ -4855,6 +4958,131 @@ out_free:
 
 
 static void
+check_ocb_cipher_checksum (int algo, int keylen)
+{
+  static const unsigned char key[32] =
+	"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
+	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F";
+  static const unsigned char nonce[12] =
+	"\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x00\x01\x02\x03";
+  const size_t buflen = 128 * 16;
+  unsigned char *inbuf, *outbuf;
+  gpg_error_t err = 0;
+  gcry_cipher_hd_t hde, hde2;
+  unsigned char tag[16];
+  unsigned char tag2[16];
+  int i;
+
+  inbuf = xmalloc(buflen);
+  if (!inbuf)
+    {
+      fail ("out-of-memory\n");
+      return;
+    }
+  outbuf = xmalloc(buflen);
+  if (!inbuf)
+    {
+      fail ("out-of-memory\n");
+      xfree(inbuf);
+      return;
+    }
+
+  memset(inbuf, 0, buflen);
+  for (i = 0; i < 128; i += 16)
+    {
+      unsigned char *blk = inbuf + i;
+      int bit2set = i / 16;
+      int byteidx = bit2set / 8;
+      int bitpos = bit2set % 8;
+
+      blk[byteidx] |= 1 << bitpos;
+    }
+
+  err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
+  if (!err)
+    err = gcry_cipher_open (&hde2, algo, GCRY_CIPHER_MODE_OCB, 0);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_open failed (checksum, algo %d): %s\n",
+	    algo, gpg_strerror (err));
+      goto out_free;
+    }
+
+  err = gcry_cipher_setkey (hde, key, keylen);
+  if (!err)
+    err = gcry_cipher_setkey (hde2, key, keylen);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_setkey failed (checksum, algo %d): %s\n",
+	    algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hde2);
+      goto out_free;
+    }
+
+  err = gcry_cipher_setiv (hde, nonce, 12);
+  if (!err)
+    err = gcry_cipher_setiv (hde2, nonce, 12);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_setiv failed (checksum, algo %d): %s\n",
+	    algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hde2);
+      goto out_free;
+    }
+
+  err = gcry_cipher_final (hde);
+  if (!err)
+    {
+      err = gcry_cipher_encrypt (hde, outbuf, buflen, inbuf, buflen);
+    }
+  for (i = 0; i < buflen && !err; i += 16)
+    {
+      if (i + 16 == buflen)
+	err = gcry_cipher_final (hde2);
+      if (!err)
+	err = gcry_cipher_encrypt (hde2, outbuf + i, 16, inbuf + i, 16);
+    }
+
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_encrypt failed (checksum, algo %d): %s\n",
+	    algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hde2);
+      goto out_free;
+    }
+
+  /* Check that the tag matches. */
+  err = gcry_cipher_gettag (hde, tag, 16);
+  if (err)
+    {
+      fail ("cipher_ocb, gcry_cipher_gettag failed (checksum, algo %d): %s\n",
+	    algo, gpg_strerror (err));
+    }
+  err = gcry_cipher_gettag (hde2, tag2, 16);
+  if (err)
+    {
+      fail ("cipher_ocb, gcry_cipher_gettag failed (checksum2, algo %d): %s\n",
+	    algo, gpg_strerror (err));
+    }
+  if (memcmp (tag, tag2, 16))
+    {
+      mismatch (tag, 16, tag2, 16);
+      fail ("cipher-ocb, encrypt tag mismatch (checksum, algo %d)\n", algo);
+    }
+
+  gcry_cipher_close (hde);
+  gcry_cipher_close (hde2);
+
+out_free:
+  xfree(inbuf);
+  xfree(outbuf);
+}
+
+
+static void
 check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
 {
   unsigned int split;
@@ -4863,6 +5091,8 @@ check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
     {
       check_ocb_cipher_largebuf_split(algo, keylen, tagexpect, split);
     }
+
+  check_ocb_cipher_checksum(algo, keylen);
 }
 
 
@@ -5108,35 +5338,25 @@ check_ocb_cipher (void)
 
   /* Check large buffer encryption/decryption. */
   check_ocb_cipher_largebuf(GCRY_CIPHER_AES, 16,
-			    "\xf5\xf3\x12\x7d\x58\x2d\x96\xe8"
-			    "\x33\xfd\x7a\x4f\x42\x60\x5d\x20");
+    "\xc1\x5b\xf1\x80\xa4\xd5\xea\xfd\xae\x17\xa6\xcd\x6b\x10\xa8\xea");
   check_ocb_cipher_largebuf(GCRY_CIPHER_AES256, 32,
-			    "\xfa\x26\xa5\xbf\xf6\x7d\x3a\x8d"
-			    "\xfe\x96\x67\xc9\xc8\x41\x03\x51");
+    "\x2b\xb7\x25\x6b\x77\xc7\xfb\x21\x5c\xc9\x6c\x36\x17\x1a\x1a\xd5");
   check_ocb_cipher_largebuf(GCRY_CIPHER_CAMELLIA128, 16,
-			    "\x28\x23\x38\x45\x2b\xfd\x42\x45"
-			    "\x43\x64\x7e\x67\x7f\xf4\x8b\xcd");
+    "\xe0\xae\x3f\x29\x3a\xee\xd8\xe3\xf2\x20\xc1\xa2\xd8\x72\x12\xd9");
   check_ocb_cipher_largebuf(GCRY_CIPHER_CAMELLIA192, 24,
-			    "\xee\xca\xe5\x39\x27\x2d\x33\xe7"
-			    "\x79\x74\xb0\x1d\x37\x12\xd5\x6c");
+    "\xd7\x98\x71\xcf\x19\x5c\xa3\x3d\x6c\xfc\xc9\xbe\x9f\x13\x6b\xbd");
   check_ocb_cipher_largebuf(GCRY_CIPHER_CAMELLIA256, 32,
-			    "\x39\x39\xd0\x2d\x05\x68\x74\xee"
-			    "\x18\x6b\xea\x3d\x0b\xd3\x58\xae");
+    "\x03\xf6\xec\x1a\x0e\xae\x66\x24\x2b\xba\x26\x0f\xb3\xb3\x1f\xb9");
   check_ocb_cipher_largebuf(GCRY_CIPHER_TWOFISH, 16,
-			    "\x63\xe3\x0e\xb9\x11\x6f\x14\xba"
-			    "\x79\xe4\xa7\x9e\xad\x3c\x02\x0c");
+    "\x1c\xf9\xc7\xfc\x3a\x32\xac\xc7\x5e\x0a\xc2\x5c\x90\xd6\xf6\xf9");
   check_ocb_cipher_largebuf(GCRY_CIPHER_TWOFISH, 32,
-			    "\xf6\xd4\xfe\x4e\x50\x85\x13\x59"
-			    "\x69\x0e\x4c\x67\x3e\xdd\x47\x90");
+    "\x53\x02\xc8\x0d\x4e\x9a\x44\x9e\x43\xd4\xaa\x06\x30\x93\xcc\x16");
   check_ocb_cipher_largebuf(GCRY_CIPHER_SERPENT128, 16,
-			    "\x3c\xfb\x66\x14\x3c\xc8\x6c\x67"
-			    "\x26\xb8\x23\xeb\xaf\x43\x98\x69");
+    "\xd3\x64\xac\x40\x48\x88\x77\xe2\x41\x26\x4c\xde\x21\x29\x21\x8d");
   check_ocb_cipher_largebuf(GCRY_CIPHER_SERPENT192, 24,
-			    "\x5e\x62\x27\xc5\x32\xc3\x1d\xe6"
-			    "\x2e\x65\xe7\xd6\xfb\x05\xd7\xb2");
+    "\x99\xeb\x35\xb0\x62\x4e\x7b\xf1\x5e\x9f\xed\x32\x78\x90\x0b\xd0");
   check_ocb_cipher_largebuf(GCRY_CIPHER_SERPENT256, 32,
-			    "\xe7\x8b\xe6\xd4\x2f\x7a\x36\x4c"
-			    "\xba\xee\x20\xe2\x68\xf4\xcb\xcc");
+    "\x71\x66\x2f\x68\xbf\xdd\xcc\xb1\xbf\x81\x56\x5f\x01\x73\xeb\x44");
 
   /* Check that the AAD data is correctly buffered.  */
   check_ocb_cipher_splitaad ();

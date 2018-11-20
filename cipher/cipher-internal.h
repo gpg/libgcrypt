@@ -319,7 +319,9 @@ struct gcry_cipher_handle
       /* Helper variables and pre-computed table of L values.  */
       unsigned char L_star[OCB_BLOCK_LEN];
       unsigned char L_dollar[OCB_BLOCK_LEN];
-      unsigned char L[OCB_BLOCK_LEN][OCB_L_TABLE_SIZE];
+      unsigned char L0L1[OCB_BLOCK_LEN];
+      unsigned char L0L1L0[OCB_BLOCK_LEN];
+      unsigned char L[OCB_L_TABLE_SIZE][OCB_BLOCK_LEN];
 
       /* The tag is valid if marks.tag has been set.  */
       unsigned char tag[OCB_BLOCK_LEN];

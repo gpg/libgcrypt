@@ -334,6 +334,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->use_aesni = 1;
+      ctx->use_avx = !!(hwfeatures & HWF_INTEL_AVX);
+      ctx->use_avx2 = !!(hwfeatures & HWF_INTEL_AVX2);
       if (hd)
         {
           hd->bulk.cfb_enc = _gcry_aes_aesni_cfb_enc;

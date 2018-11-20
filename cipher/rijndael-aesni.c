@@ -41,6 +41,10 @@
 #endif
 
 
+#define ALWAYS_INLINE inline __attribute__((always_inline))
+#define NO_INLINE __attribute__((noinline))
+
+
 typedef struct u128_s
 {
   u32 a, b, c, d;
@@ -49,7 +53,7 @@ typedef struct u128_s
 
 /* Copy of ocb_get_l needed here as GCC is unable to inline ocb_get_l
    because of 'pragma target'. */
-static inline const unsigned char *
+static ALWAYS_INLINE const unsigned char *
 aes_ocb_get_l (gcry_cipher_hd_t c, u64 n)
 {
   unsigned long ntz;
@@ -71,78 +75,78 @@ aes_ocb_get_l (gcry_cipher_hd_t c, u64 n)
    the key or the data.  */
 #ifdef __WIN64__
 /* XMM6-XMM15 are callee-saved registers on WIN64. */
-# define aesni_prepare_2_6_variable char win64tmp[16]
-# define aesni_prepare_7_15_variable char win64tmp7_15[16 * 9]
+# define aesni_prepare_2_7_variable char win64tmp[16 * 2]
+# define aesni_prepare_8_15_variable char win64tmp8_15[16 * 8]
 # define aesni_prepare() do { } while (0)
-# define aesni_prepare_2_6()                                            \
+# define aesni_prepare_2_7()                                            \
    do { asm volatile ("movdqu %%xmm6, %0\n\t"                           \
-                      : "=m" (*win64tmp)                                \
+		      "movdqu %%xmm7, %1\n\t"                           \
+                      : "=m" (*win64tmp), "=m" (*(win64tmp+16))         \
                       :                                                 \
                       : "memory");                                      \
    } while (0)
-# define aesni_prepare_7_15()                                           \
-   do { asm volatile ("movdqu %%xmm7,  0*16(%0)\n\t"                    \
-                      "movdqu %%xmm8,  1*16(%0)\n\t"                    \
-                      "movdqu %%xmm9,  2*16(%0)\n\t"                    \
-                      "movdqu %%xmm10, 3*16(%0)\n\t"                    \
-                      "movdqu %%xmm11, 4*16(%0)\n\t"                    \
-                      "movdqu %%xmm12, 5*16(%0)\n\t"                    \
-                      "movdqu %%xmm13, 6*16(%0)\n\t"                    \
-                      "movdqu %%xmm14, 7*16(%0)\n\t"                    \
-                      "movdqu %%xmm15, 8*16(%0)\n\t"                    \
+# define aesni_prepare_8_15()                                           \
+   do { asm volatile ("movdqu %%xmm8,  0*16(%0)\n\t"                    \
+                      "movdqu %%xmm9,  1*16(%0)\n\t"                    \
+                      "movdqu %%xmm10, 2*16(%0)\n\t"                    \
+                      "movdqu %%xmm11, 3*16(%0)\n\t"                    \
+                      "movdqu %%xmm12, 4*16(%0)\n\t"                    \
+                      "movdqu %%xmm13, 5*16(%0)\n\t"                    \
+                      "movdqu %%xmm14, 6*16(%0)\n\t"                    \
+                      "movdqu %%xmm15, 7*16(%0)\n\t"                    \
                       :                                                 \
-                      : "r" (win64tmp7_15)                              \
+                      : "r" (win64tmp8_15)                              \
                       : "memory");                                      \
    } while (0)
 # define aesni_cleanup()                                                \
    do { asm volatile ("pxor %%xmm0, %%xmm0\n\t"                         \
                       "pxor %%xmm1, %%xmm1\n" :: );                     \
    } while (0)
-# define aesni_cleanup_2_6()                                            \
+# define aesni_cleanup_2_7()                                            \
    do { asm volatile ("movdqu %0,   %%xmm6\n\t"                         \
+		      "movdqu %1,   %%xmm7\n\t"                         \
                       "pxor %%xmm2, %%xmm2\n"                           \
                       "pxor %%xmm3, %%xmm3\n"                           \
                       "pxor %%xmm4, %%xmm4\n"                           \
                       "pxor %%xmm5, %%xmm5\n"                           \
                       :                                                 \
-                      : "m" (*win64tmp)                                 \
+                      : "m" (*win64tmp), "m" (*(win64tmp+16))           \
                       : "memory");                                      \
    } while (0)
-# define aesni_cleanup_7_15()                                           \
-   do { asm volatile ("movdqu 0*16(%0), %%xmm7\n\t"                     \
-                      "movdqu 1*16(%0), %%xmm8\n\t"                     \
-                      "movdqu 2*16(%0), %%xmm9\n\t"                     \
-                      "movdqu 3*16(%0), %%xmm10\n\t"                    \
-                      "movdqu 4*16(%0), %%xmm11\n\t"                    \
-                      "movdqu 5*16(%0), %%xmm12\n\t"                    \
-                      "movdqu 6*16(%0), %%xmm13\n\t"                    \
-                      "movdqu 7*16(%0), %%xmm14\n\t"                    \
-                      "movdqu 8*16(%0), %%xmm15\n\t"                    \
+# define aesni_cleanup_8_15()                                           \
+   do { asm volatile ("movdqu 0*16(%0), %%xmm8\n\t"                     \
+                      "movdqu 1*16(%0), %%xmm9\n\t"                     \
+                      "movdqu 2*16(%0), %%xmm10\n\t"                    \
+                      "movdqu 3*16(%0), %%xmm11\n\t"                    \
+                      "movdqu 4*16(%0), %%xmm12\n\t"                    \
+                      "movdqu 5*16(%0), %%xmm13\n\t"                    \
+                      "movdqu 6*16(%0), %%xmm14\n\t"                    \
+                      "movdqu 7*16(%0), %%xmm15\n\t"                    \
                       :                                                 \
-                      : "r" (win64tmp7_15)                              \
+                      : "r" (win64tmp8_15)                              \
                       : "memory");                                      \
    } while (0)
 #else
-# define aesni_prepare_2_6_variable
+# define aesni_prepare_2_7_variable
 # define aesni_prepare() do { } while (0)
-# define aesni_prepare_2_6() do { } while (0)
+# define aesni_prepare_2_7() do { } while (0)
 # define aesni_cleanup()                                                \
    do { asm volatile ("pxor %%xmm0, %%xmm0\n\t"                         \
                       "pxor %%xmm1, %%xmm1\n" :: );                     \
    } while (0)
-# define aesni_cleanup_2_6()                                            \
-   do { asm volatile ("pxor %%xmm2, %%xmm2\n\t"                         \
+# define aesni_cleanup_2_7()                                            \
+   do { asm volatile ("pxor %%xmm7, %%xmm7\n\t"                         \
+                      "pxor %%xmm2, %%xmm2\n\t"                         \
                       "pxor %%xmm3, %%xmm3\n"                           \
                       "pxor %%xmm4, %%xmm4\n"                           \
                       "pxor %%xmm5, %%xmm5\n"                           \
                       "pxor %%xmm6, %%xmm6\n":: );                      \
    } while (0)
 # ifdef __x86_64__
-#  define aesni_prepare_7_15_variable
-#  define aesni_prepare_7_15() do { } while (0)
-#  define aesni_cleanup_7_15()                                          \
-   do { asm volatile ("pxor %%xmm7, %%xmm7\n\t"                         \
-                      "pxor %%xmm8, %%xmm8\n"                           \
+#  define aesni_prepare_8_15_variable
+#  define aesni_prepare_8_15() do { } while (0)
+#  define aesni_cleanup_8_15()                                          \
+   do { asm volatile ("pxor %%xmm8, %%xmm8\n"                           \
                       "pxor %%xmm9, %%xmm9\n"                           \
                       "pxor %%xmm10, %%xmm10\n"                         \
                       "pxor %%xmm11, %%xmm11\n"                         \
@@ -157,10 +161,10 @@ aes_ocb_get_l (gcry_cipher_hd_t c, u64 n)
 void
 _gcry_aes_aesni_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare();
-  aesni_prepare_2_6();
+  aesni_prepare_2_7();
 
   if (ctx->rounds < 12)
     {
@@ -383,12 +387,12 @@ _gcry_aes_aesni_do_setkey (RIJNDAEL_context *ctx, const byte *key)
     }
 
   aesni_cleanup();
-  aesni_cleanup_2_6();
+  aesni_cleanup_2_7();
 }
 
 
 /* Make a decryption key from an encryption key. */
-static inline void
+static ALWAYS_INLINE void
 do_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 {
   /* The AES-NI decrypt instructions use the Equivalent Inverse
@@ -447,7 +451,7 @@ _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 
 /* Encrypt one block using the Intel AES-NI instructions.  Block is input
  * and output through SSE register xmm0. */
-static inline void
+static ALWAYS_INLINE void
 do_aesni_enc (const RIJNDAEL_context *ctx)
 {
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
@@ -500,7 +504,7 @@ do_aesni_enc (const RIJNDAEL_context *ctx)
 
 /* Decrypt one block using the Intel AES-NI instructions.  Block is input
  * and output through SSE register xmm0. */
-static inline void
+static ALWAYS_INLINE void
 do_aesni_dec (const RIJNDAEL_context *ctx)
 {
 #define aesdec_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xde, 0xc1\n\t"
@@ -553,7 +557,7 @@ do_aesni_dec (const RIJNDAEL_context *ctx)
 
 /* Encrypt four blocks using the Intel AES-NI instructions.  Blocks are input
  * and output through SSE registers xmm1 to xmm4.  */
-static inline void
+static ALWAYS_INLINE void
 do_aesni_enc_vec4 (const RIJNDAEL_context *ctx)
 {
 #define aesenc_xmm0_xmm1      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc8\n\t"
@@ -662,7 +666,7 @@ do_aesni_enc_vec4 (const RIJNDAEL_context *ctx)
 
 /* Decrypt four blocks using the Intel AES-NI instructions.  Blocks are input
  * and output through SSE registers xmm1 to xmm4.  */
-static inline void
+static ALWAYS_INLINE void
 do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
 {
 #define aesdec_xmm0_xmm1 ".byte 0x66, 0x0f, 0x38, 0xde, 0xc8\n\t"
@@ -773,7 +777,7 @@ do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
 
 /* Encrypt eight blocks using the Intel AES-NI instructions.  Blocks are input
  * and output through SSE registers xmm1 to xmm4 and xmm8 to xmm11.  */
-static inline void
+static ALWAYS_INLINE void
 do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
 {
   asm volatile ("movdqa (%[key]), %%xmm0\n\t"
@@ -925,7 +929,7 @@ do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
 
 /* Decrypt eight blocks using the Intel AES-NI instructions.  Blocks are input
  * and output through SSE registers xmm1 to xmm4 and xmm8 to xmm11.  */
-static inline void
+static ALWAYS_INLINE void
 do_aesni_dec_vec8 (const RIJNDAEL_context *ctx)
 {
   asm volatile ("movdqa (%[key]), %%xmm0\n\t"
@@ -1757,10 +1761,10 @@ _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks, int cbc_mac)
 {
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6();
+  aesni_prepare_2_7();
 
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
                 : /* No output */
@@ -1794,7 +1798,7 @@ _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
                 : "memory" );
 
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
 }
 
 
@@ -1805,10 +1809,10 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
 {
   static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
     { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6();
+  aesni_prepare_2_7();
 
   asm volatile ("movdqa %[mask], %%xmm6\n\t" /* Preload mask */
                 "movdqa %[ctr], %%xmm5\n\t"  /* Preload CTR */
@@ -1820,9 +1824,9 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
-      aesni_prepare_7_15_variable;
+      aesni_prepare_8_15_variable;
 
-      aesni_prepare_7_15();
+      aesni_prepare_8_15();
 
       for ( ;nblocks >= 8 ; nblocks -= 8 )
 	{
@@ -1831,7 +1835,7 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
 	  inbuf  += 8*BLOCKSIZE;
 	}
 
-      aesni_cleanup_7_15();
+      aesni_cleanup_8_15();
     }
 #endif
 
@@ -1848,7 +1852,7 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
       inbuf  += BLOCKSIZE;
     }
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
 }
 
 
@@ -1876,10 +1880,10 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
 {
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6();
+  aesni_prepare_2_7();
 
   asm volatile ("movdqu %[iv], %%xmm6\n\t"
                 : /* No output */
@@ -1891,9 +1895,9 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
-      aesni_prepare_7_15_variable;
+      aesni_prepare_8_15_variable;
 
-      aesni_prepare_7_15();
+      aesni_prepare_8_15();
 
       for ( ;nblocks >= 8; nblocks -= 8)
 	{
@@ -1953,7 +1957,7 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 	  inbuf  += 8*BLOCKSIZE;
 	}
 
-      aesni_cleanup_7_15();
+      aesni_cleanup_8_15();
     }
 #endif
 
@@ -2022,7 +2026,7 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
                 : "memory" );
 
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
 }
 
 
@@ -2031,10 +2035,10 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
 {
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6();
+  aesni_prepare_2_7();
 
   if ( !ctx->decryption_prepared )
     {
@@ -2051,9 +2055,9 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
-      aesni_prepare_7_15_variable;
+      aesni_prepare_8_15_variable;
 
-      aesni_prepare_7_15();
+      aesni_prepare_8_15();
 
       for ( ;nblocks >= 8 ; nblocks -= 8 )
 	{
@@ -2113,7 +2117,7 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 	  inbuf  += 8*BLOCKSIZE;
 	}
 
-      aesni_cleanup_7_15();
+      aesni_cleanup_8_15();
     }
 #endif
 
@@ -2187,11 +2191,175 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
      : "memory");
 
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
 }
 
 
-static void
+static ALWAYS_INLINE void
+aesni_ocb_checksum (gcry_cipher_hd_t c, const unsigned char *plaintext,
+		    size_t nblocks)
+{
+  RIJNDAEL_context *ctx = (void *)&c->context.c;
+
+  /* Calculate checksum */
+  asm volatile ("movdqu %[checksum], %%xmm6\n\t"
+                "pxor %%xmm1, %%xmm1\n\t"
+                "pxor %%xmm2, %%xmm2\n\t"
+                "pxor %%xmm3, %%xmm3\n\t"
+                :
+                :[checksum] "m" (*c->u_ctr.ctr)
+                : "memory" );
+
+  if (0) {}
+#if defined(HAVE_GCC_INLINE_ASM_AVX2)
+  else if (nblocks >= 16 && ctx->use_avx2)
+    {
+      /* Use wider 256-bit registers for fast xoring of plaintext. */
+      asm volatile ("vzeroupper\n\t"
+		    "vpxor %%xmm0, %%xmm0, %%xmm0\n\t"
+		    "vpxor %%xmm4, %%xmm4, %%xmm4\n\t"
+		    "vpxor %%xmm5, %%xmm5, %%xmm5\n\t"
+		    "vpxor %%xmm7, %%xmm7, %%xmm7\n\t"
+                    :
+                    :
+                    : "memory");
+
+      for (;nblocks >= 16; nblocks -= 16)
+	{
+	  asm volatile ("vpxor %[ptr0], %%ymm6, %%ymm6\n\t"
+			"vpxor %[ptr1], %%ymm1, %%ymm1\n\t"
+			"vpxor %[ptr2], %%ymm2, %%ymm2\n\t"
+			"vpxor %[ptr3], %%ymm3, %%ymm3\n\t"
+			"vpxor %[ptr4], %%ymm0, %%ymm0\n\t"
+			"vpxor %[ptr5], %%ymm4, %%ymm4\n\t"
+			"vpxor %[ptr6], %%ymm5, %%ymm5\n\t"
+			"vpxor %[ptr7], %%ymm7, %%ymm7\n\t"
+			:
+			: [ptr0] "m" (*(plaintext + 0 * BLOCKSIZE * 2)),
+			  [ptr1] "m" (*(plaintext + 1 * BLOCKSIZE * 2)),
+			  [ptr2] "m" (*(plaintext + 2 * BLOCKSIZE * 2)),
+			  [ptr3] "m" (*(plaintext + 3 * BLOCKSIZE * 2)),
+			  [ptr4] "m" (*(plaintext + 4 * BLOCKSIZE * 2)),
+			  [ptr5] "m" (*(plaintext + 5 * BLOCKSIZE * 2)),
+			  [ptr6] "m" (*(plaintext + 6 * BLOCKSIZE * 2)),
+			  [ptr7] "m" (*(plaintext + 7 * BLOCKSIZE * 2))
+			: "memory" );
+	  plaintext += BLOCKSIZE * 16;
+	}
+
+      asm volatile ("vpxor %%ymm0, %%ymm6, %%ymm6\n\t"
+		    "vpxor %%ymm4, %%ymm1, %%ymm1\n\t"
+		    "vpxor %%ymm5, %%ymm2, %%ymm2\n\t"
+		    "vpxor %%ymm7, %%ymm3, %%ymm3\n\t"
+		    "vextracti128 $1, %%ymm6, %%xmm0\n\t"
+		    "vextracti128 $1, %%ymm1, %%xmm4\n\t"
+		    "vextracti128 $1, %%ymm2, %%xmm5\n\t"
+		    "vextracti128 $1, %%ymm3, %%xmm7\n\t"
+		    "vpxor %%xmm0, %%xmm6, %%xmm6\n\t"
+		    "vpxor %%xmm4, %%xmm1, %%xmm1\n\t"
+		    "vpxor %%xmm5, %%xmm2, %%xmm2\n\t"
+		    "vpxor %%xmm7, %%xmm3, %%xmm3\n\t"
+		    "vzeroupper\n\t"
+		    :
+		    :
+		    : "memory" );
+    }
+#endif
+#if defined(HAVE_GCC_INLINE_ASM_AVX)
+  else if (nblocks >= 16 && ctx->use_avx)
+    {
+      /* Same as AVX2, except using 256-bit floating point instructions. */
+      asm volatile ("vzeroupper\n\t"
+		    "vxorpd %%xmm0, %%xmm0, %%xmm0\n\t"
+		    "vxorpd %%xmm4, %%xmm4, %%xmm4\n\t"
+		    "vxorpd %%xmm5, %%xmm5, %%xmm5\n\t"
+		    "vxorpd %%xmm7, %%xmm7, %%xmm7\n\t"
+                    :
+                    :
+                    : "memory");
+
+      for (;nblocks >= 16; nblocks -= 16)
+	{
+	  asm volatile ("vxorpd %[ptr0], %%ymm6, %%ymm6\n\t"
+			"vxorpd %[ptr1], %%ymm1, %%ymm1\n\t"
+			"vxorpd %[ptr2], %%ymm2, %%ymm2\n\t"
+			"vxorpd %[ptr3], %%ymm3, %%ymm3\n\t"
+			"vxorpd %[ptr4], %%ymm0, %%ymm0\n\t"
+			"vxorpd %[ptr5], %%ymm4, %%ymm4\n\t"
+			"vxorpd %[ptr6], %%ymm5, %%ymm5\n\t"
+			"vxorpd %[ptr7], %%ymm7, %%ymm7\n\t"
+			:
+			: [ptr0] "m" (*(plaintext + 0 * BLOCKSIZE * 2)),
+			  [ptr1] "m" (*(plaintext + 1 * BLOCKSIZE * 2)),
+			  [ptr2] "m" (*(plaintext + 2 * BLOCKSIZE * 2)),
+			  [ptr3] "m" (*(plaintext + 3 * BLOCKSIZE * 2)),
+			  [ptr4] "m" (*(plaintext + 4 * BLOCKSIZE * 2)),
+			  [ptr5] "m" (*(plaintext + 5 * BLOCKSIZE * 2)),
+			  [ptr6] "m" (*(plaintext + 6 * BLOCKSIZE * 2)),
+			  [ptr7] "m" (*(plaintext + 7 * BLOCKSIZE * 2))
+			: "memory" );
+	  plaintext += BLOCKSIZE * 16;
+	}
+
+      asm volatile ("vxorpd %%ymm0, %%ymm6, %%ymm6\n\t"
+		    "vxorpd %%ymm4, %%ymm1, %%ymm1\n\t"
+		    "vxorpd %%ymm5, %%ymm2, %%ymm2\n\t"
+		    "vxorpd %%ymm7, %%ymm3, %%ymm3\n\t"
+		    "vextractf128 $1, %%ymm6, %%xmm0\n\t"
+		    "vextractf128 $1, %%ymm1, %%xmm4\n\t"
+		    "vextractf128 $1, %%ymm2, %%xmm5\n\t"
+		    "vextractf128 $1, %%ymm3, %%xmm7\n\t"
+		    "vxorpd %%xmm0, %%xmm6, %%xmm6\n\t"
+		    "vxorpd %%xmm4, %%xmm1, %%xmm1\n\t"
+		    "vxorpd %%xmm5, %%xmm2, %%xmm2\n\t"
+		    "vxorpd %%xmm7, %%xmm3, %%xmm3\n\t"
+		    "vzeroupper\n\t"
+		    :
+		    :
+		    : "memory" );
+    }
+#endif
+
+  for (;nblocks >= 4; nblocks -= 4)
+    {
+      asm volatile ("movdqu %[ptr0], %%xmm0\n\t"
+		    "movdqu %[ptr1], %%xmm4\n\t"
+		    "movdqu %[ptr2], %%xmm5\n\t"
+		    "movdqu %[ptr3], %%xmm7\n\t"
+		    "pxor %%xmm0, %%xmm6\n\t"
+		    "pxor %%xmm4, %%xmm1\n\t"
+		    "pxor %%xmm5, %%xmm2\n\t"
+		    "pxor %%xmm7, %%xmm3\n\t"
+		    :
+		    : [ptr0] "m" (*(plaintext + 0 * BLOCKSIZE)),
+		      [ptr1] "m" (*(plaintext + 1 * BLOCKSIZE)),
+		      [ptr2] "m" (*(plaintext + 2 * BLOCKSIZE)),
+		      [ptr3] "m" (*(plaintext + 3 * BLOCKSIZE))
+		    : "memory" );
+      plaintext += BLOCKSIZE * 4;
+    }
+
+  for (;nblocks >= 1; nblocks -= 1)
+    {
+      asm volatile ("movdqu %[ptr0], %%xmm0\n\t"
+		    "pxor %%xmm0, %%xmm6\n\t"
+		    :
+		    : [ptr0] "m" (*(plaintext + 0 * BLOCKSIZE))
+		    : "memory" );
+      plaintext += BLOCKSIZE;
+    }
+
+  asm volatile ("pxor %%xmm1, %%xmm6\n\t"
+		"pxor %%xmm2, %%xmm6\n\t"
+		"pxor %%xmm3, %%xmm6\n\t"
+		"movdqu %%xmm6, %[checksum]\n\t"
+		: [checksum] "=m" (*c->u_ctr.ctr)
+		:
+		: "memory" );
+}
+
+
+static unsigned int NO_INLINE
 aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
                const void *inbuf_arg, size_t nblocks)
 {
@@ -2200,31 +2368,28 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   u64 n = c->u_mode.ocb.data_nblocks;
   const unsigned char *l;
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6 ();
+  aesni_prepare_2_7 ();
 
-  /* Preload Offset and Checksum */
+  aesni_ocb_checksum (c, inbuf_arg, nblocks);
+
+  /* Preload Offset */
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
-                "movdqu %[ctr], %%xmm6\n\t"
                 : /* No output */
-                : [iv] "m" (*c->u_iv.iv),
-                  [ctr] "m" (*c->u_ctr.ctr)
+                : [iv] "m" (*c->u_iv.iv)
                 : "memory" );
-
 
   for ( ;nblocks && n % 4; nblocks-- )
     {
       l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-      /* Checksum_i = Checksum_{i-1} xor P_i  */
       /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
       asm volatile ("movdqu %[l],     %%xmm1\n\t"
                     "movdqu %[inbuf], %%xmm0\n\t"
                     "pxor   %%xmm1,   %%xmm5\n\t"
-                    "pxor   %%xmm0,   %%xmm6\n\t"
                     "pxor   %%xmm5,   %%xmm0\n\t"
                     :
                     : [l] "m" (*l),
@@ -2246,11 +2411,11 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
-      aesni_prepare_7_15_variable;
+      aesni_prepare_8_15_variable;
 
-      aesni_prepare_7_15();
+      aesni_prepare_8_15();
 
-      asm volatile ("movdqu %[l0], %%xmm7\n\t"
+      asm volatile ("movdqu %[l0], %%xmm6\n\t"
 		    :
 		    : [l0] "m" (*c->u_mode.ocb.L[0])
 		    : "memory" );
@@ -2260,78 +2425,78 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 	  n += 4;
 	  l = aes_ocb_get_l(c, n);
 
-	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-	  /* Checksum_i = Checksum_{i-1} xor P_i  */
-	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-
-	  asm volatile ("movdqu %[l1],     %%xmm10\n\t"
-			"movdqu %[inbuf0], %%xmm1\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm1,    %%xmm6\n\t"
-			"pxor   %%xmm5,    %%xmm1\n\t"
-			"movdqa %%xmm5,    %%xmm12\n\t"
+	  asm volatile ("movdqu %[l0l1],   %%xmm10\n\t"
+			"movdqu %[l0l1l0], %%xmm11\n\t"
+			"movdqu %[l3],     %%xmm15\n\t"
 			:
-			: [l1] "m" (*c->u_mode.ocb.L[1]),
-			  [inbuf0] "m" (*(inbuf + 0 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
-			"pxor   %%xmm10,   %%xmm5\n\t"
-			"pxor   %%xmm2,    %%xmm6\n\t"
-			"pxor   %%xmm5,    %%xmm2\n\t"
-			"movdqa %%xmm5,    %%xmm13\n\t"
-			:
-			: [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[inbuf2], %%xmm3\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm3,    %%xmm6\n\t"
-			"pxor   %%xmm5,    %%xmm3\n\t"
-			"movdqa %%xmm5,    %%xmm14\n\t"
-			:
-			: [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[l3],     %%xmm15\n\t"
-			"movdqu %[inbuf3], %%xmm4\n\t"
-			"pxor   %%xmm15,   %%xmm5\n\t"
-			"pxor   %%xmm4,    %%xmm6\n\t"
-			"pxor   %%xmm5,    %%xmm4\n\t"
-			"movdqa %%xmm5,    %%xmm15\n\t"
-			:
-			: [l3] "m" (*l),
-			  [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE))
+			: [l0l1] "m" (*c->u_mode.ocb.L0L1),
+			  [l0l1l0] "m" (*c->u_mode.ocb.L0L1L0),
+			  [l3] "m" (*l)
 			: "memory" );
 
 	  n += 4;
 	  l = aes_ocb_get_l(c, n);
 
-	  asm volatile ("movdqu %[inbuf4], %%xmm8\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm8,    %%xmm6\n\t"
-			"pxor   %%xmm5,    %%xmm8\n\t"
-			"movdqu %%xmm5,    %[outbuf4]\n\t"
-			: [outbuf4] "=m" (*(outbuf + 4 * BLOCKSIZE))
-			: [inbuf4] "m" (*(inbuf + 4 * BLOCKSIZE))
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  /* P_i = Offset_i xor ENCIPHER(K, C_i xor Offset_i)  */
+	  asm volatile ("movdqu %[inbuf0], %%xmm1\n\t"
+			"movdqu %[inbuf1], %%xmm2\n\t"
+			"movdqu %[inbuf2], %%xmm3\n\t"
+			:
+			: [inbuf0] "m" (*(inbuf + 0 * BLOCKSIZE)),
+			  [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE)),
+			  [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
 			: "memory" );
-	  asm volatile ("movdqu %[inbuf5], %%xmm9\n\t"
-			"pxor   %%xmm10,   %%xmm5\n\t"
-			"pxor   %%xmm9,    %%xmm6\n\t"
-			"pxor   %%xmm5,    %%xmm9\n\t"
-			"movdqu %%xmm5,    %[outbuf5]\n\t"
-			: [outbuf5] "=m" (*(outbuf + 5 * BLOCKSIZE))
-			: [inbuf5] "m" (*(inbuf + 5 * BLOCKSIZE))
+	  asm volatile ("movdqu %[inbuf3], %%xmm4\n\t"
+			"movdqu %[inbuf4], %%xmm8\n\t"
+			"movdqu %[inbuf5], %%xmm9\n\t"
+			:
+			: [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE)),
+			  [inbuf4] "m" (*(inbuf + 4 * BLOCKSIZE)),
+			  [inbuf5] "m" (*(inbuf + 5 * BLOCKSIZE))
+			: "memory" );
+	  asm volatile ("movdqa %%xmm6,    %%xmm12\n\t"
+			"pxor   %%xmm5,    %%xmm12\n\t"
+			"pxor   %%xmm12,   %%xmm1\n\t"
+
+			"movdqa %%xmm10,   %%xmm13\n\t"
+			"pxor   %%xmm5,    %%xmm13\n\t"
+			"pxor   %%xmm13,   %%xmm2\n\t"
+
+			"movdqa %%xmm11,   %%xmm14\n\t"
+			"pxor   %%xmm5,    %%xmm14\n\t"
+			"pxor   %%xmm14,   %%xmm3\n\t"
+
+			"pxor   %%xmm11,   %%xmm5\n\t"
+			"pxor   %%xmm15,   %%xmm5\n\t"
+			"pxor   %%xmm5,    %%xmm4\n\t"
+			"movdqa %%xmm5,    %%xmm15\n\t"
+
+			"movdqa %%xmm5,    %%xmm0\n\t"
+			"pxor   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm8\n\t"
+			"movdqu %%xmm0,    %[outbuf4]\n\t"
+
+			"movdqa %%xmm10,   %%xmm0\n\t"
+			"pxor   %%xmm5,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm9\n\t"
+			"movdqu %%xmm0,    %[outbuf5]\n\t"
+			: [outbuf4] "=m" (*(outbuf + 4 * BLOCKSIZE)),
+			  [outbuf5] "=m" (*(outbuf + 5 * BLOCKSIZE))
+			:
 			: "memory" );
 	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm10,   %%xmm6\n\t"
-			"pxor   %%xmm5,    %%xmm10\n\t"
-			"movdqu %%xmm5,    %[outbuf6]\n\t"
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"pxor   %%xmm5,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm10\n\t"
+			"movdqu %%xmm0,    %[outbuf6]\n\t"
 			: [outbuf6] "=m" (*(outbuf + 6 * BLOCKSIZE))
 			: [inbuf6] "m" (*(inbuf + 6 * BLOCKSIZE))
 			: "memory" );
-	  asm volatile ("movdqu %[l7],     %%xmm11\n\t"
+	  asm volatile ("movdqu %[l7],     %%xmm0\n\t"
 			"pxor   %%xmm11,   %%xmm5\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
 			"movdqu %[inbuf7], %%xmm11\n\t"
-			"pxor   %%xmm11,   %%xmm6\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
 			:
 			: [l7] "m" (*l),
@@ -2374,7 +2539,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 	  inbuf  += 8*BLOCKSIZE;
 	}
 
-    aesni_cleanup_7_15();
+    aesni_cleanup_8_15();
   }
 #endif
 
@@ -2384,44 +2549,46 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
       l = aes_ocb_get_l(c, n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-      /* Checksum_i = Checksum_{i-1} xor P_i  */
       /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-      asm volatile ("movdqu %[l0],     %%xmm4\n\t"
+      asm volatile ("movdqu %[l0],     %%xmm0\n\t"
 		    "movdqu %[inbuf0], %%xmm1\n\t"
-		    "pxor   %%xmm4,    %%xmm5\n\t"
-		    "pxor   %%xmm1,    %%xmm6\n\t"
-		    "pxor   %%xmm5,    %%xmm1\n\t"
-		    "movdqu %%xmm5,    %[outbuf0]\n\t"
-		    : [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE))
+		    "movdqu %[l0l1],   %%xmm3\n\t"
+		    :
 		    : [l0] "m" (*c->u_mode.ocb.L[0]),
+		      [l0l1] "m" (*c->u_mode.ocb.L0L1),
 		      [inbuf0] "m" (*(inbuf + 0 * BLOCKSIZE))
 		    : "memory" );
-      asm volatile ("movdqu %[l1],     %%xmm0\n\t"
-		    "movdqu %[inbuf1], %%xmm2\n\t"
-		    "pxor   %%xmm0,    %%xmm5\n\t"
-		    "pxor   %%xmm2,    %%xmm6\n\t"
-		    "pxor   %%xmm5,    %%xmm2\n\t"
-		    "movdqu %%xmm5,    %[outbuf1]\n\t"
-		    : [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE))
-		    : [l1] "m" (*c->u_mode.ocb.L[1]),
-		      [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE))
+      asm volatile ("movdqu %[l0l1l0], %%xmm4\n\t"
+		    "movdqu %[l3],     %%xmm6\n\t"
+		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm1\n\t"
+		    "movdqu %%xmm0,    %[outbuf0]\n\t"
+		    : [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE))
+		    : [l0l1l0] "m" (*c->u_mode.ocb.L0L1L0),
+		      [l3] "m" (*l)
 		    : "memory" );
-      asm volatile ("movdqu %[inbuf2], %%xmm3\n\t"
-		    "pxor   %%xmm4,    %%xmm5\n\t"
-		    "pxor   %%xmm3,    %%xmm6\n\t"
+      asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
 		    "pxor   %%xmm5,    %%xmm3\n\t"
-		    "movdqu %%xmm5,    %[outbuf2]\n\t"
-		    : [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE))
-		    : [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
+		    "pxor   %%xmm3,    %%xmm2\n\t"
+		    "movdqu %%xmm3,    %[outbuf1]\n\t"
+		    : [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE))
+		    : [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE))
 		    : "memory" );
-      asm volatile ("movdqu %[l3],     %%xmm4\n\t"
+      asm volatile ("movdqa %%xmm4,    %%xmm0\n\t"
+		    "movdqu %[inbuf2], %%xmm3\n\t"
+		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm3\n\t"
+		    "movdqu %%xmm0,    %[outbuf2]\n\t"
+		    : [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE))
+		    :
+		      [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
+		    : "memory" );
+      asm volatile ("pxor   %%xmm6,    %%xmm5\n\t"
 		    "pxor   %%xmm4,    %%xmm5\n\t"
 		    "movdqu %[inbuf3], %%xmm4\n\t"
-		    "pxor   %%xmm4,    %%xmm6\n\t"
 		    "pxor   %%xmm5,    %%xmm4\n\t"
 		    :
-		    : [l3] "m" (*l),
-		      [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE))
+		    : [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE))
 		    : "memory" );
 
       do_aesni_enc_vec4 (ctx);
@@ -2453,12 +2620,10 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
       l = aes_ocb_get_l(c, ++n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-      /* Checksum_i = Checksum_{i-1} xor P_i  */
       /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
       asm volatile ("movdqu %[l],     %%xmm1\n\t"
                     "movdqu %[inbuf], %%xmm0\n\t"
                     "pxor   %%xmm1,   %%xmm5\n\t"
-                    "pxor   %%xmm0,   %%xmm6\n\t"
                     "pxor   %%xmm5,   %%xmm0\n\t"
                     :
                     : [l] "m" (*l),
@@ -2479,30 +2644,31 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 
   c->u_mode.ocb.data_nblocks = n;
   asm volatile ("movdqu %%xmm5, %[iv]\n\t"
-                "movdqu %%xmm6, %[ctr]\n\t"
-                : [iv] "=m" (*c->u_iv.iv),
-                  [ctr] "=m" (*c->u_ctr.ctr)
+                : [iv] "=m" (*c->u_iv.iv)
                 :
                 : "memory" );
 
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
+
+  return 0;
 }
 
 
-static void
+static unsigned int NO_INLINE
 aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
-               const void *inbuf_arg, size_t nblocks)
+               const void *inbuf_arg, size_t nblocks_arg)
 {
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   u64 n = c->u_mode.ocb.data_nblocks;
   const unsigned char *l;
-  aesni_prepare_2_6_variable;
+  size_t nblocks = nblocks_arg;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6 ();
+  aesni_prepare_2_7 ();
 
   if ( !ctx->decryption_prepared )
     {
@@ -2510,12 +2676,10 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
       ctx->decryption_prepared = 1;
     }
 
-  /* Preload Offset and Checksum */
+  /* Preload Offset */
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
-                "movdqu %[ctr], %%xmm6\n\t"
                 : /* No output */
-                : [iv] "m" (*c->u_iv.iv),
-                  [ctr] "m" (*c->u_ctr.ctr)
+                : [iv] "m" (*c->u_iv.iv)
                 : "memory" );
 
   for ( ;nblocks && n % 4; nblocks-- )
@@ -2524,7 +2688,6 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
-      /* Checksum_i = Checksum_{i-1} xor P_i  */
       asm volatile ("movdqu %[l],     %%xmm1\n\t"
                     "movdqu %[inbuf], %%xmm0\n\t"
                     "pxor   %%xmm1,   %%xmm5\n\t"
@@ -2537,7 +2700,6 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
       do_aesni_dec (ctx);
 
       asm volatile ("pxor   %%xmm5, %%xmm0\n\t"
-                    "pxor   %%xmm0, %%xmm6\n\t"
                     "movdqu %%xmm0, %[outbuf]\n\t"
                     : [outbuf] "=m" (*outbuf)
                     :
@@ -2550,11 +2712,11 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
-      aesni_prepare_7_15_variable;
+      aesni_prepare_8_15_variable;
 
-      aesni_prepare_7_15();
+      aesni_prepare_8_15();
 
-      asm volatile ("movdqu %[l0], %%xmm7\n\t"
+      asm volatile ("movdqu %[l0], %%xmm6\n\t"
 		    :
 		    : [l0] "m" (*c->u_mode.ocb.L[0])
 		    : "memory" );
@@ -2564,70 +2726,78 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 	  n += 4;
 	  l = aes_ocb_get_l(c, n);
 
-	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-	  /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
-	  /* Checksum_i = Checksum_{i-1} xor P_i  */
-
-	  asm volatile ("movdqu %[l1],     %%xmm10\n\t"
-			"movdqu %[inbuf0], %%xmm1\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm1\n\t"
-			"movdqa %%xmm5,    %%xmm12\n\t"
+	  asm volatile ("movdqu %[l0l1],   %%xmm10\n\t"
+			"movdqu %[l0l1l0], %%xmm11\n\t"
+			"movdqu %[l3],     %%xmm15\n\t"
 			:
-			: [l1] "m" (*c->u_mode.ocb.L[1]),
-			  [inbuf0] "m" (*(inbuf + 0 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
-			"pxor   %%xmm10,   %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm2\n\t"
-			"movdqa %%xmm5,    %%xmm13\n\t"
-			:
-			: [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[inbuf2], %%xmm3\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm3\n\t"
-			"movdqa %%xmm5,    %%xmm14\n\t"
-			:
-			: [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[l3],     %%xmm0\n\t"
-			"movdqu %[inbuf3], %%xmm4\n\t"
-			"pxor   %%xmm0,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm4\n\t"
-			"movdqa %%xmm5,    %%xmm15\n\t"
-			:
-			: [l3] "m" (*l),
-			  [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE))
+			: [l0l1] "m" (*c->u_mode.ocb.L0L1),
+			  [l0l1l0] "m" (*c->u_mode.ocb.L0L1L0),
+			  [l3] "m" (*l)
 			: "memory" );
 
 	  n += 4;
 	  l = aes_ocb_get_l(c, n);
 
-	  asm volatile ("movdqu %[inbuf4], %%xmm8\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm8\n\t"
-			"movdqu %%xmm5,    %[outbuf4]\n\t"
-			: [outbuf4] "=m" (*(outbuf + 4 * BLOCKSIZE))
-			: [inbuf4] "m" (*(inbuf + 4 * BLOCKSIZE))
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
+	  asm volatile ("movdqu %[inbuf0], %%xmm1\n\t"
+			"movdqu %[inbuf1], %%xmm2\n\t"
+			"movdqu %[inbuf2], %%xmm3\n\t"
+			:
+			: [inbuf0] "m" (*(inbuf + 0 * BLOCKSIZE)),
+			  [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE)),
+			  [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
 			: "memory" );
-	  asm volatile ("movdqu %[inbuf5], %%xmm9\n\t"
-			"pxor   %%xmm10,   %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm9\n\t"
-			"movdqu %%xmm5,    %[outbuf5]\n\t"
-			: [outbuf5] "=m" (*(outbuf + 5 * BLOCKSIZE))
-			: [inbuf5] "m" (*(inbuf + 5 * BLOCKSIZE))
+	  asm volatile ("movdqu %[inbuf3], %%xmm4\n\t"
+			"movdqu %[inbuf4], %%xmm8\n\t"
+			"movdqu %[inbuf5], %%xmm9\n\t"
+			:
+			: [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE)),
+			  [inbuf4] "m" (*(inbuf + 4 * BLOCKSIZE)),
+			  [inbuf5] "m" (*(inbuf + 5 * BLOCKSIZE))
+			: "memory" );
+	  asm volatile ("movdqa %%xmm6,    %%xmm12\n\t"
+			"pxor   %%xmm5,    %%xmm12\n\t"
+			"pxor   %%xmm12,   %%xmm1\n\t"
+
+			"movdqa %%xmm10,   %%xmm13\n\t"
+			"pxor   %%xmm5,    %%xmm13\n\t"
+			"pxor   %%xmm13,   %%xmm2\n\t"
+
+			"movdqa %%xmm11,   %%xmm14\n\t"
+			"pxor   %%xmm5,    %%xmm14\n\t"
+			"pxor   %%xmm14,   %%xmm3\n\t"
+
+			"pxor   %%xmm11,   %%xmm5\n\t"
+			"pxor   %%xmm15,   %%xmm5\n\t"
+			"pxor   %%xmm5,    %%xmm4\n\t"
+			"movdqa %%xmm5,    %%xmm15\n\t"
+
+			"movdqa %%xmm5,    %%xmm0\n\t"
+			"pxor   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm8\n\t"
+			"movdqu %%xmm0,    %[outbuf4]\n\t"
+
+			"movdqa %%xmm10,   %%xmm0\n\t"
+			"pxor   %%xmm5,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm9\n\t"
+			"movdqu %%xmm0,    %[outbuf5]\n\t"
+			: [outbuf4] "=m" (*(outbuf + 4 * BLOCKSIZE)),
+			  [outbuf5] "=m" (*(outbuf + 5 * BLOCKSIZE))
+			:
 			: "memory" );
 	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm10\n\t"
-			"movdqu %%xmm5,    %[outbuf6]\n\t"
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"pxor   %%xmm5,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm10\n\t"
+			"movdqu %%xmm0,    %[outbuf6]\n\t"
 			: [outbuf6] "=m" (*(outbuf + 6 * BLOCKSIZE))
 			: [inbuf6] "m" (*(inbuf + 6 * BLOCKSIZE))
 			: "memory" );
 	  asm volatile ("movdqu %[l7],     %%xmm0\n\t"
-			"movdqu %[inbuf7], %%xmm11\n\t"
+			"pxor   %%xmm11,   %%xmm5\n\t"
 			"pxor   %%xmm0,    %%xmm5\n\t"
+			"movdqu %[inbuf7], %%xmm11\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
 			:
 			: [l7] "m" (*l),
@@ -2655,14 +2825,6 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 			"movdqu %%xmm9,    %[outbuf5]\n\t"
 			"movdqu %%xmm10,   %[outbuf6]\n\t"
 			"movdqu %%xmm11,   %[outbuf7]\n\t"
-			"pxor   %%xmm2,    %%xmm1\n\t"
-			"pxor   %%xmm4,    %%xmm1\n\t"
-			"pxor   %%xmm9,    %%xmm1\n\t"
-			"pxor   %%xmm11,   %%xmm1\n\t"
-			"pxor   %%xmm3,    %%xmm6\n\t"
-			"pxor   %%xmm8,    %%xmm6\n\t"
-			"pxor   %%xmm10,   %%xmm6\n\t"
-			"pxor   %%xmm1,    %%xmm6\n\t"
 			: [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE)),
 			  [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE)),
 			  [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE)),
@@ -2678,7 +2840,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 	  inbuf  += 8*BLOCKSIZE;
 	}
 
-      aesni_cleanup_7_15();
+      aesni_cleanup_8_15();
     }
 #endif
 
@@ -2688,40 +2850,46 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
       l = aes_ocb_get_l(c, n);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-      /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
-      /* Checksum_i = Checksum_{i-1} xor P_i  */
-      asm volatile ("movdqu %[l0],     %%xmm4\n\t"
+      /* C_i = Offset_i xor DECIPHER(K, P_i xor Offset_i)  */
+      asm volatile ("movdqu %[l0],     %%xmm0\n\t"
 		    "movdqu %[inbuf0], %%xmm1\n\t"
-		    "pxor   %%xmm4,    %%xmm5\n\t"
-		    "pxor   %%xmm5,    %%xmm1\n\t"
-		    "movdqu %%xmm5,    %[outbuf0]\n\t"
-		    : [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE))
+		    "movdqu %[l0l1],   %%xmm3\n\t"
+		    :
 		    : [l0] "m" (*c->u_mode.ocb.L[0]),
+		      [l0l1] "m" (*c->u_mode.ocb.L0L1),
 		      [inbuf0] "m" (*(inbuf + 0 * BLOCKSIZE))
 		    : "memory" );
-      asm volatile ("movdqu %[l1],     %%xmm0\n\t"
-		    "movdqu %[inbuf1], %%xmm2\n\t"
-		    "pxor   %%xmm0,    %%xmm5\n\t"
-		    "pxor   %%xmm5,    %%xmm2\n\t"
-		    "movdqu %%xmm5,    %[outbuf1]\n\t"
-		    : [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE))
-		    : [l1] "m" (*c->u_mode.ocb.L[1]),
-		      [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE))
+      asm volatile ("movdqu %[l0l1l0], %%xmm4\n\t"
+		    "movdqu %[l3],     %%xmm6\n\t"
+		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm1\n\t"
+		    "movdqu %%xmm0,    %[outbuf0]\n\t"
+		    : [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE))
+		    : [l0l1l0] "m" (*c->u_mode.ocb.L0L1L0),
+		      [l3] "m" (*l)
 		    : "memory" );
-      asm volatile ("movdqu %[inbuf2], %%xmm3\n\t"
-		    "pxor   %%xmm4,    %%xmm5\n\t"
+      asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
 		    "pxor   %%xmm5,    %%xmm3\n\t"
-		    "movdqu %%xmm5,    %[outbuf2]\n\t"
-		    : [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE))
-		    : [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
+		    "pxor   %%xmm3,    %%xmm2\n\t"
+		    "movdqu %%xmm3,    %[outbuf1]\n\t"
+		    : [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE))
+		    : [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE))
 		    : "memory" );
-      asm volatile ("movdqu %[l3],     %%xmm0\n\t"
+      asm volatile ("movdqa %%xmm4,    %%xmm0\n\t"
+		    "movdqu %[inbuf2], %%xmm3\n\t"
+		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm3\n\t"
+		    "movdqu %%xmm0,    %[outbuf2]\n\t"
+		    : [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE))
+		    :
+		      [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
+		    : "memory" );
+      asm volatile ("pxor   %%xmm6,    %%xmm5\n\t"
+		    "pxor   %%xmm4,    %%xmm5\n\t"
 		    "movdqu %[inbuf3], %%xmm4\n\t"
-		    "pxor   %%xmm0,    %%xmm5\n\t"
 		    "pxor   %%xmm5,    %%xmm4\n\t"
 		    :
-		    : [l3] "m" (*l),
-		      [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE))
+		    : [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE))
 		    : "memory" );
 
       do_aesni_dec_vec4 (ctx);
@@ -2737,10 +2905,6 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 		    "movdqu %%xmm3,    %[outbuf2]\n\t"
 		    "pxor   %%xmm5,    %%xmm4\n\t"
 		    "movdqu %%xmm4,    %[outbuf3]\n\t"
-		    "pxor   %%xmm1,    %%xmm6\n\t"
-		    "pxor   %%xmm2,    %%xmm6\n\t"
-		    "pxor   %%xmm3,    %%xmm6\n\t"
-		    "pxor   %%xmm4,    %%xmm6\n\t"
 		    : [outbuf0] "+m" (*(outbuf + 0 * BLOCKSIZE)),
 		      [outbuf1] "+m" (*(outbuf + 1 * BLOCKSIZE)),
 		      [outbuf2] "+m" (*(outbuf + 2 * BLOCKSIZE)),
@@ -2771,7 +2935,6 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
       do_aesni_dec (ctx);
 
       asm volatile ("pxor   %%xmm5, %%xmm0\n\t"
-                    "pxor   %%xmm0, %%xmm6\n\t"
                     "movdqu %%xmm0, %[outbuf]\n\t"
                     : [outbuf] "=m" (*outbuf)
                     :
@@ -2783,14 +2946,16 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 
   c->u_mode.ocb.data_nblocks = n;
   asm volatile ("movdqu %%xmm5, %[iv]\n\t"
-                "movdqu %%xmm6, %[ctr]\n\t"
-                : [iv] "=m" (*c->u_iv.iv),
-                  [ctr] "=m" (*c->u_ctr.ctr)
+                : [iv] "=m" (*c->u_iv.iv)
                 :
                 : "memory" );
 
+  aesni_ocb_checksum (c, outbuf_arg, nblocks_arg);
+
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
+
+  return 0;
 }
 
 
@@ -2799,11 +2964,9 @@ _gcry_aes_aesni_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
                           const void *inbuf_arg, size_t nblocks, int encrypt)
 {
   if (encrypt)
-    aesni_ocb_enc(c, outbuf_arg, inbuf_arg, nblocks);
+    return aesni_ocb_enc(c, outbuf_arg, inbuf_arg, nblocks);
   else
-    aesni_ocb_dec(c, outbuf_arg, inbuf_arg, nblocks);
-
-  return 0;
+    return aesni_ocb_dec(c, outbuf_arg, inbuf_arg, nblocks);
 }
 
 
@@ -2815,10 +2978,10 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   const unsigned char *abuf = abuf_arg;
   u64 n = c->u_mode.ocb.aad_nblocks;
   const unsigned char *l;
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6 ();
+  aesni_prepare_2_7 ();
 
   /* Preload Offset and Sum */
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
@@ -2856,15 +3019,17 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
-      aesni_prepare_7_15_variable;
+      aesni_prepare_8_15_variable;
 
-      aesni_prepare_7_15();
+      aesni_prepare_8_15();
 
-      asm volatile ("movdqu %[l0], %%xmm7\n\t"
-		    "movdqu %[l1], %%xmm12\n\t"
+      asm volatile ("movdqu %[l0],     %%xmm7\n\t"
+		    "movdqu %[l0l1],   %%xmm12\n\t"
+		    "movdqu %[l0l1l0], %%xmm13\n\t"
 		    :
 		    : [l0] "m" (*c->u_mode.ocb.L[0]),
-		      [l1] "m" (*c->u_mode.ocb.L[1])
+		      [l0l1] "m" (*c->u_mode.ocb.L0L1),
+		      [l0l1l0] "m" (*c->u_mode.ocb.L0L1L0)
 		    : "memory" );
 
       for ( ;nblocks >= 8 ; nblocks -= 8 )
@@ -2872,63 +3037,66 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	  n += 4;
 	  l = aes_ocb_get_l(c, n);
 
-	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-	  /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
-	  asm volatile ("movdqu %[abuf0],  %%xmm1\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm1\n\t"
+	  asm volatile ("movdqu %[l3],   %%xmm0\n\t"
+			"pxor   %%xmm13, %%xmm0\n\t"
 			:
-			: [abuf0] "m" (*(abuf + 0 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[abuf1],  %%xmm2\n\t"
-			"pxor   %%xmm12,   %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm2\n\t"
-			:
-			: [abuf1] "m" (*(abuf + 1 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[abuf2],  %%xmm3\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm3\n\t"
-			:
-			: [abuf2] "m" (*(abuf + 2 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[l3],     %%xmm0\n\t"
-			"movdqu %[abuf3],  %%xmm4\n\t"
-			"pxor   %%xmm0,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm4\n\t"
-			:
-			: [l3] "m" (*l),
-			  [abuf3] "m" (*(abuf + 3 * BLOCKSIZE))
+			: [l3] "m" (*l)
 			: "memory" );
 
 	  n += 4;
 	  l = aes_ocb_get_l(c, n);
 
-	  asm volatile ("movdqu %[abuf4],  %%xmm8\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm8\n\t"
+	  asm volatile ("movdqu %[l7],   %%xmm14\n\t"
+			"pxor   %%xmm13, %%xmm14\n\t"
 			:
-			: [abuf4] "m" (*(abuf + 4 * BLOCKSIZE))
+			: [l7] "m" (*l)
 			: "memory" );
-	  asm volatile ("movdqu %[abuf5],  %%xmm9\n\t"
-			"pxor   %%xmm12,   %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm9\n\t"
-			:
-			: [abuf5] "m" (*(abuf + 5 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[abuf6],  %%xmm10\n\t"
-			"pxor   %%xmm7,    %%xmm5\n\t"
-			"pxor   %%xmm5,    %%xmm10\n\t"
-			:
-			: [abuf6] "m" (*(abuf + 6 * BLOCKSIZE))
-			: "memory" );
-	  asm volatile ("movdqu %[l7],     %%xmm0\n\t"
+
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+	  asm volatile ("movdqu %[abuf0],  %%xmm1\n\t"
+			"movdqu %[abuf1],  %%xmm2\n\t"
+			"movdqu %[abuf2],  %%xmm3\n\t"
+			"movdqu %[abuf3],  %%xmm4\n\t"
+			"movdqu %[abuf4],  %%xmm8\n\t"
+			"movdqu %[abuf5],  %%xmm9\n\t"
+			"movdqu %[abuf6],  %%xmm10\n\t"
 			"movdqu %[abuf7],  %%xmm11\n\t"
+			:
+			: [abuf0] "m" (*(abuf + 0 * BLOCKSIZE)),
+			  [abuf1] "m" (*(abuf + 1 * BLOCKSIZE)),
+			  [abuf2] "m" (*(abuf + 2 * BLOCKSIZE)),
+			  [abuf3] "m" (*(abuf + 3 * BLOCKSIZE)),
+			  [abuf4] "m" (*(abuf + 4 * BLOCKSIZE)),
+			  [abuf5] "m" (*(abuf + 5 * BLOCKSIZE)),
+			  [abuf6] "m" (*(abuf + 6 * BLOCKSIZE)),
+			  [abuf7] "m" (*(abuf + 7 * BLOCKSIZE))
+			: "memory" );
+	  asm volatile ("pxor   %%xmm7,    %%xmm1\n\t"
+			"pxor   %%xmm5,    %%xmm1\n\t"
+
+			"pxor   %%xmm12,   %%xmm2\n\t"
+			"pxor   %%xmm5,    %%xmm2\n\t"
+
+			"pxor   %%xmm13,   %%xmm3\n\t"
+			"pxor   %%xmm5,    %%xmm3\n\t"
+
 			"pxor   %%xmm0,    %%xmm5\n\t"
+			"pxor   %%xmm5,    %%xmm4\n\t"
+
+			"pxor   %%xmm7,    %%xmm8\n\t"
+			"pxor   %%xmm5,    %%xmm8\n\t"
+
+			"pxor   %%xmm12,   %%xmm9\n\t"
+			"pxor   %%xmm5,    %%xmm9\n\t"
+
+			"pxor   %%xmm13,   %%xmm10\n\t"
+			"pxor   %%xmm5,    %%xmm10\n\t"
+
+			"pxor   %%xmm14,   %%xmm5\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
 			:
-			: [l7] "m" (*l),
-			  [abuf7] "m" (*(abuf + 7 * BLOCKSIZE))
+			:
 			: "memory" );
 
 	  do_aesni_enc_vec8 (ctx);
@@ -2948,7 +3116,7 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	  abuf += 8*BLOCKSIZE;
 	}
 
-      aesni_cleanup_7_15();
+      aesni_cleanup_8_15();
     }
 #endif
 
@@ -2959,36 +3127,41 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
-      asm volatile ("movdqu %[l0],     %%xmm4\n\t"
+      asm volatile ("movdqu %[l0],     %%xmm0\n\t"
 		    "movdqu %[abuf0],  %%xmm1\n\t"
-		    "pxor   %%xmm4,    %%xmm5\n\t"
-		    "pxor   %%xmm5,    %%xmm1\n\t"
+		    "movdqu %[l0l1],   %%xmm3\n\t"
 		    :
 		    : [l0] "m" (*c->u_mode.ocb.L[0]),
+		      [l0l1] "m" (*c->u_mode.ocb.L0L1),
 		      [abuf0] "m" (*(abuf + 0 * BLOCKSIZE))
 		    : "memory" );
-      asm volatile ("movdqu %[l1],     %%xmm0\n\t"
-		    "movdqu %[abuf1],  %%xmm2\n\t"
-		    "pxor   %%xmm0,    %%xmm5\n\t"
-		    "pxor   %%xmm5,    %%xmm2\n\t"
+      asm volatile ("movdqu %[l0l1l0], %%xmm4\n\t"
+		    "movdqu %[l3],     %%xmm7\n\t"
+		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm1\n\t"
 		    :
-		    : [l1] "m" (*c->u_mode.ocb.L[1]),
-		      [abuf1] "m" (*(abuf + 1 * BLOCKSIZE))
+		    : [l0l1l0] "m" (*c->u_mode.ocb.L0L1L0),
+		      [l3] "m" (*l)
 		    : "memory" );
-      asm volatile ("movdqu %[abuf2],  %%xmm3\n\t"
-		    "pxor   %%xmm4,    %%xmm5\n\t"
+      asm volatile ("movdqu %[abuf1],  %%xmm2\n\t"
 		    "pxor   %%xmm5,    %%xmm3\n\t"
+		    "pxor   %%xmm3,    %%xmm2\n\t"
 		    :
-		    : [l2] "m" (*c->u_mode.ocb.L[0]),
-		      [abuf2] "m" (*(abuf + 2 * BLOCKSIZE))
+		    : [abuf1] "m" (*(abuf + 1 * BLOCKSIZE))
 		    : "memory" );
-      asm volatile ("movdqu %[l3],     %%xmm0\n\t"
+      asm volatile ("movdqa %%xmm4,    %%xmm0\n\t"
+		    "movdqu %[abuf2],  %%xmm3\n\t"
+		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "pxor   %%xmm0,    %%xmm3\n\t"
+		    :
+		    : [abuf2] "m" (*(abuf + 2 * BLOCKSIZE))
+		    : "memory" );
+      asm volatile ("pxor   %%xmm7,    %%xmm5\n\t"
+		    "pxor   %%xmm4,    %%xmm5\n\t"
 		    "movdqu %[abuf3],  %%xmm4\n\t"
-		    "pxor   %%xmm0,    %%xmm5\n\t"
 		    "pxor   %%xmm5,    %%xmm4\n\t"
 		    :
-		    : [l3] "m" (*l),
-		      [abuf3] "m" (*(abuf + 3 * BLOCKSIZE))
+		    : [abuf3] "m" (*(abuf + 3 * BLOCKSIZE))
 		    : "memory" );
 
       do_aesni_enc_vec4 (ctx);
@@ -3038,7 +3211,7 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
                 : "memory" );
 
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
 
   return 0;
 }
@@ -3053,10 +3226,10 @@ _gcry_aes_aesni_xts_enc (RIJNDAEL_context *ctx, unsigned char *tweak,
 			 unsigned char *outbuf, const unsigned char *inbuf,
 			 size_t nblocks)
 {
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6 ();
+  aesni_prepare_2_7 ();
 
   /* Preload Tweak */
   asm volatile ("movdqu %[tweak], %%xmm5\n\t"
@@ -3182,7 +3355,7 @@ _gcry_aes_aesni_xts_enc (RIJNDAEL_context *ctx, unsigned char *tweak,
 		: "memory" );
 
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
 }
 
 
@@ -3191,10 +3364,10 @@ _gcry_aes_aesni_xts_dec (RIJNDAEL_context *ctx, unsigned char *tweak,
 			 unsigned char *outbuf, const unsigned char *inbuf,
 			 size_t nblocks)
 {
-  aesni_prepare_2_6_variable;
+  aesni_prepare_2_7_variable;
 
   aesni_prepare ();
-  aesni_prepare_2_6 ();
+  aesni_prepare_2_7 ();
 
   if ( !ctx->decryption_prepared )
     {
@@ -3326,7 +3499,7 @@ _gcry_aes_aesni_xts_dec (RIJNDAEL_context *ctx, unsigned char *tweak,
                 : "memory" );
 
   aesni_cleanup ();
-  aesni_cleanup_2_6 ();
+  aesni_cleanup_2_7 ();
 }
 
 

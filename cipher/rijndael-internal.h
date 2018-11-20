@@ -143,6 +143,8 @@ typedef struct RIJNDAEL_context_s
 #endif /*USE_PADLOCK*/
 #ifdef USE_AESNI
   unsigned int use_aesni:1;           /* AES-NI shall be used.  */
+  unsigned int use_avx:1;             /* AVX shall be used. */
+  unsigned int use_avx2:1;            /* AVX2 shall be used. */
 #endif /*USE_AESNI*/
 #ifdef USE_SSSE3
   unsigned int use_ssse3:1;           /* SSSE3 shall be used.  */

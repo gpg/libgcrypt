@@ -170,6 +170,11 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
   double_block_cpy (c->u_mode.ocb.L[0], c->u_mode.ocb.L_dollar);
   for (i = 1; i < OCB_L_TABLE_SIZE; i++)
     double_block_cpy (c->u_mode.ocb.L[i], c->u_mode.ocb.L[i-1]);
+  /* Precalculated offsets L0+L1, L0+L1+L0 */
+  cipher_block_xor (c->u_mode.ocb.L0L1,
+		    c->u_mode.ocb.L[0], c->u_mode.ocb.L[1], OCB_BLOCK_LEN);
+  cipher_block_xor (c->u_mode.ocb.L0L1L0,
+		    c->u_mode.ocb.L[0], c->u_mode.ocb.L0L1, OCB_BLOCK_LEN);
 
   /* Prepare the nonce.  */
   memset (ktop, 0, (OCB_BLOCK_LEN - noncelen));
@@ -518,6 +523,12 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
         }
 
       nblks = nblks < nmaxblks ? nblks : nmaxblks;
+
+      /* Since checksum xoring is done before/after encryption/decryption,
+	process input in 24KiB chunks to keep data loaded in L1 cache for
+	checksumming. */
+      if (nblks > 24 * 1024 / OCB_BLOCK_LEN)
+	nblks = 24 * 1024 / OCB_BLOCK_LEN;
 
       /* Use a bulk method if available.  */
       if (nblks && c->bulk.ocb_crypt)
