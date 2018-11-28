@@ -613,7 +613,11 @@ check_binary_integrity (void)
               /* Open the file.  */
               fp = fopen (fname, "r");
               if (!fp)
-                err = gpg_error_from_syserror ();
+	        {
+		  /* Missing checksum is a problem only in FIPS mode */
+		  if (fips_mode() || errno != ENOENT)
+		    err = gpg_error_from_syserror ();
+	        }
               else
                 {
                   /* A buffer of 64 bytes plus one for a LF and one to
