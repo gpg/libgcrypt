@@ -1657,14 +1657,6 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 "movdqa 0xe0(%[key]), %%xmm1\n"
 
                 ".Lenclast%=:\n\t"
-                "aesenclast %%xmm1, %%xmm0\n\t"
-                "aesenclast %%xmm1, %%xmm2\n\t"
-                "aesenclast %%xmm1, %%xmm3\n\t"
-                "aesenclast %%xmm1, %%xmm4\n\t"
-                "aesenclast %%xmm1, %%xmm8\n\t"
-                "aesenclast %%xmm1, %%xmm9\n\t"
-                "aesenclast %%xmm1, %%xmm10\n\t"
-                "aesenclast %%xmm1, %%xmm11\n\t"
                 :
                 : [key] "r" (ctx->keyschenc),
                   [rounds] "r" (ctx->rounds)
@@ -1674,22 +1666,30 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 "movdqu 1*16(%[src]), %%xmm13\n\t" /* Get block 2.      */
                 "movdqu 2*16(%[src]), %%xmm14\n\t" /* Get block 3.      */
                 "movdqu 3*16(%[src]), %%xmm15\n\t" /* Get block 4.      */
-                "movdqu 4*16(%[src]), %%xmm1\n\t"  /* Get block 5.      */
-                "pxor %%xmm12, %%xmm0\n\t"         /* EncCTR-1 ^= input */
+                "movdqu 4*16(%[src]), %%xmm7\n\t"  /* Get block 5.      */
+                "pxor %%xmm1, %%xmm12\n\t"         /* block1 ^= lastkey */
+                "aesenclast %%xmm12, %%xmm0\n\t"
                 "movdqu 5*16(%[src]), %%xmm12\n\t" /* Get block 6.      */
-                "pxor %%xmm13, %%xmm2\n\t"         /* EncCTR-2 ^= input */
+                "pxor %%xmm1, %%xmm13\n\t"         /* block2 ^= lastkey */
+                "aesenclast %%xmm13, %%xmm2\n\t"
                 "movdqu 6*16(%[src]), %%xmm13\n\t" /* Get block 7.      */
-                "pxor %%xmm14, %%xmm3\n\t"         /* EncCTR-3 ^= input */
+                "pxor %%xmm1, %%xmm14\n\t"         /* block3 ^= lastkey */
+                "aesenclast %%xmm14, %%xmm3\n\t"
                 "movdqu 7*16(%[src]), %%xmm14\n\t" /* Get block 8.      */
-                "pxor %%xmm15, %%xmm4\n\t"         /* EncCTR-4 ^= input */
+                "pxor %%xmm1, %%xmm15\n\t"         /* block4 ^= lastkey */
+                "aesenclast %%xmm15, %%xmm4\n\t"
                 "movdqu %%xmm0, 0*16(%[dst])\n\t"  /* Store block 1     */
-                "pxor %%xmm1,  %%xmm8\n\t"         /* EncCTR-5 ^= input */
+                "pxor %%xmm1,  %%xmm7\n\t"         /* block5 ^= lastkey */
+                "aesenclast %%xmm7, %%xmm8\n\t"
                 "movdqu %%xmm0, 0*16(%[dst])\n\t"  /* Store block 1     */
-                "pxor %%xmm12, %%xmm9\n\t"         /* EncCTR-6 ^= input */
+                "pxor %%xmm1, %%xmm12\n\t"         /* block6 ^= lastkey */
+                "aesenclast %%xmm12, %%xmm9\n\t"
                 "movdqu %%xmm2, 1*16(%[dst])\n\t"  /* Store block 2.    */
-                "pxor %%xmm13, %%xmm10\n\t"        /* EncCTR-7 ^= input */
+                "pxor %%xmm1, %%xmm13\n\t"         /* block7 ^= lastkey */
+                "aesenclast %%xmm13, %%xmm10\n\t"
                 "movdqu %%xmm3, 2*16(%[dst])\n\t"  /* Store block 3.    */
-                "pxor %%xmm14, %%xmm11\n\t"        /* EncCTR-8 ^= input */
+                "pxor %%xmm1, %%xmm14\n\t"         /* block8 ^= lastkey */
+                "aesenclast %%xmm14, %%xmm11\n\t"
                 "movdqu %%xmm4, 3*16(%[dst])\n\t"  /* Store block 4.    */
                 "movdqu %%xmm8, 4*16(%[dst])\n\t"  /* Store block 8.    */
                 "movdqu %%xmm9, 5*16(%[dst])\n\t"  /* Store block 9.    */
