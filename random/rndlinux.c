@@ -26,14 +26,20 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 #ifdef HAVE_GETTIMEOFDAY
 # include <sys/times.h>
 #endif
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#if defined(__linux__) && defined(HAVE_SYSCALL)
+#if (defined(__linux__) || defined(__FreeBSD__)) && defined(HAVE_SYSCALL)
 # include <sys/syscall.h>
+# if defined(__NR_getrandom)
+#  define SYSGETRANDOM __NR_getrandom
+# elif defined(SYS_getrandom)
+#  define SYSGETRANDOM SYS_getrandom
+# endif
 #endif
 
 #include "types.h"
@@ -254,7 +260,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
        * blocking once the kernel is seeded. Unfortunately we need to use a
        * syscall and not a new device and thus we are not able to use
        * select(2) to have a timeout. */
-#if defined(__linux__) && defined(HAVE_SYSCALL) && defined(__NR_getrandom)
+#if defined(SYSGETRANDOM)
         {
           long ret;
           size_t nbytes;
@@ -265,7 +271,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
               if (nbytes > 256)
                 nbytes = 256;
               _gcry_pre_syscall ();
-              ret = syscall (__NR_getrandom,
+              ret = syscall (SYSGETRANDOM,
                              (void*)buffer, (size_t)nbytes, (unsigned int)0);
               _gcry_post_syscall ();
             }
