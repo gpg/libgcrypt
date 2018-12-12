@@ -118,6 +118,13 @@ GPGRT_LOCK_DEFINE (secmem_lock);
 #define ADDR_TO_BLOCK(addr) \
   (memblock_t *) (void *) ((char *) addr - BLOCK_HEAD_SIZE)
 
+/* Prototypes. */
+static void secmem_dump_stats_internal (int extended);
+
+
+/*
+ * Functions
+ */
 
 /* Memory barrier */
 static inline void
@@ -657,11 +664,18 @@ _gcry_secmem_malloc_internal (size_t size, int xhint)
       return &mb->aligned.c;
     }
 
-  /* If we are called from xmalloc style function resort to the
+  /* If we are called from xmalloc style functions resort to the
    * overflow pools to return memory.  We don't do this in FIPS mode,
-   * though. */
+   * though.  If the auto-expand option is active we do the expanding
+   * also for the standard malloc functions.
+   *
+   * The idea of using them by default only for the xmalloc function
+   * is so that a user can control whether memory will be allocated in
+   * the initial created mlock protected secmem area or may also be
+   * allocated from the overflow pools.  */
   if ((xhint || auto_expand) && !fips_mode ())
     {
+      /* Check whether we can allocate from the overflow pools.  */
       for (pool = pool->next; pool; pool = pool->next)
         {
           mb = mb_get_new (pool, (memblock_t *) pool->mem, size);
@@ -900,11 +914,18 @@ _gcry_secmem_term ()
 void
 _gcry_secmem_dump_stats (int extended)
 {
+  SECMEM_LOCK;
+  secmem_dump_stats_internal (extended);
+  SECMEM_UNLOCK;
+}
+
+
+static void
+secmem_dump_stats_internal (int extended)
+{
   pooldesc_t *pool;
   memblock_t *mb;
   int i, poolno;
-
-  SECMEM_LOCK;
 
   for (pool = &mainpool, poolno = 0; pool; pool = pool->next, poolno++)
     {
@@ -928,5 +949,4 @@ _gcry_secmem_dump_stats (int extended)
                       mb->size);
         }
     }
-  SECMEM_UNLOCK;
 }
