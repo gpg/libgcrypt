@@ -156,6 +156,8 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
           close (fd_urandom);
           fd_urandom = -1;
         }
+
+      _gcry_rndjent_fini ();
       return 0;
     }
 

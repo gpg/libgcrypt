@@ -370,3 +370,20 @@ _gcry_rndjent_dump_stats (void)
     }
 #endif /*USE_JENT*/
 }
+
+
+void
+_gcry_rndjent_fini (void)
+{
+#ifdef USE_JENT
+  lock_rng ();
+
+  if (jent_rng_is_initialized)
+    {
+      jent_entropy_collector_free (jent_rng_collector);
+      jent_rng_collector = NULL;
+    }
+
+  unlock_rng ();
+#endif
+}
