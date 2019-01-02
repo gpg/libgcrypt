@@ -825,7 +825,7 @@ cipher_bench ( const char *algoname )
     int doublekey;
   } modes[] = {
     { GCRY_CIPHER_MODE_ECB, "   ECB/Stream", 1, 0xffffffffU },
-    { GCRY_CIPHER_MODE_CBC, "      CBC", 1, 0xffffffffU },
+    { GCRY_CIPHER_MODE_CBC, " CBC/Poly1305", 1, 0xffffffffU },
     { GCRY_CIPHER_MODE_CFB, "      CFB", 0, 0xffffffffU },
     { GCRY_CIPHER_MODE_OFB, "      OFB", 0, 0xffffffffU },
     { GCRY_CIPHER_MODE_CTR, "      CTR", 0, 0xffffffffU },
@@ -840,6 +840,8 @@ cipher_bench ( const char *algoname )
     { GCRY_CIPHER_MODE_EAX, "      EAX", 0, 0xffffffffU,
       NULL, 0, 8, 8 },
     { GCRY_CIPHER_MODE_STREAM, "", 0, 0xffffffffU },
+    { GCRY_CIPHER_MODE_POLY1305, "", 0, 0xffffffffU,
+      NULL, 1, 16, 12 },
     {0}
   };
   int modeidx;
@@ -931,9 +933,14 @@ cipher_bench ( const char *algoname )
   for (modeidx=0; modes[modeidx].mode; modeidx++)
     {
       size_t modekeylen = keylen * (!!modes[modeidx].doublekey + 1);
+      int is_stream = modes[modeidx].mode == GCRY_CIPHER_MODE_STREAM
+                      || modes[modeidx].mode == GCRY_CIPHER_MODE_POLY1305;
 
-      if ((blklen > 1 && modes[modeidx].mode == GCRY_CIPHER_MODE_STREAM)
-          || (blklen == 1 && modes[modeidx].mode != GCRY_CIPHER_MODE_STREAM))
+      if ((blklen > 1 && is_stream) || (blklen == 1 && !is_stream))
+        continue;
+
+      if (modes[modeidx].mode == GCRY_CIPHER_MODE_POLY1305
+          && algo != GCRY_CIPHER_CHACHA20)
         continue;
 
       if (modes[modeidx].req_blocksize > 0
