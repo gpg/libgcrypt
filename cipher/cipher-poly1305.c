@@ -164,9 +164,24 @@ _gcry_cipher_poly1305_encrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  c->spec->stencrypt(&c->context.c, outbuf, (byte*)inbuf, inbuflen);
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
 
-  _gcry_poly1305_update (&c->u_mode.poly1305.ctx, outbuf, inbuflen);
+      /* Since checksumming is done after encryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for checksumming. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      c->spec->stencrypt(&c->context.c, outbuf, (byte*)inbuf, currlen);
+
+      _gcry_poly1305_update (&c->u_mode.poly1305.ctx, outbuf, currlen);
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
 
   return 0;
 }
@@ -202,9 +217,25 @@ _gcry_cipher_poly1305_decrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  _gcry_poly1305_update (&c->u_mode.poly1305.ctx, inbuf, inbuflen);
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
 
-  c->spec->stdecrypt(&c->context.c, outbuf, (byte*)inbuf, inbuflen);
+      /* Since checksumming is done before decryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for decryption. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      _gcry_poly1305_update (&c->u_mode.poly1305.ctx, inbuf, currlen);
+
+      c->spec->stdecrypt(&c->context.c, outbuf, (byte*)inbuf, currlen);
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
+
   return 0;
 }
 

@@ -48,11 +48,31 @@ _gcry_cipher_eax_encrypt (gcry_cipher_hd_t c,
 	return err;
     }
 
-  err = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-  if (err != 0)
-    return err;
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
 
-  return _gcry_cmac_write (c, &c->u_mode.eax.cmac_ciphertext, outbuf, inbuflen);
+      /* Since checksumming is done after encryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for checksumming. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      err = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, currlen);
+      if (err != 0)
+	return err;
+
+      err = _gcry_cmac_write (c, &c->u_mode.eax.cmac_ciphertext, outbuf,
+			      currlen);
+      if (err != 0)
+	return err;
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
+
+  return 0;
 }
 
 
@@ -75,11 +95,31 @@ _gcry_cipher_eax_decrypt (gcry_cipher_hd_t c,
 	return err;
     }
 
-  err = _gcry_cmac_write (c, &c->u_mode.eax.cmac_ciphertext, inbuf, inbuflen);
-  if (err != 0)
-    return err;
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
 
-  return _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
+      /* Since checksumming is done before decryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for decryption. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      err = _gcry_cmac_write (c, &c->u_mode.eax.cmac_ciphertext, inbuf,
+			      currlen);
+      if (err != 0)
+	return err;
+
+      err = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, currlen);
+      if (err != 0)
+	return err;
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
+
+  return 0;
 }
 
 

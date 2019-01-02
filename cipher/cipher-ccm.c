@@ -319,7 +319,9 @@ _gcry_cipher_ccm_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
                           size_t outbuflen, const unsigned char *inbuf,
                           size_t inbuflen)
 {
-  unsigned int burn;
+  gcry_err_code_t err = 0;
+  unsigned int burn = 0;
+  unsigned int nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
@@ -329,12 +331,32 @@ _gcry_cipher_ccm_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
   if (inbuflen > c->u_mode.ccm.encryptlen)
     return GPG_ERR_INV_LENGTH;
 
-  c->u_mode.ccm.encryptlen -= inbuflen;
-  burn = do_cbc_mac (c, inbuf, inbuflen, 0);
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
+
+      /* Since checksumming is done before encryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for encryption. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      c->u_mode.ccm.encryptlen -= currlen;
+      nburn = do_cbc_mac (c, inbuf, currlen, 0);
+      burn = nburn > burn ? nburn : burn;
+
+      err = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, currlen);
+      if (err)
+	break;
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
+
   if (burn)
     _gcry_burn_stack (burn + sizeof(void *) * 5);
-
-  return _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
+  return err;
 }
 
 
@@ -343,8 +365,9 @@ _gcry_cipher_ccm_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
                           size_t outbuflen, const unsigned char *inbuf,
                           size_t inbuflen)
 {
-  gcry_err_code_t err;
-  unsigned int burn;
+  gcry_err_code_t err = 0;
+  unsigned int burn = 0;
+  unsigned int nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
@@ -354,14 +377,30 @@ _gcry_cipher_ccm_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
   if (inbuflen > c->u_mode.ccm.encryptlen)
     return GPG_ERR_INV_LENGTH;
 
-  err = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
-  if (err)
-    return err;
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
 
-  c->u_mode.ccm.encryptlen -= inbuflen;
-  burn = do_cbc_mac (c, outbuf, inbuflen, 0);
+      /* Since checksumming is done after decryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for checksumming. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      err = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, currlen);
+      if (err)
+	break;
+
+      c->u_mode.ccm.encryptlen -= currlen;
+      nburn = do_cbc_mac (c, outbuf, currlen, 0);
+      burn = nburn > burn ? nburn : burn;
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
+
   if (burn)
     _gcry_burn_stack (burn + sizeof(void *) * 5);
-
   return err;
 }

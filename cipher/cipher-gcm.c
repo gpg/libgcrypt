@@ -666,11 +666,26 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  err = gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
-  if (err != 0)
-    return err;
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
 
-  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, outbuf, inbuflen, 0);
+      /* Since checksumming is done after encryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for checksumming. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      err = gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, currlen);
+      if (err != 0)
+	return err;
+
+      do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, outbuf, currlen, 0);
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
 
   return 0;
 }
@@ -682,6 +697,7 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
                           const byte *inbuf, size_t inbuflen)
 {
   static const unsigned char zerobuf[MAX_BLOCKSIZE];
+  gcry_err_code_t err;
 
   if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_CIPHER_ALGO;
@@ -711,9 +727,28 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, inbuf, inbuflen, 0);
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
 
-  return gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
+      /* Since checksumming is done before decryption, process input in
+       * 24KiB chunks to keep data loaded in L1 cache for decryption. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, inbuf, currlen, 0);
+
+      err = gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, currlen);
+      if (err)
+	return err;
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
+
+  return 0;
 }
 
 
