@@ -37,8 +37,11 @@
 #define PGM "benchmark"
 #include "t-common.h"
 
-/* Do encryption tests with large buffers.  */
+/* Do encryption tests with large buffers (100 KiB).  */
 static int large_buffers;
+
+/* Do encryption tests with huge buffers (256 MiB). */
+static int huge_buffers;
 
 /* Number of cipher repetitions.  */
 static int cipher_repetitions;
@@ -743,6 +746,60 @@ static void ccm_aead_init(gcry_cipher_hd_t hd, size_t buflen, int authlen)
 }
 
 
+static gcry_error_t
+cipher_encrypt (gcry_cipher_hd_t h, char *out, size_t outsize,
+		const char *in, size_t inlen, size_t max_inlen)
+{
+  gcry_error_t ret;
+
+  while (inlen)
+    {
+      size_t currlen = inlen;
+
+      if (currlen > max_inlen)
+	currlen = max_inlen;
+
+      ret = gcry_cipher_encrypt(h, out, outsize, in, currlen);
+      if (ret)
+	return ret;
+
+      out += currlen;
+      in += currlen;
+      outsize -= currlen;
+      inlen -= currlen;
+    }
+
+  return 0;
+}
+
+
+static gcry_error_t
+cipher_decrypt (gcry_cipher_hd_t h, char *out, size_t outsize,
+		const char *in, size_t inlen, size_t max_inlen)
+{
+  gcry_error_t ret;
+
+  while (inlen)
+    {
+      size_t currlen = inlen;
+
+      if (currlen > max_inlen)
+	currlen = max_inlen;
+
+      ret = gcry_cipher_decrypt(h, out, outsize, in, currlen);
+      if (ret)
+	return ret;
+
+      out += currlen;
+      in += currlen;
+      outsize -= currlen;
+      inlen -= currlen;
+    }
+
+  return 0;
+}
+
+
 static void
 cipher_bench ( const char *algoname )
 {
@@ -760,33 +817,33 @@ cipher_bench ( const char *algoname )
     int mode;
     const char *name;
     int blocked;
+    unsigned int max_inlen;
     void (* const aead_init)(gcry_cipher_hd_t hd, size_t buflen, int authlen);
     int req_blocksize;
     int authlen;
     int noncelen;
     int doublekey;
   } modes[] = {
-    { GCRY_CIPHER_MODE_ECB, "   ECB/Stream", 1 },
-    { GCRY_CIPHER_MODE_CBC, "      CBC", 1 },
-    { GCRY_CIPHER_MODE_CFB, "      CFB", 0 },
-    { GCRY_CIPHER_MODE_OFB, "      OFB", 0 },
-    { GCRY_CIPHER_MODE_CTR, "      CTR", 0 },
-    { GCRY_CIPHER_MODE_XTS, "      XTS", 0,
+    { GCRY_CIPHER_MODE_ECB, "   ECB/Stream", 1, 0xffffffffU },
+    { GCRY_CIPHER_MODE_CBC, "      CBC", 1, 0xffffffffU },
+    { GCRY_CIPHER_MODE_CFB, "      CFB", 0, 0xffffffffU },
+    { GCRY_CIPHER_MODE_OFB, "      OFB", 0, 0xffffffffU },
+    { GCRY_CIPHER_MODE_CTR, "      CTR", 0, 0xffffffffU },
+    { GCRY_CIPHER_MODE_XTS, "      XTS", 0, 16 << 20,
       NULL, GCRY_XTS_BLOCK_LEN, 0, 0, 1 },
-    { GCRY_CIPHER_MODE_CCM, "      CCM", 0,
-      ccm_aead_init, GCRY_CCM_BLOCK_LEN, 8 },
-    { GCRY_CIPHER_MODE_GCM, "      GCM", 0,
+    { GCRY_CIPHER_MODE_CCM, "      CCM", 0, 0xffffffffU,
+      ccm_aead_init, GCRY_CCM_BLOCK_LEN, 8, },
+    { GCRY_CIPHER_MODE_GCM, "      GCM", 0, 0xffffffffU,
       NULL, GCRY_GCM_BLOCK_LEN, GCRY_GCM_BLOCK_LEN },
-    { GCRY_CIPHER_MODE_OCB, "      OCB", 1,
+    { GCRY_CIPHER_MODE_OCB, "      OCB", 1, 0xffffffffU,
       NULL, 16, 16, 15 },
-    { GCRY_CIPHER_MODE_EAX, "      EAX", 0,
+    { GCRY_CIPHER_MODE_EAX, "      EAX", 0, 0xffffffffU,
       NULL, 0, 8, 8 },
-    { GCRY_CIPHER_MODE_STREAM, "", 0 },
+    { GCRY_CIPHER_MODE_STREAM, "", 0, 0xffffffffU },
     {0}
   };
   int modeidx;
   gcry_error_t err = GPG_ERR_NO_ERROR;
-
 
   if (!algoname)
     {
@@ -796,7 +853,12 @@ cipher_bench ( const char *algoname )
       return;
     }
 
-  if (large_buffers)
+  if (huge_buffers)
+    {
+      allocated_buflen = 256 * 1024 * 1024;
+      repetitions = 4;
+    }
+  else if (large_buffers)
     {
       allocated_buflen = 1024 * 100;
       repetitions = 10;
@@ -945,14 +1007,16 @@ cipher_bench ( const char *algoname )
             {
               (*modes[modeidx].aead_init) (hd, buflen, modes[modeidx].authlen);
               gcry_cipher_final (hd);
-              err = gcry_cipher_encrypt (hd, outbuf, buflen, buf, buflen);
+              err = cipher_encrypt (hd, outbuf, buflen, buf, buflen,
+				    modes[modeidx].max_inlen);
               if (err)
                 break;
               err = gcry_cipher_gettag (hd, outbuf, modes[modeidx].authlen);
             }
           else
             {
-              err = gcry_cipher_encrypt (hd, outbuf, buflen, buf, buflen);
+              err = cipher_encrypt (hd, outbuf, buflen, buf, buflen,
+				    modes[modeidx].max_inlen);
             }
         }
       stop_timer ();
@@ -1024,7 +1088,8 @@ cipher_bench ( const char *algoname )
             {
               (*modes[modeidx].aead_init) (hd, buflen, modes[modeidx].authlen);
               gcry_cipher_final (hd);
-              err = gcry_cipher_decrypt (hd, outbuf, buflen, buf, buflen);
+              err = cipher_decrypt (hd, outbuf, buflen, buf, buflen,
+				    modes[modeidx].max_inlen);
               if (err)
                 break;
               err = gcry_cipher_checktag (hd, outbuf, modes[modeidx].authlen);
@@ -1034,7 +1099,8 @@ cipher_bench ( const char *algoname )
           else
             {
               gcry_cipher_final (hd);
-              err = gcry_cipher_decrypt (hd, outbuf, buflen, buf, buflen);
+              err = cipher_decrypt (hd, outbuf, buflen, buf, buflen,
+				    modes[modeidx].max_inlen);
             }
         }
       stop_timer ();
@@ -1739,6 +1805,11 @@ main( int argc, char **argv )
       else if (!strcmp (*argv, "--large-buffers"))
         {
           large_buffers = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--huge-buffers"))
+        {
+          huge_buffers = 1;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--cipher-repetitions"))
