@@ -289,7 +289,6 @@ _gcry_camellia_arm_decrypt_block:
 ELF(.size _gcry_camellia_arm_decrypt_block,.-_gcry_camellia_arm_decrypt_block;)
 
 /* Encryption/Decryption tables */
-.globl _gcry_camellia_arm_tables
 ELF(.type  _gcry_camellia_arm_tables,@object;)
 .balign 32
 _gcry_camellia_arm_tables:
