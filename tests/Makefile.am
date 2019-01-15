@@ -62,6 +62,6 @@ EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
 	     blake2b.h blake2s.h \
 	     basic-disable-all-hwf.in basic_all_hwfeature_combinations.sh
 
-LDADD = $(standard_ldadd) $(GPG_ERROR_LIBS)
-t_lock_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS)
+LDADD = $(standard_ldadd) $(GPG_ERROR_LIBS) @LDADD_FOR_TESTS_KLUDGE@
+t_lock_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS) @LDADD_FOR_TESTS_KLUDGE@
 t_lock_CFLAGS = $(GPG_ERROR_MT_CFLAGS)
