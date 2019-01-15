@@ -281,9 +281,11 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
               if (ret == -1)
                 log_fatal ("unexpected error from getentropy: %s\n",
                            strerror (errno));
+#ifdef __NR_getrandom
               else if (ret != nbytes)
                 log_fatal ("getentropy returned only"
                            " %ld of %zu requested bytes\n", ret, nbytes);
+#endif
 
               (*add)(buffer, nbytes, origin);
               length -= nbytes;
