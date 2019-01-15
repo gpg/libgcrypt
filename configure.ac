@@ -1772,7 +1772,7 @@ AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 AC_CHECK_FUNCS(strerror rand mmap getpagesize sysconf waitpid wait4)
 AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime syslog)
 AC_CHECK_FUNCS(syscall fcntl ftruncate flockfile)
-AC_CHECK_FUNCS(explicit_bzero)
+AC_CHECK_FUNCS(explicit_bzero getentropy)
 
 GNUPG_CHECK_MLOCK
 
