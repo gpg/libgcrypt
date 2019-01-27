@@ -859,7 +859,9 @@ bench_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
   gcry_cipher_hd_t hd = obj->hd;
   int err;
 
-  err = gcry_cipher_encrypt (hd, buf, buflen, buf, buflen);
+  err = gcry_cipher_reset (hd);
+  if (!err)
+    err = gcry_cipher_encrypt (hd, buf, buflen, buf, buflen);
   if (err)
     {
       fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
@@ -875,7 +877,9 @@ bench_decrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
   gcry_cipher_hd_t hd = obj->hd;
   int err;
 
-  err = gcry_cipher_decrypt (hd, buf, buflen, buf, buflen);
+  err = gcry_cipher_reset (hd);
+  if (!err)
+    err = gcry_cipher_decrypt (hd, buf, buflen, buf, buflen);
   if (err)
     {
       fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
