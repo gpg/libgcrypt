@@ -141,11 +141,9 @@ void _gcry_cipher_ocb_setkey (gcry_cipher_hd_t c)
   double_block_cpy (c->u_mode.ocb.L[0], c->u_mode.ocb.L_dollar);
   for (i = 1; i < OCB_L_TABLE_SIZE; i++)
     double_block_cpy (c->u_mode.ocb.L[i], c->u_mode.ocb.L[i-1]);
-  /* Precalculated offsets L0+L1, L0+L1+L0 */
+  /* Precalculated offset L0+L1 */
   cipher_block_xor (c->u_mode.ocb.L0L1,
 		    c->u_mode.ocb.L[0], c->u_mode.ocb.L[1], OCB_BLOCK_LEN);
-  cipher_block_xor (c->u_mode.ocb.L0L1L0,
-		    c->u_mode.ocb.L[0], c->u_mode.ocb.L0L1, OCB_BLOCK_LEN);
 
   /* Cleanup */
   wipememory (ktop, sizeof ktop);

@@ -322,7 +322,6 @@ struct gcry_cipher_handle
       unsigned char L_star[OCB_BLOCK_LEN];
       unsigned char L_dollar[OCB_BLOCK_LEN];
       unsigned char L0L1[OCB_BLOCK_LEN];
-      unsigned char L0L1L0[OCB_BLOCK_LEN];
       unsigned char L[OCB_L_TABLE_SIZE][OCB_BLOCK_LEN];
 
       /* --- Following members are cleared in gcry_cipher_reset --- */
