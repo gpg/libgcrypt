@@ -316,12 +316,16 @@ struct gcry_cipher_handle
 
     /* Mode specific storage for OCB mode. */
     struct {
+      /* --- Following members are not cleared in gcry_cipher_reset --- */
+
       /* Helper variables and pre-computed table of L values.  */
       unsigned char L_star[OCB_BLOCK_LEN];
       unsigned char L_dollar[OCB_BLOCK_LEN];
       unsigned char L0L1[OCB_BLOCK_LEN];
       unsigned char L0L1L0[OCB_BLOCK_LEN];
       unsigned char L[OCB_L_TABLE_SIZE][OCB_BLOCK_LEN];
+
+      /* --- Following members are cleared in gcry_cipher_reset --- */
 
       /* The tag is valid if marks.tag has been set.  */
       unsigned char tag[OCB_BLOCK_LEN];
@@ -571,6 +575,8 @@ gcry_err_code_t _gcry_cipher_ocb_get_tag
 gcry_err_code_t _gcry_cipher_ocb_check_tag
 /*           */ (gcry_cipher_hd_t c,
                  const unsigned char *intag, size_t taglen);
+void _gcry_cipher_ocb_setkey
+/*           */ (gcry_cipher_hd_t c);
 
 
 /*-- cipher-xts.c --*/

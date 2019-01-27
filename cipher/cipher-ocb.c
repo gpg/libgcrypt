@@ -123,6 +123,37 @@ ocb_get_L_big (gcry_cipher_hd_t c, u64 n, unsigned char *l_buf)
 }
 
 
+/* Called after key has been set. Sets up L table. */
+void _gcry_cipher_ocb_setkey (gcry_cipher_hd_t c)
+{
+  unsigned char ktop[OCB_BLOCK_LEN];
+  unsigned int burn = 0;
+  unsigned int nburn;
+  int i;
+
+  /* L_star = E(zero_128) */
+  memset (ktop, 0, OCB_BLOCK_LEN);
+  nburn = c->spec->encrypt (&c->context.c, c->u_mode.ocb.L_star, ktop);
+  burn = nburn > burn ? nburn : burn;
+  /* L_dollar = double(L_star)  */
+  double_block_cpy (c->u_mode.ocb.L_dollar, c->u_mode.ocb.L_star);
+  /* L_0 = double(L_dollar), ...  */
+  double_block_cpy (c->u_mode.ocb.L[0], c->u_mode.ocb.L_dollar);
+  for (i = 1; i < OCB_L_TABLE_SIZE; i++)
+    double_block_cpy (c->u_mode.ocb.L[i], c->u_mode.ocb.L[i-1]);
+  /* Precalculated offsets L0+L1, L0+L1+L0 */
+  cipher_block_xor (c->u_mode.ocb.L0L1,
+		    c->u_mode.ocb.L[0], c->u_mode.ocb.L[1], OCB_BLOCK_LEN);
+  cipher_block_xor (c->u_mode.ocb.L0L1L0,
+		    c->u_mode.ocb.L[0], c->u_mode.ocb.L0L1, OCB_BLOCK_LEN);
+
+  /* Cleanup */
+  wipememory (ktop, sizeof ktop);
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4*sizeof(void*));
+}
+
+
 /* Set the nonce for OCB.  This requires that the key has been set.
    Using it again resets start a new encryption cycle using the same
    key.  */
@@ -133,7 +164,6 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
   unsigned char ktop[OCB_BLOCK_LEN];
   unsigned char stretch[OCB_BLOCK_LEN + 8];
   unsigned int bottom;
-  int i;
   unsigned int burn = 0;
   unsigned int nburn;
 
@@ -158,23 +188,6 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
      of 64 bit.  */
   if (noncelen > (120/8) || noncelen < (64/8) || noncelen >= OCB_BLOCK_LEN)
     return GPG_ERR_INV_LENGTH;
-
-  /* Set up the L table.  */
-  /* L_star = E(zero_128) */
-  memset (ktop, 0, OCB_BLOCK_LEN);
-  nburn = c->spec->encrypt (&c->context.c, c->u_mode.ocb.L_star, ktop);
-  burn = nburn > burn ? nburn : burn;
-  /* L_dollar = double(L_star)  */
-  double_block_cpy (c->u_mode.ocb.L_dollar, c->u_mode.ocb.L_star);
-  /* L_0 = double(L_dollar), ...  */
-  double_block_cpy (c->u_mode.ocb.L[0], c->u_mode.ocb.L_dollar);
-  for (i = 1; i < OCB_L_TABLE_SIZE; i++)
-    double_block_cpy (c->u_mode.ocb.L[i], c->u_mode.ocb.L[i-1]);
-  /* Precalculated offsets L0+L1, L0+L1+L0 */
-  cipher_block_xor (c->u_mode.ocb.L0L1,
-		    c->u_mode.ocb.L[0], c->u_mode.ocb.L[1], OCB_BLOCK_LEN);
-  cipher_block_xor (c->u_mode.ocb.L0L1L0,
-		    c->u_mode.ocb.L[0], c->u_mode.ocb.L0L1, OCB_BLOCK_LEN);
 
   /* Prepare the nonce.  */
   memset (ktop, 0, (OCB_BLOCK_LEN - noncelen));

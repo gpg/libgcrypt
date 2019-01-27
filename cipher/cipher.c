@@ -816,6 +816,10 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
           _gcry_cipher_gcm_setkey (c);
           break;
 
+        case GCRY_CIPHER_MODE_OCB:
+          _gcry_cipher_ocb_setkey (c);
+          break;
+
         case GCRY_CIPHER_MODE_POLY1305:
           _gcry_cipher_poly1305_setkey (c);
           break;
@@ -931,9 +935,18 @@ cipher_reset (gcry_cipher_hd_t c)
       break;
 
     case GCRY_CIPHER_MODE_OCB:
-      memset (&c->u_mode.ocb, 0, sizeof c->u_mode.ocb);
-      /* Setup default taglen.  */
-      c->u_mode.ocb.taglen = 16;
+      /* Do not clear precalculated L-values */
+      {
+	byte *u_mode_head_pos = (void *)&c->u_mode.ocb;
+	byte *u_mode_tail_pos = (void *)&c->u_mode.ocb.tag;
+	size_t u_mode_head_length = u_mode_tail_pos - u_mode_head_pos;
+	size_t u_mode_tail_length = sizeof(c->u_mode.ocb) - u_mode_head_length;
+
+	memset (u_mode_tail_pos, 0, u_mode_tail_length);
+
+	/* Setup default taglen.  */
+	c->u_mode.ocb.taglen = 16;
+      }
       break;
 
     case GCRY_CIPHER_MODE_XTS:
