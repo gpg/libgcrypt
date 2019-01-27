@@ -7326,8 +7326,8 @@ check_one_cipher_core (int algo, int mode, int flags,
                        int bufshift, int pass)
 {
   gcry_cipher_hd_t hd;
-  unsigned char in_buffer[1040+1], out_buffer[1040+1];
-  unsigned char enc_result[1040];
+  unsigned char in_buffer[1904+1], out_buffer[1904+1];
+  unsigned char enc_result[1904];
   unsigned char tag_result[16];
   unsigned char tag[16];
   unsigned char *in, *out;
@@ -7342,7 +7342,7 @@ check_one_cipher_core (int algo, int mode, int flags,
   taglen = get_algo_mode_taglen(algo, mode);
 
   assert (nkey == 64);
-  assert (nplain == 1040);
+  assert (nplain == 1904);
   assert (sizeof(in_buffer) == nplain + 1);
   assert (sizeof(out_buffer) == sizeof(in_buffer));
   assert (blklen > 0);
@@ -7692,7 +7692,7 @@ static void
 check_one_cipher (int algo, int mode, int flags)
 {
   char key[64+1];
-  unsigned char plain[1040+1];
+  unsigned char plain[1904+1];
   int bufshift, i;
 
   for (bufshift=0; bufshift < 4; bufshift++)
@@ -7701,7 +7701,7 @@ check_one_cipher (int algo, int mode, int flags)
       memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF_"
 		   "0123456789abcdef.,;/[]{}-=ABCDEF", 64);
       memcpy (plain, "foobar42FOOBAR17", 16);
-      for (i = 16; i < 1040; i += 16)
+      for (i = 16; i < 1904; i += 16)
         {
           memcpy (&plain[i], &plain[i-16], 16);
           if (!++plain[i+7])
@@ -7710,25 +7710,25 @@ check_one_cipher (int algo, int mode, int flags)
             plain[i+14]++;
         }
 
-      if (check_one_cipher_core (algo, mode, flags, key, 64, plain, 1040,
+      if (check_one_cipher_core (algo, mode, flags, key, 64, plain, 1904,
                                  bufshift, 0+10*bufshift))
         return;
 
       /* Pass 1: Key not aligned.  */
       memmove (key+1, key, 64);
-      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain, 1040,
+      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain, 1904,
                                  bufshift, 1+10*bufshift))
         return;
 
       /* Pass 2: Key not aligned and data not aligned.  */
-      memmove (plain+1, plain, 1040);
-      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain+1, 1040,
+      memmove (plain+1, plain, 1904);
+      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain+1, 1904,
                                  bufshift, 2+10*bufshift))
         return;
 
       /* Pass 3: Key aligned and data not aligned.  */
       memmove (key, key+1, 64);
-      if (check_one_cipher_core (algo, mode, flags, key, 64, plain+1, 1040,
+      if (check_one_cipher_core (algo, mode, flags, key, 64, plain+1, 1904,
                                  bufshift, 3+10*bufshift))
         return;
     }
