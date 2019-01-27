@@ -50,9 +50,8 @@
 #define STACK_VEC_X13 (32 + STACK_VEC_X12)
 #define STACK_TMP     (32 + STACK_VEC_X13)
 #define STACK_TMP1    (32 + STACK_TMP)
-#define STACK_TMP2    (32 + STACK_TMP1)
 
-#define STACK_MAX     (32 + STACK_TMP2)
+#define STACK_MAX     (32 + STACK_TMP1)
 
 /* vector registers */
 #define X0 %ymm0
@@ -101,11 +100,22 @@
 	vpunpckldq x3, x2, t1; \
 	vpunpckhdq x3, x2, x2; \
 	\
-	vpunpckhqdq t1,	x0, x1; \
-	vpunpcklqdq t1,	x0, x0; \
+	vpunpckhqdq t1, x0, x1; \
+	vpunpcklqdq t1, x0, x0; \
 	\
 	vpunpckhqdq x2, t2, x3; \
-	vpunpcklqdq x2,	t2, x2;
+	vpunpcklqdq x2, t2, x2;
+
+/* 2x2 128-bit matrix transpose */
+#define transpose_16byte_2x2(x0,x1,t1) \
+	vmovdqa    x0, t1; \
+	vperm2i128 $0x20, x1, x0, x0; \
+	vperm2i128 $0x31, x1, t1, x1;
+
+/* xor register with unaligned src and save to unaligned dst */
+#define xor_src_dst(dst, src, offset, xreg) \
+	vpxor offset(src), xreg, xreg; \
+	vmovdqu xreg, offset(dst);
 
 /**********************************************************************
   8-way chacha20
@@ -146,13 +156,6 @@
 		interleave_op4;					\
 	PLUS(c1,d1); PLUS(c2,d2); XOR(b1,c1); XOR(b2,c2);	\
 	    ROTATE2(b1, b2,  7, tmp1);
-
-#define BUF_XOR_256_TO_128(dst, src, offset_lo, offset_hi, yreg, tmp1)	\
-	vextracti128 $1, yreg, tmp1##h;					\
-	vpxor offset_lo(src), yreg##h, yreg##h;				\
-	vpxor offset_hi(src), tmp1##h, tmp1##h;				\
-	vmovdqu yreg##h, offset_lo(dst);				\
-	vmovdqu tmp1##h, offset_hi(dst);
 
 .align 32
 chacha20_data:
@@ -230,6 +233,8 @@ _gcry_chacha20_amd64_avx2_blocks8:
 	sub $2, ROUND;
 	jnz .Lround2;
 
+	vmovdqa X8, (STACK_TMP1)(%rsp);
+
 	/* tmp := X15 */
 	vpbroadcastd (0 * 4)(INPUT), X15;
 	PLUS(X0, X15);
@@ -247,53 +252,56 @@ _gcry_chacha20_amd64_avx2_blocks8:
 	PLUS(X6, X15);
 	vpbroadcastd (7 * 4)(INPUT), X15;
 	PLUS(X7, X15);
-	vpbroadcastd (8 * 4)(INPUT), X15;
-	PLUS(X8, X15);
-	vpbroadcastd (9 * 4)(INPUT), X15;
-	PLUS(X9, X15);
-	vpbroadcastd (10 * 4)(INPUT), X15;
-	PLUS(X10, X15);
-	vpbroadcastd (11 * 4)(INPUT), X15;
-	PLUS(X11, X15);
-	vmovdqa (STACK_VEC_X12)(%rsp), X15;
-	PLUS(X12, X15);
-	vmovdqa (STACK_VEC_X13)(%rsp), X15;
-	PLUS(X13, X15);
+	transpose_4x4(X0, X1, X2, X3, X8, X15);
+	transpose_4x4(X4, X5, X6, X7, X8, X15);
+	vmovdqa (STACK_TMP1)(%rsp), X8;
+	transpose_16byte_2x2(X0, X4, X15);
+	transpose_16byte_2x2(X1, X5, X15);
+	transpose_16byte_2x2(X2, X6, X15);
+	transpose_16byte_2x2(X3, X7, X15);
 	vmovdqa (STACK_TMP)(%rsp), X15;
-	vmovdqa X13, (STACK_TMP)(%rsp);
-	vpbroadcastd (14 * 4)(INPUT), X13;
-	PLUS(X14, X13);
-	vmovdqa X14, (STACK_TMP1)(%rsp);
-	vpbroadcastd (15 * 4)(INPUT), X13;
-	PLUS(X15, X13);
-	vmovdqa X15, (STACK_TMP2)(%rsp);
+	xor_src_dst(DST, SRC, (64 * 0 + 16 * 0), X0);
+	xor_src_dst(DST, SRC, (64 * 1 + 16 * 0), X1);
+	vpbroadcastd (8 * 4)(INPUT), X0;
+	PLUS(X8, X0);
+	vpbroadcastd (9 * 4)(INPUT), X0;
+	PLUS(X9, X0);
+	vpbroadcastd (10 * 4)(INPUT), X0;
+	PLUS(X10, X0);
+	vpbroadcastd (11 * 4)(INPUT), X0;
+	PLUS(X11, X0);
+	vmovdqa (STACK_VEC_X12)(%rsp), X0;
+	PLUS(X12, X0);
+	vmovdqa (STACK_VEC_X13)(%rsp), X0;
+	PLUS(X13, X0);
+	vpbroadcastd (14 * 4)(INPUT), X0;
+	PLUS(X14, X0);
+	vpbroadcastd (15 * 4)(INPUT), X0;
+	PLUS(X15, X0);
+	xor_src_dst(DST, SRC, (64 * 2 + 16 * 0), X2);
+	xor_src_dst(DST, SRC, (64 * 3 + 16 * 0), X3);
 
 	/* Update counter */
 	addq $8, (12 * 4)(INPUT);
 
-	transpose_4x4(X0, X1, X2, X3, X13, X14);
-	transpose_4x4(X4, X5, X6, X7, X13, X14);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 0 + 16 * 0), (64 * 4 + 16 * 0), X0, X15);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 1 + 16 * 0), (64 * 5 + 16 * 0), X1, X15);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 2 + 16 * 0), (64 * 6 + 16 * 0), X2, X15);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 3 + 16 * 0), (64 * 7 + 16 * 0), X3, X15);
-	vmovdqa (STACK_TMP)(%rsp), X13;
-	vmovdqa (STACK_TMP1)(%rsp), X14;
-	vmovdqa (STACK_TMP2)(%rsp), X15;
 	transpose_4x4(X8, X9, X10, X11, X0, X1);
 	transpose_4x4(X12, X13, X14, X15, X0, X1);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 0 + 16 * 1), (64 * 4 + 16 * 1), X4, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 1 + 16 * 1), (64 * 5 + 16 * 1), X5, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 2 + 16 * 1), (64 * 6 + 16 * 1), X6, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 3 + 16 * 1), (64 * 7 + 16 * 1), X7, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 0 + 16 * 2), (64 * 4 + 16 * 2), X8, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 1 + 16 * 2), (64 * 5 + 16 * 2), X9, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 2 + 16 * 2), (64 * 6 + 16 * 2), X10, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 3 + 16 * 2), (64 * 7 + 16 * 2), X11, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 0 + 16 * 3), (64 * 4 + 16 * 3), X12, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 1 + 16 * 3), (64 * 5 + 16 * 3), X13, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 2 + 16 * 3), (64 * 6 + 16 * 3), X14, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 3 + 16 * 3), (64 * 7 + 16 * 3), X15, X0);
+	xor_src_dst(DST, SRC, (64 * 4 + 16 * 0), X4);
+	xor_src_dst(DST, SRC, (64 * 5 + 16 * 0), X5);
+	transpose_16byte_2x2(X8, X12, X0);
+	transpose_16byte_2x2(X9, X13, X0);
+	transpose_16byte_2x2(X10, X14, X0);
+	transpose_16byte_2x2(X11, X15, X0);
+	xor_src_dst(DST, SRC, (64 * 6 + 16 * 0), X6);
+	xor_src_dst(DST, SRC, (64 * 7 + 16 * 0), X7);
+	xor_src_dst(DST, SRC, (64 * 0 + 16 * 2), X8);
+	xor_src_dst(DST, SRC, (64 * 1 + 16 * 2), X9);
+	xor_src_dst(DST, SRC, (64 * 2 + 16 * 2), X10);
+	xor_src_dst(DST, SRC, (64 * 3 + 16 * 2), X11);
+	xor_src_dst(DST, SRC, (64 * 4 + 16 * 2), X12);
+	xor_src_dst(DST, SRC, (64 * 5 + 16 * 2), X13);
+	xor_src_dst(DST, SRC, (64 * 6 + 16 * 2), X14);
+	xor_src_dst(DST, SRC, (64 * 7 + 16 * 2), X15);
 
 	sub $8, NBLKS;
 	lea (8 * 64)(DST), DST;
@@ -306,7 +314,6 @@ _gcry_chacha20_amd64_avx2_blocks8:
 	vmovdqa X0, (STACK_VEC_X13)(%rsp);
 	vmovdqa X0, (STACK_TMP)(%rsp);
 	vmovdqa X0, (STACK_TMP1)(%rsp);
-	vmovdqa X0, (STACK_TMP2)(%rsp);
 	vzeroall;
 
 	/* eax zeroed by round loop. */
@@ -646,6 +653,11 @@ _gcry_chacha20_poly1305_amd64_avx2_blocks8:
 		      POLY1305_BLOCK_PART4(),
 		      POLY1305_BLOCK_PART5())
 
+	movq (STACK_MAX + 5 * 8)(%rsp), SRC;
+	movq (STACK_MAX + 6 * 8)(%rsp), DST;
+
+	vmovdqa X8, (STACK_TMP1)(%rsp);
+
 	/* tmp := X15 */
 	vpbroadcastd (0 * 4)(INPUT), X15;
 	PLUS(X0, X15);
@@ -663,56 +675,56 @@ _gcry_chacha20_poly1305_amd64_avx2_blocks8:
 	PLUS(X6, X15);
 	vpbroadcastd (7 * 4)(INPUT), X15;
 	PLUS(X7, X15);
-	vpbroadcastd (8 * 4)(INPUT), X15;
-	PLUS(X8, X15);
-	vpbroadcastd (9 * 4)(INPUT), X15;
-	PLUS(X9, X15);
-	vpbroadcastd (10 * 4)(INPUT), X15;
-	PLUS(X10, X15);
-	vpbroadcastd (11 * 4)(INPUT), X15;
-	PLUS(X11, X15);
-	vmovdqa (STACK_VEC_X12)(%rsp), X15;
-	PLUS(X12, X15);
-	vmovdqa (STACK_VEC_X13)(%rsp), X15;
-	PLUS(X13, X15);
+	transpose_4x4(X0, X1, X2, X3, X8, X15);
+	transpose_4x4(X4, X5, X6, X7, X8, X15);
+	vmovdqa (STACK_TMP1)(%rsp), X8;
+	transpose_16byte_2x2(X0, X4, X15);
+	transpose_16byte_2x2(X1, X5, X15);
+	transpose_16byte_2x2(X2, X6, X15);
+	transpose_16byte_2x2(X3, X7, X15);
 	vmovdqa (STACK_TMP)(%rsp), X15;
-	vmovdqa X13, (STACK_TMP)(%rsp);
-	vpbroadcastd (14 * 4)(INPUT), X13;
-	PLUS(X14, X13);
-	vmovdqa X14, (STACK_TMP1)(%rsp);
-	vpbroadcastd (15 * 4)(INPUT), X13;
-	PLUS(X15, X13);
-	vmovdqa X15, (STACK_TMP2)(%rsp);
+	xor_src_dst(DST, SRC, (64 * 0 + 16 * 0), X0);
+	xor_src_dst(DST, SRC, (64 * 1 + 16 * 0), X1);
+	vpbroadcastd (8 * 4)(INPUT), X0;
+	PLUS(X8, X0);
+	vpbroadcastd (9 * 4)(INPUT), X0;
+	PLUS(X9, X0);
+	vpbroadcastd (10 * 4)(INPUT), X0;
+	PLUS(X10, X0);
+	vpbroadcastd (11 * 4)(INPUT), X0;
+	PLUS(X11, X0);
+	vmovdqa (STACK_VEC_X12)(%rsp), X0;
+	PLUS(X12, X0);
+	vmovdqa (STACK_VEC_X13)(%rsp), X0;
+	PLUS(X13, X0);
+	vpbroadcastd (14 * 4)(INPUT), X0;
+	PLUS(X14, X0);
+	vpbroadcastd (15 * 4)(INPUT), X0;
+	PLUS(X15, X0);
+	xor_src_dst(DST, SRC, (64 * 2 + 16 * 0), X2);
+	xor_src_dst(DST, SRC, (64 * 3 + 16 * 0), X3);
 
 	/* Update counter */
 	addq $8, (12 * 4)(INPUT);
 
-	movq (STACK_MAX + 5 * 8)(%rsp), SRC;
-	movq (STACK_MAX + 6 * 8)(%rsp), DST;
-
-	transpose_4x4(X0, X1, X2, X3, X13, X14);
-	transpose_4x4(X4, X5, X6, X7, X13, X14);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 0 + 16 * 0), (64 * 4 + 16 * 0), X0, X15);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 1 + 16 * 0), (64 * 5 + 16 * 0), X1, X15);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 2 + 16 * 0), (64 * 6 + 16 * 0), X2, X15);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 3 + 16 * 0), (64 * 7 + 16 * 0), X3, X15);
-	vmovdqa (STACK_TMP)(%rsp), X13;
-	vmovdqa (STACK_TMP1)(%rsp), X14;
-	vmovdqa (STACK_TMP2)(%rsp), X15;
 	transpose_4x4(X8, X9, X10, X11, X0, X1);
 	transpose_4x4(X12, X13, X14, X15, X0, X1);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 0 + 16 * 1), (64 * 4 + 16 * 1), X4, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 1 + 16 * 1), (64 * 5 + 16 * 1), X5, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 2 + 16 * 1), (64 * 6 + 16 * 1), X6, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 3 + 16 * 1), (64 * 7 + 16 * 1), X7, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 0 + 16 * 2), (64 * 4 + 16 * 2), X8, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 1 + 16 * 2), (64 * 5 + 16 * 2), X9, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 2 + 16 * 2), (64 * 6 + 16 * 2), X10, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 3 + 16 * 2), (64 * 7 + 16 * 2), X11, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 0 + 16 * 3), (64 * 4 + 16 * 3), X12, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 1 + 16 * 3), (64 * 5 + 16 * 3), X13, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 2 + 16 * 3), (64 * 6 + 16 * 3), X14, X0);
-	BUF_XOR_256_TO_128(DST, SRC, (64 * 3 + 16 * 3), (64 * 7 + 16 * 3), X15, X0);
+	xor_src_dst(DST, SRC, (64 * 4 + 16 * 0), X4);
+	xor_src_dst(DST, SRC, (64 * 5 + 16 * 0), X5);
+	transpose_16byte_2x2(X8, X12, X0);
+	transpose_16byte_2x2(X9, X13, X0);
+	transpose_16byte_2x2(X10, X14, X0);
+	transpose_16byte_2x2(X11, X15, X0);
+	xor_src_dst(DST, SRC, (64 * 6 + 16 * 0), X6);
+	xor_src_dst(DST, SRC, (64 * 7 + 16 * 0), X7);
+	xor_src_dst(DST, SRC, (64 * 0 + 16 * 2), X8);
+	xor_src_dst(DST, SRC, (64 * 1 + 16 * 2), X9);
+	xor_src_dst(DST, SRC, (64 * 2 + 16 * 2), X10);
+	xor_src_dst(DST, SRC, (64 * 3 + 16 * 2), X11);
+	xor_src_dst(DST, SRC, (64 * 4 + 16 * 2), X12);
+	xor_src_dst(DST, SRC, (64 * 5 + 16 * 2), X13);
+	xor_src_dst(DST, SRC, (64 * 6 + 16 * 2), X14);
+	xor_src_dst(DST, SRC, (64 * 7 + 16 * 2), X15);
 
 	subq $8, (STACK_MAX + 7 * 8)(%rsp); # NBLKS
 
@@ -733,7 +745,6 @@ _gcry_chacha20_poly1305_amd64_avx2_blocks8:
 	vmovdqa X0, (STACK_VEC_X13)(%rsp);
 	vmovdqa X0, (STACK_TMP)(%rsp);
 	vmovdqa X0, (STACK_TMP1)(%rsp);
-	vmovdqa X0, (STACK_TMP2)(%rsp);
 	vzeroall;
 
 	movq (STACK_MAX + 0 * 8)(%rsp), %rbx;
