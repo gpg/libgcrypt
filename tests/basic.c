@@ -7256,6 +7256,23 @@ get_algo_mode_blklen (int algo, int mode)
 }
 
 
+static unsigned int
+get_algo_mode_taglen (int algo, int mode)
+{
+  switch (mode)
+    {
+    case GCRY_CIPHER_MODE_CCM:
+    case GCRY_CIPHER_MODE_GCM:
+    case GCRY_CIPHER_MODE_POLY1305:
+      return 16;
+    case GCRY_CIPHER_MODE_EAX:
+      return gcry_cipher_get_algo_blklen(algo);
+    }
+
+  return 0;
+}
+
+
 static int
 check_one_cipher_core_reset (gcry_cipher_hd_t hd, int algo, int mode, int pass,
                              int nplain)
@@ -7311,14 +7328,18 @@ check_one_cipher_core (int algo, int mode, int flags,
   gcry_cipher_hd_t hd;
   unsigned char in_buffer[1040+1], out_buffer[1040+1];
   unsigned char enc_result[1040];
+  unsigned char tag_result[16];
+  unsigned char tag[16];
   unsigned char *in, *out;
   int keylen;
   gcry_error_t err = 0;
   unsigned int blklen;
   unsigned int piecelen;
   unsigned int pos;
+  unsigned int taglen;
 
   blklen = get_algo_mode_blklen(algo, mode);
+  taglen = get_algo_mode_taglen(algo, mode);
 
   assert (nkey == 64);
   assert (nplain == 1040);
@@ -7402,6 +7423,20 @@ check_one_cipher_core (int algo, int mode, int flags,
       return -1;
     }
 
+  if (taglen > 0)
+    {
+      err = gcry_cipher_gettag (hd, tag, taglen);
+      if (err)
+	{
+	  fail ("pass %d, algo %d, mode %d, gcry_cipher_gettag failed: %s\n",
+		pass, algo, mode, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return -1;
+	}
+
+      memcpy(tag_result, tag, taglen);
+    }
+
   memcpy (enc_result, out, nplain);
 
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
@@ -7414,6 +7449,18 @@ check_one_cipher_core (int algo, int mode, int flags,
 	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
       return -1;
+    }
+
+  if (taglen > 0)
+    {
+      err = gcry_cipher_checktag (hd, tag_result, taglen);
+      if (err)
+	{
+	  fail ("pass %d, algo %d, mode %d, gcry_cipher_checktag failed: %s\n",
+		pass, algo, mode, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return -1;
+	}
     }
 
   if (memcmp (plain, in, nplain))
@@ -7435,6 +7482,23 @@ check_one_cipher_core (int algo, int mode, int flags,
       return -1;
     }
 
+  if (taglen > 0)
+    {
+      err = gcry_cipher_gettag (hd, tag, taglen);
+      if (err)
+	{
+	  fail ("pass %d, algo %d, mode %d, in-place, "
+		"gcry_cipher_gettag failed: %s\n",
+		pass, algo, mode, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return -1;
+	}
+
+      if (memcmp (tag_result, tag, taglen))
+	fail ("pass %d, algo %d, mode %d, in-place, tag mismatch\n",
+	      pass, algo, mode);
+    }
+
   if (memcmp (enc_result, out, nplain))
     fail ("pass %d, algo %d, mode %d, in-place, encrypt mismatch\n",
           pass, algo, mode);
@@ -7450,6 +7514,19 @@ check_one_cipher_core (int algo, int mode, int flags,
 	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
       return -1;
+    }
+
+  if (taglen > 0)
+    {
+      err = gcry_cipher_checktag (hd, tag_result, taglen);
+      if (err)
+	{
+	  fail ("pass %d, algo %d, mode %d, in-place, "
+		"gcry_cipher_checktag failed: %s\n",
+		pass, algo, mode, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return -1;
+	}
     }
 
   if (memcmp (plain, out, nplain))
@@ -7482,6 +7559,23 @@ check_one_cipher_core (int algo, int mode, int flags,
       piecelen = piecelen * 2 - ((piecelen != blklen) ? blklen : 0);
     }
 
+  if (taglen > 0)
+    {
+      err = gcry_cipher_gettag (hd, tag, taglen);
+      if (err)
+	{
+	  fail ("pass %d, algo %d, mode %d, split-buffer (pos: %d, "
+                "piecelen: %d), gcry_cipher_gettag failed: %s\n",
+		pass, algo, mode, pos, piecelen, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return -1;
+	}
+
+      if (memcmp (tag_result, tag, taglen))
+	fail ("pass %d, algo %d, mode %d, in-place, tag mismatch\n",
+	      pass, algo, mode);
+    }
+
   if (memcmp (enc_result, out, nplain))
     fail ("pass %d, algo %d, mode %d, split-buffer, encrypt mismatch\n",
           pass, algo, mode);
@@ -7508,6 +7602,19 @@ check_one_cipher_core (int algo, int mode, int flags,
 
       pos += piecelen;
       piecelen = piecelen * 2 - ((piecelen != blklen) ? blklen : 0);
+    }
+
+  if (taglen > 0)
+    {
+      err = gcry_cipher_checktag (hd, tag_result, taglen);
+      if (err)
+	{
+	  fail ("pass %d, algo %d, mode %d, split-buffer (pos: %d, "
+                "piecelen: %d), gcry_cipher_checktag failed: %s\n",
+		pass, algo, mode, pos, piecelen, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return -1;
+	}
     }
 
   if (memcmp (plain, in, nplain))
