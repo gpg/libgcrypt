@@ -1,6 +1,6 @@
 /* chacha20-amd64-ssse3.S  -  SSSE3 implementation of ChaCha20 cipher
  *
- * Copyright (C) 2017,2018 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2017-2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -35,17 +35,8 @@
 
 .text
 
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
-
-#ifdef __PIC__
-#  define RIP (%rip)
-#else
-#  define RIP
-#endif
+#include "asm-common-amd64.h"
+#include "asm-poly1305-amd64.h"
 
 /* register macros */
 #define INPUT %rdi
@@ -145,13 +136,16 @@
 #define PLUS(ds,s) \
 	paddd s, ds;
 
-#define QUARTERROUND2(a1,b1,c1,d1,a2,b2,c2,d2,ign,tmp1,tmp2)	\
-	movdqa .Lshuf_rol16 RIP, tmp1;				\
+#define QUARTERROUND2(a1,b1,c1,d1,a2,b2,c2,d2,ign,tmp1,tmp2,\
+		      interleave_op1,interleave_op2)		\
+	movdqa .Lshuf_rol16 rRIP, tmp1;				\
+		interleave_op1;					\
 	PLUS(a1,b1); PLUS(a2,b2); XOR(d1,a1); XOR(d2,a2);	\
 	    ROTATE_SHUF_2(d1, d2, tmp1);			\
 	PLUS(c1,d1); PLUS(c2,d2); XOR(b1,c1); XOR(b2,c2);	\
 	    ROTATE2(b1, b2, 12, tmp1, tmp2);			\
-	movdqa .Lshuf_rol8 RIP, tmp1;				\
+	movdqa .Lshuf_rol8 rRIP, tmp1;				\
+		interleave_op2;					\
 	PLUS(a1,b1); PLUS(a2,b2); XOR(d1,a1); XOR(d2,a2);	\
 	    ROTATE_SHUF_2(d1, d2, tmp1);			\
 	PLUS(c1,d1); PLUS(c2,d2); XOR(b1,c1); XOR(b2,c2);	\
@@ -192,8 +186,8 @@ _gcry_chacha20_amd64_ssse3_blocks4:
 	mov $20, ROUND;
 
 	/* Construct counter vectors X12 and X13 */
-	movdqa .Linc_counter RIP, X0;
-	movdqa .Lunsigned_cmp RIP, X2;
+	movdqa .Linc_counter rRIP, X0;
+	movdqa .Lunsigned_cmp rRIP, X2;
 	pbroadcastd((12 * 4)(INPUT), X12);
 	pbroadcastd((13 * 4)(INPUT), X13);
 	paddd X0, X12;
@@ -224,18 +218,18 @@ _gcry_chacha20_amd64_ssse3_blocks4:
 	movdqa X15, (STACK_TMP1)(%rsp);
 
 .Lround2_4:
-	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15)
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,,)
 	movdqa (STACK_TMP)(%rsp), X11;
 	movdqa (STACK_TMP1)(%rsp), X15;
 	movdqa X8, (STACK_TMP)(%rsp);
 	movdqa X9, (STACK_TMP1)(%rsp);
-	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9)
-	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9)
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,,)
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,,)
 	movdqa (STACK_TMP)(%rsp), X8;
 	movdqa (STACK_TMP1)(%rsp), X9;
 	movdqa X11, (STACK_TMP)(%rsp);
 	movdqa X15, (STACK_TMP1)(%rsp);
-	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15)
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,,)
 	sub $2, ROUND;
 	jnz .Lround2_4;
 
@@ -380,9 +374,9 @@ _gcry_chacha20_amd64_ssse3_blocks1:
 	 */
 
 	/* Load constants */
-	movdqa .Lcounter1 RIP, X4;
-	movdqa .Lshuf_rol8 RIP, X5;
-	movdqa .Lshuf_rol16 RIP, X6;
+	movdqa .Lcounter1 rRIP, X4;
+	movdqa .Lshuf_rol8 rRIP, X5;
+	movdqa .Lshuf_rol16 rRIP, X6;
 
 	/* Load state */
 	movdqu (0 * 4)(INPUT), X10;
@@ -444,6 +438,571 @@ _gcry_chacha20_amd64_ssse3_blocks1:
 	ret;
 ELF(.size _gcry_chacha20_amd64_ssse3_blocks1,
 	  .-_gcry_chacha20_amd64_ssse3_blocks1;)
+
+/**********************************************************************
+  4-way stitched chacha20-poly1305
+ **********************************************************************/
+
+.align 8
+.globl _gcry_chacha20_poly1305_amd64_ssse3_blocks4
+ELF(.type _gcry_chacha20_poly1305_amd64_ssse3_blocks4,@function;)
+
+_gcry_chacha20_poly1305_amd64_ssse3_blocks4:
+	/* input:
+	 *	%rdi: input
+	 *	%rsi: dst
+	 *	%rdx: src
+	 *	%rcx: nblks (multiple of 4)
+	 *	%r9: poly1305-state
+	 *	%r8: poly1305-src
+	 */
+
+	pushq %rbp;
+	movq %rsp, %rbp;
+
+	subq $(8 * 8) + STACK_MAX + 16, %rsp;
+	andq $~15, %rsp;
+
+	movq %rbx, (STACK_MAX + 0 * 8)(%rsp);
+	movq %r12, (STACK_MAX + 1 * 8)(%rsp);
+	movq %r13, (STACK_MAX + 2 * 8)(%rsp);
+	movq %r14, (STACK_MAX + 3 * 8)(%rsp);
+	movq %r15, (STACK_MAX + 4 * 8)(%rsp);
+
+	movq %rdx, (STACK_MAX + 5 * 8)(%rsp); # SRC
+	movq %rsi, (STACK_MAX + 6 * 8)(%rsp); # DST
+	movq %rcx, (STACK_MAX + 7 * 8)(%rsp); # NBLKS
+
+	/* Load state */
+	POLY1305_LOAD_STATE();
+
+.Loop_poly4:
+
+	/* Construct counter vectors X12 and X13 */
+	movdqa .Linc_counter rRIP, X0;
+	movdqa .Lunsigned_cmp rRIP, X2;
+	pbroadcastd((12 * 4)(INPUT), X12);
+	pbroadcastd((13 * 4)(INPUT), X13);
+	paddd X0, X12;
+	movdqa X12, X1;
+	pxor X2, X0;
+	pxor X2, X1;
+	pcmpgtd X1, X0;
+	psubd X0, X13;
+	movdqa X12, (STACK_VEC_X12)(%rsp);
+	movdqa X13, (STACK_VEC_X13)(%rsp);
+
+	/* Load vectors */
+	pbroadcastd((0 * 4)(INPUT), X0);
+	pbroadcastd((1 * 4)(INPUT), X1);
+	pbroadcastd((2 * 4)(INPUT), X2);
+	pbroadcastd((3 * 4)(INPUT), X3);
+	pbroadcastd((4 * 4)(INPUT), X4);
+	pbroadcastd((5 * 4)(INPUT), X5);
+	pbroadcastd((6 * 4)(INPUT), X6);
+	pbroadcastd((7 * 4)(INPUT), X7);
+	pbroadcastd((8 * 4)(INPUT), X8);
+	pbroadcastd((9 * 4)(INPUT), X9);
+	pbroadcastd((10 * 4)(INPUT), X10);
+	pbroadcastd((11 * 4)(INPUT), X11);
+	pbroadcastd((14 * 4)(INPUT), X14);
+	pbroadcastd((15 * 4)(INPUT), X15);
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+
+	/* rounds 0,1 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART1(0 * 16),
+		      POLY1305_BLOCK_PART2())
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART3(),
+		      POLY1305_BLOCK_PART4())
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART5(),
+		      POLY1305_BLOCK_PART1(1 * 16))
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART2(),
+		      POLY1305_BLOCK_PART3())
+
+	/* rounds 2,3 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART4(),
+		      POLY1305_BLOCK_PART5())
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART1(2 * 16),
+		      POLY1305_BLOCK_PART2())
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART3(),
+		      POLY1305_BLOCK_PART4())
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART5(),
+		      POLY1305_BLOCK_PART1(3 * 16))
+
+	/* rounds 4,5 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART2(),
+		      POLY1305_BLOCK_PART3())
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART4(),
+		      POLY1305_BLOCK_PART5())
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART1(4 * 16),
+		      POLY1305_BLOCK_PART2())
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART3(),
+		      POLY1305_BLOCK_PART4())
+
+	/* rounds 6,7 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART5(),
+		      POLY1305_BLOCK_PART1(5 * 16))
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART2(),
+		      POLY1305_BLOCK_PART3())
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART4(),
+		      POLY1305_BLOCK_PART5())
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART1(6 * 16),
+		      POLY1305_BLOCK_PART2())
+
+	/* rounds 8,9 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART3(),
+		      POLY1305_BLOCK_PART4())
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART5(),
+		      POLY1305_BLOCK_PART1(7 * 16))
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART2(),
+		      POLY1305_BLOCK_PART3())
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART4(),
+		      POLY1305_BLOCK_PART5())
+
+	/* rounds 10,11 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART1(8 * 16),
+		      POLY1305_BLOCK_PART2())
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART3(),
+		      POLY1305_BLOCK_PART4())
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART5(),
+		      POLY1305_BLOCK_PART1(9 * 16))
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART2(),
+		      POLY1305_BLOCK_PART3())
+
+	/* rounds 12,13 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART4(),
+		      POLY1305_BLOCK_PART5())
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART1(10 * 16),
+		      POLY1305_BLOCK_PART2())
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART3(),
+		      POLY1305_BLOCK_PART4())
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART5(),
+		      POLY1305_BLOCK_PART1(11 * 16))
+
+	/* rounds 14,15 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART2(),
+		      POLY1305_BLOCK_PART3())
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART4(),
+		      POLY1305_BLOCK_PART5())
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART1(12 * 16),
+		      POLY1305_BLOCK_PART2())
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART3(),
+		      POLY1305_BLOCK_PART4())
+
+	/* rounds 16,17 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART5(),
+		      POLY1305_BLOCK_PART1(13 * 16))
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART2(),
+		      POLY1305_BLOCK_PART3())
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART4(),
+		      POLY1305_BLOCK_PART5())
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART1(14 * 16),
+		      POLY1305_BLOCK_PART2())
+
+	/* rounds 18,19 */
+	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART3(),
+		      POLY1305_BLOCK_PART4())
+	movdqa (STACK_TMP)(%rsp), X11;
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X8, (STACK_TMP)(%rsp);
+	movdqa X9, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART5(),
+		      POLY1305_BLOCK_PART1(15 * 16))
+	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,X8,X9,
+		      POLY1305_BLOCK_PART2(),
+		      POLY1305_BLOCK_PART3())
+	movdqa (STACK_TMP)(%rsp), X8;
+	movdqa (STACK_TMP1)(%rsp), X9;
+	movdqa X11, (STACK_TMP)(%rsp);
+	movdqa X15, (STACK_TMP1)(%rsp);
+	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15,
+		      POLY1305_BLOCK_PART4(),
+		      POLY1305_BLOCK_PART5())
+
+	/* tmp := X15 */
+	movdqa (STACK_TMP)(%rsp), X11;
+	pbroadcastd((0 * 4)(INPUT), X15);
+	PLUS(X0, X15);
+	pbroadcastd((1 * 4)(INPUT), X15);
+	PLUS(X1, X15);
+	pbroadcastd((2 * 4)(INPUT), X15);
+	PLUS(X2, X15);
+	pbroadcastd((3 * 4)(INPUT), X15);
+	PLUS(X3, X15);
+	pbroadcastd((4 * 4)(INPUT), X15);
+	PLUS(X4, X15);
+	pbroadcastd((5 * 4)(INPUT), X15);
+	PLUS(X5, X15);
+	pbroadcastd((6 * 4)(INPUT), X15);
+	PLUS(X6, X15);
+	pbroadcastd((7 * 4)(INPUT), X15);
+	PLUS(X7, X15);
+	pbroadcastd((8 * 4)(INPUT), X15);
+	PLUS(X8, X15);
+	pbroadcastd((9 * 4)(INPUT), X15);
+	PLUS(X9, X15);
+	pbroadcastd((10 * 4)(INPUT), X15);
+	PLUS(X10, X15);
+	pbroadcastd((11 * 4)(INPUT), X15);
+	PLUS(X11, X15);
+	movdqa (STACK_VEC_X12)(%rsp), X15;
+	PLUS(X12, X15);
+	movdqa (STACK_VEC_X13)(%rsp), X15;
+	PLUS(X13, X15);
+	movdqa X13, (STACK_TMP)(%rsp);
+	pbroadcastd((14 * 4)(INPUT), X15);
+	PLUS(X14, X15);
+	movdqa (STACK_TMP1)(%rsp), X15;
+	movdqa X14, (STACK_TMP1)(%rsp);
+	pbroadcastd((15 * 4)(INPUT), X13);
+	PLUS(X15, X13);
+	movdqa X15, (STACK_TMP2)(%rsp);
+
+	/* Update counter */
+	addq $4, (12 * 4)(INPUT);
+
+	movq (STACK_MAX + 5 * 8)(%rsp), SRC;
+	movq (STACK_MAX + 6 * 8)(%rsp), DST;
+
+	transpose_4x4(X0, X1, X2, X3, X13, X14, X15);
+	xor_src_dst(DST, SRC, (64 * 0 + 16 * 0), X0, X15);
+	xor_src_dst(DST, SRC, (64 * 1 + 16 * 0), X1, X15);
+	xor_src_dst(DST, SRC, (64 * 2 + 16 * 0), X2, X15);
+	xor_src_dst(DST, SRC, (64 * 3 + 16 * 0), X3, X15);
+	transpose_4x4(X4, X5, X6, X7, X0, X1, X2);
+	movdqa (STACK_TMP)(%rsp), X13;
+	movdqa (STACK_TMP1)(%rsp), X14;
+	movdqa (STACK_TMP2)(%rsp), X15;
+	xor_src_dst(DST, SRC, (64 * 0 + 16 * 1), X4, X0);
+	xor_src_dst(DST, SRC, (64 * 1 + 16 * 1), X5, X0);
+	xor_src_dst(DST, SRC, (64 * 2 + 16 * 1), X6, X0);
+	xor_src_dst(DST, SRC, (64 * 3 + 16 * 1), X7, X0);
+	transpose_4x4(X8, X9, X10, X11, X0, X1, X2);
+	xor_src_dst(DST, SRC, (64 * 0 + 16 * 2), X8, X0);
+	xor_src_dst(DST, SRC, (64 * 1 + 16 * 2), X9, X0);
+	xor_src_dst(DST, SRC, (64 * 2 + 16 * 2), X10, X0);
+	xor_src_dst(DST, SRC, (64 * 3 + 16 * 2), X11, X0);
+	transpose_4x4(X12, X13, X14, X15, X0, X1, X2);
+	xor_src_dst(DST, SRC, (64 * 0 + 16 * 3), X12, X0);
+	xor_src_dst(DST, SRC, (64 * 1 + 16 * 3), X13, X0);
+	xor_src_dst(DST, SRC, (64 * 2 + 16 * 3), X14, X0);
+	xor_src_dst(DST, SRC, (64 * 3 + 16 * 3), X15, X0);
+
+	subq $4, (STACK_MAX + 7 * 8)(%rsp); # NBLKS
+
+	lea (16 * 16)(POLY_RSRC), POLY_RSRC;
+	lea (4 * 64)(DST), DST;
+	lea (4 * 64)(SRC), SRC;
+	movq SRC, (STACK_MAX + 5 * 8)(%rsp);
+	movq DST, (STACK_MAX + 6 * 8)(%rsp);
+
+	jnz .Loop_poly4;
+
+	/* Store state */
+	POLY1305_STORE_STATE();
+
+	/* clear the used vector registers and stack */
+	clear(X0);
+	movdqa X0, (STACK_VEC_X12)(%rsp);
+	movdqa X0, (STACK_VEC_X13)(%rsp);
+	movdqa X0, (STACK_TMP)(%rsp);
+	movdqa X0, (STACK_TMP1)(%rsp);
+	movdqa X0, (STACK_TMP2)(%rsp);
+	clear(X1);
+	clear(X2);
+	clear(X3);
+	clear(X4);
+	clear(X5);
+	clear(X6);
+	clear(X7);
+	clear(X8);
+	clear(X9);
+	clear(X10);
+	clear(X11);
+	clear(X12);
+	clear(X13);
+	clear(X14);
+	clear(X15);
+
+	movq (STACK_MAX + 0 * 8)(%rsp), %rbx;
+	movq (STACK_MAX + 1 * 8)(%rsp), %r12;
+	movq (STACK_MAX + 2 * 8)(%rsp), %r13;
+	movq (STACK_MAX + 3 * 8)(%rsp), %r14;
+	movq (STACK_MAX + 4 * 8)(%rsp), %r15;
+
+	xorl %eax, %eax;
+	leave;
+	ret;
+ELF(.size _gcry_chacha20_poly1305_amd64_ssse3_blocks4,
+	  .-_gcry_chacha20_poly1305_amd64_ssse3_blocks4;)
+
+/**********************************************************************
+  1-way stitched chacha20-poly1305
+ **********************************************************************/
+
+.align 8
+.globl _gcry_chacha20_poly1305_amd64_ssse3_blocks1
+ELF(.type _gcry_chacha20_poly1305_amd64_ssse3_blocks1,@function;)
+
+_gcry_chacha20_poly1305_amd64_ssse3_blocks1:
+	/* input:
+	 *	%rdi: chacha20-state
+	 *	%rsi: dst
+	 *	%rdx: src
+	 *	%rcx: nblks
+	 *	%r9: poly1305-state
+	 *	%r8: poly1305-src
+	 */
+	pushq %rbp;
+	movq %rsp, %rbp;
+
+	subq $(8 * 8), %rsp;
+	movq %rbx, (0 * 8)(%rsp);
+	movq %r12, (1 * 8)(%rsp);
+	movq %r13, (2 * 8)(%rsp);
+	movq %r14, (3 * 8)(%rsp);
+	movq %r15, (4 * 8)(%rsp);
+
+	movq %rdx, (5 * 8)(%rsp); # SRC
+	movq %rsi, (6 * 8)(%rsp); # DST
+	movq %rcx, (7 * 8)(%rsp); # NBLKS
+
+	/* Load constants */
+	movdqa .Lcounter1 rRIP, X4;
+	movdqa .Lshuf_rol8 rRIP, X5;
+	movdqa .Lshuf_rol16 rRIP, X6;
+
+	/* Load state */
+	movdqu (0 * 4)(INPUT), X10;
+	movdqu (4 * 4)(INPUT), X11;
+	movdqu (8 * 4)(INPUT), X12;
+	movdqu (12 * 4)(INPUT), X13;
+
+	POLY1305_LOAD_STATE();
+
+.Loop_poly1:
+	movdqa X10, X0;
+	movdqa X11, X1;
+	movdqa X12, X2;
+	movdqa X13, X3;
+
+	/* Process one ChaCha20 block and four Poly1305 blocks. */
+	POLY1305_BLOCK_PART1(0 * 16);
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART1(1 * 16);
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART1(2 * 16);
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART1(3 * 16);
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	movq (5 * 8)(%rsp), SRC;
+	movq (6 * 8)(%rsp), DST;
+
+	PLUS(X0, X10);
+	PLUS(X1, X11);
+	PLUS(X2, X12);
+	PLUS(X3, X13);
+
+	/* Update counter */
+	paddq X4, X13;
+
+	xor_src_dst(DST, SRC, 0 * 4, X0, X7);
+	xor_src_dst(DST, SRC, 4 * 4, X1, X7);
+	xor_src_dst(DST, SRC, 8 * 4, X2, X7);
+	xor_src_dst(DST, SRC, 12 * 4, X3, X7);
+
+	subq $1, (7 * 8)(%rsp); # NBLKS
+	lea (64)(POLY_RSRC), POLY_RSRC;
+	lea (64)(SRC), SRC;
+	lea (64)(DST), DST;
+	movq SRC, (5 * 8)(%rsp);
+	movq DST, (6 * 8)(%rsp);
+
+	jnz .Loop_poly1;
+
+	/* Store state */
+	POLY1305_STORE_STATE();
+
+	movdqu X13, (12 * 4)(INPUT);
+
+	/* clear the used vector registers */
+	clear(X0);
+	clear(X1);
+	clear(X2);
+	clear(X3);
+	clear(X4);
+	clear(X5);
+	clear(X6);
+	clear(X7);
+	clear(X10);
+	clear(X11);
+	clear(X12);
+	clear(X13);
+
+	movq (0 * 8)(%rsp), %rbx;
+	movq (1 * 8)(%rsp), %r12;
+	movq (2 * 8)(%rsp), %r13;
+	movq (3 * 8)(%rsp), %r14;
+	movq (4 * 8)(%rsp), %r15;
+
+	xorl %eax, %eax;
+	leave;
+	ret;
+ELF(.size _gcry_chacha20_poly1305_amd64_ssse3_blocks1,
+	  .-_gcry_chacha20_poly1305_amd64_ssse3_blocks1;)
 
 #endif /*defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)*/
 #endif /*__x86_64*/

@@ -133,7 +133,7 @@ static void poly1305_init (poly1305_context_t *ctx,
     ADD_1305_64(H2, H1, H0, (u64)0, x0_hi, x0_lo); \
   } while (0)
 
-unsigned int
+static unsigned int
 poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
 		 byte high_pad)
 {
@@ -337,7 +337,7 @@ static unsigned int poly1305_final (poly1305_context_t *ctx,
     ADD_1305_32(H4, H3, H2, H1, H0, 0, x3_lo, x2_lo, x1_lo, x0_lo); \
   } while (0)
 
-unsigned int
+static unsigned int
 poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
 		 byte high_pad)
 {
@@ -444,8 +444,9 @@ static unsigned int poly1305_final (poly1305_context_t *ctx,
 #endif /* USE_MPI_32BIT */
 
 
-void
-_gcry_poly1305_update (poly1305_context_t *ctx, const byte *m, size_t bytes)
+unsigned int
+_gcry_poly1305_update_burn (poly1305_context_t *ctx, const byte *m,
+			    size_t bytes)
 {
   unsigned int burn = 0;
 
@@ -460,7 +461,7 @@ _gcry_poly1305_update (poly1305_context_t *ctx, const byte *m, size_t bytes)
       m += want;
       ctx->leftover += want;
       if (ctx->leftover < POLY1305_BLOCKSIZE)
-	return;
+	return 0;
       burn = poly1305_blocks (ctx, ctx->buffer, POLY1305_BLOCKSIZE, 1);
       ctx->leftover = 0;
     }
@@ -480,6 +481,17 @@ _gcry_poly1305_update (poly1305_context_t *ctx, const byte *m, size_t bytes)
       buf_cpy (ctx->buffer + ctx->leftover, m, bytes);
       ctx->leftover += bytes;
     }
+
+  return burn;
+}
+
+
+void
+_gcry_poly1305_update (poly1305_context_t *ctx, const byte *m, size_t bytes)
+{
+  unsigned int burn;
+
+  burn = _gcry_poly1305_update_burn (ctx, m, bytes);
 
   if (burn)
     _gcry_burn_stack (burn);

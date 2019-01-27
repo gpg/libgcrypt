@@ -542,6 +542,15 @@ void _gcry_cipher_poly1305_setkey
 /*           */   (gcry_cipher_hd_t c);
 
 
+/*-- chacha20.c --*/
+gcry_err_code_t _gcry_chacha20_poly1305_encrypt
+/*           */   (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
+		   size_t length);
+gcry_err_code_t _gcry_chacha20_poly1305_decrypt
+/*           */   (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
+		   size_t length);
+
+
 /*-- cipher-ocb.c --*/
 gcry_err_code_t _gcry_cipher_ocb_encrypt
 /*           */ (gcry_cipher_hd_t c,

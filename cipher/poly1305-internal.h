@@ -58,5 +58,7 @@ void _gcry_poly1305_finish (poly1305_context_t *ctx,
 void _gcry_poly1305_update (poly1305_context_t *ctx, const byte *buf,
 			     size_t buflen);
 
+unsigned int _gcry_poly1305_update_burn (poly1305_context_t *ctx,
+					 const byte *m, size_t bytes);
 
 #endif /* G10_POLY1305_INTERNAL_H */

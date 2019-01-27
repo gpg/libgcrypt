@@ -72,6 +72,7 @@ libcipher_la_SOURCES = \
 EXTRA_libcipher_la_SOURCES = \
 	asm-common-amd64.h \
 	asm-common-aarch64.h \
+	asm-poly1305-amd64.h \
 	arcfour.c arcfour-amd64.S \
 	blowfish.c blowfish-amd64.S blowfish-arm.S \
 	cast5.c cast5-amd64.S cast5-arm.S \

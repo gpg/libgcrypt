@@ -1,5 +1,5 @@
 /* chacha20.c  -  Bernstein's ChaCha20 cipher
- * Copyright (C) 2014,2017,2018 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2014,2017-2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -36,6 +36,7 @@
 #include "types.h"
 #include "g10lib.h"
 #include "cipher.h"
+#include "cipher-internal.h"
 #include "bufhelp.h"
 
 
@@ -116,6 +117,14 @@ unsigned int _gcry_chacha20_amd64_ssse3_blocks1(u32 *state, byte *dst,
 						const byte *src,
 						size_t nblks) ASM_FUNC_ABI;
 
+unsigned int _gcry_chacha20_poly1305_amd64_ssse3_blocks4(
+		u32 *state, byte *dst, const byte *src, size_t nblks,
+		void *poly1305_state, const byte *poly1305_src) ASM_FUNC_ABI;
+
+unsigned int _gcry_chacha20_poly1305_amd64_ssse3_blocks1(
+		u32 *state, byte *dst, const byte *src, size_t nblks,
+		void *poly1305_state, const byte *poly1305_src) ASM_FUNC_ABI;
+
 #endif /* USE_SSSE3 */
 
 #ifdef USE_AVX2
@@ -123,6 +132,10 @@ unsigned int _gcry_chacha20_amd64_ssse3_blocks1(u32 *state, byte *dst,
 unsigned int _gcry_chacha20_amd64_avx2_blocks8(u32 *state, byte *dst,
 					       const byte *src,
 					       size_t nblks) ASM_FUNC_ABI;
+
+unsigned int _gcry_chacha20_poly1305_amd64_avx2_blocks8(
+		u32 *state, byte *dst, const byte *src, size_t nblks,
+		void *poly1305_state, const byte *poly1305_src) ASM_FUNC_ABI;
 
 #endif /* USE_AVX2 */
 
@@ -402,38 +415,12 @@ chacha20_setkey (void *context, const byte *key, unsigned int keylen,
 }
 
 
-static void
-chacha20_encrypt_stream (void *context, byte *outbuf, const byte *inbuf,
-                         size_t length)
+static unsigned int
+do_chacha20_encrypt_stream_tail (CHACHA20_context_t *ctx, byte *outbuf,
+				 const byte *inbuf, size_t length)
 {
   static const unsigned char zero_pad[CHACHA20_BLOCK_SIZE] = { 0, };
-  CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
   unsigned int nburn, burn = 0;
-
-  if (!length)
-    return;
-
-  if (ctx->unused)
-    {
-      unsigned char *p = ctx->pad;
-      size_t n;
-
-      gcry_assert (ctx->unused < CHACHA20_BLOCK_SIZE);
-
-      n = ctx->unused;
-      if (n > length)
-        n = length;
-
-      buf_xor (outbuf, inbuf, p + CHACHA20_BLOCK_SIZE - ctx->unused, n);
-      length -= n;
-      outbuf += n;
-      inbuf += n;
-      ctx->unused -= n;
-
-      if (!length)
-        return;
-      gcry_assert (!ctx->unused);
-    }
 
 #ifdef USE_AVX2
   if (ctx->use_avx2 && length >= CHACHA20_BLOCK_SIZE * 8)
@@ -510,7 +497,349 @@ chacha20_encrypt_stream (void *context, byte *outbuf, const byte *inbuf,
       ctx->unused = CHACHA20_BLOCK_SIZE - length;
     }
 
-  _gcry_burn_stack (burn);
+  if (burn)
+    burn += 5 * sizeof(void *);
+
+  return burn;
+}
+
+
+static void
+chacha20_encrypt_stream (void *context, byte *outbuf, const byte *inbuf,
+                         size_t length)
+{
+  CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
+  unsigned int nburn, burn = 0;
+
+  if (!length)
+    return;
+
+  if (ctx->unused)
+    {
+      unsigned char *p = ctx->pad;
+      size_t n;
+
+      gcry_assert (ctx->unused < CHACHA20_BLOCK_SIZE);
+
+      n = ctx->unused;
+      if (n > length)
+        n = length;
+
+      buf_xor (outbuf, inbuf, p + CHACHA20_BLOCK_SIZE - ctx->unused, n);
+      length -= n;
+      outbuf += n;
+      inbuf += n;
+      ctx->unused -= n;
+
+      if (!length)
+        return;
+      gcry_assert (!ctx->unused);
+    }
+
+  nburn = do_chacha20_encrypt_stream_tail (ctx, outbuf, inbuf, length);
+  burn = nburn > burn ? nburn : burn;
+
+  if (burn)
+    _gcry_burn_stack (burn);
+}
+
+
+gcry_err_code_t
+_gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
+				const byte *inbuf, size_t length)
+{
+  CHACHA20_context_t *ctx = (void *) &c->context.c;
+  unsigned int nburn, burn = 0;
+  byte *authptr = NULL;
+
+  if (!length)
+    return 0;
+
+  if (ctx->unused)
+    {
+      unsigned char *p = ctx->pad;
+      size_t n;
+
+      gcry_assert (ctx->unused < CHACHA20_BLOCK_SIZE);
+
+      n = ctx->unused;
+      if (n > length)
+        n = length;
+
+      buf_xor (outbuf, inbuf, p + CHACHA20_BLOCK_SIZE - ctx->unused, n);
+      nburn = _gcry_poly1305_update_burn (&c->u_mode.poly1305.ctx, outbuf, n);
+      burn = nburn > burn ? nburn : burn;
+      length -= n;
+      outbuf += n;
+      inbuf += n;
+      ctx->unused -= n;
+
+      if (!length)
+	{
+	  if (burn)
+	    _gcry_burn_stack (burn);
+
+	  return 0;
+	}
+      gcry_assert (!ctx->unused);
+    }
+
+  gcry_assert (c->u_mode.poly1305.ctx.leftover == 0);
+
+  if (0)
+    { }
+#ifdef USE_AVX2
+  else if (ctx->use_avx2 && length >= CHACHA20_BLOCK_SIZE * 8)
+    {
+      nburn = _gcry_chacha20_amd64_avx2_blocks8(ctx->input, outbuf, inbuf, 8);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 8 * CHACHA20_BLOCK_SIZE;
+      outbuf += 8 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 8 * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3 && length >= CHACHA20_BLOCK_SIZE * 4)
+    {
+      nburn = _gcry_chacha20_amd64_ssse3_blocks4(ctx->input, outbuf, inbuf, 4);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 4 * CHACHA20_BLOCK_SIZE;
+      outbuf += 4 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 4 * CHACHA20_BLOCK_SIZE;
+    }
+  else if (ctx->use_ssse3 && length >= CHACHA20_BLOCK_SIZE)
+    {
+      nburn = _gcry_chacha20_amd64_ssse3_blocks1(ctx->input, outbuf, inbuf, 1);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 1 * CHACHA20_BLOCK_SIZE;
+      outbuf += 1 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 1 * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+
+  if (authptr)
+    {
+      size_t authoffset = outbuf - authptr;
+
+#ifdef USE_AVX2
+      if (ctx->use_avx2 &&
+	  length >= 8 * CHACHA20_BLOCK_SIZE &&
+	  authoffset >= 8 * CHACHA20_BLOCK_SIZE)
+	{
+	  size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+	  nblocks -= nblocks % 8;
+
+	  nburn = _gcry_chacha20_poly1305_amd64_avx2_blocks8(
+		      ctx->input, outbuf, inbuf, nblocks,
+		      &c->u_mode.poly1305.ctx.state, authptr);
+	  burn = nburn > burn ? nburn : burn;
+
+	  length  -= nblocks * CHACHA20_BLOCK_SIZE;
+	  outbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	  inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
+	  authptr += nblocks * CHACHA20_BLOCK_SIZE;
+	}
+#endif
+
+#ifdef USE_SSSE3
+      if (ctx->use_ssse3)
+	{
+	  if (length >= 4 * CHACHA20_BLOCK_SIZE &&
+	      authoffset >= 4 * CHACHA20_BLOCK_SIZE)
+	    {
+	      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+	      nblocks -= nblocks % 4;
+
+	      nburn = _gcry_chacha20_poly1305_amd64_ssse3_blocks4(
+			  ctx->input, outbuf, inbuf, nblocks,
+			  &c->u_mode.poly1305.ctx.state, authptr);
+	      burn = nburn > burn ? nburn : burn;
+
+	      length  -= nblocks * CHACHA20_BLOCK_SIZE;
+	      outbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	      inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
+	      authptr += nblocks * CHACHA20_BLOCK_SIZE;
+	    }
+
+	  if (length >= CHACHA20_BLOCK_SIZE &&
+	      authoffset >= CHACHA20_BLOCK_SIZE)
+	    {
+	      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+
+	      nburn = _gcry_chacha20_poly1305_amd64_ssse3_blocks1(
+			  ctx->input, outbuf, inbuf, nblocks,
+			  &c->u_mode.poly1305.ctx.state, authptr);
+	      burn = nburn > burn ? nburn : burn;
+
+	      length  -= nblocks * CHACHA20_BLOCK_SIZE;
+	      outbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	      inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
+	      authptr += nblocks * CHACHA20_BLOCK_SIZE;
+	    }
+	}
+#endif
+
+      if (authoffset > 0)
+	{
+	  _gcry_poly1305_update (&c->u_mode.poly1305.ctx, authptr, authoffset);
+	  authptr += authoffset;
+	  authoffset = 0;
+	}
+
+      gcry_assert(authptr == outbuf);
+    }
+
+  while (length)
+    {
+      size_t currlen = length;
+
+      /* Since checksumming is done after encryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for checksumming. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      nburn = do_chacha20_encrypt_stream_tail (ctx, outbuf, inbuf, length);
+      burn = nburn > burn ? nburn : burn;
+
+      nburn = _gcry_poly1305_update_burn (&c->u_mode.poly1305.ctx, outbuf,
+					  currlen);
+      burn = nburn > burn ? nburn : burn;
+
+      outbuf += currlen;
+      inbuf += currlen;
+      length -= currlen;
+    }
+
+  if (burn)
+    _gcry_burn_stack (burn);
+
+  return 0;
+}
+
+
+gcry_err_code_t
+_gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
+				const byte *inbuf, size_t length)
+{
+  CHACHA20_context_t *ctx = (void *) &c->context.c;
+  unsigned int nburn, burn = 0;
+
+  if (!length)
+    return 0;
+
+  if (ctx->unused)
+    {
+      unsigned char *p = ctx->pad;
+      size_t n;
+
+      gcry_assert (ctx->unused < CHACHA20_BLOCK_SIZE);
+
+      n = ctx->unused;
+      if (n > length)
+        n = length;
+
+      nburn = _gcry_poly1305_update_burn (&c->u_mode.poly1305.ctx, inbuf, n);
+      burn = nburn > burn ? nburn : burn;
+      buf_xor (outbuf, inbuf, p + CHACHA20_BLOCK_SIZE - ctx->unused, n);
+      length -= n;
+      outbuf += n;
+      inbuf += n;
+      ctx->unused -= n;
+
+      if (!length)
+	{
+	  if (burn)
+	    _gcry_burn_stack (burn);
+
+	  return 0;
+	}
+      gcry_assert (!ctx->unused);
+    }
+
+  gcry_assert (c->u_mode.poly1305.ctx.leftover == 0);
+
+#ifdef USE_AVX2
+  if (ctx->use_avx2 && length >= 8 * CHACHA20_BLOCK_SIZE)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 8;
+
+      nburn = _gcry_chacha20_poly1305_amd64_avx2_blocks8(
+			ctx->input, outbuf, inbuf, nblocks,
+			&c->u_mode.poly1305.ctx.state, inbuf);
+      burn = nburn > burn ? nburn : burn;
+
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+
+#ifdef USE_SSSE3
+  if (ctx->use_ssse3)
+    {
+      if (length >= 4 * CHACHA20_BLOCK_SIZE)
+	{
+	  size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+	  nblocks -= nblocks % 4;
+
+	  nburn = _gcry_chacha20_poly1305_amd64_ssse3_blocks4(
+			    ctx->input, outbuf, inbuf, nblocks,
+			    &c->u_mode.poly1305.ctx.state, inbuf);
+	  burn = nburn > burn ? nburn : burn;
+
+	  length -= nblocks * CHACHA20_BLOCK_SIZE;
+	  outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+	  inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	}
+
+      if (length >= CHACHA20_BLOCK_SIZE)
+	{
+	  size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+
+	  nburn = _gcry_chacha20_poly1305_amd64_ssse3_blocks1(
+			    ctx->input, outbuf, inbuf, nblocks,
+			    &c->u_mode.poly1305.ctx.state, inbuf);
+	  burn = nburn > burn ? nburn : burn;
+
+	  length -= nblocks * CHACHA20_BLOCK_SIZE;
+	  outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+	  inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	}
+    }
+#endif
+
+  while (length)
+    {
+      size_t currlen = length;
+
+      /* Since checksumming is done before decryption, process input in 24KiB
+       * chunks to keep data loaded in L1 cache for decryption. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      nburn = _gcry_poly1305_update_burn (&c->u_mode.poly1305.ctx, inbuf,
+					  currlen);
+      burn = nburn > burn ? nburn : burn;
+
+      nburn = do_chacha20_encrypt_stream_tail (ctx, outbuf, inbuf, length);
+      burn = nburn > burn ? nburn : burn;
+
+      outbuf += currlen;
+      inbuf += currlen;
+      length -= currlen;
+    }
+
+  if (burn)
+    _gcry_burn_stack (burn);
+
+  return 0;
 }
 
 
