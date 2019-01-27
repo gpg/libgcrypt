@@ -112,6 +112,10 @@ unsigned int _gcry_chacha20_amd64_ssse3_blocks4(u32 *state, byte *dst,
 						const byte *src,
 						size_t nblks) ASM_FUNC_ABI;
 
+unsigned int _gcry_chacha20_amd64_ssse3_blocks1(u32 *state, byte *dst,
+						const byte *src,
+						size_t nblks) ASM_FUNC_ABI;
+
 #endif /* USE_SSSE3 */
 
 #ifdef USE_AVX2
@@ -156,7 +160,7 @@ static const char *selftest (void);
   buf_put_le32((dst) + (offset), buf_get_le32((src) + (offset)) ^ (x))
 
 static unsigned int
-chacha20_blocks (u32 *input, byte *dst, const byte *src, size_t nblks)
+do_chacha20_blocks (u32 *input, byte *dst, const byte *src, size_t nblks)
 {
   u32 x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
   unsigned int i;
@@ -236,6 +240,21 @@ chacha20_blocks (u32 *input, byte *dst, const byte *src, size_t nblks)
 
   /* burn_stack */
   return (17 * sizeof(u32) + 6 * sizeof(void *));
+}
+
+
+static unsigned int
+chacha20_blocks (CHACHA20_context_t *ctx, byte *dst, const byte *src,
+		 size_t nblks)
+{
+#ifdef USE_SSSE3
+  if (ctx->use_ssse3)
+    {
+      return _gcry_chacha20_amd64_ssse3_blocks1(ctx->input, dst, src, nblks);
+    }
+#endif
+
+  return do_chacha20_blocks (ctx->input, dst, src, nblks);
 }
 
 
@@ -475,7 +494,7 @@ chacha20_encrypt_stream (void *context, byte *outbuf, const byte *inbuf,
   if (length >= CHACHA20_BLOCK_SIZE)
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
-      nburn = chacha20_blocks(ctx->input, outbuf, inbuf, nblocks);
+      nburn = chacha20_blocks(ctx, outbuf, inbuf, nblocks);
       burn = nburn > burn ? nburn : burn;
       length -= nblocks * CHACHA20_BLOCK_SIZE;
       outbuf += nblocks * CHACHA20_BLOCK_SIZE;
@@ -484,7 +503,7 @@ chacha20_encrypt_stream (void *context, byte *outbuf, const byte *inbuf,
 
   if (length > 0)
     {
-      nburn = chacha20_blocks(ctx->input, ctx->pad, zero_pad, 1);
+      nburn = chacha20_blocks(ctx, ctx->pad, zero_pad, 1);
       burn = nburn > burn ? nburn : burn;
 
       buf_xor (outbuf, inbuf, ctx->pad, length);

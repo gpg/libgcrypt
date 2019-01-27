@@ -163,6 +163,8 @@ chacha20_data:
 	.byte 2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13
 .Lshuf_rol8:
 	.byte 3,0,1,2,7,4,5,6,11,8,9,10,15,12,13,14
+.Lcounter1:
+	.long 1,0,0,0
 .Linc_counter:
 	.long 0,1,2,3
 .Lunsigned_cmp:
@@ -221,7 +223,7 @@ _gcry_chacha20_amd64_ssse3_blocks4:
 	movdqa X11, (STACK_TMP)(%rsp);
 	movdqa X15, (STACK_TMP1)(%rsp);
 
-.Lround2:
+.Lround2_4:
 	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,X11,X15)
 	movdqa (STACK_TMP)(%rsp), X11;
 	movdqa (STACK_TMP1)(%rsp), X15;
@@ -235,7 +237,7 @@ _gcry_chacha20_amd64_ssse3_blocks4:
 	movdqa X15, (STACK_TMP1)(%rsp);
 	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,X11,X15)
 	sub $2, ROUND;
-	jnz .Lround2;
+	jnz .Lround2_4;
 
 	/* tmp := X15 */
 	movdqa (STACK_TMP)(%rsp), X11;
@@ -336,6 +338,112 @@ _gcry_chacha20_amd64_ssse3_blocks4:
 	ret;
 ELF(.size _gcry_chacha20_amd64_ssse3_blocks4,
 	  .-_gcry_chacha20_amd64_ssse3_blocks4;)
+
+/**********************************************************************
+  1-way chacha20
+ **********************************************************************/
+
+#define ROTATE_SHUF(v1,shuf)		\
+	pshufb shuf, v1;
+
+#define ROTATE(v1,c,tmp1)		\
+	movdqa v1, tmp1; 		\
+	psrld $(32 - (c)), v1;		\
+	pslld $(c), tmp1;		\
+	paddb tmp1, v1;
+
+#define WORD_SHUF(v1,shuf)		\
+	pshufd $shuf, v1, v1;
+
+#define QUARTERROUND4(x0,x1,x2,x3,shuf_rol8,shuf_rol16,tmp1,shuf_x1,\
+		      shuf_x2,shuf_x3) \
+	PLUS(x0, x1); XOR(x3, x0); ROTATE_SHUF(x3, shuf_rol16); \
+	PLUS(x2, x3); XOR(x1, x2); ROTATE(x1, 12, tmp1); \
+	PLUS(x0, x1); XOR(x3, x0); ROTATE_SHUF(x3, shuf_rol8); \
+	PLUS(x2, x3); \
+	  WORD_SHUF(x3, shuf_x3); \
+		      XOR(x1, x2); \
+	  WORD_SHUF(x2, shuf_x2); \
+				   ROTATE(x1, 7, tmp1); \
+	  WORD_SHUF(x1, shuf_x1);
+
+.align 8
+.globl _gcry_chacha20_amd64_ssse3_blocks1
+ELF(.type _gcry_chacha20_amd64_ssse3_blocks1,@function;)
+
+_gcry_chacha20_amd64_ssse3_blocks1:
+	/* input:
+	 *	%rdi: input
+	 *	%rsi: dst
+	 *	%rdx: src
+	 *	%rcx: nblks
+	 */
+
+	/* Load constants */
+	movdqa .Lcounter1 RIP, X4;
+	movdqa .Lshuf_rol8 RIP, X5;
+	movdqa .Lshuf_rol16 RIP, X6;
+
+	/* Load state */
+	movdqu (0 * 4)(INPUT), X10;
+	movdqu (4 * 4)(INPUT), X11;
+	movdqu (8 * 4)(INPUT), X12;
+	movdqu (12 * 4)(INPUT), X13;
+
+.Loop1:
+	mov $20, ROUND;
+
+	movdqa X10, X0;
+	movdqa X11, X1;
+	movdqa X12, X2;
+	movdqa X13, X3;
+
+.Lround2_1:
+	QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x39, 0x4e, 0x93);
+	QUARTERROUND4(X0, X1, X2, X3, X5, X6, X7, 0x93, 0x4e, 0x39);
+	sub $2, ROUND;
+	jnz .Lround2_1;
+
+	PLUS(X0, X10);
+	PLUS(X1, X11);
+	PLUS(X2, X12);
+	PLUS(X3, X13);
+
+	/* Update counter */
+	paddq X4, X13;
+
+	xor_src_dst(DST, SRC, 0 * 4, X0, X7);
+	xor_src_dst(DST, SRC, 4 * 4, X1, X7);
+	xor_src_dst(DST, SRC, 8 * 4, X2, X7);
+	xor_src_dst(DST, SRC, 12 * 4, X3, X7);
+
+	lea (64)(DST), DST;
+	lea (64)(SRC), SRC;
+
+	sub $1, NBLKS;
+	jnz .Loop1;
+
+	/* Store counter */
+	movdqu X13, (12 * 4)(INPUT);
+
+	/* clear the used vector registers */
+	clear(X0);
+	clear(X1);
+	clear(X2);
+	clear(X3);
+	clear(X4);
+	clear(X5);
+	clear(X6);
+	clear(X7);
+	clear(X10);
+	clear(X11);
+	clear(X12);
+	clear(X13);
+
+	/* eax zeroed by round loop. */
+	ret;
+ELF(.size _gcry_chacha20_amd64_ssse3_blocks1,
+	  .-_gcry_chacha20_amd64_ssse3_blocks1;)
 
 #endif /*defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)*/
 #endif /*__x86_64*/
