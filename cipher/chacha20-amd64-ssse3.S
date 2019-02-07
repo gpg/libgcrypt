@@ -334,7 +334,7 @@ ELF(.size _gcry_chacha20_amd64_ssse3_blocks4,
 	  .-_gcry_chacha20_amd64_ssse3_blocks4;)
 
 /**********************************************************************
-  1-way chacha20
+  2-way && 1-way chacha20
  **********************************************************************/
 
 #define ROTATE_SHUF(v1,shuf)		\
@@ -384,6 +384,66 @@ _gcry_chacha20_amd64_ssse3_blocks1:
 	movdqu (8 * 4)(INPUT), X12;
 	movdqu (12 * 4)(INPUT), X13;
 
+	cmp $2, NBLKS;
+	jb .Loop1;
+
+	mov $20, ROUND;
+
+	movdqa X10, X0;
+	movdqa X11, X1;
+	movdqa X12, X2;
+	movdqa X13, X3;
+
+	movdqa X10, X8;
+	movdqa X11, X9;
+	movdqa X12, X14;
+	movdqa X13, X15;
+	paddq X4, X15;
+
+.Lround2_2:
+	QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+	sub $2, ROUND;
+	jnz .Lround2_2;
+
+	PLUS(X0, X10);
+	PLUS(X1, X11);
+	PLUS(X2, X12);
+	PLUS(X3, X13);
+
+	/* Update counter */
+	paddq X4, X13;
+
+	PLUS(X8, X10);
+	PLUS(X9, X11);
+	PLUS(X14, X12);
+	PLUS(X15, X13);
+
+	/* Update counter */
+	paddq X4, X13;
+
+	xor_src_dst(DST, SRC, 0 * 4, X0, X7);
+	xor_src_dst(DST, SRC, 4 * 4, X1, X7);
+	xor_src_dst(DST, SRC, 8 * 4, X2, X7);
+	xor_src_dst(DST, SRC, 12 * 4, X3, X7);
+	xor_src_dst(DST, SRC, 16 * 4, X8, X7);
+	xor_src_dst(DST, SRC, 20 * 4, X9, X7);
+	xor_src_dst(DST, SRC, 24 * 4, X14, X7);
+	xor_src_dst(DST, SRC, 28 * 4, X15, X7);
+
+	lea (2 * 64)(DST), DST;
+	lea (2 * 64)(SRC), SRC;
+
+	clear(X8);
+	clear(X9);
+	clear(X14);
+	clear(X15);
+
+	sub $2, NBLKS;
+	jz .Ldone1;
+
 .Loop1:
 	mov $20, ROUND;
 
@@ -417,6 +477,7 @@ _gcry_chacha20_amd64_ssse3_blocks1:
 	sub $1, NBLKS;
 	jnz .Loop1;
 
+.Ldone1:
 	/* Store counter */
 	movdqu X13, (12 * 4)(INPUT);
 
@@ -848,7 +909,7 @@ ELF(.size _gcry_chacha20_poly1305_amd64_ssse3_blocks4,
 	  .-_gcry_chacha20_poly1305_amd64_ssse3_blocks4;)
 
 /**********************************************************************
-  1-way stitched chacha20-poly1305
+  2-way && 1-way stitched chacha20-poly1305
  **********************************************************************/
 
 .align 8
@@ -890,6 +951,153 @@ _gcry_chacha20_poly1305_amd64_ssse3_blocks1:
 	movdqu (12 * 4)(INPUT), X13;
 
 	POLY1305_LOAD_STATE();
+
+	cmpq $2, (7 * 8)(%rsp); #NBLKS
+	jb .Loop_poly1;
+
+	movdqa X10, X0;
+	movdqa X11, X1;
+	movdqa X12, X2;
+	movdqa X13, X3;
+
+	movdqa X10, X8;
+	movdqa X11, X9;
+	movdqa X12, X14;
+	movdqa X13, X15;
+	paddq X4, X15;
+
+	/* Process two ChaCha20 blocks and eight Poly1305 blocks. */
+
+	POLY1305_BLOCK_PART1(0 * 16);
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART1(1 * 16);
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART1(2 * 16);
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART1(3 * 16);
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART1(4 * 16);
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART1(5 * 16);
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART1(6 * 16);
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART1(7 * 16);
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	POLY1305_BLOCK_PART2();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART3();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x39, 0x4e, 0x93);
+	POLY1305_BLOCK_PART4();
+	  QUARTERROUND4(X0, X1, X2,  X3,  X5, X6, X7, 0x93, 0x4e, 0x39);
+	POLY1305_BLOCK_PART5();
+	  QUARTERROUND4(X8, X9, X14, X15, X5, X6, X7, 0x93, 0x4e, 0x39);
+
+	movq (5 * 8)(%rsp), SRC;
+	movq (6 * 8)(%rsp), DST;
+
+	PLUS(X0, X10);
+	PLUS(X1, X11);
+	PLUS(X2, X12);
+	PLUS(X3, X13);
+
+	/* Update counter */
+	paddq X4, X13;
+
+	PLUS(X8, X10);
+	PLUS(X9, X11);
+	PLUS(X14, X12);
+	PLUS(X15, X13);
+
+	/* Update counter */
+	paddq X4, X13;
+
+	xor_src_dst(DST, SRC, 0 * 4, X0, X7);
+	xor_src_dst(DST, SRC, 4 * 4, X1, X7);
+	xor_src_dst(DST, SRC, 8 * 4, X2, X7);
+	xor_src_dst(DST, SRC, 12 * 4, X3, X7);
+	xor_src_dst(DST, SRC, 16 * 4, X8, X7);
+	xor_src_dst(DST, SRC, 20 * 4, X9, X7);
+	xor_src_dst(DST, SRC, 24 * 4, X14, X7);
+	xor_src_dst(DST, SRC, 28 * 4, X15, X7);
+
+	clear(X8);
+	clear(X9);
+	clear(X14);
+	clear(X15);
+
+	subq $2, (7 * 8)(%rsp); # NBLKS
+	lea (2 * 64)(POLY_RSRC), POLY_RSRC;
+	lea (2 * 64)(SRC), SRC;
+	lea (2 * 64)(DST), DST;
+	movq SRC, (5 * 8)(%rsp);
+	movq DST, (6 * 8)(%rsp);
+	jz .Ldone_poly1;
 
 .Loop_poly1:
 	movdqa X10, X0;
@@ -973,6 +1181,7 @@ _gcry_chacha20_poly1305_amd64_ssse3_blocks1:
 
 	jnz .Loop_poly1;
 
+.Ldone_poly1:
 	/* Store state */
 	POLY1305_STORE_STATE();
 

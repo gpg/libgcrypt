@@ -611,6 +611,16 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
       outbuf += 4 * CHACHA20_BLOCK_SIZE;
       inbuf  += 4 * CHACHA20_BLOCK_SIZE;
     }
+  else if (ctx->use_ssse3 && length >= CHACHA20_BLOCK_SIZE * 2)
+    {
+      nburn = _gcry_chacha20_amd64_ssse3_blocks1(ctx->input, outbuf, inbuf, 2);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 2 * CHACHA20_BLOCK_SIZE;
+      outbuf += 2 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 2 * CHACHA20_BLOCK_SIZE;
+    }
   else if (ctx->use_ssse3 && length >= CHACHA20_BLOCK_SIZE)
     {
       nburn = _gcry_chacha20_amd64_ssse3_blocks1(ctx->input, outbuf, inbuf, 1);
