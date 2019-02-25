@@ -689,10 +689,13 @@ _gcry_fips_run_selftests (int extended)
   if (run_pubkey_selftests (extended))
     goto leave;
 
-  /* Now check the integrity of the binary.  We do this this after
-     having checked the HMAC code.  */
-  if (check_binary_integrity ())
-    goto leave;
+  if (fips_mode ())
+    {
+      /* Now check the integrity of the binary.  We do this this after
+         having checked the HMAC code.  */
+      if (check_binary_integrity ())
+        goto leave;
+    }
 
   /* All selftests passed.  */
   result = STATE_OPERATIONAL;
