@@ -569,13 +569,20 @@ are
 @item intel-fast-shld
 @item intel-bmi2
 @item intel-ssse3
+@item intel-sse4.1
 @item intel-pclmul
 @item intel-aesni
 @item intel-rdrand
 @item intel-avx
 @item intel-avx2
+@item intel-fast-vpgather
 @item intel-rdtsc
+@item intel-shaext
 @item arm-neon
+@item arm-aes
+@item arm-sha1
+@item arm-sha2
+@item arm-pmull
 @end table
 
 To disable a feature for all processes using Libgcrypt 1.6 or newer,
