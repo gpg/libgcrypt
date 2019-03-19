@@ -248,7 +248,7 @@ _gcry_sha1_transform_amd64_avx:
   movl state_h3(RSTATE), d;
   movl state_h4(RSTATE), e;
 
-  movdqa .Lbswap_shufb_ctl RIP, BSWAP_REG;
+  vmovdqa .Lbswap_shufb_ctl RIP, BSWAP_REG;
 
   /* Precalc 0-15. */
   W_PRECALC_00_15_0(0, W0, Wtmp0);
