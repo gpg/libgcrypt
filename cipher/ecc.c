@@ -812,20 +812,20 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
     }
   if (DBG_CIPHER)
     {
-      log_debug ("ecc_testkey inf: %s/%s\n",
+      log_debug ("ecc_testkey info: %s/%s\n",
                  _gcry_ecc_model2str (sk.E.model),
                  _gcry_ecc_dialect2str (sk.E.dialect));
       if (sk.E.name)
-        log_debug  ("ecc_testkey nam: %s\n", sk.E.name);
-      log_printmpi ("ecc_testkey   p", sk.E.p);
-      log_printmpi ("ecc_testkey   a", sk.E.a);
-      log_printmpi ("ecc_testkey   b", sk.E.b);
-      log_printpnt ("ecc_testkey g",   &sk.E.G, NULL);
-      log_printmpi ("ecc_testkey   n", sk.E.n);
-      log_printmpi ("ecc_testkey   h", sk.E.h);
-      log_printmpi ("ecc_testkey   q", mpi_q);
+        log_debug  ("ecc_testkey name: %s\n", sk.E.name);
+      log_printmpi ("ecc_testkey    p", sk.E.p);
+      log_printmpi ("ecc_testkey    a", sk.E.a);
+      log_printmpi ("ecc_testkey    b", sk.E.b);
+      log_printpnt ("ecc_testkey  g",   &sk.E.G, NULL);
+      log_printmpi ("ecc_testkey    n", sk.E.n);
+      log_printmpi ("ecc_testkey    h", sk.E.h);
+      log_printmpi ("ecc_testkey    q", mpi_q);
       if (!fips_mode ())
-        log_printmpi ("ecc_testkey   d", sk.d);
+        log_printmpi ("ecc_testkey    d", sk.d);
     }
   if (!sk.E.p || !sk.E.a || !sk.E.b || !sk.E.G.x || !sk.E.n || !sk.E.h || !sk.d)
     {
@@ -873,7 +873,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
   xfree (curvename);
   sexp_release (l1);
   if (DBG_CIPHER)
-    log_debug ("ecc_testkey   => %s\n", gpg_strerror (rc));
+    log_debug ("ecc_testkey    => %s\n", gpg_strerror (rc));
   return rc;
 }
 
