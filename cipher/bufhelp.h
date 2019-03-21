@@ -207,6 +207,8 @@ buf_cpy(void *_dst, const void *_src, size_t len)
 #if __GNUC__ >= 4
   if (!__builtin_constant_p (len))
     {
+      if (UNLIKELY(len == 0))
+	return;
       memcpy(_dst, _src, len);
       return;
     }

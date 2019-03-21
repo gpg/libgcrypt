@@ -254,6 +254,7 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
   unsigned char l_tmp[OCB_BLOCK_LEN];
   unsigned int burn = 0;
   unsigned int nburn;
+  size_t n;
 
   /* Check that a nonce and thus a key has been set and that we have
      not yet computed the tag.  We also return an error if the aad has
@@ -268,9 +269,15 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
   /* Process remaining data from the last call first.  */
   if (c->u_mode.ocb.aad_nleftover)
     {
-      for (; abuflen && c->u_mode.ocb.aad_nleftover < OCB_BLOCK_LEN;
-           abuf++, abuflen--)
-        c->u_mode.ocb.aad_leftover[c->u_mode.ocb.aad_nleftover++] = *abuf;
+      n = abuflen;
+      if (n > OCB_BLOCK_LEN - c->u_mode.ocb.aad_nleftover)
+	n = OCB_BLOCK_LEN - c->u_mode.ocb.aad_nleftover;
+
+      buf_cpy (&c->u_mode.ocb.aad_leftover[c->u_mode.ocb.aad_nleftover],
+	       abuf, n);
+      c->u_mode.ocb.aad_nleftover += n;
+      abuf += n;
+      abuflen -= n;
 
       if (c->u_mode.ocb.aad_nleftover == OCB_BLOCK_LEN)
         {
@@ -383,9 +390,19 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
     }
 
   /* Store away the remaining data.  */
-  for (; abuflen && c->u_mode.ocb.aad_nleftover < OCB_BLOCK_LEN;
-       abuf++, abuflen--)
-    c->u_mode.ocb.aad_leftover[c->u_mode.ocb.aad_nleftover++] = *abuf;
+  if (abuflen)
+    {
+      n = abuflen;
+      if (n > OCB_BLOCK_LEN - c->u_mode.ocb.aad_nleftover)
+	n = OCB_BLOCK_LEN - c->u_mode.ocb.aad_nleftover;
+
+      buf_cpy (&c->u_mode.ocb.aad_leftover[c->u_mode.ocb.aad_nleftover],
+	       abuf, n);
+      c->u_mode.ocb.aad_nleftover += n;
+      abuf += n;
+      abuflen -= n;
+    }
+
   gcry_assert (!abuflen);
 
   if (burn > 0)

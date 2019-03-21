@@ -43,6 +43,7 @@ _gcry_cmac_write (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
   byte outbuf[MAX_BLOCKSIZE];
   unsigned int burn = 0;
   unsigned int nblocks;
+  size_t n;
 
   if (ctx->tag)
     return GPG_ERR_INV_STATE;
@@ -56,15 +57,24 @@ _gcry_cmac_write (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
   /* Last block is needed for cmac_final.  */
   if (ctx->mac_unused + inlen <= blocksize)
     {
-      for (; inlen && ctx->mac_unused < blocksize; inlen--)
-        ctx->macbuf[ctx->mac_unused++] = *inbuf++;
+      buf_cpy (&ctx->macbuf[ctx->mac_unused], inbuf, inlen);
+      ctx->mac_unused += inlen;
+      inbuf += inlen;
+      inlen -= inlen;
+
       return 0;
     }
 
   if (ctx->mac_unused)
     {
-      for (; inlen && ctx->mac_unused < blocksize; inlen--)
-        ctx->macbuf[ctx->mac_unused++] = *inbuf++;
+      n = inlen;
+      if (n > blocksize - ctx->mac_unused)
+	n = blocksize - ctx->mac_unused;
+
+      buf_cpy (&ctx->macbuf[ctx->mac_unused], inbuf, n);
+      ctx->mac_unused += n;
+      inbuf += n;
+      inlen -= n;
 
       cipher_block_xor (ctx->u_iv.iv, ctx->u_iv.iv, ctx->macbuf, blocksize);
       set_burn (burn, enc_fn (&c->context.c, ctx->u_iv.iv, ctx->u_iv.iv));
@@ -96,8 +106,14 @@ _gcry_cmac_write (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
   if (inlen == 0)
     BUG ();
 
-  for (; inlen && ctx->mac_unused < blocksize; inlen--)
-    ctx->macbuf[ctx->mac_unused++] = *inbuf++;
+  n = inlen;
+  if (n > blocksize - ctx->mac_unused)
+    n = blocksize - ctx->mac_unused;
+
+  buf_cpy (&ctx->macbuf[ctx->mac_unused], inbuf, n);
+  ctx->mac_unused += n;
+  inbuf += n;
+  inlen -= n;
 
   if (burn)
     _gcry_burn_stack (burn + 4 * sizeof (void *));

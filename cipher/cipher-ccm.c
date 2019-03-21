@@ -44,6 +44,7 @@ do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
   unsigned int burn = 0;
   unsigned int unused = c->u_mode.ccm.mac_unused;
   size_t nblocks;
+  size_t n;
 
   if (inlen == 0 && (unused == 0 || !do_padding))
     return 0;
@@ -52,8 +53,12 @@ do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
     {
       if (inlen + unused < blocksize || unused > 0)
         {
-          for (; inlen && unused < blocksize; inlen--)
-            c->u_mode.ccm.macbuf[unused++] = *inbuf++;
+	  n = (inlen > blocksize - unused) ? blocksize - unused : inlen;
+
+	  buf_cpy (&c->u_mode.ccm.macbuf[unused], inbuf, n);
+	  unused += n;
+	  inlen -= n;
+	  inbuf += n;
         }
       if (!inlen)
         {
