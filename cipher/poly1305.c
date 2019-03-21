@@ -202,8 +202,12 @@ static unsigned int poly1305_final (poly1305_context_t *ctx,
   if (ctx->leftover)
     {
       ctx->buffer[ctx->leftover++] = 1;
-      for (; ctx->leftover < POLY1305_BLOCKSIZE; ctx->leftover++)
-	ctx->buffer[ctx->leftover] = 0;
+      if (ctx->leftover < POLY1305_BLOCKSIZE)
+	{
+	  memset (&ctx->buffer[ctx->leftover], 0,
+		  POLY1305_BLOCKSIZE - ctx->leftover);
+	  ctx->leftover = POLY1305_BLOCKSIZE;
+	}
       burn = poly1305_blocks (ctx, ctx->buffer, POLY1305_BLOCKSIZE, 0);
     }
 
@@ -398,8 +402,12 @@ static unsigned int poly1305_final (poly1305_context_t *ctx,
   if (ctx->leftover)
     {
       ctx->buffer[ctx->leftover++] = 1;
-      for (; ctx->leftover < POLY1305_BLOCKSIZE; ctx->leftover++)
-	ctx->buffer[ctx->leftover] = 0;
+      if (ctx->leftover < POLY1305_BLOCKSIZE)
+	{
+	  memset (&ctx->buffer[ctx->leftover], 0,
+		  POLY1305_BLOCKSIZE - ctx->leftover);
+	  ctx->leftover = POLY1305_BLOCKSIZE;
+	}
       burn = poly1305_blocks (ctx, ctx->buffer, POLY1305_BLOCKSIZE, 0);
     }
 

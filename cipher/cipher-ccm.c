@@ -65,8 +65,12 @@ do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
           if (!do_padding)
             break;
 
-          while (unused < blocksize)
-            c->u_mode.ccm.macbuf[unused++] = 0;
+	  n = blocksize - unused;
+	  if (n > 0)
+	    {
+	      memset (&c->u_mode.ccm.macbuf[unused], 0, n);
+	      unused = blocksize;
+	    }
         }
 
       if (unused > 0)
