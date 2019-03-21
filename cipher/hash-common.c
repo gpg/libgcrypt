@@ -26,6 +26,7 @@
 #endif
 
 #include "g10lib.h"
+#include "bufhelp.h"
 #include "hash-common.h"
 
 
@@ -121,8 +122,10 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
   const unsigned char *inbuf = inbuf_arg;
   gcry_md_block_ctx_t *hd = context;
   unsigned int stack_burn = 0;
+  unsigned int nburn;
   const unsigned int blocksize = hd->blocksize;
   size_t inblocks;
+  size_t copylen;
 
   if (sizeof(hd->buf) < blocksize)
     BUG();
@@ -130,38 +133,53 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
   if (!hd->bwrite)
     return;
 
-  if (hd->count == blocksize)  /* Flush the buffer. */
+  while (hd->count)
     {
-      stack_burn = hd->bwrite (hd, hd->buf, 1);
-      _gcry_burn_stack (stack_burn);
-      stack_burn = 0;
-      hd->count = 0;
-      if (!++hd->nblocks)
-        hd->nblocks_high++;
-    }
-  if (!inbuf)
-    return;
+      if (hd->count == blocksize)  /* Flush the buffer. */
+	{
+	  nburn = hd->bwrite (hd, hd->buf, 1);
+	  stack_burn = nburn > stack_burn ? nburn : stack_burn;
+	  hd->count = 0;
+	  if (!++hd->nblocks)
+	    hd->nblocks_high++;
+	}
+      else
+	{
+	  copylen = inlen;
+	  if (copylen > blocksize - hd->count)
+	    copylen = blocksize - hd->count;
 
-  if (hd->count)
-    {
-      for (; inlen && hd->count < blocksize; inlen--)
-        hd->buf[hd->count++] = *inbuf++;
-      _gcry_md_block_write (hd, NULL, 0);
-      if (!inlen)
-        return;
+	  if (copylen == 0)
+	    break;
+
+	  buf_cpy (&hd->buf[hd->count], inbuf, copylen);
+	  hd->count += copylen;
+	  inbuf += copylen;
+	  inlen -= copylen;
+	}
     }
+
+  if (inlen == 0)
+    return;
 
   if (inlen >= blocksize)
     {
       inblocks = inlen / blocksize;
-      stack_burn = hd->bwrite (hd, inbuf, inblocks);
+      nburn = hd->bwrite (hd, inbuf, inblocks);
+      stack_burn = nburn > stack_burn ? nburn : stack_burn;
       hd->count = 0;
       hd->nblocks_high += (hd->nblocks + inblocks < inblocks);
       hd->nblocks += inblocks;
       inlen -= inblocks * blocksize;
       inbuf += inblocks * blocksize;
     }
-  _gcry_burn_stack (stack_burn);
-  for (; inlen && hd->count < blocksize; inlen--)
-    hd->buf[hd->count++] = *inbuf++;
+
+  if (inlen)
+    {
+      buf_cpy (hd->buf, inbuf, inlen);
+      hd->count = inlen;
+    }
+
+  if (stack_burn > 0)
+    _gcry_burn_stack (stack_burn);
 }
