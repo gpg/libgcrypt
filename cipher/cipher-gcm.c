@@ -58,8 +58,28 @@ ghash_armv8_ce_pmull (gcry_cipher_hd_t c, byte *result, const byte *buf,
   return _gcry_ghash_armv8_ce_pmull(c->u_mode.gcm.u_ghash_key.key, result, buf,
                                     nblocks, c->u_mode.gcm.gcm_table);
 }
+#endif /* GCM_USE_ARM_PMULL */
 
-#endif
+#ifdef GCM_USE_ARM_NEON
+extern void _gcry_ghash_setup_armv7_neon (void *gcm_key);
+
+extern unsigned int _gcry_ghash_armv7_neon (void *gcm_key, byte *result,
+					    const byte *buf, size_t nblocks);
+
+static void
+ghash_setup_armv7_neon (gcry_cipher_hd_t c)
+{
+  _gcry_ghash_setup_armv7_neon(c->u_mode.gcm.u_ghash_key.key);
+}
+
+static unsigned int
+ghash_armv7_neon (gcry_cipher_hd_t c, byte *result, const byte *buf,
+		  size_t nblocks)
+{
+  return _gcry_ghash_armv7_neon(c->u_mode.gcm.u_ghash_key.key, result, buf,
+				nblocks);
+}
+#endif /* GCM_USE_ARM_NEON */
 
 
 #ifdef GCM_USE_TABLES
@@ -421,6 +441,13 @@ setupM (gcry_cipher_hd_t c)
     {
       c->u_mode.gcm.ghash_fn = ghash_armv8_ce_pmull;
       ghash_setup_armv8_ce_pmull (c);
+    }
+#endif
+#ifdef GCM_USE_ARM_NEON
+  else if (features & HWF_ARM_NEON)
+    {
+      c->u_mode.gcm.ghash_fn = ghash_armv7_neon;
+      ghash_setup_armv7_neon (c);
     }
 #endif
   else

@@ -86,6 +86,15 @@
 # endif
 #endif /* GCM_USE_ARM_PMULL */
 
+/* GCM_USE_ARM_NEON indicates whether to compile GCM with ARMv7 NEON code. */
+#undef GCM_USE_ARM_NEON
+#if defined(GCM_USE_TABLES)
+#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__) && \
+    defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_NEON)
+#  define GCM_USE_ARM_NEON 1
+#endif
+#endif /* GCM_USE_ARM_NEON */
 
 typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);

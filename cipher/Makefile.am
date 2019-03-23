@@ -48,7 +48,7 @@ libcipher_la_SOURCES = \
 	cipher-aeswrap.c \
 	cipher-ccm.c \
 	cipher-cmac.c \
-	cipher-gcm.c cipher-gcm-intel-pclmul.c \
+	cipher-gcm.c cipher-gcm-intel-pclmul.c cipher-gcm-armv7-neon.S \
 	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
 	cipher-poly1305.c \
 	cipher-ocb.c \
