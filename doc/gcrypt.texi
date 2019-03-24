@@ -5727,6 +5727,9 @@ Set an initialization vector to be used for encryption or decryption.
 Encrypt or decrypt data.  These functions may be called with arbitrary
 amounts of data and as often as needed to encrypt or decrypt all data.
 
+There is no strict alignment requirements for data, but the best
+performance can be archived if data is aligned to cacheline boundary.
+
 @end table
 
 There are also functions to query properties of algorithms or context,
@@ -5763,6 +5766,9 @@ Set the key for the MAC.
 
 @item gcry_md_write
 Pass more data for computing the message digest to an instance.
+
+There is no strict alignment requirements for data, but the best
+performance can be archived if data is aligned to cacheline boundary.
 
 @item gcry_md_putc
 Buffered version of @code{gcry_md_write} implemented as a macro.
