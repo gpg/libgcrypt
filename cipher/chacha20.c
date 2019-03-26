@@ -714,7 +714,7 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
       if (currlen > 24 * 1024)
 	currlen = 24 * 1024;
 
-      nburn = do_chacha20_encrypt_stream_tail (ctx, outbuf, inbuf, length);
+      nburn = do_chacha20_encrypt_stream_tail (ctx, outbuf, inbuf, currlen);
       burn = nburn > burn ? nburn : burn;
 
       nburn = _gcry_poly1305_update_burn (&c->u_mode.poly1305.ctx, outbuf,
@@ -838,7 +838,7 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 					  currlen);
       burn = nburn > burn ? nburn : burn;
 
-      nburn = do_chacha20_encrypt_stream_tail (ctx, outbuf, inbuf, length);
+      nburn = do_chacha20_encrypt_stream_tail (ctx, outbuf, inbuf, currlen);
       burn = nburn > burn ? nburn : burn;
 
       outbuf += currlen;
