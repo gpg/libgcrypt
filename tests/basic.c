@@ -7326,8 +7326,8 @@ check_one_cipher_core (int algo, int mode, int flags,
                        int bufshift, int pass)
 {
   gcry_cipher_hd_t hd;
-  unsigned char in_buffer[1904+1], out_buffer[1904+1];
-  unsigned char enc_result[1904];
+  unsigned char *in_buffer, *out_buffer;
+  unsigned char *enc_result;
   unsigned char tag_result[16];
   unsigned char tag[16];
   unsigned char *in, *out;
@@ -7338,13 +7338,22 @@ check_one_cipher_core (int algo, int mode, int flags,
   unsigned int pos;
   unsigned int taglen;
 
+  in_buffer = malloc (nplain + 1);
+  out_buffer = malloc (nplain + 1);
+  enc_result = malloc (nplain);
+  if (!in_buffer || !out_buffer || !enc_result)
+    {
+      fail ("pass %d, algo %d, mode %d, malloc failed\n",
+	    pass, algo, mode);
+      goto err_out_free;
+    }
+
   blklen = get_algo_mode_blklen(algo, mode);
   taglen = get_algo_mode_taglen(algo, mode);
 
   assert (nkey == 64);
-  assert (nplain == 1904);
-  assert (sizeof(in_buffer) == nplain + 1);
-  assert (sizeof(out_buffer) == sizeof(in_buffer));
+  assert (nplain > 0);
+  assert ((nplain % 16) == 0);
   assert (blklen > 0);
 
   if ((mode == GCRY_CIPHER_MODE_CBC && (flags & GCRY_CIPHER_CBC_CTS)) ||
@@ -7380,13 +7389,13 @@ check_one_cipher_core (int algo, int mode, int flags,
     {
       fail ("pass %d, algo %d, mode %d, gcry_cipher_get_algo_keylen failed\n",
 	    pass, algo, mode);
-      return -1;
+      goto err_out_free;
     }
 
   if (keylen < 40 / 8 || keylen > 32)
     {
       fail ("pass %d, algo %d, mode %d, keylength problem (%d)\n", pass, algo, mode, keylen);
-      return -1;
+      goto err_out_free;
     }
 
   if (mode == GCRY_CIPHER_MODE_XTS)
@@ -7399,7 +7408,7 @@ check_one_cipher_core (int algo, int mode, int flags,
     {
       fail ("pass %d, algo %d, mode %d, gcry_cipher_open failed: %s\n",
 	    pass, algo, mode, gpg_strerror (err));
-      return -1;
+      goto err_out_free;
     }
 
   err = gcry_cipher_setkey (hd, key, keylen);
@@ -7408,11 +7417,11 @@ check_one_cipher_core (int algo, int mode, int flags,
       fail ("pass %d, algo %d, mode %d, gcry_cipher_setkey failed: %s\n",
 	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return -1;
+      goto err_out_free;
     }
 
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
-    return -1;
+    goto err_out_free;
 
   err = gcry_cipher_encrypt (hd, out, nplain, plain, nplain);
   if (err)
@@ -7420,7 +7429,7 @@ check_one_cipher_core (int algo, int mode, int flags,
       fail ("pass %d, algo %d, mode %d, gcry_cipher_encrypt failed: %s\n",
 	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return -1;
+      goto err_out_free;
     }
 
   if (taglen > 0)
@@ -7431,7 +7440,7 @@ check_one_cipher_core (int algo, int mode, int flags,
 	  fail ("pass %d, algo %d, mode %d, gcry_cipher_gettag failed: %s\n",
 		pass, algo, mode, gpg_strerror (err));
 	  gcry_cipher_close (hd);
-	  return -1;
+	  goto err_out_free;
 	}
 
       memcpy(tag_result, tag, taglen);
@@ -7440,7 +7449,7 @@ check_one_cipher_core (int algo, int mode, int flags,
   memcpy (enc_result, out, nplain);
 
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
-    return -1;
+    goto err_out_free;
 
   err = gcry_cipher_decrypt (hd, in, nplain, out, nplain);
   if (err)
@@ -7448,7 +7457,7 @@ check_one_cipher_core (int algo, int mode, int flags,
       fail ("pass %d, algo %d, mode %d, gcry_cipher_decrypt failed: %s\n",
 	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return -1;
+      goto err_out_free;
     }
 
   if (taglen > 0)
@@ -7459,7 +7468,7 @@ check_one_cipher_core (int algo, int mode, int flags,
 	  fail ("pass %d, algo %d, mode %d, gcry_cipher_checktag failed: %s\n",
 		pass, algo, mode, gpg_strerror (err));
 	  gcry_cipher_close (hd);
-	  return -1;
+	  goto err_out_free;
 	}
     }
 
@@ -7469,7 +7478,7 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   /* Again, using in-place encryption.  */
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
-    return -1;
+    goto err_out_free;
 
   memcpy (out, plain, nplain);
   err = gcry_cipher_encrypt (hd, out, nplain, NULL, 0);
@@ -7479,7 +7488,7 @@ check_one_cipher_core (int algo, int mode, int flags,
             " %s\n",
 	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return -1;
+      goto err_out_free;
     }
 
   if (taglen > 0)
@@ -7491,7 +7500,7 @@ check_one_cipher_core (int algo, int mode, int flags,
 		"gcry_cipher_gettag failed: %s\n",
 		pass, algo, mode, gpg_strerror (err));
 	  gcry_cipher_close (hd);
-	  return -1;
+	  goto err_out_free;
 	}
 
       if (memcmp (tag_result, tag, taglen))
@@ -7504,7 +7513,7 @@ check_one_cipher_core (int algo, int mode, int flags,
           pass, algo, mode);
 
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
-    return -1;
+    goto err_out_free;
 
   err = gcry_cipher_decrypt (hd, out, nplain, NULL, 0);
   if (err)
@@ -7513,7 +7522,7 @@ check_one_cipher_core (int algo, int mode, int flags,
             " %s\n",
 	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return -1;
+      goto err_out_free;
     }
 
   if (taglen > 0)
@@ -7525,7 +7534,7 @@ check_one_cipher_core (int algo, int mode, int flags,
 		"gcry_cipher_checktag failed: %s\n",
 		pass, algo, mode, gpg_strerror (err));
 	  gcry_cipher_close (hd);
-	  return -1;
+	  goto err_out_free;
 	}
     }
 
@@ -7535,7 +7544,7 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   /* Again, splitting encryption in multiple operations. */
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
-    return -1;
+    goto err_out_free;
 
   piecelen = blklen;
   pos = 0;
@@ -7552,7 +7561,7 @@ check_one_cipher_core (int algo, int mode, int flags,
                 "piecelen: %d), gcry_cipher_encrypt failed: %s\n",
                 pass, algo, mode, pos, piecelen, gpg_strerror (err));
           gcry_cipher_close (hd);
-          return -1;
+          goto err_out_free;
         }
 
       pos += piecelen;
@@ -7568,7 +7577,7 @@ check_one_cipher_core (int algo, int mode, int flags,
                 "piecelen: %d), gcry_cipher_gettag failed: %s\n",
 		pass, algo, mode, pos, piecelen, gpg_strerror (err));
 	  gcry_cipher_close (hd);
-	  return -1;
+	  goto err_out_free;
 	}
 
       if (memcmp (tag_result, tag, taglen))
@@ -7581,7 +7590,7 @@ check_one_cipher_core (int algo, int mode, int flags,
           pass, algo, mode);
 
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
-    return -1;
+    goto err_out_free;
 
   piecelen = blklen;
   pos = 0;
@@ -7597,7 +7606,7 @@ check_one_cipher_core (int algo, int mode, int flags,
                 "piecelen: %d), gcry_cipher_decrypt failed: %s\n",
                 pass, algo, mode, pos, piecelen, gpg_strerror (err));
           gcry_cipher_close (hd);
-          return -1;
+          goto err_out_free;
         }
 
       pos += piecelen;
@@ -7613,7 +7622,7 @@ check_one_cipher_core (int algo, int mode, int flags,
                 "piecelen: %d), gcry_cipher_checktag failed: %s\n",
 		pass, algo, mode, pos, piecelen, gpg_strerror (err));
 	  gcry_cipher_close (hd);
-	  return -1;
+	  goto err_out_free;
 	}
     }
 
@@ -7624,7 +7633,7 @@ check_one_cipher_core (int algo, int mode, int flags,
   /* Again, using in-place encryption and splitting encryption in multiple
    * operations. */
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
-    return -1;
+    goto err_out_free;
 
   piecelen = blklen;
   pos = 0;
@@ -7641,7 +7650,7 @@ check_one_cipher_core (int algo, int mode, int flags,
                 "piecelen: %d), gcry_cipher_encrypt failed: %s\n",
                 pass, algo, mode, pos, piecelen, gpg_strerror (err));
           gcry_cipher_close (hd);
-          return -1;
+          goto err_out_free;
         }
 
       pos += piecelen;
@@ -7653,7 +7662,7 @@ check_one_cipher_core (int algo, int mode, int flags,
           pass, algo, mode);
 
   if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
-    return -1;
+    goto err_out_free;
 
   piecelen = blklen;
   pos = 0;
@@ -7669,7 +7678,7 @@ check_one_cipher_core (int algo, int mode, int flags,
                 "piecelen: %d), gcry_cipher_decrypt failed: %s\n",
                 pass, algo, mode, pos, piecelen, gpg_strerror (err));
           gcry_cipher_close (hd);
-          return -1;
+          goto err_out_free;
         }
 
       pos += piecelen;
@@ -7683,7 +7692,16 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   gcry_cipher_close (hd);
 
+  free (enc_result);
+  free (out_buffer);
+  free (in_buffer);
   return 0;
+
+err_out_free:
+  free (enc_result);
+  free (out_buffer);
+  free (in_buffer);
+  return -1;
 }
 
 
@@ -7691,17 +7709,26 @@ check_one_cipher_core (int algo, int mode, int flags,
 static void
 check_one_cipher (int algo, int mode, int flags)
 {
+  size_t medium_buffer_size = 2048 - 16;
+  size_t large_buffer_size = 64 * 1024 + 1024 - 16;
   char key[64+1];
-  unsigned char plain[1904+1];
+  unsigned char *plain;
   int bufshift, i;
 
-  for (bufshift=0; bufshift < 4; bufshift++)
+  plain = malloc (large_buffer_size + 1);
+  if (!plain)
+    {
+      fail ("pass %d, algo %d, mode %d, malloc failed\n", -1, algo, mode);
+      return;
+    }
+
+  for (bufshift = 0; bufshift < 4; bufshift++)
     {
       /* Pass 0: Standard test.  */
       memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF_"
 		   "0123456789abcdef.,;/[]{}-=ABCDEF", 64);
       memcpy (plain, "foobar42FOOBAR17", 16);
-      for (i = 16; i < 1904; i += 16)
+      for (i = 16; i < medium_buffer_size; i += 16)
         {
           memcpy (&plain[i], &plain[i-16], 16);
           if (!++plain[i+7])
@@ -7710,30 +7737,53 @@ check_one_cipher (int algo, int mode, int flags)
             plain[i+14]++;
         }
 
-      if (check_one_cipher_core (algo, mode, flags, key, 64, plain, 1904,
-                                 bufshift, 0+10*bufshift))
-        return;
+      if (check_one_cipher_core (algo, mode, flags, key, 64, plain,
+				 medium_buffer_size, bufshift,
+				 0+10*bufshift))
+        goto out;
 
       /* Pass 1: Key not aligned.  */
       memmove (key+1, key, 64);
-      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain, 1904,
-                                 bufshift, 1+10*bufshift))
-        return;
+      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain,
+				 medium_buffer_size, bufshift,
+				 1+10*bufshift))
+        goto out;
 
       /* Pass 2: Key not aligned and data not aligned.  */
-      memmove (plain+1, plain, 1904);
-      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain+1, 1904,
-                                 bufshift, 2+10*bufshift))
-        return;
+      memmove (plain+1, plain, medium_buffer_size);
+      if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain+1,
+				 medium_buffer_size, bufshift,
+				 2+10*bufshift))
+        goto out;
 
       /* Pass 3: Key aligned and data not aligned.  */
       memmove (key, key+1, 64);
-      if (check_one_cipher_core (algo, mode, flags, key, 64, plain+1, 1904,
-                                 bufshift, 3+10*bufshift))
-        return;
+      if (check_one_cipher_core (algo, mode, flags, key, 64, plain+1,
+				 medium_buffer_size, bufshift,
+				 3+10*bufshift))
+        goto out;
     }
 
-  return;
+  /* Pass 5: Large buffer test.  */
+  memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF_"
+		"0123456789abcdef.,;/[]{}-=ABCDEF", 64);
+  memcpy (plain, "foobar42FOOBAR17", 16);
+  for (i = 16; i < large_buffer_size; i += 16)
+    {
+      memcpy (&plain[i], &plain[i-16], 16);
+      if (!++plain[i+7])
+	plain[i+6]++;
+      if (!++plain[i+15])
+	plain[i+14]++;
+    }
+
+  if (check_one_cipher_core (algo, mode, flags, key, 64, plain,
+			     large_buffer_size, bufshift,
+			     50))
+    goto out;
+
+out:
+  free (plain);
 }
 
 
