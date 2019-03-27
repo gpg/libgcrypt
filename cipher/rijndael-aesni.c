@@ -2381,23 +2381,25 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
   aesni_prepare ();
   aesni_prepare_2_7 ();
 
-  aesni_ocb_checksum (c, inbuf_arg, nblocks);
-
   /* Preload Offset */
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
-                : /* No output */
-                : [iv] "m" (*c->u_iv.iv)
-                : "memory" );
+		"movdqu %[ctr], %%xmm7\n\t"
+		: /* No output */
+		: [iv] "m" (*c->u_iv.iv),
+		  [ctr] "m" (*c->u_ctr.ctr)
+		: "memory" );
 
   for ( ;nblocks && n % 4; nblocks-- )
     {
       l = aes_ocb_get_l(c, ++n);
 
+      /* Checksum_i = Checksum_{i-1} xor P_i  */
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
       asm volatile ("movdqu %[l],     %%xmm1\n\t"
                     "movdqu %[inbuf], %%xmm0\n\t"
                     "pxor   %%xmm1,   %%xmm5\n\t"
+                    "pxor   %%xmm0,   %%xmm7\n\t"
                     "pxor   %%xmm5,   %%xmm0\n\t"
                     :
                     : [l] "m" (*l),
@@ -2445,6 +2447,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 	  n += 4;
 	  l = aes_ocb_get_l(c, n);
 
+          /* Checksum_i = Checksum_{i-1} xor P_i  */
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  /* P_i = Offset_i xor ENCIPHER(K, C_i xor Offset_i)  */
 	  asm volatile ("movdqu %[inbuf0], %%xmm1\n\t"
@@ -2465,28 +2468,34 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 			: "memory" );
 	  asm volatile ("movdqa %%xmm6,    %%xmm12\n\t"
 			"pxor   %%xmm5,    %%xmm12\n\t"
+			"pxor   %%xmm1,    %%xmm7\n\t"
 			"pxor   %%xmm12,   %%xmm1\n\t"
 
 			"movdqa %%xmm10,   %%xmm13\n\t"
 			"pxor   %%xmm5,    %%xmm13\n\t"
+			"pxor   %%xmm2,    %%xmm7\n\t"
 			"pxor   %%xmm13,   %%xmm2\n\t"
 
 			"movdqa %%xmm11,   %%xmm14\n\t"
 			"pxor   %%xmm5,    %%xmm14\n\t"
+			"pxor   %%xmm3,    %%xmm7\n\t"
 			"pxor   %%xmm14,   %%xmm3\n\t"
 
 			"pxor   %%xmm11,   %%xmm5\n\t"
 			"pxor   %%xmm15,   %%xmm5\n\t"
+			"pxor   %%xmm4,    %%xmm7\n\t"
 			"pxor   %%xmm5,    %%xmm4\n\t"
 			"movdqa %%xmm5,    %%xmm15\n\t"
 
 			"movdqa %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm8,    %%xmm7\n\t"
 			"pxor   %%xmm0,    %%xmm8\n\t"
 			"movdqa %%xmm0,    %[tmpbuf0]\n\t"
 
 			"movdqa %%xmm10,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
+			"pxor   %%xmm9,    %%xmm7\n\t"
 			"pxor   %%xmm0,    %%xmm9\n\t"
 			"movdqa %%xmm0,    %[tmpbuf1]\n\t"
 			: [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE)),
@@ -2496,6 +2505,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
 			"movdqa %%xmm11,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
+			"pxor   %%xmm10,   %%xmm7\n\t"
 			"pxor   %%xmm0,    %%xmm10\n\t"
 			"movdqa %%xmm0,    %[tmpbuf2]\n\t"
 			: [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
@@ -2505,6 +2515,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 			"pxor   %%xmm11,   %%xmm5\n\t"
 			"pxor   %%xmm0,    %%xmm5\n\t"
 			"movdqu %[inbuf7], %%xmm11\n\t"
+			"pxor   %%xmm11,   %%xmm7\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
 			:
 			: [l7] "m" (*l),
@@ -2555,6 +2566,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
       n += 4;
       l = aes_ocb_get_l(c, n);
 
+      /* Checksum_i = Checksum_{i-1} xor P_i  */
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
       asm volatile ("movdqu %[l0],     %%xmm0\n\t"
@@ -2568,6 +2580,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
       asm volatile ("movdqu %[l1],     %%xmm4\n\t"
 		    "movdqu %[l3],     %%xmm6\n\t"
 		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "pxor   %%xmm1,    %%xmm7\n\t"
 		    "pxor   %%xmm0,    %%xmm1\n\t"
 		    "movdqa %%xmm0,    %[tmpbuf0]\n\t"
 		    : [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE))
@@ -2576,6 +2589,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 		    : "memory" );
       asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
 		    "pxor   %%xmm5,    %%xmm3\n\t"
+		    "pxor   %%xmm2,    %%xmm7\n\t"
 		    "pxor   %%xmm3,    %%xmm2\n\t"
 		    "movdqa %%xmm3,    %[tmpbuf1]\n\t"
 		    : [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE))
@@ -2584,6 +2598,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
       asm volatile ("movdqa %%xmm4,    %%xmm0\n\t"
 		    "movdqu %[inbuf2], %%xmm3\n\t"
 		    "pxor   %%xmm5,    %%xmm0\n\t"
+		    "pxor   %%xmm3,    %%xmm7\n\t"
 		    "pxor   %%xmm0,    %%xmm3\n\t"
 		    "movdqa %%xmm0,    %[tmpbuf2]\n\t"
 		    : [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
@@ -2593,6 +2608,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
       asm volatile ("pxor   %%xmm6,    %%xmm5\n\t"
 		    "pxor   %%xmm4,    %%xmm5\n\t"
 		    "movdqu %[inbuf3], %%xmm4\n\t"
+		    "pxor   %%xmm4,    %%xmm7\n\t"
 		    "pxor   %%xmm5,    %%xmm4\n\t"
 		    :
 		    : [inbuf3] "m" (*(inbuf + 3 * BLOCKSIZE))
@@ -2625,11 +2641,13 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
     {
       l = aes_ocb_get_l(c, ++n);
 
+      /* Checksum_i = Checksum_{i-1} xor P_i  */
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
       asm volatile ("movdqu %[l],     %%xmm1\n\t"
                     "movdqu %[inbuf], %%xmm0\n\t"
                     "pxor   %%xmm1,   %%xmm5\n\t"
+		    "pxor   %%xmm0,   %%xmm7\n\t"
                     "pxor   %%xmm5,   %%xmm0\n\t"
                     :
                     : [l] "m" (*l),
@@ -2650,7 +2668,9 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 
   c->u_mode.ocb.data_nblocks = n;
   asm volatile ("movdqu %%xmm5, %[iv]\n\t"
-                : [iv] "=m" (*c->u_iv.iv)
+                "movdqu %%xmm7, %[ctr]\n\t"
+		: [iv] "=m" (*c->u_iv.iv),
+		  [ctr] "=m" (*c->u_ctr.ctr)
                 :
                 : "memory" );
 
