@@ -2371,7 +2371,12 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   u64 n = c->u_mode.ocb.data_nblocks;
   const unsigned char *l;
+  byte tmpbuf_store[3 * 16 + 15];
+  byte *tmpbuf;
   aesni_prepare_2_7_variable;
+
+  asm volatile ("" : "=r" (tmpbuf) : "0" (tmpbuf_store) : "memory");
+  tmpbuf = tmpbuf + (-(uintptr_t)tmpbuf & 15);
 
   aesni_prepare ();
   aesni_prepare_2_7 ();
@@ -2478,22 +2483,22 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 			"movdqa %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm6,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm8\n\t"
-			"movdqu %%xmm0,    %[outbuf4]\n\t"
+			"movdqa %%xmm0,    %[tmpbuf0]\n\t"
 
 			"movdqa %%xmm10,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm9\n\t"
-			"movdqu %%xmm0,    %[outbuf5]\n\t"
-			: [outbuf4] "=m" (*(outbuf + 4 * BLOCKSIZE)),
-			  [outbuf5] "=m" (*(outbuf + 5 * BLOCKSIZE))
+			"movdqa %%xmm0,    %[tmpbuf1]\n\t"
+			: [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE)),
+			  [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE))
 			:
 			: "memory" );
 	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
 			"movdqa %%xmm11,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm10\n\t"
-			"movdqu %%xmm0,    %[outbuf6]\n\t"
-			: [outbuf6] "=m" (*(outbuf + 6 * BLOCKSIZE))
+			"movdqa %%xmm0,    %[tmpbuf2]\n\t"
+			: [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
 			: [inbuf6] "m" (*(inbuf + 6 * BLOCKSIZE))
 			: "memory" );
 	  asm volatile ("movdqu %[l7],     %%xmm0\n\t"
@@ -2510,14 +2515,11 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 
 	  asm volatile ("pxor   %%xmm12,   %%xmm1\n\t"
 			"pxor   %%xmm13,   %%xmm2\n\t"
-			"movdqu %[outbuf4],%%xmm0\n\t"
-			"movdqu %[outbuf5],%%xmm12\n\t"
-			"movdqu %[outbuf6],%%xmm13\n\t"
 			"pxor   %%xmm14,   %%xmm3\n\t"
 			"pxor   %%xmm15,   %%xmm4\n\t"
-			"pxor   %%xmm0,    %%xmm8\n\t"
-			"pxor   %%xmm12,   %%xmm9\n\t"
-			"pxor   %%xmm13,   %%xmm10\n\t"
+			"pxor   %[tmpbuf0],%%xmm8\n\t"
+			"pxor   %[tmpbuf1],%%xmm9\n\t"
+			"pxor   %[tmpbuf2],%%xmm10\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
 			"movdqu %%xmm1,    %[outbuf0]\n\t"
 			"movdqu %%xmm2,    %[outbuf1]\n\t"
@@ -2531,11 +2533,13 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 			  [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE)),
 			  [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE)),
 			  [outbuf3] "=m" (*(outbuf + 3 * BLOCKSIZE)),
-			  [outbuf4] "+m" (*(outbuf + 4 * BLOCKSIZE)),
-			  [outbuf5] "+m" (*(outbuf + 5 * BLOCKSIZE)),
-			  [outbuf6] "+m" (*(outbuf + 6 * BLOCKSIZE)),
+			  [outbuf4] "=m" (*(outbuf + 4 * BLOCKSIZE)),
+			  [outbuf5] "=m" (*(outbuf + 5 * BLOCKSIZE)),
+			  [outbuf6] "=m" (*(outbuf + 6 * BLOCKSIZE)),
 			  [outbuf7] "=m" (*(outbuf + 7 * BLOCKSIZE))
-			:
+			: [tmpbuf0] "m" (*(tmpbuf + 0 * BLOCKSIZE)),
+			  [tmpbuf1] "m" (*(tmpbuf + 1 * BLOCKSIZE)),
+			  [tmpbuf2] "m" (*(tmpbuf + 2 * BLOCKSIZE))
 			: "memory" );
 
 	  outbuf += 8*BLOCKSIZE;
@@ -2565,24 +2569,24 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 		    "movdqu %[l3],     %%xmm6\n\t"
 		    "pxor   %%xmm5,    %%xmm0\n\t"
 		    "pxor   %%xmm0,    %%xmm1\n\t"
-		    "movdqu %%xmm0,    %[outbuf0]\n\t"
-		    : [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE))
+		    "movdqa %%xmm0,    %[tmpbuf0]\n\t"
+		    : [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE))
 		    : [l1] "m" (*c->u_mode.ocb.L[1]),
 		      [l3] "m" (*l)
 		    : "memory" );
       asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
 		    "pxor   %%xmm5,    %%xmm3\n\t"
 		    "pxor   %%xmm3,    %%xmm2\n\t"
-		    "movdqu %%xmm3,    %[outbuf1]\n\t"
-		    : [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE))
+		    "movdqa %%xmm3,    %[tmpbuf1]\n\t"
+		    : [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE))
 		    : [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE))
 		    : "memory" );
       asm volatile ("movdqa %%xmm4,    %%xmm0\n\t"
 		    "movdqu %[inbuf2], %%xmm3\n\t"
 		    "pxor   %%xmm5,    %%xmm0\n\t"
 		    "pxor   %%xmm0,    %%xmm3\n\t"
-		    "movdqu %%xmm0,    %[outbuf2]\n\t"
-		    : [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE))
+		    "movdqa %%xmm0,    %[tmpbuf2]\n\t"
+		    : [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
 		    :
 		      [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
 		    : "memory" );
@@ -2596,22 +2600,21 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 
       do_aesni_enc_vec4 (ctx);
 
-      asm volatile ("movdqu %[outbuf0],%%xmm0\n\t"
-		    "pxor   %%xmm0,    %%xmm1\n\t"
+      asm volatile ("pxor   %[tmpbuf0],%%xmm1\n\t"
 		    "movdqu %%xmm1,    %[outbuf0]\n\t"
-		    "movdqu %[outbuf1],%%xmm0\n\t"
-		    "pxor   %%xmm0,    %%xmm2\n\t"
+		    "pxor   %[tmpbuf1],%%xmm2\n\t"
 		    "movdqu %%xmm2,    %[outbuf1]\n\t"
-		    "movdqu %[outbuf2],%%xmm0\n\t"
-		    "pxor   %%xmm0,    %%xmm3\n\t"
+		    "pxor   %[tmpbuf2],%%xmm3\n\t"
 		    "movdqu %%xmm3,    %[outbuf2]\n\t"
 		    "pxor   %%xmm5,    %%xmm4\n\t"
 		    "movdqu %%xmm4,    %[outbuf3]\n\t"
-		    : [outbuf0] "+m" (*(outbuf + 0 * BLOCKSIZE)),
-		      [outbuf1] "+m" (*(outbuf + 1 * BLOCKSIZE)),
-		      [outbuf2] "+m" (*(outbuf + 2 * BLOCKSIZE)),
+		    : [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE)),
+		      [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE)),
+		      [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE)),
 		      [outbuf3] "=m" (*(outbuf + 3 * BLOCKSIZE))
-		    :
+		    : [tmpbuf0] "m" (*(tmpbuf + 0 * BLOCKSIZE)),
+		      [tmpbuf1] "m" (*(tmpbuf + 1 * BLOCKSIZE)),
+		      [tmpbuf2] "m" (*(tmpbuf + 2 * BLOCKSIZE))
 		    : "memory" );
 
       outbuf += 4*BLOCKSIZE;
@@ -2651,6 +2654,16 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
                 :
                 : "memory" );
 
+  asm volatile ("pxor   %%xmm0, %%xmm0\n\t"
+                "movdqa %%xmm0, %[tmpbuf0]\n\t"
+                "movdqa %%xmm0, %[tmpbuf1]\n\t"
+                "movdqa %%xmm0, %[tmpbuf2]\n\t"
+		: [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE)),
+		  [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE)),
+		  [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
+                :
+                : "memory" );
+
   aesni_cleanup ();
   aesni_cleanup_2_7 ();
 
@@ -2668,7 +2681,12 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
   u64 n = c->u_mode.ocb.data_nblocks;
   const unsigned char *l;
   size_t nblocks = nblocks_arg;
+  byte tmpbuf_store[3 * 16 + 15];
+  byte *tmpbuf;
   aesni_prepare_2_7_variable;
+
+  asm volatile ("" : "=r" (tmpbuf) : "0" (tmpbuf_store) : "memory");
+  tmpbuf = tmpbuf + (-(uintptr_t)tmpbuf & 15);
 
   aesni_prepare ();
   aesni_prepare_2_7 ();
@@ -2779,22 +2797,22 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 			"movdqa %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm6,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm8\n\t"
-			"movdqu %%xmm0,    %[outbuf4]\n\t"
+			"movdqa %%xmm0,    %[tmpbuf0]\n\t"
 
 			"movdqa %%xmm10,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm9\n\t"
-			"movdqu %%xmm0,    %[outbuf5]\n\t"
-			: [outbuf4] "=m" (*(outbuf + 4 * BLOCKSIZE)),
-			  [outbuf5] "=m" (*(outbuf + 5 * BLOCKSIZE))
+			"movdqa %%xmm0,    %[tmpbuf1]\n\t"
+			: [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE)),
+			  [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE))
 			:
 			: "memory" );
 	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
 			"movdqa %%xmm11,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm10\n\t"
-			"movdqu %%xmm0,    %[outbuf6]\n\t"
-			: [outbuf6] "=m" (*(outbuf + 6 * BLOCKSIZE))
+			"movdqa %%xmm0,    %[tmpbuf2]\n\t"
+			: [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
 			: [inbuf6] "m" (*(inbuf + 6 * BLOCKSIZE))
 			: "memory" );
 	  asm volatile ("movdqu %[l7],     %%xmm0\n\t"
@@ -2811,14 +2829,11 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 
 	  asm volatile ("pxor   %%xmm12,   %%xmm1\n\t"
 			"pxor   %%xmm13,   %%xmm2\n\t"
-			"movdqu %[outbuf4],%%xmm0\n\t"
-			"movdqu %[outbuf5],%%xmm12\n\t"
-			"movdqu %[outbuf6],%%xmm13\n\t"
 			"pxor   %%xmm14,   %%xmm3\n\t"
 			"pxor   %%xmm15,   %%xmm4\n\t"
-			"pxor   %%xmm0,    %%xmm8\n\t"
-			"pxor   %%xmm12,   %%xmm9\n\t"
-			"pxor   %%xmm13,   %%xmm10\n\t"
+			"pxor   %[tmpbuf0],%%xmm8\n\t"
+			"pxor   %[tmpbuf1],%%xmm9\n\t"
+			"pxor   %[tmpbuf2],%%xmm10\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
 			"movdqu %%xmm1,    %[outbuf0]\n\t"
 			"movdqu %%xmm2,    %[outbuf1]\n\t"
@@ -2832,11 +2847,13 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 			  [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE)),
 			  [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE)),
 			  [outbuf3] "=m" (*(outbuf + 3 * BLOCKSIZE)),
-			  [outbuf4] "+m" (*(outbuf + 4 * BLOCKSIZE)),
-			  [outbuf5] "+m" (*(outbuf + 5 * BLOCKSIZE)),
-			  [outbuf6] "+m" (*(outbuf + 6 * BLOCKSIZE)),
+			  [outbuf4] "=m" (*(outbuf + 4 * BLOCKSIZE)),
+			  [outbuf5] "=m" (*(outbuf + 5 * BLOCKSIZE)),
+			  [outbuf6] "=m" (*(outbuf + 6 * BLOCKSIZE)),
 			  [outbuf7] "=m" (*(outbuf + 7 * BLOCKSIZE))
-			:
+			: [tmpbuf0] "m" (*(tmpbuf + 0 * BLOCKSIZE)),
+			  [tmpbuf1] "m" (*(tmpbuf + 1 * BLOCKSIZE)),
+			  [tmpbuf2] "m" (*(tmpbuf + 2 * BLOCKSIZE))
 			: "memory" );
 
 	  outbuf += 8*BLOCKSIZE;
@@ -2866,24 +2883,24 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 		    "movdqu %[l3],     %%xmm6\n\t"
 		    "pxor   %%xmm5,    %%xmm0\n\t"
 		    "pxor   %%xmm0,    %%xmm1\n\t"
-		    "movdqu %%xmm0,    %[outbuf0]\n\t"
-		    : [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE))
+		    "movdqa %%xmm0,    %[tmpbuf0]\n\t"
+		    : [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE))
 		    : [l1] "m" (*c->u_mode.ocb.L[1]),
 		      [l3] "m" (*l)
 		    : "memory" );
       asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
 		    "pxor   %%xmm5,    %%xmm3\n\t"
 		    "pxor   %%xmm3,    %%xmm2\n\t"
-		    "movdqu %%xmm3,    %[outbuf1]\n\t"
-		    : [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE))
+		    "movdqa %%xmm3,    %[tmpbuf1]\n\t"
+		    : [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE))
 		    : [inbuf1] "m" (*(inbuf + 1 * BLOCKSIZE))
 		    : "memory" );
       asm volatile ("movdqa %%xmm4,    %%xmm0\n\t"
 		    "movdqu %[inbuf2], %%xmm3\n\t"
 		    "pxor   %%xmm5,    %%xmm0\n\t"
 		    "pxor   %%xmm0,    %%xmm3\n\t"
-		    "movdqu %%xmm0,    %[outbuf2]\n\t"
-		    : [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE))
+		    "movdqa %%xmm0,    %[tmpbuf2]\n\t"
+		    : [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
 		    :
 		      [inbuf2] "m" (*(inbuf + 2 * BLOCKSIZE))
 		    : "memory" );
@@ -2897,22 +2914,21 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 
       do_aesni_dec_vec4 (ctx);
 
-      asm volatile ("movdqu %[outbuf0],%%xmm0\n\t"
-		    "pxor   %%xmm0,    %%xmm1\n\t"
+      asm volatile ("pxor   %[tmpbuf0],%%xmm1\n\t"
 		    "movdqu %%xmm1,    %[outbuf0]\n\t"
-		    "movdqu %[outbuf1],%%xmm0\n\t"
-		    "pxor   %%xmm0,    %%xmm2\n\t"
+		    "pxor   %[tmpbuf1],%%xmm2\n\t"
 		    "movdqu %%xmm2,    %[outbuf1]\n\t"
-		    "movdqu %[outbuf2],%%xmm0\n\t"
-		    "pxor   %%xmm0,    %%xmm3\n\t"
+		    "pxor   %[tmpbuf2],%%xmm3\n\t"
 		    "movdqu %%xmm3,    %[outbuf2]\n\t"
 		    "pxor   %%xmm5,    %%xmm4\n\t"
 		    "movdqu %%xmm4,    %[outbuf3]\n\t"
-		    : [outbuf0] "+m" (*(outbuf + 0 * BLOCKSIZE)),
-		      [outbuf1] "+m" (*(outbuf + 1 * BLOCKSIZE)),
-		      [outbuf2] "+m" (*(outbuf + 2 * BLOCKSIZE)),
+		    : [outbuf0] "=m" (*(outbuf + 0 * BLOCKSIZE)),
+		      [outbuf1] "=m" (*(outbuf + 1 * BLOCKSIZE)),
+		      [outbuf2] "=m" (*(outbuf + 2 * BLOCKSIZE)),
 		      [outbuf3] "=m" (*(outbuf + 3 * BLOCKSIZE))
-		    :
+		    : [tmpbuf0] "m" (*(tmpbuf + 0 * BLOCKSIZE)),
+		      [tmpbuf1] "m" (*(tmpbuf + 1 * BLOCKSIZE)),
+		      [tmpbuf2] "m" (*(tmpbuf + 2 * BLOCKSIZE))
 		    : "memory" );
 
       outbuf += 4*BLOCKSIZE;
@@ -2950,6 +2966,16 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
   c->u_mode.ocb.data_nblocks = n;
   asm volatile ("movdqu %%xmm5, %[iv]\n\t"
                 : [iv] "=m" (*c->u_iv.iv)
+                :
+                : "memory" );
+
+  asm volatile ("pxor   %%xmm0, %%xmm0\n\t"
+                "movdqa %%xmm0, %[tmpbuf0]\n\t"
+                "movdqa %%xmm0, %[tmpbuf1]\n\t"
+                "movdqa %%xmm0, %[tmpbuf2]\n\t"
+		: [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE)),
+		  [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE)),
+		  [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
                 :
                 : "memory" );
 
