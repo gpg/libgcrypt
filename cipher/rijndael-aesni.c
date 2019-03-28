@@ -2421,13 +2421,27 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
+      unsigned char last_xor_first_key_store[16 + 15];
+      unsigned char *lxf_key;
       aesni_prepare_8_15_variable;
+
+      asm volatile (""
+                    : "=r" (lxf_key)
+		    : "0" (last_xor_first_key_store)
+		    : "memory");
+      lxf_key = lxf_key + (-(uintptr_t)lxf_key & 15);
 
       aesni_prepare_8_15();
 
       asm volatile ("movdqu %[l0], %%xmm6\n\t"
-		    :
-		    : [l0] "m" (*c->u_mode.ocb.L[0])
+		    "movdqa %[last_key], %%xmm0\n\t"
+		    "pxor %[first_key], %%xmm5\n\t"
+		    "pxor %[first_key], %%xmm0\n\t"
+		    "movdqa %%xmm0, %[lxfkey]\n\t"
+		    : [lxfkey] "=m" (*lxf_key)
+		    : [l0] "m" (*c->u_mode.ocb.L[0]),
+		      [last_key] "m" (ctx->keyschenc[ctx->rounds][0][0]),
+		      [first_key] "m" (ctx->keyschenc[0][0][0])
 		    : "memory" );
 
       for ( ;nblocks >= 8 ; nblocks -= 8 )
@@ -2466,72 +2480,208 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 			  [inbuf4] "m" (*(inbuf + 4 * BLOCKSIZE)),
 			  [inbuf5] "m" (*(inbuf + 5 * BLOCKSIZE))
 			: "memory" );
-	  asm volatile ("movdqa %%xmm6,    %%xmm12\n\t"
+	  asm volatile ("movdqa %[lxfkey], %%xmm0\n\t"
+			"movdqa %%xmm6,    %%xmm12\n\t"
 			"pxor   %%xmm5,    %%xmm12\n\t"
 			"pxor   %%xmm1,    %%xmm7\n\t"
 			"pxor   %%xmm12,   %%xmm1\n\t"
+			"pxor   %%xmm0,    %%xmm12\n\t"
 
 			"movdqa %%xmm10,   %%xmm13\n\t"
 			"pxor   %%xmm5,    %%xmm13\n\t"
 			"pxor   %%xmm2,    %%xmm7\n\t"
 			"pxor   %%xmm13,   %%xmm2\n\t"
+			"pxor   %%xmm0,    %%xmm13\n\t"
 
 			"movdqa %%xmm11,   %%xmm14\n\t"
 			"pxor   %%xmm5,    %%xmm14\n\t"
 			"pxor   %%xmm3,    %%xmm7\n\t"
 			"pxor   %%xmm14,   %%xmm3\n\t"
+			"pxor   %%xmm0,    %%xmm14\n\t"
 
 			"pxor   %%xmm11,   %%xmm5\n\t"
 			"pxor   %%xmm15,   %%xmm5\n\t"
 			"pxor   %%xmm4,    %%xmm7\n\t"
 			"pxor   %%xmm5,    %%xmm4\n\t"
 			"movdqa %%xmm5,    %%xmm15\n\t"
+			"pxor   %%xmm0,    %%xmm15\n\t"
 
 			"movdqa %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm6,    %%xmm0\n\t"
 			"pxor   %%xmm8,    %%xmm7\n\t"
 			"pxor   %%xmm0,    %%xmm8\n\t"
+			"pxor   %[lxfkey], %%xmm0\n\t"
 			"movdqa %%xmm0,    %[tmpbuf0]\n\t"
 
 			"movdqa %%xmm10,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm9,    %%xmm7\n\t"
 			"pxor   %%xmm0,    %%xmm9\n\t"
+			"pxor   %[lxfkey], %%xmm0\n"
 			"movdqa %%xmm0,    %[tmpbuf1]\n\t"
 			: [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE)),
 			  [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE))
-			:
+			: [lxfkey] "m" (*lxf_key)
 			: "memory" );
 	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
 			"movdqa %%xmm11,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm10,   %%xmm7\n\t"
 			"pxor   %%xmm0,    %%xmm10\n\t"
+			"pxor   %[lxfkey], %%xmm0\n\t"
 			"movdqa %%xmm0,    %[tmpbuf2]\n\t"
 			: [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
-			: [inbuf6] "m" (*(inbuf + 6 * BLOCKSIZE))
+			: [inbuf6] "m" (*(inbuf + 6 * BLOCKSIZE)),
+			  [lxfkey] "m" (*lxf_key)
 			: "memory" );
 	  asm volatile ("movdqu %[l7],     %%xmm0\n\t"
 			"pxor   %%xmm11,   %%xmm5\n\t"
 			"pxor   %%xmm0,    %%xmm5\n\t"
+			"movdqa 0x10(%[key]), %%xmm0\n\t"
 			"movdqu %[inbuf7], %%xmm11\n\t"
 			"pxor   %%xmm11,   %%xmm7\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
 			:
 			: [l7] "m" (*l),
-			  [inbuf7] "m" (*(inbuf + 7 * BLOCKSIZE))
+			  [inbuf7] "m" (*(inbuf + 7 * BLOCKSIZE)),
+			  [key] "r" (ctx->keyschenc)
 			: "memory" );
 
-	  do_aesni_enc_vec8 (ctx);
+	  asm volatile ("cmpl $12, %[rounds]\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x20(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x30(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x40(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x50(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x60(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x70(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x80(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x90(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"jb .Ldeclast%=\n\t"
+			"movdqa 0xa0(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0xb0(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"je .Ldeclast%=\n\t"
+			"movdqa 0xc0(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0xd0(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
 
-	  asm volatile ("pxor   %%xmm12,   %%xmm1\n\t"
-			"pxor   %%xmm13,   %%xmm2\n\t"
-			"pxor   %%xmm14,   %%xmm3\n\t"
-			"pxor   %%xmm15,   %%xmm4\n\t"
-			"pxor   %[tmpbuf0],%%xmm8\n\t"
-			"pxor   %[tmpbuf1],%%xmm9\n\t"
-			"pxor   %[tmpbuf2],%%xmm10\n\t"
-			"pxor   %%xmm5,    %%xmm11\n\t"
+			".Ldeclast%=:\n\t"
+			:
+			: [key] "r" (ctx->keyschenc),
+			  [rounds] "r" (ctx->rounds)
+			: "cc", "memory");
+
+	  asm volatile ("aesenclast %%xmm12,   %%xmm1\n\t"
+			"aesenclast %%xmm13,   %%xmm2\n\t"
+			"aesenclast %%xmm14,   %%xmm3\n\t"
+			"aesenclast %%xmm15,   %%xmm4\n\t"
+			"aesenclast %[tmpbuf0],%%xmm8\n\t"
+			"aesenclast %[tmpbuf1],%%xmm9\n\t"
+			"aesenclast %[tmpbuf2],%%xmm10\n\t"
+			"aesenclast %%xmm5,    %%xmm11\n\t"
+			"pxor   %[lxfkey], %%xmm11\n\t"
 			"movdqu %%xmm1,    %[outbuf0]\n\t"
 			"movdqu %%xmm2,    %[outbuf1]\n\t"
 			"movdqu %%xmm3,    %[outbuf2]\n\t"
@@ -2550,15 +2700,23 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 			  [outbuf7] "=m" (*(outbuf + 7 * BLOCKSIZE))
 			: [tmpbuf0] "m" (*(tmpbuf + 0 * BLOCKSIZE)),
 			  [tmpbuf1] "m" (*(tmpbuf + 1 * BLOCKSIZE)),
-			  [tmpbuf2] "m" (*(tmpbuf + 2 * BLOCKSIZE))
+			  [tmpbuf2] "m" (*(tmpbuf + 2 * BLOCKSIZE)),
+			  [lxfkey] "m" (*lxf_key)
 			: "memory" );
 
 	  outbuf += 8*BLOCKSIZE;
 	  inbuf  += 8*BLOCKSIZE;
 	}
 
-    aesni_cleanup_8_15();
-  }
+      asm volatile ("pxor %[first_key], %%xmm5\n\t"
+		    "pxor %%xmm0, %%xmm0\n\t"
+		    "movdqu %%xmm0, %[lxfkey]\n\t"
+		    : [lxfkey] "=m" (*lxf_key)
+		    : [first_key] "m" (ctx->keyschenc[0][0][0])
+		    : "memory" );
+
+      aesni_cleanup_8_15();
+    }
 #endif
 
   for ( ;nblocks >= 4 ; nblocks -= 4 )
@@ -2753,13 +2911,27 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
+      unsigned char last_xor_first_key_store[16 + 15];
+      unsigned char *lxf_key;
       aesni_prepare_8_15_variable;
+
+      asm volatile (""
+                    : "=r" (lxf_key)
+		    : "0" (last_xor_first_key_store)
+		    : "memory");
+      lxf_key = lxf_key + (-(uintptr_t)lxf_key & 15);
 
       aesni_prepare_8_15();
 
       asm volatile ("movdqu %[l0], %%xmm6\n\t"
-		    :
-		    : [l0] "m" (*c->u_mode.ocb.L[0])
+		    "movdqa %[last_key], %%xmm0\n\t"
+		    "pxor %[first_key], %%xmm5\n\t"
+		    "pxor %[first_key], %%xmm0\n\t"
+		    "movdqa %%xmm0, %[lxfkey]\n\t"
+		    : [lxfkey] "=m" (*lxf_key)
+		    : [l0] "m" (*c->u_mode.ocb.L[0]),
+		      [last_key] "m" (ctx->keyschdec[ctx->rounds][0][0]),
+		      [first_key] "m" (ctx->keyschdec[0][0][0])
 		    : "memory" );
 
       for ( ;nblocks >= 8 ; nblocks -= 8 )
@@ -2780,7 +2952,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 	  l = aes_ocb_get_l(c, n);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-	  /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
+	  /* P_i = Offset_i xor ENCIPHER(K, C_i xor Offset_i)  */
 	  asm volatile ("movdqu %[inbuf0], %%xmm1\n\t"
 			"movdqu %[inbuf1], %%xmm2\n\t"
 			"movdqu %[inbuf2], %%xmm3\n\t"
@@ -2797,64 +2969,200 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 			  [inbuf4] "m" (*(inbuf + 4 * BLOCKSIZE)),
 			  [inbuf5] "m" (*(inbuf + 5 * BLOCKSIZE))
 			: "memory" );
-	  asm volatile ("movdqa %%xmm6,    %%xmm12\n\t"
+	  asm volatile ("movdqa %[lxfkey], %%xmm0\n\t"
+			"movdqa %%xmm6,    %%xmm12\n\t"
 			"pxor   %%xmm5,    %%xmm12\n\t"
 			"pxor   %%xmm12,   %%xmm1\n\t"
+			"pxor   %%xmm0,    %%xmm12\n\t"
 
 			"movdqa %%xmm10,   %%xmm13\n\t"
 			"pxor   %%xmm5,    %%xmm13\n\t"
 			"pxor   %%xmm13,   %%xmm2\n\t"
+			"pxor   %%xmm0,    %%xmm13\n\t"
 
 			"movdqa %%xmm11,   %%xmm14\n\t"
 			"pxor   %%xmm5,    %%xmm14\n\t"
 			"pxor   %%xmm14,   %%xmm3\n\t"
+			"pxor   %%xmm0,    %%xmm14\n\t"
 
 			"pxor   %%xmm11,   %%xmm5\n\t"
 			"pxor   %%xmm15,   %%xmm5\n\t"
 			"pxor   %%xmm5,    %%xmm4\n\t"
 			"movdqa %%xmm5,    %%xmm15\n\t"
+			"pxor   %%xmm0,    %%xmm15\n\t"
 
 			"movdqa %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm6,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm8\n\t"
+			"pxor   %[lxfkey], %%xmm0\n\t"
 			"movdqa %%xmm0,    %[tmpbuf0]\n\t"
 
 			"movdqa %%xmm10,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm9\n\t"
+			"pxor   %[lxfkey], %%xmm0\n"
 			"movdqa %%xmm0,    %[tmpbuf1]\n\t"
 			: [tmpbuf0] "=m" (*(tmpbuf + 0 * BLOCKSIZE)),
 			  [tmpbuf1] "=m" (*(tmpbuf + 1 * BLOCKSIZE))
-			:
+			: [lxfkey] "m" (*lxf_key)
 			: "memory" );
 	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
 			"movdqa %%xmm11,   %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm0\n\t"
 			"pxor   %%xmm0,    %%xmm10\n\t"
+			"pxor   %[lxfkey], %%xmm0\n\t"
 			"movdqa %%xmm0,    %[tmpbuf2]\n\t"
 			: [tmpbuf2] "=m" (*(tmpbuf + 2 * BLOCKSIZE))
-			: [inbuf6] "m" (*(inbuf + 6 * BLOCKSIZE))
+			: [inbuf6] "m" (*(inbuf + 6 * BLOCKSIZE)),
+			  [lxfkey] "m" (*lxf_key)
 			: "memory" );
 	  asm volatile ("movdqu %[l7],     %%xmm0\n\t"
 			"pxor   %%xmm11,   %%xmm5\n\t"
 			"pxor   %%xmm0,    %%xmm5\n\t"
+			"movdqa 0x10(%[key]), %%xmm0\n\t"
 			"movdqu %[inbuf7], %%xmm11\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
 			:
 			: [l7] "m" (*l),
-			  [inbuf7] "m" (*(inbuf + 7 * BLOCKSIZE))
+			  [inbuf7] "m" (*(inbuf + 7 * BLOCKSIZE)),
+			  [key] "r" (ctx->keyschdec)
 			: "memory" );
 
-	  do_aesni_dec_vec8 (ctx);
+	  asm volatile ("cmpl $12, %[rounds]\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x20(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x30(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x40(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x50(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x60(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x70(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x80(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x90(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"jb .Ldeclast%=\n\t"
+			"movdqa 0xa0(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0xb0(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"je .Ldeclast%=\n\t"
+			"movdqa 0xc0(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0xd0(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
 
-	  asm volatile ("pxor   %%xmm12,   %%xmm1\n\t"
-			"pxor   %%xmm13,   %%xmm2\n\t"
-			"pxor   %%xmm14,   %%xmm3\n\t"
-			"pxor   %%xmm15,   %%xmm4\n\t"
-			"pxor   %[tmpbuf0],%%xmm8\n\t"
-			"pxor   %[tmpbuf1],%%xmm9\n\t"
-			"pxor   %[tmpbuf2],%%xmm10\n\t"
-			"pxor   %%xmm5,    %%xmm11\n\t"
+			".Ldeclast%=:\n\t"
+			:
+			: [key] "r" (ctx->keyschdec),
+			  [rounds] "r" (ctx->rounds)
+			: "cc", "memory");
+
+	  asm volatile ("aesdeclast %%xmm12,   %%xmm1\n\t"
+			"aesdeclast %%xmm13,   %%xmm2\n\t"
+			"aesdeclast %%xmm14,   %%xmm3\n\t"
+			"aesdeclast %%xmm15,   %%xmm4\n\t"
+			"aesdeclast %[tmpbuf0],%%xmm8\n\t"
+			"aesdeclast %[tmpbuf1],%%xmm9\n\t"
+			"aesdeclast %[tmpbuf2],%%xmm10\n\t"
+			"aesdeclast %%xmm5,    %%xmm11\n\t"
+			"pxor   %[lxfkey], %%xmm11\n\t"
 			"movdqu %%xmm1,    %[outbuf0]\n\t"
 			"movdqu %%xmm2,    %[outbuf1]\n\t"
 			"movdqu %%xmm3,    %[outbuf2]\n\t"
@@ -2873,12 +3181,20 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 			  [outbuf7] "=m" (*(outbuf + 7 * BLOCKSIZE))
 			: [tmpbuf0] "m" (*(tmpbuf + 0 * BLOCKSIZE)),
 			  [tmpbuf1] "m" (*(tmpbuf + 1 * BLOCKSIZE)),
-			  [tmpbuf2] "m" (*(tmpbuf + 2 * BLOCKSIZE))
+			  [tmpbuf2] "m" (*(tmpbuf + 2 * BLOCKSIZE)),
+			  [lxfkey] "m" (*lxf_key)
 			: "memory" );
 
 	  outbuf += 8*BLOCKSIZE;
 	  inbuf  += 8*BLOCKSIZE;
 	}
+
+      asm volatile ("pxor %[first_key], %%xmm5\n\t"
+		    "pxor %%xmm0, %%xmm0\n\t"
+		    "movdqu %%xmm0, %[lxfkey]\n\t"
+		    : [lxfkey] "=m" (*lxf_key)
+		    : [first_key] "m" (ctx->keyschdec[0][0][0])
+		    : "memory" );
 
       aesni_cleanup_8_15();
     }
