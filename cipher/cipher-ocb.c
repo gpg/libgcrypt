@@ -48,64 +48,40 @@
 
 /* Double the OCB_BLOCK_LEN sized block B in-place.  */
 static inline void
-double_block (unsigned char *b)
+double_block (u64 b[2])
 {
-#if OCB_BLOCK_LEN != 16
-  unsigned char b_0 = b[0];
-  int i;
-
-  for (i=0; i < OCB_BLOCK_LEN - 1; i++)
-    b[i] = (b[i] << 1) | (b[i+1] >> 7);
-
-  b[OCB_BLOCK_LEN-1] = (b[OCB_BLOCK_LEN-1] << 1) ^ ((b_0 >> 7) * 135);
-#else
-  /* This is the generic code for 16 byte blocks.  However it is not
-     faster than the straight byte by byte implementation.  */
   u64 l_0, l, r;
 
-  l = buf_get_be64 (b);
-  r = buf_get_be64 (b + 8);
+  l = b[1];
+  r = b[0];
 
   l_0 = -(l >> 63);
   l = (l + l) ^ (r >> 63);
   r = (r + r) ^ (l_0 & 135);
 
-  buf_put_be64 (b, l);
-  buf_put_be64 (b+8, r);
-#endif
+  b[1] = l;
+  b[0] = r;
 }
 
 
-/* Double the OCB_BLOCK_LEN sized block S and store it at D.  S and D
-   may point to the same memory location but they may not overlap.  */
+/* Copy OCB_BLOCK_LEN from buffer S starting at bit offset BITOFF to
+ * buffer D.  */
 static void
-double_block_cpy (unsigned char *d, const unsigned char *s)
+bit_copy (unsigned char *d, const unsigned char *s, unsigned int bitoff)
 {
-  if (d != s)
-    cipher_block_cpy (d, s, OCB_BLOCK_LEN);
-  double_block (d);
-}
-
-
-/* Copy NBYTES from buffer S starting at bit offset BITOFF to buffer D.  */
-static void
-bit_copy (unsigned char *d, const unsigned char *s,
-          unsigned int bitoff, unsigned int nbytes)
-{
+  u64 s0l, s1l, s1r, s2r;
   unsigned int shift;
 
   s += bitoff / 8;
   shift = bitoff % 8;
-  if (shift)
-    {
-      for (; nbytes; nbytes--, d++, s++)
-        *d = (s[0] << shift) | (s[1] >> (8 - shift));
-    }
-  else
-    {
-      for (; nbytes; nbytes--, d++, s++)
-        *d = *s;
-    }
+
+  s0l = buf_get_be64 (s + 0);
+  s1l = buf_get_be64 (s + 8);
+  s1r = shift ? s1l : 0;
+  s2r = shift ? buf_get_be64 (s + 16) : 0;
+
+  buf_put_be64 (d + 0, (s0l << shift) | (s1r >> ((64 - shift) & 63)));
+  buf_put_be64 (d + 8, (s1l << shift) | (s2r >> ((64 - shift) & 63)));
 }
 
 
@@ -114,12 +90,18 @@ static void
 ocb_get_L_big (gcry_cipher_hd_t c, u64 n, unsigned char *l_buf)
 {
   int ntz = _gcry_ctz64 (n);
+  u64 L[2];
 
   gcry_assert(ntz >= OCB_L_TABLE_SIZE);
 
-  double_block_cpy (l_buf, c->u_mode.ocb.L[OCB_L_TABLE_SIZE - 1]);
-  for (ntz -= OCB_L_TABLE_SIZE; ntz; ntz--)
-    double_block (l_buf);
+  L[1] = buf_get_be64 (c->u_mode.ocb.L[OCB_L_TABLE_SIZE - 1]);
+  L[0] = buf_get_be64 (c->u_mode.ocb.L[OCB_L_TABLE_SIZE - 1] + 8);
+
+  for (ntz -= OCB_L_TABLE_SIZE - 1; ntz; ntz--)
+    double_block (L);
+
+  buf_put_be64 (l_buf + 0, L[1]);
+  buf_put_be64 (l_buf + 8, L[0]);
 }
 
 
@@ -129,6 +111,7 @@ void _gcry_cipher_ocb_setkey (gcry_cipher_hd_t c)
   unsigned char ktop[OCB_BLOCK_LEN];
   unsigned int burn = 0;
   unsigned int nburn;
+  u64 L[2];
   int i;
 
   /* L_star = E(zero_128) */
@@ -136,11 +119,21 @@ void _gcry_cipher_ocb_setkey (gcry_cipher_hd_t c)
   nburn = c->spec->encrypt (&c->context.c, c->u_mode.ocb.L_star, ktop);
   burn = nburn > burn ? nburn : burn;
   /* L_dollar = double(L_star)  */
-  double_block_cpy (c->u_mode.ocb.L_dollar, c->u_mode.ocb.L_star);
+  L[1] = buf_get_be64 (c->u_mode.ocb.L_star);
+  L[0] = buf_get_be64 (c->u_mode.ocb.L_star + 8);
+  double_block (L);
+  buf_put_be64 (c->u_mode.ocb.L_dollar + 0, L[1]);
+  buf_put_be64 (c->u_mode.ocb.L_dollar + 8, L[0]);
   /* L_0 = double(L_dollar), ...  */
-  double_block_cpy (c->u_mode.ocb.L[0], c->u_mode.ocb.L_dollar);
+  double_block (L);
+  buf_put_be64 (c->u_mode.ocb.L[0] + 0, L[1]);
+  buf_put_be64 (c->u_mode.ocb.L[0] + 8, L[0]);
   for (i = 1; i < OCB_L_TABLE_SIZE; i++)
-    double_block_cpy (c->u_mode.ocb.L[i], c->u_mode.ocb.L[i-1]);
+    {
+      double_block (L);
+      buf_put_be64 (c->u_mode.ocb.L[i] + 0, L[1]);
+      buf_put_be64 (c->u_mode.ocb.L[i] + 8, L[0]);
+    }
   /* Precalculated offset L0+L1 */
   cipher_block_xor (c->u_mode.ocb.L0L1,
 		    c->u_mode.ocb.L[0], c->u_mode.ocb.L[1], OCB_BLOCK_LEN);
@@ -188,7 +181,7 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
     return GPG_ERR_INV_LENGTH;
 
   /* Prepare the nonce.  */
-  memset (ktop, 0, (OCB_BLOCK_LEN - noncelen));
+  memset (ktop, 0, OCB_BLOCK_LEN);
   buf_cpy (ktop + (OCB_BLOCK_LEN - noncelen), nonce, noncelen);
   ktop[0] = ((c->u_mode.ocb.taglen * 8) % 128) << 1;
   ktop[OCB_BLOCK_LEN - noncelen - 1] |= 1;
@@ -201,7 +194,7 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
   cipher_block_xor (stretch + OCB_BLOCK_LEN, ktop, ktop + 1, 8);
   /* Offset_0 = Stretch[1+bottom..128+bottom]
      (We use the IV field to store the offset) */
-  bit_copy (c->u_iv.iv, stretch, bottom, OCB_BLOCK_LEN);
+  bit_copy (c->u_iv.iv, stretch, bottom);
   c->marks.iv = 1;
 
   /* Checksum_0 = zeros(128)
