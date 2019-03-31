@@ -535,6 +535,97 @@ encrypt_block (void *context , byte *outbuf, const byte *inbuf)
 
 
 static void
+do_encrypt_block_3( CAST5_context *c, byte *outbuf, const byte *inbuf )
+{
+    u32 l0, r0, t0, l1, r1, t1, l2, r2, t2;
+    u32 I;   /* used by the Fx macros */
+    u32 *Km;
+    u32 Kr;
+
+    Km = c->Km;
+    Kr = buf_get_le32(c->Kr + 0);
+
+    l0 = buf_get_be32(inbuf + 0);
+    r0 = buf_get_be32(inbuf + 4);
+    l1 = buf_get_be32(inbuf + 8);
+    r1 = buf_get_be32(inbuf + 12);
+    l2 = buf_get_be32(inbuf + 16);
+    r2 = buf_get_be32(inbuf + 20);
+
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[ 0], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[ 0], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[ 0], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[ 1], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[ 1], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[ 1], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[ 2], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[ 2], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[ 2], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[ 3], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[ 3], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[ 3], Kr & 31);
+    Kr = buf_get_le32(c->Kr + 4);
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[ 4], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[ 4], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[ 4], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[ 5], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[ 5], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[ 5], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[ 6], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[ 6], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[ 6], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[ 7], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[ 7], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[ 7], Kr & 31);
+    Kr = buf_get_le32(c->Kr + 8);
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[ 8], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[ 8], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[ 8], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[ 9], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[ 9], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[ 9], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[10], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[10], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[10], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[11], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[11], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[11], Kr & 31);
+    Kr = buf_get_le32(c->Kr + 12);
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[12], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[12], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[12], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[13], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[13], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[13], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[14], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[14], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[14], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[15], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[15], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[15], Kr & 31);
+
+    buf_put_be32(outbuf + 0, r0);
+    buf_put_be32(outbuf + 4, l0);
+    buf_put_be32(outbuf + 8, r1);
+    buf_put_be32(outbuf + 12, l1);
+    buf_put_be32(outbuf + 16, r2);
+    buf_put_be32(outbuf + 20, l2);
+}
+
+
+static void
 do_decrypt_block (CAST5_context *c, byte *outbuf, const byte *inbuf )
 {
     u32 l, r, t;
@@ -577,6 +668,97 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
   return /*burn_stack*/ (20+4*sizeof(void*));
 }
 
+
+static void
+do_decrypt_block_3 (CAST5_context *c, byte *outbuf, const byte *inbuf )
+{
+    u32 l0, r0, t0, l1, r1, t1, l2, r2, t2;
+    u32 I;
+    u32 *Km;
+    u32 Kr;
+
+    Km = c->Km;
+    Kr = buf_get_be32(c->Kr + 12);
+
+    l0 = buf_get_be32(inbuf + 0);
+    r0 = buf_get_be32(inbuf + 4);
+    l1 = buf_get_be32(inbuf + 8);
+    r1 = buf_get_be32(inbuf + 12);
+    l2 = buf_get_be32(inbuf + 16);
+    r2 = buf_get_be32(inbuf + 20);
+
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[15], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[15], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[15], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[14], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[14], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[14], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[13], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[13], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[13], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[12], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[12], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[12], Kr & 31);
+    Kr = buf_get_be32(c->Kr + 8);
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[11], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[11], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[11], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[10], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[10], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[10], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[ 9], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[ 9], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[ 9], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[ 8], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[ 8], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[ 8], Kr & 31);
+    Kr = buf_get_be32(c->Kr + 4);
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[ 7], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[ 7], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[ 7], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[ 6], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[ 6], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[ 6], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[ 5], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[ 5], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[ 5], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[ 4], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[ 4], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[ 4], Kr & 31);
+    Kr = buf_get_be32(c->Kr + 0);
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[ 3], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[ 3], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[ 3], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F3(r0, Km[ 2], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F3(r1, Km[ 2], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F3(r2, Km[ 2], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F2(r0, Km[ 1], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F2(r1, Km[ 1], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F2(r2, Km[ 1], Kr & 31);
+    Kr >>= 8;
+    t0 = l0; l0 = r0; r0 = t0 ^ F1(r0, Km[ 0], Kr & 31);
+	    t1 = l1; l1 = r1; r1 = t1 ^ F1(r1, Km[ 0], Kr & 31);
+		    t2 = l2; l2 = r2; r2 = t2 ^ F1(r2, Km[ 0], Kr & 31);
+
+    buf_put_be32(outbuf + 0, r0);
+    buf_put_be32(outbuf + 4, l0);
+    buf_put_be32(outbuf + 8, r1);
+    buf_put_be32(outbuf + 12, l1);
+    buf_put_be32(outbuf + 16, r2);
+    buf_put_be32(outbuf + 20, l2);
+}
+
 #endif /*!USE_ARM_ASM*/
 
 
@@ -590,9 +772,8 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
   CAST5_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char tmpbuf[CAST5_BLOCKSIZE];
-  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 2 * CAST5_BLOCKSIZE;
-
+  unsigned char tmpbuf[CAST5_BLOCKSIZE * 3];
+  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 4 * CAST5_BLOCKSIZE;
 
 #ifdef USE_AMD64_ASM
   {
@@ -610,7 +791,6 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       }
 
     /* Use generic code to handle smaller chunks... */
-    /* TODO: use caching instead? */
   }
 #elif defined(USE_ARM_ASM)
   {
@@ -625,8 +805,26 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       }
 
     /* Use generic code to handle smaller chunks... */
-    /* TODO: use caching instead? */
   }
+#endif
+
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
+  for ( ;nblocks >= 3; nblocks -= 3)
+    {
+      /* Prepare the counter blocks. */
+      cipher_block_cpy (tmpbuf + 0, ctr, CAST5_BLOCKSIZE);
+      cipher_block_cpy (tmpbuf + 8, ctr, CAST5_BLOCKSIZE);
+      cipher_block_cpy (tmpbuf + 16, ctr, CAST5_BLOCKSIZE);
+      cipher_block_add (tmpbuf + 8, 1, CAST5_BLOCKSIZE);
+      cipher_block_add (tmpbuf + 16, 2, CAST5_BLOCKSIZE);
+      cipher_block_add (ctr, 3, CAST5_BLOCKSIZE);
+      /* Encrypt the counter. */
+      do_encrypt_block_3(ctx, tmpbuf, tmpbuf);
+      /* XOR the input with the encrypted counter and store in output.  */
+      buf_xor(outbuf, tmpbuf, inbuf, CAST5_BLOCKSIZE * 3);
+      outbuf += CAST5_BLOCKSIZE * 3;
+      inbuf  += CAST5_BLOCKSIZE * 3;
+    }
 #endif
 
   for ( ;nblocks; nblocks-- )
@@ -655,8 +853,8 @@ _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
   CAST5_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char savebuf[CAST5_BLOCKSIZE];
-  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 2 * CAST5_BLOCKSIZE;
+  unsigned char savebuf[CAST5_BLOCKSIZE * 3];
+  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 4 * CAST5_BLOCKSIZE;
 
 #ifdef USE_AMD64_ASM
   {
@@ -691,6 +889,22 @@ _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
   }
 #endif
 
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
+  for ( ;nblocks >= 3; nblocks -= 3)
+    {
+      /* INBUF is needed later and it may be identical to OUTBUF, so store
+         the intermediate result to SAVEBUF.  */
+      do_decrypt_block_3 (ctx, savebuf, inbuf);
+
+      cipher_block_xor_1 (savebuf + 0, iv, CAST5_BLOCKSIZE);
+      cipher_block_xor_1 (savebuf + 8, inbuf, CAST5_BLOCKSIZE * 2);
+      cipher_block_cpy (iv, inbuf + 16, CAST5_BLOCKSIZE);
+      buf_cpy (outbuf, savebuf, CAST5_BLOCKSIZE * 3);
+      inbuf += CAST5_BLOCKSIZE * 3;
+      outbuf += CAST5_BLOCKSIZE * 3;
+    }
+#endif
+
   for ( ;nblocks; nblocks-- )
     {
       /* INBUF is needed later and it may be identical to OUTBUF, so store
@@ -715,7 +929,8 @@ _gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
   CAST5_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 2 * CAST5_BLOCKSIZE;
+  unsigned char tmpbuf[CAST5_BLOCKSIZE * 3];
+  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 4 * CAST5_BLOCKSIZE;
 
 #ifdef USE_AMD64_ASM
   {
@@ -750,6 +965,19 @@ _gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
   }
 #endif
 
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
+  for ( ;nblocks >= 3; nblocks -= 3 )
+    {
+      cipher_block_cpy (tmpbuf + 0, iv, CAST5_BLOCKSIZE);
+      cipher_block_cpy (tmpbuf + 8, inbuf + 0, CAST5_BLOCKSIZE * 2);
+      cipher_block_cpy (iv, inbuf + 16, CAST5_BLOCKSIZE);
+      do_encrypt_block_3 (ctx, tmpbuf, tmpbuf);
+      buf_xor (outbuf, inbuf, tmpbuf, CAST5_BLOCKSIZE * 3);
+      outbuf += CAST5_BLOCKSIZE * 3;
+      inbuf  += CAST5_BLOCKSIZE * 3;
+    }
+#endif
+
   for ( ;nblocks; nblocks-- )
     {
       do_encrypt_block(ctx, iv, iv);
@@ -758,6 +986,7 @@ _gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
       inbuf  += CAST5_BLOCKSIZE;
     }
 
+  wipememory(tmpbuf, sizeof(tmpbuf));
   _gcry_burn_stack(burn_stack_depth);
 }
 
