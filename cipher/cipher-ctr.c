@@ -83,12 +83,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
           nburn = enc_fn (&c->context.c, tmp, c->u_ctr.ctr);
           burn = nburn > burn ? nburn : burn;
 
-          for (i = blocksize; i > 0; i--)
-            {
-              c->u_ctr.ctr[i-1]++;
-              if (c->u_ctr.ctr[i-1] != 0)
-                break;
-            }
+	  cipher_block_add(c->u_ctr.ctr, 1, blocksize);
 
           if (inbuflen < blocksize)
             break;

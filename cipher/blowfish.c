@@ -619,7 +619,6 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   unsigned char tmpbuf[BLOWFISH_BLOCKSIZE];
   int burn_stack_depth = (64) + 2 * BLOWFISH_BLOCKSIZE;
-  int i;
 
 #ifdef USE_AMD64_ASM
   {
@@ -665,12 +664,7 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       outbuf += BLOWFISH_BLOCKSIZE;
       inbuf  += BLOWFISH_BLOCKSIZE;
       /* Increment the counter.  */
-      for (i = BLOWFISH_BLOCKSIZE; i > 0; i--)
-        {
-          ctr[i-1]++;
-          if (ctr[i-1])
-            break;
-        }
+      cipher_block_add (ctr, 1, BLOWFISH_BLOCKSIZE);
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));

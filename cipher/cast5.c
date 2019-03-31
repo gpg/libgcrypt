@@ -593,7 +593,6 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
   unsigned char tmpbuf[CAST5_BLOCKSIZE];
   int burn_stack_depth = (20 + 4 * sizeof(void*)) + 2 * CAST5_BLOCKSIZE;
 
-  int i;
 
 #ifdef USE_AMD64_ASM
   {
@@ -639,12 +638,7 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       outbuf += CAST5_BLOCKSIZE;
       inbuf  += CAST5_BLOCKSIZE;
       /* Increment the counter.  */
-      for (i = CAST5_BLOCKSIZE; i > 0; i--)
-        {
-          ctr[i-1]++;
-          if (ctr[i-1])
-            break;
-        }
+      cipher_block_add (ctr, 1, CAST5_BLOCKSIZE);
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));

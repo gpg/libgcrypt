@@ -881,7 +881,6 @@ _gcry_3des_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   unsigned char tmpbuf[DES_BLOCKSIZE];
   int burn_stack_depth = TRIPLEDES_ECB_BURN_STACK;
-  int i;
 
 #ifdef USE_AMD64_ASM
   {
@@ -913,12 +912,7 @@ _gcry_3des_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       outbuf += DES_BLOCKSIZE;
       inbuf  += DES_BLOCKSIZE;
       /* Increment the counter.  */
-      for (i = DES_BLOCKSIZE; i > 0; i--)
-        {
-          ctr[i-1]++;
-          if (ctr[i-1])
-            break;
-        }
+      cipher_block_add(ctr, 1, DES_BLOCKSIZE);
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));

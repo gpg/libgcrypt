@@ -1105,7 +1105,6 @@ _gcry_twofish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   unsigned char tmpbuf[TWOFISH_BLOCKSIZE];
   unsigned int burn, burn_stack_depth = 0;
-  int i;
 
 #ifdef USE_AVX2
   if (ctx->use_avx2)
@@ -1165,12 +1164,7 @@ _gcry_twofish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       outbuf += TWOFISH_BLOCKSIZE;
       inbuf  += TWOFISH_BLOCKSIZE;
       /* Increment the counter.  */
-      for (i = TWOFISH_BLOCKSIZE; i > 0; i--)
-        {
-          ctr[i-1]++;
-          if (ctr[i-1])
-            break;
-        }
+      cipher_block_add(ctr, 1, TWOFISH_BLOCKSIZE);
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));

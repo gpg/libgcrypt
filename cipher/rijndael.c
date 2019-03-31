@@ -928,7 +928,6 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
-  int i;
 
   if (0)
     ;
@@ -970,12 +969,7 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
           outbuf += BLOCKSIZE;
           inbuf  += BLOCKSIZE;
           /* Increment the counter.  */
-          for (i = BLOCKSIZE; i > 0; i--)
-            {
-              ctr[i-1]++;
-              if (ctr[i-1])
-                break;
-            }
+	  cipher_block_add(ctr, 1, BLOCKSIZE);
         }
 
       wipememory(&tmp, sizeof(tmp));

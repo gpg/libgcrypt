@@ -912,7 +912,6 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
   const unsigned char *inbuf = inbuf_arg;
   unsigned char tmpbuf[sizeof(serpent_block_t)];
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
-  int i;
 
 #ifdef USE_AVX2
   if (ctx->use_avx2)
@@ -1006,12 +1005,7 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
       outbuf += sizeof(serpent_block_t);
       inbuf  += sizeof(serpent_block_t);
       /* Increment the counter.  */
-      for (i = sizeof(serpent_block_t); i > 0; i--)
-        {
-          ctr[i-1]++;
-          if (ctr[i-1])
-            break;
-        }
+      cipher_block_add(ctr, 1, sizeof(serpent_block_t));
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));

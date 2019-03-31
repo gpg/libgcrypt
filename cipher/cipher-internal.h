@@ -628,6 +628,29 @@ static inline unsigned int _gcry_blocksize_shift(gcry_cipher_hd_t c)
 }
 
 
+/* Optimized function for adding value to cipher block. */
+static inline void
+cipher_block_add(void *_dstsrc, unsigned int add, size_t blocksize)
+{
+  byte *dstsrc = _dstsrc;
+  u64 s[2];
+
+  if (blocksize == 8)
+    {
+      buf_put_be64(dstsrc + 0, buf_get_be64(dstsrc + 0) + add);
+    }
+  else /* blocksize == 16 */
+    {
+      s[0] = buf_get_be64(dstsrc + 8);
+      s[1] = buf_get_be64(dstsrc + 0);
+      s[0] += add;
+      s[1] += (s[0] < add);
+      buf_put_be64(dstsrc + 8, s[0]);
+      buf_put_be64(dstsrc + 0, s[1]);
+    }
+}
+
+
 /* Optimized function for cipher block copying */
 static inline void
 cipher_block_cpy(void *_dst, const void *_src, size_t blocksize)

@@ -363,7 +363,6 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
   const unsigned char *inbuf = inbuf_arg;
   unsigned char tmpbuf[CAMELLIA_BLOCK_SIZE];
   int burn_stack_depth = CAMELLIA_encrypt_stack_burn_size;
-  int i;
 
 #ifdef USE_AESNI_AVX2
   if (ctx->use_aesni_avx2)
@@ -434,12 +433,7 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
       outbuf += CAMELLIA_BLOCK_SIZE;
       inbuf  += CAMELLIA_BLOCK_SIZE;
       /* Increment the counter.  */
-      for (i = CAMELLIA_BLOCK_SIZE; i > 0; i--)
-        {
-          ctr[i-1]++;
-          if (ctr[i-1])
-            break;
-        }
+      cipher_block_add(ctr, 1, CAMELLIA_BLOCK_SIZE);
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));
