@@ -41,21 +41,19 @@
 #include "cipher-selftest.h"
 
 #define BLOWFISH_BLOCKSIZE 8
-#define BLOWFISH_ROUNDS 16
 
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
 #undef USE_AMD64_ASM
 #if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
-    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
-    (BLOWFISH_ROUNDS == 16)
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_AMD64_ASM 1
 #endif
 
 /* USE_ARM_ASM indicates whether to use ARM assembly code. */
 #undef USE_ARM_ASM
 #if defined(__ARMEL__)
-# if (BLOWFISH_ROUNDS == 16) && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS)
+# if defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS)
 #  define USE_ARM_ASM 1
 # endif
 #endif
@@ -65,7 +63,7 @@ typedef struct {
     u32 s1[256];
     u32 s2[256];
     u32 s3[256];
-    u32 p[BLOWFISH_ROUNDS+2];
+    u32 p[16+2];
 } BLOWFISH_context;
 
 static gcry_err_code_t bf_setkey (void *c, const byte *key, unsigned keylen,
@@ -255,7 +253,7 @@ static const u32 ks3[256] = {
     0x01C36AE4,0xD6EBE1F9,0x90D4F869,0xA65CDEA0,0x3F09252D,0xC208E69F,
     0xB74E6132,0xCE77E25B,0x578FDFE3,0x3AC372E6 };
 
-static const u32 ps[BLOWFISH_ROUNDS+2] = {
+static const u32 ps[16+2] = {
     0x243F6A88,0x85A308D3,0x13198A2E,0x03707344,0xA4093822,0x299F31D0,
     0x082EFA98,0xEC4E6C89,0x452821E6,0x38D01377,0xBE5466CF,0x34E90C6C,
     0xC0AC29B7,0xC97C50DD,0x3F84D5B5,0xB5470917,0x9216D5D9,0x8979FB1B };
@@ -396,42 +394,16 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 
 #else /*USE_ARM_ASM*/
 
-#if BLOWFISH_ROUNDS != 16
-static inline u32
-function_F( BLOWFISH_context *bc, u32 x )
-{
-    u16 a, b, c, d;
 
-#ifdef WORDS_BIGENDIAN
-    a = ((byte*)&x)[0];
-    b = ((byte*)&x)[1];
-    c = ((byte*)&x)[2];
-    d = ((byte*)&x)[3];
-#else
-    a = ((byte*)&x)[3];
-    b = ((byte*)&x)[2];
-    c = ((byte*)&x)[1];
-    d = ((byte*)&x)[0];
-#endif
-
-    return ((bc->s0[a] + bc->s1[b]) ^ bc->s2[c] ) + bc->s3[d];
-}
-#endif
-
-#ifdef WORDS_BIGENDIAN
-#define F(x) ((( s0[((byte*)&x)[0]] + s1[((byte*)&x)[1]])	 \
-		   ^ s2[((byte*)&x)[2]]) + s3[((byte*)&x)[3]] )
-#else
-#define F(x) ((( s0[((byte*)&x)[3]] + s1[((byte*)&x)[2]])	 \
-		   ^ s2[((byte*)&x)[1]]) + s3[((byte*)&x)[0]] )
-#endif
-#define R(l,r,i)  do { l ^= p[i]; r ^= F(l); } while(0)
+#define F(x) ((( s0[(x)>>24] + s1[((x)>>16)&0xff])	 \
+		   ^ s2[((x)>>8)&0xff]) + s3[(x)&0xff] )
+#define R(l,r,i) do { l ^= p[i]; r ^= F(l); } while(0)
+#define R3(l,r,i) do { R(l##0,r##0,i);R(l##1,r##1,i);R(l##2,r##2,i);} while(0)
 
 
 static void
 do_encrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
 {
-#if BLOWFISH_ROUNDS == 16
   u32 xl, xr, *s0, *s1, *s2, *s3, *p;
 
   xl = *ret_xl;
@@ -442,16 +414,16 @@ do_encrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
   s2 = bc->s2;
   s3 = bc->s3;
 
-  R( xl, xr,	0);
-  R( xr, xl,	1);
-  R( xl, xr,	2);
-  R( xr, xl,	3);
-  R( xl, xr,	4);
-  R( xr, xl,	5);
-  R( xl, xr,	6);
-  R( xr, xl,	7);
-  R( xl, xr,	8);
-  R( xr, xl,	9);
+  R( xl, xr,  0);
+  R( xr, xl,  1);
+  R( xl, xr,  2);
+  R( xr, xl,  3);
+  R( xl, xr,  4);
+  R( xr, xl,  5);
+  R( xl, xr,  6);
+  R( xr, xl,  7);
+  R( xl, xr,  8);
+  R( xr, xl,  9);
   R( xl, xr, 10);
   R( xr, xl, 11);
   R( xl, xr, 12);
@@ -459,45 +431,67 @@ do_encrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
   R( xl, xr, 14);
   R( xr, xl, 15);
 
-  xl ^= p[BLOWFISH_ROUNDS];
-  xr ^= p[BLOWFISH_ROUNDS+1];
+  xl ^= p[16];
+  xr ^= p[16+1];
 
   *ret_xl = xr;
   *ret_xr = xl;
+}
 
-#else
-  u32 xl, xr, temp, *p;
-  int i;
 
-  xl = *ret_xl;
-  xr = *ret_xr;
+static void
+do_encrypt_3 ( BLOWFISH_context *bc, byte *dst, const byte *src )
+{
+  u32 xl0, xr0, xl1, xr1, xl2, xr2, *s0, *s1, *s2, *s3, *p;
+
+  xl0 = buf_get_be32(src + 0);
+  xr0 = buf_get_be32(src + 4);
+  xl1 = buf_get_be32(src + 8);
+  xr1 = buf_get_be32(src + 12);
+  xl2 = buf_get_be32(src + 16);
+  xr2 = buf_get_be32(src + 20);
   p = bc->p;
+  s0 = bc->s0;
+  s1 = bc->s1;
+  s2 = bc->s2;
+  s3 = bc->s3;
 
-  for(i=0; i < BLOWFISH_ROUNDS; i++ )
-    {
-      xl ^= p[i];
-      xr ^= function_F(bc, xl);
-      temp = xl;
-      xl = xr;
-      xr = temp;
-    }
-  temp = xl;
-  xl = xr;
-  xr = temp;
+  R3( xl, xr,  0);
+  R3( xr, xl,  1);
+  R3( xl, xr,  2);
+  R3( xr, xl,  3);
+  R3( xl, xr,  4);
+  R3( xr, xl,  5);
+  R3( xl, xr,  6);
+  R3( xr, xl,  7);
+  R3( xl, xr,  8);
+  R3( xr, xl,  9);
+  R3( xl, xr, 10);
+  R3( xr, xl, 11);
+  R3( xl, xr, 12);
+  R3( xr, xl, 13);
+  R3( xl, xr, 14);
+  R3( xr, xl, 15);
 
-  xr ^= p[BLOWFISH_ROUNDS];
-  xl ^= p[BLOWFISH_ROUNDS+1];
+  xl0 ^= p[16];
+  xr0 ^= p[16+1];
+  xl1 ^= p[16];
+  xr1 ^= p[16+1];
+  xl2 ^= p[16];
+  xr2 ^= p[16+1];
 
-  *ret_xl = xl;
-  *ret_xr = xr;
-#endif
+  buf_put_be32(dst + 0, xr0);
+  buf_put_be32(dst + 4, xl0);
+  buf_put_be32(dst + 8, xr1);
+  buf_put_be32(dst + 12, xl1);
+  buf_put_be32(dst + 16, xr2);
+  buf_put_be32(dst + 20, xl2);
 }
 
 
 static void
 decrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
 {
-#if BLOWFISH_ROUNDS == 16
   u32 xl, xr, *s0, *s1, *s2, *s3, *p;
 
   xl = *ret_xl;
@@ -516,52 +510,75 @@ decrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
   R( xr, xl, 12);
   R( xl, xr, 11);
   R( xr, xl, 10);
-  R( xl, xr,	9);
-  R( xr, xl,	8);
-  R( xl, xr,	7);
-  R( xr, xl,	6);
-  R( xl, xr,	5);
-  R( xr, xl,	4);
-  R( xl, xr,	3);
-  R( xr, xl,	2);
+  R( xl, xr,  9);
+  R( xr, xl,  8);
+  R( xl, xr,  7);
+  R( xr, xl,  6);
+  R( xl, xr,  5);
+  R( xr, xl,  4);
+  R( xl, xr,  3);
+  R( xr, xl,  2);
 
   xl ^= p[1];
   xr ^= p[0];
 
   *ret_xl = xr;
   *ret_xr = xl;
+}
 
-#else
-  u32 xl, xr, temp, *p;
-  int i;
 
-  xl = *ret_xl;
-  xr = *ret_xr;
+static void
+do_decrypt_3 ( BLOWFISH_context *bc, byte *dst, const byte *src )
+{
+  u32 xl0, xr0, xl1, xr1, xl2, xr2, *s0, *s1, *s2, *s3, *p;
+
+  xl0 = buf_get_be32(src + 0);
+  xr0 = buf_get_be32(src + 4);
+  xl1 = buf_get_be32(src + 8);
+  xr1 = buf_get_be32(src + 12);
+  xl2 = buf_get_be32(src + 16);
+  xr2 = buf_get_be32(src + 20);
   p = bc->p;
+  s0 = bc->s0;
+  s1 = bc->s1;
+  s2 = bc->s2;
+  s3 = bc->s3;
 
-  for (i=BLOWFISH_ROUNDS+1; i > 1; i-- )
-    {
-      xl ^= p[i];
-      xr ^= function_F(bc, xl);
-      temp = xl;
-      xl = xr;
-      xr = temp;
-    }
+  R3( xl, xr, 17);
+  R3( xr, xl, 16);
+  R3( xl, xr, 15);
+  R3( xr, xl, 14);
+  R3( xl, xr, 13);
+  R3( xr, xl, 12);
+  R3( xl, xr, 11);
+  R3( xr, xl, 10);
+  R3( xl, xr,  9);
+  R3( xr, xl,  8);
+  R3( xl, xr,  7);
+  R3( xr, xl,  6);
+  R3( xl, xr,  5);
+  R3( xr, xl,  4);
+  R3( xl, xr,  3);
+  R3( xr, xl,  2);
 
-  temp = xl;
-  xl = xr;
-  xr = temp;
+  xl0 ^= p[1];
+  xr0 ^= p[0];
+  xl1 ^= p[1];
+  xr1 ^= p[0];
+  xl2 ^= p[1];
+  xr2 ^= p[0];
 
-  xr ^= p[1];
-  xl ^= p[0];
-
-  *ret_xl = xl;
-  *ret_xr = xr;
-#endif
+  buf_put_be32(dst + 0, xr0);
+  buf_put_be32(dst + 4, xl0);
+  buf_put_be32(dst + 8, xr1);
+  buf_put_be32(dst + 12, xl1);
+  buf_put_be32(dst + 16, xr2);
+  buf_put_be32(dst + 20, xl2);
 }
 
 #undef F
 #undef R
+#undef R3
 
 static void
 do_encrypt_block ( BLOWFISH_context *bc, byte *outbuf, const byte *inbuf )
@@ -617,8 +634,8 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
   BLOWFISH_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char tmpbuf[BLOWFISH_BLOCKSIZE];
-  int burn_stack_depth = (64) + 2 * BLOWFISH_BLOCKSIZE;
+  unsigned char tmpbuf[BLOWFISH_BLOCKSIZE * 3];
+  int burn_stack_depth = (64) + 4 * BLOWFISH_BLOCKSIZE;
 
 #ifdef USE_AMD64_ASM
   {
@@ -636,7 +653,6 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       }
 
     /* Use generic code to handle smaller chunks... */
-    /* TODO: use caching instead? */
   }
 #elif defined(USE_ARM_ASM)
   {
@@ -651,8 +667,26 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       }
 
     /* Use generic code to handle smaller chunks... */
-    /* TODO: use caching instead? */
   }
+#endif
+
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
+  for ( ;nblocks >= 3; nblocks -= 3)
+    {
+      /* Prepare the counter blocks. */
+      cipher_block_cpy (tmpbuf + 0, ctr, BLOWFISH_BLOCKSIZE);
+      cipher_block_cpy (tmpbuf + 8, ctr, BLOWFISH_BLOCKSIZE);
+      cipher_block_cpy (tmpbuf + 16, ctr, BLOWFISH_BLOCKSIZE);
+      cipher_block_add (tmpbuf + 8, 1, BLOWFISH_BLOCKSIZE);
+      cipher_block_add (tmpbuf + 16, 2, BLOWFISH_BLOCKSIZE);
+      cipher_block_add (ctr, 3, BLOWFISH_BLOCKSIZE);
+      /* Encrypt the counter. */
+      do_encrypt_3(ctx, tmpbuf, tmpbuf);
+      /* XOR the input with the encrypted counter and store in output.  */
+      buf_xor(outbuf, tmpbuf, inbuf, BLOWFISH_BLOCKSIZE * 3);
+      outbuf += BLOWFISH_BLOCKSIZE * 3;
+      inbuf  += BLOWFISH_BLOCKSIZE * 3;
+    }
 #endif
 
   for ( ;nblocks; nblocks-- )
@@ -681,8 +715,8 @@ _gcry_blowfish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
   BLOWFISH_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char savebuf[BLOWFISH_BLOCKSIZE];
-  int burn_stack_depth = (64) + 2 * BLOWFISH_BLOCKSIZE;
+  unsigned char savebuf[BLOWFISH_BLOCKSIZE * 3];
+  int burn_stack_depth = (64) + 4 * BLOWFISH_BLOCKSIZE;
 
 #ifdef USE_AMD64_ASM
   {
@@ -717,6 +751,22 @@ _gcry_blowfish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
   }
 #endif
 
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
+  for ( ;nblocks >= 3; nblocks -= 3)
+    {
+      /* INBUF is needed later and it may be identical to OUTBUF, so store
+         the intermediate result to SAVEBUF.  */
+      do_decrypt_3 (ctx, savebuf, inbuf);
+
+      cipher_block_xor_1 (savebuf + 0, iv, BLOWFISH_BLOCKSIZE);
+      cipher_block_xor_1 (savebuf + 8, inbuf, BLOWFISH_BLOCKSIZE * 2);
+      cipher_block_cpy (iv, inbuf + 16, BLOWFISH_BLOCKSIZE);
+      buf_cpy (outbuf, savebuf, BLOWFISH_BLOCKSIZE * 3);
+      inbuf += BLOWFISH_BLOCKSIZE * 3;
+      outbuf += BLOWFISH_BLOCKSIZE * 3;
+    }
+#endif
+
   for ( ;nblocks; nblocks-- )
     {
       /* INBUF is needed later and it may be identical to OUTBUF, so store
@@ -742,7 +792,8 @@ _gcry_blowfish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
   BLOWFISH_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  int burn_stack_depth = (64) + 2 * BLOWFISH_BLOCKSIZE;
+  unsigned char tmpbuf[BLOWFISH_BLOCKSIZE * 3];
+  int burn_stack_depth = (64) + 4 * BLOWFISH_BLOCKSIZE;
 
 #ifdef USE_AMD64_ASM
   {
@@ -777,6 +828,19 @@ _gcry_blowfish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
   }
 #endif
 
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
+  for ( ;nblocks >= 3; nblocks -= 3 )
+    {
+      cipher_block_cpy (tmpbuf + 0, iv, BLOWFISH_BLOCKSIZE);
+      cipher_block_cpy (tmpbuf + 8, inbuf + 0, BLOWFISH_BLOCKSIZE * 2);
+      cipher_block_cpy (iv, inbuf + 16, BLOWFISH_BLOCKSIZE);
+      do_encrypt_3 (ctx, tmpbuf, tmpbuf);
+      buf_xor (outbuf, inbuf, tmpbuf, BLOWFISH_BLOCKSIZE * 3);
+      outbuf += BLOWFISH_BLOCKSIZE * 3;
+      inbuf  += BLOWFISH_BLOCKSIZE * 3;
+    }
+#endif
+
   for ( ;nblocks; nblocks-- )
     {
       do_encrypt_block(ctx, iv, iv);
@@ -785,6 +849,7 @@ _gcry_blowfish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
       inbuf  += BLOWFISH_BLOCKSIZE;
     }
 
+  wipememory(tmpbuf, sizeof(tmpbuf));
   _gcry_burn_stack(burn_stack_depth);
 }
 
@@ -955,7 +1020,7 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
 
   memset(hset, 0, sizeof(hset));
 
-  for(i=0; i < BLOWFISH_ROUNDS+2; i++ )
+  for(i=0; i < 16+2; i++ )
     c->p[i] = ps[i];
   for(i=0; i < 256; i++ )
     {
@@ -965,7 +1030,7 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
       c->s3[i] = ks3[i];
     }
 
-  for(i=j=0; i < BLOWFISH_ROUNDS+2; i++ )
+  for(i=j=0; i < 16+2; i++ )
     {
       data = ((u32)key[j] << 24) |
              ((u32)key[(j+1)%keylen] << 16) |
@@ -976,7 +1041,7 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
     }
 
   datal = datar = 0;
-  for(i=0; i < BLOWFISH_ROUNDS+2; i += 2 )
+  for(i=0; i < 16+2; i += 2 )
     {
       do_encrypt( c, &datal, &datar );
       c->p[i]   = datal;
