@@ -480,9 +480,12 @@ _gcry_sha256_transform_amd64_avx:
 	cmp	INP, [rsp + _INP_END]
 	jne	.Loop0
 
+.Ldone_hash:
 	vzeroall
 
-.Ldone_hash:
+	vmovdqa	[rsp + _XFER], XFER
+	xor     eax, eax
+
 	add	rsp, STACK_SIZE
 
 	pop	r15
@@ -490,8 +493,6 @@ _gcry_sha256_transform_amd64_avx:
 	pop	r13
 	pop	rbp
 	pop	rbx
-
-	mov     eax, STACK_SIZE + 5*8
 
 	ret
 

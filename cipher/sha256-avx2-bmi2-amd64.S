@@ -747,9 +747,28 @@ _gcry_sha256_transform_amd64_avx2:
 	jmp	.Ldo_last_block
 
 .Ldone_hash:
-	mov	rsp, [rsp + _RSP]
-
 	vzeroall
+
+	/* burn stack */
+	vmovdqa [rsp + _XFER + 0 * 32], ymm0
+	vmovdqa [rsp + _XFER + 1 * 32], ymm0
+	vmovdqa [rsp + _XFER + 2 * 32], ymm0
+	vmovdqa [rsp + _XFER + 3 * 32], ymm0
+	vmovdqa [rsp + _XFER + 4 * 32], ymm0
+	vmovdqa [rsp + _XFER + 5 * 32], ymm0
+	vmovdqa [rsp + _XFER + 6 * 32], ymm0
+	vmovdqa [rsp + _XFER + 7 * 32], ymm0
+	vmovdqa [rsp + _XFER + 8 * 32], ymm0
+	vmovdqa [rsp + _XFER + 9 * 32], ymm0
+	vmovdqa [rsp + _XFER + 10 * 32], ymm0
+	vmovdqa [rsp + _XFER + 11 * 32], ymm0
+	vmovdqa [rsp + _XFER + 12 * 32], ymm0
+	vmovdqa [rsp + _XFER + 13 * 32], ymm0
+	vmovdqa [rsp + _XFER + 14 * 32], ymm0
+	vmovdqa [rsp + _XFER + 15 * 32], ymm0
+	xor     eax, eax
+
+	mov	rsp, [rsp + _RSP]
 
 	pop	r15
 	pop	r14
@@ -757,9 +776,6 @@ _gcry_sha256_transform_amd64_avx2:
 	pop	r12
 	pop	rbp
 	pop	rbx
-
-	/* stack burn depth */
-	mov	eax, STACK_SIZE + 6*8 + 31
 
 	ret
 

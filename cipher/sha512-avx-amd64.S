@@ -352,13 +352,19 @@ _gcry_sha512_transform_amd64_avx:
 	mov	r14, [rsp + frame_GPRSAVE + 8 * 3]
 	mov	r15, [rsp + frame_GPRSAVE + 8 * 4]
 
-	/* Restore Stack Pointer */
-	add	rsp, frame_size
-
 	vzeroall
 
-	/* Return stack burn depth */
-	mov	rax, frame_size
+	/* Burn stack */
+	t = 0
+	.rept frame_W_size / 32
+		vmovups [rsp + frame_W + (t) * 32], ymm0
+		t = ((t)+1)
+	.endr
+	vmovdqu [rsp + frame_WK], xmm0
+	xor     eax, eax
+
+	/* Restore Stack Pointer */
+	add	rsp, frame_size
 
 .Lnowork:
 	ret

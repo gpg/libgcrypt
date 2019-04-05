@@ -714,6 +714,7 @@ _gcry_sha512_transform_amd64_avx2:
 	jne	.Loop0
 
 .Ldone_hash:
+	vzeroall
 
 	/* Restore GPRs */
 	mov	rbp, [rsp + frame_GPRSAVE + 8 * 0]
@@ -723,12 +724,12 @@ _gcry_sha512_transform_amd64_avx2:
 	mov	r14, [rsp + frame_GPRSAVE + 8 * 4]
 	mov	r15, [rsp + frame_GPRSAVE + 8 * 5]
 
+	/* Burn stack */
+	vmovdqa	[rsp + frame_XFER], XFER
+	xor     eax, eax
+
 	/* Restore Stack Pointer */
 	mov	rsp, [rsp + frame_RSPSAVE]
-
-	vzeroall
-
-	mov	eax, frame_size + 31
 .Lnowork:
 	ret
 

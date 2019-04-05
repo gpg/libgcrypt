@@ -503,6 +503,10 @@ _gcry_sha256_transform_amd64_ssse3:
 	pxor	xmm12, xmm12
 
 .Ldone_hash:
+	pxor	XFER, XFER
+	movdqa	[rsp + _XFER], XFER
+	xor     eax, eax
+
 	add	rsp, STACK_SIZE
 
 	pop	r15
@@ -510,8 +514,6 @@ _gcry_sha256_transform_amd64_ssse3:
 	pop	r13
 	pop	rbp
 	pop	rbx
-
-	mov     eax, STACK_SIZE + 5*8
 
 	ret
 

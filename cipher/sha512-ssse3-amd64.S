@@ -352,9 +352,6 @@ _gcry_sha512_transform_amd64_ssse3:
 	mov	r14, [rsp + frame_GPRSAVE + 8 * 3]
 	mov	r15, [rsp + frame_GPRSAVE + 8 * 4]
 
-	/* Restore Stack Pointer */
-	add	rsp, frame_size
-
 	pxor	xmm0, xmm0
 	pxor	xmm1, xmm1
 	pxor	xmm2, xmm2
@@ -362,8 +359,17 @@ _gcry_sha512_transform_amd64_ssse3:
 	pxor	xmm4, xmm4
 	pxor	xmm5, xmm5
 
-	/* Return stack burn depth */
-	mov	rax, frame_size
+	/* Burn stack */
+	t = 0
+	.rept frame_W_size / 16
+		movdqu [rsp + frame_W + (t) * 16], xmm0
+		t = ((t)+1)
+	.endr
+	movdqu [rsp + frame_WK], xmm0
+	xor     eax, eax
+
+	/* Restore Stack Pointer */
+	add	rsp, frame_size
 
 .Lnowork:
 	ret
