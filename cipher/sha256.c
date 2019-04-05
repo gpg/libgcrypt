@@ -498,25 +498,30 @@ sha256_final(void *context)
   msb <<= 3;
   msb |= t >> 29;
 
-  if (hd->bctx.count < 56)
-    { /* enough room */
+  if (hd->bctx.count < 56)  /* enough room */
+    {
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
-      while (hd->bctx.count < 56)
-        hd->bctx.buf[hd->bctx.count++] = 0;  /* pad */
+      if (hd->bctx.count < 56)
+	memset (&hd->bctx.buf[hd->bctx.count], 0, 56 - hd->bctx.count);
+      hd->bctx.count = 56;
+
+      /* append the 64 bit count */
+      buf_put_be32(hd->bctx.buf + 56, msb);
+      buf_put_be32(hd->bctx.buf + 60, lsb);
+      burn = (*hd->bctx.bwrite) (hd, hd->bctx.buf, 1);
     }
-  else
-    { /* need one extra block */
+  else  /* need one extra block */
+    {
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad character */
-      while (hd->bctx.count < 64)
-        hd->bctx.buf[hd->bctx.count++] = 0;
-      _gcry_md_block_write (hd, NULL, 0);  /* flush */;
-      memset (hd->bctx.buf, 0, 56 ); /* fill next block with zeroes */
+      /* fill pad and next block with zeroes */
+      memset (&hd->bctx.buf[hd->bctx.count], 0, 64 - hd->bctx.count + 56);
+      hd->bctx.count = 64 + 56;
+
+      /* append the 64 bit count */
+      buf_put_be32(hd->bctx.buf + 64 + 56, msb);
+      buf_put_be32(hd->bctx.buf + 64 + 60, lsb);
+      burn = (*hd->bctx.bwrite) (hd, hd->bctx.buf, 2);
     }
-  /* append the 64 bit count */
-  buf_put_be32(hd->bctx.buf + 56, msb);
-  buf_put_be32(hd->bctx.buf + 60, lsb);
-  burn = (*hd->bctx.bwrite) (hd, hd->bctx.buf, 1);
-  _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
 #define X(a) do { buf_put_be32(p, hd->h##a); p += 4; } while(0)
@@ -529,6 +534,8 @@ sha256_final(void *context)
   X(6);
   X(7);
 #undef X
+
+  _gcry_burn_stack (burn);
 }
 
 static byte *

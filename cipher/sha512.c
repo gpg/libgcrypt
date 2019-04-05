@@ -659,14 +659,16 @@ sha512_final (void *context)
   if (hd->bctx.count < 112)
     {				/* enough room */
       hd->bctx.buf[hd->bctx.count++] = 0x80;	/* pad */
-      while (hd->bctx.count < 112)
-        hd->bctx.buf[hd->bctx.count++] = 0;	/* pad */
+      if (hd->bctx.count < 112)
+	memset (&hd->bctx.buf[hd->bctx.count], 0, 112 - hd->bctx.count);
+      hd->bctx.count = 112;
     }
   else
     {				/* need one extra block */
       hd->bctx.buf[hd->bctx.count++] = 0x80;	/* pad character */
-      while (hd->bctx.count < 128)
-        hd->bctx.buf[hd->bctx.count++] = 0;
+      if (hd->bctx.count < 128)
+	memset (&hd->bctx.buf[hd->bctx.count], 0, 128 - hd->bctx.count);
+      hd->bctx.count = 128;
       _gcry_md_block_write (context, NULL, 0); /* flush */ ;
       memset (hd->bctx.buf, 0, 112);	/* fill next block with zeroes */
     }

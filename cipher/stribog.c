@@ -1292,8 +1292,9 @@ stribog_final (void *context)
   i = hd->bctx.count;
   /* After flush we have at least one byte free) */
   hd->bctx.buf[i++] = 1;
-  while (i < 64)
-    hd->bctx.buf[i++] = 0;
+  if (i < 64)
+    memset (&hd->bctx.buf[i], 0, 64 - i);
+  i = 64;
   transform_bits (hd, hd->bctx.buf, hd->bctx.count * 8);
 
   g (hd->h, hd->N, Z);
