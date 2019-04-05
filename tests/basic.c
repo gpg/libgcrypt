@@ -7951,7 +7951,7 @@ check_one_md (int algo, const char *data, int len, const char *expect, int elen,
   gcry_md_hd_t hd, hd2;
   unsigned char *p;
   int mdlen;
-  int i;
+  int i, j;
   int xof = 0;
   gcry_error_t err = 0;
 
@@ -7987,6 +7987,66 @@ check_one_md (int algo, const char *data, int len, const char *expect, int elen,
 	  return;
 	}
     }
+
+  if (*data == '!' && !data[1] && !xof)
+   {
+      unsigned char *p1, *p2;
+      char buf[129];
+
+      /* Test hashing small input sizes first as full block, then byte-by-byte
+       * and check that resulting digests are the same. */
+
+      err = gcry_md_open (&hd2, algo, 0);
+      if (err)
+	{
+	  gcry_md_close (hd);
+	  fail ("algo %d, gcry_md_open failed: %s\n", algo, gpg_strerror (err));
+	  return;
+	}
+
+      if (key && klen)
+	{
+	  err = gcry_md_setkey (hd2, key, klen);
+	  if (err)
+	    {
+	      gcry_md_close (hd);
+	      gcry_md_close (hd2);
+	      fail ("algo %d, gcry_md_setkey failed: %s\n", algo, gpg_strerror (err));
+	      return;
+	    }
+	}
+
+      for (i = 0; i < sizeof(buf); i++)
+	buf[i] = i;
+
+      for (i = 1; i < sizeof(buf); i++)
+	{
+	  gcry_md_reset (hd);
+	  gcry_md_reset (hd2);
+
+          gcry_md_write (hd, buf, i);
+	  for (j = 0; j < i; j++)
+	    gcry_md_write (hd2, &buf[j], 1);
+
+	  p1 = gcry_md_read (hd, algo);
+	  p2 = gcry_md_read (hd2, algo);
+	  if (memcmp (p1, p2, mdlen))
+	    {
+	      printf ("full block (input length %d): ", i);
+	      for (i = 0; i < mdlen; i++)
+		printf ("%02x ", p1[i] & 0xFF);
+	      printf ("\nbyte-by-byte: ");
+	      for (i = 0; i < mdlen; i++)
+		printf ("%02x ", p2[i] & 0xFF);
+	      printf ("\n");
+
+	      fail ("algo %d, digest mismatch\n", algo);
+	    }
+	}
+
+      gcry_md_close (hd2);
+      gcry_md_reset (hd);
+   }
 
   if ((*data == '!' && !data[1]) || /* hash one million times a "a" */
       (*data == '?' && !data[1]))   /* hash million byte data-set with byte pattern 0x00,0x01,0x02,... */
