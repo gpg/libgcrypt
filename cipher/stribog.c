@@ -1287,7 +1287,6 @@ stribog_final (void *context)
   u64 Z[8] = {};
   int i;
 
-  _gcry_md_block_write (context, NULL, 0); /* flush */ ;
   /* PAD. It does not count towards message length */
   i = hd->bctx.count;
   /* After flush we have at least one byte free) */

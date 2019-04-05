@@ -635,8 +635,6 @@ sha512_final (void *context)
   u64 t, th, msb, lsb;
   byte *p;
 
-  _gcry_md_block_write (context, NULL, 0); /* flush */ ;
-
   t = hd->bctx.nblocks;
   /* if (sizeof t == sizeof hd->bctx.nblocks) */
   th = hd->bctx.nblocks_high;

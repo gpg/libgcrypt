@@ -146,8 +146,6 @@ md2_final (void *context)
   MD2_CONTEXT *hd = context;
   unsigned int burn;
 
-  _gcry_md_block_write(hd, NULL, 0); /* flush */;
-
   /* pad */
   memset (hd->bctx.buf + hd->bctx.count,
           16 - hd->bctx.count, 16 - hd->bctx.count);

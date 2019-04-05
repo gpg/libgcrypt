@@ -736,8 +736,6 @@ tiger_final( void *context )
   unsigned int burn;
   byte pad = hd->variant == 2? 0x80 : 0x01;
 
-  _gcry_md_block_write(hd, NULL, 0); /* flush */;
-
   t = hd->bctx.nblocks;
   if (sizeof t == sizeof hd->bctx.nblocks)
     th = hd->bctx.nblocks_high;

@@ -410,8 +410,6 @@ rmd160_final( void *context )
   byte *p;
   unsigned int burn;
 
-  _gcry_md_block_write(hd, NULL, 0); /* flush */;
-
   t = hd->bctx.nblocks;
   if (sizeof t == sizeof hd->bctx.nblocks)
     th = hd->bctx.nblocks_high;

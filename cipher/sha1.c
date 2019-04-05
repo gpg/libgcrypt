@@ -511,8 +511,6 @@ sha1_final(void *context)
   unsigned char *p;
   unsigned int burn;
 
-  _gcry_md_block_write (hd, NULL, 0); /* flush */;
-
   t = hd->bctx.nblocks;
   if (sizeof t == sizeof hd->bctx.nblocks)
     th = hd->bctx.nblocks_high;
@@ -532,7 +530,7 @@ sha1_final(void *context)
   msb <<= 3;
   msb |= t >> 29;
 
-  if( hd->bctx.count < 56 )  /* enough room */
+  if (hd->bctx.count < 56)  /* enough room */
     {
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
       if (hd->bctx.count < 56)
