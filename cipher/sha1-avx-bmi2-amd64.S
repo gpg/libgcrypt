@@ -387,7 +387,7 @@ _gcry_sha1_transform_amd64_avx_bmi2:
 .Lend:
   vzeroall;
 
-  /* Transform 64-79. */
+  /* Transform 64-79 + burn stack */
   R( b, c, d, e, a, F4, 64 );
   R( a, b, c, d, e, F4, 65 );
   R( e, a, b, c, d, F4, 66 );
@@ -400,13 +400,16 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   R( c, d, e, a, b, F4, 73 );
   R( b, c, d, e, a, F4, 74 );
   R( a, b, c, d, e, F4, 75 );
-  R( e, a, b, c, d, F4, 76 );
-  R( d, e, a, b, c, F4, 77 );
-  R( c, d, e, a, b, F4, 78 );
+  R( e, a, b, c, d, F4, 76 ); vmovdqa %xmm0, (0*16)(%rsp);
+  R( d, e, a, b, c, F4, 77 ); vmovdqa %xmm0, (1*16)(%rsp);
+  R( c, d, e, a, b, F4, 78 ); vmovdqa %xmm0, (2*16)(%rsp);
   addl state_h0(RSTATE), a;
   R( b, c, d, e, a, F4, 79 );
   addl ne, a;
   xorl ne, ne;
+
+  /* 16*4/16-1 = 3 */
+  vmovdqa %xmm0, (3*16)(%rsp);
 
   /* Update the chaining variables. */
   addl state_h3(RSTATE), d;
@@ -426,8 +429,8 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   popq %rbp;
   popq %rbx;
 
-  /* burn_stack */
-  movl $(16*4 + 3*8 + 31), %eax;
+  /* stack already burned */
+  xorl %eax, %eax;
 
 .Lret:
   ret;

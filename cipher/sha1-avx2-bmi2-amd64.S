@@ -504,7 +504,7 @@ _gcry_sha1_transform_amd64_avx2_bmi2:
 .Lend:
   vzeroall;
 
-  /* Transform 48-79 for block 2. */
+  /* Transform 48-79 for block 2 + burn stack */
   R( c, d, e, a, b, F3, 48, 1 );
   R( b, c, d, e, a, F3, 49, 1 );
   R( a, b, c, d, e, F3, 50, 1 );
@@ -517,29 +517,32 @@ _gcry_sha1_transform_amd64_avx2_bmi2:
   R( d, e, a, b, c, F3, 57, 1 );
   R( c, d, e, a, b, F3, 58, 1 );
   R( b, c, d, e, a, F3, 59, 1 );
-  R( a, b, c, d, e, F4, 60, 1 );
-  R( e, a, b, c, d, F4, 61, 1 );
-  R( d, e, a, b, c, F4, 62, 1 );
-  R( c, d, e, a, b, F4, 63, 1 );
-  R( b, c, d, e, a, F4, 64, 1 );
-  R( a, b, c, d, e, F4, 65, 1 );
-  R( e, a, b, c, d, F4, 66, 1 );
-  R( d, e, a, b, c, F4, 67, 1 );
-  R( c, d, e, a, b, F4, 68, 1 );
-  R( b, c, d, e, a, F4, 69, 1 );
-  R( a, b, c, d, e, F4, 70, 1 );
-  R( e, a, b, c, d, F4, 71, 1 );
-  R( d, e, a, b, c, F4, 72, 1 );
-  R( c, d, e, a, b, F4, 73, 1 );
-  R( b, c, d, e, a, F4, 74, 1 );
-  R( a, b, c, d, e, F4, 75, 1 );
-  R( e, a, b, c, d, F4, 76, 1 );
-  R( d, e, a, b, c, F4, 77, 1 );
-  R( c, d, e, a, b, F4, 78, 1 );
+  R( a, b, c, d, e, F4, 60, 1 ); vmovdqa %ymm0, (0*32)(%rsp);
+  R( e, a, b, c, d, F4, 61, 1 ); vmovdqa %ymm0, (1*32)(%rsp);
+  R( d, e, a, b, c, F4, 62, 1 ); vmovdqa %ymm0, (2*32)(%rsp);
+  R( c, d, e, a, b, F4, 63, 1 ); vmovdqa %ymm0, (3*32)(%rsp);
+  R( b, c, d, e, a, F4, 64, 1 ); vmovdqa %ymm0, (4*32)(%rsp);
+  R( a, b, c, d, e, F4, 65, 1 ); vmovdqa %ymm0, (5*32)(%rsp);
+  R( e, a, b, c, d, F4, 66, 1 ); vmovdqa %ymm0, (6*32)(%rsp);
+  R( d, e, a, b, c, F4, 67, 1 ); vmovdqa %ymm0, (7*32)(%rsp);
+  R( c, d, e, a, b, F4, 68, 1 ); vmovdqa %ymm0, (8*32)(%rsp);
+  R( b, c, d, e, a, F4, 69, 1 ); vmovdqa %ymm0, (9*32)(%rsp);
+  R( a, b, c, d, e, F4, 70, 1 ); vmovdqa %ymm0, (10*32)(%rsp);
+  R( e, a, b, c, d, F4, 71, 1 ); vmovdqa %ymm0, (11*32)(%rsp);
+  R( d, e, a, b, c, F4, 72, 1 ); vmovdqa %ymm0, (12*32)(%rsp);
+  R( c, d, e, a, b, F4, 73, 1 ); vmovdqa %ymm0, (13*32)(%rsp);
+  R( b, c, d, e, a, F4, 74, 1 ); vmovdqa %ymm0, (14*32)(%rsp);
+  R( a, b, c, d, e, F4, 75, 1 ); vmovdqa %ymm0, (15*32)(%rsp);
+  R( e, a, b, c, d, F4, 76, 1 ); vmovdqa %ymm0, (16*32)(%rsp);
+  R( d, e, a, b, c, F4, 77, 1 ); vmovdqa %ymm0, (17*32)(%rsp);
+  R( c, d, e, a, b, F4, 78, 1 ); vmovdqa %ymm0, (18*32)(%rsp);
   addl state_h0(RSTATE), a;
   R( b, c, d, e, a, F4, 79, 1 );
   addl ne, a;
   xorl ne, ne;
+
+  /* WK_STACK_WORDS*4/32-1 = 19 */
+  vmovdqa %ymm0, (19*32)(%rsp);
 
   /* Update the chaining variables. */
   addl state_h3(RSTATE), d;
@@ -559,8 +562,8 @@ _gcry_sha1_transform_amd64_avx2_bmi2:
   popq %rbp;
   popq %rbx;
 
-  /* burn_stack */
-  movl $((WK_STACK_WORDS)*4 + 3*8 + 31), %eax;
+  /* stack already burned */
+  xorl %eax, %eax;
 
   ret;
 ELF(.size _gcry_sha1_transform_amd64_avx2_bmi2,

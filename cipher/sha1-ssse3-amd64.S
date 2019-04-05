@@ -388,7 +388,7 @@ _gcry_sha1_transform_amd64_ssse3:
 
 .align 16
 .Lend:
-  /* Transform 64-79 + Clear XMM registers. */
+  /* Transform 64-79 + Clear XMM registers + Burn stack. */
   R( b, c, d, e, a, F4, 64 ); CLEAR_REG(BSWAP_REG);
   R( a, b, c, d, e, F4, 65 ); CLEAR_REG(Wtmp0);
   R( e, a, b, c, d, F4, 66 ); CLEAR_REG(Wtmp1);
@@ -401,11 +401,14 @@ _gcry_sha1_transform_amd64_ssse3:
   R( c, d, e, a, b, F4, 73 ); CLEAR_REG(W6);
   R( b, c, d, e, a, F4, 74 ); CLEAR_REG(W7);
   R( a, b, c, d, e, F4, 75 );
-  R( e, a, b, c, d, F4, 76 );
-  R( d, e, a, b, c, F4, 77 );
-  R( c, d, e, a, b, F4, 78 );
+  R( e, a, b, c, d, F4, 76 ); movdqa Wtmp0, (0*16)(%rsp);
+  R( d, e, a, b, c, F4, 77 ); movdqa Wtmp0, (1*16)(%rsp);
+  R( c, d, e, a, b, F4, 78 ); movdqa Wtmp0, (2*16)(%rsp);
   addl state_h0(RSTATE), a;
   R( b, c, d, e, a, F4, 79 );
+
+  /* 16*4/16-1 = 3 */
+  vmovdqa Wtmp0, (3*16)(%rsp);
 
   /* Update the chaining variables. */
   addl state_h3(RSTATE), d;
@@ -424,8 +427,8 @@ _gcry_sha1_transform_amd64_ssse3:
   popq %rbp;
   popq %rbx;
 
-  /* burn_stack */
-  movl $(16*4 + 2*8 + 31), %eax;
+  /* stack already burned */
+  xorl %eax, %eax;
 
 .Lret:
   ret;
