@@ -421,6 +421,8 @@ _gcry_sha1_transform_amd64_avx:
 
 .Lret:
   ret;
+ELF(.size _gcry_sha1_transform_amd64_avx,
+    .-_gcry_sha1_transform_amd64_avx;)
 
 #endif
 #endif

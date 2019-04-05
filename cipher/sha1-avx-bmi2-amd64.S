@@ -60,19 +60,14 @@
 /* Constants */
 
 .text
-#define K1  0x5A827999
-#define K2  0x6ED9EBA1
-#define K3  0x8F1BBCDC
-#define K4  0xCA62C1D6
 .align 16
-.LK_XMM:
-.LK1:	.long K1, K1, K1, K1
-.LK2:	.long K2, K2, K2, K2
-.LK3:	.long K3, K3, K3, K3
-.LK4:	.long K4, K4, K4, K4
-
 .Lbswap_shufb_ctl:
 	.long 0x00010203, 0x04050607, 0x08090a0b, 0x0c0d0e0f
+
+.LK1:	.long 0x5A827999
+.LK2:	.long 0x6ED9EBA1
+.LK3:	.long 0x8F1BBCDC
+.LK4:	.long 0xCA62C1D6
 
 
 /* Register macros */
@@ -82,14 +77,15 @@
 #define ROLDSTACK %r10
 #define RNBLKS %r11
 
-#define a %eax
-#define b %ebx
-#define c %ecx
+#define a %esi
+#define b %edi
+#define c %ebp
 #define d %edx
-#define e %edi
+#define e %ecx
+#define ne %ebx
 
-#define RT0 %esi
-#define RT1 %ebp
+#define RT0 %eax
+#define RT1 %r12d
 
 #define Wtmp0 %xmm0
 #define Wtmp1 %xmm1
@@ -105,6 +101,11 @@
 
 #define BSWAP_REG %xmm10
 
+#define K1 %xmm11
+#define K2 %xmm12
+#define K3 %xmm13
+#define K4 %xmm14
+
 
 /* Round function macros. */
 
@@ -117,9 +118,9 @@
 	andl b, RT0; \
 	rorxl $2, b, b; \
 	addl RT1, e; \
-	leal (RT0,e), e; \
-	rorxl $27, a, RT1; \
-	addl RT1, e;
+	addl ne, a; \
+	leal (RT0,e), ne; \
+	rorxl $27, a, e;
 
 #define R_F2(a,b,c,d,e,i) \
 	movl c, RT0; \
@@ -127,22 +128,22 @@
 	xorl b, RT0; \
 	rorxl $2, b, b; \
 	xorl d, RT0; \
-	leal (RT0,e), e; \
-	rorxl $27, a, RT1; \
-	addl RT1, e;
+	addl ne, a; \
+	leal (RT0,e), ne; \
+	rorxl $27, a, e;
 
 #define R_F3(a,b,c,d,e,i) \
 	movl c, RT0; \
 	movl b, RT1; \
+	addl WK(i), e; \
 	xorl b, RT0; \
 	andl c, RT1; \
 	andl d, RT0; \
 	addl RT1, e; \
-	addl WK(i), e; \
 	rorxl $2, b, b; \
-	leal (RT0,e), e; \
-	rorxl $27, a, RT1; \
-	addl RT1, e;
+	addl ne, a; \
+	leal (RT0,e), ne; \
+	rorxl $27, a, e;
 
 #define R_F4(a,b,c,d,e,i) R_F2(a,b,c,d,e,i)
 
@@ -158,8 +159,8 @@
 #define W_PRECALC_00_15_1(i, W, tmp0) \
 	vpshufb BSWAP_REG, tmp0, W;
 
-#define W_PRECALC_00_15_2(i, W, tmp0) \
-	vpaddd (.LK_XMM + ((i)/20)*16) RIP, W, tmp0;
+#define W_PRECALC_00_15_2(i, W, tmp0, K) \
+	vpaddd K, W, tmp0;
 
 #define W_PRECALC_00_15_3(i, W, tmp0) \
 	vmovdqa tmp0, WK(i&~3);
@@ -181,10 +182,10 @@
 	vpsrld $30, tmp1, W; \
 	vpslld $2, tmp1, tmp1;
 
-#define W_PRECALC_16_31_3(i, W, W_m04, W_m08, W_m12, W_m16, tmp0, tmp1) \
+#define W_PRECALC_16_31_3(i, W, W_m04, W_m08, W_m12, W_m16, tmp0, tmp1, K) \
 	vpxor W, tmp0, tmp0; \
 	vpxor tmp1, tmp0, W; \
-	vpaddd (.LK_XMM + ((i)/20)*16) RIP, W, tmp0; \
+	vpaddd K, W, tmp0; \
 	vmovdqa tmp0, WK((i)&~3);
 
 #define W_PRECALC_32_79_0(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28, tmp0) \
@@ -199,9 +200,9 @@
 	vpsrld $30, W, tmp0; \
 	vpslld $2, W, W;
 
-#define W_PRECALC_32_79_3(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28, tmp0) \
+#define W_PRECALC_32_79_3(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28, tmp0, K) \
 	vpor W, tmp0, W; \
-	vpaddd (.LK_XMM + ((i)/20)*16) RIP, W, tmp0; \
+	vpaddd K, W, tmp0; \
 	vmovdqa tmp0, WK((i)&~3);
 
 
@@ -233,6 +234,7 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   movq %rsi, RDATA;
   pushq %rbx;
   pushq %rbp;
+  pushq %r12;
 
   movq %rsp, ROLDSTACK;
 
@@ -245,25 +247,30 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   movl state_h2(RSTATE), c;
   movl state_h3(RSTATE), d;
   movl state_h4(RSTATE), e;
+  xorl ne, ne;
 
   vmovdqa .Lbswap_shufb_ctl RIP, BSWAP_REG;
+  vpbroadcastd .LK1 RIP, K1;
+  vpbroadcastd .LK2 RIP, K2;
+  vpbroadcastd .LK3 RIP, K3;
+  vpbroadcastd .LK4 RIP, K4;
 
   /* Precalc 0-15. */
   W_PRECALC_00_15_0(0, W0, Wtmp0);
   W_PRECALC_00_15_1(1, W0, Wtmp0);
-  W_PRECALC_00_15_2(2, W0, Wtmp0);
+  W_PRECALC_00_15_2(2, W0, Wtmp0, K1);
   W_PRECALC_00_15_3(3, W0, Wtmp0);
   W_PRECALC_00_15_0(4, W7, Wtmp0);
   W_PRECALC_00_15_1(5, W7, Wtmp0);
-  W_PRECALC_00_15_2(6, W7, Wtmp0);
+  W_PRECALC_00_15_2(6, W7, Wtmp0, K1);
   W_PRECALC_00_15_3(7, W7, Wtmp0);
   W_PRECALC_00_15_0(8, W6, Wtmp0);
   W_PRECALC_00_15_1(9, W6, Wtmp0);
-  W_PRECALC_00_15_2(10, W6, Wtmp0);
+  W_PRECALC_00_15_2(10, W6, Wtmp0, K1);
   W_PRECALC_00_15_3(11, W6, Wtmp0);
   W_PRECALC_00_15_0(12, W5, Wtmp0);
   W_PRECALC_00_15_1(13, W5, Wtmp0);
-  W_PRECALC_00_15_2(14, W5, Wtmp0);
+  W_PRECALC_00_15_2(14, W5, Wtmp0, K1);
   W_PRECALC_00_15_3(15, W5, Wtmp0);
 
 .align 8
@@ -274,69 +281,69 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   R( a, b, c, d, e, F1,  0 ); W_PRECALC_16_31_0(16, W4, W5, W6, W7, W0, Wtmp0, Wtmp1);
   R( e, a, b, c, d, F1,  1 ); W_PRECALC_16_31_1(17, W4, W5, W6, W7, W0, Wtmp0, Wtmp1);
   R( d, e, a, b, c, F1,  2 ); W_PRECALC_16_31_2(18, W4, W5, W6, W7, W0, Wtmp0, Wtmp1);
-  R( c, d, e, a, b, F1,  3 ); W_PRECALC_16_31_3(19, W4, W5, W6, W7, W0, Wtmp0, Wtmp1);
+  R( c, d, e, a, b, F1,  3 ); W_PRECALC_16_31_3(19, W4, W5, W6, W7, W0, Wtmp0, Wtmp1, K1);
   R( b, c, d, e, a, F1,  4 ); W_PRECALC_16_31_0(20, W3, W4, W5, W6, W7, Wtmp0, Wtmp1);
   R( a, b, c, d, e, F1,  5 ); W_PRECALC_16_31_1(21, W3, W4, W5, W6, W7, Wtmp0, Wtmp1);
   R( e, a, b, c, d, F1,  6 ); W_PRECALC_16_31_2(22, W3, W4, W5, W6, W7, Wtmp0, Wtmp1);
-  R( d, e, a, b, c, F1,  7 ); W_PRECALC_16_31_3(23, W3, W4, W5, W6, W7, Wtmp0, Wtmp1);
+  R( d, e, a, b, c, F1,  7 ); W_PRECALC_16_31_3(23, W3, W4, W5, W6, W7, Wtmp0, Wtmp1, K2);
   R( c, d, e, a, b, F1,  8 ); W_PRECALC_16_31_0(24, W2, W3, W4, W5, W6, Wtmp0, Wtmp1);
   R( b, c, d, e, a, F1,  9 ); W_PRECALC_16_31_1(25, W2, W3, W4, W5, W6, Wtmp0, Wtmp1);
   R( a, b, c, d, e, F1, 10 ); W_PRECALC_16_31_2(26, W2, W3, W4, W5, W6, Wtmp0, Wtmp1);
-  R( e, a, b, c, d, F1, 11 ); W_PRECALC_16_31_3(27, W2, W3, W4, W5, W6, Wtmp0, Wtmp1);
+  R( e, a, b, c, d, F1, 11 ); W_PRECALC_16_31_3(27, W2, W3, W4, W5, W6, Wtmp0, Wtmp1, K2);
   R( d, e, a, b, c, F1, 12 ); W_PRECALC_16_31_0(28, W1, W2, W3, W4, W5, Wtmp0, Wtmp1);
   R( c, d, e, a, b, F1, 13 ); W_PRECALC_16_31_1(29, W1, W2, W3, W4, W5, Wtmp0, Wtmp1);
   R( b, c, d, e, a, F1, 14 ); W_PRECALC_16_31_2(30, W1, W2, W3, W4, W5, Wtmp0, Wtmp1);
-  R( a, b, c, d, e, F1, 15 ); W_PRECALC_16_31_3(31, W1, W2, W3, W4, W5, Wtmp0, Wtmp1);
+  R( a, b, c, d, e, F1, 15 ); W_PRECALC_16_31_3(31, W1, W2, W3, W4, W5, Wtmp0, Wtmp1, K2);
 
   /* Transform 16-63 + Precalc 32-79. */
   R( e, a, b, c, d, F1, 16 ); W_PRECALC_32_79_0(32, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0);
   R( d, e, a, b, c, F1, 17 ); W_PRECALC_32_79_1(33, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0);
   R( c, d, e, a, b, F1, 18 ); W_PRECALC_32_79_2(34, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0);
-  R( b, c, d, e, a, F1, 19 ); W_PRECALC_32_79_3(35, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0);
+  R( b, c, d, e, a, F1, 19 ); W_PRECALC_32_79_3(35, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0, K2);
   R( a, b, c, d, e, F2, 20 ); W_PRECALC_32_79_0(36, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0);
   R( e, a, b, c, d, F2, 21 ); W_PRECALC_32_79_1(37, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0);
   R( d, e, a, b, c, F2, 22 ); W_PRECALC_32_79_2(38, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0);
-  R( c, d, e, a, b, F2, 23 ); W_PRECALC_32_79_3(39, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0);
+  R( c, d, e, a, b, F2, 23 ); W_PRECALC_32_79_3(39, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0, K2);
   R( b, c, d, e, a, F2, 24 ); W_PRECALC_32_79_0(40, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0);
   R( a, b, c, d, e, F2, 25 ); W_PRECALC_32_79_1(41, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0);
   R( e, a, b, c, d, F2, 26 ); W_PRECALC_32_79_2(42, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0);
-  R( d, e, a, b, c, F2, 27 ); W_PRECALC_32_79_3(43, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0);
+  R( d, e, a, b, c, F2, 27 ); W_PRECALC_32_79_3(43, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0, K3);
   R( c, d, e, a, b, F2, 28 ); W_PRECALC_32_79_0(44, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
   R( b, c, d, e, a, F2, 29 ); W_PRECALC_32_79_1(45, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
   R( a, b, c, d, e, F2, 30 ); W_PRECALC_32_79_2(46, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
-  R( e, a, b, c, d, F2, 31 ); W_PRECALC_32_79_3(47, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
+  R( e, a, b, c, d, F2, 31 ); W_PRECALC_32_79_3(47, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0, K3);
   R( d, e, a, b, c, F2, 32 ); W_PRECALC_32_79_0(48, W4, W5, W6, W7, W0, W1, W2, W3, Wtmp0);
   R( c, d, e, a, b, F2, 33 ); W_PRECALC_32_79_1(49, W4, W5, W6, W7, W0, W1, W2, W3, Wtmp0);
   R( b, c, d, e, a, F2, 34 ); W_PRECALC_32_79_2(50, W4, W5, W6, W7, W0, W1, W2, W3, Wtmp0);
-  R( a, b, c, d, e, F2, 35 ); W_PRECALC_32_79_3(51, W4, W5, W6, W7, W0, W1, W2, W3, Wtmp0);
+  R( a, b, c, d, e, F2, 35 ); W_PRECALC_32_79_3(51, W4, W5, W6, W7, W0, W1, W2, W3, Wtmp0, K3);
   R( e, a, b, c, d, F2, 36 ); W_PRECALC_32_79_0(52, W3, W4, W5, W6, W7, W0, W1, W2, Wtmp0);
   R( d, e, a, b, c, F2, 37 ); W_PRECALC_32_79_1(53, W3, W4, W5, W6, W7, W0, W1, W2, Wtmp0);
   R( c, d, e, a, b, F2, 38 ); W_PRECALC_32_79_2(54, W3, W4, W5, W6, W7, W0, W1, W2, Wtmp0);
-  R( b, c, d, e, a, F2, 39 ); W_PRECALC_32_79_3(55, W3, W4, W5, W6, W7, W0, W1, W2, Wtmp0);
+  R( b, c, d, e, a, F2, 39 ); W_PRECALC_32_79_3(55, W3, W4, W5, W6, W7, W0, W1, W2, Wtmp0, K3);
   R( a, b, c, d, e, F3, 40 ); W_PRECALC_32_79_0(56, W2, W3, W4, W5, W6, W7, W0, W1, Wtmp0);
   R( e, a, b, c, d, F3, 41 ); W_PRECALC_32_79_1(57, W2, W3, W4, W5, W6, W7, W0, W1, Wtmp0);
   R( d, e, a, b, c, F3, 42 ); W_PRECALC_32_79_2(58, W2, W3, W4, W5, W6, W7, W0, W1, Wtmp0);
-  R( c, d, e, a, b, F3, 43 ); W_PRECALC_32_79_3(59, W2, W3, W4, W5, W6, W7, W0, W1, Wtmp0);
+  R( c, d, e, a, b, F3, 43 ); W_PRECALC_32_79_3(59, W2, W3, W4, W5, W6, W7, W0, W1, Wtmp0, K3);
   R( b, c, d, e, a, F3, 44 ); W_PRECALC_32_79_0(60, W1, W2, W3, W4, W5, W6, W7, W0, Wtmp0);
   R( a, b, c, d, e, F3, 45 ); W_PRECALC_32_79_1(61, W1, W2, W3, W4, W5, W6, W7, W0, Wtmp0);
   R( e, a, b, c, d, F3, 46 ); W_PRECALC_32_79_2(62, W1, W2, W3, W4, W5, W6, W7, W0, Wtmp0);
-  R( d, e, a, b, c, F3, 47 ); W_PRECALC_32_79_3(63, W1, W2, W3, W4, W5, W6, W7, W0, Wtmp0);
+  R( d, e, a, b, c, F3, 47 ); W_PRECALC_32_79_3(63, W1, W2, W3, W4, W5, W6, W7, W0, Wtmp0, K4);
   R( c, d, e, a, b, F3, 48 ); W_PRECALC_32_79_0(64, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0);
   R( b, c, d, e, a, F3, 49 ); W_PRECALC_32_79_1(65, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0);
   R( a, b, c, d, e, F3, 50 ); W_PRECALC_32_79_2(66, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0);
-  R( e, a, b, c, d, F3, 51 ); W_PRECALC_32_79_3(67, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0);
+  R( e, a, b, c, d, F3, 51 ); W_PRECALC_32_79_3(67, W0, W1, W2, W3, W4, W5, W6, W7, Wtmp0, K4);
   R( d, e, a, b, c, F3, 52 ); W_PRECALC_32_79_0(68, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0);
   R( c, d, e, a, b, F3, 53 ); W_PRECALC_32_79_1(69, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0);
   R( b, c, d, e, a, F3, 54 ); W_PRECALC_32_79_2(70, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0);
-  R( a, b, c, d, e, F3, 55 ); W_PRECALC_32_79_3(71, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0);
+  R( a, b, c, d, e, F3, 55 ); W_PRECALC_32_79_3(71, W7, W0, W1, W2, W3, W4, W5, W6, Wtmp0, K4);
   R( e, a, b, c, d, F3, 56 ); W_PRECALC_32_79_0(72, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0);
   R( d, e, a, b, c, F3, 57 ); W_PRECALC_32_79_1(73, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0);
   R( c, d, e, a, b, F3, 58 ); W_PRECALC_32_79_2(74, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0);
-  R( b, c, d, e, a, F3, 59 ); W_PRECALC_32_79_3(75, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0);
+  R( b, c, d, e, a, F3, 59 ); W_PRECALC_32_79_3(75, W6, W7, W0, W1, W2, W3, W4, W5, Wtmp0, K4);
   R( a, b, c, d, e, F4, 60 ); W_PRECALC_32_79_0(76, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
   R( e, a, b, c, d, F4, 61 ); W_PRECALC_32_79_1(77, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
   R( d, e, a, b, c, F4, 62 ); W_PRECALC_32_79_2(78, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
-  R( c, d, e, a, b, F4, 63 ); W_PRECALC_32_79_3(79, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
+  R( c, d, e, a, b, F4, 63 ); W_PRECALC_32_79_3(79, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0, K4);
 
   decq RNBLKS;
   jz .Lend;
@@ -344,21 +351,23 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   /* Transform 64-79 + Precalc 0-15 of next block. */
   R( b, c, d, e, a, F4, 64 ); W_PRECALC_00_15_0(0, W0, Wtmp0);
   R( a, b, c, d, e, F4, 65 ); W_PRECALC_00_15_1(1, W0, Wtmp0);
-  R( e, a, b, c, d, F4, 66 ); W_PRECALC_00_15_2(2, W0, Wtmp0);
+  R( e, a, b, c, d, F4, 66 ); W_PRECALC_00_15_2(2, W0, Wtmp0, K1);
   R( d, e, a, b, c, F4, 67 ); W_PRECALC_00_15_3(3, W0, Wtmp0);
   R( c, d, e, a, b, F4, 68 ); W_PRECALC_00_15_0(4, W7, Wtmp0);
   R( b, c, d, e, a, F4, 69 ); W_PRECALC_00_15_1(5, W7, Wtmp0);
-  R( a, b, c, d, e, F4, 70 ); W_PRECALC_00_15_2(6, W7, Wtmp0);
+  R( a, b, c, d, e, F4, 70 ); W_PRECALC_00_15_2(6, W7, Wtmp0, K1);
   R( e, a, b, c, d, F4, 71 ); W_PRECALC_00_15_3(7, W7, Wtmp0);
   R( d, e, a, b, c, F4, 72 ); W_PRECALC_00_15_0(8, W6, Wtmp0);
   R( c, d, e, a, b, F4, 73 ); W_PRECALC_00_15_1(9, W6, Wtmp0);
-  R( b, c, d, e, a, F4, 74 ); W_PRECALC_00_15_2(10, W6, Wtmp0);
+  R( b, c, d, e, a, F4, 74 ); W_PRECALC_00_15_2(10, W6, Wtmp0, K1);
   R( a, b, c, d, e, F4, 75 ); W_PRECALC_00_15_3(11, W6, Wtmp0);
   R( e, a, b, c, d, F4, 76 ); W_PRECALC_00_15_0(12, W5, Wtmp0);
   R( d, e, a, b, c, F4, 77 ); W_PRECALC_00_15_1(13, W5, Wtmp0);
   R( c, d, e, a, b, F4, 78 );
-  addl state_h0(RSTATE), a;   W_PRECALC_00_15_2(14, W5, Wtmp0);
+  addl state_h0(RSTATE), a;   W_PRECALC_00_15_2(14, W5, Wtmp0, K1);
   R( b, c, d, e, a, F4, 79 ); W_PRECALC_00_15_3(15, W5, Wtmp0);
+  addl ne, a;
+  xorl ne, ne;
 
   /* Update the chaining variables. */
   addl state_h3(RSTATE), d;
@@ -396,6 +405,8 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   R( c, d, e, a, b, F4, 78 );
   addl state_h0(RSTATE), a;
   R( b, c, d, e, a, F4, 79 );
+  addl ne, a;
+  xorl ne, ne;
 
   /* Update the chaining variables. */
   addl state_h3(RSTATE), d;
@@ -411,14 +422,17 @@ _gcry_sha1_transform_amd64_avx_bmi2:
 
   movq ROLDSTACK, %rsp;
 
+  popq %r12;
   popq %rbp;
   popq %rbx;
 
   /* burn_stack */
-  movl $(16*4 + 2*8 + 31), %eax;
+  movl $(16*4 + 3*8 + 31), %eax;
 
 .Lret:
   ret;
+ELF(.size _gcry_sha1_transform_amd64_avx_bmi2,
+    .-_gcry_sha1_transform_amd64_avx_bmi2;)
 
 #endif
 #endif

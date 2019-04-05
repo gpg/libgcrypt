@@ -429,6 +429,8 @@ _gcry_sha1_transform_amd64_ssse3:
 
 .Lret:
   ret;
+ELF(.size _gcry_sha1_transform_amd64_ssse3,
+    .-_gcry_sha1_transform_amd64_ssse3;)
 
 #endif
 #endif

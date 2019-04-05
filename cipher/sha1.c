@@ -68,6 +68,12 @@
 # define USE_BMI2 1
 #endif
 
+/* USE_AVX2 indicates whether to compile with Intel AVX2/BMI2 code. */
+#undef USE_AVX2
+#if defined(USE_BMI2) && defined(HAVE_GCC_INLINE_ASM_AVX2)
+# define USE_AVX2 1
+#endif
+
 /* USE_SHAEXT indicates whether to compile with Intel SHA Extension code. */
 #undef USE_SHAEXT
 #if defined(HAVE_GCC_INLINE_ASM_SHAEXT) && \
@@ -171,7 +177,37 @@ do_sha1_transform_amd64_avx_bmi2 (void *ctx, const unsigned char *data,
   return _gcry_sha1_transform_amd64_avx_bmi2 (&hd->h0, data, nblks)
          + ASM_EXTRA_STACK;
 }
-#endif
+
+#ifdef USE_AVX2
+unsigned int
+_gcry_sha1_transform_amd64_avx2_bmi2 (void *state, const unsigned char *data,
+                                      size_t nblks) ASM_FUNC_ABI;
+
+static unsigned int
+do_sha1_transform_amd64_avx2_bmi2 (void *ctx, const unsigned char *data,
+                                   size_t nblks)
+{
+  SHA1_CONTEXT *hd = ctx;
+
+  /* AVX2/BMI2 function only handles pair of blocks so nblks needs to be
+   * multiple of 2 and function does not handle zero nblks. Use AVX/BMI2
+   * code to handle these cases. */
+
+  if (nblks <= 1)
+    return do_sha1_transform_amd64_avx_bmi2 (ctx, data, nblks);
+
+  if (nblks & 1)
+    {
+      (void)_gcry_sha1_transform_amd64_avx_bmi2 (&hd->h0, data, 1);
+      nblks--;
+      data += 64;
+    }
+
+  return _gcry_sha1_transform_amd64_avx2_bmi2 (&hd->h0, data, nblks)
+         + ASM_EXTRA_STACK;
+}
+#endif /* USE_AVX2 */
+#endif /* USE_BMI2 */
 
 #ifdef USE_SHAEXT
 /* Does not need ASM_FUNC_ABI */
@@ -257,6 +293,11 @@ sha1_init (void *context, unsigned int flags)
 #ifdef USE_BMI2
   if ((features & HWF_INTEL_AVX) && (features & HWF_INTEL_BMI2))
     hd->bctx.bwrite = do_sha1_transform_amd64_avx_bmi2;
+#endif
+#ifdef USE_AVX2
+  if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_AVX) &&
+      (features & HWF_INTEL_BMI2))
+    hd->bctx.bwrite = do_sha1_transform_amd64_avx2_bmi2;
 #endif
 #ifdef USE_SHAEXT
   if ((features & HWF_INTEL_SHAEXT) && (features & HWF_INTEL_SSE4_1))
@@ -494,22 +535,27 @@ sha1_final(void *context)
   if( hd->bctx.count < 56 )  /* enough room */
     {
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
-      while( hd->bctx.count < 56 )
-        hd->bctx.buf[hd->bctx.count++] = 0;  /* pad */
+      if (hd->bctx.count < 56)
+	memset (&hd->bctx.buf[hd->bctx.count], 0, 56 - hd->bctx.count);
+      hd->bctx.count = 56;
+
+      /* append the 64 bit count */
+      buf_put_be32(hd->bctx.buf + 56, msb);
+      buf_put_be32(hd->bctx.buf + 60, lsb);
+      burn = (*hd->bctx.bwrite) ( hd, hd->bctx.buf, 1 );
     }
   else  /* need one extra block */
     {
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad character */
-      while( hd->bctx.count < 64 )
-        hd->bctx.buf[hd->bctx.count++] = 0;
-      _gcry_md_block_write(hd, NULL, 0);  /* flush */;
-      memset(hd->bctx.buf, 0, 56 ); /* fill next block with zeroes */
+      /* fill pad and next block with zeroes */
+      memset (&hd->bctx.buf[hd->bctx.count], 0, 64 - hd->bctx.count + 56);
+      hd->bctx.count = 64 + 56;
+
+      /* append the 64 bit count */
+      buf_put_be32(hd->bctx.buf + 64 + 56, msb);
+      buf_put_be32(hd->bctx.buf + 64 + 60, lsb);
+      burn = (*hd->bctx.bwrite) ( hd, hd->bctx.buf, 2 );
     }
-  /* append the 64 bit count */
-  buf_put_be32(hd->bctx.buf + 56, msb);
-  buf_put_be32(hd->bctx.buf + 60, lsb);
-  burn = (*hd->bctx.bwrite) ( hd, hd->bctx.buf, 1 );
-  _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
 #define X(a) do { buf_put_be32(p, hd->h##a); p += 4; } while(0)
@@ -520,6 +566,7 @@ sha1_final(void *context)
   X(4);
 #undef X
 
+  _gcry_burn_stack (burn);
 }
 
 static unsigned char *

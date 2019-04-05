@@ -42,9 +42,12 @@ typedef unsigned int (*_gcry_md_block_write_t) (void *c,
 # define MD_NBLOCKS_TYPE u32
 #endif
 
+/* SHA1 needs 2x64 bytes and SHA-512 needs 128 bytes. */
+#define MD_BLOCK_CTX_BUFFER_SIZE 128
+
 typedef struct gcry_md_block_ctx
 {
-    byte buf[MD_BLOCK_MAX_BLOCKSIZE];
+    byte buf[MD_BLOCK_CTX_BUFFER_SIZE];
     MD_NBLOCKS_TYPE nblocks;
     MD_NBLOCKS_TYPE nblocks_high;
     int count;
