@@ -133,6 +133,8 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha224;
 #if USE_SHA512
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha512;
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha384;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha512_224;
+extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha512_256;
 #endif
 #if USE_SHA3
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_224;

@@ -48,6 +48,8 @@ static gcry_md_spec_t * const digest_list[] =
 #if USE_SHA512
      &_gcry_digest_spec_sha512,
      &_gcry_digest_spec_sha384,
+     &_gcry_digest_spec_sha512_256,
+     &_gcry_digest_spec_sha512_224,
 #endif
 #if USE_SHA3
      &_gcry_digest_spec_sha3_224,
@@ -232,9 +234,16 @@ static gcry_md_spec_t * const digest_list_algo301[] =
     NULL,
 #endif
 #if USE_SM3
-    &_gcry_digest_spec_sm3
+    &_gcry_digest_spec_sm3,
 #else
-    NULL
+    NULL,
+#endif
+#if USE_SHA512
+    &_gcry_digest_spec_sha512_256,
+    &_gcry_digest_spec_sha512_224,
+#else
+    NULL,
+    NULL,
 #endif
   };
 
@@ -928,6 +937,8 @@ prepare_macpads (gcry_md_hd_t a, const unsigned char *key, size_t keylen)
           break;
         case GCRY_MD_SHA384:
         case GCRY_MD_SHA512:
+        case GCRY_MD_SHA512_256:
+        case GCRY_MD_SHA512_224:
         case GCRY_MD_BLAKE2B_512:
         case GCRY_MD_BLAKE2B_384:
         case GCRY_MD_BLAKE2B_256:

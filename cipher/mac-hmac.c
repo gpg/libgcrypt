@@ -51,6 +51,10 @@ map_mac_algo_to_md (int mac_algo)
       return GCRY_MD_SHA384;
     case GCRY_MAC_HMAC_SHA512:
       return GCRY_MD_SHA512;
+    case GCRY_MAC_HMAC_SHA512_256:
+      return GCRY_MD_SHA512_256;
+    case GCRY_MAC_HMAC_SHA512_224:
+      return GCRY_MD_SHA512_224;
     case GCRY_MAC_HMAC_SHA3_224:
       return GCRY_MD_SHA3_224;
     case GCRY_MAC_HMAC_SHA3_256:
@@ -260,6 +264,17 @@ gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha384 = {
   GCRY_MAC_HMAC_SHA384, {0, 1}, "HMAC_SHA384",
   &hmac_ops
 };
+
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha512_256 = {
+  GCRY_MAC_HMAC_SHA512_256, {0, 1}, "HMAC_SHA512_256",
+  &hmac_ops
+};
+
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha512_224 = {
+  GCRY_MAC_HMAC_SHA512_224, {0, 1}, "HMAC_SHA512_224",
+  &hmac_ops
+};
+
 #endif
 #if USE_SHA3
 gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_224 = {

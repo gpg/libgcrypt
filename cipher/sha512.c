@@ -254,14 +254,47 @@ do_transform_generic (void *context, const unsigned char *data, size_t nblks);
 
 
 static void
-sha512_init (void *context, unsigned int flags)
+sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 {
-  SHA512_CONTEXT *ctx = context;
-  SHA512_STATE *hd = &ctx->state;
   unsigned int features = _gcry_get_hw_features ();
 
   (void)flags;
   (void)k;
+
+  ctx->bctx.nblocks = 0;
+  ctx->bctx.nblocks_high = 0;
+  ctx->bctx.count = 0;
+  ctx->bctx.blocksize = 128;
+
+  /* Order of feature checks is important here; last match will be
+   * selected.  Keep slower implementations at the top and faster at
+   * the bottom.  */
+  ctx->bctx.bwrite = do_transform_generic;
+#ifdef USE_ARM_NEON_ASM
+  if ((features & HWF_ARM_NEON) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_armv7_neon;
+#endif
+#ifdef USE_SSSE3
+  if ((features & HWF_INTEL_SSSE3) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_amd64_ssse3;
+#endif
+#ifdef USE_AVX
+  if ((features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD))
+    ctx->bctx.bwrite = do_sha512_transform_amd64_avx;
+#endif
+#ifdef USE_AVX2
+  if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
+    ctx->bctx.bwrite = do_sha512_transform_amd64_avx2;
+#endif
+  (void)features;
+}
+
+
+static void
+sha512_init (void *context, unsigned int flags)
+{
+  SHA512_CONTEXT *ctx = context;
+  SHA512_STATE *hd = &ctx->state;
 
   hd->h0 = U64_C(0x6a09e667f3bcc908);
   hd->h1 = U64_C(0xbb67ae8584caa73b);
@@ -272,32 +305,7 @@ sha512_init (void *context, unsigned int flags)
   hd->h6 = U64_C(0x1f83d9abfb41bd6b);
   hd->h7 = U64_C(0x5be0cd19137e2179);
 
-  ctx->bctx.nblocks = 0;
-  ctx->bctx.nblocks_high = 0;
-  ctx->bctx.count = 0;
-  ctx->bctx.blocksize = 128;
-
-  /* Order of feature checks is important here; last match will be
-   * selected.  Keep slower implementations at the top and faster at
-   * the bottom.  */
-  ctx->bctx.bwrite = do_transform_generic;
-#ifdef USE_ARM_NEON_ASM
-  if ((features & HWF_ARM_NEON) != 0)
-    ctx->bctx.bwrite = do_sha512_transform_armv7_neon;
-#endif
-#ifdef USE_SSSE3
-  if ((features & HWF_INTEL_SSSE3) != 0)
-    ctx->bctx.bwrite = do_sha512_transform_amd64_ssse3;
-#endif
-#ifdef USE_AVX
-  if ((features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD))
-    ctx->bctx.bwrite = do_sha512_transform_amd64_avx;
-#endif
-#ifdef USE_AVX2
-  if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
-    ctx->bctx.bwrite = do_sha512_transform_amd64_avx2;
-#endif
-  (void)features;
+  sha512_init_common (ctx, flags);
 }
 
 static void
@@ -305,9 +313,6 @@ sha384_init (void *context, unsigned int flags)
 {
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
-  unsigned int features = _gcry_get_hw_features ();
-
-  (void)flags;
 
   hd->h0 = U64_C(0xcbbb9d5dc1059ed8);
   hd->h1 = U64_C(0x629a292a367cd507);
@@ -318,33 +323,47 @@ sha384_init (void *context, unsigned int flags)
   hd->h6 = U64_C(0xdb0c2e0d64f98fa7);
   hd->h7 = U64_C(0x47b5481dbefa4fa4);
 
-  ctx->bctx.nblocks = 0;
-  ctx->bctx.nblocks_high = 0;
-  ctx->bctx.count = 0;
-  ctx->bctx.blocksize = 128;
-
-  /* Order of feature checks is important here; last match will be
-   * selected.  Keep slower implementations at the top and faster at
-   * the bottom.  */
-  ctx->bctx.bwrite = do_transform_generic;
-#ifdef USE_ARM_NEON_ASM
-  if ((features & HWF_ARM_NEON) != 0)
-    ctx->bctx.bwrite = do_sha512_transform_armv7_neon;
-#endif
-#ifdef USE_SSSE3
-  if ((features & HWF_INTEL_SSSE3) != 0)
-    ctx->bctx.bwrite = do_sha512_transform_amd64_ssse3;
-#endif
-#ifdef USE_AVX
-  if ((features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD))
-    ctx->bctx.bwrite = do_sha512_transform_amd64_avx;
-#endif
-#ifdef USE_AVX2
-  if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
-    ctx->bctx.bwrite = do_sha512_transform_amd64_avx2;
-#endif
-  (void)features;
+  sha512_init_common (ctx, flags);
 }
+
+
+static void
+sha512_256_init (void *context, unsigned int flags)
+{
+  SHA512_CONTEXT *ctx = context;
+  SHA512_STATE *hd = &ctx->state;
+
+  hd->h0 = U64_C(0x22312194fc2bf72c);
+  hd->h1 = U64_C(0x9f555fa3c84c64c2);
+  hd->h2 = U64_C(0x2393b86b6f53b151);
+  hd->h3 = U64_C(0x963877195940eabd);
+  hd->h4 = U64_C(0x96283ee2a88effe3);
+  hd->h5 = U64_C(0xbe5e1e2553863992);
+  hd->h6 = U64_C(0x2b0199fc2c85b8aa);
+  hd->h7 = U64_C(0x0eb72ddc81c52ca2);
+
+  sha512_init_common (ctx, flags);
+}
+
+
+static void
+sha512_224_init (void *context, unsigned int flags)
+{
+  SHA512_CONTEXT *ctx = context;
+  SHA512_STATE *hd = &ctx->state;
+
+  hd->h0 = U64_C(0x8c3d37c819544da2);
+  hd->h1 = U64_C(0x73e1996689dcd4d6);
+  hd->h2 = U64_C(0x1dfab7ae32ff9c82);
+  hd->h3 = U64_C(0x679dd514582f9fcf);
+  hd->h4 = U64_C(0x0f6d2b697bd44da8);
+  hd->h5 = U64_C(0x77e36f7304c48942);
+  hd->h6 = U64_C(0x3f9d85a86a1d36c8);
+  hd->h7 = U64_C(0x1112e6ad91d692a1);
+
+  sha512_init_common (ctx, flags);
+}
+
 
 
 #ifndef USE_ARM_ASM
@@ -758,6 +777,68 @@ _gcry_sha384_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 }
 
 
+
+/* Shortcut functions which puts the hash value of the supplied buffer
+ * into outbuf which must have a size of 32 bytes.  */
+static void
+_gcry_sha512_256_hash_buffer (void *outbuf, const void *buffer, size_t length)
+{
+  SHA512_CONTEXT hd;
+
+  sha512_256_init (&hd, 0);
+  _gcry_md_block_write (&hd, buffer, length);
+  sha512_final (&hd);
+  memcpy (outbuf, hd.bctx.buf, 32);
+}
+
+
+/* Variant of the above shortcut function using multiple buffers.  */
+static void
+_gcry_sha512_256_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
+			       int iovcnt)
+{
+  SHA512_CONTEXT hd;
+
+  sha512_256_init (&hd, 0);
+  for (;iovcnt > 0; iov++, iovcnt--)
+    _gcry_md_block_write (&hd,
+                          (const char*)iov[0].data + iov[0].off, iov[0].len);
+  sha512_final (&hd);
+  memcpy (outbuf, hd.bctx.buf, 32);
+}
+
+
+
+/* Shortcut functions which puts the hash value of the supplied buffer
+ * into outbuf which must have a size of 28 bytes.  */
+static void
+_gcry_sha512_224_hash_buffer (void *outbuf, const void *buffer, size_t length)
+{
+  SHA512_CONTEXT hd;
+
+  sha512_224_init (&hd, 0);
+  _gcry_md_block_write (&hd, buffer, length);
+  sha512_final (&hd);
+  memcpy (outbuf, hd.bctx.buf, 28);
+}
+
+
+/* Variant of the above shortcut function using multiple buffers.  */
+static void
+_gcry_sha512_224_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
+			       int iovcnt)
+{
+  SHA512_CONTEXT hd;
+
+  sha512_224_init (&hd, 0);
+  for (;iovcnt > 0; iov++, iovcnt--)
+    _gcry_md_block_write (&hd,
+                          (const char*)iov[0].data + iov[0].off, iov[0].len);
+  sha512_final (&hd);
+  memcpy (outbuf, hd.bctx.buf, 28);
+}
+
+
 
 /*
      Self-test section.
@@ -867,6 +948,102 @@ selftests_sha512 (int extended, selftest_report_func_t report)
   return GPG_ERR_SELFTEST_FAILED;
 }
 
+static gpg_err_code_t
+selftests_sha512_224 (int extended, selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+
+  what = "short string";
+  errtxt = _gcry_hash_selftest_check_one
+    (GCRY_MD_SHA512_224, 0,
+     "abc", 3,
+     "\x46\x34\x27\x0F\x70\x7B\x6A\x54\xDA\xAE\x75\x30\x46\x08\x42\xE2"
+     "\x0E\x37\xED\x26\x5C\xEE\xE9\xA4\x3E\x89\x24\xAA",
+     28);
+  if (errtxt)
+    goto failed;
+
+  if (extended)
+    {
+      what = "long string";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA512_224, 0,
+         "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
+         "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu", 112,
+         "\x23\xFE\xC5\xBB\x94\xD6\x0B\x23\x30\x81\x92\x64\x0B\x0C\x45\x33"
+         "\x35\xD6\x64\x73\x4F\xE4\x0E\x72\x68\x67\x4A\xF9",
+         28);
+      if (errtxt)
+        goto failed;
+
+      what = "one million \"a\"";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA512_224, 1,
+         NULL, 0,
+         "\x37\xab\x33\x1d\x76\xf0\xd3\x6d\xe4\x22\xbd\x0e\xde\xb2\x2a\x28"
+         "\xac\xcd\x48\x7b\x7a\x84\x53\xae\x96\x5d\xd2\x87",
+         28);
+      if (errtxt)
+        goto failed;
+    }
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("digest", GCRY_MD_SHA512_224, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+static gpg_err_code_t
+selftests_sha512_256 (int extended, selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+
+  what = "short string";
+  errtxt = _gcry_hash_selftest_check_one
+    (GCRY_MD_SHA512_256, 0,
+     "abc", 3,
+     "\x53\x04\x8E\x26\x81\x94\x1E\xF9\x9B\x2E\x29\xB7\x6B\x4C\x7D\xAB"
+     "\xE4\xC2\xD0\xC6\x34\xFC\x6D\x46\xE0\xE2\xF1\x31\x07\xE7\xAF\x23",
+     32);
+  if (errtxt)
+    goto failed;
+
+  if (extended)
+    {
+      what = "long string";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA512_256, 0,
+         "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
+         "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu", 112,
+         "\x39\x28\xE1\x84\xFB\x86\x90\xF8\x40\xDA\x39\x88\x12\x1D\x31\xBE"
+         "\x65\xCB\x9D\x3E\xF8\x3E\xE6\x14\x6F\xEA\xC8\x61\xE1\x9B\x56\x3A",
+         32);
+      if (errtxt)
+        goto failed;
+
+      what = "one million \"a\"";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA512_256, 1,
+         NULL, 0,
+         "\x9a\x59\xa0\x52\x93\x01\x87\xa9\x70\x38\xca\xe6\x92\xf3\x07\x08"
+         "\xaa\x64\x91\x92\x3e\xf5\x19\x43\x94\xdc\x68\xd5\x6c\x74\xfb\x21",
+         32);
+      if (errtxt)
+        goto failed;
+    }
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("digest", GCRY_MD_SHA512_256, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
 
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
@@ -881,6 +1058,12 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
       break;
     case GCRY_MD_SHA512:
       ec = selftests_sha512 (extended, report);
+      break;
+    case GCRY_MD_SHA512_224:
+      ec = selftests_sha512_224 (extended, report);
+      break;
+    case GCRY_MD_SHA512_256:
+      ec = selftests_sha512_256 (extended, report);
       break;
     default:
       ec = GPG_ERR_DIGEST_ALGO;
@@ -946,6 +1129,44 @@ gcry_md_spec_t _gcry_digest_spec_sha384 =
     "SHA384", sha384_asn, DIM (sha384_asn), oid_spec_sha384, 48,
     sha384_init, _gcry_md_block_write, sha512_final, sha512_read, NULL,
     _gcry_sha384_hash_buffer, _gcry_sha384_hash_buffers,
+    sizeof (SHA512_CONTEXT),
+    run_selftests
+  };
+
+static byte sha512_256_asn[] = { 0x30 };
+
+static gcry_md_oid_spec_t oid_spec_sha512_256[] =
+  {
+    { "2.16.840.1.101.3.4.2.6" },
+
+    { NULL },
+  };
+
+gcry_md_spec_t _gcry_digest_spec_sha512_256 =
+  {
+    GCRY_MD_SHA512_256, {0, 1},
+    "SHA512_256", sha512_256_asn, DIM (sha512_256_asn), oid_spec_sha512_256, 32,
+    sha512_256_init, _gcry_md_block_write, sha512_final, sha512_read, NULL,
+    _gcry_sha512_256_hash_buffer, _gcry_sha512_256_hash_buffers,
+    sizeof (SHA512_CONTEXT),
+    run_selftests
+  };
+
+static byte sha512_224_asn[] = { 0x30 };
+
+static gcry_md_oid_spec_t oid_spec_sha512_224[] =
+  {
+    { "2.16.840.1.101.3.4.2.5" },
+
+    { NULL },
+  };
+
+gcry_md_spec_t _gcry_digest_spec_sha512_224 =
+  {
+    GCRY_MD_SHA512_224, {0, 1},
+    "SHA512_224", sha512_224_asn, DIM (sha512_224_asn), oid_spec_sha512_224, 28,
+    sha512_224_init, _gcry_md_block_write, sha512_final, sha512_read, NULL,
+    _gcry_sha512_224_hash_buffer, _gcry_sha512_224_hash_buffers,
     sizeof (SHA512_CONTEXT),
     run_selftests
   };

@@ -40,6 +40,8 @@ static gcry_mac_spec_t * const mac_list[] = {
 #if USE_SHA512
   &_gcry_mac_type_spec_hmac_sha512,
   &_gcry_mac_type_spec_hmac_sha384,
+  &_gcry_mac_type_spec_hmac_sha512_256,
+  &_gcry_mac_type_spec_hmac_sha512_224,
 #endif
 #if USE_SHA3
   &_gcry_mac_type_spec_hmac_sha3_224,
@@ -230,9 +232,16 @@ static gcry_mac_spec_t * const mac_list_algo101[] =
     NULL,
 #endif
 #if USE_SM3
-    &_gcry_mac_type_spec_hmac_sm3
+    &_gcry_mac_type_spec_hmac_sm3,
 #else
-    NULL
+    NULL,
+#endif
+#if USE_SHA512
+    &_gcry_mac_type_spec_hmac_sha512_256,
+    &_gcry_mac_type_spec_hmac_sha512_224,
+#else
+    NULL,
+    NULL,
 #endif
   };
 

@@ -3141,7 +3141,7 @@ are also supported.
 
 @c begin table of hash algorithms
 @cindex SHA-1
-@cindex SHA-224, SHA-256, SHA-384, SHA-512
+@cindex SHA-224, SHA-256, SHA-384, SHA-512, SHA-512/224, SHA-512/256
 @cindex SHA3-224, SHA3-256, SHA3-384, SHA3-512, SHAKE128, SHAKE256
 @cindex RIPE-MD-160
 @cindex MD2, MD4, MD5
@@ -3214,8 +3214,16 @@ This is the SHA-384 algorithm which yields a message digest of 48 bytes.
 See FIPS 180-2 for the specification.
 
 @item GCRY_MD_SHA512
-This is the SHA-384 algorithm which yields a message digest of 64 bytes.
+This is the SHA-512 algorithm which yields a message digest of 64 bytes.
 See FIPS 180-2 for the specification.
+
+@item GCRY_MD_SHA512_224
+This is the SHA-512/224 algorithm which yields a message digest of 28 bytes.
+See FIPS 180-4 for the specification.
+
+@item GCRY_MD_SHA512_256
+This is the SHA-512/256 algorithm which yields a message digest of 32 bytes.
+See FIPS 180-4 for the specification.
 
 @item GCRY_MD_SHA3_224
 This is the SHA3-224 algorithm which yields a message digest of 28 bytes.
@@ -3680,6 +3688,7 @@ provided by Libgcrypt.
 @c begin table of MAC algorithms
 @cindex HMAC-SHA-1
 @cindex HMAC-SHA-224, HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512
+@cindex HMAC-SHA-512/224, HMAC-SHA-512/256
 @cindex HMAC-SHA3-224, HMAC-SHA3-256, HMAC-SHA3-384, HMAC-SHA3-512
 @cindex HMAC-RIPE-MD-160
 @cindex HMAC-MD2, HMAC-MD4, HMAC-MD5
@@ -3687,6 +3696,7 @@ provided by Libgcrypt.
 @cindex HMAC-Whirlpool
 @cindex HMAC-Stribog-256, HMAC-Stribog-512
 @cindex HMAC-GOSTR-3411-94
+@cindex HMAC-BLAKE2s, HMAC-BLAKE2b
 @table @code
 @item GCRY_MAC_NONE
 This is not a real algorithm but used by some functions as an error
@@ -3724,6 +3734,14 @@ algorithm.
 This is HMAC message authentication algorithm based on the SHA3-384 hash
 algorithm.
 
+@item GCRY_MAC_HMAC_SHA512_224
+This is HMAC message authentication algorithm based on the SHA-512/224 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_SHA512_256
+This is HMAC message authentication algorithm based on the SHA-512/256 hash
+algorithm.
+
 @item GCRY_MAC_HMAC_SHA1
 This is HMAC message authentication algorithm based on the SHA-1 hash
 algorithm.
@@ -3755,6 +3773,38 @@ algorithm described in GOST R 34.11-2012.
 @item GCRY_MAC_HMAC_STRIBOG512
 This is HMAC message authentication algorithm based on the 512-bit hash
 algorithm described in GOST R 34.11-2012.
+
+@item GCRY_MAC_HMAC_BLAKE2B_512
+This is HMAC message authentication algorithm based on the BLAKE2b-512 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_BLAKE2B_384
+This is HMAC message authentication algorithm based on the BLAKE2b-384 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_BLAKE2B_256
+This is HMAC message authentication algorithm based on the BLAKE2b-256 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_BLAKE2B_160
+This is HMAC message authentication algorithm based on the BLAKE2b-160 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_BLAKE2S_256
+This is HMAC message authentication algorithm based on the BLAKE2s-256 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_BLAKE2S_224
+This is HMAC message authentication algorithm based on the BLAKE2s-224 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_BLAKE2S_160
+This is HMAC message authentication algorithm based on the BLAKE2s-160 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_BLAKE2S_128
+This is HMAC message authentication algorithm based on the BLAKE2s-128 hash
+algorithm.
 
 @item GCRY_MAC_CMAC_AES
 This is CMAC (Cipher-based MAC) message authentication algorithm based on
