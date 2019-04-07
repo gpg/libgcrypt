@@ -79,6 +79,8 @@ YTMP4 = ymm8
 XFER =  YTMP0
 
 BYTE_FLIP_MASK =  ymm9
+MASK_YMM_LO    =  ymm10
+MASK_YMM_LOx   =  xmm10
 
 INP =         rdi /* 1st arg */
 CTX =         rsi /* 2nd arg */
@@ -96,7 +98,7 @@ b =     rbx
 f =     r9
 g =     r10
 h =     r11
-old_h = r11
+old_h = rax
 
 T1 =    r12
 y0 =    r13
@@ -107,14 +109,14 @@ y4 =    r12
 
 /* Local variables (stack frame) */
 #define frame_XFER      0
-#define frame_XFER_size (4*8)
+#define frame_XFER_size (4*4*8)
 #define frame_SRND      (frame_XFER + frame_XFER_size)
 #define frame_SRND_size (1*8)
 #define frame_INP      (frame_SRND + frame_SRND_size)
 #define frame_INP_size (1*8)
-#define frame_INPEND      (frame_INP + frame_INP_size)
-#define frame_INPEND_size (1*8)
-#define frame_RSPSAVE      (frame_INPEND + frame_INPEND_size)
+#define frame_NBLKS      (frame_INP + frame_INP_size)
+#define frame_NBLKS_size (1*8)
+#define frame_RSPSAVE      (frame_NBLKS + frame_NBLKS_size)
 #define frame_RSPSAVE_size (1*8)
 #define frame_GPRSAVE      (frame_RSPSAVE + frame_RSPSAVE_size)
 #define frame_GPRSAVE_size (6*8)
@@ -168,7 +170,51 @@ y4 =    r12
 	vpalignr 	\YDST, \YDST, \YSRC2, \RVAL	/* YDST = {YDS1, YS2} >> RVAL*8 */
 .endm
 
-.macro FOUR_ROUNDS_AND_SCHED
+.macro ONE_ROUND_PART1 XFER
+	/* h += Sum1 (e) + Ch (e, f, g) + (k[t] + w[0]);
+	 * d += h;
+	 * h += Sum0 (a) + Maj (a, b, c);
+	 *
+	 * Ch(x, y, z) => ((x & y) + (~x & z))
+	 * Maj(x, y, z) => ((x & y) + (z & (x ^ y)))
+	 */
+
+	mov y3, e
+	add h, [\XFER]
+	and y3, f
+	rorx y0, e, 41
+	rorx y1, e, 18
+	lea h, [h + y3]
+	andn y3, e, g
+	rorx T1, a, 34
+	xor y0, y1
+	lea h, [h + y3]
+.endm
+.macro ONE_ROUND_PART2
+	rorx y2, a, 39
+	rorx y1, e, 14
+	mov y3, a
+	xor T1, y2
+	xor y0, y1
+	xor y3, b
+	lea h, [h + y0]
+	mov y0, a
+	rorx y2, a, 28
+	add d, h
+	and y3, c
+	xor T1, y2
+	lea h, [h + y3]
+	lea h, [h + T1]
+	and y0, b
+	lea h, [h + y0]
+.endm
+
+.macro ONE_ROUND XFER
+	ONE_ROUND_PART1 \XFER
+	ONE_ROUND_PART2
+.endm
+
+.macro FOUR_ROUNDS_AND_SCHED X
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
 		/* Extract w[t-7] */
@@ -187,43 +233,8 @@ y4 =    r12
 		/* Calculate w[t-15] shr 7 */
 		vpsrlq		YTMP4, YTMP1, 7			/* YTMP4 = W[-15] >> 7 */
 
-	mov	y3, a		/* y3 = a                                       ; MAJA	 */
-	rorx	y0, e, 41	/* y0 = e >> 41					; S1A */
-	rorx	y1, e, 18	/* y1 = e >> 18					; S1B */
-
-	add	h, [rsp+frame_XFER+0*8]		/* h = k + w + h                                ; --	 */
-	or	y3, c		/* y3 = a|c                                     ; MAJA	 */
-	mov	y2, f		/* y2 = f                                       ; CH	 */
-	rorx	T1, a, 34	/* T1 = a >> 34					; S0B */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18)			; S1 */
-	xor	y2, g		/* y2 = f^g                                     ; CH	 */
-	rorx	y1, e, 14	/* y1 = (e >> 14)					; S1 */
-
-	and	y2, e		/* y2 = (f^g)&e                                 ; CH	 */
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18) ^ (e>>14)		; S1 */
-	rorx	y1, a, 39	/* y1 = a >> 39					; S0A */
-	add	d, h		/* d = k + w + h + d                            ; --	 */
-
-	and	y3, b		/* y3 = (a|c)&b                                 ; MAJA	 */
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34)			; S0 */
-	rorx	T1, a, 28	/* T1 = (a >> 28)					; S0 */
-
-	xor	y2, g		/* y2 = CH = ((f^g)&e)^g                        ; CH	 */
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34) ^ (a>>28)		; S0 */
-	mov	T1, a		/* T1 = a                                       ; MAJB	 */
-	and	T1, c		/* T1 = a&c                                     ; MAJB	 */
-
-	add	y2, y0		/* y2 = S1 + CH                                 ; --	 */
-	or	y3, T1		/* y3 = MAJ = (a|c)&b)|(a&c)                    ; MAJ	 */
-	add	h, y1		/* h = k + w + h + S0                           ; --	 */
-
-	add	d, y2		/* d = k + w + h + d + S1 + CH = d + t1         ; --	 */
-
-	add	h, y2		/* h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-	add	h, y3		/* h = t1 + S0 + MAJ                            ; --	 */
-
-RotateState
+	ONE_ROUND rsp+frame_XFER+0*8+\X*32
+	RotateState
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
@@ -243,7 +254,7 @@ RotateState
 		/* Move to appropriate lanes for calculating w[16] and w[17] */
 		vperm2f128	Y_0, YTMP0, YTMP0, 0x0		/* Y_0 = W[-16] + W[-7] + s0 {BABA} */
 		/* Move to appropriate lanes for calculating w[18] and w[19] */
-		vpand		YTMP0, YTMP0, [.LMASK_YMM_LO ADD_RIP]	/* YTMP0 = W[-16] + W[-7] + s0 {DC00} */
+		vpand		YTMP0, YTMP0, MASK_YMM_LO	/* YTMP0 = W[-16] + W[-7] + s0 {DC00} */
 
 		/* Calculate w[16] and w[17] in both 128 bit lanes */
 
@@ -251,48 +262,8 @@ RotateState
 		vperm2f128	YTMP2, Y_3, Y_3, 0x11		/* YTMP2 = W[-2] {BABA} */
 		vpsrlq		YTMP4, YTMP2, 6			/* YTMP4 = W[-2] >> 6 {BABA} */
 
-
-	mov	y3, a		/* y3 = a                                       ; MAJA	 */
-	rorx	y0, e, 41	/* y0 = e >> 41					; S1A */
-	rorx	y1, e, 18	/* y1 = e >> 18					; S1B */
-	add	h, [rsp+frame_XFER+1*8]		/* h = k + w + h                                ; --	 */
-	or	y3, c		/* y3 = a|c                                     ; MAJA	 */
-
-
-	mov	y2, f		/* y2 = f                                       ; CH	 */
-	rorx	T1, a, 34	/* T1 = a >> 34					; S0B */
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18)			; S1 */
-	xor	y2, g		/* y2 = f^g                                     ; CH	 */
-
-
-	rorx	y1, e, 14	/* y1 = (e >> 14)					; S1 */
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18) ^ (e>>14)		; S1 */
-	rorx	y1, a, 39	/* y1 = a >> 39					; S0A */
-	and	y2, e		/* y2 = (f^g)&e                                 ; CH	 */
-	add	d, h		/* d = k + w + h + d                            ; --	 */
-
-	and	y3, b		/* y3 = (a|c)&b                                 ; MAJA	 */
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34)			; S0 */
-
-	rorx	T1, a, 28	/* T1 = (a >> 28)					; S0 */
-	xor	y2, g		/* y2 = CH = ((f^g)&e)^g                        ; CH	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34) ^ (a>>28)		; S0 */
-	mov	T1, a		/* T1 = a                                       ; MAJB	 */
-	and	T1, c		/* T1 = a&c                                     ; MAJB	 */
-	add	y2, y0		/* y2 = S1 + CH                                 ; --	 */
-
-	or	y3, T1		/* y3 = MAJ = (a|c)&b)|(a&c)                    ; MAJ	 */
-	add	h, y1		/* h = k + w + h + S0                           ; --	 */
-
-	add	d, y2		/* d = k + w + h + d + S1 + CH = d + t1         ; --	 */
-	add	h, y2		/* h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-	add	h, y3		/* h = t1 + S0 + MAJ                            ; --	 */
-
-RotateState
-
-
-
+	ONE_ROUND rsp+frame_XFER+1*8+\X*32
+	RotateState
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
@@ -314,43 +285,8 @@ RotateState
 		/* Calculate sigma1 for w[18] and w[19] for upper 128 bit lane */
 		vpsrlq		YTMP4, Y_0, 6			/* YTMP4 = W[-2] >> 6 {DC--} */
 
-	mov	y3, a		/* y3 = a                                       ; MAJA	 */
-	rorx	y0, e, 41	/* y0 = e >> 41					; S1A */
-	add	h, [rsp+frame_XFER+2*8]		/* h = k + w + h                                ; --	 */
-
-	rorx	y1, e, 18	/* y1 = e >> 18					; S1B */
-	or	y3, c		/* y3 = a|c                                     ; MAJA	 */
-	mov	y2, f		/* y2 = f                                       ; CH	 */
-	xor	y2, g		/* y2 = f^g                                     ; CH	 */
-
-	rorx	T1, a, 34	/* T1 = a >> 34					; S0B */
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18)			; S1 */
-	and	y2, e		/* y2 = (f^g)&e                                 ; CH	 */
-
-	rorx	y1, e, 14	/* y1 = (e >> 14)					; S1 */
-	add	d, h		/* d = k + w + h + d                            ; --	 */
-	and	y3, b		/* y3 = (a|c)&b                                 ; MAJA	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18) ^ (e>>14)		; S1 */
-	rorx	y1, a, 39	/* y1 = a >> 39					; S0A */
-	xor	y2, g		/* y2 = CH = ((f^g)&e)^g                        ; CH	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34)			; S0 */
-	rorx	T1, a, 28	/* T1 = (a >> 28)					; S0 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34) ^ (a>>28)		; S0 */
-	mov	T1, a		/* T1 = a                                       ; MAJB	 */
-	and	T1, c		/* T1 = a&c                                     ; MAJB	 */
-	add	y2, y0		/* y2 = S1 + CH                                 ; --	 */
-
-	or	y3, T1		/* y3 = MAJ = (a|c)&b)|(a&c)                    ; MAJ	 */
-	add	h, y1		/* h = k + w + h + S0                           ; --	 */
-	add	d, y2		/* d = k + w + h + d + S1 + CH = d + t1         ; --	 */
-	add	h, y2		/* h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-
-	add	h, y3		/* h = t1 + S0 + MAJ                            ; --	 */
-
-RotateState
+	ONE_ROUND rsp+frame_XFER+2*8+\X*32
+	RotateState
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
@@ -370,225 +306,35 @@ RotateState
 
 		/* Form w[19, w[18], w17], w[16] */
 		vpblendd		Y_0, Y_0, YTMP2, 0xF0		/* Y_0 = {W[3], W[2], W[1], W[0]} */
-/*		vperm2f128		Y_0, Y_0, YTMP2, 0x30 */
 
-	mov	y3, a		/* y3 = a                                       ; MAJA	 */
-	rorx	y0, e, 41	/* y0 = e >> 41					; S1A */
-	rorx	y1, e, 18	/* y1 = e >> 18					; S1B */
-	add	h, [rsp+frame_XFER+3*8]		/* h = k + w + h                                ; --	 */
-	or	y3, c		/* y3 = a|c                                     ; MAJA	 */
-
-
-	mov	y2, f		/* y2 = f                                       ; CH	 */
-	rorx	T1, a, 34	/* T1 = a >> 34					; S0B */
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18)			; S1 */
-	xor	y2, g		/* y2 = f^g                                     ; CH	 */
-
-
-	rorx	y1, e, 14	/* y1 = (e >> 14)					; S1 */
-	and	y2, e		/* y2 = (f^g)&e                                 ; CH	 */
-	add	d, h		/* d = k + w + h + d                            ; --	 */
-	and	y3, b		/* y3 = (a|c)&b                                 ; MAJA	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18) ^ (e>>14)		; S1 */
-	xor	y2, g		/* y2 = CH = ((f^g)&e)^g                        ; CH	 */
-
-	rorx	y1, a, 39	/* y1 = a >> 39					; S0A */
-	add	y2, y0		/* y2 = S1 + CH                                 ; --	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34)			; S0 */
-	add	d, y2		/* d = k + w + h + d + S1 + CH = d + t1         ; --	 */
-
-	rorx	T1, a, 28	/* T1 = (a >> 28)					; S0 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34) ^ (a>>28)		; S0 */
-	mov	T1, a		/* T1 = a                                       ; MAJB	 */
-	and	T1, c		/* T1 = a&c                                     ; MAJB	 */
-	or	y3, T1		/* y3 = MAJ = (a|c)&b)|(a&c)                    ; MAJ	 */
-
-	add	h, y1		/* h = k + w + h + S0                           ; --	 */
-	add	h, y2		/* h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-	add	h, y3		/* h = t1 + S0 + MAJ                            ; --	 */
-
-RotateState
-
-rotate_Ys
+	ONE_ROUND_PART1 rsp+frame_XFER+3*8+\X*32
+		vpaddq		XFER, Y_0, [TBL + (4+\X)*32]
+		vmovdqa		[rsp + frame_XFER + \X*32], XFER
+	ONE_ROUND_PART2
+	RotateState
+	rotate_Ys
 .endm
 
-.macro DO_4ROUNDS
+.macro DO_4ROUNDS X
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	mov	y2, f		/* y2 = f                                       ; CH	 */
-	rorx	y0, e, 41	/* y0 = e >> 41					; S1A */
-	rorx	y1, e, 18	/* y1 = e >> 18					; S1B */
-	xor	y2, g		/* y2 = f^g                                     ; CH	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18)			; S1 */
-	rorx	y1, e, 14	/* y1 = (e >> 14)					; S1 */
-	and	y2, e		/* y2 = (f^g)&e                                 ; CH	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18) ^ (e>>14)		; S1 */
-	rorx	T1, a, 34	/* T1 = a >> 34					; S0B */
-	xor	y2, g		/* y2 = CH = ((f^g)&e)^g                        ; CH	 */
-	rorx	y1, a, 39	/* y1 = a >> 39					; S0A */
-	mov	y3, a		/* y3 = a                                       ; MAJA	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34)			; S0 */
-	rorx	T1, a, 28	/* T1 = (a >> 28)					; S0 */
-	add	h, [rsp + frame_XFER + 8*0]		/* h = k + w + h                                ; --	 */
-	or	y3, c		/* y3 = a|c                                     ; MAJA	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34) ^ (a>>28)		; S0 */
-	mov	T1, a		/* T1 = a                                       ; MAJB	 */
-	and	y3, b		/* y3 = (a|c)&b                                 ; MAJA	 */
-	and	T1, c		/* T1 = a&c                                     ; MAJB	 */
-	add	y2, y0		/* y2 = S1 + CH                                 ; --	 */
-
-
-	add	d, h		/* d = k + w + h + d                            ; --	 */
-	or	y3, T1		/* y3 = MAJ = (a|c)&b)|(a&c)                    ; MAJ	 */
-	add	h, y1		/* h = k + w + h + S0                           ; --	 */
-
-	add	d, y2		/* d = k + w + h + d + S1 + CH = d + t1         ; --	 */
-
-
-	/*add	h, y2		; h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-
-	/*add	h, y3		; h = t1 + S0 + MAJ                            ; --	 */
-
+	ONE_ROUND rsp+frame_XFER+0*8+\X*32
 	RotateState
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	add	old_h, y2	/* h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-	mov	y2, f		/* y2 = f                                       ; CH	 */
-	rorx	y0, e, 41	/* y0 = e >> 41					; S1A */
-	rorx	y1, e, 18	/* y1 = e >> 18					; S1B */
-	xor	y2, g		/* y2 = f^g                                     ; CH	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18)			; S1 */
-	rorx	y1, e, 14	/* y1 = (e >> 14)					; S1 */
-	and	y2, e		/* y2 = (f^g)&e                                 ; CH	 */
-	add	old_h, y3	/* h = t1 + S0 + MAJ                            ; --	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18) ^ (e>>14)		; S1 */
-	rorx	T1, a, 34	/* T1 = a >> 34					; S0B */
-	xor	y2, g		/* y2 = CH = ((f^g)&e)^g                        ; CH	 */
-	rorx	y1, a, 39	/* y1 = a >> 39					; S0A */
-	mov	y3, a		/* y3 = a                                       ; MAJA	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34)			; S0 */
-	rorx	T1, a, 28	/* T1 = (a >> 28)					; S0 */
-	add	h, [rsp + frame_XFER + 8*1]		/* h = k + w + h                                ; --	 */
-	or	y3, c		/* y3 = a|c                                     ; MAJA	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34) ^ (a>>28)		; S0 */
-	mov	T1, a		/* T1 = a                                       ; MAJB	 */
-	and	y3, b		/* y3 = (a|c)&b                                 ; MAJA	 */
-	and	T1, c		/* T1 = a&c                                     ; MAJB	 */
-	add	y2, y0		/* y2 = S1 + CH                                 ; --	 */
-
-
-	add	d, h		/* d = k + w + h + d                            ; --	 */
-	or	y3, T1		/* y3 = MAJ = (a|c)&b)|(a&c)                    ; MAJ	 */
-	add	h, y1		/* h = k + w + h + S0                           ; --	 */
-
-	add	d, y2		/* d = k + w + h + d + S1 + CH = d + t1         ; --	 */
-
-
-	/*add	h, y2		; h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-
-	/*add	h, y3		; h = t1 + S0 + MAJ                            ; --	 */
-
+	ONE_ROUND rsp+frame_XFER+1*8+\X*32
 	RotateState
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	add	old_h, y2		/* h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-	mov	y2, f		/* y2 = f                                       ; CH	 */
-	rorx	y0, e, 41	/* y0 = e >> 41					; S1A */
-	rorx	y1, e, 18	/* y1 = e >> 18					; S1B */
-	xor	y2, g		/* y2 = f^g                                     ; CH	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18)			; S1 */
-	rorx	y1, e, 14	/* y1 = (e >> 14)					; S1 */
-	and	y2, e		/* y2 = (f^g)&e                                 ; CH	 */
-	add	old_h, y3	/* h = t1 + S0 + MAJ                            ; --	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18) ^ (e>>14)		; S1 */
-	rorx	T1, a, 34	/* T1 = a >> 34					; S0B */
-	xor	y2, g		/* y2 = CH = ((f^g)&e)^g                        ; CH	 */
-	rorx	y1, a, 39	/* y1 = a >> 39					; S0A */
-	mov	y3, a		/* y3 = a                                       ; MAJA	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34)			; S0 */
-	rorx	T1, a, 28	/* T1 = (a >> 28)					; S0 */
-	add	h, [rsp + frame_XFER + 8*2]		/* h = k + w + h                                ; --	 */
-	or	y3, c		/* y3 = a|c                                     ; MAJA	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34) ^ (a>>28)		; S0 */
-	mov	T1, a		/* T1 = a                                       ; MAJB	 */
-	and	y3, b		/* y3 = (a|c)&b                                 ; MAJA	 */
-	and	T1, c		/* T1 = a&c                                     ; MAJB	 */
-	add	y2, y0		/* y2 = S1 + CH                                 ; --	 */
-
-
-	add	d, h		/* d = k + w + h + d                            ; --	 */
-	or	y3, T1		/* y3 = MAJ = (a|c)&b)|(a&c)                    ; MAJ	 */
-	add	h, y1		/* h = k + w + h + S0                           ; --	 */
-
-	add	d, y2		/* d = k + w + h + d + S1 + CH = d + t1         ; --	 */
-
-
-	/*add	h, y2		; h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-
-	/*add	h, y3		; h = t1 + S0 + MAJ                            ; --	 */
-
+	ONE_ROUND rsp+frame_XFER+2*8+\X*32
 	RotateState
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	add	old_h, y2		/* h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-	mov	y2, f		/* y2 = f                                       ; CH	 */
-	rorx	y0, e, 41	/* y0 = e >> 41					; S1A */
-	rorx	y1, e, 18	/* y1 = e >> 18					; S1B */
-	xor	y2, g		/* y2 = f^g                                     ; CH	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18)			; S1 */
-	rorx	y1, e, 14	/* y1 = (e >> 14)					; S1 */
-	and	y2, e		/* y2 = (f^g)&e                                 ; CH	 */
-	add	old_h, y3	/* h = t1 + S0 + MAJ                            ; --	 */
-
-	xor	y0, y1		/* y0 = (e>>41) ^ (e>>18) ^ (e>>14)		; S1 */
-	rorx	T1, a, 34	/* T1 = a >> 34					; S0B */
-	xor	y2, g		/* y2 = CH = ((f^g)&e)^g                        ; CH	 */
-	rorx	y1, a, 39	/* y1 = a >> 39					; S0A */
-	mov	y3, a		/* y3 = a                                       ; MAJA	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34)			; S0 */
-	rorx	T1, a, 28	/* T1 = (a >> 28)					; S0 */
-	add	h, [rsp + frame_XFER + 8*3]		/* h = k + w + h                                ; --	 */
-	or	y3, c		/* y3 = a|c                                     ; MAJA	 */
-
-	xor	y1, T1		/* y1 = (a>>39) ^ (a>>34) ^ (a>>28)		; S0 */
-	mov	T1, a		/* T1 = a                                       ; MAJB	 */
-	and	y3, b		/* y3 = (a|c)&b                                 ; MAJA	 */
-	and	T1, c		/* T1 = a&c                                     ; MAJB	 */
-	add	y2, y0		/* y2 = S1 + CH                                 ; --	 */
-
-
-	add	d, h		/* d = k + w + h + d                            ; --	 */
-	or	y3, T1		/* y3 = MAJ = (a|c)&b)|(a&c)                    ; MAJ	 */
-	add	h, y1		/* h = k + w + h + S0                           ; --	 */
-
-	add	d, y2		/* d = k + w + h + d + S1 + CH = d + t1         ; --	 */
-
-
-	add	h, y2		/* h = k + w + h + S0 + S1 + CH = t1 + S0       ; --	 */
-
-	add	h, y3		/* h = t1 + S0 + MAJ                            ; --	 */
-
+	ONE_ROUND rsp+frame_XFER+3*8+\X*32
 	RotateState
 
 .endm
@@ -616,7 +362,7 @@ _gcry_sha512_transform_amd64_avx2:
 	/* Allocate Stack Space */
 	mov	rax, rsp
 	sub	rsp, frame_size
-	and	rsp, ~(0x20 - 1)
+	and	rsp, ~(0x40 - 1)
 	mov	[rsp + frame_RSPSAVE], rax
 
 	/* Save GPRs */
@@ -627,13 +373,7 @@ _gcry_sha512_transform_amd64_avx2:
 	mov	[rsp + frame_GPRSAVE + 8 * 4], r14
 	mov	[rsp + frame_GPRSAVE + 8 * 5], r15
 
-	vpblendd	xmm0, xmm0, xmm1, 0xf0
-	vpblendd	ymm0, ymm0, ymm1, 0xf0
-
-	shl	NUM_BLKS, 7	/* convert to bytes */
-	jz	.Ldone_hash
-	add	NUM_BLKS, INP	/* pointer to end of data */
-	mov	[rsp + frame_INPEND], NUM_BLKS
+	mov	[rsp + frame_NBLKS], NUM_BLKS
 
 	/*; load initial digest */
 	mov	a,[8*0 + CTX]
@@ -646,8 +386,8 @@ _gcry_sha512_transform_amd64_avx2:
 	mov	h,[8*7 + CTX]
 
 	vmovdqa	BYTE_FLIP_MASK, [.LPSHUFFLE_BYTE_FLIP_MASK ADD_RIP]
+	vmovdqa	MASK_YMM_LO, [.LMASK_YMM_LO ADD_RIP]
 
-.Loop0:
 	lea	TBL,[.LK512 ADD_RIP]
 
 	/*; byte swap first 16 dwords */
@@ -656,48 +396,60 @@ _gcry_sha512_transform_amd64_avx2:
 	COPY_YMM_AND_BSWAP	Y_2, [INP + 2*32], BYTE_FLIP_MASK
 	COPY_YMM_AND_BSWAP	Y_3, [INP + 3*32], BYTE_FLIP_MASK
 
+	add	INP, 128
 	mov	[rsp + frame_INP], INP
+
+	vpaddq	XFER, Y_0, [TBL + 0*32]
+	vmovdqa [rsp + frame_XFER + 0*32], XFER
+	vpaddq	XFER, Y_1, [TBL + 1*32]
+	vmovdqa [rsp + frame_XFER + 1*32], XFER
+	vpaddq	XFER, Y_2, [TBL + 2*32]
+	vmovdqa [rsp + frame_XFER + 2*32], XFER
+	vpaddq	XFER, Y_3, [TBL + 3*32]
+	vmovdqa [rsp + frame_XFER + 3*32], XFER
 
 	/*; schedule 64 input dwords, by doing 12 rounds of 4 each */
 	movq	[rsp + frame_SRND],4
 
 .align 16
-.Loop1:
-	vpaddq	XFER, Y_0, [TBL + 0*32]
-	vmovdqa [rsp + frame_XFER], XFER
-	FOUR_ROUNDS_AND_SCHED
-
-	vpaddq	XFER, Y_0, [TBL + 1*32]
-	vmovdqa [rsp + frame_XFER], XFER
-	FOUR_ROUNDS_AND_SCHED
-
-	vpaddq	XFER, Y_0, [TBL + 2*32]
-	vmovdqa [rsp + frame_XFER], XFER
-	FOUR_ROUNDS_AND_SCHED
-
-	vpaddq	XFER, Y_0, [TBL + 3*32]
-	vmovdqa [rsp + frame_XFER], XFER
+.Loop0:
+	FOUR_ROUNDS_AND_SCHED 0
+	FOUR_ROUNDS_AND_SCHED 1
+	FOUR_ROUNDS_AND_SCHED 2
+	FOUR_ROUNDS_AND_SCHED 3
 	add	TBL, 4*32
-	FOUR_ROUNDS_AND_SCHED
 
 	subq	[rsp + frame_SRND], 1
-	jne	.Loop1
+	jne	.Loop0
 
-	movq	[rsp + frame_SRND], 2
-.Loop2:
+	subq	[rsp + frame_NBLKS], 1
+	je	.Ldone_hash
+
+	mov	INP, [rsp + frame_INP]
+
+	lea	TBL,[.LK512 ADD_RIP]
+
+	/* load next block and byte swap */
+	COPY_YMM_AND_BSWAP	Y_0, [INP + 0*32], BYTE_FLIP_MASK
+	COPY_YMM_AND_BSWAP	Y_1, [INP + 1*32], BYTE_FLIP_MASK
+	COPY_YMM_AND_BSWAP	Y_2, [INP + 2*32], BYTE_FLIP_MASK
+	COPY_YMM_AND_BSWAP	Y_3, [INP + 3*32], BYTE_FLIP_MASK
+
+	add	INP, 128
+	mov	[rsp + frame_INP], INP
+
+	DO_4ROUNDS 0
 	vpaddq	XFER, Y_0, [TBL + 0*32]
-	vmovdqa [rsp + frame_XFER], XFER
-	DO_4ROUNDS
+	vmovdqa [rsp + frame_XFER + 0*32], XFER
+	DO_4ROUNDS 1
 	vpaddq	XFER, Y_1, [TBL + 1*32]
-	vmovdqa [rsp + frame_XFER], XFER
-	add	TBL, 2*32
-	DO_4ROUNDS
-
-	vmovdqa	Y_0, Y_2
-	vmovdqa	Y_1, Y_3
-
-	subq	[rsp + frame_SRND], 1
-	jne	.Loop2
+	vmovdqa [rsp + frame_XFER + 1*32], XFER
+	DO_4ROUNDS 2
+	vpaddq	XFER, Y_2, [TBL + 2*32]
+	vmovdqa [rsp + frame_XFER + 2*32], XFER
+	DO_4ROUNDS 3
+	vpaddq	XFER, Y_3, [TBL + 3*32]
+	vmovdqa [rsp + frame_XFER + 3*32], XFER
 
 	addm	[8*0 + CTX],a
 	addm	[8*1 + CTX],b
@@ -708,13 +460,32 @@ _gcry_sha512_transform_amd64_avx2:
 	addm	[8*6 + CTX],g
 	addm	[8*7 + CTX],h
 
-	mov	INP, [rsp + frame_INP]
-	add	INP, 128
-	cmp	INP, [rsp + frame_INPEND]
-	jne	.Loop0
+	/*; schedule 64 input dwords, by doing 12 rounds of 4 each */
+	movq	[rsp + frame_SRND],4
+
+	jmp	.Loop0
 
 .Ldone_hash:
 	vzeroall
+
+	DO_4ROUNDS 0
+	vmovdqa	[rsp + frame_XFER + 0*32], ymm0 /* burn stack */
+	DO_4ROUNDS 1
+	vmovdqa	[rsp + frame_XFER + 1*32], ymm0 /* burn stack */
+	DO_4ROUNDS 2
+	vmovdqa	[rsp + frame_XFER + 2*32], ymm0 /* burn stack */
+	DO_4ROUNDS 3
+	vmovdqa	[rsp + frame_XFER + 3*32], ymm0 /* burn stack */
+
+	addm	[8*0 + CTX],a
+	xor     eax, eax /* burn stack */
+	addm	[8*1 + CTX],b
+	addm	[8*2 + CTX],c
+	addm	[8*3 + CTX],d
+	addm	[8*4 + CTX],e
+	addm	[8*5 + CTX],f
+	addm	[8*6 + CTX],g
+	addm	[8*7 + CTX],h
 
 	/* Restore GPRs */
 	mov	rbp, [rsp + frame_GPRSAVE + 8 * 0]
@@ -723,10 +494,6 @@ _gcry_sha512_transform_amd64_avx2:
 	mov	r13, [rsp + frame_GPRSAVE + 8 * 3]
 	mov	r14, [rsp + frame_GPRSAVE + 8 * 4]
 	mov	r15, [rsp + frame_GPRSAVE + 8 * 5]
-
-	/* Burn stack */
-	vmovdqa	[rsp + frame_XFER], XFER
-	xor     eax, eax
 
 	/* Restore Stack Pointer */
 	mov	rsp, [rsp + frame_RSPSAVE]

@@ -176,379 +176,128 @@ b = a
 a = TMP_
 .endm
 
-.macro FOUR_ROUNDS_AND_SCHED XFER
+.macro ONE_ROUND_PART1 XFER
+	/* h += Sum1 (e) + Ch (e, f, g) + (k[t] + w[0]);
+	 * d += h;
+	 * h += Sum0 (a) + Maj (a, b, c);
+	 *
+	 * Ch(x, y, z) => ((x & y) + (~x & z))
+	 * Maj(x, y, z) => ((x & y) + (z & (x ^ y)))
+	 */
+
+	mov y3, e
+	add h, [\XFER]
+	and y3, f
+	rorx y0, e, 25
+	rorx y1, e, 11
+	lea h, [h + y3]
+	andn y3, e, g
+	rorx T1, a, 13
+	xor y0, y1
+	lea h, [h + y3]
+.endm
+.macro ONE_ROUND_PART2
+	rorx y2, a, 22
+	rorx y1, e, 6
+	mov y3, a
+	xor T1, y2
+	xor y0, y1
+	xor y3, b
+	lea h, [h + y0]
+	mov y0, a
+	rorx y2, a, 2
+	add d, h
+	and y3, c
+	xor T1, y2
+	lea h, [h + y3]
+	lea h, [h + T1]
+	and y0, b
+	lea h, [h + y0]
+.endm
+
+.macro ONE_ROUND XFER
+	ONE_ROUND_PART1 \XFER
+	ONE_ROUND_PART2
+.endm
+
+.macro FOUR_ROUNDS_AND_SCHED XFER, XFEROUT
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	mov	y3, a		/*  y3 = a                                ; MAJA	 */
-	rorx	y0, e, 25	/*  y0 = e >> 25				; S1A */
-	rorx	y1, e, 11	/*  y1 = e >> 11				; S1B */
-
-	add	h, [\XFER+0*4]		/*  h = k + w + h         ; --	 */
-	or	y3, c		/*  y3 = a|c                              ; MAJA	 */
 		vpalignr	XTMP0, X3, X2, 4	/*  XTMP0 = W[-7] */
-	mov	y2, f		/*  y2 = f                                ; CH	 */
-	rorx	T1, a, 13	/*  T1 = a >> 13				; S0B */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11)		; S1 */
-	xor	y2, g		/*  y2 = f^g                              ; CH	 */
-		vpaddd	XTMP0, XTMP0, X0	/*  XTMP0 = W[-7] + W[-16]; y1 = (e >> 6)					; S1 */
-	rorx	y1, e, 6	/*  y1 = (e >> 6)				; S1 */
-
-	and	y2, e		/*  y2 = (f^g)&e                          ; CH	 */
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11) ^ (e>>6)	; S1 */
-	rorx	y1, a, 22	/*  y1 = a >> 22				; S0A */
-	add	d, h		/*  d = k + w + h + d                     ; --	 */
-
-	and	y3, b		/*  y3 = (a|c)&b                          ; MAJA	 */
+		vpaddd	XTMP0, XTMP0, X0	/*  XTMP0 = W[-7] + W[-16]; y1 = (e >> 6); S1 */
 		vpalignr	XTMP1, X1, X0, 4	/*  XTMP1 = W[-15] */
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13)		; S0 */
-	rorx	T1, a, 2	/*  T1 = (a >> 2)				; S0 */
-
-	xor	y2, g		/*  y2 = CH = ((f^g)&e)^g                 ; CH	 */
 		vpsrld	XTMP2, XTMP1, 7
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13) ^ (a>>2)	; S0 */
-	mov	T1, a		/*  T1 = a                                ; MAJB	 */
-	and	T1, c		/*  T1 = a&c                              ; MAJB	 */
-
-	add	y2, y0		/*  y2 = S1 + CH                          ; --	 */
 		vpslld	XTMP3, XTMP1, (32-7)
-	or	y3, T1		/*  y3 = MAJ = (a|c)&b)|(a&c)             ; MAJ	 */
-	add	h, y1		/*  h = k + w + h + S0                    ; --	 */
-
-	add	d, y2		/*  d = k + w + h + d + S1 + CH = d + t1  ; --	 */
 		vpor	XTMP3, XTMP3, XTMP2	/*  XTMP3 = W[-15] ror 7 */
-
 		vpsrld	XTMP2, XTMP1,18
-	add	h, y2		/*  h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-	lea	h, [h + y3]	/*  h = t1 + S0 + MAJ                     ; --	 */
 
-
-ROTATE_ARGS
+	ONE_ROUND 0*4+\XFER
+	ROTATE_ARGS
 
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-
-	mov	y3, a		/*  y3 = a                                ; MAJA	 */
-	rorx	y0, e, 25	/*  y0 = e >> 25				; S1A */
-	rorx	y1, e, 11	/*  y1 = e >> 11				; S1B */
-	add	h, [\XFER+1*4]		/*  h = k + w + h         ; --	 */
-	or	y3, c		/*  y3 = a|c                              ; MAJA	 */
-
-
 		vpsrld	XTMP4, XTMP1, 3	/*  XTMP4 = W[-15] >> 3 */
-	mov	y2, f		/*  y2 = f                                ; CH	 */
-	rorx	T1, a, 13	/*  T1 = a >> 13				; S0B */
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11)		; S1 */
-	xor	y2, g		/*  y2 = f^g                              ; CH	 */
-
-
-	rorx	y1, e, 6	/*  y1 = (e >> 6)				; S1 */
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11) ^ (e>>6)	; S1 */
-	rorx	y1, a, 22	/*  y1 = a >> 22				; S0A */
-	and	y2, e		/*  y2 = (f^g)&e                          ; CH	 */
-	add	d, h		/*  d = k + w + h + d                     ; --	 */
-
 		vpslld	XTMP1, XTMP1, (32-18)
-	and	y3, b		/*  y3 = (a|c)&b                          ; MAJA	 */
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13)		; S0 */
-
 		vpxor	XTMP3, XTMP3, XTMP1
-	rorx	T1, a, 2	/*  T1 = (a >> 2)				; S0 */
-	xor	y2, g		/*  y2 = CH = ((f^g)&e)^g                 ; CH	 */
-
 		vpxor	XTMP3, XTMP3, XTMP2	/*  XTMP3 = W[-15] ror 7 ^ W[-15] ror 18 */
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13) ^ (a>>2)	; S0 */
-	mov	T1, a		/*  T1 = a                                ; MAJB	 */
-	and	T1, c		/*  T1 = a&c                              ; MAJB	 */
-	add	y2, y0		/*  y2 = S1 + CH                          ; --	 */
-
 		vpxor	XTMP1, XTMP3, XTMP4	/*  XTMP1 = s0 */
 		vpshufd	XTMP2, X3, 0b11111010	/*  XTMP2 = W[-2] {BBAA} */
-	or	y3, T1		/*  y3 = MAJ = (a|c)&b)|(a&c)             ; MAJ	 */
-	add	h, y1		/*  h = k + w + h + S0                    ; --	 */
-
 		vpaddd	XTMP0, XTMP0, XTMP1	/*  XTMP0 = W[-16] + W[-7] + s0 */
-	add	d, y2		/*  d = k + w + h + d + S1 + CH = d + t1  ; --	 */
-	add	h, y2		/*  h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-	lea	h, [h + y3]	/*  h = t1 + S0 + MAJ                     ; --	 */
-
 		vpsrld	XTMP4, XTMP2, 10	/*  XTMP4 = W[-2] >> 10 {BBAA} */
 
-
-ROTATE_ARGS
+	ONE_ROUND 1*4+\XFER
+	ROTATE_ARGS
 
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	mov	y3, a		/*  y3 = a                                ; MAJA	 */
-	rorx	y0, e, 25	/*  y0 = e >> 25				; S1A */
-	add	h, [\XFER+2*4]		/*  h = k + w + h         ; --	 */
-
 		vpsrlq	XTMP3, XTMP2, 19	/*  XTMP3 = W[-2] ror 19 {xBxA} */
-	rorx	y1, e, 11	/*  y1 = e >> 11				; S1B */
-	or	y3, c		/*  y3 = a|c                              ; MAJA	 */
-	mov	y2, f		/*  y2 = f                                ; CH	 */
-	xor	y2, g		/*  y2 = f^g                              ; CH	 */
-
-	rorx	T1, a, 13	/*  T1 = a >> 13				; S0B */
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11)		; S1 */
 		vpsrlq	XTMP2, XTMP2, 17	/*  XTMP2 = W[-2] ror 17 {xBxA} */
-	and	y2, e		/*  y2 = (f^g)&e                          ; CH	 */
-
-	rorx	y1, e, 6	/*  y1 = (e >> 6)				; S1 */
 		vpxor	XTMP2, XTMP2, XTMP3
-	add	d, h		/*  d = k + w + h + d                     ; --	 */
-	and	y3, b		/*  y3 = (a|c)&b                          ; MAJA	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11) ^ (e>>6)	; S1 */
-	rorx	y1, a, 22	/*  y1 = a >> 22				; S0A */
 		vpxor	XTMP4, XTMP4, XTMP2	/*  XTMP4 = s1 {xBxA} */
-	xor	y2, g		/*  y2 = CH = ((f^g)&e)^g                 ; CH	 */
-
 		vpshufb	XTMP4, XTMP4, SHUF_00BA	/*  XTMP4 = s1 {00BA} */
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13)		; S0 */
-	rorx	T1, a, 2	/*  T1 = (a >> 2)				; S0 */
 		vpaddd	XTMP0, XTMP0, XTMP4	/*  XTMP0 = {..., ..., W[1], W[0]} */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13) ^ (a>>2)	; S0 */
-	mov	T1, a		/*  T1 = a                                ; MAJB	 */
-	and	T1, c		/*  T1 = a&c                              ; MAJB	 */
-	add	y2, y0		/*  y2 = S1 + CH                          ; --	 */
 		vpshufd	XTMP2, XTMP0, 0b1010000	/*  XTMP2 = W[-2] {DDCC} */
 
-	or	y3, T1		/*  y3 = MAJ = (a|c)&b)|(a&c)             ; MAJ	 */
-	add	h, y1		/*  h = k + w + h + S0                    ; --	 */
-	add	d, y2		/*  d = k + w + h + d + S1 + CH = d + t1  ; --	 */
-	add	h, y2		/*  h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-
-	lea	h, [h + y3]	/*  h = t1 + S0 + MAJ                     ; --	 */
-
-
-ROTATE_ARGS
+	ONE_ROUND 2*4+\XFER
+	ROTATE_ARGS
 
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	mov	y3, a		/*  y3 = a                                ; MAJA	 */
-	rorx	y0, e, 25	/*  y0 = e >> 25				; S1A */
-	rorx	y1, e, 11	/*  y1 = e >> 11				; S1B */
-	add	h, [\XFER+3*4]		/*  h = k + w + h         ; --	 */
-	or	y3, c		/*  y3 = a|c                              ; MAJA	 */
-
-
 		vpsrld	XTMP5, XTMP2,   10	/*  XTMP5 = W[-2] >> 10 {DDCC} */
-	mov	y2, f		/*  y2 = f                                ; CH	 */
-	rorx	T1, a, 13	/*  T1 = a >> 13				; S0B */
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11)		; S1 */
-	xor	y2, g		/*  y2 = f^g                              ; CH	 */
-
-
 		vpsrlq	XTMP3, XTMP2, 19	/*  XTMP3 = W[-2] ror 19 {xDxC} */
-	rorx	y1, e, 6	/*  y1 = (e >> 6)				; S1 */
-	and	y2, e		/*  y2 = (f^g)&e                          ; CH	 */
-	add	d, h		/*  d = k + w + h + d                     ; --	 */
-	and	y3, b		/*  y3 = (a|c)&b                          ; MAJA	 */
-
 		vpsrlq	XTMP2, XTMP2, 17	/*  XTMP2 = W[-2] ror 17 {xDxC} */
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11) ^ (e>>6)	; S1 */
-	xor	y2, g		/*  y2 = CH = ((f^g)&e)^g                 ; CH	 */
-
 		vpxor	XTMP2, XTMP2, XTMP3
-	rorx	y1, a, 22	/*  y1 = a >> 22				; S0A */
-	add	y2, y0		/*  y2 = S1 + CH                          ; --	 */
-
 		vpxor	XTMP5, XTMP5, XTMP2	/*  XTMP5 = s1 {xDxC} */
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13)		; S0 */
-	add	d, y2		/*  d = k + w + h + d + S1 + CH = d + t1  ; --	 */
-
-	rorx	T1, a, 2	/*  T1 = (a >> 2)				; S0 */
 		vpshufb	XTMP5, XTMP5, SHUF_DC00	/*  XTMP5 = s1 {DC00} */
-
 		vpaddd	X0, XTMP5, XTMP0	/*  X0 = {W[3], W[2], W[1], W[0]} */
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13) ^ (a>>2)	; S0 */
-	mov	T1, a		/*  T1 = a                                ; MAJB	 */
-	and	T1, c		/*  T1 = a&c                              ; MAJB	 */
-	or	y3, T1		/*  y3 = MAJ = (a|c)&b)|(a&c)             ; MAJ	 */
+		vpaddd	XFER, X0, [TBL + \XFEROUT]
 
-	add	h, y1		/*  h = k + w + h + S0                    ; --	 */
-	add	h, y2		/*  h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-	lea	h, [h + y3]	/*  h = t1 + S0 + MAJ                     ; --	 */
-
-ROTATE_ARGS
-rotate_Xs
+	ONE_ROUND_PART1 3*4+\XFER
+		vmovdqa [rsp + _XFER + \XFEROUT], XFER
+	ONE_ROUND_PART2
+	ROTATE_ARGS
+	rotate_Xs
 .endm
 
 .macro DO_4ROUNDS XFER
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	mov	y2, f		/*  y2 = f                                ; CH	 */
-	rorx	y0, e, 25	/*  y0 = e >> 25				; S1A */
-	rorx	y1, e, 11	/*  y1 = e >> 11				; S1B */
-	xor	y2, g		/*  y2 = f^g                              ; CH	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11)		; S1 */
-	rorx	y1, e, 6	/*  y1 = (e >> 6)				; S1 */
-	and	y2, e		/*  y2 = (f^g)&e                          ; CH	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11) ^ (e>>6)	; S1 */
-	rorx	T1, a, 13	/*  T1 = a >> 13				; S0B */
-	xor	y2, g		/*  y2 = CH = ((f^g)&e)^g                 ; CH	 */
-	rorx	y1, a, 22	/*  y1 = a >> 22				; S0A */
-	mov	y3, a		/*  y3 = a                                ; MAJA	 */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13)		; S0 */
-	rorx	T1, a, 2	/*  T1 = (a >> 2)				; S0 */
-	add	h, [\XFER + 4*0]		/*  h = k + w + h ; --	 */
-	or	y3, c		/*  y3 = a|c                              ; MAJA	 */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13) ^ (a>>2)	; S0 */
-	mov	T1, a		/*  T1 = a                                ; MAJB	 */
-	and	y3, b		/*  y3 = (a|c)&b                          ; MAJA	 */
-	and	T1, c		/*  T1 = a&c                              ; MAJB	 */
-	add	y2, y0		/*  y2 = S1 + CH                          ; --	 */
-
-
-	add	d, h		/*  d = k + w + h + d                     ; --	 */
-	or	y3, T1		/*  y3 = MAJ = (a|c)&b)|(a&c)             ; MAJ	 */
-	add	h, y1		/*  h = k + w + h + S0                    ; --	 */
-
-	add	d, y2		/*  d = k + w + h + d + S1 + CH = d + t1  ; --	 */
-
-
-	/* add	h, y2		; h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-
-	/* lea	h, [h + y3]	; h = t1 + S0 + MAJ                     ; --	 */
-
+	ONE_ROUND 0*4+\XFER
 	ROTATE_ARGS
 
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	add	old_h, y2	/*  h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-	mov	y2, f		/*  y2 = f                                ; CH	 */
-	rorx	y0, e, 25	/*  y0 = e >> 25				; S1A */
-	rorx	y1, e, 11	/*  y1 = e >> 11				; S1B */
-	xor	y2, g		/*  y2 = f^g                              ; CH	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11)		; S1 */
-	rorx	y1, e, 6	/*  y1 = (e >> 6)				; S1 */
-	and	y2, e		/*  y2 = (f^g)&e                          ; CH	 */
-	add	old_h, y3	/*  h = t1 + S0 + MAJ                     ; --	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11) ^ (e>>6)	; S1 */
-	rorx	T1, a, 13	/*  T1 = a >> 13				; S0B */
-	xor	y2, g		/*  y2 = CH = ((f^g)&e)^g                 ; CH	 */
-	rorx	y1, a, 22	/*  y1 = a >> 22				; S0A */
-	mov	y3, a		/*  y3 = a                                ; MAJA	 */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13)		; S0 */
-	rorx	T1, a, 2	/*  T1 = (a >> 2)				; S0 */
-	add	h, [\XFER + 4*1]		/*  h = k + w + h ; --	 */
-	or	y3, c		/*  y3 = a|c                              ; MAJA	 */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13) ^ (a>>2)	; S0 */
-	mov	T1, a		/*  T1 = a                                ; MAJB	 */
-	and	y3, b		/*  y3 = (a|c)&b                          ; MAJA	 */
-	and	T1, c		/*  T1 = a&c                              ; MAJB	 */
-	add	y2, y0		/*  y2 = S1 + CH                          ; --	 */
-
-
-	add	d, h		/*  d = k + w + h + d                     ; --	 */
-	or	y3, T1		/*  y3 = MAJ = (a|c)&b)|(a&c)             ; MAJ	 */
-	add	h, y1		/*  h = k + w + h + S0                    ; --	 */
-
-	add	d, y2		/*  d = k + w + h + d + S1 + CH = d + t1  ; --	 */
-
-
-	/* add	h, y2		; h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-
-	/* lea	h, [h + y3]	; h = t1 + S0 + MAJ                     ; --	 */
-
+	ONE_ROUND 1*4+\XFER
 	ROTATE_ARGS
 
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	add	old_h, y2	/*  h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-	mov	y2, f		/*  y2 = f                                ; CH	 */
-	rorx	y0, e, 25	/*  y0 = e >> 25				; S1A */
-	rorx	y1, e, 11	/*  y1 = e >> 11				; S1B */
-	xor	y2, g		/*  y2 = f^g                              ; CH	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11)		; S1 */
-	rorx	y1, e, 6	/*  y1 = (e >> 6)				; S1 */
-	and	y2, e		/*  y2 = (f^g)&e                          ; CH	 */
-	add	old_h, y3	/*  h = t1 + S0 + MAJ                     ; --	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11) ^ (e>>6)	; S1 */
-	rorx	T1, a, 13	/*  T1 = a >> 13				; S0B */
-	xor	y2, g		/*  y2 = CH = ((f^g)&e)^g                 ; CH	 */
-	rorx	y1, a, 22	/*  y1 = a >> 22				; S0A */
-	mov	y3, a		/*  y3 = a                                ; MAJA	 */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13)		; S0 */
-	rorx	T1, a, 2	/*  T1 = (a >> 2)				; S0 */
-	add	h, [\XFER + 4*2]		/*  h = k + w + h ; --	 */
-	or	y3, c		/*  y3 = a|c                              ; MAJA	 */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13) ^ (a>>2)	; S0 */
-	mov	T1, a		/*  T1 = a                                ; MAJB	 */
-	and	y3, b		/*  y3 = (a|c)&b                          ; MAJA	 */
-	and	T1, c		/*  T1 = a&c                              ; MAJB	 */
-	add	y2, y0		/*  y2 = S1 + CH                          ; --	 */
-
-
-	add	d, h		/*  d = k + w + h + d                     ; --	 */
-	or	y3, T1		/*  y3 = MAJ = (a|c)&b)|(a&c)             ; MAJ	 */
-	add	h, y1		/*  h = k + w + h + S0                    ; --	 */
-
-	add	d, y2		/*  d = k + w + h + d + S1 + CH = d + t1  ; --	 */
-
-
-	/* add	h, y2		; h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-
-	/* lea	h, [h + y3]	; h = t1 + S0 + MAJ                     ; --	 */
-
+	ONE_ROUND 2*4+\XFER
 	ROTATE_ARGS
 
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-	add	old_h, y2	/*  h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-	mov	y2, f		/*  y2 = f                                ; CH	 */
-	rorx	y0, e, 25	/*  y0 = e >> 25				; S1A */
-	rorx	y1, e, 11	/*  y1 = e >> 11				; S1B */
-	xor	y2, g		/*  y2 = f^g                              ; CH	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11)		; S1 */
-	rorx	y1, e, 6	/*  y1 = (e >> 6)				; S1 */
-	and	y2, e		/*  y2 = (f^g)&e                          ; CH	 */
-	add	old_h, y3	/*  h = t1 + S0 + MAJ                     ; --	 */
-
-	xor	y0, y1		/*  y0 = (e>>25) ^ (e>>11) ^ (e>>6)	; S1 */
-	rorx	T1, a, 13	/*  T1 = a >> 13				; S0B */
-	xor	y2, g		/*  y2 = CH = ((f^g)&e)^g                 ; CH	 */
-	rorx	y1, a, 22	/*  y1 = a >> 22				; S0A */
-	mov	y3, a		/*  y3 = a                                ; MAJA	 */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13)		; S0 */
-	rorx	T1, a, 2	/*  T1 = (a >> 2)				; S0 */
-	add	h, [\XFER + 4*3]		/*  h = k + w + h ; --	 */
-	or	y3, c		/*  y3 = a|c                              ; MAJA	 */
-
-	xor	y1, T1		/*  y1 = (a>>22) ^ (a>>13) ^ (a>>2)	; S0 */
-	mov	T1, a		/*  T1 = a                                ; MAJB	 */
-	and	y3, b		/*  y3 = (a|c)&b                          ; MAJA	 */
-	and	T1, c		/*  T1 = a&c                              ; MAJB	 */
-	add	y2, y0		/*  y2 = S1 + CH                          ; --	 */
-
-
-	add	d, h		/*  d = k + w + h + d                     ; --	 */
-	or	y3, T1		/*  y3 = MAJ = (a|c)&b)|(a&c)             ; MAJ	 */
-	add	h, y1		/*  h = k + w + h + S0                    ; --	 */
-
-	add	d, y2		/*  d = k + w + h + d + S1 + CH = d + t1  ; --	 */
-
-
-	add	h, y2		/*  h = k + w + h + S0 + S1 + CH = t1 + S0; --	 */
-
-	lea	h, [h + y3]	/*  h = t1 + S0 + MAJ                     ; --	 */
-
+	ONE_ROUND 3*4+\XFER
 	ROTATE_ARGS
 .endm
 
@@ -565,6 +314,11 @@ rotate_Xs
 ELF(.type _gcry_sha256_transform_amd64_avx2,@function)
 .align 32
 _gcry_sha256_transform_amd64_avx2:
+	xor eax, eax
+
+	cmp rdx, 0
+	je .Lnowork
+
 	push	rbx
 	push	rbp
 	push	r12
@@ -574,18 +328,18 @@ _gcry_sha256_transform_amd64_avx2:
 
 	vzeroupper
 
+	vmovdqa	BYTE_FLIP_MASK, [.LPSHUFFLE_BYTE_FLIP_MASK ADD_RIP]
+	vmovdqa	SHUF_00BA, [.L_SHUF_00BA ADD_RIP]
+	vmovdqa	SHUF_DC00, [.L_SHUF_DC00 ADD_RIP]
+
 	mov	rax, rsp
 	sub	rsp, STACK_SIZE
-	and	rsp, -32
+	and	rsp, ~63
 	mov	[rsp + _RSP], rax
 
 	shl	NUM_BLKS, 6	/*  convert to bytes */
-	jz	.Ldone_hash
 	lea	NUM_BLKS, [NUM_BLKS + INP - 64] /*  pointer to last block */
 	mov	[rsp + _INP_END], NUM_BLKS
-
-	cmp	INP, NUM_BLKS
-	je	.Lonly_one_block
 
 	/* ; load initial digest */
 	mov	a,[4*0 + CTX]
@@ -596,10 +350,6 @@ _gcry_sha256_transform_amd64_avx2:
 	mov	f,[4*5 + CTX]
 	mov	g,[4*6 + CTX]
 	mov	h,[4*7 + CTX]
-
-	vmovdqa	BYTE_FLIP_MASK, [.LPSHUFFLE_BYTE_FLIP_MASK ADD_RIP]
-	vmovdqa	SHUF_00BA, [.L_SHUF_00BA ADD_RIP]
-	vmovdqa	SHUF_DC00, [.L_SHUF_DC00 ADD_RIP]
 
 	mov	[rsp + _CTX], CTX
 
@@ -631,43 +381,31 @@ _gcry_sha256_transform_amd64_avx2:
 	/* ; schedule 48 input dwords, by doing 3 rounds of 12 each */
 	xor	SRND, SRND
 
+	vpaddd	XFER, X0, [TBL + 0*32]
+	vmovdqa [rsp + _XFER + 0*32], XFER
+	vpaddd	XFER, X1, [TBL + 1*32]
+	vmovdqa [rsp + _XFER + 1*32], XFER
+	vpaddd	XFER, X2, [TBL + 2*32]
+	vmovdqa [rsp + _XFER + 2*32], XFER
+	vpaddd	XFER, X3, [TBL + 3*32]
+	vmovdqa [rsp + _XFER + 3*32], XFER
+
 .align 16
 .Loop1:
-	vpaddd	XFER, X0, [TBL + SRND + 0*32]
-	vmovdqa [rsp + _XFER + SRND + 0*32], XFER
-	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 0*32
-
-	vpaddd	XFER, X0, [TBL + SRND + 1*32]
-	vmovdqa [rsp + _XFER + SRND + 1*32], XFER
-	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 1*32
-
-	vpaddd	XFER, X0, [TBL + SRND + 2*32]
-	vmovdqa [rsp + _XFER + SRND + 2*32], XFER
-	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 2*32
-
-	vpaddd	XFER, X0, [TBL + SRND + 3*32]
-	vmovdqa [rsp + _XFER + SRND + 3*32], XFER
-	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 3*32
+	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 0*32, SRND + 4*32
+	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 1*32, SRND + 5*32
+	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 2*32, SRND + 6*32
+	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 3*32, SRND + 7*32
 
 	add	SRND, 4*32
 	cmp	SRND, 3 * 4*32
 	jb	.Loop1
 
-.Loop2:
 	/* ; Do last 16 rounds with no scheduling */
-	vpaddd	XFER, X0, [TBL + SRND + 0*32]
-	vmovdqa [rsp + _XFER + SRND + 0*32], XFER
-	DO_4ROUNDS	rsp + _XFER + SRND + 0*32
-	vpaddd	XFER, X1, [TBL + SRND + 1*32]
-	vmovdqa [rsp + _XFER + SRND + 1*32], XFER
-	DO_4ROUNDS	rsp + _XFER + SRND + 1*32
-	add	SRND, 2*32
-
-	vmovdqa	X0, X2
-	vmovdqa	X1, X3
-
-	cmp	SRND, 4 * 4*32
-	jb	.Loop2
+	DO_4ROUNDS	rsp + _XFER + (3*4*32 + 0*32)
+	DO_4ROUNDS	rsp + _XFER + (3*4*32 + 1*32)
+	DO_4ROUNDS	rsp + _XFER + (3*4*32 + 2*32)
+	DO_4ROUNDS	rsp + _XFER + (3*4*32 + 3*32)
 
 	mov	CTX, [rsp + _CTX]
 	mov	INP, [rsp + _INP]
@@ -777,6 +515,7 @@ _gcry_sha256_transform_amd64_avx2:
 	pop	rbp
 	pop	rbx
 
+.Lnowork:
 	ret
 
 .align 64
