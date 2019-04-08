@@ -805,7 +805,7 @@ AC_SEARCH_LIBS(setsockopt, [nsl])
 ##################################
 
 AC_HEADER_STDC
-AC_CHECK_HEADERS(unistd.h sys/select.h sys/msg.h)
+AC_CHECK_HEADERS(unistd.h sys/select.h sys/msg.h sys/auxv.h)
 INSERT_SYS_SELECT_H=
 if test x"$ac_cv_header_sys_select_h" = xyes; then
   INSERT_SYS_SELECT_H=" include <sys/select.h>"
@@ -1806,7 +1806,7 @@ AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 # Other checks
 AC_CHECK_FUNCS(strerror rand mmap getpagesize sysconf waitpid wait4)
 AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime syslog)
-AC_CHECK_FUNCS(syscall fcntl ftruncate flockfile)
+AC_CHECK_FUNCS(syscall fcntl ftruncate flockfile getauxval)
 AC_CHECK_FUNCS(explicit_bzero getentropy)
 
 GNUPG_CHECK_MLOCK

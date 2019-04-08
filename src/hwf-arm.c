@@ -1,5 +1,5 @@
 /* hwf-arm.c - Detect hardware features - ARM part
- * Copyright (C) 2013  Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013,2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -23,6 +23,10 @@
 #include <string.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <errno.h>
+#if defined(HAVE_SYS_AUXV_H) && defined(HAVE_GETAUXVAL)
+#include <sys/auxv.h>
+#endif
 
 #include "g10lib.h"
 #include "hwf-common.h"
@@ -32,8 +36,9 @@
 #endif
 
 #undef HAS_SYS_AT_HWCAP
-#undef HAS_PROC_CPUINFO
-#ifdef __linux__
+#if defined(__linux__) || \
+    (defined(HAVE_SYS_AUXV_H) && defined(HAVE_GETAUXVAL))
+#define HAS_SYS_AT_HWCAP 1
 
 struct feature_map_s {
   unsigned int hwcap_flag;
@@ -42,20 +47,31 @@ struct feature_map_s {
   unsigned int hwf_flag;
 };
 
-#define HAS_SYS_AT_HWCAP 1
-#define HAS_PROC_CPUINFO 1
-
 #ifdef __arm__
 
-#define AT_HWCAP      16
-#define AT_HWCAP2     26
+#ifndef AT_HWCAP
+# define AT_HWCAP      16
+#endif
+#ifndef AT_HWCAP2
+# define AT_HWCAP2     26
+#endif
 
-#define HWCAP_NEON    4096
+#ifndef HWCAP_NEON
+# define HWCAP_NEON    4096
+#endif
 
-#define HWCAP2_AES    1
-#define HWCAP2_PMULL  2
-#define HWCAP2_SHA1   3
-#define HWCAP2_SHA2   4
+#ifndef HWCAP2_AES
+# define HWCAP2_AES    1
+#endif
+#ifndef HWCAP2_PMULL
+# define HWCAP2_PMULL  2
+#endif
+#ifndef HWCAP2_SHA1
+# define HWCAP2_SHA1   3
+#endif
+#ifndef HWCAP2_SHA2
+# define HWCAP2_SHA2   4
+#endif
 
 static const struct feature_map_s arm_features[] =
   {
@@ -72,14 +88,28 @@ static const struct feature_map_s arm_features[] =
 
 #elif defined(__aarch64__)
 
-#define AT_HWCAP    16
-#define AT_HWCAP2   -1
+#ifndef AT_HWCAP
+# define AT_HWCAP    16
+#endif
+#ifndef AT_HWCAP2
+# define AT_HWCAP2   -1
+#endif
 
-#define HWCAP_ASIMD 2
-#define HWCAP_AES   8
-#define HWCAP_PMULL 16
-#define HWCAP_SHA1  32
-#define HWCAP_SHA2  64
+#ifndef HWCAP_ASIMD
+# define HWCAP_ASIMD 2
+#endif
+#ifndef HWCAP_AES
+# define HWCAP_AES   8
+#endif
+#ifndef HWCAP_PMULL
+# define HWCAP_PMULL 16
+#endif
+#ifndef HWCAP_SHA1
+# define HWCAP_SHA1  32
+#endif
+#ifndef HWCAP_SHA2
+# define HWCAP_SHA2  64
+#endif
 
 static const struct feature_map_s arm_features[] =
   {
@@ -113,6 +143,34 @@ get_hwcap(unsigned int *hwcap, unsigned int *hwcap2)
       return 0;
     }
 
+#if defined(HAVE_SYS_AUXV_H) && defined(HAVE_GETAUXVAL)
+  errno = 0;
+  auxv.a_val = getauxval (AT_HWCAP);
+  if (errno == 0)
+    {
+      stored_hwcap |= auxv.a_val;
+      hwcap_initialized = 1;
+    }
+
+  if (AT_HWCAP2 >= 0)
+    {
+      errno = 0;
+      auxv.a_val = getauxval (AT_HWCAP2);
+      if (errno == 0)
+	{
+	  stored_hwcap2 |= auxv.a_val;
+	  hwcap_initialized = 1;
+	}
+    }
+
+  if (hwcap_initialized && (stored_hwcap || stored_hwcap2))
+    {
+      *hwcap = stored_hwcap;
+      *hwcap2 = stored_hwcap2;
+      return 0;
+    }
+#endif
+
   f = fopen("/proc/self/auxv", "r");
   if (!f)
     {
@@ -125,13 +183,13 @@ get_hwcap(unsigned int *hwcap, unsigned int *hwcap2)
     {
       if (auxv.a_type == AT_HWCAP)
         {
-          stored_hwcap = auxv.a_val;
+          stored_hwcap |= auxv.a_val;
           hwcap_initialized = 1;
         }
 
       if (auxv.a_type == AT_HWCAP2)
         {
-          stored_hwcap2 = auxv.a_val;
+          stored_hwcap2 |= auxv.a_val;
           hwcap_initialized = 1;
         }
     }
@@ -167,6 +225,12 @@ detect_arm_at_hwcap(void)
 
   return features;
 }
+
+#endif
+
+#undef HAS_PROC_CPUINFO
+#ifdef __linux__
+#define HAS_PROC_CPUINFO 1
 
 static unsigned int
 detect_arm_proc_cpuinfo(unsigned int *broken_hwfs)
