@@ -464,7 +464,7 @@ static gcry_md_oid_spec_t oid_spec_sm3[] =
 
 gcry_md_spec_t _gcry_digest_spec_sm3 =
   {
-    GCRY_MD_SM3, {0, 1},
+    GCRY_MD_SM3, {0, 0},
     "SM3", asn_sm3, DIM (asn_sm3), oid_spec_sm3, 32,
     sm3_init, _gcry_md_block_write, sm3_final, sm3_read, NULL,
     _gcry_sm3_hash_buffer, _gcry_sm3_hash_buffers,
