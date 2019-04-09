@@ -1806,7 +1806,7 @@ AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 # Other checks
 AC_CHECK_FUNCS(strerror rand mmap getpagesize sysconf waitpid wait4)
 AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime syslog)
-AC_CHECK_FUNCS(syscall fcntl ftruncate flockfile getauxval)
+AC_CHECK_FUNCS(syscall fcntl ftruncate flockfile getauxval elf_aux_info)
 AC_CHECK_FUNCS(explicit_bzero getentropy)
 
 GNUPG_CHECK_MLOCK

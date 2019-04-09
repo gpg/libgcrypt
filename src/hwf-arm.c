@@ -24,7 +24,8 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <errno.h>
-#if defined(HAVE_SYS_AUXV_H) && defined(HAVE_GETAUXVAL)
+#if defined(HAVE_SYS_AUXV_H) && (defined(HAVE_GETAUXVAL) || \
+    defined(HAVE_ELF_AUX_INFO))
 #include <sys/auxv.h>
 #endif
 
@@ -34,6 +35,30 @@
 #if !defined (__arm__) && !defined (__aarch64__)
 # error Module build for wrong CPU.
 #endif
+
+
+#if defined(HAVE_SYS_AUXV_H) && defined(HAVE_ELF_AUX_INFO) && \
+    !defined(HAVE_GETAUXVAL) && defined(AT_HWCAP)
+#define HAVE_GETAUXVAL
+static unsigned long getauxval(unsigned long type)
+{
+  unsigned long auxval = 0;
+  int err;
+
+  /* FreeBSD provides 'elf_aux_info' function that does the same as
+   * 'getauxval' on Linux. */
+
+  err = elf_aux_info (type, &auxval, sizeof(auxval));
+  if (err)
+    {
+      errno = err;
+      auxval = 0;
+    }
+
+  return auxval;
+}
+#endif
+
 
 #undef HAS_SYS_AT_HWCAP
 #if defined(__linux__) || \
@@ -49,6 +74,7 @@ struct feature_map_s {
 
 #ifdef __arm__
 
+/* Note: These macros have same values on Linux and FreeBSD. */
 #ifndef AT_HWCAP
 # define AT_HWCAP      16
 #endif
@@ -88,6 +114,7 @@ static const struct feature_map_s arm_features[] =
 
 #elif defined(__aarch64__)
 
+/* Note: These macros have same values on Linux and FreeBSD. */
 #ifndef AT_HWCAP
 # define AT_HWCAP    16
 #endif
