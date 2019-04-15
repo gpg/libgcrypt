@@ -1170,6 +1170,34 @@ if test "$gcry_cv_gcc_aarch64_platform_as_ok" = "yes" ; then
      [Defined if underlying assembler is compatible with ARMv8/Aarch64 assembly implementations])
 fi
 
+#
+# Check whether GCC assembler supports for CFI directives.
+#
+AC_CACHE_CHECK([whether GCC assembler supports for CFI directives],
+       [gcry_cv_gcc_asm_cfi_directives],
+       [gcry_cv_gcc_asm_cfi_directives=no
+        AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[__asm__(
+                ".text\n\t"
+                "ac_test:\n\t"
+                ".cfi_startproc\n\t"
+                ".cfi_remember_state\n\t"
+                ".cfi_adjust_cfa_offset 8\n\t"
+                ".cfi_rel_offset 0, 8\n\t"
+                ".cfi_def_cfa_register 1\n\t"
+                ".cfi_register 2, 3\n\t"
+                ".cfi_restore 2\n\t"
+                ".cfi_escape 0x0f, 0x02, 0x11, 0x00\n\t"
+                ".cfi_restore_state\n\t"
+                ".long 0\n\t"
+                ".cfi_endproc\n\t"
+            );]])],
+          [gcry_cv_gcc_asm_cfi_directives=yes])])
+if test "$gcry_cv_gcc_asm_cfi_directives" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ASM_CFI_DIRECTIVES,1,
+             [Defined if underlying assembler supports for CFI directives])
+fi
+
 
 #
 # Check whether underscores in symbols are required.  This needs to be
@@ -1616,7 +1644,6 @@ if test "$gcry_cv_gcc_platform_as_ok_for_intel_syntax" = "yes" ; then
   AC_DEFINE(HAVE_INTEL_SYNTAX_PLATFORM_AS,1,
             [Defined if underlying assembler is compatible with Intel syntax assembly implementations])
 fi
-
 
 #
 # Check whether compiler is configured for ARMv6 or newer architecture

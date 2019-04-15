@@ -33,18 +33,7 @@
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(HAVE_GCC_INLINE_ASM_SSSE3) && defined(USE_SHA1)
 
-#ifdef __PIC__
-#  define RIP (%rip)
-#else
-#  define RIP
-#endif
-
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 
 /* Context structure */
@@ -162,7 +151,7 @@
 	movdqa tmp0, W;
 
 #define W_PRECALC_00_15_2(i, W, tmp0) \
-	paddd (.LK_XMM + ((i)/20)*16) RIP, tmp0;
+	paddd (.LK_XMM + ((i)/20)*16) rRIP, tmp0;
 
 #define W_PRECALC_00_15_3(i, W, tmp0) \
 	movdqa tmp0, WK(i&~3);
@@ -193,7 +182,7 @@
 	pxor W, tmp0; \
 	pxor tmp1, tmp0; \
 	movdqa tmp0, W; \
-	paddd (.LK_XMM + ((i)/20)*16) RIP, tmp0; \
+	paddd (.LK_XMM + ((i)/20)*16) rRIP, tmp0; \
 	movdqa tmp0, WK((i)&~3);
 
 #define W_PRECALC_32_79_0(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28, tmp0) \
@@ -213,7 +202,7 @@
 
 #define W_PRECALC_32_79_3(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28, tmp0) \
 	movdqa tmp0, W; \
-	paddd (.LK_XMM + ((i)/20)*16) RIP, tmp0; \
+	paddd (.LK_XMM + ((i)/20)*16) rRIP, tmp0; \
 	movdqa tmp0, WK((i)&~3);
 
 #define CLEAR_REG(reg) pxor reg, reg;
@@ -235,6 +224,7 @@ _gcry_sha1_transform_amd64_ssse3:
    *	%rsi: data (64*nblks bytes)
    *	%rdx: nblks
    */
+  CFI_STARTPROC();
 
   xorl %eax, %eax;
   cmpq $0, %rdx;
@@ -244,9 +234,12 @@ _gcry_sha1_transform_amd64_ssse3:
   movq %rdi, RSTATE;
   movq %rsi, RDATA;
   pushq %rbx;
+  CFI_PUSH(%rbx);
   pushq %rbp;
+  CFI_PUSH(%rbp);
 
   movq %rsp, ROLDSTACK;
+  CFI_DEF_CFA_REGISTER(ROLDSTACK);
 
   subq $(16*4), %rsp;
   andq $(~31), %rsp;
@@ -258,7 +251,7 @@ _gcry_sha1_transform_amd64_ssse3:
   movl state_h3(RSTATE), d;
   movl state_h4(RSTATE), e;
 
-  movdqa .Lbswap_shufb_ctl RIP, BSWAP_REG;
+  movdqa .Lbswap_shufb_ctl rRIP, BSWAP_REG;
 
   /* Precalc 0-15. */
   W_PRECALC_00_15_0(0, W0, Wtmp0);
@@ -423,15 +416,20 @@ _gcry_sha1_transform_amd64_ssse3:
   movl e, state_h4(RSTATE);
 
   movq ROLDSTACK, %rsp;
+  CFI_REGISTER(ROLDSTACK, %rsp);
+  CFI_DEF_CFA_REGISTER(%rsp);
 
   popq %rbp;
+  CFI_POP(%rbp);
   popq %rbx;
+  CFI_POP(%rbx);
 
   /* stack already burned */
   xorl %eax, %eax;
 
 .Lret:
   ret;
+  CFI_ENDPROC();
 ELF(.size _gcry_sha1_transform_amd64_ssse3,
     .-_gcry_sha1_transform_amd64_ssse3;)
 

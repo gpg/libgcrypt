@@ -212,14 +212,19 @@ _gcry_aes_amd64_encrypt_block:
 	 *	%ecx: number of rounds.. 10, 12 or 14
 	 *	%r8:  encryption tables
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_5
 
 	subq $(5 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(5 * 8);
 	movq %rsi, (0 * 8)(%rsp);
 	movl %ecx, (1 * 8)(%rsp);
 	movq %rbp, (2 * 8)(%rsp);
 	movq %rbx, (3 * 8)(%rsp);
 	movq %r12, (4 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 2 * 8);
+	CFI_REL_OFFSET(%rbx, 3 * 8);
+	CFI_REL_OFFSET(%r12, 4 * 8);
 
 	leaq (%r8), RTAB;
 
@@ -251,16 +256,23 @@ _gcry_aes_amd64_encrypt_block:
 	movl RCd, 2 * 4(%rsi);
 	movl RDd, 3 * 4(%rsi);
 
+	CFI_REMEMBER_STATE();
+
 	movq (4 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %rbx;
 	movq (2 * 8)(%rsp), %rbp;
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%rbp);
 	addq $(5 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-5 * 8);
 
 	movl $(6 * 8), %eax;
 
 	EXIT_SYSV_FUNC
 	ret;
 
+	CFI_RESTORE_STATE();
 .align 4
 .Lenc_not_128:
 	je .Lenc_192
@@ -280,6 +292,7 @@ _gcry_aes_amd64_encrypt_block:
 	lastencround(11);
 
 	jmp .Lenc_done;
+	CFI_ENDPROC();
 ELF(.size _gcry_aes_amd64_encrypt_block,.-_gcry_aes_amd64_encrypt_block;)
 
 #define do_decround(next_r) \
@@ -376,14 +389,19 @@ _gcry_aes_amd64_decrypt_block:
 	 *	%ecx: number of rounds.. 10, 12 or 14
 	 *	%r8:  decryption tables
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_5
 
 	subq $(5 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(5 * 8);
 	movq %rsi, (0 * 8)(%rsp);
 	movl %ecx, (1 * 8)(%rsp);
 	movq %rbp, (2 * 8)(%rsp);
 	movq %rbx, (3 * 8)(%rsp);
 	movq %r12, (4 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 2 * 8);
+	CFI_REL_OFFSET(%rbx, 3 * 8);
+	CFI_REL_OFFSET(%r12, 4 * 8);
 
 	leaq (%r8), RTAB;
 
@@ -416,16 +434,23 @@ _gcry_aes_amd64_decrypt_block:
 	movl RCd, 2 * 4(%rsi);
 	movl RDd, 3 * 4(%rsi);
 
+	CFI_REMEMBER_STATE();
+
 	movq (4 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %rbx;
 	movq (2 * 8)(%rsp), %rbp;
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%rbp);
 	addq $(5 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-5 * 8);
 
 	movl $(6 * 8), %eax;
 
 	EXIT_SYSV_FUNC
 	ret;
 
+	CFI_RESTORE_STATE();
 .align 4
 .Ldec_256:
 	je .Ldec_192;
@@ -445,6 +470,7 @@ _gcry_aes_amd64_decrypt_block:
 	decround(9);
 
 	jmp .Ldec_tail;
+	CFI_ENDPROC();
 ELF(.size _gcry_aes_amd64_decrypt_block,.-_gcry_aes_amd64_decrypt_block;)
 
 #endif /*USE_AES*/

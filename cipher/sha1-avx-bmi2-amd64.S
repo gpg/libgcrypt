@@ -34,18 +34,7 @@
     defined(HAVE_GCC_INLINE_ASM_BMI2) && \
     defined(HAVE_GCC_INLINE_ASM_AVX) && defined(USE_SHA1)
 
-#ifdef __PIC__
-#  define RIP (%rip)
-#else
-#  define RIP
-#endif
-
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 
 /* Context structure */
@@ -222,6 +211,7 @@ _gcry_sha1_transform_amd64_avx_bmi2:
    *	%rsi: data (64*nblks bytes)
    *	%rdx: nblks
    */
+  CFI_STARTPROC();
 
   xorl %eax, %eax;
   cmpq $0, %rdx;
@@ -233,10 +223,14 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   movq %rdi, RSTATE;
   movq %rsi, RDATA;
   pushq %rbx;
+  CFI_PUSH(%rbx);
   pushq %rbp;
+  CFI_PUSH(%rbp);
   pushq %r12;
+  CFI_PUSH(%r12);
 
   movq %rsp, ROLDSTACK;
+  CFI_DEF_CFA_REGISTER(ROLDSTACK);
 
   subq $(16*4), %rsp;
   andq $(~31), %rsp;
@@ -249,11 +243,11 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   movl state_h4(RSTATE), e;
   xorl ne, ne;
 
-  vmovdqa .Lbswap_shufb_ctl RIP, BSWAP_REG;
-  vpbroadcastd .LK1 RIP, K1;
-  vpbroadcastd .LK2 RIP, K2;
-  vpbroadcastd .LK3 RIP, K3;
-  vpbroadcastd .LK4 RIP, K4;
+  vmovdqa .Lbswap_shufb_ctl rRIP, BSWAP_REG;
+  vpbroadcastd .LK1 rRIP, K1;
+  vpbroadcastd .LK2 rRIP, K2;
+  vpbroadcastd .LK3 rRIP, K3;
+  vpbroadcastd .LK4 rRIP, K4;
 
   /* Precalc 0-15. */
   W_PRECALC_00_15_0(0, W0, Wtmp0);
@@ -424,16 +418,22 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   movl e, state_h4(RSTATE);
 
   movq ROLDSTACK, %rsp;
+  CFI_REGISTER(ROLDSTACK, %rsp);
+  CFI_DEF_CFA_REGISTER(%rsp);
 
   popq %r12;
+  CFI_POP(%r12);
   popq %rbp;
+  CFI_POP(%rbp);
   popq %rbx;
+  CFI_POP(%rbx);
 
   /* stack already burned */
   xorl %eax, %eax;
 
 .Lret:
   ret;
+  CFI_ENDPROC();
 ELF(.size _gcry_sha1_transform_amd64_avx_bmi2,
     .-_gcry_sha1_transform_amd64_avx_bmi2;)
 

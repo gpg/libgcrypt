@@ -24,17 +24,7 @@
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_SERPENT) && \
     defined(ENABLE_AVX2_SUPPORT)
 
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
-
-#ifdef __PIC__
-#  define RIP (%rip)
-#else
-#  define RIP
-#endif
+#include "asm-common-amd64.h"
 
 /* struct serpent_context: */
 #define ctx_keys 0
@@ -421,6 +411,7 @@ __serpent_enc_blk16:
 	 *	RA4, RA1, RA2, RA0, RB4, RB1, RB2, RB0: sixteen parallel
 	 * 						ciphertext blocks
 	 */
+	CFI_STARTPROC();
 
 	vpcmpeqd RNOT, RNOT, RNOT;
 
@@ -496,6 +487,7 @@ __serpent_enc_blk16:
 	transpose_4x4(RB4, RB1, RB2, RB0, RB3, RTMP0, RTMP1);
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size __serpent_enc_blk16,.-__serpent_enc_blk16;)
 
 .align 8
@@ -509,6 +501,7 @@ __serpent_dec_blk16:
 	 *	RA0, RA1, RA2, RA3, RB0, RB1, RB2, RB3: sixteen parallel
 	 *						plaintext blocks
 	 */
+	CFI_STARTPROC();
 
 	vpcmpeqd RNOT, RNOT, RNOT;
 
@@ -586,6 +579,7 @@ __serpent_dec_blk16:
 	transpose_4x4(RB0, RB1, RB2, RB3, RB4, RTMP0, RTMP1);
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size __serpent_dec_blk16,.-__serpent_dec_blk16;)
 
 #define inc_le128(x, minus_one, tmp) \
@@ -604,13 +598,14 @@ _gcry_serpent_avx2_ctr_enc:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv (big endian, 128bit)
 	 */
+	CFI_STARTPROC();
 
 	movq 8(%rcx), %rax;
 	bswapq %rax;
 
 	vzeroupper;
 
-	vbroadcasti128 .Lbswap128_mask RIP, RTMP3;
+	vbroadcasti128 .Lbswap128_mask rRIP, RTMP3;
 	vpcmpeqd RNOT, RNOT, RNOT;
 	vpsrldq $8, RNOT, RNOT;   /* ab: -1:0 ; cd: -1:0 */
 	vpaddq RNOT, RNOT, RTMP2; /* ab: -2:0 ; cd: -2:0 */
@@ -701,7 +696,8 @@ _gcry_serpent_avx2_ctr_enc:
 
 	vzeroall;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ctr_enc,.-_gcry_serpent_avx2_ctr_enc;)
 
 .align 8
@@ -714,6 +710,7 @@ _gcry_serpent_avx2_cbc_dec:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
@@ -752,7 +749,8 @@ _gcry_serpent_avx2_cbc_dec:
 
 	vzeroall;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_cbc_dec,.-_gcry_serpent_avx2_cbc_dec;)
 
 .align 8
@@ -765,6 +763,7 @@ _gcry_serpent_avx2_cfb_dec:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
@@ -805,7 +804,8 @@ _gcry_serpent_avx2_cfb_dec:
 
 	vzeroall;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_cfb_dec,.-_gcry_serpent_avx2_cfb_dec;)
 
 .align 8
@@ -821,15 +821,21 @@ _gcry_serpent_avx2_ocb_enc:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[16])
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	vmovdqu (%rcx), RTMP0x;
 	vmovdqu (%r8), RTMP1x;
@@ -882,10 +888,15 @@ _gcry_serpent_avx2_ocb_enc:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __serpent_enc_blk16;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	vpxor (0 * 32)(%rsi), RA4, RA4;
 	vpxor (1 * 32)(%rsi), RA1, RA1;
@@ -908,6 +919,7 @@ _gcry_serpent_avx2_ocb_enc:
 	vzeroall;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_enc,.-_gcry_serpent_avx2_ocb_enc;)
 
 .align 8
@@ -923,15 +935,21 @@ _gcry_serpent_avx2_ocb_dec:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[16])
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	vmovdqu (%rcx), RTMP0x;
 
@@ -978,10 +996,15 @@ _gcry_serpent_avx2_ocb_dec:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __serpent_dec_blk16;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	vmovdqu (%r8), RTMP1x;
 
@@ -1020,6 +1043,7 @@ _gcry_serpent_avx2_ocb_dec:
 	vzeroall;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_dec,.-_gcry_serpent_avx2_ocb_dec;)
 
 .align 8
@@ -1034,15 +1058,21 @@ _gcry_serpent_avx2_ocb_auth:
 	 *	%rcx: checksum
 	 *	%r8 : L pointers (void *L[16])
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	vmovdqu (%rdx), RTMP0x;
 
@@ -1088,10 +1118,15 @@ _gcry_serpent_avx2_ocb_auth:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __serpent_enc_blk16;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	vpxor RA4, RB4, RA4;
 	vpxor RA1, RB1, RA1;
@@ -1111,6 +1146,7 @@ _gcry_serpent_avx2_ocb_auth:
 	vzeroall;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_auth,.-_gcry_serpent_avx2_ocb_auth;)
 
 .align 16

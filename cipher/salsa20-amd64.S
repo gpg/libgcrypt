@@ -28,11 +28,7 @@
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_SALSA20)
 
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -40,6 +36,7 @@
 .globl _gcry_salsa20_amd64_keysetup
 ELF(.type  _gcry_salsa20_amd64_keysetup,@function;)
 _gcry_salsa20_amd64_keysetup:
+	CFI_STARTPROC();
 	movl   0(%rsi),%r8d
 	movl   4(%rsi),%r9d
 	movl   8(%rsi),%eax
@@ -87,11 +84,13 @@ _gcry_salsa20_amd64_keysetup:
 	movl   %r8d,12(%rdi)
 .L_keysetupdone:
 	ret
+	CFI_ENDPROC();
 
 .align 8
 .globl _gcry_salsa20_amd64_ivsetup
 ELF(.type  _gcry_salsa20_amd64_ivsetup,@function;)
 _gcry_salsa20_amd64_ivsetup:
+	CFI_STARTPROC();
 	movl   0(%rsi),%r8d
 	movl   4(%rsi),%esi
 	mov  $0,%r9
@@ -101,6 +100,7 @@ _gcry_salsa20_amd64_ivsetup:
 	movl   %r9d,32(%rdi)
 	movl   %eax,52(%rdi)
 	ret
+	CFI_ENDPROC();
 
 .align 8
 .globl _gcry_salsa20_amd64_encrypt_blocks
@@ -112,13 +112,15 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	 *  - Length is input as number of blocks, so don't handle tail bytes
 	 *    (this is done in salsa20.c).
 	 */
+	CFI_STARTPROC();
 	push %rbx
+	CFI_PUSH(%rbx);
 	shlq $6, %rcx /* blocks to bytes */
 	mov %r8, %rbx
 	mov %rsp,%r11
-	and $31,%r11
-	add $384,%r11
-	sub %r11,%rsp
+	CFI_DEF_CFA_REGISTER(%r11);
+	sub $384,%rsp
+	and $~31,%rsp
 	mov  %rdi,%r8
 	mov  %rsi,%rsi
 	mov  %rdx,%rdi
@@ -916,15 +918,22 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	cmp  $64,%rdx
 	ja .L_bytes_are_128_or_192
 .L_done:
-	add %r11,%rsp
+	CFI_REMEMBER_STATE();
 	mov %r11,%rax
+	sub %rsp,%rax
+	mov %r11,%rsp
+	CFI_REGISTER(%r11, %rsp)
+	CFI_DEF_CFA_REGISTER(%rsp)
 	pop %rbx
+	CFI_POP(%rbx)
 	ret
+	CFI_RESTORE_STATE();
 .L_bytes_are_128_or_192:
 	sub  $64,%rdx
 	add  $64,%rdi
 	add  $64,%rsi
 	jmp .L_bytes_are_64_128_or_192
+	CFI_ENDPROC();
 ELF(.size _gcry_salsa20_amd64_encrypt_blocks,.-_gcry_salsa20_amd64_encrypt_blocks;)
 
 #endif /*defined(USE_SALSA20)*/

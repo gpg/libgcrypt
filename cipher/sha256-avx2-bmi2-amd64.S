@@ -60,17 +60,7 @@
     defined(HAVE_GCC_INLINE_ASM_AVX2) && defined(HAVE_GCC_INLINE_ASM_BMI2) && \
     defined(USE_SHA256)
 
-#ifdef __PIC__
-#  define ADD_RIP +rip
-#else
-#  define ADD_RIP
-#endif
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .intel_syntax noprefix
 
@@ -314,17 +304,24 @@ a = TMP_
 ELF(.type _gcry_sha256_transform_amd64_avx2,@function)
 .align 32
 _gcry_sha256_transform_amd64_avx2:
+	CFI_STARTPROC()
 	xor eax, eax
 
 	cmp rdx, 0
 	je .Lnowork
 
 	push	rbx
+	CFI_PUSH(rbx)
 	push	rbp
+	CFI_PUSH(rbp)
 	push	r12
+	CFI_PUSH(r12)
 	push	r13
+	CFI_PUSH(r13)
 	push	r14
+	CFI_PUSH(r14)
 	push	r15
+	CFI_PUSH(r15)
 
 	vzeroupper
 
@@ -333,9 +330,11 @@ _gcry_sha256_transform_amd64_avx2:
 	vmovdqa	SHUF_DC00, [.L_SHUF_DC00 ADD_RIP]
 
 	mov	rax, rsp
+	CFI_DEF_CFA_REGISTER(rax);
 	sub	rsp, STACK_SIZE
 	and	rsp, ~63
 	mov	[rsp + _RSP], rax
+	CFI_CFA_ON_STACK(_RSP, 6 * 8)
 
 	shl	NUM_BLKS, 6	/*  convert to bytes */
 	lea	NUM_BLKS, [NUM_BLKS + INP - 64] /*  pointer to last block */
@@ -507,16 +506,24 @@ _gcry_sha256_transform_amd64_avx2:
 	xor     eax, eax
 
 	mov	rsp, [rsp + _RSP]
+	CFI_DEF_CFA_REGISTER(rsp)
 
 	pop	r15
+	CFI_POP(r15)
 	pop	r14
+	CFI_POP(r14)
 	pop	r13
+	CFI_POP(r13)
 	pop	r12
+	CFI_POP(r12)
 	pop	rbp
+	CFI_POP(rbp)
 	pop	rbx
+	CFI_POP(rbx)
 
 .Lnowork:
 	ret
+	CFI_ENDPROC()
 
 .align 64
 .LK256:

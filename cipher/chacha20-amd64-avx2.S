@@ -179,11 +179,14 @@ _gcry_chacha20_amd64_avx2_blocks8:
 	 *	%rdx: src
 	 *	%rcx: nblks (multiple of 8)
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
 	pushq %rbp;
+	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
 
 	subq $STACK_MAX, %rsp;
 	andq $~31, %rsp;
@@ -318,7 +321,9 @@ _gcry_chacha20_amd64_avx2_blocks8:
 
 	/* eax zeroed by round loop. */
 	leave;
+	CFI_LEAVE();
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_amd64_avx2_blocks8,
 	  .-_gcry_chacha20_amd64_avx2_blocks8;)
 
@@ -339,9 +344,12 @@ _gcry_chacha20_poly1305_amd64_avx2_blocks8:
 	 *	%r9: poly1305-state
 	 *	%r8: poly1305-src
 	 */
+	CFI_STARTPROC();
 
 	pushq %rbp;
+	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
 
 	vzeroupper;
 
@@ -353,6 +361,11 @@ _gcry_chacha20_poly1305_amd64_avx2_blocks8:
 	movq %r13, (STACK_MAX + 2 * 8)(%rsp);
 	movq %r14, (STACK_MAX + 3 * 8)(%rsp);
 	movq %r15, (STACK_MAX + 4 * 8)(%rsp);
+	CFI_REG_ON_STACK(rbx, STACK_MAX + 0 * 8);
+	CFI_REG_ON_STACK(r12, STACK_MAX + 1 * 8);
+	CFI_REG_ON_STACK(r13, STACK_MAX + 2 * 8);
+	CFI_REG_ON_STACK(r14, STACK_MAX + 3 * 8);
+	CFI_REG_ON_STACK(r15, STACK_MAX + 4 * 8);
 
 	movq %rdx, (STACK_MAX + 5 * 8)(%rsp); # SRC
 	movq %rsi, (STACK_MAX + 6 * 8)(%rsp); # DST
@@ -752,10 +765,17 @@ _gcry_chacha20_poly1305_amd64_avx2_blocks8:
 	movq (STACK_MAX + 2 * 8)(%rsp), %r13;
 	movq (STACK_MAX + 3 * 8)(%rsp), %r14;
 	movq (STACK_MAX + 4 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
 
 	xorl %eax, %eax;
 	leave;
+	CFI_LEAVE();
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_poly1305_amd64_avx2_blocks8,
 	  .-_gcry_chacha20_poly1305_amd64_avx2_blocks8;)
 

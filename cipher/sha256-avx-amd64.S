@@ -59,17 +59,7 @@
     defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
     defined(HAVE_GCC_INLINE_ASM_AVX) && defined(USE_SHA256)
 
-#ifdef __PIC__
-#  define ADD_RIP +rip
-#else
-#  define ADD_RIP
-#endif
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .intel_syntax noprefix
 
@@ -380,15 +370,22 @@ rotate_Xs
 ELF(.type  _gcry_sha256_transform_amd64_avx,@function;)
 .align 16
 _gcry_sha256_transform_amd64_avx:
+	CFI_STARTPROC()
 	vzeroupper
 
 	push	rbx
+	CFI_PUSH(rbx)
 	push	rbp
+	CFI_PUSH(rbp)
 	push	r13
+	CFI_PUSH(r13)
 	push	r14
+	CFI_PUSH(r14)
 	push	r15
+	CFI_PUSH(r15)
 
 	sub	rsp, STACK_SIZE
+	CFI_ADJUST_CFA_OFFSET(STACK_SIZE);
 
 	shl	NUM_BLKS, 6	/* convert to bytes */
 	jz	.Ldone_hash
@@ -487,14 +484,21 @@ _gcry_sha256_transform_amd64_avx:
 	xor     eax, eax
 
 	add	rsp, STACK_SIZE
+	CFI_ADJUST_CFA_OFFSET(-STACK_SIZE);
 
 	pop	r15
+	CFI_POP(r15)
 	pop	r14
+	CFI_POP(r14)
 	pop	r13
+	CFI_POP(r13)
 	pop	rbp
+	CFI_POP(rbp)
 	pop	rbx
+	CFI_POP(rbx)
 
 	ret
+	CFI_ENDPROC()
 
 
 .align 16

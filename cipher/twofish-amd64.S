@@ -171,12 +171,16 @@ _gcry_twofish_amd64_encrypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	subq $(3 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(3 * 8);
 	movq %rsi, (0 * 8)(%rsp);
 	movq %rbp, (1 * 8)(%rsp);
 	movq %rbx, (2 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 1 * 8);
+	CFI_REL_OFFSET(%rbx, 2 * 8);
 
 	movq %rdx, RX;
 	inpack(RX, 0, RAd, 0);
@@ -201,10 +205,14 @@ _gcry_twofish_amd64_encrypt_block:
 
 	movq (2 * 8)(%rsp), %rbx;
 	movq (1 * 8)(%rsp), %rbp;
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%rbp);
 	addq $(3 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-3 * 8);
 
 	EXIT_SYSV_FUNC
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
 .align 8
@@ -217,12 +225,16 @@ _gcry_twofish_amd64_decrypt_block:
 	 *	%rsi: dst
 	 *	%rdx: src
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	subq $(3 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(3 * 8);
 	movq %rsi, (0 * 8)(%rsp);
 	movq %rbp, (1 * 8)(%rsp);
 	movq %rbx, (2 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 1 * 8);
+	CFI_REL_OFFSET(%rbx, 2 * 8);
 
 	movq %rdx, RX;
 	inpack(RX, 0, RCd, 4);
@@ -247,10 +259,14 @@ _gcry_twofish_amd64_decrypt_block:
 
 	movq (2 * 8)(%rsp), %rbx;
 	movq (1 * 8)(%rsp), %rbp;
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%rbp);
 	addq $(3 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-3 * 8);
 
 	EXIT_SYSV_FUNC
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
 #undef CTX
@@ -480,6 +496,8 @@ __twofish_enc_blk3:
 	 * output:
 	 *	RCD0,RAB0,RCD1,RAB1,RCD2,RAB2: three ciphertext blocks
 	 */
+	CFI_STARTPROC();
+
 	inpack_enc3();
 
 	encrypt_cycle3(RAB, RCD, 0);
@@ -494,6 +512,7 @@ __twofish_enc_blk3:
 	outunpack_enc3();
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size __twofish_enc_blk3,.-__twofish_enc_blk3;)
 
 .align 8
@@ -506,6 +525,8 @@ __twofish_dec_blk3:
 	 * output:
 	 *	RCD0,RAB0,RCD1,RAB1,RCD2,RAB2: three plaintext blocks
 	 */
+	CFI_STARTPROC();
+
 	inpack_dec3();
 
 	decrypt_cycle3(RAB, RCD, 7);
@@ -520,6 +541,7 @@ __twofish_dec_blk3:
 	outunpack_dec3();
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size __twofish_dec_blk3,.-__twofish_dec_blk3;)
 
 .align 8
@@ -532,15 +554,23 @@ _gcry_twofish_amd64_ctr_enc:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (big endian, 128bit)
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	subq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(8 * 8);
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
 	movq %r14, (4 * 8)(%rsp);
 	movq %r15, (5 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 0 * 8);
+	CFI_REL_OFFSET(%rbx, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
+	CFI_REL_OFFSET(%r14, 4 * 8);
+	CFI_REL_OFFSET(%r15, 5 * 8);
 
 	movq %rsi, (6 * 8)(%rsp);
 	movq %rdx, (7 * 8)(%rsp);
@@ -601,10 +631,18 @@ _gcry_twofish_amd64_ctr_enc:
 	movq (3 * 8)(%rsp), %r13;
 	movq (4 * 8)(%rsp), %r14;
 	movq (5 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbp);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
 	addq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ctr_enc,.-_gcry_twofish_amd64_ctr_enc;)
 
 .align 8
@@ -617,15 +655,23 @@ _gcry_twofish_amd64_cbc_dec:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (128bit)
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	subq $(9 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(9 * 8);
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
 	movq %r14, (4 * 8)(%rsp);
 	movq %r15, (5 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 0 * 8);
+	CFI_REL_OFFSET(%rbx, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
+	CFI_REL_OFFSET(%r14, 4 * 8);
+	CFI_REL_OFFSET(%r15, 5 * 8);
 
 	movq %rsi, (6 * 8)(%rsp);
 	movq %rdx, (7 * 8)(%rsp);
@@ -670,10 +716,18 @@ _gcry_twofish_amd64_cbc_dec:
 	movq (3 * 8)(%rsp), %r13;
 	movq (4 * 8)(%rsp), %r14;
 	movq (5 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbp);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
 	addq $(9 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-9 * 8);
 
 	EXIT_SYSV_FUNC
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_cbc_dec,.-_gcry_twofish_amd64_cbc_dec;)
 
 .align 8
@@ -686,15 +740,23 @@ _gcry_twofish_amd64_cfb_dec:
 	 *	%rdx: src (3 blocks)
 	 *	%rcx: iv (128bit)
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 
 	subq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(8 * 8);
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
 	movq %r14, (4 * 8)(%rsp);
 	movq %r15, (5 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 0 * 8);
+	CFI_REL_OFFSET(%rbx, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
+	CFI_REL_OFFSET(%r14, 4 * 8);
+	CFI_REL_OFFSET(%r15, 5 * 8);
 
 	movq %rsi, (6 * 8)(%rsp);
 	movq %rdx, (7 * 8)(%rsp);
@@ -739,10 +801,18 @@ _gcry_twofish_amd64_cfb_dec:
 	movq (3 * 8)(%rsp), %r13;
 	movq (4 * 8)(%rsp), %r14;
 	movq (5 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbp);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
 	addq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_cfb_dec,.-_gcry_twofish_amd64_cfb_dec;)
 
 .align 8
@@ -757,15 +827,23 @@ _gcry_twofish_amd64_ocb_enc:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[3])
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_6
 
 	subq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(8 * 8);
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
 	movq %r14, (4 * 8)(%rsp);
 	movq %r15, (5 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 0 * 8);
+	CFI_REL_OFFSET(%rbx, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
+	CFI_REL_OFFSET(%r14, 4 * 8);
+	CFI_REL_OFFSET(%r15, 5 * 8);
 
 	movq %rsi, (6 * 8)(%rsp);
 	movq %rdx, RX0;
@@ -849,10 +927,18 @@ _gcry_twofish_amd64_ocb_enc:
 	movq (3 * 8)(%rsp), %r13;
 	movq (4 * 8)(%rsp), %r14;
 	movq (5 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbp);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
 	addq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ocb_enc,.-_gcry_twofish_amd64_ocb_enc;)
 
 .align 8
@@ -867,15 +953,23 @@ _gcry_twofish_amd64_ocb_dec:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[3])
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_6
 
 	subq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(8 * 8);
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
 	movq %r14, (4 * 8)(%rsp);
 	movq %r15, (5 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 0 * 8);
+	CFI_REL_OFFSET(%rbx, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
+	CFI_REL_OFFSET(%r14, 4 * 8);
+	CFI_REL_OFFSET(%r15, 5 * 8);
 
 	movq %rsi, (6 * 8)(%rsp);
 	movq %r8,  (7 * 8)(%rsp);
@@ -967,10 +1061,18 @@ _gcry_twofish_amd64_ocb_dec:
 	movq (3 * 8)(%rsp), %r13;
 	movq (4 * 8)(%rsp), %r14;
 	movq (5 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbp);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
 	addq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ocb_dec,.-_gcry_twofish_amd64_ocb_dec;)
 
 .align 8
@@ -984,15 +1086,23 @@ _gcry_twofish_amd64_ocb_auth:
 	 *	%rcx: checksum
 	 *	%r8 : L pointers (void *L[3])
 	 */
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_5
 
 	subq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(8 * 8);
 	movq %rbp, (0 * 8)(%rsp);
 	movq %rbx, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
 	movq %r14, (4 * 8)(%rsp);
 	movq %r15, (5 * 8)(%rsp);
+	CFI_REL_OFFSET(%rbp, 0 * 8);
+	CFI_REL_OFFSET(%rbx, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
+	CFI_REL_OFFSET(%r14, 4 * 8);
+	CFI_REL_OFFSET(%r15, 5 * 8);
 
 	movq %rcx, (6 * 8)(%rsp);
 	movq %rsi, RX0;
@@ -1056,10 +1166,18 @@ _gcry_twofish_amd64_ocb_auth:
 	movq (3 * 8)(%rsp), %r13;
 	movq (4 * 8)(%rsp), %r14;
 	movq (5 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbp);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
 	addq $(8 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ocb_auth,.-_gcry_twofish_amd64_ocb_auth;)
 
 #endif /*USE_TWOFISH*/

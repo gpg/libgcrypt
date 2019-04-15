@@ -24,17 +24,7 @@
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_TWOFISH) && \
     defined(ENABLE_AVX2_SUPPORT)
 
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
-
-#ifdef __PIC__
-#  define RIP (%rip)
-#else
-#  define RIP
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -423,6 +413,7 @@ __twofish_enc_blk16:
 	 *	RA0, RB0, RC0, RD0, RA1, RB1, RC1, RD1: sixteen parallel
 	 *						ciphertext blocks
 	 */
+	CFI_STARTPROC();
 	init_round_constants();
 
 	transpose4x4_16(RA, RB, RC, RD);
@@ -441,6 +432,7 @@ __twofish_enc_blk16:
 	transpose4x4_16(RA, RB, RC, RD);
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size __twofish_enc_blk16,.-__twofish_enc_blk16;)
 
 .align 8
@@ -454,6 +446,7 @@ __twofish_dec_blk16:
 	 *	RA0, RB0, RC0, RD0, RA1, RB1, RC1, RD1: sixteen parallel
 	 *						ciphertext blocks
 	 */
+	CFI_STARTPROC();
 	init_round_constants();
 
 	transpose4x4_16(RA, RB, RC, RD);
@@ -472,6 +465,7 @@ __twofish_dec_blk16:
 	transpose4x4_16(RA, RB, RC, RD);
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size __twofish_dec_blk16,.-__twofish_dec_blk16;)
 
 #define inc_le128(x, minus_one, tmp) \
@@ -490,13 +484,14 @@ _gcry_twofish_avx2_ctr_enc:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv (big endian, 128bit)
 	 */
+	CFI_STARTPROC();
 
 	movq 8(%rcx), %rax;
 	bswapq %rax;
 
 	vzeroupper;
 
-	vbroadcasti128 .Lbswap128_mask RIP, RTMP3;
+	vbroadcasti128 .Lbswap128_mask rRIP, RTMP3;
 	vpcmpeqd RNOT, RNOT, RNOT;
 	vpsrldq $8, RNOT, RNOT;   /* ab: -1:0 ; cd: -1:0 */
 	vpaddq RNOT, RNOT, RTMP2; /* ab: -2:0 ; cd: -2:0 */
@@ -587,7 +582,8 @@ _gcry_twofish_avx2_ctr_enc:
 
 	vzeroall;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ctr_enc,.-_gcry_twofish_avx2_ctr_enc;)
 
 .align 8
@@ -600,6 +596,7 @@ _gcry_twofish_avx2_cbc_dec:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
@@ -638,7 +635,8 @@ _gcry_twofish_avx2_cbc_dec:
 
 	vzeroall;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_cbc_dec,.-_gcry_twofish_avx2_cbc_dec;)
 
 .align 8
@@ -651,6 +649,7 @@ _gcry_twofish_avx2_cfb_dec:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
@@ -691,7 +690,8 @@ _gcry_twofish_avx2_cfb_dec:
 
 	vzeroall;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_cfb_dec,.-_gcry_twofish_avx2_cfb_dec;)
 
 .align 8
@@ -707,15 +707,21 @@ _gcry_twofish_avx2_ocb_enc:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[16])
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	vmovdqu (%rcx), RTMP0x;
 	vmovdqu (%r8), RTMP1x;
@@ -768,10 +774,15 @@ _gcry_twofish_avx2_ocb_enc:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __twofish_enc_blk16;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	vpxor (0 * 32)(%rsi), RA0, RA0;
 	vpxor (1 * 32)(%rsi), RB0, RB0;
@@ -794,6 +805,7 @@ _gcry_twofish_avx2_ocb_enc:
 	vzeroall;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_enc,.-_gcry_twofish_avx2_ocb_enc;)
 
 .align 8
@@ -809,15 +821,21 @@ _gcry_twofish_avx2_ocb_dec:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[16])
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	vmovdqu (%rcx), RTMP0x;
 
@@ -865,6 +883,10 @@ _gcry_twofish_avx2_ocb_dec:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __twofish_dec_blk16;
 
@@ -880,6 +902,7 @@ _gcry_twofish_avx2_ocb_dec:
 	vpxor (7 * 32)(%rsi), RD1, RD1;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	/* Checksum_i = Checksum_{i-1} xor P_i  */
 
@@ -907,6 +930,7 @@ _gcry_twofish_avx2_ocb_dec:
 	vzeroall;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_dec,.-_gcry_twofish_avx2_ocb_dec;)
 
 .align 8
@@ -921,15 +945,21 @@ _gcry_twofish_avx2_ocb_auth:
 	 *	%rcx: checksum
 	 *	%r8 : L pointers (void *L[16])
 	 */
+	CFI_STARTPROC();
 
 	vzeroupper;
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	vmovdqu (%rdx), RTMP0x;
 
@@ -975,6 +1005,10 @@ _gcry_twofish_avx2_ocb_auth:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __twofish_enc_blk16;
 
@@ -987,6 +1021,7 @@ _gcry_twofish_avx2_ocb_auth:
 	vpxor RA1, RC1, RA1;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	vpxor RA1, RA0, RTMP1;
 
@@ -998,6 +1033,7 @@ _gcry_twofish_avx2_ocb_auth:
 	vzeroall;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_auth,.-_gcry_twofish_avx2_ocb_auth;)
 
 .align 16

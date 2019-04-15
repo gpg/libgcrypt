@@ -49,17 +49,7 @@
     defined(HAVE_GCC_INLINE_ASM_AVX2) && defined(HAVE_GCC_INLINE_ASM_BMI2) && \
     defined(USE_SHA512)
 
-#ifdef __PIC__
-#  define ADD_RIP +rip
-#else
-#  define ADD_RIP
-#endif
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .intel_syntax noprefix
 
@@ -352,6 +342,7 @@ y4 =    r12
 ELF(.type _gcry_sha512_transform_amd64_avx2,@function;)
 .align 16
 _gcry_sha512_transform_amd64_avx2:
+	CFI_STARTPROC()
 	xor eax, eax
 
 	cmp rdx, 0
@@ -361,9 +352,11 @@ _gcry_sha512_transform_amd64_avx2:
 
 	/* Allocate Stack Space */
 	mov	rax, rsp
+	CFI_DEF_CFA_REGISTER(rax);
 	sub	rsp, frame_size
 	and	rsp, ~(0x40 - 1)
 	mov	[rsp + frame_RSPSAVE], rax
+	CFI_CFA_ON_STACK(frame_RSPSAVE, 0)
 
 	/* Save GPRs */
 	mov	[rsp + frame_GPRSAVE + 8 * 0], rbp
@@ -372,6 +365,12 @@ _gcry_sha512_transform_amd64_avx2:
 	mov	[rsp + frame_GPRSAVE + 8 * 3], r13
 	mov	[rsp + frame_GPRSAVE + 8 * 4], r14
 	mov	[rsp + frame_GPRSAVE + 8 * 5], r15
+	CFI_REG_ON_STACK(rbp, frame_GPRSAVE + 8 * 0)
+	CFI_REG_ON_STACK(rbx, frame_GPRSAVE + 8 * 1)
+	CFI_REG_ON_STACK(r12, frame_GPRSAVE + 8 * 2)
+	CFI_REG_ON_STACK(r13, frame_GPRSAVE + 8 * 3)
+	CFI_REG_ON_STACK(r14, frame_GPRSAVE + 8 * 4)
+	CFI_REG_ON_STACK(r15, frame_GPRSAVE + 8 * 5)
 
 	mov	[rsp + frame_NBLKS], NUM_BLKS
 
@@ -494,11 +493,20 @@ _gcry_sha512_transform_amd64_avx2:
 	mov	r13, [rsp + frame_GPRSAVE + 8 * 3]
 	mov	r14, [rsp + frame_GPRSAVE + 8 * 4]
 	mov	r15, [rsp + frame_GPRSAVE + 8 * 5]
+	CFI_RESTORE(rbp)
+	CFI_RESTORE(rbx)
+	CFI_RESTORE(r12)
+	CFI_RESTORE(r13)
+	CFI_RESTORE(r14)
+	CFI_RESTORE(r15)
 
 	/* Restore Stack Pointer */
 	mov	rsp, [rsp + frame_RSPSAVE]
+	CFI_DEF_CFA_REGISTER(rsp)
+
 .Lnowork:
 	ret
+	CFI_ENDPROC()
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 /*;; Binary Data */

@@ -23,17 +23,7 @@
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_SERPENT)
 
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
-
-#ifdef __PIC__
-#  define RIP (%rip)
-#else
-#  define RIP
-#endif
+#include "asm-common-amd64.h"
 
 /* struct serpent_context: */
 #define ctx_keys 0
@@ -444,6 +434,7 @@ __serpent_enc_blk8:
 	 *	RA4, RA1, RA2, RA0, RB4, RB1, RB2, RB0: eight parallel
 	 * 						ciphertext blocks
 	 */
+	CFI_STARTPROC();
 
 	pcmpeqd RNOT, RNOT;
 
@@ -519,6 +510,7 @@ __serpent_enc_blk8:
 	transpose_4x4(RB4, RB1, RB2, RB0, RB3, RTMP0, RTMP1);
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size __serpent_enc_blk8,.-__serpent_enc_blk8;)
 
 .align 8
@@ -532,6 +524,7 @@ __serpent_dec_blk8:
 	 *	RA0, RA1, RA2, RA3, RB0, RB1, RB2, RB3: eight parallel plaintext
 	 *						blocks
 	 */
+	CFI_STARTPROC();
 
 	pcmpeqd RNOT, RNOT;
 
@@ -609,6 +602,7 @@ __serpent_dec_blk8:
 	transpose_4x4(RB0, RB1, RB2, RB3, RB4, RTMP0, RTMP1);
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size __serpent_dec_blk8,.-__serpent_dec_blk8;)
 
 .align 8
@@ -621,6 +615,7 @@ _gcry_serpent_sse2_ctr_enc:
 	 *	%rdx: src (8 blocks)
 	 *	%rcx: iv (big endian, 128bit)
 	 */
+	CFI_STARTPROC();
 
 	/* load IV and byteswap */
 	movdqu (%rcx), RA0;
@@ -738,7 +733,8 @@ _gcry_serpent_sse2_ctr_enc:
 	pxor RTMP2, RTMP2;
 	pxor RNOT, RNOT;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_sse2_ctr_enc,.-_gcry_serpent_sse2_ctr_enc;)
 
 .align 8
@@ -751,6 +747,7 @@ _gcry_serpent_sse2_cbc_dec:
 	 *	%rdx: src (8 blocks)
 	 *	%rcx: iv
 	 */
+	CFI_STARTPROC();
 
 	movdqu (0 * 16)(%rdx), RA0;
 	movdqu (1 * 16)(%rdx), RA1;
@@ -799,7 +796,8 @@ _gcry_serpent_sse2_cbc_dec:
 	pxor RTMP2, RTMP2;
 	pxor RNOT, RNOT;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_sse2_cbc_dec,.-_gcry_serpent_sse2_cbc_dec;)
 
 .align 8
@@ -812,6 +810,7 @@ _gcry_serpent_sse2_cfb_dec:
 	 *	%rdx: src (8 blocks)
 	 *	%rcx: iv
 	 */
+	CFI_STARTPROC();
 
 	/* Load input */
 	movdqu (%rcx), RA0;
@@ -863,7 +862,8 @@ _gcry_serpent_sse2_cfb_dec:
 	pxor RTMP2, RTMP2;
 	pxor RNOT, RNOT;
 
-	ret
+	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_sse2_cfb_dec,.-_gcry_serpent_sse2_cfb_dec;)
 
 .align 8
@@ -879,13 +879,19 @@ _gcry_serpent_sse2_ocb_enc:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[8])
 	 */
+	CFI_STARTPROC();
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	movdqu (%rcx), RTMP0;
 	movdqu (%r8), RTMP1;
@@ -926,10 +932,15 @@ _gcry_serpent_sse2_ocb_enc:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __serpent_enc_blk8;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	pxor_u((0 * 16)(%rsi), RA4, RTMP0);
 	pxor_u((1 * 16)(%rsi), RA1, RTMP0);
@@ -966,6 +977,7 @@ _gcry_serpent_sse2_ocb_enc:
 	pxor RNOT, RNOT;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_sse2_ocb_enc,.-_gcry_serpent_sse2_ocb_enc;)
 
 .align 8
@@ -981,13 +993,19 @@ _gcry_serpent_sse2_ocb_dec:
 	 *	%r8 : checksum
 	 *	%r9 : L pointers (void *L[8])
 	 */
+	CFI_STARTPROC();
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	movdqu (%rcx), RTMP0;
 
@@ -1024,10 +1042,15 @@ _gcry_serpent_sse2_ocb_dec:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __serpent_dec_blk8;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	movdqu (%r8), RTMP0;
 
@@ -1078,6 +1101,7 @@ _gcry_serpent_sse2_ocb_dec:
 	pxor RNOT, RNOT;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_sse2_ocb_dec,.-_gcry_serpent_sse2_ocb_dec;)
 
 .align 8
@@ -1092,13 +1116,19 @@ _gcry_serpent_sse2_ocb_auth:
 	 *	%rcx: checksum
 	 *	%r8 : L pointers (void *L[8])
 	 */
+	CFI_STARTPROC();
 
 	subq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(4 * 8);
 
 	movq %r10, (0 * 8)(%rsp);
 	movq %r11, (1 * 8)(%rsp);
 	movq %r12, (2 * 8)(%rsp);
 	movq %r13, (3 * 8)(%rsp);
+	CFI_REL_OFFSET(%r10, 0 * 8);
+	CFI_REL_OFFSET(%r11, 1 * 8);
+	CFI_REL_OFFSET(%r12, 2 * 8);
+	CFI_REL_OFFSET(%r13, 3 * 8);
 
 	movdqu (%rdx), RTMP0;
 
@@ -1134,10 +1164,15 @@ _gcry_serpent_sse2_ocb_auth:
 	movq (1 * 8)(%rsp), %r11;
 	movq (2 * 8)(%rsp), %r12;
 	movq (3 * 8)(%rsp), %r13;
+	CFI_RESTORE(%r10);
+	CFI_RESTORE(%r11);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
 
 	call __serpent_enc_blk8;
 
 	addq $(4 * 8), %rsp;
+	CFI_ADJUST_CFA_OFFSET(-4 * 8);
 
 	movdqu (%rcx), RTMP0;
 	pxor RB4, RA4;
@@ -1169,6 +1204,7 @@ _gcry_serpent_sse2_ocb_auth:
 	pxor RNOT, RNOT;
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_serpent_sse2_ocb_auth,.-_gcry_serpent_sse2_ocb_auth;)
 
 #endif /*defined(USE_SERPENT)*/

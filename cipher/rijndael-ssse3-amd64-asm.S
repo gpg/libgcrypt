@@ -50,6 +50,7 @@
 ELF(.type _gcry_aes_ssse3_enc_preload,@function)
 .globl _gcry_aes_ssse3_enc_preload
 _gcry_aes_ssse3_enc_preload:
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 	lea	.Laes_consts(%rip), %rax
 	movdqa	          (%rax), %xmm9  # 0F
@@ -61,6 +62,7 @@ _gcry_aes_ssse3_enc_preload:
 	movdqa	.Lk_sb2+16(%rax), %xmm14 # sb2t
 	EXIT_SYSV_FUNC
 	ret
+	CFI_ENDPROC();
 ELF(.size _gcry_aes_ssse3_enc_preload,.-_gcry_aes_ssse3_enc_preload)
 
 ##
@@ -69,6 +71,7 @@ ELF(.size _gcry_aes_ssse3_enc_preload,.-_gcry_aes_ssse3_enc_preload)
 ELF(.type _gcry_aes_ssse3_dec_preload,@function)
 .globl _gcry_aes_ssse3_dec_preload
 _gcry_aes_ssse3_dec_preload:
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 	lea	.Laes_consts(%rip), %rax
 	movdqa	          (%rax), %xmm9   # 0F
@@ -81,6 +84,7 @@ _gcry_aes_ssse3_dec_preload:
 	movdqa	.Lk_dsbe   (%rax), %xmm8  # sbeu
 	EXIT_SYSV_FUNC
 	ret
+	CFI_ENDPROC();
 ELF(.size _gcry_aes_ssse3_dec_preload,.-_gcry_aes_ssse3_dec_preload)
 
 ##
@@ -111,6 +115,7 @@ ELF(.type _gcry_aes_ssse3_encrypt_core,@function)
 .globl _gcry_aes_ssse3_encrypt_core
 _gcry_aes_ssse3_encrypt_core:
 _aes_encrypt_core:
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 	mov	%rdi,	%rdx
 	leaq	-1(%rsi), %rax
@@ -190,6 +195,7 @@ _aes_encrypt_core:
 	pshufb	.Lk_sr(%rsi,%rcx), %xmm0
 	EXIT_SYSV_FUNC
 	ret
+	CFI_ENDPROC();
 ELF(.size _aes_encrypt_core,.-_aes_encrypt_core)
 
 ##
@@ -202,6 +208,7 @@ ELF(.size _aes_encrypt_core,.-_aes_encrypt_core)
 ELF(.type _gcry_aes_ssse3_decrypt_core,@function)
 _gcry_aes_ssse3_decrypt_core:
 _aes_decrypt_core:
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_0_4
 	mov	%rdi,	%rdx
 	lea	.Laes_consts(%rip), %rcx
@@ -297,6 +304,7 @@ _aes_decrypt_core:
 	pshufb	.Lk_sr(%rsi,%rcx), %xmm0
 	EXIT_SYSV_FUNC
 	ret
+	CFI_ENDPROC();
 ELF(.size _aes_decrypt_core,.-_aes_decrypt_core)
 
 ########################################################
@@ -315,6 +323,7 @@ _aes_schedule_core:
 	# rdx = buffer
 	# rcx = direction.  0=encrypt, 1=decrypt
 	# r8 = rotoffs
+	CFI_STARTPROC();
 	ENTER_SYSV_FUNC_PARAMS_5
 
 	# load the tables
@@ -671,6 +680,7 @@ _aes_schedule_core:
 	pxor	%xmm8,  %xmm8
 	EXIT_SYSV_FUNC
 	ret
+	CFI_ENDPROC();
 ELF(.size _gcry_aes_ssse3_schedule_core,.-_gcry_aes_ssse3_schedule_core)
 
 ########################################################

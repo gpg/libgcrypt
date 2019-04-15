@@ -23,17 +23,7 @@
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_WHIRLPOOL)
 
-#ifdef __PIC__
-#  define RIP %rip
-#else
-#  define RIP
-#endif
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .text
 
@@ -173,16 +163,24 @@ _gcry_whirlpool_transform_amd64:
 	 *	%rdx: nblks
 	 *      %rcx: look-up tables
 	 */
+	CFI_STARTPROC();
 	cmp $0, %rdx;
 	je .Lskip;
 
 	subq $STACK_MAX, %rsp;
+	CFI_ADJUST_CFA_OFFSET(STACK_MAX);
 	movq %rbp, STACK_RBP(%rsp);
 	movq %rbx, STACK_RBX(%rsp);
 	movq %r12, STACK_R12(%rsp);
 	movq %r13, STACK_R13(%rsp);
 	movq %r14, STACK_R14(%rsp);
 	movq %r15, STACK_R15(%rsp);
+	CFI_REL_OFFSET(%rbp, STACK_RBP);
+	CFI_REL_OFFSET(%rbx, STACK_RBX);
+	CFI_REL_OFFSET(%r12, STACK_R12);
+	CFI_REL_OFFSET(%r13, STACK_R13);
+	CFI_REL_OFFSET(%r14, STACK_R14);
+	CFI_REL_OFFSET(%r15, STACK_R15);
 
 	movq %rdx, STACK_NBLKS(%rsp);
 	movq %rdi, STACK_STATEP(%rsp);
@@ -332,10 +330,18 @@ _gcry_whirlpool_transform_amd64:
 	movq STACK_R13(%rsp), %r13;
 	movq STACK_R14(%rsp), %r14;
 	movq STACK_R15(%rsp), %r15;
+	CFI_RESTORE(%rbp);
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
 	addq $STACK_MAX, %rsp;
+	CFI_ADJUST_CFA_OFFSET(-STACK_MAX);
 .Lskip:
 	movl $(STACK_MAX + 8), %eax;
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_whirlpool_transform_amd64,.-_gcry_whirlpool_transform_amd64;)
 
 #endif

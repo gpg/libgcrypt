@@ -191,6 +191,7 @@ _gcry_blake2s_transform_amd64_avx:
          *	%rsi: blks
          *	%rdx: num_blks
          */
+        CFI_STARTPROC();
 
         vzeroupper;
 
@@ -269,6 +270,7 @@ _gcry_blake2s_transform_amd64_avx:
         xor %eax, %eax;
         vzeroall;
         ret;
+        CFI_ENDPROC();
 ELF(.size _gcry_blake2s_transform_amd64_avx,
     .-_gcry_blake2s_transform_amd64_avx;)
 

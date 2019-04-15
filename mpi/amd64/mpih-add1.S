@@ -62,4 +62,3 @@ C_SYMBOL_NAME(_gcry_mpih_add_n:)
 	adcq	%rax, %rax
 	FUNC_EXIT()
 	ret
-	

@@ -46,17 +46,7 @@
     defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
     defined(HAVE_GCC_INLINE_ASM_AVX) && defined(USE_SHA512)
 
-#ifdef __PIC__
-#  define ADD_RIP +rip
-#else
-#  define ADD_RIP
-#endif
-
-#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "asm-common-amd64.h"
 
 .intel_syntax noprefix
 
@@ -269,6 +259,7 @@ frame_size = ((frame_GPRSAVE) + (frame_GPRSAVE_size))
 ELF(.type _gcry_sha512_transform_amd64_avx,@function;)
 .align 16
 _gcry_sha512_transform_amd64_avx:
+	CFI_STARTPROC()
 	xor eax, eax
 
 	cmp	msglen, 0
@@ -278,6 +269,7 @@ _gcry_sha512_transform_amd64_avx:
 
 	/* Allocate Stack Space */
 	sub	rsp, frame_size
+	CFI_ADJUST_CFA_OFFSET(frame_size);
 
 	/* Save GPRs */
 	mov	[rsp + frame_GPRSAVE + 8 * 0], rbx
@@ -285,6 +277,11 @@ _gcry_sha512_transform_amd64_avx:
 	mov	[rsp + frame_GPRSAVE + 8 * 2], r13
 	mov	[rsp + frame_GPRSAVE + 8 * 3], r14
 	mov	[rsp + frame_GPRSAVE + 8 * 4], r15
+	CFI_REL_OFFSET(rbx, frame_GPRSAVE + 8 * 0);
+	CFI_REL_OFFSET(r12, frame_GPRSAVE + 8 * 1);
+	CFI_REL_OFFSET(r13, frame_GPRSAVE + 8 * 2);
+	CFI_REL_OFFSET(r14, frame_GPRSAVE + 8 * 3);
+	CFI_REL_OFFSET(r15, frame_GPRSAVE + 8 * 4);
 
 .Lupdateblock:
 
@@ -351,6 +348,11 @@ _gcry_sha512_transform_amd64_avx:
 	mov	r13, [rsp + frame_GPRSAVE + 8 * 2]
 	mov	r14, [rsp + frame_GPRSAVE + 8 * 3]
 	mov	r15, [rsp + frame_GPRSAVE + 8 * 4]
+	CFI_RESTORE(rbx)
+	CFI_RESTORE(r12)
+	CFI_RESTORE(r13)
+	CFI_RESTORE(r14)
+	CFI_RESTORE(r15)
 
 	vzeroall
 
@@ -365,9 +367,11 @@ _gcry_sha512_transform_amd64_avx:
 
 	/* Restore Stack Pointer */
 	add	rsp, frame_size
+	CFI_ADJUST_CFA_OFFSET(-frame_size);
 
 .Lnowork:
 	ret
+	CFI_ENDPROC()
 
 /*
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
