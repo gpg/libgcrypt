@@ -368,15 +368,21 @@ ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;
 	/* G1,2 && G2,2 */ \
 	do16bit_ror(32, xor, xor, Tx2, Tx3, RT0, RT1, ab ## 0, x ## 0); \
 	do16bit_ror(16, xor, xor, Ty3, Ty0, RT0, RT1, ab ## 0, y ## 0); \
-	xchgq cd ## 0, ab ## 0; \
+	movq ab ## 0, RT0; \
+	movq cd ## 0, ab ## 0; \
+	movq RT0, cd ## 0; \
 	\
 	do16bit_ror(32, xor, xor, Tx2, Tx3, RT0, RT1, ab ## 1, x ## 1); \
 	do16bit_ror(16, xor, xor, Ty3, Ty0, RT0, RT1, ab ## 1, y ## 1); \
-	xchgq cd ## 1, ab ## 1; \
+	movq ab ## 1, RT0; \
+	movq cd ## 1, ab ## 1; \
+	movq RT0, cd ## 1; \
 	\
 	do16bit_ror(32, xor, xor, Tx2, Tx3, RT0, RT1, ab ## 2, x ## 2); \
 	do16bit_ror(16, xor, xor, Ty3, Ty0, RT0, RT1, ab ## 2, y ## 2); \
-	xchgq cd ## 2, ab ## 2;
+	movq ab ## 2, RT0; \
+	movq cd ## 2, ab ## 2; \
+	movq RT0, cd ## 2;
 
 #define enc_round_end(ab, x, y, n) \
 	addl y ## d,			x ## d; \
