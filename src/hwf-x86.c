@@ -39,7 +39,14 @@
 #if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
 # define HAS_X86_CPUID 1
 
-static int
+#if _GCRY_GCC_VERSION >= 40700 /* 4.7 */
+# define FORCE_FUNC_FRAME_POINTER \
+	__attribute__ ((optimize("no-omit-frame-pointer")))
+#else
+# define FORCE_FUNC_FRAME_POINTER
+#endif
+
+static FORCE_FUNC_FRAME_POINTER int
 is_cpuid_available(void)
 {
   int has_cpuid = 0;
@@ -63,7 +70,7 @@ is_cpuid_available(void)
      ".Lno_cpuid%=:\n\t"
      : "+r" (has_cpuid)
      :
-     : "%eax", "%ecx", "cc"
+     : "%eax", "%ecx", "cc", "memory"
      );
 
   return has_cpuid;
@@ -76,14 +83,14 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
   unsigned int regs[4];
 
   asm volatile
-    ("pushl %%ebx\n\t"           /* Save GOT register.  */
-     "movl %1, %%ebx\n\t"
+    ("movl %%ebx, %%edi\n\t"     /* Save GOT register.  */
+     "xorl %%ebx, %%ebx\n\t"
      "cpuid\n\t"
      "movl %%ebx, %1\n\t"
-     "popl %%ebx\n\t"            /* Restore GOT register. */
-     : "=a" (regs[0]), "=D" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
-     : "0" (in), "1" (0), "2" (0), "3" (0)
-     : "cc"
+     "movl %%edi, %%ebx\n\t"     /* Restore GOT register. */
+     : "=a" (regs[0]), "=g" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
+     : "0" (in), "2" (0), "3" (0)
+     : "cc", "edi"
      );
 
   if (eax)
