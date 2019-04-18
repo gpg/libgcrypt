@@ -1538,7 +1538,7 @@ This is the IDEA algorithm.
 @cindex Triple-DES
 @cindex DES-EDE
 @cindex Digital Encryption Standard
-Triple-DES with 3 Keys as EDE.  The key size of this algorithm is 168 but
+Triple-DES with 3 Keys as EDE.  The key size of this algorithm is 168 bits but
 you have to pass 192 bits because the most significant bits of each byte
 are ignored.
 
@@ -1548,8 +1548,8 @@ CAST128-5 block cipher algorithm.  The key size is 128 bits.
 
 @item GCRY_CIPHER_BLOWFISH
 @cindex Blowfish
-The blowfish algorithm. The current implementation allows only for a key
-size of 128 bits.
+The blowfish algorithm. The supported key sizes are 8 to 576 bits in
+8 bit increments.
 
 @item GCRY_CIPHER_SAFER_SK128
 Reserved and not currently implemented.

@@ -447,6 +447,251 @@ check_aes128_cbc_cts_cipher (void)
 }
 
 static void
+check_ecb_cipher (void)
+{
+  /* ECB cipher check. Mainly for testing underlying block cipher. */
+  static const struct tv
+  {
+    int algo;
+    const char *key;
+    struct
+    {
+      const char *plaintext;
+      int keylen;
+      int inlen;
+      const char *out;
+    } data[MAX_DATA_LEN];
+  } tv[] =
+    {
+      /* Test vectors from OpenSSL for key lengths of 8 to 200 bits */
+      { GCRY_CIPHER_BLOWFISH,
+	"\xf0\xe1\xd2\xc3\xb4\xa5\x96\x87\x78\x69\x5a\x4b\x3c\x2d\x1e\x0f"
+	"\x00\x11\x22\x33\x44\x55\x66\x77\x88",
+	{ { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    1,
+	    8,
+	    "\xf9\xad\x59\x7c\x49\xdb\x00\x5e" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    2,
+	    8,
+	    "\xe9\x1d\x21\xc1\xd9\x61\xa6\xd6" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    3,
+	    8,
+	    "\xe9\xc2\xb7\x0a\x1b\xc6\x5c\xf3" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    4,
+	    8,
+	    "\xbe\x1e\x63\x94\x08\x64\x0f\x05" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    5,
+	    8,
+	    "\xb3\x9e\x44\x48\x1b\xdb\x1e\x6e" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    6,
+	    8,
+	    "\x94\x57\xaa\x83\xb1\x92\x8c\x0d" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    7,
+	    8,
+	    "\x8b\xb7\x70\x32\xf9\x60\x62\x9d" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    8,
+	    8,
+	    "\xe8\x7a\x24\x4e\x2c\xc8\x5e\x82" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    9,
+	    8,
+	    "\x15\x75\x0e\x7a\x4f\x4e\xc5\x77" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    10,
+	    8,
+	    "\x12\x2b\xa7\x0b\x3a\xb6\x4a\xe0" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    11,
+	    8,
+	    "\x3a\x83\x3c\x9a\xff\xc5\x37\xf6" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    12,
+	    8,
+	    "\x94\x09\xda\x87\xa9\x0f\x6b\xf2" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    13,
+	    8,
+	    "\x88\x4f\x80\x62\x50\x60\xb8\xb4" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    14,
+	    8,
+	    "\x1f\x85\x03\x1c\x19\xe1\x19\x68" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    15,
+	    8,
+	    "\x79\xd9\x37\x3a\x71\x4c\xa3\x4f" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    16,
+	    8,
+	    "\x93\x14\x28\x87\xee\x3b\xe1\x5c" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    17,
+	    8,
+	    "\x03\x42\x9e\x83\x8c\xe2\xd1\x4b" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    18,
+	    8,
+	    "\xa4\x29\x9e\x27\x46\x9f\xf6\x7b" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    19,
+	    8,
+	    "\xaf\xd5\xae\xd1\xc1\xbc\x96\xa8" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    20,
+	    8,
+	    "\x10\x85\x1c\x0e\x38\x58\xda\x9f" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    21,
+	    8,
+	    "\xe6\xf5\x1e\xd7\x9b\x9d\xb2\x1f" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    22,
+	    8,
+	    "\x64\xa6\xe1\x4a\xfd\x36\xb4\x6f" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    23,
+	    8,
+	    "\x80\xc7\xd7\xd4\x5a\x54\x79\xad" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    24,
+	    8,
+	    "\x05\x04\x4b\x62\xfa\x52\xd0\x80" },
+	  { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    0, /* test default key length of 128-bits */
+	    8,
+	    "\x93\x14\x28\x87\xee\x3b\xe1\x5c" },
+	  { }
+	}
+      },
+      /* Test vector from Linux kernel for key length of 448 bits */
+      { GCRY_CIPHER_BLOWFISH,
+	"\xf0\xe1\xd2\xc3\xb4\xa5\x96\x87\x78\x69\x5a\x4b\x3c\x2d\x1e\x0f"
+	"\x00\x11\x22\x33\x44\x55\x66\x77\x04\x68\x91\x04\xc2\xfd\x3b\x2f"
+	"\x58\x40\x23\x64\x1a\xba\x61\x76\x1f\x1f\x1f\x1f\x0e\x0e\x0e\x0e"
+	"\xff\xff\xff\xff\xff\xff\xff\xff",
+	{ { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
+	    56,
+	    8,
+	    "\xc0\x45\x04\x01\x2e\x4e\x1f\x53" },
+	  { }
+	}
+      },
+    };
+  gcry_cipher_hd_t hde, hdd;
+  unsigned char out[MAX_DATA_LEN];
+  int i, j, keylen, algo;
+  gcry_error_t err = 0;
+  gcry_error_t err2 = 0;
+
+  if (verbose)
+    fprintf (stderr, "  Starting ECB checks.\n");
+
+  for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
+    {
+      algo = tv[i].algo;
+
+      if (gcry_cipher_test_algo (algo) && in_fips_mode)
+	{
+	  if (verbose)
+	    fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     algo);
+	  continue;
+	}
+
+      if (verbose)
+	fprintf (stderr, "    checking ECB mode for %s [%i]\n",
+		 gcry_cipher_algo_name (algo),
+		 algo);
+      err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_ECB, 0);
+      if (!err)
+	err2 = gcry_cipher_open (&hdd, algo, GCRY_CIPHER_MODE_ECB, 0);
+      if (err || err2)
+	{
+	  fail ("ecb-algo:%d-tv:%d, gcry_cipher_open failed: %s\n", algo, i,
+		gpg_strerror (err ? err : err2));
+	  if (err2)
+	    gcry_cipher_close (hde);
+	  return;
+	}
+
+      for (j = 0; tv[i].data[j].inlen; j++)
+	{
+	  keylen = tv[i].data[j].keylen;
+	  if (!keylen)
+	    {
+	      keylen = gcry_cipher_get_algo_keylen(algo);
+	      if (!keylen)
+		{
+		  fail ("ecb-algo:%d-tv:%d-data:%d, gcry_cipher_get_algo_keylen failed\n",
+			algo, i, j);
+		  gcry_cipher_close (hde);
+		  gcry_cipher_close (hdd);
+		  return;
+		}
+	    }
+
+	  err = gcry_cipher_setkey (hde, tv[i].key, keylen);
+	  if (!err)
+	    err = gcry_cipher_setkey (hdd, tv[i].key, keylen);
+	  if (err)
+	    {
+	      fail ("ecb-algo:%d-tv:%d-data:%d, gcry_cipher_setkey failed: %s\n",
+		    algo, i, j, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+				     tv[i].data[j].plaintext,
+				     tv[i].data[j].inlen);
+	  if (err)
+	    {
+	      fail ("ecb-algo:%d-tv:%d-data:%d, gcry_cipher_encrypt failed: %s\n",
+		    algo, i, j, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  if (memcmp (tv[i].data[j].out, out, tv[i].data[j].inlen))
+	    {
+	      fail ("ecb-algo:%d-tv:%d-data:%d, encrypt mismatch entry\n",
+		    algo, i, j);
+	    }
+
+	  err = gcry_cipher_decrypt (hdd, out, tv[i].data[j].inlen, NULL, 0);
+	  if (err)
+	    {
+	      fail ("ecb-algo:%d-tv:%d-data:%d, gcry_cipher_decrypt failed: %s\n",
+		    algo, i, j, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  if (memcmp (tv[i].data[j].plaintext, out, tv[i].data[j].inlen))
+	    {
+	      fail ("ecb-algo:%d-tv:%d-data:%d, decrypt mismatch entry\n",
+		    algo, i, j);
+	    }
+	}
+
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+    }
+  if (verbose)
+    fprintf (stderr, "  Completed ECB checks.\n");
+}
+
+static void
 check_ctr_cipher (void)
 {
   static const struct tv
@@ -7916,6 +8161,7 @@ check_cipher_modes(void)
   if (verbose)
     fprintf (stderr, "Starting Cipher Mode checks.\n");
 
+  check_ecb_cipher ();
   check_aes128_cbc_cts_cipher ();
   check_cbc_mac_cipher ();
   check_ctr_cipher ();

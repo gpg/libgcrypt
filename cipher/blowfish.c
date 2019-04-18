@@ -41,6 +41,8 @@
 #include "cipher-selftest.h"
 
 #define BLOWFISH_BLOCKSIZE 8
+#define BLOWFISH_KEY_MIN_BITS 8
+#define BLOWFISH_KEY_MAX_BITS 576
 
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
@@ -1017,6 +1019,10 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
     }
   if( selftest_failed )
     return GPG_ERR_SELFTEST_FAILED;
+
+  if (keylen < BLOWFISH_KEY_MIN_BITS / 8 ||
+      keylen > BLOWFISH_KEY_MAX_BITS / 8)
+    return GPG_ERR_INV_KEYLEN;
 
   memset(hset, 0, sizeof(hset));
 
