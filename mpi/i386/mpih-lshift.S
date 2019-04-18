@@ -42,9 +42,13 @@
 	ALIGN (3)
 	.globl C_SYMBOL_NAME(_gcry_mpih_lshift)
 C_SYMBOL_NAME(_gcry_mpih_lshift:)
+	CFI_STARTPROC()
 	pushl	%edi
+	CFI_PUSH(%edi)
 	pushl	%esi
+	CFI_PUSH(%esi)
 	pushl	%ebx
+	CFI_PUSH(%ebx)
 
 	movl	16(%esp),%edi		/* res_ptr */
 	movl	20(%esp),%esi		/* s_ptr */
@@ -88,7 +92,11 @@ Lend:	shll	%cl,%ebx		/* compute least significant limb */
 	movl	%ebx,(%edi)		/* store it */
 
 	popl	%ebx
+	CFI_POP(%ebx)
 	popl	%esi
+	CFI_POP(%esi)
 	popl	%edi
+	CFI_POP(%edi)
 	ret
+	CFI_ENDPROC()
 

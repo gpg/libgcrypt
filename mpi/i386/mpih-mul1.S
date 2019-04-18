@@ -49,10 +49,15 @@
 	GLOBL	C_SYMBOL_NAME(_gcry_mpih_mul_1)
 C_SYMBOL_NAME(_gcry_mpih_mul_1:)
 
+	CFI_STARTPROC()
 	INSN1(push,l	,R(edi))
+	CFI_PUSH(%edi)
 	INSN1(push,l	,R(esi))
+	CFI_PUSH(%esi)
 	INSN1(push,l	,R(ebx))
+	CFI_PUSH(%ebx)
 	INSN1(push,l	,R(ebp))
+	CFI_PUSH(%ebp)
 
 	INSN2(mov,l	,R(res_ptr),MEM_DISP(esp,20))
 	INSN2(mov,l	,R(s1_ptr),MEM_DISP(esp,24))
@@ -77,8 +82,13 @@ Loop:
 	INSN2(mov,l	,R(eax),R(ebx))
 
 	INSN1(pop,l	,R(ebp))
+	CFI_POP(%ebp)
 	INSN1(pop,l	,R(ebx))
+	CFI_POP(%ebx)
 	INSN1(pop,l	,R(esi))
+	CFI_POP(%esi)
 	INSN1(pop,l	,R(edi))
+	CFI_POP(%edi)
 	ret
+	CFI_ENDPROC()
 

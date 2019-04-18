@@ -45,8 +45,11 @@
 	ALIGN (3)
 	.globl C_SYMBOL_NAME(_gcry_mpih_sub_n)
 C_SYMBOL_NAME(_gcry_mpih_sub_n:)
+	CFI_STARTPROC()
 	pushl %edi
+	CFI_PUSH(%edi)
 	pushl %esi
+	CFI_PUSH(%esi)
 
 	movl 12(%esp),%edi		/* res_ptr */
 	movl 16(%esp),%esi		/* s1_ptr */
@@ -112,6 +115,9 @@ Loop:	movl	(%esi),%eax
 	negl	%eax
 
 	popl %esi
+	CFI_POP(%esi)
 	popl %edi
+	CFI_POP(%edi)
 	ret
+	CFI_ENDPROC()
 

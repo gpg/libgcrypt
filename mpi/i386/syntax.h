@@ -26,6 +26,30 @@
  *	 to avoid revealing of sensitive data due to paging etc.
  */
 
+#include <config.h>
+
+#ifdef HAVE_GCC_ASM_CFI_DIRECTIVES
+# define CFI_STARTPROC()            .cfi_startproc
+# define CFI_ENDPROC()              .cfi_endproc
+# define CFI_ADJUST_CFA_OFFSET(off) .cfi_adjust_cfa_offset off
+# define CFI_REL_OFFSET(reg,off)    .cfi_rel_offset reg, off
+# define CFI_RESTORE(reg)           .cfi_restore reg
+
+# define CFI_PUSH(reg) \
+	CFI_ADJUST_CFA_OFFSET(4); CFI_REL_OFFSET(reg, 0)
+# define CFI_POP(reg) \
+	CFI_ADJUST_CFA_OFFSET(-4); CFI_RESTORE(reg)
+#else
+# define CFI_STARTPROC()
+# define CFI_ENDPROC()
+# define CFI_ADJUST_CFA_OFFSET(off)
+# define CFI_REL_OFFSET(reg,off)
+# define CFI_RESTORE(reg)
+
+# define CFI_PUSH(reg)
+# define CFI_POP(reg)
+#endif
+
 #undef ALIGN
 
 #if defined (BSD_SYNTAX) || defined (ELF_SYNTAX)
