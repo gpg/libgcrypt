@@ -42,12 +42,24 @@
 # endif
 #endif /* USE_INTEL_PCLMUL */
 
+/* USE_ARM_PMULL indicates whether to compile GCM with ARMv8 PMULL code. */
+#undef USE_ARM_PMULL
+#if defined(ENABLE_ARM_CRYPTO_SUPPORT)
+# if defined(__AARCH64EL__) && \
+    defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO)
+#  define USE_ARM_PMULL 1
+# endif
+#endif /* USE_ARM_PMULL */
 
 typedef struct
 {
   u32 CRC;
 #ifdef USE_INTEL_PCLMUL
   unsigned int use_pclmul:1;           /* Intel PCLMUL shall be used.  */
+#endif
+#ifdef USE_ARM_PMULL
+  unsigned int use_pmull:1;            /* ARMv8 PMULL shall be used. */
 #endif
   byte buf[4];
 }
@@ -59,6 +71,13 @@ CRC_CONTEXT;
 void _gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen);
 void _gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf,
 				      size_t inlen);
+#endif
+
+#ifdef USE_ARM_PMULL
+/*-- crc-armv8-ce.c --*/
+void _gcry_crc32_armv8_ce_pmull (u32 *pcrc, const byte *inbuf, size_t inlen);
+void _gcry_crc24rfc2440_armv8_ce_pmull (u32 *pcrc, const byte *inbuf,
+					size_t inlen);
 #endif
 
 
@@ -361,13 +380,17 @@ static void
 crc32_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
-#ifdef USE_INTEL_PCLMUL
   u32 hwf = _gcry_get_hw_features ();
 
+#ifdef USE_INTEL_PCLMUL
   ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
+#endif
+#ifdef USE_ARM_PMULL
+  ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
 #endif
 
   (void)flags;
+  (void)hwf;
 
   ctx->CRC = 0 ^ 0xffffffffL;
 }
@@ -383,6 +406,13 @@ crc32_write (void *context, const void *inbuf_arg, size_t inlen)
   if (ctx->use_pclmul)
     {
       _gcry_crc32_intel_pclmul(&ctx->CRC, inbuf, inlen);
+      return;
+    }
+#endif
+#ifdef USE_ARM_PMULL
+  if (ctx->use_pmull)
+    {
+      _gcry_crc32_armv8_ce_pmull(&ctx->CRC, inbuf, inlen);
       return;
     }
 #endif
@@ -439,13 +469,17 @@ static void
 crc32rfc1510_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
-#ifdef USE_INTEL_PCLMUL
   u32 hwf = _gcry_get_hw_features ();
 
+#ifdef USE_INTEL_PCLMUL
   ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
+#endif
+#ifdef USE_ARM_PMULL
+  ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
 #endif
 
   (void)flags;
+  (void)hwf;
 
   ctx->CRC = 0;
 }
@@ -769,12 +803,16 @@ static void
 crc24rfc2440_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
-#ifdef USE_INTEL_PCLMUL
   u32 hwf = _gcry_get_hw_features ();
 
+#ifdef USE_INTEL_PCLMUL
   ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
 #endif
+#ifdef USE_ARM_PMULL
+  ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
+#endif
 
+  (void)hwf;
   (void)flags;
 
   ctx->CRC = crc24_init();
@@ -791,6 +829,13 @@ crc24rfc2440_write (void *context, const void *inbuf_arg, size_t inlen)
   if (ctx->use_pclmul)
     {
       _gcry_crc24rfc2440_intel_pclmul(&ctx->CRC, inbuf, inlen);
+      return;
+    }
+#endif
+#ifdef USE_ARM_PMULL
+  if (ctx->use_pmull)
+    {
+      _gcry_crc24rfc2440_armv8_ce_pmull(&ctx->CRC, inbuf, inlen);
       return;
     }
 #endif

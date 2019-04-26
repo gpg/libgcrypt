@@ -2409,6 +2409,11 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc-intel-pclmul.lo"
       ;;
+      aarch64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-armv8-ce.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-armv8-aarch64-ce.lo"
+      ;;
    esac
 fi
 
