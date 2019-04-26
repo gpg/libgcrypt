@@ -38,15 +38,6 @@
 
 .text
 
-#ifdef _WIN32
-#define GET_DATA_POINTER(reg, name) \
-	adrp    reg, name ; \
-	add     reg, reg, #:lo12:name ;
-#else
-#define GET_DATA_POINTER(reg, name) \
-	adrp    reg, :got:name ; \
-	ldr     reg, [reg, #:got_lo12:name] ;
-#endif
 
 /* register macros */
 #define INPUT     x0

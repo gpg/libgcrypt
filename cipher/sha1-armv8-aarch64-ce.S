@@ -28,11 +28,6 @@
 .text
 
 
-#define GET_DATA_POINTER(reg, name) \
-		adrp    reg, :got:name ; \
-		ldr     reg, [reg, #:got_lo12:name] ;
-
-
 /* Constants */
 
 #define K1  0x5A827999
