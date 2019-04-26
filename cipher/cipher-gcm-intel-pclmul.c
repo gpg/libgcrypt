@@ -1,6 +1,6 @@
 /* cipher-gcm-intel-pclmul.c  -  Intel PCLMUL accelerated Galois Counter Mode
  *                               implementation
- * Copyright (C) 2013-2014 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2014,2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -47,6 +47,35 @@
   "Intel® Carry-Less Multiplication Instruction and its Usage for Computing the
    GCM Mode - Rev 2.01"; Shay Gueron, Michael E. Kounavis.
  */
+static inline void reduction(void)
+{
+  /* input: <xmm1:xmm3> */
+
+  asm volatile (/* first phase of the reduction */
+                "movdqa %%xmm3, %%xmm6\n\t"
+                "movdqa %%xmm3, %%xmm7\n\t"
+                "psllq $1, %%xmm6\n\t"  /* packed right shifting << 63 */
+                "pxor %%xmm3, %%xmm6\n\t"
+                "psllq $57, %%xmm7\n\t"  /* packed right shifting << 57 */
+                "psllq $62, %%xmm6\n\t"  /* packed right shifting << 62 */
+                "pxor %%xmm7, %%xmm6\n\t" /* xor the shifted versions */
+                "pshufd $0x6a, %%xmm6, %%xmm7\n\t"
+                "pshufd $0xae, %%xmm6, %%xmm6\n\t"
+                "pxor %%xmm7, %%xmm3\n\t" /* first phase of the reduction
+                                             complete */
+
+                /* second phase of the reduction */
+                "pxor %%xmm3, %%xmm1\n\t" /* xor the shifted versions */
+                "psrlq $1, %%xmm3\n\t"    /* packed left shifting >> 1 */
+                "pxor %%xmm3, %%xmm6\n\t"
+                "psrlq $1, %%xmm3\n\t"    /* packed left shifting >> 2 */
+                "pxor %%xmm3, %%xmm1\n\t"
+                "psrlq $5, %%xmm3\n\t"    /* packed left shifting >> 7 */
+                "pxor %%xmm3, %%xmm6\n\t"
+                "pxor %%xmm6, %%xmm1\n\t" /* the result is in xmm1 */
+                ::: "memory" );
+}
+
 static inline void gfmul_pclmul(void)
 {
   /* Input: XMM0 and XMM1, Output: XMM1. Input XMM0 stays unmodified.
@@ -60,193 +89,304 @@ static inline void gfmul_pclmul(void)
 
                 "movdqa %%xmm0, %%xmm3\n\t"
                 "pclmulqdq $0, %%xmm1, %%xmm3\n\t"  /* xmm3 holds a0*b0 */
-                "movdqa %%xmm0, %%xmm6\n\t"
-                "pclmulqdq $17, %%xmm1, %%xmm6\n\t" /* xmm6 holds a1*b1 */
+                "pclmulqdq $17, %%xmm0, %%xmm1\n\t" /* xmm6 holds a1*b1 */
                 "movdqa %%xmm3, %%xmm5\n\t"
                 "pclmulqdq $0, %%xmm2, %%xmm4\n\t"  /* xmm4 holds (a0+a1)*(b0+b1) */
 
-                "pxor %%xmm6, %%xmm5\n\t" /* xmm5 holds a0*b0+a1*b1 */
+                "pxor %%xmm1, %%xmm5\n\t" /* xmm5 holds a0*b0+a1*b1 */
                 "pxor %%xmm5, %%xmm4\n\t" /* xmm4 holds a0*b0+a1*b1+(a0+a1)*(b0+b1) */
                 "movdqa %%xmm4, %%xmm5\n\t"
                 "psrldq $8, %%xmm4\n\t"
                 "pslldq $8, %%xmm5\n\t"
                 "pxor %%xmm5, %%xmm3\n\t"
-                "pxor %%xmm4, %%xmm6\n\t" /* <xmm6:xmm3> holds the result of the
+                "pxor %%xmm4, %%xmm1\n\t" /* <xmm1:xmm3> holds the result of the
                                              carry-less multiplication of xmm0
                                              by xmm1 */
+                ::: "memory" );
 
-                /* shift the result by one bit position to the left cope for
-                   the fact that bits are reversed */
-                "movdqa %%xmm3, %%xmm4\n\t"
-                "movdqa %%xmm6, %%xmm5\n\t"
-                "pslld $1, %%xmm3\n\t"
-                "pslld $1, %%xmm6\n\t"
-                "psrld $31, %%xmm4\n\t"
-                "psrld $31, %%xmm5\n\t"
-                "movdqa %%xmm4, %%xmm1\n\t"
-                "pslldq $4, %%xmm5\n\t"
-                "pslldq $4, %%xmm4\n\t"
-                "psrldq $12, %%xmm1\n\t"
-                "por %%xmm4, %%xmm3\n\t"
-                "por %%xmm5, %%xmm6\n\t"
-                "por %%xmm6, %%xmm1\n\t"
-
-                /* first phase of the reduction */
-                "movdqa %%xmm3, %%xmm6\n\t"
-                "movdqa %%xmm3, %%xmm7\n\t"
-                "pslld $31, %%xmm6\n\t"  /* packed right shifting << 31 */
-                "movdqa %%xmm3, %%xmm5\n\t"
-                "pslld $30, %%xmm7\n\t"  /* packed right shifting shift << 30 */
-                "pslld $25, %%xmm5\n\t"  /* packed right shifting shift << 25 */
-                "pxor %%xmm7, %%xmm6\n\t" /* xor the shifted versions */
-                "pxor %%xmm5, %%xmm6\n\t"
-                "movdqa %%xmm6, %%xmm7\n\t"
-                "pslldq $12, %%xmm6\n\t"
-                "psrldq $4, %%xmm7\n\t"
-                "pxor %%xmm6, %%xmm3\n\t" /* first phase of the reduction
-                                             complete */
-
-                /* second phase of the reduction */
-                "movdqa %%xmm3, %%xmm2\n\t"
-                "movdqa %%xmm3, %%xmm4\n\t"
-                "psrld $1, %%xmm2\n\t"    /* packed left shifting >> 1 */
-                "movdqa %%xmm3, %%xmm5\n\t"
-                "psrld $2, %%xmm4\n\t"    /* packed left shifting >> 2 */
-                "psrld $7, %%xmm5\n\t"    /* packed left shifting >> 7 */
-                "pxor %%xmm4, %%xmm2\n\t" /* xor the shifted versions */
-                "pxor %%xmm5, %%xmm2\n\t"
-                "pxor %%xmm7, %%xmm2\n\t"
-                "pxor %%xmm2, %%xmm3\n\t"
-                "pxor %%xmm3, %%xmm1\n\t" /* the result is in xmm1 */
-                ::: "cc" );
+  reduction();
 }
 
-
 #ifdef __x86_64__
-static inline void gfmul_pclmul_aggr4(void)
+static inline void gfmul_pclmul_aggr4(const void *buf, const void *h_table)
 {
   /* Input:
-      H¹: XMM0          X_i            : XMM6
-      H²: XMM8          X_(i-1)        : XMM3
-      H³: XMM9          X_(i-2)        : XMM2
-      H⁴: XMM10         X_(i-3)⊕Y_(i-4): XMM1
+      H¹: XMM0
+      bemask: XMM15
+      Hash: XMM1
      Output:
-      Y_i: XMM1
-     Inputs XMM0 stays unmodified.
-     Input must be converted to little-endian.
+      Hash: XMM1
+     Inputs XMM0 and XMM14 stays unmodified.
    */
-  asm volatile (/* perform clmul and merge results... */
-                "pshufd $78, %%xmm10, %%xmm11\n\t"
-                "pshufd $78, %%xmm1, %%xmm12\n\t"
-                "pxor %%xmm10, %%xmm11\n\t" /* xmm11 holds 4:a0+a1 */
-                "pxor %%xmm1, %%xmm12\n\t" /* xmm12 holds 4:b0+b1 */
+  asm volatile (/* Load H2, H3, H4. */
+                "movdqu 2*16(%[h_table]), %%xmm10\n\t"
+                "movdqu 1*16(%[h_table]), %%xmm9\n\t"
+                "movdqu 0*16(%[h_table]), %%xmm8\n\t"
 
-                "pshufd $78, %%xmm9, %%xmm13\n\t"
-                "pshufd $78, %%xmm2, %%xmm14\n\t"
-                "pxor %%xmm9, %%xmm13\n\t" /* xmm13 holds 3:a0+a1 */
-                "pxor %%xmm2, %%xmm14\n\t" /* xmm14 holds 3:b0+b1 */
+                /* perform clmul and merge results... */
+                "movdqu 0*16(%[buf]), %%xmm5\n\t"
+                "movdqu 1*16(%[buf]), %%xmm2\n\t"
+                "pshufb %%xmm15, %%xmm5\n\t" /* be => le */
+                "pshufb %%xmm15, %%xmm2\n\t" /* be => le */
+                "pxor %%xmm5, %%xmm1\n\t"
 
-                "pshufd $78, %%xmm8, %%xmm5\n\t"
-                "pshufd $78, %%xmm3, %%xmm15\n\t"
-                "pxor %%xmm8, %%xmm5\n\t" /* xmm1 holds 2:a0+a1 */
-                "pxor %%xmm3, %%xmm15\n\t" /* xmm2 holds 2:b0+b1 */
-
-                "movdqa %%xmm10, %%xmm4\n\t"
-                "movdqa %%xmm9, %%xmm7\n\t"
-                "pclmulqdq $0, %%xmm1, %%xmm4\n\t"   /* xmm4 holds 4:a0*b0 */
-                "pclmulqdq $0, %%xmm2, %%xmm7\n\t"   /* xmm7 holds 3:a0*b0 */
+                "pshufd $78, %%xmm10, %%xmm5\n\t"
+                "pshufd $78, %%xmm1, %%xmm4\n\t"
+                "pxor %%xmm10, %%xmm5\n\t" /* xmm5 holds 4:a0+a1 */
+                "pxor %%xmm1, %%xmm4\n\t"  /* xmm4 holds 4:b0+b1 */
+                "movdqa %%xmm10, %%xmm3\n\t"
+                "pclmulqdq $0, %%xmm1, %%xmm3\n\t"   /* xmm3 holds 4:a0*b0 */
                 "pclmulqdq $17, %%xmm10, %%xmm1\n\t" /* xmm1 holds 4:a1*b1 */
-                "pclmulqdq $17, %%xmm9, %%xmm2\n\t"  /* xmm9 holds 3:a1*b1 */
-                "pclmulqdq $0, %%xmm11, %%xmm12\n\t" /* xmm12 holds 4:(a0+a1)*(b0+b1) */
-                "pclmulqdq $0, %%xmm13, %%xmm14\n\t" /* xmm14 holds 3:(a0+a1)*(b0+b1) */
+                "pclmulqdq $0, %%xmm5, %%xmm4\n\t"   /* xmm4 holds 4:(a0+a1)*(b0+b1) */
 
-                "pshufd $78, %%xmm0, %%xmm10\n\t"
-                "pshufd $78, %%xmm6, %%xmm11\n\t"
-                "pxor %%xmm0, %%xmm10\n\t" /* xmm10 holds 1:a0+a1 */
-                "pxor %%xmm6, %%xmm11\n\t" /* xmm11 holds 1:b0+b1 */
+                "pshufd $78, %%xmm9, %%xmm11\n\t"
+                "pshufd $78, %%xmm2, %%xmm7\n\t"
+                "pxor %%xmm9, %%xmm11\n\t" /* xmm11 holds 3:a0+a1 */
+                "pxor %%xmm2, %%xmm7\n\t"  /* xmm7 holds 3:b0+b1 */
+                "movdqa %%xmm9, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm2, %%xmm6\n\t"  /* xmm6 holds 3:a0*b0 */
+                "pclmulqdq $17, %%xmm9, %%xmm2\n\t" /* xmm2 holds 3:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t" /* xmm7 holds 3:(a0+a1)*(b0+b1) */
 
-                "pxor %%xmm4, %%xmm7\n\t"   /* xmm7 holds 3+4:a0*b0 */
-                "pxor %%xmm2, %%xmm1\n\t"   /* xmm1 holds 3+4:a1*b1 */
-                "pxor %%xmm14, %%xmm12\n\t" /* xmm12 holds 3+4:(a0+a1)*(b0+b1) */
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 3+4:a0*b0 */
+                "pxor %%xmm2, %%xmm1\n\t" /* xmm1 holds 3+4:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 3+4:(a0+a1)*(b0+b1) */
 
-                "movdqa %%xmm8, %%xmm13\n\t"
-                "pclmulqdq $0, %%xmm3, %%xmm13\n\t"  /* xmm13 holds 2:a0*b0 */
-                "pclmulqdq $17, %%xmm8, %%xmm3\n\t"  /* xmm3 holds 2:a1*b1 */
-                "pclmulqdq $0, %%xmm5, %%xmm15\n\t" /* xmm15 holds 2:(a0+a1)*(b0+b1) */
+                "movdqu 2*16(%[buf]), %%xmm5\n\t"
+                "movdqu 3*16(%[buf]), %%xmm2\n\t"
+                "pshufb %%xmm15, %%xmm5\n\t" /* be => le */
+                "pshufb %%xmm15, %%xmm2\n\t" /* be => le */
 
-                "pxor %%xmm13, %%xmm7\n\t" /* xmm7 holds 2+3+4:a0*b0 */
-                "pxor %%xmm3, %%xmm1\n\t"  /* xmm1 holds 2+3+4:a1*b1 */
-                "pxor %%xmm15, %%xmm12\n\t" /* xmm12 holds 2+3+4:(a0+a1)*(b0+b1) */
+                "pshufd $78, %%xmm8, %%xmm11\n\t"
+                "pshufd $78, %%xmm5, %%xmm7\n\t"
+                "pxor %%xmm8, %%xmm11\n\t" /* xmm11 holds 2:a0+a1 */
+                "pxor %%xmm5, %%xmm7\n\t"  /* xmm7 holds 2:b0+b1 */
+                "movdqa %%xmm8, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm5, %%xmm6\n\t"  /* xmm6 holds 2:a0*b0 */
+                "pclmulqdq $17, %%xmm8, %%xmm5\n\t" /* xmm5 holds 2:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t" /* xmm7 holds 2:(a0+a1)*(b0+b1) */
 
-                "movdqa %%xmm0, %%xmm3\n\t"
-                "pclmulqdq $0, %%xmm6, %%xmm3\n\t"  /* xmm3 holds 1:a0*b0 */
-                "pclmulqdq $17, %%xmm0, %%xmm6\n\t" /* xmm6 holds 1:a1*b1 */
-                "movdqa %%xmm11, %%xmm4\n\t"
-                "pclmulqdq $0, %%xmm10, %%xmm4\n\t" /* xmm4 holds 1:(a0+a1)*(b0+b1) */
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 2+3+4:a0*b0 */
+                "pxor %%xmm5, %%xmm1\n\t" /* xmm1 holds 2+3+4:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 2+3+4:(a0+a1)*(b0+b1) */
 
-                "pxor %%xmm7, %%xmm3\n\t"  /* xmm3 holds 1+2+3+4:a0*b0 */
-                "pxor %%xmm1, %%xmm6\n\t"  /* xmm6 holds 1+2+3+4:a1*b1 */
-                "pxor %%xmm12, %%xmm4\n\t" /* xmm4 holds 1+2+3+4:(a0+a1)*(b0+b1) */
+                "pshufd $78, %%xmm0, %%xmm11\n\t"
+                "pshufd $78, %%xmm2, %%xmm7\n\t"
+                "pxor %%xmm0, %%xmm11\n\t" /* xmm11 holds 1:a0+a1 */
+                "pxor %%xmm2, %%xmm7\n\t"  /* xmm7 holds 1:b0+b1 */
+                "movdqa %%xmm0, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm2, %%xmm6\n\t"  /* xmm6 holds 1:a0*b0 */
+                "pclmulqdq $17, %%xmm0, %%xmm2\n\t" /* xmm2 holds 1:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t" /* xmm7 holds 1:(a0+a1)*(b0+b1) */
+
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 1+2+3+4:a0*b0 */
+                "pxor %%xmm2, %%xmm1\n\t" /* xmm1 holds 1+2+3+4:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 1+2+3+4:(a0+a1)*(b0+b1) */
 
                 /* aggregated reduction... */
                 "movdqa %%xmm3, %%xmm5\n\t"
-                "pxor %%xmm6, %%xmm5\n\t" /* xmm5 holds a0*b0+a1*b1 */
+                "pxor %%xmm1, %%xmm5\n\t" /* xmm5 holds a0*b0+a1*b1 */
                 "pxor %%xmm5, %%xmm4\n\t" /* xmm4 holds a0*b0+a1*b1+(a0+a1)*(b0+b1) */
                 "movdqa %%xmm4, %%xmm5\n\t"
                 "psrldq $8, %%xmm4\n\t"
                 "pslldq $8, %%xmm5\n\t"
                 "pxor %%xmm5, %%xmm3\n\t"
-                "pxor %%xmm4, %%xmm6\n\t" /* <xmm6:xmm3> holds the result of the
+                "pxor %%xmm4, %%xmm1\n\t" /* <xmm1:xmm3> holds the result of the
                                              carry-less multiplication of xmm0
                                              by xmm1 */
+                :
+                : [buf] "r" (buf),
+                  [h_table] "r" (h_table)
+                : "memory" );
 
-                /* shift the result by one bit position to the left cope for
-                   the fact that bits are reversed */
-                "movdqa %%xmm3, %%xmm4\n\t"
-                "movdqa %%xmm6, %%xmm5\n\t"
-                "pslld $1, %%xmm3\n\t"
-                "pslld $1, %%xmm6\n\t"
-                "psrld $31, %%xmm4\n\t"
-                "psrld $31, %%xmm5\n\t"
-                "movdqa %%xmm4, %%xmm1\n\t"
-                "pslldq $4, %%xmm5\n\t"
-                "pslldq $4, %%xmm4\n\t"
-                "psrldq $12, %%xmm1\n\t"
-                "por %%xmm4, %%xmm3\n\t"
-                "por %%xmm5, %%xmm6\n\t"
-                "por %%xmm6, %%xmm1\n\t"
+  reduction();
+}
 
-                /* first phase of the reduction */
-                "movdqa %%xmm3, %%xmm6\n\t"
-                "movdqa %%xmm3, %%xmm7\n\t"
-                "pslld $31, %%xmm6\n\t"  /* packed right shifting << 31 */
+static inline void gfmul_pclmul_aggr8(const void *buf, const void *h_table)
+{
+  /* Input:
+      H¹: XMM0
+      bemask: XMM15
+      Hash: XMM1
+     Output:
+      Hash: XMM1
+     Inputs XMM0 and XMM14 stays unmodified.
+   */
+  asm volatile (/* Load H6, H7, H8. */
+                "movdqu 6*16(%[h_table]), %%xmm10\n\t"
+                "movdqu 5*16(%[h_table]), %%xmm9\n\t"
+                "movdqu 4*16(%[h_table]), %%xmm8\n\t"
+
+                /* perform clmul and merge results... */
+                "movdqu 0*16(%[buf]), %%xmm5\n\t"
+                "movdqu 1*16(%[buf]), %%xmm2\n\t"
+                "pshufb %%xmm15, %%xmm5\n\t" /* be => le */
+                "pshufb %%xmm15, %%xmm2\n\t" /* be => le */
+                "pxor %%xmm5, %%xmm1\n\t"
+
+                "pshufd $78, %%xmm10, %%xmm5\n\t"
+                "pshufd $78, %%xmm1, %%xmm4\n\t"
+                "pxor %%xmm10, %%xmm5\n\t" /* xmm5 holds 8:a0+a1 */
+                "pxor %%xmm1, %%xmm4\n\t"  /* xmm4 holds 8:b0+b1 */
+                "movdqa %%xmm10, %%xmm3\n\t"
+                "pclmulqdq $0, %%xmm1, %%xmm3\n\t"   /* xmm3 holds 8:a0*b0 */
+                "pclmulqdq $17, %%xmm10, %%xmm1\n\t" /* xmm1 holds 8:a1*b1 */
+                "pclmulqdq $0, %%xmm5, %%xmm4\n\t"   /* xmm4 holds 8:(a0+a1)*(b0+b1) */
+
+                "pshufd $78, %%xmm9, %%xmm11\n\t"
+                "pshufd $78, %%xmm2, %%xmm7\n\t"
+                "pxor %%xmm9, %%xmm11\n\t" /* xmm11 holds 7:a0+a1 */
+                "pxor %%xmm2, %%xmm7\n\t"  /* xmm7 holds 7:b0+b1 */
+                "movdqa %%xmm9, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm2, %%xmm6\n\t"  /* xmm6 holds 7:a0*b0 */
+                "pclmulqdq $17, %%xmm9, %%xmm2\n\t" /* xmm2 holds 7:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t" /* xmm7 holds 7:(a0+a1)*(b0+b1) */
+
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 7+8:a0*b0 */
+                "pxor %%xmm2, %%xmm1\n\t" /* xmm1 holds 7+8:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 7+8:(a0+a1)*(b0+b1) */
+
+                "movdqu 2*16(%[buf]), %%xmm5\n\t"
+                "movdqu 3*16(%[buf]), %%xmm2\n\t"
+                "pshufb %%xmm15, %%xmm5\n\t" /* be => le */
+                "pshufb %%xmm15, %%xmm2\n\t" /* be => le */
+
+                "pshufd $78, %%xmm8, %%xmm11\n\t"
+                "pshufd $78, %%xmm5, %%xmm7\n\t"
+                "pxor %%xmm8, %%xmm11\n\t" /* xmm11 holds 6:a0+a1 */
+                "pxor %%xmm5, %%xmm7\n\t"  /* xmm7 holds 6:b0+b1 */
+                "movdqa %%xmm8, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm5, %%xmm6\n\t"  /* xmm6 holds 6:a0*b0 */
+                "pclmulqdq $17, %%xmm8, %%xmm5\n\t" /* xmm5 holds 6:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t" /* xmm7 holds 6:(a0+a1)*(b0+b1) */
+
+                /* Load H3, H4, H5. */
+                "movdqu 3*16(%[h_table]), %%xmm10\n\t"
+                "movdqu 2*16(%[h_table]), %%xmm9\n\t"
+                "movdqu 1*16(%[h_table]), %%xmm8\n\t"
+
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 6+7+8:a0*b0 */
+                "pxor %%xmm5, %%xmm1\n\t" /* xmm1 holds 6+7+8:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 6+7+8:(a0+a1)*(b0+b1) */
+
+                "pshufd $78, %%xmm10, %%xmm11\n\t"
+                "pshufd $78, %%xmm2, %%xmm7\n\t"
+                "pxor %%xmm10, %%xmm11\n\t" /* xmm11 holds 5:a0+a1 */
+                "pxor %%xmm2, %%xmm7\n\t"   /* xmm7 holds 5:b0+b1 */
+                "movdqa %%xmm10, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm2, %%xmm6\n\t"   /* xmm6 holds 5:a0*b0 */
+                "pclmulqdq $17, %%xmm10, %%xmm2\n\t" /* xmm2 holds 5:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t"  /* xmm7 holds 5:(a0+a1)*(b0+b1) */
+
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 5+6+7+8:a0*b0 */
+                "pxor %%xmm2, %%xmm1\n\t" /* xmm1 holds 5+6+7+8:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 5+6+7+8:(a0+a1)*(b0+b1) */
+
+                "movdqu 4*16(%[buf]), %%xmm5\n\t"
+                "movdqu 5*16(%[buf]), %%xmm2\n\t"
+                "pshufb %%xmm15, %%xmm5\n\t" /* be => le */
+                "pshufb %%xmm15, %%xmm2\n\t" /* be => le */
+
+                "pshufd $78, %%xmm9, %%xmm11\n\t"
+                "pshufd $78, %%xmm5, %%xmm7\n\t"
+                "pxor %%xmm9, %%xmm11\n\t" /* xmm11 holds 4:a0+a1 */
+                "pxor %%xmm5, %%xmm7\n\t"  /* xmm7 holds 4:b0+b1 */
+                "movdqa %%xmm9, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm5, %%xmm6\n\t"  /* xmm6 holds 4:a0*b0 */
+                "pclmulqdq $17, %%xmm9, %%xmm5\n\t" /* xmm5 holds 4:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t" /* xmm7 holds 4:(a0+a1)*(b0+b1) */
+
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 4+5+6+7+8:a0*b0 */
+                "pxor %%xmm5, %%xmm1\n\t" /* xmm1 holds 4+5+6+7+8:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 4+5+6+7+8:(a0+a1)*(b0+b1) */
+
+                "pshufd $78, %%xmm8, %%xmm11\n\t"
+                "pshufd $78, %%xmm2, %%xmm7\n\t"
+                "pxor %%xmm8, %%xmm11\n\t" /* xmm11 holds 3:a0+a1 */
+                "pxor %%xmm2, %%xmm7\n\t"  /* xmm7 holds 3:b0+b1 */
+                "movdqa %%xmm8, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm2, %%xmm6\n\t"  /* xmm6 holds 3:a0*b0 */
+                "pclmulqdq $17, %%xmm8, %%xmm2\n\t" /* xmm2 holds 3:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t" /* xmm7 holds 3:(a0+a1)*(b0+b1) */
+
+                "movdqu 0*16(%[h_table]), %%xmm8\n\t" /* Load H2 */
+
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 3+4+5+6+7+8:a0*b0 */
+                "pxor %%xmm2, %%xmm1\n\t" /* xmm1 holds 3+4+5+6+7+8:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 3+4+5+6+7+8:(a0+a1)*(b0+b1) */
+
+                "movdqu 6*16(%[buf]), %%xmm5\n\t"
+                "movdqu 7*16(%[buf]), %%xmm2\n\t"
+                "pshufb %%xmm15, %%xmm5\n\t" /* be => le */
+                "pshufb %%xmm15, %%xmm2\n\t" /* be => le */
+
+                "pshufd $78, %%xmm8, %%xmm11\n\t"
+                "pshufd $78, %%xmm5, %%xmm7\n\t"
+                "pxor %%xmm8, %%xmm11\n\t"  /* xmm11 holds 4:a0+a1 */
+                "pxor %%xmm5, %%xmm7\n\t"   /* xmm7 holds 4:b0+b1 */
+                "movdqa %%xmm8, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm5, %%xmm6\n\t"   /* xmm6 holds 4:a0*b0 */
+                "pclmulqdq $17, %%xmm8, %%xmm5\n\t"  /* xmm5 holds 4:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t"  /* xmm7 holds 4:(a0+a1)*(b0+b1) */
+
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 2+3+4+5+6+7+8:a0*b0 */
+                "pxor %%xmm5, %%xmm1\n\t" /* xmm1 holds 2+3+4+5+6+7+8:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 2+3+4+5+6+7+8:(a0+a1)*(b0+b1) */
+
+                "pshufd $78, %%xmm0, %%xmm11\n\t"
+                "pshufd $78, %%xmm2, %%xmm7\n\t"
+                "pxor %%xmm0, %%xmm11\n\t" /* xmm11 holds 3:a0+a1 */
+                "pxor %%xmm2, %%xmm7\n\t"  /* xmm7 holds 3:b0+b1 */
+                "movdqa %%xmm0, %%xmm6\n\t"
+                "pclmulqdq $0, %%xmm2, %%xmm6\n\t"  /* xmm6 holds 3:a0*b0 */
+                "pclmulqdq $17, %%xmm0, %%xmm2\n\t" /* xmm2 holds 3:a1*b1 */
+                "pclmulqdq $0, %%xmm11, %%xmm7\n\t" /* xmm7 holds 3:(a0+a1)*(b0+b1) */
+
+                "pxor %%xmm6, %%xmm3\n\t" /* xmm3 holds 1+2+3+3+4+5+6+7+8:a0*b0 */
+                "pxor %%xmm2, %%xmm1\n\t" /* xmm1 holds 1+2+3+3+4+5+6+7+8:a1*b1 */
+                "pxor %%xmm7, %%xmm4\n\t" /* xmm4 holds 1+2+3+3+4+5+6+7+8:(a0+a1)*(b0+b1) */
+
+                /* aggregated reduction... */
                 "movdqa %%xmm3, %%xmm5\n\t"
-                "pslld $30, %%xmm7\n\t"  /* packed right shifting shift << 30 */
-                "pslld $25, %%xmm5\n\t"  /* packed right shifting shift << 25 */
-                "pxor %%xmm7, %%xmm6\n\t" /* xor the shifted versions */
-                "pxor %%xmm5, %%xmm6\n\t"
-                "movdqa %%xmm6, %%xmm7\n\t"
-                "pslldq $12, %%xmm6\n\t"
-                "psrldq $4, %%xmm7\n\t"
-                "pxor %%xmm6, %%xmm3\n\t" /* first phase of the reduction
-                                             complete */
+                "pxor %%xmm1, %%xmm5\n\t" /* xmm5 holds a0*b0+a1*b1 */
+                "pxor %%xmm5, %%xmm4\n\t" /* xmm4 holds a0*b0+a1*b1+(a0+a1)*(b0+b1) */
+                "movdqa %%xmm4, %%xmm5\n\t"
+                "psrldq $8, %%xmm4\n\t"
+                "pslldq $8, %%xmm5\n\t"
+                "pxor %%xmm5, %%xmm3\n\t"
+                "pxor %%xmm4, %%xmm1\n\t" /* <xmm1:xmm3> holds the result of the
+                                             carry-less multiplication of xmm0
+                                             by xmm1 */
+                :
+                : [buf] "r" (buf),
+                  [h_table] "r" (h_table)
+                : "memory" );
 
-                /* second phase of the reduction */
-                "movdqa %%xmm3, %%xmm2\n\t"
-                "movdqa %%xmm3, %%xmm4\n\t"
-                "psrld $1, %%xmm2\n\t"    /* packed left shifting >> 1 */
-                "movdqa %%xmm3, %%xmm5\n\t"
-                "psrld $2, %%xmm4\n\t"    /* packed left shifting >> 2 */
-                "psrld $7, %%xmm5\n\t"    /* packed left shifting >> 7 */
-                "pxor %%xmm4, %%xmm2\n\t" /* xor the shifted versions */
-                "pxor %%xmm5, %%xmm2\n\t"
-                "pxor %%xmm7, %%xmm2\n\t"
-                "pxor %%xmm2, %%xmm3\n\t"
-                "pxor %%xmm3, %%xmm1\n\t" /* the result is in xmm1 */
-                :::"cc");
+  reduction();
 }
 #endif
 
+static inline void gcm_lsh(void *h, unsigned int hoffs)
+{
+  static const u64 pconst[2] __attribute__ ((aligned (16))) =
+    { U64_C(0x0000000000000001), U64_C(0xc200000000000000) };
+
+  asm volatile ("movdqu (%[h]), %%xmm2\n\t"
+                "pshufd $0xff, %%xmm2, %%xmm3\n\t"
+                "movdqa %%xmm2, %%xmm4\n\t"
+                "psrad $31, %%xmm3\n\t"
+                "pslldq $8, %%xmm4\n\t"
+                "pand %[pconst], %%xmm3\n\t"
+                "paddq %%xmm2, %%xmm2\n\t"
+                "psrlq $63, %%xmm4\n\t"
+                "pxor %%xmm3, %%xmm2\n\t"
+                "pxor %%xmm4, %%xmm2\n\t"
+                "movdqu %%xmm2, (%[h])\n\t"
+                :
+                : [pconst] "m" (pconst),
+                  [h] "r" ((byte *)h + hoffs)
+                : "memory" );
+}
 
 void
 _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
@@ -254,103 +394,9 @@ _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
   static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
     { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 #if defined(__x86_64__) && defined(__WIN64__)
-  char win64tmp[3 * 16];
-
-  /* XMM6-XMM8 need to be restored after use. */
-  asm volatile ("movdqu %%xmm6, 0*16(%0)\n\t"
-                "movdqu %%xmm7, 1*16(%0)\n\t"
-                "movdqu %%xmm8, 2*16(%0)\n\t"
-                :
-                : "r" (win64tmp)
-                : "memory");
-#endif
-
-  /* Swap endianness of hsub. */
-  asm volatile ("movdqu (%[key]), %%xmm0\n\t"
-                "pshufb %[be_mask], %%xmm0\n\t"
-                "movdqu %%xmm0, (%[key])\n\t"
-                :
-                : [key] "r" (c->u_mode.gcm.u_ghash_key.key),
-                  [be_mask] "m" (*be_mask)
-                : "memory");
-
-#ifdef __x86_64__
-  asm volatile ("movdqa %%xmm0, %%xmm1\n\t"
-                :
-                :
-                : "memory");
-
-  gfmul_pclmul (); /* H•H => H² */
-
-  asm volatile ("movdqu %%xmm1, 0*16(%[h_234])\n\t"
-                "movdqa %%xmm1, %%xmm8\n\t"
-                :
-                : [h_234] "r" (c->u_mode.gcm.gcm_table)
-                : "memory");
-
-  gfmul_pclmul (); /* H•H² => H³ */
-
-  asm volatile ("movdqa %%xmm8, %%xmm0\n\t"
-                "movdqu %%xmm1, 1*16(%[h_234])\n\t"
-                "movdqa %%xmm8, %%xmm1\n\t"
-                :
-                : [h_234] "r" (c->u_mode.gcm.gcm_table)
-                : "memory");
-
-  gfmul_pclmul (); /* H²•H² => H⁴ */
-
-  asm volatile ("movdqu %%xmm1, 2*16(%[h_234])\n\t"
-                :
-                : [h_234] "r" (c->u_mode.gcm.gcm_table)
-                : "memory");
-
-#ifdef __WIN64__
-  /* Clear/restore used registers. */
-  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
-                "pxor %%xmm1, %%xmm1\n\t"
-                "pxor %%xmm2, %%xmm2\n\t"
-                "pxor %%xmm3, %%xmm3\n\t"
-                "pxor %%xmm4, %%xmm4\n\t"
-                "pxor %%xmm5, %%xmm5\n\t"
-                "movdqu 0*16(%0), %%xmm6\n\t"
-                "movdqu 1*16(%0), %%xmm7\n\t"
-                "movdqu 2*16(%0), %%xmm8\n\t"
-                :
-                : "r" (win64tmp)
-                : "memory");
-#else
-  /* Clear used registers. */
-  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
-                "pxor %%xmm1, %%xmm1\n\t"
-                "pxor %%xmm2, %%xmm2\n\t"
-                "pxor %%xmm3, %%xmm3\n\t"
-                "pxor %%xmm4, %%xmm4\n\t"
-                "pxor %%xmm5, %%xmm5\n\t"
-                "pxor %%xmm6, %%xmm6\n\t"
-                "pxor %%xmm7, %%xmm7\n\t"
-                "pxor %%xmm8, %%xmm8\n\t"
-                ::: "cc" );
-#endif
-#endif
-}
-
-
-unsigned int
-_gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
-                          size_t nblocks)
-{
-  static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
-    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-  const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
-#ifdef __WIN64__
   char win64tmp[10 * 16];
-#endif
 
-  if (nblocks == 0)
-    return 0;
-
-#ifdef __WIN64__
-  /* XMM8-XMM15 need to be restored after use. */
+  /* XMM6-XMM15 need to be restored after use. */
   asm volatile ("movdqu %%xmm6,  0*16(%0)\n\t"
                 "movdqu %%xmm7,  1*16(%0)\n\t"
                 "movdqu %%xmm8,  2*16(%0)\n\t"
@@ -366,79 +412,90 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
                 : "memory" );
 #endif
 
-  /* Preload hash and H1. */
-  asm volatile ("movdqu %[hash], %%xmm1\n\t"
-                "movdqa %[hsub], %%xmm0\n\t"
-                "pshufb %[be_mask], %%xmm1\n\t" /* be => le */
+  /* Swap endianness of hsub. */
+  asm volatile ("movdqu (%[key]), %%xmm0\n\t"
+                "pshufb %[be_mask], %%xmm0\n\t"
+                "movdqu %%xmm0, (%[key])\n\t"
                 :
-                : [hash] "m" (*result), [be_mask] "m" (*be_mask),
-                  [hsub] "m" (*c->u_mode.gcm.u_ghash_key.key));
+                : [key] "r" (c->u_mode.gcm.u_ghash_key.key),
+                  [be_mask] "m" (*be_mask)
+                : "memory");
+
+  gcm_lsh(c->u_mode.gcm.u_ghash_key.key, 0); /* H <<< 1 */
 
 #ifdef __x86_64__
-  if (nblocks >= 4)
-    {
-      do
-        {
-          asm volatile ("movdqa %[be_mask], %%xmm4\n\t"
-                        "movdqu 0*16(%[buf]), %%xmm5\n\t"
-                        "movdqu 1*16(%[buf]), %%xmm2\n\t"
-                        "movdqu 2*16(%[buf]), %%xmm3\n\t"
-                        "movdqu 3*16(%[buf]), %%xmm6\n\t"
-                        "pshufb %%xmm4, %%xmm5\n\t" /* be => le */
+  asm volatile ("movdqa %%xmm0, %%xmm1\n\t"
+                "movdqu (%[key]), %%xmm0\n\t" /* load H <<< 1 */
+                :
+                : [key] "r" (c->u_mode.gcm.u_ghash_key.key)
+                : "memory");
 
-                        /* Load H2, H3, H4. */
-                        "movdqu 2*16(%[h_234]), %%xmm10\n\t"
-                        "movdqu 1*16(%[h_234]), %%xmm9\n\t"
-                        "movdqu 0*16(%[h_234]), %%xmm8\n\t"
+  gfmul_pclmul (); /* H<<<1•H => H² */
 
-                        "pxor %%xmm5, %%xmm1\n\t"
-                        "pshufb %%xmm4, %%xmm2\n\t" /* be => le */
-                        "pshufb %%xmm4, %%xmm3\n\t" /* be => le */
-                        "pshufb %%xmm4, %%xmm6\n\t" /* be => le */
-                        :
-                        : [buf] "r" (buf), [be_mask] "m" (*be_mask),
-                          [h_234] "r" (c->u_mode.gcm.gcm_table));
+  asm volatile ("movdqu %%xmm1, 0*16(%[h_table])\n\t"
+                "movdqa %%xmm1, %%xmm8\n\t"
+                :
+                : [h_table] "r" (c->u_mode.gcm.gcm_table)
+                : "memory");
 
-          gfmul_pclmul_aggr4 ();
+  gcm_lsh(c->u_mode.gcm.gcm_table, 0 * 16); /* H² <<< 1 */
+  gfmul_pclmul (); /* H<<<1•H² => H³ */
 
-          buf += 4 * blocksize;
-          nblocks -= 4;
-        }
-      while (nblocks >= 4);
+  asm volatile ("movdqa %%xmm8, %%xmm0\n\t"
+                "movdqu %%xmm1, 1*16(%[h_table])\n\t"
+                "movdqu 0*16(%[h_table]), %%xmm1\n\t" /* load H² <<< 1 */
+                :
+                : [h_table] "r" (c->u_mode.gcm.gcm_table)
+                : "memory");
 
-#ifndef __WIN64__
-      /* Clear used x86-64/XMM registers. */
-      asm volatile( "pxor %%xmm8, %%xmm8\n\t"
-                    "pxor %%xmm9, %%xmm9\n\t"
-                    "pxor %%xmm10, %%xmm10\n\t"
-                    "pxor %%xmm11, %%xmm11\n\t"
-                    "pxor %%xmm12, %%xmm12\n\t"
-                    "pxor %%xmm13, %%xmm13\n\t"
-                    "pxor %%xmm14, %%xmm14\n\t"
-                    "pxor %%xmm15, %%xmm15\n\t"
-                    ::: "cc" );
-#endif
-    }
-#endif
+  gfmul_pclmul (); /* H²<<<1•H² => H⁴ */
 
-  while (nblocks--)
-    {
-      asm volatile ("movdqu %[buf], %%xmm2\n\t"
-                    "pshufb %[be_mask], %%xmm2\n\t" /* be => le */
-                    "pxor %%xmm2, %%xmm1\n\t"
-                    :
-                    : [buf] "m" (*buf), [be_mask] "m" (*be_mask));
+  asm volatile ("movdqu %%xmm1, 2*16(%[h_table])\n\t"
+                "movdqa %%xmm1, %%xmm0\n\t"
+                "movdqu (%[key]), %%xmm1\n\t" /* load H <<< 1 */
+                :
+                : [h_table] "r" (c->u_mode.gcm.gcm_table),
+                  [key] "r" (c->u_mode.gcm.u_ghash_key.key)
+                : "memory");
 
-      gfmul_pclmul ();
+  gcm_lsh(c->u_mode.gcm.gcm_table, 1 * 16); /* H³ <<< 1 */
+  gcm_lsh(c->u_mode.gcm.gcm_table, 2 * 16); /* H⁴ <<< 1 */
 
-      buf += blocksize;
-    }
+  gfmul_pclmul (); /* H<<<1•H⁴ => H⁵ */
 
-  /* Store hash. */
-  asm volatile ("pshufb %[be_mask], %%xmm1\n\t" /* be => le */
-                "movdqu %%xmm1, %[hash]\n\t"
-                : [hash] "=m" (*result)
-                : [be_mask] "m" (*be_mask));
+  asm volatile ("movdqu %%xmm1, 3*16(%[h_table])\n\t"
+                "movdqu 0*16(%[h_table]), %%xmm1\n\t" /* load H² <<< 1 */
+                :
+                : [h_table] "r" (c->u_mode.gcm.gcm_table)
+                : "memory");
+
+  gfmul_pclmul (); /* H²<<<1•H⁴ => H⁶ */
+
+  asm volatile ("movdqu %%xmm1, 4*16(%[h_table])\n\t"
+                "movdqu 1*16(%[h_table]), %%xmm1\n\t" /* load H³ <<< 1 */
+                :
+                : [h_table] "r" (c->u_mode.gcm.gcm_table)
+                : "memory");
+
+  gfmul_pclmul (); /* H³<<<1•H⁴ => H⁷ */
+
+  asm volatile ("movdqu %%xmm1, 5*16(%[h_table])\n\t"
+                "movdqu 2*16(%[h_table]), %%xmm1\n\t" /* load H⁴ <<< 1 */
+                :
+                : [h_table] "r" (c->u_mode.gcm.gcm_table)
+                : "memory");
+
+  gfmul_pclmul (); /* H³<<<1•H⁴ => H⁸ */
+
+  asm volatile ("movdqu %%xmm1, 6*16(%[h_table])\n\t"
+                :
+                : [h_table] "r" (c->u_mode.gcm.gcm_table)
+                : "memory");
+
+  gcm_lsh(c->u_mode.gcm.gcm_table, 3 * 16); /* H⁵ <<< 1 */
+  gcm_lsh(c->u_mode.gcm.gcm_table, 4 * 16); /* H⁶ <<< 1 */
+  gcm_lsh(c->u_mode.gcm.gcm_table, 5 * 16); /* H⁷ <<< 1 */
+  gcm_lsh(c->u_mode.gcm.gcm_table, 6 * 16); /* H⁸ <<< 1 */
 
 #ifdef __WIN64__
   /* Clear/restore used registers. */
@@ -471,7 +528,155 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
                 "pxor %%xmm5, %%xmm5\n\t"
                 "pxor %%xmm6, %%xmm6\n\t"
                 "pxor %%xmm7, %%xmm7\n\t"
-                ::: "cc" );
+                "pxor %%xmm8, %%xmm8\n\t"
+                "pxor %%xmm9, %%xmm9\n\t"
+                "pxor %%xmm10, %%xmm10\n\t"
+                "pxor %%xmm11, %%xmm11\n\t"
+                "pxor %%xmm12, %%xmm12\n\t"
+                "pxor %%xmm13, %%xmm13\n\t"
+                "pxor %%xmm14, %%xmm14\n\t"
+                "pxor %%xmm15, %%xmm15\n\t"
+                ::: "memory" );
+#endif
+#endif
+}
+
+
+unsigned int
+_gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
+                          size_t nblocks)
+{
+  static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
+    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+  const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
+#if defined(__x86_64__) && defined(__WIN64__)
+  char win64tmp[10 * 16];
+#endif
+
+  if (nblocks == 0)
+    return 0;
+
+#if defined(__x86_64__) && defined(__WIN64__)
+  /* XMM6-XMM15 need to be restored after use. */
+  asm volatile ("movdqu %%xmm6,  0*16(%0)\n\t"
+                "movdqu %%xmm7,  1*16(%0)\n\t"
+                "movdqu %%xmm8,  2*16(%0)\n\t"
+                "movdqu %%xmm9,  3*16(%0)\n\t"
+                "movdqu %%xmm10, 4*16(%0)\n\t"
+                "movdqu %%xmm11, 5*16(%0)\n\t"
+                "movdqu %%xmm12, 6*16(%0)\n\t"
+                "movdqu %%xmm13, 7*16(%0)\n\t"
+                "movdqu %%xmm14, 8*16(%0)\n\t"
+                "movdqu %%xmm15, 9*16(%0)\n\t"
+                :
+                : "r" (win64tmp)
+                : "memory" );
+#endif
+
+  /* Preload hash and H1. */
+  asm volatile ("movdqa %[be_mask], %%xmm7\n\t"
+                "movdqu %[hash], %%xmm1\n\t"
+                "movdqa %[hsub], %%xmm0\n\t"
+                "pshufb %%xmm7, %%xmm1\n\t" /* be => le */
+                :
+                : [hash] "m" (*result),
+                  [be_mask] "m" (*be_mask),
+                  [hsub] "m" (*c->u_mode.gcm.u_ghash_key.key)
+                : "memory" );
+
+#ifdef __x86_64__
+  if (nblocks >= 4)
+    {
+      asm volatile ("movdqa %%xmm7, %%xmm15\n\t"
+                    :
+                    :
+                    : "memory" );
+
+      while (nblocks >= 8)
+        {
+          gfmul_pclmul_aggr8 (buf, c->u_mode.gcm.gcm_table);
+
+          buf += 8 * blocksize;
+          nblocks -= 8;
+        }
+
+      if (nblocks >= 4)
+        {
+          gfmul_pclmul_aggr4 (buf, c->u_mode.gcm.gcm_table);
+
+          buf += 4 * blocksize;
+          nblocks -= 4;
+        }
+
+#ifndef __WIN64__
+      /* Clear used x86-64/XMM registers. */
+      asm volatile( "pxor %%xmm8, %%xmm8\n\t"
+                    "pxor %%xmm9, %%xmm9\n\t"
+                    "pxor %%xmm10, %%xmm10\n\t"
+                    "pxor %%xmm11, %%xmm11\n\t"
+                    "pxor %%xmm12, %%xmm12\n\t"
+                    "pxor %%xmm13, %%xmm13\n\t"
+                    "pxor %%xmm14, %%xmm14\n\t"
+                    "pxor %%xmm15, %%xmm15\n\t"
+                    ::: "memory" );
+#endif
+    }
+#endif
+
+  while (nblocks)
+    {
+      asm volatile ("movdqu %[buf], %%xmm2\n\t"
+                    "pshufb %[be_mask], %%xmm2\n\t" /* be => le */
+                    "pxor %%xmm2, %%xmm1\n\t"
+                    :
+                    : [buf] "m" (*buf), [be_mask] "m" (*be_mask)
+                    : "memory" );
+
+      gfmul_pclmul ();
+
+      buf += blocksize;
+      nblocks--;
+    }
+
+  /* Store hash. */
+  asm volatile ("pshufb %[be_mask], %%xmm1\n\t" /* be => le */
+                "movdqu %%xmm1, %[hash]\n\t"
+                : [hash] "=m" (*result)
+                : [be_mask] "m" (*be_mask)
+                : "memory" );
+
+#if defined(__x86_64__) && defined(__WIN64__)
+  /* Clear/restore used registers. */
+  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
+                "pxor %%xmm1, %%xmm1\n\t"
+                "pxor %%xmm2, %%xmm2\n\t"
+                "pxor %%xmm3, %%xmm3\n\t"
+                "pxor %%xmm4, %%xmm4\n\t"
+                "pxor %%xmm5, %%xmm5\n\t"
+                "movdqu 0*16(%0), %%xmm6\n\t"
+                "movdqu 1*16(%0), %%xmm7\n\t"
+                "movdqu 2*16(%0), %%xmm8\n\t"
+                "movdqu 3*16(%0), %%xmm9\n\t"
+                "movdqu 4*16(%0), %%xmm10\n\t"
+                "movdqu 5*16(%0), %%xmm11\n\t"
+                "movdqu 6*16(%0), %%xmm12\n\t"
+                "movdqu 7*16(%0), %%xmm13\n\t"
+                "movdqu 8*16(%0), %%xmm14\n\t"
+                "movdqu 9*16(%0), %%xmm15\n\t"
+                :
+                : "r" (win64tmp)
+                : "memory" );
+#else
+  /* Clear used registers. */
+  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
+                "pxor %%xmm1, %%xmm1\n\t"
+                "pxor %%xmm2, %%xmm2\n\t"
+                "pxor %%xmm3, %%xmm3\n\t"
+                "pxor %%xmm4, %%xmm4\n\t"
+                "pxor %%xmm5, %%xmm5\n\t"
+                "pxor %%xmm6, %%xmm6\n\t"
+                "pxor %%xmm7, %%xmm7\n\t"
+                ::: "memory" );
 #endif
 
   return 0;
