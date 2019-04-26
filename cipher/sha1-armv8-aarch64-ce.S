@@ -110,6 +110,7 @@ _gcry_sha1_transform_armv8_ce:
    *	x1: data (64*nblks bytes)
    *	x2: nblks
    */
+  CFI_STARTPROC();
 
   cbz x2, .Ldo_nothing;
 
@@ -199,6 +200,7 @@ _gcry_sha1_transform_armv8_ce:
 .Ldo_nothing:
   mov x0, #0
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_sha1_transform_armv8_ce,.-_gcry_sha1_transform_armv8_ce;)
 
 #endif

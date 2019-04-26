@@ -163,6 +163,7 @@ _gcry_chacha20_aarch64_blocks4:
 	 *	x2: src
 	 *	x3: nblks (multiple of 4)
 	 */
+	CFI_STARTPROC()
 
 	GET_DATA_POINTER(CTR, .Linc_counter);
 	add INPUT_CTR, INPUT, #(12*4);
@@ -309,6 +310,7 @@ _gcry_chacha20_aarch64_blocks4:
 
 	eor x0, x0, x0
 	ret
+	CFI_ENDPROC()
 ELF(.size _gcry_chacha20_aarch64_blocks4, .-_gcry_chacha20_aarch64_blocks4;)
 
 #endif

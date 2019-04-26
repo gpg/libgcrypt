@@ -225,6 +225,7 @@ _gcry_twofish_arm_encrypt_block:
 	 *	x1: dst
 	 *	x2: src
 	 */
+	CFI_STARTPROC();
 
 	add CTXw, CTX, #(w);
 
@@ -262,6 +263,7 @@ _gcry_twofish_arm_encrypt_block:
 	str_output_le(RDST, RC, RD, RA, RB, RT0, RT1);
 
 	ret;
+	CFI_ENDPROC();
 .ltorg
 ELF(.size _gcry_twofish_arm_encrypt_block,.-_gcry_twofish_arm_encrypt_block;)
 
@@ -274,6 +276,7 @@ _gcry_twofish_arm_decrypt_block:
 	 *	%r1: dst
 	 *	%r2: src
 	 */
+	CFI_STARTPROC();
 
 	add CTXw, CTX, #(w);
 
@@ -311,6 +314,7 @@ _gcry_twofish_arm_decrypt_block:
 	str_output_le(RDST, RA, RB, RC, RD, RT0, RT1);
 
 	ret;
+	CFI_ENDPROC();
 ELF(.size _gcry_twofish_arm_decrypt_block,.-_gcry_twofish_arm_decrypt_block;)
 
 #endif /*HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS*/

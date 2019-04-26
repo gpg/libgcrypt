@@ -72,6 +72,7 @@ _gcry_crc32r_armv8_ce_bulk:
    *    x2: inlen
    *    x3: consts
    */
+  CFI_STARTPROC()
 
   GET_DATA_POINTER(x7, .Lcrc32_constants)
   add x9, x3, #consts_k(5 - 1)
@@ -230,6 +231,7 @@ _gcry_crc32r_armv8_ce_bulk:
   st1 {v0.s}[2], [x0]
 
   ret
+  CFI_ENDPROC()
 ELF(.size _gcry_crc32r_armv8_ce_bulk,.-_gcry_crc32r_armv8_ce_bulk;)
 
 /*
@@ -245,6 +247,7 @@ _gcry_crc32r_armv8_ce_reduction_4:
    *    w1: crc
    *    x2: crc32 constants
    */
+  CFI_STARTPROC()
 
   eor v0.16b, v0.16b, v0.16b
   add x2, x2, #consts_my_p(0)
@@ -261,6 +264,7 @@ _gcry_crc32r_armv8_ce_reduction_4:
   mov w0, v0.s[1]
 
   ret
+  CFI_ENDPROC()
 ELF(.size _gcry_crc32r_armv8_ce_reduction_4,.-_gcry_crc32r_armv8_ce_reduction_4;)
 
 /*
@@ -277,6 +281,7 @@ _gcry_crc32_armv8_ce_bulk:
    *    x2: inlen
    *    x3: consts
    */
+  CFI_STARTPROC()
 
   GET_DATA_POINTER(x7, .Lcrc32_constants)
   add x4, x7, #.Lcrc32_bswap_shuf - .Lcrc32_constants
@@ -456,6 +461,7 @@ _gcry_crc32_armv8_ce_bulk:
   st1 {v0.s}[0], [x0]
 
   ret
+  CFI_ENDPROC()
 ELF(.size _gcry_crc32_armv8_ce_bulk,.-_gcry_crc32_armv8_ce_bulk;)
 
 /*
@@ -471,6 +477,7 @@ _gcry_crc32_armv8_ce_reduction_4:
    *    w1: crc
    *    x2: crc32 constants
    */
+  CFI_STARTPROC()
 
   eor v0.16b, v0.16b, v0.16b
   add x2, x2, #consts_my_p(0)
@@ -487,6 +494,7 @@ _gcry_crc32_armv8_ce_reduction_4:
   mov w0, v0.s[0]
 
   ret
+  CFI_ENDPROC()
 ELF(.size _gcry_crc32_armv8_ce_reduction_4,.-_gcry_crc32_armv8_ce_reduction_4;)
 
 #endif

@@ -37,6 +37,7 @@
 .globl _gcry_mpih_submul_1
 ELF(.type  _gcry_mpih_submul_1,%function)
 _gcry_mpih_submul_1:
+	CFI_STARTPROC()
 	and	w5, w2, #3;
 	mov	x7, xzr;
 	cbz	w5, .Large_loop;
@@ -119,4 +120,5 @@ _gcry_mpih_submul_1:
 .Loop_end:
 	cinc	x0, x7, cc;
 	ret;
+	CFI_ENDPROC()
 ELF(.size _gcry_mpih_submul_1,.-_gcry_mpih_submul_1;)

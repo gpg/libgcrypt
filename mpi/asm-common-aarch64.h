@@ -21,10 +21,6 @@
 #ifndef MPI_ASM_COMMON_AARCH64_H
 #define MPI_ASM_COMMON_AARCH64_H
 
-#ifdef __ELF__
-# define ELF(...) __VA_ARGS__
-#else
-# define ELF(...) /*_*/
-#endif
+#include "../cipher/asm-common-aarch64.h"
 
 #endif /* MPI_ASM_COMMON_AARCH64_H */

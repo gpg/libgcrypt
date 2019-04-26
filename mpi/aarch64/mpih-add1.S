@@ -37,6 +37,7 @@
 .globl _gcry_mpih_add_n
 ELF(.type  _gcry_mpih_add_n,%function)
 _gcry_mpih_add_n:
+	CFI_STARTPROC()
 	and	w5, w3, #3;
 	adds	xzr, xzr, xzr; /* clear carry flag */
 
@@ -69,4 +70,5 @@ _gcry_mpih_add_n:
 .Lend:
 	adc	x0, xzr, xzr;
 	ret;
+	CFI_ENDPROC()
 ELF(.size _gcry_mpih_add_n,.-_gcry_mpih_add_n;)

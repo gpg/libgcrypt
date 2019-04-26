@@ -247,6 +247,7 @@ _gcry_aes_enc_armv8_ce:
    *    x2: src
    *    w3: nrounds
    */
+  CFI_STARTPROC();
 
   aes_preload_keys(x0, w3);
 
@@ -291,6 +292,7 @@ _gcry_aes_enc_armv8_ce:
   CLEAR_REG(vk13)
   CLEAR_REG(vk14)
   b .Lenc1_tail
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_enc_armv8_ce,.-_gcry_aes_enc_armv8_ce;)
 
 
@@ -309,6 +311,7 @@ _gcry_aes_dec_armv8_ce:
    *    x2: src
    *    w3: nrounds
    */
+  CFI_STARTPROC();
 
   aes_preload_keys(x0, w3);
 
@@ -353,6 +356,7 @@ _gcry_aes_dec_armv8_ce:
   CLEAR_REG(vk13)
   CLEAR_REG(vk14)
   b .Ldec1_tail
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_dec_armv8_ce,.-_gcry_aes_dec_armv8_ce;)
 
 
@@ -377,6 +381,7 @@ _gcry_aes_cbc_enc_armv8_ce:
    *    w5: cbc_mac
    *    w6: nrounds
    */
+  CFI_STARTPROC();
 
   cbz x4, .Lcbc_enc_skip
 
@@ -419,6 +424,7 @@ _gcry_aes_cbc_enc_armv8_ce:
 
 .Lcbc_enc_skip:
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_cbc_enc_armv8_ce,.-_gcry_aes_cbc_enc_armv8_ce;)
 
 /*
@@ -440,6 +446,7 @@ _gcry_aes_cbc_dec_armv8_ce:
    *    x4: nblocks
    *    w5: nrounds
    */
+  CFI_STARTPROC();
 
   cbz x4, .Lcbc_dec_skip
 
@@ -515,6 +522,7 @@ _gcry_aes_cbc_dec_armv8_ce:
 
 .Lcbc_dec_skip:
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_cbc_dec_armv8_ce,.-_gcry_aes_cbc_dec_armv8_ce;)
 
 
@@ -537,6 +545,7 @@ _gcry_aes_ctr_enc_armv8_ce:
    *    x4: nblocks
    *    w5: nrounds
    */
+  CFI_STARTPROC();
 
   cbz x4, .Lctr_enc_skip
 
@@ -668,7 +677,7 @@ _gcry_aes_ctr_enc_armv8_ce:
 
 .Lctr_enc_skip:
   ret
-
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_ctr_enc_armv8_ce,.-_gcry_aes_ctr_enc_armv8_ce;)
 
 
@@ -691,6 +700,7 @@ _gcry_aes_cfb_enc_armv8_ce:
    *    x4: nblocks
    *    w5: nrounds
    */
+  CFI_STARTPROC();
 
   cbz x4, .Lcfb_enc_skip
 
@@ -732,6 +742,7 @@ _gcry_aes_cfb_enc_armv8_ce:
 
 .Lcfb_enc_skip:
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_cfb_enc_armv8_ce,.-_gcry_aes_cfb_enc_armv8_ce;)
 
 
@@ -754,6 +765,7 @@ _gcry_aes_cfb_dec_armv8_ce:
    *    x4: nblocks
    *    w5: nrounds
    */
+  CFI_STARTPROC();
 
   cbz x4, .Lcfb_dec_skip
 
@@ -829,6 +841,7 @@ _gcry_aes_cfb_dec_armv8_ce:
 
 .Lcfb_dec_skip:
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_cfb_dec_armv8_ce,.-_gcry_aes_cfb_dec_armv8_ce;)
 
 
@@ -859,6 +872,7 @@ _gcry_aes_ocb_enc_armv8_ce:
    *    w7: nrounds
    *    %st+0: blkn => w12
    */
+  CFI_STARTPROC();
 
   ldr w12, [sp]
   ld1 {v0.16b}, [x3] /* load offset */
@@ -979,6 +993,7 @@ _gcry_aes_ocb_enc_armv8_ce:
   CLEAR_REG(v16)
 
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_ocb_enc_armv8_ce,.-_gcry_aes_ocb_enc_armv8_ce;)
 
 
@@ -1009,6 +1024,7 @@ _gcry_aes_ocb_dec_armv8_ce:
    *    w7: nrounds
    *    %st+0: blkn => w12
    */
+  CFI_STARTPROC();
 
   ldr w12, [sp]
   ld1 {v0.16b}, [x3] /* load offset */
@@ -1129,6 +1145,7 @@ _gcry_aes_ocb_dec_armv8_ce:
   CLEAR_REG(v16)
 
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_ocb_dec_armv8_ce,.-_gcry_aes_ocb_dec_armv8_ce;)
 
 
@@ -1157,6 +1174,8 @@ _gcry_aes_ocb_auth_armv8_ce:
    *    w6: nrounds => w7
    *    w7: blkn => w12
    */
+  CFI_STARTPROC();
+
   mov w12, w7
   mov w7, w6
   mov x6, x5
@@ -1273,6 +1292,7 @@ _gcry_aes_ocb_auth_armv8_ce:
   CLEAR_REG(v16)
 
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_ocb_auth_armv8_ce,.-_gcry_aes_ocb_auth_armv8_ce;)
 
 
@@ -1297,6 +1317,7 @@ _gcry_aes_xts_enc_armv8_ce:
    *    x4: nblocks
    *    w5: nrounds
    */
+  CFI_STARTPROC();
 
   cbz x4, .Lxts_enc_skip
 
@@ -1411,7 +1432,7 @@ _gcry_aes_xts_enc_armv8_ce:
 
 .Lxts_enc_skip:
   ret
-
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_xts_enc_armv8_ce,.-_gcry_aes_xts_enc_armv8_ce;)
 
 
@@ -1436,6 +1457,7 @@ _gcry_aes_xts_dec_armv8_ce:
    *    x4: nblocks
    *    w5: nrounds
    */
+  CFI_STARTPROC();
 
   cbz x4, .Lxts_dec_skip
 
@@ -1550,7 +1572,7 @@ _gcry_aes_xts_dec_armv8_ce:
 
 .Lxts_dec_skip:
   ret
-
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_xts_dec_armv8_ce,.-_gcry_aes_xts_dec_armv8_ce;)
 
 
@@ -1564,6 +1586,7 @@ _gcry_aes_sbox4_armv8_ce:
   /* See "Gouvêa, C. P. L. & López, J. Implementing GCM on ARMv8. Topics in
    * Cryptology — CT-RSA 2015" for details.
    */
+  CFI_STARTPROC();
   movi v0.16b, #0x52
   movi v1.16b, #0
   mov v0.S[0], w0
@@ -1572,6 +1595,7 @@ _gcry_aes_sbox4_armv8_ce:
   mov w0, v0.S[0]
   CLEAR_REG(v0)
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_sbox4_armv8_ce,.-_gcry_aes_sbox4_armv8_ce;)
 
 
@@ -1582,11 +1606,13 @@ ELF(.size _gcry_aes_sbox4_armv8_ce,.-_gcry_aes_sbox4_armv8_ce;)
 .globl _gcry_aes_invmixcol_armv8_ce
 ELF(.type  _gcry_aes_invmixcol_armv8_ce,%function;)
 _gcry_aes_invmixcol_armv8_ce:
+  CFI_STARTPROC();
   ld1 {v0.16b}, [x1]
   aesimc v0.16b, v0.16b
   st1 {v0.16b}, [x0]
   CLEAR_REG(v0)
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_aes_invmixcol_armv8_ce,.-_gcry_aes_invmixcol_armv8_ce;)
 
 #endif

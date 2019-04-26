@@ -37,6 +37,7 @@
 .globl _gcry_mpih_mul_1
 ELF(.type  _gcry_mpih_mul_1,%function)
 _gcry_mpih_mul_1:
+	CFI_STARTPROC()
 	and	w5, w2, #3;
 	mov	x4, xzr;
 
@@ -94,4 +95,5 @@ _gcry_mpih_mul_1:
 .Lend:
 	mov	x0, x4;
 	ret;
+	CFI_ENDPROC()
 ELF(.size _gcry_mpih_mul_1,.-_gcry_mpih_mul_1;)

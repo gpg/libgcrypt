@@ -157,15 +157,23 @@ gcry_gcm_reduction_constant:
 
 #define VPUSH_ABI \
         stp d8, d9, [sp, #-16]!; \
+        CFI_ADJUST_CFA_OFFSET(16); \
         stp d10, d11, [sp, #-16]!; \
+        CFI_ADJUST_CFA_OFFSET(16); \
         stp d12, d13, [sp, #-16]!; \
-        stp d14, d15, [sp, #-16]!;
+        CFI_ADJUST_CFA_OFFSET(16); \
+        stp d14, d15, [sp, #-16]!; \
+        CFI_ADJUST_CFA_OFFSET(16);
 
 #define VPOP_ABI \
         ldp d14, d15, [sp], #16; \
+        CFI_ADJUST_CFA_OFFSET(-16); \
         ldp d12, d13, [sp], #16; \
+        CFI_ADJUST_CFA_OFFSET(-16); \
         ldp d10, d11, [sp], #16; \
-        ldp d8, d9, [sp], #16;
+        CFI_ADJUST_CFA_OFFSET(-16); \
+        ldp d8, d9, [sp], #16; \
+        CFI_ADJUST_CFA_OFFSET(-16);
 
 /*
  * unsigned int _gcry_ghash_armv8_ce_pmull (void *gcm_key, byte *result,
@@ -183,6 +191,8 @@ _gcry_ghash_armv8_ce_pmull:
    *    x3: nblocks
    *    x4: gcm_table
    */
+  CFI_STARTPROC();
+
   cbz x3, .Ldo_nothing;
 
   GET_DATA_POINTER(x5, .Lrconst)
@@ -360,6 +370,7 @@ _gcry_ghash_armv8_ce_pmull:
 .Ldo_nothing:
   mov x0, #0
   ret
+  CFI_ENDPROC()
 ELF(.size _gcry_ghash_armv8_ce_pmull,.-_gcry_ghash_armv8_ce_pmull;)
 
 
@@ -374,6 +385,7 @@ _gcry_ghash_setup_armv8_ce_pmull:
    *	x0: gcm_key
    *	x1: gcm_table
    */
+  CFI_STARTPROC()
 
   GET_DATA_POINTER(x2, .Lrconst)
 
@@ -408,6 +420,7 @@ _gcry_ghash_setup_armv8_ce_pmull:
   st1 {rh5.16b-rh6.16b}, [x1]
 
   ret
+  CFI_ENDPROC()
 ELF(.size _gcry_ghash_setup_armv8_ce_pmull,.-_gcry_ghash_setup_armv8_ce_pmull;)
 
 #endif

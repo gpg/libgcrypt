@@ -37,6 +37,7 @@
 .globl _gcry_mpih_sub_n
 ELF(.type  _gcry_mpih_sub_n,%function)
 _gcry_mpih_sub_n:
+	CFI_STARTPROC()
 	and	w5, w3, #3;
 	subs	xzr, xzr, xzr; /* prepare carry flag for sub */
 
@@ -69,4 +70,5 @@ _gcry_mpih_sub_n:
 .Lend:
 	cset	x0, cc;
 	ret;
+	CFI_ENDPROC()
 ELF(.size _gcry_mpih_sub_n,.-_gcry_mpih_sub_n;)

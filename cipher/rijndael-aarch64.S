@@ -216,6 +216,7 @@ _gcry_aes_arm_encrypt_block:
 	 *	%w3: number of rounds.. 10, 12 or 14
 	 *      %x4: encryption table
 	 */
+	CFI_STARTPROC();
 
 	/* read input block */
 
@@ -285,6 +286,7 @@ _gcry_aes_arm_encrypt_block:
 	lastencround(11, RNA, RNB, RNC, RND, RA, RB, RC, RD);
 
 	b .Lenc_done;
+	CFI_ENDPROC();
 ELF(.size _gcry_aes_arm_encrypt_block,.-_gcry_aes_arm_encrypt_block;)
 
 #define addroundkey_dec(round, ra, rb, rc, rd, rna, rnb, rnc, rnd) \
@@ -439,6 +441,7 @@ _gcry_aes_arm_decrypt_block:
 	 *	%w3: number of rounds.. 10, 12 or 14
 	 *      %x4: decryption table
 	 */
+	CFI_STARTPROC();
 
 	/* read input block */
 
@@ -504,6 +507,7 @@ _gcry_aes_arm_decrypt_block:
 	decround(9, RA, RB, RC, RD, RNA, RNB, RNC, RND, preload_first_key);
 
 	b .Ldec_tail;
+	CFI_ENDPROC();
 ELF(.size _gcry_aes_arm_decrypt_block,.-_gcry_aes_arm_decrypt_block;)
 
 #endif /*HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS*/

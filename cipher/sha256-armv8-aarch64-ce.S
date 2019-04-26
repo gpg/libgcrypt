@@ -120,6 +120,7 @@ _gcry_sha256_transform_armv8_ce:
    *	r1: data (64*nblks bytes)
    *	r2: nblks
    */
+  CFI_STARTPROC();
 
   cbz x2, .Ldo_nothing;
 
@@ -213,6 +214,7 @@ _gcry_sha256_transform_armv8_ce:
 .Ldo_nothing:
   mov x0, #0
   ret
+  CFI_ENDPROC();
 ELF(.size _gcry_sha256_transform_armv8_ce,.-_gcry_sha256_transform_armv8_ce;)
 
 #endif
