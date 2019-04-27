@@ -1,6 +1,6 @@
 /* cipher-gcm.c  - Generic Galois Counter Mode implementation
  * Copyright (C) 2013 Dmitry Eremin-Solenikov
- * Copyright (C) 2013, 2018 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013, 2018-2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -126,7 +126,7 @@ bshift (u64 * b0, u64 * b1)
 
   t[0] = *b0;
   t[1] = *b1;
-  mask = t[1] & 1 ? 0xe1 : 0;
+  mask = -(t[1] & 1) & 0xe1;
   mask <<= 56;
 
   *b1 = (t[1] >> 1) ^ (t[0] << 63);
@@ -158,6 +158,12 @@ do_fillM (unsigned char *h, u64 *M)
         M[(i + j) + 0] = M[i + 0] ^ M[j + 0];
         M[(i + j) + 16] = M[i + 16] ^ M[j + 16];
       }
+
+  for (i = 0; i < 16; i++)
+    {
+      M[i + 32] = (M[i + 0] >> 4) ^ ((u64) gcmR[(M[i + 16] & 0xf) << 4] << 48);
+      M[i + 48] = (M[i + 16] >> 4) ^ (M[i + 0] << 60);
+    }
 }
 
 static inline unsigned int
@@ -175,20 +181,18 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u64 *gcmM)
   V[1] = be_bswap64 (V[1]);
 
   /* First round can be manually tweaked based on fact that 'tmp' is zero. */
-  i = 15;
-
-  M = &gcmM[(V[1] & 0xf)];
+  M = &gcmM[(V[1] & 0xf) + 32];
   V[1] >>= 4;
-  tmp[0] = (M[0] >> 4) ^ ((u64) gcmR[(M[16] & 0xf) << 4] << 48);
-  tmp[1] = (M[16] >> 4) ^ (M[0] << 60);
+  tmp[0] = M[0];
+  tmp[1] = M[16];
   tmp[0] ^= gcmM[(V[1] & 0xf) + 0];
   tmp[1] ^= gcmM[(V[1] & 0xf) + 16];
   V[1] >>= 4;
 
-  --i;
+  i = 6;
   while (1)
     {
-      M = &gcmM[(V[1] & 0xf)];
+      M = &gcmM[(V[1] & 0xf) + 32];
       V[1] >>= 4;
 
       A = tmp[1] & 0xff;
@@ -196,15 +200,34 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u64 *gcmM)
       tmp[0] = (T >> 8) ^ ((u64) gcmR[A] << 48) ^ gcmM[(V[1] & 0xf) + 0];
       tmp[1] = (T << 56) ^ (tmp[1] >> 8) ^ gcmM[(V[1] & 0xf) + 16];
 
-      tmp[0] ^= (M[0] >> 4) ^ ((u64) gcmR[(M[16] & 0xf) << 4] << 48);
-      tmp[1] ^= (M[16] >> 4) ^ (M[0] << 60);
+      tmp[0] ^= M[0];
+      tmp[1] ^= M[16];
 
       if (i == 0)
         break;
-      else if (i == 8)
-        V[1] = V[0];
-      else
-        V[1] >>= 4;
+
+      V[1] >>= 4;
+      --i;
+    }
+
+  i = 7;
+  while (1)
+    {
+      M = &gcmM[(V[0] & 0xf) + 32];
+      V[0] >>= 4;
+
+      A = tmp[1] & 0xff;
+      T = tmp[0];
+      tmp[0] = (T >> 8) ^ ((u64) gcmR[A] << 48) ^ gcmM[(V[0] & 0xf) + 0];
+      tmp[1] = (T << 56) ^ (tmp[1] >> 8) ^ gcmM[(V[0] & 0xf) + 16];
+
+      tmp[0] ^= M[0];
+      tmp[1] ^= M[16];
+
+      if (i == 0)
+        break;
+
+      V[0] >>= 4;
       --i;
     }
 
@@ -226,7 +249,7 @@ bshift (u32 * M, int i)
   t[1] = M[i * 4 + 1];
   t[2] = M[i * 4 + 2];
   t[3] = M[i * 4 + 3];
-  mask = t[3] & 1 ? 0xe1 : 0;
+  mask = -(t[3] & 1) & 0xe1;
 
   M[i * 4 + 3] = (t[3] >> 1) ^ (t[2] << 31);
   M[i * 4 + 2] = (t[2] >> 1) ^ (t[1] << 31);
@@ -267,6 +290,15 @@ do_fillM (unsigned char *h, u32 *M)
         M[(i + j) * 4 + 2] = M[i * 4 + 2] ^ M[j * 4 + 2];
         M[(i + j) * 4 + 3] = M[i * 4 + 3] ^ M[j * 4 + 3];
       }
+
+  for (i = 0; i < 4 * 16; i += 4)
+    {
+      M[i + 0 + 64] = (M[i + 0] >> 4)
+                      ^ ((u64) gcmR[(M[i + 3] << 4) & 0xf0] << 16);
+      M[i + 1 + 64] = (M[i + 1] >> 4) ^ (M[i + 0] << 28);
+      M[i + 2 + 64] = (M[i + 2] >> 4) ^ (M[i + 1] << 28);
+      M[i + 3 + 64] = (M[i + 3] >> 4) ^ (M[i + 2] << 28);
+    }
 }
 
 static inline unsigned int
@@ -285,19 +317,19 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
   i = 15;
 
   v = V[i];
-  M = &gcmM[(v & 0xf) * 4];
+  M = &gcmM[(v & 0xf) * 4 + 64];
   v = (v & 0xf0) >> 4;
   m = &gcmM[v * 4];
   v = V[--i];
 
-  tmp[0] = (M[0] >> 4) ^ ((u64) gcmR[(M[3] << 4) & 0xf0] << 16) ^ m[0];
-  tmp[1] = (M[1] >> 4) ^ (M[0] << 28) ^ m[1];
-  tmp[2] = (M[2] >> 4) ^ (M[1] << 28) ^ m[2];
-  tmp[3] = (M[3] >> 4) ^ (M[2] << 28) ^ m[3];
+  tmp[0] = M[0] ^ m[0];
+  tmp[1] = M[1] ^ m[1];
+  tmp[2] = M[2] ^ m[2];
+  tmp[3] = M[3] ^ m[3];
 
   while (1)
     {
-      M = &gcmM[(v & 0xf) * 4];
+      M = &gcmM[(v & 0xf) * 4 + 64];
       v = (v & 0xf0) >> 4;
       m = &gcmM[v * 4];
 
@@ -309,10 +341,10 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
       tmp[2] = (T[1] << 24) ^ (tmp[2] >> 8) ^ m[2];
       tmp[3] = (T[2] << 24) ^ (tmp[3] >> 8) ^ m[3];
 
-      tmp[0] ^= (M[0] >> 4) ^ ((u64) gcmR[(M[3] << 4) & 0xf0] << 16);
-      tmp[1] ^= (M[1] >> 4) ^ (M[0] << 28);
-      tmp[2] ^= (M[2] >> 4) ^ (M[1] << 28);
-      tmp[3] ^= (M[3] >> 4) ^ (M[2] << 28);
+      tmp[0] ^= M[0];
+      tmp[1] ^= M[1];
+      tmp[2] ^= M[2];
+      tmp[3] ^= M[3];
 
       if (i == 0)
         break;

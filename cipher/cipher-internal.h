@@ -315,10 +315,10 @@ struct gcry_cipher_handle
 #ifdef GCM_USE_TABLES
  #if (SIZEOF_UNSIGNED_LONG == 8 || defined(__x86_64__))
       #define GCM_TABLES_USE_U64 1
-      u64 gcm_table[2 * 16];
+      u64 gcm_table[4 * 16];
  #else
       #undef GCM_TABLES_USE_U64
-      u32 gcm_table[4 * 16];
+      u32 gcm_table[8 * 16];
  #endif
 #endif
     } gcm;
