@@ -32,9 +32,11 @@
 
 static int verbosity_level = 0;
 
+#ifndef HAVE_EXPLICIT_MEMSET
 /* Prevent compiler from optimizing away the call to memset by accessing
    memset through volatile pointer. */
 static void *(*volatile memset_ptr)(void *, int, size_t) = (void *)memset;
+#endif
 
 static void (*fatal_error_handler)(void*,int, const char*) = NULL;
 static void *fatal_error_handler_value = 0;
@@ -507,7 +509,7 @@ _gcry_fast_wipememory (void *ptr, size_t len)
   /* Note: This function is called from wipememory/wipememory2 only if LEN
      is large or unknown at compile time. New wipe function alternatives
      need to be checked before adding to this function. New implementations
-     need to be faster than wipememory/wipememory2 macros in 'misc.h'.
+     need to be faster than wipememory/wipememory2 macros in 'g10lib.h'.
 
      Following implementations were found to have suboptimal performance:
 
@@ -516,6 +518,8 @@ _gcry_fast_wipememory (void *ptr, size_t len)
    */
 #ifdef HAVE_EXPLICIT_BZERO
   explicit_bzero (ptr, len);
+#elif defined(HAVE_EXPLICIT_MEMSET)
+  explicit_memset (ptr, 0, len);
 #else
   memset_ptr (ptr, 0, len);
 #endif
@@ -525,6 +529,9 @@ _gcry_fast_wipememory (void *ptr, size_t len)
 void
 _gcry_fast_wipememory2 (void *ptr, int set, size_t len)
 {
+#ifdef HAVE_EXPLICIT_MEMSET
+  explicit_memset (ptr, set, len);
+#else
 #ifdef HAVE_EXPLICIT_BZERO
   if (set == 0)
     {
@@ -534,6 +541,7 @@ _gcry_fast_wipememory2 (void *ptr, int set, size_t len)
 #endif
 
   memset_ptr (ptr, set, len);
+#endif
 }
 
 
