@@ -118,6 +118,34 @@ static const u16 gcmR[256] = {
   0xbbf0, 0xba32, 0xb874, 0xb9b6, 0xbcf8, 0xbd3a, 0xbf7c, 0xbebe,
 };
 
+static inline
+void prefetch_table(const void *tab, size_t len)
+{
+  const volatile byte *vtab = tab;
+  size_t i;
+
+  for (i = 0; i < len; i += 8 * 32)
+    {
+      (void)vtab[i + 0 * 32];
+      (void)vtab[i + 1 * 32];
+      (void)vtab[i + 2 * 32];
+      (void)vtab[i + 3 * 32];
+      (void)vtab[i + 4 * 32];
+      (void)vtab[i + 5 * 32];
+      (void)vtab[i + 6 * 32];
+      (void)vtab[i + 7 * 32];
+    }
+
+  (void)vtab[len - 1];
+}
+
+static inline void
+do_prefetch_tables (const void *gcmM, size_t gcmM_size)
+{
+  prefetch_table(gcmM, gcmM_size);
+  prefetch_table(gcmR, sizeof(gcmR));
+}
+
 #ifdef GCM_TABLES_USE_U64
 static void
 bshift (u64 * b0, u64 * b1)
@@ -365,6 +393,8 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
 #define fillM(c) \
   do_fillM (c->u_mode.gcm.u_ghash_key.key, c->u_mode.gcm.gcm_table)
 #define GHASH(c, result, buf) do_ghash (result, buf, c->u_mode.gcm.gcm_table)
+#define prefetch_tables(c) \
+  do_prefetch_tables(c->u_mode.gcm.gcm_table, sizeof(c->u_mode.gcm.gcm_table))
 
 #else
 
@@ -430,6 +460,7 @@ do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
 
 #define fillM(c) do { } while (0)
 #define GHASH(c, result, buf) do_ghash (c->u_mode.gcm.u_ghash_key.key, result, buf)
+#define prefetch_tables(c) do {} while (0)
 
 #endif /* !GCM_USE_TABLES */
 
@@ -440,6 +471,8 @@ ghash_internal (gcry_cipher_hd_t c, byte *result, const byte *buf,
 {
   const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
   unsigned int burn = 0;
+
+  prefetch_tables (c);
 
   while (nblocks)
     {
