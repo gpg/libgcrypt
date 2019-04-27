@@ -1,5 +1,6 @@
 #include <config.h>
 
+#ifdef __x86_64__
 #ifdef HAVE_GCC_ASM_CFI_DIRECTIVES
 # define CFI_STARTPROC()            .cfi_startproc
 # define CFI_ENDPROC()              .cfi_endproc
@@ -20,6 +21,7 @@
 
 # define CFI_PUSH(reg)
 # define CFI_POP(reg)
+#endif
 #endif
 
 #ifdef USE_MS_ABI
