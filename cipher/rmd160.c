@@ -449,8 +449,8 @@ rmd160_final( void *context )
       hd->bctx.count = 64 + 56;
 
       /* append the 64 bit count */
-      buf_put_le32(hd->bctx.buf + 56, lsb);
-      buf_put_le32(hd->bctx.buf + 60, msb);
+      buf_put_le32(hd->bctx.buf + 64 + 56, lsb);
+      buf_put_le32(hd->bctx.buf + 64 + 60, msb);
       burn = transform (hd, hd->bctx.buf, 2);
     }
 
