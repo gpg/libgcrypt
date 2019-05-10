@@ -7490,6 +7490,8 @@ get_algo_mode_blklen (int algo, int mode)
     case GCRY_CIPHER_MODE_STREAM:
     case GCRY_CIPHER_MODE_OFB:
     case GCRY_CIPHER_MODE_CTR:
+    case GCRY_CIPHER_MODE_CFB:
+    case GCRY_CIPHER_MODE_CFB8:
     case GCRY_CIPHER_MODE_CCM:
     case GCRY_CIPHER_MODE_GCM:
     case GCRY_CIPHER_MODE_EAX:
