@@ -33,6 +33,10 @@
 #  pragma clang attribute push (__attribute__((target("no-sse"))), apply_to = function)
 #endif
 
+#define NO_INSTRUMENT_FUNCTION __attribute__((no_instrument_function))
+
+#define ASM_FUNC_ATTR NO_INSTRUMENT_FUNCTION
+
 /* Two macros to be called prior and after the use of SHA-EXT
    instructions.  There should be no external function calls between
    the use of these macros.  There purpose is to make sure that the
@@ -94,7 +98,7 @@ typedef struct u128_s
 /*
  * Transform nblks*64 bytes (nblks*16 32-bit words) at DATA.
  */
-unsigned int
+unsigned int ASM_FUNC_ATTR
 _gcry_sha256_transform_intel_shaext(u32 state[8], const unsigned char *data,
                                     size_t nblks)
 {

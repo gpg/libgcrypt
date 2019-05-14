@@ -46,6 +46,11 @@
 
 #define ALWAYS_INLINE inline __attribute__((always_inline))
 #define NO_INLINE __attribute__((noinline))
+#define NO_INSTRUMENT_FUNCTION __attribute__((no_instrument_function))
+
+#define ASM_FUNC_ATTR          NO_INSTRUMENT_FUNCTION
+#define ASM_FUNC_ATTR_INLINE   ASM_FUNC_ATTR ALWAYS_INLINE
+#define ASM_FUNC_ATTR_NOINLINE ASM_FUNC_ATTR NO_INLINE
 
 
 typedef struct u128_s
@@ -56,7 +61,7 @@ typedef struct u128_s
 
 /* Copy of ocb_get_l needed here as GCC is unable to inline ocb_get_l
    because of 'pragma target'. */
-static ALWAYS_INLINE const unsigned char *
+static ASM_FUNC_ATTR_INLINE const unsigned char *
 aes_ocb_get_l (gcry_cipher_hd_t c, u64 n)
 {
   unsigned long ntz;
@@ -161,7 +166,7 @@ aes_ocb_get_l (gcry_cipher_hd_t c, u64 n)
 # endif
 #endif
 
-void
+void ASM_FUNC_ATTR
 _gcry_aes_aesni_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
   aesni_prepare_2_7_variable;
@@ -395,7 +400,7 @@ _gcry_aes_aesni_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 
 
 /* Make a decryption key from an encryption key. */
-static ALWAYS_INLINE void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 {
   /* The AES-NI decrypt instructions use the Equivalent Inverse
@@ -443,7 +448,7 @@ do_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 #undef DO_AESNI_AESIMC
 }
 
-void
+void ASM_FUNC_ATTR
 _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 {
   aesni_prepare();
@@ -454,7 +459,7 @@ _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 
 /* Encrypt one block using the Intel AES-NI instructions.  Block is input
  * and output through SSE register xmm0. */
-static ALWAYS_INLINE void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_enc (const RIJNDAEL_context *ctx)
 {
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
@@ -507,7 +512,7 @@ do_aesni_enc (const RIJNDAEL_context *ctx)
 
 /* Decrypt one block using the Intel AES-NI instructions.  Block is input
  * and output through SSE register xmm0. */
-static ALWAYS_INLINE void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_dec (const RIJNDAEL_context *ctx)
 {
 #define aesdec_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xde, 0xc1\n\t"
@@ -560,7 +565,7 @@ do_aesni_dec (const RIJNDAEL_context *ctx)
 
 /* Encrypt four blocks using the Intel AES-NI instructions.  Blocks are input
  * and output through SSE registers xmm1 to xmm4.  */
-static ALWAYS_INLINE void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_enc_vec4 (const RIJNDAEL_context *ctx)
 {
 #define aesenc_xmm0_xmm1      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc8\n\t"
@@ -669,7 +674,7 @@ do_aesni_enc_vec4 (const RIJNDAEL_context *ctx)
 
 /* Decrypt four blocks using the Intel AES-NI instructions.  Blocks are input
  * and output through SSE registers xmm1 to xmm4.  */
-static ALWAYS_INLINE void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
 {
 #define aesdec_xmm0_xmm1 ".byte 0x66, 0x0f, 0x38, 0xde, 0xc8\n\t"
@@ -780,7 +785,7 @@ do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
 
 /* Encrypt eight blocks using the Intel AES-NI instructions.  Blocks are input
  * and output through SSE registers xmm1 to xmm4 and xmm8 to xmm11.  */
-static ALWAYS_INLINE void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
 {
   asm volatile ("movdqa (%[key]), %%xmm0\n\t"
@@ -932,7 +937,7 @@ do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
 
 /* Decrypt eight blocks using the Intel AES-NI instructions.  Blocks are input
  * and output through SSE registers xmm1 to xmm4 and xmm8 to xmm11.  */
-static ALWAYS_INLINE void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_dec_vec8 (const RIJNDAEL_context *ctx)
 {
   asm volatile ("movdqa (%[key]), %%xmm0\n\t"
@@ -1087,7 +1092,7 @@ do_aesni_dec_vec8 (const RIJNDAEL_context *ctx)
 /* Perform a CTR encryption round using the counter CTR and the input
    block A.  Write the result to the output block B and update CTR.
    CTR needs to be a 16 byte aligned little-endian value.  */
-static void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_ctr (const RIJNDAEL_context *ctx,
               unsigned char *ctr, unsigned char *b, const unsigned char *a)
 {
@@ -1166,7 +1171,7 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
 
 
 /* Four blocks at a time variant of do_aesni_ctr.  */
-static void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 unsigned char *ctr, unsigned char *b, const unsigned char *a)
 {
@@ -1386,7 +1391,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
 #ifdef __x86_64__
 
 /* Eight blocks at a time variant of do_aesni_ctr.  */
-static void
+static ASM_FUNC_ATTR_INLINE void
 do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 unsigned char *ctr, unsigned char *b, const unsigned char *a)
 {
@@ -1704,7 +1709,7 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
 #endif /* __x86_64__ */
 
 
-unsigned int
+unsigned int ASM_FUNC_ATTR
 _gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)
 {
@@ -1723,7 +1728,7 @@ _gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
 }
 
 
-void
+void ASM_FUNC_ATTR
 _gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
@@ -1759,7 +1764,7 @@ _gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *iv,
 }
 
 
-void
+void ASM_FUNC_ATTR
 _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks, int cbc_mac)
@@ -1805,7 +1810,7 @@ _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
 }
 
 
-void
+void ASM_FUNC_ATTR
 _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
@@ -1859,7 +1864,7 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
 }
 
 
-unsigned int
+unsigned int ASM_FUNC_ATTR
 _gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)
 {
@@ -1878,7 +1883,7 @@ _gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
 }
 
 
-void
+void ASM_FUNC_ATTR
 _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
@@ -2033,7 +2038,7 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 }
 
 
-void
+void ASM_FUNC_ATTR
 _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
@@ -2198,7 +2203,7 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 }
 
 
-static ALWAYS_INLINE void
+static ASM_FUNC_ATTR_INLINE void
 aesni_ocb_checksum (gcry_cipher_hd_t c, const unsigned char *plaintext,
 		    size_t nblocks)
 {
@@ -2362,7 +2367,7 @@ aesni_ocb_checksum (gcry_cipher_hd_t c, const unsigned char *plaintext,
 }
 
 
-static unsigned int NO_INLINE
+static unsigned int ASM_FUNC_ATTR_NOINLINE
 aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
                const void *inbuf_arg, size_t nblocks)
 {
@@ -2849,7 +2854,7 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 
-static unsigned int NO_INLINE
+static unsigned int ASM_FUNC_ATTR_NOINLINE
 aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
                const void *inbuf_arg, size_t nblocks_arg)
 {
@@ -3324,7 +3329,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 
-size_t
+size_t ASM_FUNC_ATTR
 _gcry_aes_aesni_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
                           const void *inbuf_arg, size_t nblocks, int encrypt)
 {
@@ -3335,7 +3340,7 @@ _gcry_aes_aesni_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 
-size_t
+size_t ASM_FUNC_ATTR
 _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
                           size_t nblocks)
 {
@@ -3586,7 +3591,7 @@ static const u64 xts_gfmul_const[16] __attribute__ ((aligned (16))) =
   { 0x87, 0x01 };
 
 
-static void
+static void ASM_FUNC_ATTR
 _gcry_aes_aesni_xts_enc (RIJNDAEL_context *ctx, unsigned char *tweak,
 			 unsigned char *outbuf, const unsigned char *inbuf,
 			 size_t nblocks)
@@ -3724,7 +3729,7 @@ _gcry_aes_aesni_xts_enc (RIJNDAEL_context *ctx, unsigned char *tweak,
 }
 
 
-static void
+static void ASM_FUNC_ATTR
 _gcry_aes_aesni_xts_dec (RIJNDAEL_context *ctx, unsigned char *tweak,
 			 unsigned char *outbuf, const unsigned char *inbuf,
 			 size_t nblocks)
@@ -3868,7 +3873,7 @@ _gcry_aes_aesni_xts_dec (RIJNDAEL_context *ctx, unsigned char *tweak,
 }
 
 
-void
+void ASM_FUNC_ATTR
 _gcry_aes_aesni_xts_crypt (RIJNDAEL_context *ctx, unsigned char *tweak,
 			   unsigned char *outbuf, const unsigned char *inbuf,
 			   size_t nblocks, int encrypt)

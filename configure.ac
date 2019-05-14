@@ -691,6 +691,17 @@ AC_ARG_ENABLE([O-flag-munging],
 AC_MSG_RESULT($enable_o_flag_munging)
 AM_CONDITIONAL(ENABLE_O_FLAG_MUNGING, test "$enable_o_flag_munging" = "yes")
 
+# Implementation of the --disable-instrumentation-munging switch.
+AC_MSG_CHECKING([whether a instrumentation (-fprofile, -fsanitize) munging is requested])
+AC_ARG_ENABLE([instrumentation-munging],
+              AC_HELP_STRING([--disable-instrumentation-munging],
+                 [Disable modification of the cc instrumentation options]),
+              [enable_instrumentation_munging=$enableval],
+              [enable_instrumentation_munging=yes])
+AC_MSG_RESULT($enable_instrumentation_munging)
+AM_CONDITIONAL(ENABLE_INSTRUMENTATION_MUNGING,
+	       test "$enable_instrumentation_munging" = "yes")
+
 # Implementation of the --disable-amd64-as-feature-detection switch.
 AC_MSG_CHECKING([whether to enable AMD64 as(1) feature detection])
 AC_ARG_ENABLE(amd64-as-feature-detection,

@@ -44,6 +44,13 @@
 #endif
 
 
+#define ALWAYS_INLINE inline __attribute__((always_inline))
+#define NO_INSTRUMENT_FUNCTION __attribute__((no_instrument_function))
+
+#define ASM_FUNC_ATTR        NO_INSTRUMENT_FUNCTION
+#define ASM_FUNC_ATTR_INLINE ASM_FUNC_ATTR ALWAYS_INLINE
+
+
 #define ALIGNED_16 __attribute__ ((aligned (16)))
 
 
@@ -135,7 +142,7 @@ static const u64 crc32_merge5to7_shuf[7 - 5 + 1][2] ALIGNED_16 =
   };
 
 /* PCLMUL functions for reflected CRC32. */
-static inline void
+static ASM_FUNC_ATTR_INLINE void
 crc32_reflected_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
 		      const struct crc32_consts_s *consts)
 {
@@ -331,7 +338,7 @@ crc32_reflected_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
 	        );
 }
 
-static inline void
+static ASM_FUNC_ATTR_INLINE void
 crc32_reflected_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
 			      const struct crc32_consts_s *consts)
 {
@@ -480,7 +487,7 @@ crc32_reflected_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
 }
 
 /* PCLMUL functions for non-reflected CRC32. */
-static inline void
+static ASM_FUNC_ATTR_INLINE void
 crc32_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
 	    const struct crc32_consts_s *consts)
 {
@@ -695,7 +702,7 @@ crc32_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
 		: "eax" );
 }
 
-static inline void
+static ASM_FUNC_ATTR_INLINE void
 crc32_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
 		    const struct crc32_consts_s *consts)
 {
@@ -857,7 +864,7 @@ crc32_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
     }
 }
 
-void
+void ASM_FUNC_ATTR
 _gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
 {
   const struct crc32_consts_s *consts = &crc32_consts;
@@ -890,7 +897,7 @@ _gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
 #endif
 }
 
-void
+void ASM_FUNC_ATTR
 _gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
 {
   const struct crc32_consts_s *consts = &crc24rfc2440_consts;

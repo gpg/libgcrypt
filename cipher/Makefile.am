@@ -142,8 +142,56 @@ endif
 
 
 # We need to lower the optimization for this module.
-tiger.o: $(srcdir)/tiger.c
-	`echo $(COMPILE) -c $(srcdir)/tiger.c | $(o_flag_munging) `
+tiger.o: $(srcdir)/tiger.c Makefile
+	`echo $(COMPILE) -c $< | $(o_flag_munging) `
 
-tiger.lo: $(srcdir)/tiger.c
-	`echo $(LTCOMPILE) -c $(srcdir)/tiger.c | $(o_flag_munging) `
+tiger.lo: $(srcdir)/tiger.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(o_flag_munging) `
+
+
+# We need to disable instrumentation for these modules as they use cc as
+# thin assembly front-end and do not tolerate in-between function calls
+# inserted by compiler as those functions may clobber the XMM registers.
+if ENABLE_INSTRUMENTATION_MUNGING
+instrumentation_munging = sed \
+	-e 's/-fsanitize[=,\-][=,a-z,A-Z,0-9,\,,\-]*//g' \
+	-e 's/-fprofile[=,\-][=,a-z,A-Z,0-9,\,,\-]*//g'
+else
+instrumentation_munging = cat
+endif
+
+rijndael-aesni.o: $(srcdir)/rijndael-aesni.c Makefile
+	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+
+rijndael-aesni.lo: $(srcdir)/rijndael-aesni.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+
+rijndael-ssse3-amd64.o: $(srcdir)/rijndael-ssse3-amd64.c Makefile
+	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+
+rijndael-ssse3-amd64.lo: $(srcdir)/rijndael-ssse3-amd64.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+
+cipher-gcm-intel-pclmul.o: $(srcdir)/cipher-gcm-intel-pclmul.c Makefile
+	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+
+cipher-gcm-intel-pclmul.lo: $(srcdir)/cipher-gcm-intel-pclmul.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+
+sha1-intel-shaext.o: $(srcdir)/sha1-intel-shaext.c Makefile
+	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+
+sha1-intel-shaext.lo: $(srcdir)/sha1-intel-shaext.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+
+sha256-intel-shaext.o: $(srcdir)/sha256-intel-shaext.c Makefile
+	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+
+sha256-intel-shaext.lo: $(srcdir)/sha256-intel-shaext.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+
+crc-intel-pclmul.o: $(srcdir)/crc-intel-pclmul.c Makefile
+	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+
+crc-intel-pclmul.lo: $(srcdir)/crc-intel-pclmul.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `

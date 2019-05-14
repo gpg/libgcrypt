@@ -42,12 +42,19 @@
 #endif
 
 
+#define ALWAYS_INLINE inline __attribute__((always_inline))
+#define NO_INSTRUMENT_FUNCTION __attribute__((no_instrument_function))
+
+#define ASM_FUNC_ATTR        NO_INSTRUMENT_FUNCTION
+#define ASM_FUNC_ATTR_INLINE ASM_FUNC_ATTR ALWAYS_INLINE
+
+
 /*
  Intel PCLMUL ghash based on white paper:
   "Intel® Carry-Less Multiplication Instruction and its Usage for Computing the
    GCM Mode - Rev 2.01"; Shay Gueron, Michael E. Kounavis.
  */
-static inline void reduction(void)
+static ASM_FUNC_ATTR_INLINE void reduction(void)
 {
   /* input: <xmm1:xmm3> */
 
@@ -76,7 +83,7 @@ static inline void reduction(void)
                 ::: "memory" );
 }
 
-static inline void gfmul_pclmul(void)
+static ASM_FUNC_ATTR_INLINE void gfmul_pclmul(void)
 {
   /* Input: XMM0 and XMM1, Output: XMM1. Input XMM0 stays unmodified.
      Input must be converted to little-endian.
@@ -107,9 +114,9 @@ static inline void gfmul_pclmul(void)
   reduction();
 }
 
-static inline void gfmul_pclmul_aggr4(const void *buf, const void *h_1,
-                                      const void *h_table,
-                                      const unsigned char *be_mask)
+static ASM_FUNC_ATTR_INLINE void
+gfmul_pclmul_aggr4(const void *buf, const void *h_1, const void *h_table,
+		   const unsigned char *be_mask)
 {
   /* Input:
       Hash: XMM1
@@ -208,7 +215,8 @@ static inline void gfmul_pclmul_aggr4(const void *buf, const void *h_1,
 }
 
 #ifdef __x86_64__
-static inline void gfmul_pclmul_aggr8(const void *buf, const void *h_table)
+static ASM_FUNC_ATTR_INLINE void
+gfmul_pclmul_aggr8(const void *buf, const void *h_table)
 {
   /* Input:
       H¹: XMM0
@@ -372,7 +380,7 @@ static inline void gfmul_pclmul_aggr8(const void *buf, const void *h_table)
 }
 #endif
 
-static inline void gcm_lsh(void *h, unsigned int hoffs)
+static ASM_FUNC_ATTR_INLINE void gcm_lsh(void *h, unsigned int hoffs)
 {
   static const u64 pconst[2] __attribute__ ((aligned (16))) =
     { U64_C(0x0000000000000001), U64_C(0xc200000000000000) };
@@ -394,7 +402,7 @@ static inline void gcm_lsh(void *h, unsigned int hoffs)
                 : "memory" );
 }
 
-void
+void ASM_FUNC_ATTR
 _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
 {
   static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
@@ -548,7 +556,7 @@ _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
 }
 
 
-unsigned int
+unsigned int ASM_FUNC_ATTR
 _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
                           size_t nblocks)
 {
