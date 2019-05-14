@@ -192,10 +192,10 @@ main (int argc, char **argv)
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
 
-  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
   if (debug)
-    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+    xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
   check_hmac ();
   check_hmac_multi ();
 

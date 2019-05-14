@@ -145,9 +145,9 @@ main (int argc, char **argv)
         }
     }
 
-  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+  xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
 
-  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
   if (strcmp (GCRYPT_VERSION, gcry_check_version (NULL)))
     {
       int oops = !gcry_check_version (GCRYPT_VERSION);
@@ -157,7 +157,7 @@ main (int argc, char **argv)
         exit (1);
     }
 
-  xgcry_control (GCRYCTL_PRINT_CONFIG, NULL);
+  xgcry_control ((GCRYCTL_PRINT_CONFIG, NULL));
 
   test_get_config ();
 

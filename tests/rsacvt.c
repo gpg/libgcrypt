@@ -361,11 +361,11 @@ main (int argc, char **argv)
   else
     input = stdin;
 
-  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+  xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
   if (!gcry_check_version ("1.4.0"))
     die ("Libgcrypt is not sufficient enough\n");
-  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
   do
     {

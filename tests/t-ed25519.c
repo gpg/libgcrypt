@@ -473,13 +473,13 @@ main (int argc, char **argv)
   else
     custom_data_file = 1;
 
-  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
   if (debug)
-    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
-  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+    xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
+  xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
   /* Ed25519 isn't supported in fips mode */
   if (gcry_fips_mode_active())

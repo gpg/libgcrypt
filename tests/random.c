@@ -292,7 +292,7 @@ check_close_random_device (void)
     die ("fork failed: %s\n", strerror (errno));
   if (!pid)
     {
-      xgcry_control (GCRYCTL_CLOSE_RANDOM_DEVICE, 0);
+      xgcry_control ((GCRYCTL_CLOSE_RANDOM_DEVICE, 0));
 
       /* The next call will re-open the device.  */
       gcry_randomize (buf, sizeof buf, GCRY_STRONG_RANDOM);
@@ -345,7 +345,7 @@ check_rng_type_switching (void)
   if (rngtype != rng_type ())
     die ("RNG type unexpectedly changed\n");
 
-  xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
+  xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM));
 
   rngtype = rng_type ();
   if (debug)
@@ -358,7 +358,7 @@ check_rng_type_switching (void)
   if (rngtype != rng_type ())
     die ("RNG type unexpectedly changed\n");
 
-  xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS);
+  xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS));
 
   rngtype = rng_type ();
   if (debug)
@@ -371,7 +371,7 @@ check_rng_type_switching (void)
   if (rngtype != rng_type ())
     die ("RNG type unexpectedly changed\n");
 
-  xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD);
+  xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD));
 
   rngtype = rng_type ();
   if (debug)
@@ -399,7 +399,7 @@ check_early_rng_type_switching (void)
     info ("rng type: %d\n", rngtype);
   initial = rngtype;
 
-  xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
+  xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM));
 
   rngtype = rng_type ();
   if (debug)
@@ -407,7 +407,7 @@ check_early_rng_type_switching (void)
   if (initial >= GCRY_RNG_TYPE_SYSTEM && rngtype != GCRY_RNG_TYPE_SYSTEM)
     die ("switching to System RNG failed\n");
 
-  xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS);
+  xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS));
 
   rngtype = rng_type ();
   if (debug)
@@ -415,7 +415,7 @@ check_early_rng_type_switching (void)
   if (initial >= GCRY_RNG_TYPE_FIPS && rngtype != GCRY_RNG_TYPE_FIPS)
     die ("switching to FIPS RNG failed\n");
 
-  xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD);
+  xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD));
 
   rngtype = rng_type ();
   if (debug)
@@ -659,18 +659,18 @@ main (int argc, char **argv)
         {
           /* This is anyway the default, but we may want to use it for
              debugging. */
-          xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE,
-                         GCRY_RNG_TYPE_STANDARD);
+          xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE,
+                          GCRY_RNG_TYPE_STANDARD));
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--prefer-fips-rng"))
         {
-          xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS);
+          xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS));
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--prefer-system-rng"))
         {
-          xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
+          xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM));
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--disable-hwf"))
@@ -701,7 +701,7 @@ main (int argc, char **argv)
         check_early_rng_type_switching ();
     }
 
-  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
 
@@ -718,9 +718,9 @@ main (int argc, char **argv)
       xfree (fname);
     }
 
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
   if (debug)
-    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+    xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
 
   if (benchmark)
     {
@@ -760,7 +760,7 @@ main (int argc, char **argv)
     }
 
   if (debug)
-    xgcry_control (GCRYCTL_DUMP_RANDOM_STATS);
+    xgcry_control ((GCRYCTL_DUMP_RANDOM_STATS));
 
   return 0;
 }

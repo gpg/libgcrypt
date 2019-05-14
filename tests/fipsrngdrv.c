@@ -111,7 +111,7 @@ run_external_test (void *context, void *buffer, size_t buflen)
 static void
 deinit_external_test (void *context)
 {
-  xgcry_control (60, context);
+  xgcry_control ((60, context));
 }
 
 
@@ -208,13 +208,13 @@ main (int argc, char **argv)
   if (verbose)
     fputs (PGM ": started\n", stderr);
 
-  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+  xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
   if (!no_fips)
-    xgcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+    xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
   if (!gcry_check_version ("1.4.3"))
     die ("version mismatch\n");
-  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
   /* The flag value 1 disables the dup check, so that the RNG returns
      all generated data.  */

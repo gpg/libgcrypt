@@ -650,15 +650,15 @@ main (int argc, char **argv)
   if (!run_oaep && !run_pss && !run_v15c && !run_v15s)
     run_oaep = run_pss = run_v15c = run_v15s = 1;
 
-  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
-  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
   if (!gcry_check_version ("1.5.0"))
     die ("version mismatch\n");
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
   if (debug)
-    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+    xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
   /* No valuable keys are create, so we can speed up our RNG. */
-  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
 
   if (run_oaep)
     check_oaep ();

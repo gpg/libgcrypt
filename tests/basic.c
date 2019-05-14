@@ -12520,10 +12520,10 @@ main (int argc, char **argv)
         }
     }
 
-  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+  xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
 
   if (use_fips)
-    xgcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+    xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
 
   /* Check that we test exactly our version - including the patchlevel.  */
   if (strcmp (GCRYPT_VERSION, gcry_check_version (NULL)))
@@ -12534,16 +12534,16 @@ main (int argc, char **argv)
     in_fips_mode = 1;
 
   if (!in_fips_mode)
-    xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+    xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
 
   if (verbose)
     gcry_set_progress_handler (progress_handler, NULL);
 
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
   if (debug)
-    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+    xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
   /* No valuable keys are create, so we can speed up our RNG. */
-  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
 
   do
     {
@@ -12580,7 +12580,7 @@ main (int argc, char **argv)
       gcry_md_hd_t md;
 
       /* First trigger a self-test.  */
-      xgcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+      xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
       if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
         fail ("not in operational state after self-test\n");
 
@@ -12609,7 +12609,7 @@ main (int argc, char **argv)
                 {
                   /* Now run a self-test and to get back into
                      operational state.  */
-                  xgcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+                  xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
                   if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
                     fail ("did not reach operational after error "
                           "and self-test\n");

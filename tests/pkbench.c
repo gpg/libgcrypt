@@ -441,12 +441,12 @@ main (int argc, char **argv)
         }
     }
 
-  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+  xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
 
   if (fips_mode)
-    xgcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+    xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
 
-  xgcry_control (GCRYCTL_DISABLE_SECMEM);
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM));
   if (!gcry_check_version (GCRYPT_VERSION))
     {
       fprintf (stderr, PGM ": version mismatch\n");
@@ -456,11 +456,11 @@ main (int argc, char **argv)
   if (genkey_mode)
     {
       /* No valuable keys are create, so we can speed up our RNG. */
-      xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+      xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
     }
   if (debug)
-    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+    xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
 
   if (genkey_mode && argc == 2)

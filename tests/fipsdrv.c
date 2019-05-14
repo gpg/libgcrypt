@@ -929,7 +929,7 @@ run_external_rng_test (void *context, void *buffer, size_t buflen)
 static void
 deinit_external_rng_test (void *context)
 {
-  xgcry_control (PRIV_CTL_DEINIT_EXTRNG_TEST, context);
+  xgcry_control ((PRIV_CTL_DEINIT_EXTRNG_TEST, context));
 }
 
 
@@ -2476,16 +2476,16 @@ main (int argc, char **argv)
   if (verbose)
     fprintf (stderr, PGM ": started (mode=%s)\n", mode_string);
 
-  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+  xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
   if (!no_fips)
-    xgcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+    xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
   if (!gcry_check_version ("1.4.3"))
     die ("Libgcrypt is not sufficient enough\n");
   if (verbose)
     fprintf (stderr, PGM ": using Libgcrypt %s\n", gcry_check_version (NULL));
   if (no_fips)
-    xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+    xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
   /* Most operations need some input data.  */
   if (!chunksize

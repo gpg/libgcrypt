@@ -595,7 +595,7 @@ main (int argc, char* argv[])
       fputs ("version mismatch\n", stderr);
       exit (1);
     }
-  xgcry_control(GCRYCTL_DISABLE_SECMEM);
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM));
 
   test_const_and_immutable ();
   test_opaque ();

@@ -461,7 +461,7 @@ random_bench (int very_strong)
 
   putchar ('\n');
   if (verbose)
-    xgcry_control (GCRYCTL_DUMP_RANDOM_STATS);
+    xgcry_control ((GCRYCTL_DUMP_RANDOM_STATS));
 }
 
 
@@ -1791,17 +1791,17 @@ main( int argc, char **argv )
         {
           /* This is anyway the default, but we may want to use it for
              debugging. */
-          xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD);
+          xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD));
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--prefer-fips-rng"))
         {
-          xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS);
+          xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS));
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--prefer-system-rng"))
         {
-          xgcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
+          xgcry_control ((GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM));
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--no-blinding"))
@@ -1884,7 +1884,7 @@ main( int argc, char **argv )
         {
           argc--; argv++;
           /* This command needs to be called before gcry_check_version.  */
-          xgcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+          xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
         }
       else if (!strcmp (*argv, "--progress"))
         {
@@ -1896,7 +1896,7 @@ main( int argc, char **argv )
   if (buffer_alignment < 1 || buffer_alignment > 16)
     die ("value for --alignment must be in the range 1 to 16\n");
 
-  xgcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+  xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
 
   if (!gcry_check_version (GCRYPT_VERSION))
     {
@@ -1906,20 +1906,20 @@ main( int argc, char **argv )
     }
 
   if (debug)
-    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
+    xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
 
   if (gcry_fips_mode_active ())
     in_fips_mode = 1;
   else if (!use_secmem)
-    xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+    xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
 
   if (use_random_daemon)
-    xgcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
+    xgcry_control ((GCRYCTL_USE_RANDOM_DAEMON, 1));
 
   if (with_progress)
     gcry_set_progress_handler (progress_cb, NULL);
 
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
   if (cipher_repetitions < 1)
     cipher_repetitions = 1;
@@ -1933,7 +1933,7 @@ main( int argc, char **argv )
 
   if ( !argc )
     {
-      xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+      xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
       md_bench (NULL);
       putchar ('\n');
       mac_bench (NULL);
@@ -1955,9 +1955,9 @@ main( int argc, char **argv )
         random_bench ((**argv == 's'));
       else if (argc == 2)
         {
-          xgcry_control (GCRYCTL_SET_RANDOM_SEED_FILE, argv[1]);
+          xgcry_control ((GCRYCTL_SET_RANDOM_SEED_FILE, argv[1]));
           random_bench ((**argv == 's'));
-          xgcry_control (GCRYCTL_UPDATE_RANDOM_SEED_FILE);
+          xgcry_control ((GCRYCTL_UPDATE_RANDOM_SEED_FILE));
         }
       else
         fputs ("usage: benchmark [strong]random [seedfile]\n", stdout);
@@ -1992,7 +1992,7 @@ main( int argc, char **argv )
     }
   else if ( !strcmp (*argv, "pubkey"))
     {
-        xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
         rsa_bench (pk_count, 1, no_blinding);
         elg_bench (pk_count, 0);
         dsa_bench (pk_count, 0);
@@ -2000,27 +2000,27 @@ main( int argc, char **argv )
     }
   else if ( !strcmp (*argv, "rsa"))
     {
-        xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
         rsa_bench (pk_count, 1, no_blinding);
     }
   else if ( !strcmp (*argv, "elg"))
     {
-        xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
         elg_bench (pk_count, 1);
     }
   else if ( !strcmp (*argv, "dsa"))
     {
-        xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
         dsa_bench (pk_count, 1);
     }
   else if ( !strcmp (*argv, "ecc"))
     {
-        xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
         ecc_bench (pk_count, 1);
     }
   else if ( !strcmp (*argv, "prime"))
     {
-        xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
         prime_bench ();
     }
   else

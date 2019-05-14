@@ -429,15 +429,15 @@ main (int argc, char **argv)
   srand (time(NULL)*getpid());
 
   if (debug)
-    xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
-  xgcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+    xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
+  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch");
   /* We are using non-public interfaces - check the exact version.  */
   if (strcmp (gcry_check_version (NULL), GCRYPT_VERSION))
     die ("exact version match failed");
-  xgcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-  xgcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
+  xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
   check_nonce_lock ();
 
