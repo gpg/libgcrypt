@@ -1970,7 +1970,7 @@ _gcry_rngdrbg_randomize (void *buffer, size_t length,
 
 /*
  * Test vectors from
- * http://csrc.nist.gov/groups/STM/cavp/documents/drbg/drbgtestvectors.zip
+ * https://csrc.nist.gov/groups/STM/cavp/documents/drbg/drbgtestvectors.zip
  */
 struct gcry_drbg_test_vector drbg_test_pr[] = {
   {
@@ -2283,7 +2283,7 @@ struct gcry_drbg_test_vector drbg_test_nopr[] = {
 
 /*
  * Tests implement the CAVS test approach as documented in
- * http://csrc.nist.gov/groups/STM/cavp/documents/drbg/DRBGVS.pdf
+ * https://csrc.nist.gov/groups/STM/cavp/documents/drbg/DRBGVS.pdf
  */
 
 /*

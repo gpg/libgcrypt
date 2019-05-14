@@ -1,6 +1,6 @@
 # t-ed25519.inp  - 1024 test data sets
 # This has been taken from
-#    http://ed25519.cr.yp.to/python/sign.input
+#    https://ed25519.cr.yp.to/python/sign.input
 # which distributed them as public domain.
 # For our use converted using this script:
 #    awk -F: 'BEGIN {n=1} { print "TST: " n; n++; \

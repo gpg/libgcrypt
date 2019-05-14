@@ -15,12 +15,12 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /* This code is originally based on the Patch 0.1.6 for the gnupg
    1.4.x branch as retrieved on 2007-03-21 from
-   http://www.calcurco.cat/eccGnuPG/src/gnupg-1.4.6-ecc0.2.0beta1.diff.bz2
+   https://www.calcurco.cat/eccGnuPG/src/gnupg-1.4.6-ecc0.2.0beta1.diff.bz2
    The original authors are:
      Written by
       Sergi Blanch i Torne <d4372211 at alumnes.eup.udl.es>,
@@ -201,7 +201,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
     log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
 
   /* We want the Q=(x,y) be a "compliant key" in terms of the
-   * http://tools.ietf.org/html/draft-jivsov-ecc-compact, which simply
+   * https://tools.ietf.org/html/draft-jivsov-ecc-compact, which simply
    * means that we choose either Q=(x,y) or -Q=(x,p-y) such that we
    * end up with the min(y,p-y) as the y coordinate.  Such a public
    * key allows the most efficient compression: y can simply be

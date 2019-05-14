@@ -14,18 +14,18 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /* This is an implementation of the Whirlpool hashing algorithm, which
    has been developed by Vincent Rijmen and Paulo S. L. M. Barreto;
    it's homepage is located at:
-   http://www.larc.usp.br/~pbarreto/WhirlpoolPage.html
+   https://www.larc.usp.br/~pbarreto/WhirlpoolPage.html
 
    The S-Boxes and the structure of the main transformation function,
    which implements an optimized version of the algorithm, is taken
    from the reference implementation available from
-   http://www.larc.usp.br/~pbarreto/whirlpool.zip
+   https://www.larc.usp.br/~pbarreto/whirlpool.zip
  */
 
 #include <config.h>

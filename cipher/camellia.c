@@ -14,12 +14,12 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
  * Algorithm Specification
- *  http://info.isl.ntt.co.jp/crypt/eng/camellia/specifications.html
+ *  https://info.isl.ntt.co.jp/crypt/eng/camellia/specifications.html
  */
 
 #include <config.h>

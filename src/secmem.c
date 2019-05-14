@@ -16,7 +16,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -154,7 +154,7 @@ ptr_into_pool_p (pooldesc_t *pool, const void *p)
 {
   /* We need to convert pointers to addresses.  This is required by
      C-99 6.5.8 to avoid undefined behaviour.  See also
-     http://lists.gnupg.org/pipermail/gcrypt-devel/2007-February/001102.html
+     https://lists.gnupg.org/pipermail/gcrypt-devel/2007-February/001102.html
   */
   uintptr_t p_addr    = (uintptr_t)p;
   uintptr_t pool_addr = (uintptr_t)pool->mem;

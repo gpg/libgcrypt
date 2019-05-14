@@ -16,7 +16,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -707,7 +707,7 @@ check_ctr_cipher (void)
     } data[8];
   } tv[] =
     {
-      /* http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf */
+      /* https://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf */
       {	GCRY_CIPHER_AES,
 	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
 	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
@@ -1085,7 +1085,7 @@ check_cfb_cipher (void)
     data[MAX_DATA_LEN];
   } tv[] =
     {
-      /* http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf */
+      /* https://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf */
       { GCRY_CIPHER_AES, 0,
         "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
         "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
@@ -1363,7 +1363,7 @@ check_ofb_cipher (void)
     data[MAX_DATA_LEN];
   } tv[] =
     {
-      /* http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf */
+      /* https://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf */
       { GCRY_CIPHER_AES,
         "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
         "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
@@ -1609,7 +1609,7 @@ _check_gcm_cipher (unsigned int step)
     int should_fail;
   } tv[] =
     {
-      /* http://csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf */
+      /* https://csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf */
       { GCRY_CIPHER_AES,
         "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
         "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
@@ -2835,7 +2835,7 @@ _check_eax_cipher (unsigned int step)
     int should_fail;
   } tv[] =
     {
-      /* Test vectors from http://www.cs.ucdavis.edu/~rogaway/papers/eax.pdf */
+      /* Test vectors from https://www.cs.ucdavis.edu/~rogaway/papers/eax.pdf */
       { GCRY_CIPHER_AES,
         "\x23\x39\x52\xDE\xE4\xD5\xED\x5F\x9B\x9C\x6D\x6F\xF8\x0F\xF4\x78",
         "\x62\xEC\x67\xF9\xC3\xA4\xA4\x07\xFC\xB2\xA8\xC4\x90\x31\xA8\xB3", 16,
@@ -11077,7 +11077,7 @@ check_mac (void)
         "\x3a\xfe\x93\xb2\x81\x4f\x79\xf5\x00\x0f\xfc\x03\x66\xc2\x51\xe6",
         NULL, 16, 32 },
       /* CMAC AES and DES test vectors from
-         http://web.archive.org/web/20130930212819/http://csrc.nist.gov/publica\
+         https://web.archive.org/web/20130930212819/https://csrc.nist.gov/publica\
          tions/nistpubs/800-38B/Updated_CMAC_Examples.pdf */
       { GCRY_MAC_CMAC_AES,
         "",
@@ -11199,7 +11199,7 @@ check_mac (void)
       { GCRY_MAC_CMAC_3DES, "?", "????????????????????????",
         "\xc1\x38\x13\xb2\x31\x8f\x3a\xdf" },
       /* CMAC Camellia test vectors from
-         http://tools.ietf.org/html/draft-kato-ipsec-camellia-cmac96and128-05 */
+         https://tools.ietf.org/html/draft-kato-ipsec-camellia-cmac96and128-05 */
       { GCRY_MAC_CMAC_CAMELLIA,
         "",
         "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
@@ -11223,7 +11223,7 @@ check_mac (void)
         "\xc2\x69\x9a\x6e\xba\x55\xce\x9d\x93\x9a\x8a\x4e\x19\x46\x6e\xe9" },
       { GCRY_MAC_CMAC_CAMELLIA, "?", "????????????????????????????????",
         "\xba\x8a\x5a\x8d\xa7\x54\x26\x83\x3e\xb1\x20\xb5\x45\xd0\x9f\x4e" },
-      /* http://csrc.nist.gov/groups/STM/cavp/documents/mac/gcmtestvectors.zip */
+      /* https://csrc.nist.gov/groups/STM/cavp/documents/mac/gcmtestvectors.zip */
       { GCRY_MAC_GMAC_AES,
         "",
         "\x11\x75\x4c\xd7\x2a\xec\x30\x9b\xf5\x2f\x76\x87\x21\x2e\x89\x57",
@@ -11399,7 +11399,7 @@ check_mac (void)
         "\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
         NULL,
         48, 32 },
-      /* from http://cr.yp.to/mac/poly1305-20050329.pdf */
+      /* from https://cr.yp.to/mac/poly1305-20050329.pdf */
       { GCRY_MAC_POLY1305,
         "\xf3\xf6",
         "\x85\x1f\xc4\x0c\x34\x67\xac\x0b\xe0\x5c\xc2\x04\x04\xf3\xf7\x00"
@@ -11432,7 +11432,7 @@ check_mac (void)
         "\x51\x54\xad\x0d\x2c\xb2\x6e\x01\x27\x4f\xc5\x11\x48\x49\x1f\x1b" },
       { GCRY_MAC_POLY1305, "?", "????????????????????????????????",
         "\xc3\x88\xce\x8a\x52\xd6\xe7\x21\x86\xfa\xaa\x5d\x2d\x16\xf9\xa3" },
-      /* from http://cr.yp.to/mac/poly1305-20050329.pdf */
+      /* from https://cr.yp.to/mac/poly1305-20050329.pdf */
       { GCRY_MAC_POLY1305_AES,
         "\xf3\xf6",
         "\xec\x07\x4c\x83\x55\x80\x74\x17\x01\x42\x5b\x62\x32\x35\xad\xd6"

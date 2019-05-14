@@ -15,11 +15,11 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  *
  * For a description of the algorithm, see:
- *   http://cr.yp.to/snuffle/spec.pdf
- *   http://cr.yp.to/snuffle/design.pdf
+ *   https://cr.yp.to/snuffle/spec.pdf
+ *   https://cr.yp.to/snuffle/design.pdf
  */
 
 /* The code is based on the code in Nettle

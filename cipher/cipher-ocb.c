@@ -14,13 +14,13 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  *
  *
  * OCB is covered by several patents but may be used freely by most
- * software.  See http://web.cs.ucdavis.edu/~rogaway/ocb/license.htm .
+ * software.  See https://web.cs.ucdavis.edu/~rogaway/ocb/license.htm .
  * In particular license 1 is suitable for Libgcrypt: See
- * http://web.cs.ucdavis.edu/~rogaway/ocb/license1.pdf for the full
+ * https://web.cs.ucdavis.edu/~rogaway/ocb/license1.pdf for the full
  * license document; it basically says:
  *
  *   License 1 — License for Open-Source Software Implementations of OCB

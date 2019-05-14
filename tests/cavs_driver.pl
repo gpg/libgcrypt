@@ -723,7 +723,7 @@ sub fix_key_parity($) {
 
 ####################################################
 # DER/PEM utility functions
-# Cf. http://www.columbia.edu/~ariel/ssleay/layman.html
+# Cf. https://www.columbia.edu/~ariel/ssleay/layman.html
 
 # Convert unsigned integer to base256 bigint bytes
 # $1 integer
@@ -904,7 +904,7 @@ sub der_test($$) {
 }
 
 # Unit testing for the DER encoding functions
-# Examples from http://www.columbia.edu/~ariel/ssleay/layman.html
+# Examples from https://www.columbia.edu/~ariel/ssleay/layman.html
 # No input, no output. Dies if unit tests fail.
 sub der_unit_test {
 	## uncomment these if you want to test the test framework

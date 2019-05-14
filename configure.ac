@@ -16,7 +16,7 @@
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
-# License along with this program; if not, see <http://www.gnu.org/licenses/>.
+# License along with this program; if not, see <https://www.gnu.org/licenses/>.
 
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
@@ -156,7 +156,7 @@ dnl build tree. Other OS with the same issue might be added later.
 dnl
 dnl References:
 dnl   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=859732
-dnl   http://lists.gnu.org/archive/html/libtool/2017-05/msg00000.html
+dnl   https://lists.gnu.org/archive/html/libtool/2017-05/msg00000.html
 dnl
 dnl We need to check whether --disable-new-dtags is supported as alternate
 dnl linkers may be used (e.g., with tcc: CC=tcc LD=tcc).

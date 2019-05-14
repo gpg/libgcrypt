@@ -233,7 +233,7 @@ static const char *serpent_test (void);
  *   (New York, New York, USA), p. 317–329, National Institute of Standards and
  *   Technology, 2000.
  *
- * Paper is also available at: http://www.ii.uib.no/~osvik/pub/aes3.pdf
+ * Paper is also available at: https://www.ii.uib.no/~osvik/pub/aes3.pdf
  *
  */
 

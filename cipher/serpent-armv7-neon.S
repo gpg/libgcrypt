@@ -15,7 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -98,7 +98,7 @@
  *   (New York, New York, USA), p. 317–329, National Institute of Standards and
  *   Technology, 2000.
  *
- * Paper is also available at: http://www.ii.uib.no/~osvik/pub/aes3.pdf
+ * Paper is also available at: https://www.ii.uib.no/~osvik/pub/aes3.pdf
  *
  */
 #define SBOX0(a0, a1, a2, a3, a4, b0, b1, b2, b3, b4) \

@@ -15,7 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  *******************************************************************
  * The code here is based on the optimized implementation taken from
  * http://www.esat.kuleuven.ac.be/~rijmen/rijndael/ on Oct 2, 2000,
@@ -33,7 +33,7 @@
  *------------------------------------------
  *
  * The SP800-38a document is available at:
- *   http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf
+ *   https://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf
  *
  */
 

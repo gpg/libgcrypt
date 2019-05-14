@@ -1026,7 +1026,7 @@ selftest(void)
 }
 
 /* These oids are from
-   <http://info.isl.ntt.co.jp/crypt/eng/camellia/specifications_oid.html>,
+   <https://info.isl.ntt.co.jp/crypt/eng/camellia/specifications_oid.html>,
    retrieved May 1, 2007. */
 
 static gcry_cipher_oid_spec_t camellia128_oids[] =

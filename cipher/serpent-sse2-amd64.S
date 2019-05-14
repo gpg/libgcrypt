@@ -15,7 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef __x86_64
@@ -117,7 +117,7 @@
  *   (New York, New York, USA), p. 317–329, National Institute of Standards and
  *   Technology, 2000.
  *
- * Paper is also available at: http://www.ii.uib.no/~osvik/pub/aes3.pdf
+ * Paper is also available at: https://www.ii.uib.no/~osvik/pub/aes3.pdf
  *
  */
 #define SBOX0(r0, r1, r2, r3, r4) \

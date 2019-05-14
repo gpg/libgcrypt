@@ -508,7 +508,7 @@ Just like the function @code{gpg_strerror}, the function
 @anchor{enabling fips mode}
 Libgcrypt may be used in a FIPS 140-2 mode.  Note, that this does not
 necessary mean that Libcgrypt is an appoved FIPS 140-2 module.  Check the
-NIST database at @url{http://csrc.nist.gov/groups/STM/cmvp/} to see what
+NIST database at @url{https://csrc.nist.gov/groups/STM/cmvp/} to see what
 versions of Libgcrypt are approved.
 
 Because FIPS 140 has certain restrictions on the use of cryptography
@@ -1615,7 +1615,7 @@ A 128 bit cipher as described by RFC4269.
 @itemx GCRY_CIPHER_CAMELLIA256
 @cindex Camellia
 The Camellia cipher by NTT.  See
-@uref{http://info.isl.ntt.co.jp/@/crypt/@/eng/@/camellia/@/specifications.html}.
+@uref{https://info.isl.ntt.co.jp/@/crypt/@/eng/@/camellia/@/specifications.html}.
 
 @item GCRY_CIPHER_SALSA20
 @cindex Salsa20
@@ -1737,7 +1737,7 @@ of sequential data units.
 @cindex EAX, EAX mode
 EAX is an Authenticated Encryption with Associated Data (AEAD) block cipher
 mode by Bellare, Rogaway, and Wagner (see
-@uref{http://web.cs.ucdavis.edu/~rogaway/papers/eax.html}).
+@uref{https://web.cs.ucdavis.edu/~rogaway/papers/eax.html}).
 
 @end table
 
@@ -2137,7 +2137,7 @@ interface allows to add more algorithms in the future.
 
 Libgcrypt's API for asymmetric cryptography is based on data structures
 called S-expressions (see
-@uref{http://people.csail.mit.edu/@/rivest/@/sexp.html}) and does not work
+@uref{https://people.csail.mit.edu/@/rivest/@/sexp.html}) and does not work
 with contexts as most of the other building blocks of Libgcrypt do.
 
 @noindent
@@ -5651,7 +5651,7 @@ used.  These tarballs are available from several places with the master
 copy at @indicateurl{ftp://ftp.gnupg.org/gcrypt/libgcrypt/}.
 Announcements of new releases are posted to the
 @indicateurl{gnupg-announce@@gnupg.org} mailing list@footnote{See
-@url{http://www.gnupg.org/documentation/mailing-lists.en.html} for
+@url{https://www.gnupg.org/documentation/mailing-lists.en.html} for
 details.}.
 
 

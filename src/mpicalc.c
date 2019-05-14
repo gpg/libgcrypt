@@ -12,7 +12,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -376,7 +376,7 @@ main (int argc, char **argv)
                   "libgcrypt %s\n"
                   "Copyright (C) 1997, 2013  Werner Koch\n"
                   "License LGPLv2.1+: GNU LGPL version 2.1 or later "
-                  "<http://gnu.org/licenses/old-licenses/lgpl-2.1.html>\n"
+                  "<https://gnu.org/licenses/old-licenses/lgpl-2.1.html>\n"
                   "This is free software: you are free to change and "
                   "redistribute it.\n"
                   "There is NO WARRANTY, to the extent permitted by law.\n"

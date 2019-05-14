@@ -323,7 +323,7 @@ Noteworthy changes in version 1.7.0 (2016-04-15)  [C21/A1/R0]
      backward compatibility. [from 1.6.2]
 
    - Use ciphertext blinding for Elgamal decryption [CVE-2014-3591].
-     See http://www.cs.tau.ac.il/~tromer/radioexp/ for details.
+     See https://www.cs.tau.ac.il/~tromer/radioexp/ for details.
      [from 1.6.3]
 
    - Fixed data-dependent timing variations in modular exponentiation
@@ -341,7 +341,7 @@ Noteworthy changes in version 1.7.0 (2016-04-15)  [C21/A1/R0]
      due to hardware failures. [from 1.6.4]
 
    - Mitigate side-channel attack on ECDH with Weierstrass curves
-     [CVE-2015-7511].  See http://www.cs.tau.ac.IL/~tromer/ecdh/ for
+     [CVE-2015-7511].  See https://www.cs.tau.ac.il/~tromer/ecdh/ for
      details. [from 1.6.5]
 
  * Internal changes:
@@ -440,7 +440,7 @@ Noteworthy changes in version 1.6.0 (2013-12-16) [C20/A0/R0]
  * Added support for the SCRYPT algorithm.
 
  * Mitigated the Yarom/Falkner flush+reload side-channel attack on RSA
-   secret keys.  See <http://eprint.iacr.org/2013/448> [CVE-2013-4242].
+   secret keys.  See <https://eprint.iacr.org/2013/448> [CVE-2013-4242].
 
  * Added support for Deterministic DSA as per RFC-6979.
 

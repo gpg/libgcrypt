@@ -15,7 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -38,7 +38,7 @@
 @
 @ To the extent possible under law, the implementer has waived all copyright
 @ and related or neighboring rights to the source code in this file.
-@ http://creativecommons.org/publicdomain/zero/1.0/
+@ https://creativecommons.org/publicdomain/zero/1.0/
 
 .text
 

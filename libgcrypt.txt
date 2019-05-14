@@ -47,9 +47,9 @@ random numbers and a lot of supporting functions.
 
 %%GNU: yes
 
-%%web-page: http://www.gnupg.org
+%%web-page: https://www.gnupg.org
 
-%%support: Paid extension/consulting from http://www.g10code.com
+%%support: Paid extension/consulting from https://www.g10code.com
 
 %%doc: Programmer reference in Texinfo, Postscript, HTML included
 
@@ -70,7 +70,7 @@ Guyomarch, Simon Josefsson, Werner Koch, Moritz Schulte.
 
 %%rpm: 
 
-%%repository:  See http://www.gnupg.org/cvs-access.html
+%%repository:  See https://www.gnupg.org/cvs-access.html
 
 %%related:   
 

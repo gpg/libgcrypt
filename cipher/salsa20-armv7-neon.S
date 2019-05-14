@@ -15,7 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -27,7 +27,7 @@
 /*
  * Based on public domain implementation from SUPERCOP benchmarking framework
  * by Peter Schwabe and D. J. Bernstein. Paper about the implementation at:
- *   http://cryptojedi.org/papers/#neoncrypto
+ *   https://cryptojedi.org/papers/#neoncrypto
  */
 
 .syntax unified

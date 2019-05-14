@@ -112,7 +112,7 @@ Noteworthy changes between 1.2.x and 1.4.0 are:
   
 
 Source code is hosted at the GnuPG FTP server and its mirrors as
-listed at http://www.gnupg.org/download/mirrors.html .  On the primary
+listed at https://www.gnupg.org/download/mirrors.html .  On the primary
 server the source file and its digital signatures is:
 
  ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.0.tar.bz2 (942k)
@@ -150,6 +150,6 @@ Happy hacking,
   Werner
 
 
-[1] See http://www.gnupg.org/documentation/mailing-lists.html .
+[1] See https://www.gnupg.org/documentation/mailing-lists.html .
 [2] Note that copyright assignments to the FSF are required.
-[3] See the service directory at http://www.gnupg.org/service.html .
+[3] See the service directory at https://www.gnupg.org/service.html .

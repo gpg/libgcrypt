@@ -14,7 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef GCRYPT_BITHELP_H
 #define GCRYPT_BITHELP_H
@@ -86,7 +86,7 @@ _gcry_ctz (unsigned int x)
   return x? __builtin_ctz (x) : 8 * sizeof (x);
 #else
   /* See
-   * http://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
+   * https://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
    */
   static const unsigned char mod37[] =
     {

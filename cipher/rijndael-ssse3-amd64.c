@@ -14,11 +14,11 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  *
  *
  * The code is based on the public domain library libvpaes version 0.5
- * available at http://crypto.stanford.edu/vpaes/ and which carries
+ * available at https://crypto.stanford.edu/vpaes/ and which carries
  * this notice:
  *
  *     libvpaes: constant-time SSSE3 AES encryption and decryption.
@@ -31,7 +31,7 @@
  *
  *     This is an implementation of AES following my paper,
  *       "Accelerating AES with Vector Permute Instructions"
- *       CHES 2009; http://shiftleft.org/papers/vector_aes/
+ *       CHES 2009; https://shiftleft.org/papers/vector_aes/
  */
 
 #include <config.h>

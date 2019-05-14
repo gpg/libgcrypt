@@ -17,13 +17,13 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
  * Intel SSSE3 accelerated SHA-1 implementation based on white paper:
  *  "Improving the Performance of the Secure Hash Algorithm (SHA-1)"
- *  http://software.intel.com/en-us/articles/improving-the-performance-of-the-secure-hash-algorithm-1
+ *  https://software.intel.com/en-us/articles/improving-the-performance-of-the-secure-hash-algorithm-1
  */
 
 #ifdef __x86_64__

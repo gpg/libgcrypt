@@ -14,7 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -562,7 +562,7 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
  *   Lange, Peter Schwabe, Bo-Yin Yang. High-speed high-security
  *   signatures.  Journal of Cryptographic Engineering 2 (2012), 77-89.
  *   Document ID: a1a62a2f76d23f65d622484ddd09caf8.
- *   URL: http://cr.yp.to/papers.html#ed25519. Date: 2011.09.26.
+ *   URL: https://cr.yp.to/papers.html#ed25519. Date: 2011.09.26.
  *
  * Despite that this function requires the specification of a hash
  * algorithm, we only support what has been specified by the paper.
