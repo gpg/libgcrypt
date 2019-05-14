@@ -5044,7 +5044,7 @@ check_ocb_cipher_largebuf_split (int algo, int keylen, const char *tagexpect,
     }
 
   for (i = 0; i < buflen; i++)
-    inbuf[i] = (i + 181081) * 5039;
+    inbuf[i] = (unsigned int)(i + 181081) * 5039U;
 
   err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
   if (!err)
