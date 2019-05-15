@@ -253,7 +253,7 @@ typedef struct gcry_md_list
   gcry_md_spec_t *spec;
   struct gcry_md_list *next;
   size_t actual_struct_size;     /* Allocated size of this structure. */
-  PROPERLY_ALIGNED_TYPE context;
+  PROPERLY_ALIGNED_TYPE context[1];
 } GcryDigestEntry;
 
 /* This structure is put right after the gcry_md_hd_t buffer, so that
@@ -601,7 +601,7 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 	  h->list = entry;
 
 	  /* And init this instance. */
-	  entry->spec->init (&entry->context.c,
+	  entry->spec->init (entry->context,
                              h->flags.bugemu1? GCRY_MD_FLAG_BUGEMU1:0);
 	}
     }
@@ -710,14 +710,14 @@ _gcry_md_reset (gcry_md_hd_t a)
   if (a->ctx->flags.hmac)
     for (r = a->ctx->list; r; r = r->next)
       {
-        memcpy (r->context.c, r->context.c + r->spec->contextsize,
+        memcpy (r->context, (char *)r->context + r->spec->contextsize,
                 r->spec->contextsize);
       }
   else
     for (r = a->ctx->list; r; r = r->next)
       {
-        memset (r->context.c, 0, r->spec->contextsize);
-        (*r->spec->init) (&r->context.c,
+        memset (r->context, 0, r->spec->contextsize);
+        (*r->spec->init) (r->context,
                           a->ctx->flags.bugemu1? GCRY_MD_FLAG_BUGEMU1:0);
       }
 }
@@ -768,8 +768,8 @@ md_write (gcry_md_hd_t a, const void *inbuf, size_t inlen)
   for (r = a->ctx->list; r; r = r->next)
     {
       if (a->bufpos)
-	(*r->spec->write) (&r->context.c, a->buf, a->bufpos);
-      (*r->spec->write) (&r->context.c, inbuf, inlen);
+	(*r->spec->write) (r->context, a->buf, a->bufpos);
+      (*r->spec->write) (r->context, inbuf, inlen);
     }
   a->bufpos = 0;
 }
@@ -797,7 +797,7 @@ md_final (gcry_md_hd_t a)
     md_write (a, NULL, 0);
 
   for (r = a->ctx->list; r; r = r->next)
-    (*r->spec->final) (&r->context.c);
+    (*r->spec->final) (r->context);
 
   a->ctx->flags.finalized = 1;
 
@@ -814,7 +814,7 @@ md_final (gcry_md_hd_t a)
       if (r->spec->read == NULL)
         continue;
 
-      p = r->spec->read (&r->context.c);
+      p = r->spec->read (r->context);
 
       if (a->ctx->flags.secure)
         hash = xtrymalloc_secure (dlen);
@@ -827,10 +827,10 @@ md_final (gcry_md_hd_t a)
         }
 
       memcpy (hash, p, dlen);
-      memcpy (r->context.c, r->context.c + r->spec->contextsize * 2,
+      memcpy (r->context, (char *)r->context + r->spec->contextsize * 2,
               r->spec->contextsize);
-      (*r->spec->write) (&r->context.c, hash, dlen);
-      (*r->spec->final) (&r->context.c);
+      (*r->spec->write) (r->context, hash, dlen);
+      (*r->spec->final) (r->context);
       xfree (hash);
     }
 }
@@ -864,8 +864,8 @@ md_setkey (gcry_md_hd_t h, const unsigned char *key, size_t keylen)
 	case GCRY_MD_BLAKE2S_160:
 	case GCRY_MD_BLAKE2S_128:
 	  algo_had_setkey = 1;
-	  memset (r->context.c, 0, r->spec->contextsize);
-	  rc = _gcry_blake2_init_with_key (r->context.c,
+	  memset (r->context, 0, r->spec->contextsize);
+	  rc = _gcry_blake2_init_with_key (r->context,
 					   h->ctx->flags.bugemu1
 					     ? GCRY_MD_FLAG_BUGEMU1:0,
 					   key, keylen, r->spec->algo);
@@ -969,26 +969,26 @@ prepare_macpads (gcry_md_hd_t a, const unsigned char *key, size_t keylen)
           k_len = keylen;
         }
 
-      (*r->spec->init) (&r->context.c,
+      (*r->spec->init) (r->context,
                         a->ctx->flags.bugemu1? GCRY_MD_FLAG_BUGEMU1:0);
       a->bufpos = 0;
       for (i=0; i < k_len; i++ )
         _gcry_md_putc (a, k[i] ^ 0x36);
       for (; i < macpad_Bsize; i++ )
         _gcry_md_putc (a, 0x36);
-      (*r->spec->write) (&r->context.c, a->buf, a->bufpos);
-      memcpy (r->context.c + r->spec->contextsize, r->context.c,
+      (*r->spec->write) (r->context, a->buf, a->bufpos);
+      memcpy ((char *)r->context + r->spec->contextsize, r->context,
               r->spec->contextsize);
 
-      (*r->spec->init) (&r->context.c,
+      (*r->spec->init) (r->context,
                         a->ctx->flags.bugemu1? GCRY_MD_FLAG_BUGEMU1:0);
       a->bufpos = 0;
       for (i=0; i < k_len; i++ )
         _gcry_md_putc (a, k[i] ^ 0x5c);
       for (; i < macpad_Bsize; i++ )
         _gcry_md_putc (a, 0x5c);
-      (*r->spec->write) (&r->context.c, a->buf, a->bufpos);
-      memcpy (r->context.c + r->spec->contextsize*2, r->context.c,
+      (*r->spec->write) (r->context, a->buf, a->bufpos);
+      memcpy ((char *)r->context + r->spec->contextsize*2, r->context,
               r->spec->contextsize);
 
       xfree (key_allocated);
@@ -1074,7 +1074,7 @@ md_read( gcry_md_hd_t a, int algo )
           if (r->next)
             log_debug ("more than one algorithm in md_read(0)\n");
           if (r->spec->read)
-            return r->spec->read (&r->context.c);
+            return r->spec->read (r->context);
         }
     }
   else
@@ -1083,7 +1083,7 @@ md_read( gcry_md_hd_t a, int algo )
 	if (r->spec->algo == algo)
 	  {
 	    if (r->spec->read)
-              return r->spec->read (&r->context.c);
+              return r->spec->read (r->context);
             break;
 	  }
     }
@@ -1128,7 +1128,7 @@ md_extract(gcry_md_hd_t a, int algo, void *out, size_t outlen)
 	{
 	  if (r->next)
 	    log_debug ("more than one algorithm in md_extract(0)\n");
-	  r->spec->extract (&r->context.c, out, outlen);
+	  r->spec->extract (r->context, out, outlen);
 	  return 0;
 	}
     }
@@ -1137,7 +1137,7 @@ md_extract(gcry_md_hd_t a, int algo, void *out, size_t outlen)
       for (r = a->ctx->list; r; r = r->next)
 	if (r->spec->algo == algo && r->spec->extract)
 	  {
-	    r->spec->extract (&r->context.c, out, outlen);
+	    r->spec->extract (r->context, out, outlen);
 	    return 0;
 	  }
     }
