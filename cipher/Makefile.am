@@ -155,7 +155,8 @@ tiger.lo: $(srcdir)/tiger.c Makefile
 if ENABLE_INSTRUMENTATION_MUNGING
 instrumentation_munging = sed \
 	-e 's/-fsanitize[=,\-][=,a-z,A-Z,0-9,\,,\-]*//g' \
-	-e 's/-fprofile[=,\-][=,a-z,A-Z,0-9,\,,\-]*//g'
+	-e 's/-fprofile[=,\-][=,a-z,A-Z,0-9,\,,\-]*//g' \
+	-e 's/-fcoverage[=,\-][=,a-z,A-Z,0-9,\,,\-]*//g'
 else
 instrumentation_munging = cat
 endif
