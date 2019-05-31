@@ -218,11 +218,11 @@ static const char *selftest(void);
 
 
 /* Prefetching for encryption/decryption tables. */
-static void prefetch_table(const volatile byte *tab, size_t len)
+static inline void prefetch_table(const volatile byte *tab, size_t len)
 {
   size_t i;
 
-  for (i = 0; i < len; i += 8 * 32)
+  for (i = 0; len - i >= 8 * 32; i += 8 * 32)
     {
       (void)tab[i + 0 * 32];
       (void)tab[i + 1 * 32];
@@ -233,17 +233,37 @@ static void prefetch_table(const volatile byte *tab, size_t len)
       (void)tab[i + 6 * 32];
       (void)tab[i + 7 * 32];
     }
+  for (; i < len; i += 32)
+    {
+      (void)tab[i];
+    }
 
   (void)tab[len - 1];
 }
 
 static void prefetch_enc(void)
 {
-  prefetch_table((const void *)encT, sizeof(encT));
+  /* Modify counters to trigger copy-on-write and unsharing if physical pages
+   * of look-up table are shared between processes.  Modifying counters also
+   * causes checksums for pages to change and hint same-page merging algorithm
+   * that these pages are frequently changing.  */
+  enc_tables.counter_head++;
+  enc_tables.counter_tail++;
+
+  /* Prefetch look-up tables to cache.  */
+  prefetch_table((const void *)&enc_tables, sizeof(enc_tables));
 }
 
 static void prefetch_dec(void)
 {
+  /* Modify counters to trigger copy-on-write and unsharing if physical pages
+   * of look-up table are shared between processes.  Modifying counters also
+   * causes checksums for pages to change and hint same-page merging algorithm
+   * that these pages are frequently changing.  */
+  dec_tables.counter_head++;
+  dec_tables.counter_tail++;
+
+  /* Prefetch look-up tables to cache.  */
   prefetch_table((const void *)&dec_tables, sizeof(dec_tables));
 }
 
@@ -765,9 +785,10 @@ do_encrypt (const RIJNDAEL_context *ctx,
 {
 #ifdef USE_AMD64_ASM
   return _gcry_aes_amd64_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds,
-				       encT);
+				       enc_tables.T);
 #elif defined(USE_ARM_ASM)
-  return _gcry_aes_arm_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds, encT);
+  return _gcry_aes_arm_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds,
+				     enc_tables.T);
 #else
   return do_encrypt_fn (ctx, bx, ax);
 #endif /* !USE_ARM_ASM && !USE_AMD64_ASM*/
@@ -1123,10 +1144,10 @@ do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
 {
 #ifdef USE_AMD64_ASM
   return _gcry_aes_amd64_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds,
-				       &dec_tables);
+				       dec_tables.T);
 #elif defined(USE_ARM_ASM)
   return _gcry_aes_arm_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds,
-				     &dec_tables);
+				     dec_tables.T);
 #else
   return do_decrypt_fn (ctx, bx, ax);
 #endif /*!USE_ARM_ASM && !USE_AMD64_ASM*/

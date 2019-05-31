@@ -29,11 +29,13 @@
 #define BLOCKSIZE               (128/8)
 
 
-/* Helper macro to force alignment to 16 bytes.  */
+/* Helper macro to force alignment to 16 or 64 bytes.  */
 #ifdef HAVE_GCC_ATTRIBUTE_ALIGNED
 # define ATTR_ALIGNED_16  __attribute__ ((aligned (16)))
+# define ATTR_ALIGNED_64  __attribute__ ((aligned (64)))
 #else
 # define ATTR_ALIGNED_16
+# define ATTR_ALIGNED_64
 #endif
 
 
