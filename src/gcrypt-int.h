@@ -109,6 +109,9 @@ const char *_gcry_pk_get_curve (gcry_sexp_t key, int iterator,
 gcry_sexp_t _gcry_pk_get_param (int algo, const char *name);
 gpg_err_code_t _gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp,
                                       int mode, gcry_ctx_t ctx);
+gpg_error_t _gcry_ecc_mul_point (int algo, unsigned char *result,
+                                 const unsigned char *scalar,
+                                 const unsigned char *point);
 
 
 gpg_err_code_t _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags);

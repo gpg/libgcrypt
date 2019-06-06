@@ -1112,6 +1112,13 @@ gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp, int mode, gcry_ctx_t ctx)
   return gpg_error (_gcry_pubkey_get_sexp (r_sexp, mode, ctx));
 }
 
+gpg_error_t
+gcry_ecc_mul_point (int algo, unsigned char *result,
+                    const unsigned char *scalar, const unsigned char *point)
+{
+  return _gcry_ecc_mul_point (algo, result, scalar, point);
+}
+
 gcry_error_t
 gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 {

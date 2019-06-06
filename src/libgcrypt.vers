@@ -67,6 +67,8 @@ GCRYPT_1.6 {
 
     gcry_pubkey_get_sexp;
 
+    gcry_ecc_mul_point;
+
     gcry_kdf_derive;
 
     gcry_prime_check; gcry_prime_generate;

@@ -1197,7 +1197,25 @@ gcry_sexp_t gcry_pk_get_param (int algo, const char *name);
 /* Return an S-expression representing the context CTX.  */
 gcry_error_t gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp,
                                    int mode, gcry_ctx_t ctx);
+
+/************************************
+ *                                  *
+ *    Modern ECC Functions          *
+ *                                  *
+ ************************************/
 
+/* The curves we support.  */
+enum gcry_ecc_curves
+  {
+    GCRY_ECC_CURVE25519 = 1,
+    GCRY_ECC_CURVE448   = 2
+  };
+
+/* Convenience function to compute scalar multiplication of the
+   Montgomery form of curve.  */
+gpg_error_t gcry_ecc_mul_point (int algo, unsigned char *result,
+                                const unsigned char *scalar,
+                                const unsigned char *point);
 
 
 /************************************

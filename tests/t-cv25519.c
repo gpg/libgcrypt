@@ -118,6 +118,7 @@ reverse_buffer (unsigned char *buffer, unsigned int length)
  * It calls gcry_pk_encrypt with Curve25519 private key and let
  * it compute X25519.
  */
+#if 0
 static void
 test_cv (int testno, const char *k_str, const char *u_str,
          const char *result_str)
@@ -229,6 +230,59 @@ test_cv (int testno, const char *k_str, const char *u_str,
   gcry_sexp_release (s_pk);
   xfree (buffer);
 }
+#else
+#define test_cv test_cv_fast
+
+static void
+test_cv_fast (int testno, const char *k_str, const char *u_str,
+              const char *result_str)
+{
+  gpg_error_t err;
+  void *scalar;
+  void *point;
+  size_t buflen;
+  unsigned char result[32];
+  size_t res_len;
+  char result_hex[65];
+  int i;
+
+  if (verbose > 1)
+    info ("Running test %d\n", testno);
+
+  if (!(scalar = hex2buffer (k_str, &buflen)) || buflen != 32)
+    {
+      fail ("error building s-exp for test %d, %s: %s",
+            testno, "k", "invalid hex string");
+      goto leave;
+    }
+
+  if (!(point = hex2buffer (u_str, &buflen)) || buflen != 32)
+    {
+      fail ("error building s-exp for test %d, %s: %s",
+            testno, "u", "invalid hex string");
+      goto leave;
+    }
+
+  if ((err = gcry_ecc_mul_point (GCRY_ECC_CURVE25519, result, scalar, point)))
+    fail ("gcry_ecc_mul_point failed for test %d: %s", testno,
+          gpg_strerror (err));
+
+  for (i=0; i < 32; i++)
+    snprintf (&result_hex[i*2], 3, "%02x", result[i]);
+
+  if (strcmp (result_str, result_hex))
+    {
+      fail ("gcry_ecc_mul_point failed for test %d: %s",
+	    testno, "wrong value returned");
+      info ("  expected: '%s'", result_str);
+      info ("       got: '%s'", result_hex);
+    }
+
+ leave:
+  xfree (scalar);
+  xfree (point);
+}
+#endif
 
 /*
  * Test iterative X25519 computation through lower layer MPI routines.
