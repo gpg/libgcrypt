@@ -115,7 +115,7 @@ reverse_buffer (unsigned char *buffer, unsigned int length)
  *
  * where R is expected result of X25519 (K, U).
  *
- * It calls gcry_pk_decrypt with Curve25519 private key and let
+ * It calls gcry_pk_encrypt with Curve25519 private key and let
  * it compute X25519.
  */
 static void
