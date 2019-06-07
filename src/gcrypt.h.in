@@ -1213,7 +1213,7 @@ enum gcry_ecc_curves
 
 /* Convenience function to compute scalar multiplication of the
    Montgomery form of curve.  */
-gpg_error_t gcry_ecc_mul_point (int algo, unsigned char *result,
+gpg_error_t gcry_ecc_mul_point (int algo, unsigned char **r_result,
                                 const unsigned char *scalar,
                                 const unsigned char *point);
 

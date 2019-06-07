@@ -239,10 +239,9 @@ test_cv_fast (int testno, const char *k_str, const char *u_str,
 {
   gpg_error_t err;
   void *scalar;
-  void *point;
+  void *point = NULL;
   size_t buflen;
-  unsigned char result[32];
-  size_t res_len;
+  unsigned char *result = NULL;
   char result_hex[65];
   int i;
 
@@ -263,7 +262,7 @@ test_cv_fast (int testno, const char *k_str, const char *u_str,
       goto leave;
     }
 
-  if ((err = gcry_ecc_mul_point (GCRY_ECC_CURVE25519, result, scalar, point)))
+  if ((err = gcry_ecc_mul_point (GCRY_ECC_CURVE25519, &result, scalar, point)))
     fail ("gcry_ecc_mul_point failed for test %d: %s", testno,
           gpg_strerror (err));
 
@@ -273,12 +272,13 @@ test_cv_fast (int testno, const char *k_str, const char *u_str,
   if (strcmp (result_str, result_hex))
     {
       fail ("gcry_ecc_mul_point failed for test %d: %s",
-	    testno, "wrong value returned");
+            testno, "wrong value returned");
       info ("  expected: '%s'", result_str);
       info ("       got: '%s'", result_hex);
     }
 
  leave:
+  xfree (result);
   xfree (scalar);
   xfree (point);
 }
