@@ -55,8 +55,8 @@ static const struct
 
     { "X22519",     "1.3.101.110" },         /* rfc8410 */
 
-    { "X448",       "1.3.101.111" },         /* rfc8410 */
 #endif
+    { "X448",       "1.3.101.111" },         /* rfc8410 */
 
     { "NIST P-192", "1.2.840.10045.3.1.1" }, /* X9.62 OID  */
     { "NIST P-192", "prime192v1" },          /* X9.62 name.  */
@@ -156,6 +156,22 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x0000000000000000000000000000000000000000000000000000000000000009",
       "0x5f51e65e475f794b1fe122d388b72eb36dc2b28192839e4dd6163a5d81312c14",
       "0x08"
+    },
+    {
+      /* (y^2 = x^3 + 156326*x^2 + x) */
+      "X448", 448, 0,
+      MPI_EC_MONTGOMERY, ECC_DIALECT_STANDARD,
+      "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "0x98a9",
+      "0x01",
+      "0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "7cca23e9c44edb49aed63690216cc2728dc58f552378c292ab5844f3",
+      "0x00000000000000000000000000000000000000000000000000000000"
+      "00000000000000000000000000000000000000000000000000000005",
+      "0x7d235d1295f5b1f66c98ab6e58326fcecbae5d34f55545d060f75dc2"
+      "8df3f6edb8027e2346430d211312c4b150677af76fd7223d457b5b1a",
+      "0x04"
     },
 #if 0 /* No real specs yet found.  */
     {

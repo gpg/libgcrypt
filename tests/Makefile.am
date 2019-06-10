@@ -22,7 +22,8 @@ tests_bin = \
         version t-secmem mpitests t-sexp t-convert \
 	t-mpi-bit t-mpi-point curves t-lock \
 	prime basic keygen pubkey hmac hashtest t-kdf keygrip \
-	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 t-ed25519 t-cv25519
+	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 \
+        t-ed25519 t-cv25519 t-x448
 
 tests_bin_last = benchmark bench-slope
 
