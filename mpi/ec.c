@@ -480,7 +480,6 @@ ec_pow2_25519 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
 
 
 /* Routines for p = 2^448 - 2^224 - 1.  */
-/* FIXME: little endian assumed, for now */
 
 #define LIMB_SIZE_448 ((448+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB)
 #define LIMB_SIZE_HALF_448 ((LIMB_SIZE_448+1)/2)
@@ -538,18 +537,10 @@ ec_mulm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   mpi_limb_t b0[LIMB_SIZE_HALF_448];
   mpi_limb_t b1[LIMB_SIZE_HALF_448];
   mpi_limb_t cy;
+  int i;
 
-  (void)ctx;
   if (w->nlimbs != wsize || u->nlimbs != wsize || v->nlimbs != wsize)
     log_bug ("mulm_448: different sizes\n");
-
-  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
-    {
-      a2[LIMB_SIZE_HALF_448-1] = 0;
-      a3[LIMB_SIZE_HALF_448-1] = 0;
-      b0[LIMB_SIZE_HALF_448-1] = 0;
-      b1[LIMB_SIZE_HALF_448-1] = 0;
-    }
 
   up = u->d;
   vp = v->d;
@@ -557,17 +548,42 @@ ec_mulm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 
   _gcry_mpih_mul_n (n, up, vp, wsize);
 
-  memcpy (b0, n, wsize * BYTES_PER_MPI_LIMB / 2);
-  memcpy (b1, (char *)n+(wsize * BYTES_PER_MPI_LIMB / 2),
-	  wsize * BYTES_PER_MPI_LIMB / 2);
-  memcpy (a2, (char *)n+(wsize * BYTES_PER_MPI_LIMB / 2 * 2),
-	  wsize * BYTES_PER_MPI_LIMB / 2);
-  memcpy (a3, (char *)n+(wsize * BYTES_PER_MPI_LIMB / 2 * 3),
-	  wsize * BYTES_PER_MPI_LIMB / 2);
+  for (i = 0; i < (wsize + 1)/ 2; i++)
+    {
+      b0[i] = n[i];
+      b1[i] = n[i+wsize/2];
+      a2[i] = n[i+wsize];
+      a3[i] = n[i+wsize+wsize/2];
+    }
+
+  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+    {
+      mpi_limb_t b1_rest, a3_rest;
+
+      b0[LIMB_SIZE_HALF_448-1] &= (1UL<<32)-1;
+      a2[LIMB_SIZE_HALF_448-1] &= (1UL<<32)-1;
+
+      b1_rest = 0;
+      a3_rest = 0;
+
+      for (i = (wsize + 1)/ 2 -1; i >= 0; i--)
+        {
+          mpi_limb_t b1v, a3v;
+          b1v = b1[i];
+          a3v = a3[i];
+          b1[i] = (b1_rest<<32) | (b1v >> 32);
+          a3[i] = (a3_rest<<32) | (a3v >> 32);
+          b1_rest = b1v & ((1UL <<32)-1);
+          a3_rest = a3v & ((1UL <<32)-1);
+        }
+    }
 
   cy = _gcry_mpih_add_n (b0, b0, a2, LIMB_SIZE_HALF_448);
   cy += _gcry_mpih_add_n (b0, b0, a3, LIMB_SIZE_HALF_448);
-  memcpy (wp, b0, wsize * BYTES_PER_MPI_LIMB / 2);
+  for (i = 0; i < (wsize + 1)/ 2; i++)
+    wp[i] = b0[i];
+  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+    wp[LIMB_SIZE_HALF_448-1] &= ((1UL <<32)-1);
 
   if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
     cy = b0[LIMB_SIZE_HALF_448-1] >> 32;
@@ -575,11 +591,23 @@ ec_mulm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   cy += _gcry_mpih_add_n (b1, b1, a2, LIMB_SIZE_HALF_448);
   cy += _gcry_mpih_add_n (b1, b1, a3, LIMB_SIZE_HALF_448);
   cy += _gcry_mpih_add_n (b1, b1, a3, LIMB_SIZE_HALF_448);
-  memcpy ((char *)wp+(wsize * BYTES_PER_MPI_LIMB / 2),
-	  b1, wsize * BYTES_PER_MPI_LIMB / 2);
+  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+    {
+      mpi_limb_t b1_rest = 0;
+
+      for (i = (wsize + 1)/ 2 -1; i >= 0; i--)
+        {
+          mpi_limb_t b1v = b1[i];
+          b1[i] = (b1_rest<<32) | (b1v >> 32);
+          b1_rest = b1v & ((1UL <<32)-1);
+        }
+      wp[LIMB_SIZE_HALF_448-1] |= (b1_rest << 32);
+      for (i = 0; i < wsize / 2; i++)
+        wp[i+(wsize + 1) / 2] = b1[i];
+    }
 
   if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
-    cy = b1[LIMB_SIZE_HALF_448-1] >> 32;
+    cy = b1[LIMB_SIZE_HALF_448-1];
   memset (n, 0, wsize * BYTES_PER_MPI_LIMB);
   if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
     n[LIMB_SIZE_HALF_448-1] = cy << 32;
