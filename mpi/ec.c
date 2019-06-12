@@ -538,6 +538,9 @@ ec_mulm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   mpi_limb_t b1[LIMB_SIZE_HALF_448];
   mpi_limb_t cy;
   int i;
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  mpi_limb_t b1_rest, a3_rest;
+#endif
 
   if (w->nlimbs != wsize || u->nlimbs != wsize || v->nlimbs != wsize)
     log_bug ("mulm_448: different sizes\n");
@@ -556,63 +559,65 @@ ec_mulm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
       a3[i] = n[i+wsize+wsize/2];
     }
 
-  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  b0[LIMB_SIZE_HALF_448-1] &= (1UL<<32)-1;
+  a2[LIMB_SIZE_HALF_448-1] &= (1UL<<32)-1;
+
+  b1_rest = 0;
+  a3_rest = 0;
+
+  for (i = (wsize + 1)/ 2 -1; i >= 0; i--)
     {
-      mpi_limb_t b1_rest, a3_rest;
-
-      b0[LIMB_SIZE_HALF_448-1] &= (1UL<<32)-1;
-      a2[LIMB_SIZE_HALF_448-1] &= (1UL<<32)-1;
-
-      b1_rest = 0;
-      a3_rest = 0;
-
-      for (i = (wsize + 1)/ 2 -1; i >= 0; i--)
-        {
-          mpi_limb_t b1v, a3v;
-          b1v = b1[i];
-          a3v = a3[i];
-          b1[i] = (b1_rest<<32) | (b1v >> 32);
-          a3[i] = (a3_rest<<32) | (a3v >> 32);
-          b1_rest = b1v & ((1UL <<32)-1);
-          a3_rest = a3v & ((1UL <<32)-1);
-        }
+      mpi_limb_t b1v, a3v;
+      b1v = b1[i];
+      a3v = a3[i];
+      b1[i] = (b1_rest<<32) | (b1v >> 32);
+      a3[i] = (a3_rest<<32) | (a3v >> 32);
+      b1_rest = b1v & ((1UL <<32)-1);
+      a3_rest = a3v & ((1UL <<32)-1);
     }
+#endif
 
   cy = _gcry_mpih_add_n (b0, b0, a2, LIMB_SIZE_HALF_448);
   cy += _gcry_mpih_add_n (b0, b0, a3, LIMB_SIZE_HALF_448);
   for (i = 0; i < (wsize + 1)/ 2; i++)
     wp[i] = b0[i];
-  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
-    wp[LIMB_SIZE_HALF_448-1] &= ((1UL <<32)-1);
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  wp[LIMB_SIZE_HALF_448-1] &= ((1UL <<32)-1);
+#endif
 
-  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
-    cy = b0[LIMB_SIZE_HALF_448-1] >> 32;
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  cy = b0[LIMB_SIZE_HALF_448-1] >> 32;
+#endif
+
   cy = _gcry_mpih_add_1 (b1, b1, LIMB_SIZE_HALF_448, cy);
   cy += _gcry_mpih_add_n (b1, b1, a2, LIMB_SIZE_HALF_448);
   cy += _gcry_mpih_add_n (b1, b1, a3, LIMB_SIZE_HALF_448);
   cy += _gcry_mpih_add_n (b1, b1, a3, LIMB_SIZE_HALF_448);
-  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  b1_rest = 0;
+  for (i = (wsize + 1)/ 2 -1; i >= 0; i--)
     {
-      mpi_limb_t b1_rest = 0;
-
-      for (i = (wsize + 1)/ 2 -1; i >= 0; i--)
-        {
-          mpi_limb_t b1v = b1[i];
-          b1[i] = (b1_rest<<32) | (b1v >> 32);
-          b1_rest = b1v & ((1UL <<32)-1);
-        }
-      wp[LIMB_SIZE_HALF_448-1] |= (b1_rest << 32);
-      for (i = 0; i < wsize / 2; i++)
-        wp[i+(wsize + 1) / 2] = b1[i];
+      mpi_limb_t b1v = b1[i];
+      b1[i] = (b1_rest<<32) | (b1v >> 32);
+      b1_rest = b1v & ((1UL <<32)-1);
     }
+  wp[LIMB_SIZE_HALF_448-1] |= (b1_rest << 32);
+#endif
+  for (i = 0; i < wsize / 2; i++)
+    wp[i+(wsize + 1) / 2] = b1[i];
 
-  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
-    cy = b1[LIMB_SIZE_HALF_448-1];
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  cy = b1[LIMB_SIZE_HALF_448-1];
+#endif
+
   memset (n, 0, wsize * BYTES_PER_MPI_LIMB);
-  if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
-    n[LIMB_SIZE_HALF_448-1] = cy << 32;
-  else
-    n[LIMB_SIZE_HALF_448] = cy;
+
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  n[LIMB_SIZE_HALF_448-1] = cy << 32;
+#else
+  n[LIMB_SIZE_HALF_448] = cy;
+#endif
   n[0] = cy;
   _gcry_mpih_add_n (wp, wp, n, wsize);
 
