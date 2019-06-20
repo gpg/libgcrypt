@@ -286,4 +286,6 @@ EXPORTS
 
       gcry_mpi_point_copy       @248
 
+      gcry_ecc_mul_point        @249
+
 ;; end of file with public symbols for Windows.

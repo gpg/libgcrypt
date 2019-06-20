@@ -32,7 +32,7 @@
 
 
 
-static void
+void
 reverse_buffer (unsigned char *buffer, unsigned int length)
 {
   unsigned int tmp, i;

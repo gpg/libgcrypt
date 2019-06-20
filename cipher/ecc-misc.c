@@ -360,7 +360,8 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
       rawmpilen = nbytes;
     }
 
-  rawmpi[0] &= (1 << (ctx->nbits % 8)) - 1;
+  if ((ctx->nbits % 8))
+    rawmpi[0] &= (1 << (ctx->nbits % 8)) - 1;
   _gcry_mpi_set_buffer (result->x, rawmpi, rawmpilen, 0);
   xfree (rawmpi);
   mpi_set_ui (result->z, 1);

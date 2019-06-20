@@ -130,6 +130,8 @@ gpg_err_code_t _gcry_ecc_eddsa_verify (gcry_mpi_t input,
                                        ECC_public_key *pk,
                                        gcry_mpi_t r, gcry_mpi_t s,
                                        int hashalgo, gcry_mpi_t pkmpi);
+void reverse_buffer (unsigned char *buffer, unsigned int length);
+
 
 /*-- ecc-gost.c --*/
 gpg_err_code_t _gcry_ecc_gost_sign (gcry_mpi_t input, ECC_secret_key *skey,
