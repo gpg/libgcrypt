@@ -243,7 +243,7 @@ test_cv_x25519 (int testno, const char *k_str, const char *u_str,
                 const char *result_str)
 {
   gpg_error_t err;
-  void *scalar;
+  void *scalar = NULL;
   void *point = NULL;
   size_t buflen;
   unsigned char result[32];
