@@ -48,9 +48,21 @@ prepare_ec (const char *curve_name, elliptic_curve_t *E)
   return ec;
 }
 
+unsigned int
+_gcry_ecc_get_algo_keylen (int algo)
+{
+  unsigned int len = 0;
+
+  if (algo == GCRY_ECC_CURVE25519)
+    len = ECC_CURVE25519_BITS/8;
+  else
+    len = ECC_CURVE448_BITS/8;
+
+  return len;
+}
 
 gpg_error_t
-_gcry_ecc_mul_point (int algo, unsigned char **r_result,
+_gcry_ecc_mul_point (int algo, unsigned char *result,
                      const unsigned char *scalar, const unsigned char *point)
 {
   unsigned int nbits;
@@ -66,6 +78,7 @@ _gcry_ecc_mul_point (int algo, unsigned char **r_result,
   gcry_mpi_t x;
   unsigned int len;
   int i;
+  unsigned char *buf;
 
   if (algo == GCRY_ECC_CURVE25519)
     {
@@ -112,9 +125,11 @@ _gcry_ecc_mul_point (int algo, unsigned char **r_result,
 
   _gcry_mpi_ec_get_affine (x, NULL, Q, ec);
 
-  *r_result = _gcry_mpi_get_buffer (x, ECC_CURVE448_BITS/8, &len, NULL);
-  if (!*r_result)
+  buf = _gcry_mpi_get_buffer (x, nbytes, &len, NULL);
+  if (!buf)
     err = gpg_error_from_syserror ();
+  memcpy (result, buf, nbytes);
+  xfree (buf);
 
  leave:
   _gcry_mpi_release (x);

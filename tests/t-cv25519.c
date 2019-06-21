@@ -246,32 +246,46 @@ test_cv_x25519 (int testno, const char *k_str, const char *u_str,
   void *scalar;
   void *point = NULL;
   size_t buflen;
-  unsigned char *result = NULL;
+  unsigned char result[32];
   char result_hex[65];
   int i;
+  int algo = GCRY_ECC_CURVE25519;
+  unsigned int keylen;
 
   if (verbose > 1)
     info ("Running test %d\n", testno);
 
-  if (!(scalar = hex2buffer (k_str, &buflen)) || buflen != 32)
+  if (!(keylen = gcry_ecc_get_algo_keylen (algo)))
     {
-      fail ("error building s-exp for test %d, %s: %s",
+      fail ("error getting keylen for test %d", testno);
+      goto leave;
+    }
+
+  if (keylen != 32)
+    {
+      fail ("error invalid keylen for test %d", testno);
+      goto leave;
+    }
+
+  if (!(scalar = hex2buffer (k_str, &buflen)) || buflen != keylen)
+    {
+      fail ("error of input for test %d, %s: %s",
             testno, "k", "invalid hex string");
       goto leave;
     }
 
-  if (!(point = hex2buffer (u_str, &buflen)) || buflen != 32)
+  if (!(point = hex2buffer (u_str, &buflen)) || buflen != keylen)
     {
-      fail ("error building s-exp for test %d, %s: %s",
+      fail ("error of input for test %d, %s: %s",
             testno, "u", "invalid hex string");
       goto leave;
     }
 
-  if ((err = gcry_ecc_mul_point (GCRY_ECC_CURVE25519, &result, scalar, point)))
+  if ((err = gcry_ecc_mul_point (algo, result, scalar, point)))
     fail ("gcry_ecc_mul_point failed for test %d: %s", testno,
           gpg_strerror (err));
 
-  for (i=0; i < 32; i++)
+  for (i=0; i < keylen; i++)
     snprintf (&result_hex[i*2], 3, "%02x", result[i]);
 
   if (strcmp (result_str, result_hex))
@@ -283,7 +297,6 @@ test_cv_x25519 (int testno, const char *k_str, const char *u_str,
     }
 
  leave:
-  xfree (result);
   xfree (scalar);
   xfree (point);
 }

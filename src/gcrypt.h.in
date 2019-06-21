@@ -1211,9 +1211,12 @@ enum gcry_ecc_curves
     GCRY_ECC_CURVE448   = 2
   };
 
+/* Get the length of point to prepare buffer for the result.  */
+unsigned int gcry_ecc_get_algo_keylen (int algo);
+
 /* Convenience function to compute scalar multiplication of the
    Montgomery form of curve.  */
-gpg_error_t gcry_ecc_mul_point (int algo, unsigned char **r_result,
+gpg_error_t gcry_ecc_mul_point (int algo, unsigned char *result,
                                 const unsigned char *scalar,
                                 const unsigned char *point);
 

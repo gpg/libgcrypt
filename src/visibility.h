@@ -165,6 +165,7 @@ MARK_VISIBLEX (gcry_pk_sign)
 MARK_VISIBLEX (gcry_pk_testkey)
 MARK_VISIBLEX (gcry_pk_verify)
 MARK_VISIBLEX (gcry_pubkey_get_sexp)
+MARK_VISIBLEX (gcry_ecc_get_algo_keylen)
 MARK_VISIBLEX (gcry_ecc_mul_point)
 
 MARK_VISIBLEX (gcry_kdf_derive)
@@ -363,6 +364,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_pk_testkey             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_pk_verify              _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_pubkey_get_sexp        _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_ecc_get_algo_keylen    _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_ecc_mul_point          _gcry_USE_THE_UNDERSCORED_FUNCTION
 
 #define gcry_md_algo_info           _gcry_USE_THE_UNDERSCORED_FUNCTION

@@ -67,6 +67,7 @@ GCRYPT_1.6 {
 
     gcry_pubkey_get_sexp;
 
+    gcry_ecc_get_algo_keylen;
     gcry_ecc_mul_point;
 
     gcry_kdf_derive;
