@@ -55,7 +55,7 @@ _gcry_ecc_get_algo_keylen (int algo)
 
   if (algo == GCRY_ECC_CURVE25519)
     len = ECC_CURVE25519_BITS/8;
-  else
+  else if (algo == GCRY_ECC_CURVE448)
     len = ECC_CURVE448_BITS/8;
 
   return len;
@@ -85,11 +85,14 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
       nbits = ECC_CURVE25519_BITS;
       curve = "Curve25519";
     }
-  else
+  else if (algo == GCRY_ECC_CURVE448)
     {
       nbits = ECC_CURVE448_BITS;
       curve = "X448";
+      return gpg_error (GPG_ERR_UNSUPPORTED_ALGORITHM);
     }
+  else
+    return gpg_error (GPG_ERR_UNKNOWN_ALGORITHM);
 
   nbytes = nbits / 8;
 
