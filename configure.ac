@@ -72,7 +72,7 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 
 # If you change the required gpg-error version, please remove
 # unnecessary error code defines in src/gcrypt-int.h.
-NEED_GPG_ERROR_VERSION=1.25
+NEED_GPG_ERROR_VERSION=1.27
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])

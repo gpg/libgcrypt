@@ -635,6 +635,7 @@ check_extract_param (void)
     "   (n #1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED#)"
     "   (q #30B37806015CA06B3AEB9423EE84A41D7F31AA65F4148553755206D679F8BF62#)"
     "   (d #56BEA284A22F443A7AEA8CEFA24DA5055CDF1D490C94D8C568FE0802C9169276#)"
+    "   (comment |QWxsIHlvdXIgYmFzZTY0IGFyZSBiZWxvbmcgdG8gdXM=|)"
     ")))";
 
   static char sample1_p[] =
@@ -665,6 +666,7 @@ check_extract_param (void)
     "20B37806015CA06B3AEB9423EE84A41D7F31AA65F4148553755206D679F8BF62";
   static char sample1_d[] =
     "56BEA284A22F443A7AEA8CEFA24DA5055CDF1D490C94D8C568FE0802C9169276";
+  static char sample1_comment[] = "All your base64 are belong to us";
 
   static struct {
     const char *sexp_str;
@@ -814,7 +816,7 @@ check_extract_param (void)
   const char *paramstr;
   int paramidx;
   gpg_error_t err;
-  gcry_sexp_t sxp;
+  gcry_sexp_t sxp, sxp1;
   gcry_mpi_t mpis[7];
   gcry_buffer_t ioarray[7];
   char iobuffer[200];
@@ -1048,6 +1050,25 @@ check_extract_param (void)
 
   gcry_free (ioarray[0].data);
   gcry_mpi_release (mpis[0]);
+
+  sxp1 = gcry_sexp_find_token (sxp, "comment", 7);
+  if (!sxp1)
+    fail ("gcry_sexp_nth_string faild: no SEXP for comment found");
+  else
+    {
+      char *comment = gcry_sexp_nth_string (sxp1, 1);
+
+      if (!comment)
+        fail ("gcry_sexp_nth_string faild: no comment found");
+      else
+        {
+          if (strcmp (comment, sample1_comment))
+            fail ("gcry_sexp_sscan faild for base64");
+          xfree (comment);
+        }
+
+      gcry_sexp_release (sxp1);
+    }
 
   gcry_sexp_release (sxp);
 
