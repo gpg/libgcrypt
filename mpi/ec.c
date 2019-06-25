@@ -366,7 +366,7 @@ mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned long set)
       wp[i] = wp[i] ^ x;
     }
 }
-
+
 /* Routines for 2^255 - 19.  */
 
 #define LIMB_SIZE_25519 ((256+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB)
@@ -477,7 +477,167 @@ ec_pow2_25519 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
 {
   ec_mulm_25519 (w, b, b, ctx);
 }
+
+/* Routines for 2^448 - 2^224 - 1.  */
 
+#define LIMB_SIZE_448 ((448+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB)
+#define LIMB_SIZE_HALF_448 ((LIMB_SIZE_448+1)/2)
+
+static void
+ec_addm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
+{
+  mpi_ptr_t wp, up, vp;
+  mpi_size_t wsize = LIMB_SIZE_448;
+  mpi_limb_t n[LIMB_SIZE_448];
+  mpi_limb_t cy;
+
+  if (w->nlimbs != wsize || u->nlimbs != wsize || v->nlimbs != wsize)
+    log_bug ("addm_448: different sizes\n");
+
+  memset (n, 0, sizeof n);
+  up = u->d;
+  vp = v->d;
+  wp = w->d;
+
+  cy = _gcry_mpih_add_n (wp, up, vp, wsize);
+  mpih_set_cond (n, ctx->p->d, wsize, (cy != 0UL));
+  _gcry_mpih_sub_n (wp, wp, n, wsize);
+}
+
+static void
+ec_subm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
+{
+  mpi_ptr_t wp, up, vp;
+  mpi_size_t wsize = LIMB_SIZE_448;
+  mpi_limb_t n[LIMB_SIZE_448];
+  mpi_limb_t borrow;
+
+  if (w->nlimbs != wsize || u->nlimbs != wsize || v->nlimbs != wsize)
+    log_bug ("subm_448: different sizes\n");
+
+  memset (n, 0, sizeof n);
+  up = u->d;
+  vp = v->d;
+  wp = w->d;
+
+  borrow = _gcry_mpih_sub_n (wp, up, vp, wsize);
+  mpih_set_cond (n, ctx->p->d, wsize, (borrow != 0UL));
+  _gcry_mpih_add_n (wp, wp, n, wsize);
+}
+
+static void
+ec_mulm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
+{
+  mpi_ptr_t wp, up, vp;
+  mpi_size_t wsize = LIMB_SIZE_448;
+  mpi_limb_t n[LIMB_SIZE_448*2];
+  mpi_limb_t a2[LIMB_SIZE_HALF_448];
+  mpi_limb_t a3[LIMB_SIZE_HALF_448];
+  mpi_limb_t b0[LIMB_SIZE_HALF_448];
+  mpi_limb_t b1[LIMB_SIZE_HALF_448];
+  mpi_limb_t cy;
+  int i;
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  mpi_limb_t b1_rest, a3_rest;
+#endif
+
+  if (w->nlimbs != wsize || u->nlimbs != wsize || v->nlimbs != wsize)
+    log_bug ("mulm_448: different sizes\n");
+
+  up = u->d;
+  vp = v->d;
+  wp = w->d;
+
+  _gcry_mpih_mul_n (n, up, vp, wsize);
+
+  for (i = 0; i < (wsize + 1)/ 2; i++)
+    {
+      b0[i] = n[i];
+      b1[i] = n[i+wsize/2];
+      a2[i] = n[i+wsize];
+      a3[i] = n[i+wsize+wsize/2];
+    }
+
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  b0[LIMB_SIZE_HALF_448-1] &= (1UL<<32)-1;
+  a2[LIMB_SIZE_HALF_448-1] &= (1UL<<32)-1;
+
+  b1_rest = 0;
+  a3_rest = 0;
+
+  for (i = (wsize + 1)/ 2 -1; i >= 0; i--)
+    {
+      mpi_limb_t b1v, a3v;
+      b1v = b1[i];
+      a3v = a3[i];
+      b1[i] = (b1_rest<<32) | (b1v >> 32);
+      a3[i] = (a3_rest<<32) | (a3v >> 32);
+      b1_rest = b1v & ((1UL <<32)-1);
+      a3_rest = a3v & ((1UL <<32)-1);
+    }
+#endif
+
+  cy = _gcry_mpih_add_n (b0, b0, a2, LIMB_SIZE_HALF_448);
+  cy += _gcry_mpih_add_n (b0, b0, a3, LIMB_SIZE_HALF_448);
+  for (i = 0; i < (wsize + 1)/ 2; i++)
+    wp[i] = b0[i];
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  wp[LIMB_SIZE_HALF_448-1] &= ((1UL <<32)-1);
+#endif
+
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  cy = b0[LIMB_SIZE_HALF_448-1] >> 32;
+#endif
+
+  cy = _gcry_mpih_add_1 (b1, b1, LIMB_SIZE_HALF_448, cy);
+  cy += _gcry_mpih_add_n (b1, b1, a2, LIMB_SIZE_HALF_448);
+  cy += _gcry_mpih_add_n (b1, b1, a3, LIMB_SIZE_HALF_448);
+  cy += _gcry_mpih_add_n (b1, b1, a3, LIMB_SIZE_HALF_448);
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  b1_rest = 0;
+  for (i = (wsize + 1)/ 2 -1; i >= 0; i--)
+    {
+      mpi_limb_t b1v = b1[i];
+      b1[i] = (b1_rest<<32) | (b1v >> 32);
+      b1_rest = b1v & ((1UL <<32)-1);
+    }
+  wp[LIMB_SIZE_HALF_448-1] |= (b1_rest << 32);
+#endif
+  for (i = 0; i < wsize / 2; i++)
+    wp[i+(wsize + 1) / 2] = b1[i];
+
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  cy = b1[LIMB_SIZE_HALF_448-1];
+#endif
+
+  memset (n, 0, wsize * BYTES_PER_MPI_LIMB);
+
+#if (LIMB_SIZE_HALF_448 > LIMB_SIZE_448/2)
+  n[LIMB_SIZE_HALF_448-1] = cy << 32;
+#else
+  n[LIMB_SIZE_HALF_448] = cy;
+#endif
+  n[0] = cy;
+  _gcry_mpih_add_n (wp, wp, n, wsize);
+
+  memset (n, 0, wsize * BYTES_PER_MPI_LIMB);
+  cy = _gcry_mpih_sub_n (wp, wp, ctx->p->d, wsize);
+  mpih_set_cond (n, ctx->p->d, wsize, (cy != 0UL));
+  _gcry_mpih_add_n (wp, wp, n, wsize);
+}
+
+static void
+ec_mul2_448 (gcry_mpi_t w, gcry_mpi_t u, mpi_ec_t ctx)
+{
+  ec_addm_448 (w, u, u, ctx);
+}
+
+static void
+ec_pow2_448 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
+{
+  ec_mulm_448 (w, b, b, ctx);
+}
+
 struct field_table {
   const char *p;
 
@@ -497,6 +657,15 @@ static const struct field_table field_table[] = {
     ec_mulm_25519,
     ec_mul2_25519,
     ec_pow2_25519
+  },
+  {
+   "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"
+   "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+    ec_addm_448,
+    ec_subm_448,
+    ec_mulm_448,
+    ec_mul2_448,
+    ec_pow2_448
   },
   { NULL, NULL, NULL, NULL, NULL, NULL },
 };
@@ -544,15 +713,35 @@ ec_get_two_inv_p (mpi_ec_t ec)
 }
 
 
-static const char *curve25519_bad_points[] = {
+static const char *const curve25519_bad_points[] = {
+  "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
   "0x0000000000000000000000000000000000000000000000000000000000000000",
   "0x0000000000000000000000000000000000000000000000000000000000000001",
   "0x00b8495f16056286fdb1329ceb8d09da6ac49ff1fae35616aeb8413b7c7aebe0",
   "0x57119fd0dd4e22d8868e1c58c45c44045bef839c55b1d0b1248c50a3bc959c5f",
   "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec",
-  "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
   "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffee",
   NULL
+};
+
+
+static const char *const curve448_bad_points[] = {
+  "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+  "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "0x00000000000000000000000000000000000000000000000000000000"
+  "00000000000000000000000000000000000000000000000000000000",
+  "0x00000000000000000000000000000000000000000000000000000000"
+  "00000000000000000000000000000000000000000000000000000001",
+  "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+  "fffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
+  "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  "00000000000000000000000000000000000000000000000000000000",
+  NULL
+};
+
+static const char *const *bad_points_table[] = {
+  curve25519_bad_points,
+  curve448_bad_points,
 };
 
 static gcry_mpi_t
@@ -607,8 +796,19 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
 
   if (model == MPI_EC_MONTGOMERY)
     {
-      for (i=0; i< DIM(ctx->t.scratch) && curve25519_bad_points[i]; i++)
-        ctx->t.scratch[i] = scanval (curve25519_bad_points[i]);
+      for (i=0; i< DIM(bad_points_table); i++)
+        {
+          gcry_mpi_t p_candidate = scanval (bad_points_table[i][0]);
+          int match_p = !mpi_cmp (ctx->p, p_candidate);
+          int j;
+
+          mpi_free (p_candidate);
+          if (!match_p)
+            continue;
+
+          for (j=0; i< DIM(ctx->t.scratch) && bad_points_table[i][j]; j++)
+            ctx->t.scratch[j] = scanval (bad_points_table[i][j]);
+        }
     }
   else
     {
