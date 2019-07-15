@@ -1541,6 +1541,13 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      ARG_NEXT (alen, int);
 	      ARG_NEXT (astr, const char *);
 
+              if (alen < 0)
+                {
+                  *erroff = p - buffer;
+		  err = GPG_ERR_INV_ARG;
+                  goto leave;
+                }
+
 	      MAKE_SPACE (alen);
 	      if (alen
                   && !_gcry_is_secure (c.sexp->d)
