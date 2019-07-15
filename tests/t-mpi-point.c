@@ -748,23 +748,11 @@ basic_ec_math (void)
     gcry_mpi_ec_mul (Q, tmp, G, ctx);
     gcry_mpi_release (tmp);
     gcry_mpi_point_get (x, y, z, Q);
-    if (gcry_mpi_cmp_ui (x, 0) || gcry_mpi_cmp_ui (y, 0)
-        || gcry_mpi_cmp_ui (z, 0))
+    if (gcry_mpi_cmp_ui (z, 0))
       fail ("multiply a point by zero failed\n");
   }
 
   gcry_mpi_ec_mul (Q, d, G, ctx);
-  gcry_mpi_point_get (x, y, z, Q);
-  if (cmp_mpihex (x, "222D9EC717C89D047E0898C9185B033CD11C0A981EE6DC66")
-      || cmp_mpihex (y, "605DE0A82D70D3E0F84A127D0739ED33D657DF0D054BFDE8")
-      || cmp_mpihex (z, "00B06B519071BC536999AC8F2D3934B3C1FC9EACCD0A31F88F"))
-    fail ("computed public key does not match\n");
-  if (debug)
-    {
-      print_mpi ("Q.x", x);
-      print_mpi ("Q.y", y);
-      print_mpi ("Q.z", z);
-    }
 
   if (gcry_mpi_ec_get_affine (x, y, Q, ctx))
     fail ("failed to get affine coordinates\n");
@@ -818,17 +806,6 @@ basic_ec_math_simplified (void)
   x = gcry_mpi_new (0);
   y = gcry_mpi_new (0);
   z = gcry_mpi_new (0);
-  gcry_mpi_point_get (x, y, z, Q);
-  if (cmp_mpihex (x, "222D9EC717C89D047E0898C9185B033CD11C0A981EE6DC66")
-      || cmp_mpihex (y, "605DE0A82D70D3E0F84A127D0739ED33D657DF0D054BFDE8")
-      || cmp_mpihex (z, "00B06B519071BC536999AC8F2D3934B3C1FC9EACCD0A31F88F"))
-    fail ("computed public key does not match\n");
-  if (debug)
-    {
-      print_mpi ("Q.x", x);
-      print_mpi ("Q.y", y);
-      print_mpi ("Q.z", z);
-    }
 
   if (gcry_mpi_ec_get_affine (x, y, Q, ctx))
     fail ("failed to get affine coordinates\n");
