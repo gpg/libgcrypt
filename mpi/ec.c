@@ -1309,7 +1309,11 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       unsigned int nbits;
       int j;
 
-      nbits = mpi_get_nbits (scalar);
+      if (mpi_cmp (scalar, ctx->p) >= 0)
+        nbits = mpi_get_nbits (scalar);
+      else
+        nbits = mpi_get_nbits (ctx->p);
+
       if (ctx->model == MPI_EC_WEIERSTRASS)
         {
           mpi_set_ui (result->x, 1);

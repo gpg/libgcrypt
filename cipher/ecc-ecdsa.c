@@ -114,6 +114,16 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
           else
             k = _gcry_dsa_gen_k (skey->E.n, GCRY_STRONG_RANDOM);
 
+          /* Originally, ECDSA computation requires k where 0 < k < n.
+           * Here, we add n (the order of curve), to keep k in a
+           * range: n < k < 2*n, or, addming more n, keep k in a range:
+           * 2*n < k < 3*n, so that timing difference of the EC
+           * multiply operation can be small.  The result is same.
+           */
+          mpi_add (k, k, skey->E.n);
+          if (!mpi_test_bit (k, qbits))
+            mpi_add (k, k, skey->E.n);
+
           _gcry_mpi_ec_mul_point (&I, k, &skey->E.G, ctx);
           if (_gcry_mpi_ec_get_affine (x, NULL, &I, ctx))
             {
