@@ -265,7 +265,7 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
   memcpy (V, _gcry_md_read (hd, 0), hlen);
 
   /* Step h. */
-  t = xtrymalloc ((qbits+7)/8+hlen);
+  t = xtrymalloc_secure ((qbits+7)/8+hlen);
   if (!t)
     {
       rc = gpg_err_code_from_syserror ();
