@@ -401,7 +401,7 @@ _gcry_sha1_transform_amd64_ssse3:
   R( b, c, d, e, a, F4, 79 );
 
   /* 16*4/16-1 = 3 */
-  vmovdqa Wtmp0, (3*16)(%rsp);
+  movdqa Wtmp0, (3*16)(%rsp);
 
   /* Update the chaining variables. */
   addl state_h3(RSTATE), d;
