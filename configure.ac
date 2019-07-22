@@ -187,7 +187,6 @@ AC_SUBST(VERSION_NUMBER)
 
 # We need to compile and run a program on the build machine.
 AX_CC_FOR_BUILD
-AC_ARG_VAR(CC_FOR_BUILD,[build system C compiler])
 
 
 LT_PREREQ([2.2.6])
