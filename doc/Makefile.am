@@ -42,7 +42,8 @@ myman_pages   = hmac256.1
 man_MANS = $(myman_pages)
 
 yat2m: yat2m.c
-	$(CC_FOR_BUILD) -o $@ $(srcdir)/yat2m.c
+	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
+	    $(CPPFLAGS_FOR_BUILD)-o $@ $(srcdir)/yat2m.c
 
 .fig.png:
 	fig2dev -L png `test -f '$<' || echo '$(srcdir)/'`$< $@

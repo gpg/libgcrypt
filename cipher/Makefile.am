@@ -131,7 +131,8 @@ gost-sb.h: gost-s-box
 	./gost-s-box $@
 
 gost-s-box: gost-s-box.c
-	$(CC_FOR_BUILD) -o $@ $(srcdir)/gost-s-box.c
+	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
+	    $(CPPFLAGS_FOR_BUILD)-o $@ $(srcdir)/gost-s-box.c
 
 
 if ENABLE_O_FLAG_MUNGING
