@@ -30,6 +30,30 @@
 
 
 /*
+ * Modify K, so that computation time difference can be small,
+ * by making K large enough.
+ *
+ * Originally, (EC)DSA computation requires k where 0 < k < q.  Here,
+ * we add q (the order), to keep k in a range: q < k < 2*q (or,
+ * addming more q, to keep k in a range: 2*q < k < 3*q), so that
+ * timing difference of the EC multiply (or exponentiation) operation
+ * can be small.  The result of (EC)DSA computation is same.
+ */
+void
+_gcry_dsa_modify_k (gcry_mpi_t k, gcry_mpi_t q, int qbits)
+{
+  gcry_mpi_t k1 = mpi_new (qbits+2);
+
+  mpi_resize (k, (qbits+2+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB);
+  k->nlimbs = k->alloced;
+  mpi_add (k, k, q);
+  mpi_add (k1, k, q);
+  mpi_set_cond (k, k1, !mpi_test_bit (k, qbits));
+
+  mpi_free (k1);
+}
+
+/*
  * Generate a random secret exponent K less than Q.
  * Note that ECDSA uses this code also to generate D.
  */

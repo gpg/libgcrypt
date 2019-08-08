@@ -635,6 +635,8 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
       k = _gcry_dsa_gen_k (skey->q, GCRY_STRONG_RANDOM);
     }
 
+  _gcry_dsa_modify_k (k, skey->q, qbits);
+
   /* r = (a^k mod p) mod q */
   mpi_powm( r, skey->g, k, skey->p );
   mpi_fdiv_r( r, r, skey->q );

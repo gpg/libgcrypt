@@ -84,6 +84,7 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, gcry_mpi_t encoded,
 
 
 /*-- dsa-common.c --*/
+void _gcry_dsa_modify_k (gcry_mpi_t k, gcry_mpi_t q, int qbits);
 gcry_mpi_t _gcry_dsa_gen_k (gcry_mpi_t q, int security_level);
 gpg_err_code_t _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
                                         gcry_mpi_t dsa_q, gcry_mpi_t dsa_x,
