@@ -18,10 +18,16 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <gcrypt.h>
 
+#define PGM "testapi"
+#include "t-common.h"
 
 #define BUG() do {fprintf ( stderr, "Ooops at %s:%d\n", __FILE__ , __LINE__ );\
 		  exit(2);} while(0)
@@ -86,7 +92,7 @@ test_genkey ( int argc, char **argv )
     (void)argc;
     (void)argv;
 
-    xgcry_control( GCRYCTL_INIT_SECMEM, 16384, 0 );
+    xgcry_control ( (GCRYCTL_INIT_SECMEM, 16384, 0) );
     rc = gcry_sexp_build ( &s_parms, NULL, "(genkey(dsa(nbits %d)))", nbits );
     rc = gcry_pk_genkey( &s_key, s_parms );
     if ( rc ) {
