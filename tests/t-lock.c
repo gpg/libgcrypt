@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <unistd.h>
+#include <time.h>
 #if HAVE_PTHREAD
 # include <pthread.h>
 #endif
@@ -89,6 +90,7 @@ struct thread_arg_s
 
 
 
+#ifdef HAVE_PTHREAD
 /* Wrapper functions to access Libgcrypt's internal test lock.  */
 static void
 external_lock_test_init (int line)
@@ -130,10 +132,11 @@ external_lock_test_destroy (int line)
   if (err)
     fail ("destroying lock failed at %d: %s", line, gpg_strerror (err));
 }
-
+#endif
 
 
 
+#ifdef HAVE_PTHREAD
 /* The nonce thread.  We simply request a couple of nonces and
    return.  */
 static THREAD_RET_TYPE
@@ -153,6 +156,7 @@ nonce_thread (void *argarg)
   gcry_free (arg);
   return THREAD_RET_VALUE;
 }
+#endif
 
 
 /* To check our locking function we run several threads all accessing
@@ -208,7 +212,8 @@ check_nonce_lock (void)
       else
         info ("nonce thread %d has terminated", i);
     }
-
+#else
+  (void)arg;
 #endif /*!_WIN32*/
 }
 
@@ -248,6 +253,7 @@ print_accounts (void)
 }
 
 
+#ifdef HAVE_PTHREAD
 /* Get a a random integer value in the range 0 to HIGH.  */
 static unsigned int
 get_rand (int high)
@@ -311,6 +317,7 @@ accountant_thread (void *arg)
     }
   return THREAD_RET_VALUE;
 }
+#endif
 
 
 static void
@@ -355,7 +362,8 @@ run_test (void)
     fail ("waiting for revision thread failed: %d", (int)GetLastError ());
   CloseHandle (rthread);
 
-#else /*!_WIN32*/
+  external_lock_test_destroy (__LINE__);
+#elif HAVE_PTHREAD
   pthread_t rthread;
   pthread_t athreads[N_ACCOUNTANTS];
   int rc, i;
@@ -384,9 +392,8 @@ run_test (void)
   else
     info ("revision thread has terminated");
 
-#endif /*!_WIN32*/
-
   external_lock_test_destroy (__LINE__);
+#endif /*!_WIN32*/
 }
 
 
