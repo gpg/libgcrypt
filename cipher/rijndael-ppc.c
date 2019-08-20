@@ -64,6 +64,68 @@ typedef union
   (vec_store_be ((vec), 0, (unsigned char *)(out_ptr), bige_const))
 
 
+#define ROUND_KEY_VARIABLES \
+  block rkey0, rkeylast
+
+#define PRELOAD_ROUND_KEYS(nrounds) \
+  do { \
+    rkey0 = ALIGNED_LOAD(&rk[0]); \
+    rkeylast = ALIGNED_LOAD(&rk[nrounds]); \
+  } while (0)
+
+
+#define AES_ENCRYPT(blk, nrounds) \
+  do { \
+    blk ^= rkey0; \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[1])); \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[2])); \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[3])); \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[4])); \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[5])); \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[6])); \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[7])); \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[8])); \
+    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[9])); \
+    if (nrounds >= 12) \
+      { \
+	blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[10])); \
+	blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[11])); \
+	if (rounds > 12) \
+	  { \
+	    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[12])); \
+	    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[13])); \
+	  } \
+      } \
+    blk = vec_cipherlast_be (blk, rkeylast); \
+  } while (0)
+
+
+#define AES_DECRYPT(blk, nrounds) \
+  do { \
+    blk ^= rkey0; \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[1])); \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[2])); \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[3])); \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[4])); \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[5])); \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[6])); \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[7])); \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[8])); \
+    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[9])); \
+    if (nrounds >= 12) \
+      { \
+	blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[10])); \
+	blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[11])); \
+	if (rounds > 12) \
+	  { \
+	    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[12])); \
+	    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[13])); \
+	  } \
+      } \
+    blk = vec_ncipherlast_be (blk, rkeylast); \
+  } while (0)
+
+
 static const block vec_bswap32_const =
   { 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12 };
 
@@ -287,8 +349,8 @@ _gcry_aes_ppc8_setkey (RIJNDAEL_context *ctx, const byte *key)
 
 
 /* Make a decryption key from an encryption key. */
-void
-_gcry_aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
+static ASM_FUNC_ATTR_INLINE void
+aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
 {
   u128_t *ekey = (u128_t *)(void *)ctx->keyschenc;
   u128_t *dkey = (u128_t *)(void *)ctx->keyschdec;
@@ -305,634 +367,505 @@ _gcry_aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
 }
 
 
-static ASM_FUNC_ATTR_INLINE block
-aes_ppc8_encrypt_altivec (const RIJNDAEL_context *ctx, block a)
+void
+_gcry_aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
 {
-  u128_t *rk = (u128_t *)ctx->keyschenc;
-  int rounds = ctx->rounds;
-  int r;
-
-#define DO_ROUND(r) (a = vec_cipher_be (a, ALIGNED_LOAD (&rk[r])))
-
-  a = ALIGNED_LOAD(&rk[0]) ^ a;
-  DO_ROUND(1);
-  DO_ROUND(2);
-  DO_ROUND(3);
-  DO_ROUND(4);
-  DO_ROUND(5);
-  DO_ROUND(6);
-  DO_ROUND(7);
-  DO_ROUND(8);
-  DO_ROUND(9);
-  r = 10;
-  if (rounds >= 12)
-    {
-      DO_ROUND(10);
-      DO_ROUND(11);
-      r = 12;
-      if (rounds > 12)
-	{
-	  DO_ROUND(12);
-	  DO_ROUND(13);
-	  r = 14;
-	}
-    }
-  a = vec_cipherlast_be(a, ALIGNED_LOAD(&rk[r]));
-
-#undef DO_ROUND
-
-  return a;
-}
-
-
-static ASM_FUNC_ATTR_INLINE block
-aes_ppc8_decrypt_altivec (const RIJNDAEL_context *ctx, block a)
-{
-  u128_t *rk = (u128_t *)ctx->keyschdec;
-  int rounds = ctx->rounds;
-  int r;
-
-#define DO_ROUND(r) (a = vec_ncipher_be (a, ALIGNED_LOAD (&rk[r])))
-
-  a = ALIGNED_LOAD(&rk[0]) ^ a;
-  DO_ROUND(1);
-  DO_ROUND(2);
-  DO_ROUND(3);
-  DO_ROUND(4);
-  DO_ROUND(5);
-  DO_ROUND(6);
-  DO_ROUND(7);
-  DO_ROUND(8);
-  DO_ROUND(9);
-  r = 10;
-  if (rounds >= 12)
-    {
-      DO_ROUND(10);
-      DO_ROUND(11);
-      r = 12;
-      if (rounds > 12)
-	{
-	  DO_ROUND(12);
-	  DO_ROUND(13);
-	  r = 14;
-	}
-    }
-  a = vec_ncipherlast_be(a, ALIGNED_LOAD(&rk[r]));
-
-#undef DO_ROUND
-
-  return a;
+  aes_ppc8_prepare_decryption (ctx);
 }
 
 
 unsigned int _gcry_aes_ppc8_encrypt (const RIJNDAEL_context *ctx,
-				     unsigned char *b,
-				     const unsigned char *a)
+				     unsigned char *out,
+				     const unsigned char *in)
 {
   const block bige_const = vec_load_be_const();
-  block sa;
+  const u128_t *rk = (u128_t *)&ctx->keyschenc;
+  int rounds = ctx->rounds;
+  ROUND_KEY_VARIABLES;
+  block b;
 
-  sa = VEC_LOAD_BE (a, bige_const);
-  sa = aes_ppc8_encrypt_altivec (ctx, sa);
-  VEC_STORE_BE (b, sa, bige_const);
+  b = VEC_LOAD_BE (in, bige_const);
+
+  PRELOAD_ROUND_KEYS (rounds);
+
+  AES_ENCRYPT (b, rounds);
+  VEC_STORE_BE (out, b, bige_const);
 
   return 0; /* does not use stack */
 }
 
 
 unsigned int _gcry_aes_ppc8_decrypt (const RIJNDAEL_context *ctx,
-				     unsigned char *b,
-				     const unsigned char *a)
+				     unsigned char *out,
+				     const unsigned char *in)
 {
   const block bige_const = vec_load_be_const();
-  block sa;
+  const u128_t *rk = (u128_t *)&ctx->keyschdec;
+  int rounds = ctx->rounds;
+  ROUND_KEY_VARIABLES;
+  block b;
 
-  sa = VEC_LOAD_BE (a, bige_const);
-  sa = aes_ppc8_decrypt_altivec (ctx, sa);
-  VEC_STORE_BE (b, sa, bige_const);
+  b = VEC_LOAD_BE (in, bige_const);
+
+  PRELOAD_ROUND_KEYS (rounds);
+
+  AES_DECRYPT (b, rounds);
+  VEC_STORE_BE (out, b, bige_const);
 
   return 0; /* does not use stack */
 }
 
 
-#if 0
 size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
-                                            const void *inbuf_arg, size_t nblocks,
-                                            int encrypt)
+				 const void *inbuf_arg, size_t nblocks,
+				 int encrypt)
 {
+  const block bige_const = vec_load_be_const();
   RIJNDAEL_context *ctx = (void *)&c->context.c;
-  unsigned char *outbuf = outbuf_arg;
-  const unsigned char *inbuf = inbuf_arg;
-  block *in = (block*)inbuf;
-  block *out = (block*)outbuf;
-  uintptr_t zero = 0;
-  int r;
+  const u128_t *in = (const u128_t *)inbuf_arg;
+  u128_t *out = (u128_t *)outbuf_arg;
   int rounds = ctx->rounds;
+  u64 data_nblocks = c->u_mode.ocb.data_nblocks;
+  block l0, l1, l2, l;
+  block b0, b1, b2, b3, b4, b5, b6, b7, b;
+  block iv0, iv1, iv2, iv3, iv4, iv5, iv6, iv7;
+  block rkey;
+  block ctr, iv;
+  ROUND_KEY_VARIABLES;
+
+  iv = VEC_LOAD_BE (c->u_iv.iv, bige_const);
+  ctr = VEC_LOAD_BE (c->u_ctr.ctr, bige_const);
+
+  l0 = VEC_LOAD_BE (c->u_mode.ocb.L[0], bige_const);
+  l1 = VEC_LOAD_BE (c->u_mode.ocb.L[1], bige_const);
+  l2 = VEC_LOAD_BE (c->u_mode.ocb.L[2], bige_const);
 
   if (encrypt)
     {
-      const int unroll = 8;
-      block unalignedprev, ctr, iv;
+      const u128_t *rk = (u128_t *)&ctx->keyschenc;
 
-      if (((uintptr_t)inbuf % 16) != 0)
+      PRELOAD_ROUND_KEYS (rounds);
+
+      for (; nblocks >= 8 && data_nblocks % 8; nblocks--)
 	{
-	  unalignedprev = vec_ld(0, in++);
-	}
-
-      iv = vec_ld (0, (block*)&c->u_iv.iv);
-      ctr = vec_ld (0, (block*)&c->u_ctr.ctr);
-
-      for ( ;nblocks >= unroll; nblocks -= unroll)
-	{
-	  u64 i = c->u_mode.ocb.data_nblocks + 1;
-	  block l0, l1, l2, l3, l4, l5, l6, l7;
-	  block b0, b1, b2, b3, b4, b5, b6, b7;
-	  block iv0, iv1, iv2, iv3, iv4, iv5, iv6, iv7;
-	  const block *rk = (block*)&ctx->keyschenc;
-
-	  c->u_mode.ocb.data_nblocks += unroll;
-
-	  iv0 = iv;
-	  if ((uintptr_t)inbuf % 16 == 0)
-	    {
-	      b0 = vec_ld (0, in++);
-	      b1 = vec_ld (0, in++);
-	      b2 = vec_ld (0, in++);
-	      b3 = vec_ld (0, in++);
-	      b4 = vec_ld (0, in++);
-	      b5 = vec_ld (0, in++);
-	      b6 = vec_ld (0, in++);
-	      b7 = vec_ld (0, in++);
-	    }
-	  else
-	    {
-	      block unaligned0, unaligned1, unaligned2,
-		unaligned3, unaligned4, unaligned5, unaligned6;
-	      unaligned0 = vec_ld (0, in++);
-	      unaligned1 = vec_ld (0, in++);
-	      unaligned2 = vec_ld (0, in++);
-	      unaligned3 = vec_ld (0, in++);
-	      unaligned4 = vec_ld (0, in++);
-	      unaligned5 = vec_ld (0, in++);
-	      unaligned6 = vec_ld (0, in++);
-	      b0 = vec_perm (unalignedprev, unaligned0, vec_lvsl (0, inbuf));
-	      unalignedprev = vec_ld (0, in++);
-	      b1 = vec_perm(unaligned0, unaligned1, vec_lvsl (0, inbuf));
-	      b2 = vec_perm(unaligned1, unaligned2, vec_lvsl (0, inbuf));
-	      b3 = vec_perm(unaligned2, unaligned3, vec_lvsl (0, inbuf));
-	      b4 = vec_perm(unaligned3, unaligned4, vec_lvsl (0, inbuf));
-	      b5 = vec_perm(unaligned4, unaligned5, vec_lvsl (0, inbuf));
-	      b6 = vec_perm(unaligned5, unaligned6, vec_lvsl (0, inbuf));
-	      b7 = vec_perm(unaligned6, unalignedprev, vec_lvsl (0, inbuf));
-	    }
-
-	  l0 = *(block*)ocb_get_l (c, i++);
-	  l1 = *(block*)ocb_get_l (c, i++);
-	  l2 = *(block*)ocb_get_l (c, i++);
-	  l3 = *(block*)ocb_get_l (c, i++);
-	  l4 = *(block*)ocb_get_l (c, i++);
-	  l5 = *(block*)ocb_get_l (c, i++);
-	  l6 = *(block*)ocb_get_l (c, i++);
-	  l7 = *(block*)ocb_get_l (c, i++);
-
-	  ctr ^= b0 ^ b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6 ^ b7;
-
-	  iv0 ^= l0;
-	  b0 ^= iv0;
-	  iv1 = iv0 ^ l1;
-	  b1 ^= iv1;
-	  iv2 = iv1 ^ l2;
-	  b2 ^= iv2;
-	  iv3 = iv2 ^ l3;
-	  b3 ^= iv3;
-	  iv4 = iv3 ^ l4;
-	  b4 ^= iv4;
-	  iv5 = iv4 ^ l5;
-	  b5 ^= iv5;
-	  iv6 = iv5 ^ l6;
-	  b6 ^= iv6;
-	  iv7 = iv6 ^ l7;
-	  b7 ^= iv7;
-
-	  b0 = swap_if_le (b0);
-	  b1 = swap_if_le (b1);
-	  b2 = swap_if_le (b2);
-	  b3 = swap_if_le (b3);
-	  b4 = swap_if_le (b4);
-	  b5 = swap_if_le (b5);
-	  b6 = swap_if_le (b6);
-	  b7 = swap_if_le (b7);
-
-	  b0 ^= rk[0];
-	  b1 ^= rk[0];
-	  b2 ^= rk[0];
-	  b3 ^= rk[0];
-	  b4 ^= rk[0];
-	  b5 ^= rk[0];
-	  b6 ^= rk[0];
-	  b7 ^= rk[0];
-
-	  for (r = 1;r < rounds;r++)
-	    {
-	      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-		:"+v" (b0)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-		:"+v" (b1)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-		:"+v" (b2)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-		:"+v" (b3)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-		:"+v" (b4)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-		:"+v" (b5)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-		:"+v" (b6)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-		:"+v" (b7)
-		:"v" (rk[r]));
-	    }
-	  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-	    :"+v" (b0)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-	    :"+v" (b1)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-	    :"+v" (b2)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-	    :"+v" (b3)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-	    :"+v" (b4)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-	    :"+v" (b5)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-	    :"+v" (b6)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-	    :"+v" (b7)
-	    :"v" (rk[r]));
-
-	  iv = iv7;
-
-	  /* The unaligned store stxvb16x writes big-endian,
-	     so in the unaligned case we swap the iv instead of the bytes */
-	  if ((uintptr_t)outbuf % 16 == 0)
-	    {
-	      vec_vsx_st (swap_if_le (b0) ^ iv0, 0, out++);
-	      vec_vsx_st (swap_if_le (b1) ^ iv1, 0, out++);
-	      vec_vsx_st (swap_if_le (b2) ^ iv2, 0, out++);
-	      vec_vsx_st (swap_if_le (b3) ^ iv3, 0, out++);
-	      vec_vsx_st (swap_if_le (b4) ^ iv4, 0, out++);
-	      vec_vsx_st (swap_if_le (b5) ^ iv5, 0, out++);
-	      vec_vsx_st (swap_if_le (b6) ^ iv6, 0, out++);
-	      vec_vsx_st (swap_if_le (b7) ^ iv7, 0, out++);
-	    }
-	  else
-	    {
-	      b0 ^= swap_if_le (iv0);
-	      b1 ^= swap_if_le (iv1);
-	      b2 ^= swap_if_le (iv2);
-	      b3 ^= swap_if_le (iv3);
-	      b4 ^= swap_if_le (iv4);
-	      b5 ^= swap_if_le (iv5);
-	      b6 ^= swap_if_le (iv6);
-	      b7 ^= swap_if_le (iv7);
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b0), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b1), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b2), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b3), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b4), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b5), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b6), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b7), "r" (zero), "r" ((uintptr_t)(out++)));
-	    }
-	}
-
-      for ( ;nblocks; nblocks-- )
-	{
-	  block b;
-	  u64 i = ++c->u_mode.ocb.data_nblocks;
-	  const block l = *(block*)ocb_get_l (c, i);
+	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
+	  b = VEC_LOAD_BE (in, bige_const);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  iv ^= l;
-	  if ((uintptr_t)in % 16 == 0)
-	    {
-	      b = vec_ld (0, in++);
-	    }
-	  else
-	    {
-	      block unalignedprevprev;
-	      unalignedprevprev = unalignedprev;
-	      unalignedprev = vec_ld (0, in++);
-	      b = vec_perm (unalignedprevprev, unalignedprev, vec_lvsl (0, inbuf));
-	    }
-
 	  /* Checksum_i = Checksum_{i-1} xor P_i  */
 	  ctr ^= b;
 	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
 	  b ^= iv;
-	  b = swap_if_le (b);
-	  b = _gcry_aes_ppc8_encrypt_altivec (ctx, b);
-	  if ((uintptr_t)out % 16 == 0)
-	    {
-	      vec_vsx_st (swap_if_le (b) ^ iv, 0, out++);
-	    }
-	  else
-	    {
-	      b ^= swap_if_le (iv);
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-	        :
-	        : "wa" (b), "r" (zero), "r" ((uintptr_t)out++));
-	    }
+	  AES_ENCRYPT (b, rounds);
+	  b ^= iv;
+
+	  VEC_STORE_BE (out, b, bige_const);
+
+	  in += 1;
+	  out += 1;
 	}
 
-      /* We want to store iv and ctr big-endian and the unaligned
-         store stxvb16x stores them little endian, so we have to swap them. */
-      iv = swap_if_le (iv);
-      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-	:: "wa" (iv), "r" (zero), "r" ((uintptr_t)&c->u_iv.iv));
-      ctr = swap_if_le (ctr);
-      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-	:: "wa" (ctr), "r" (zero), "r" ((uintptr_t)&c->u_ctr.ctr));
+      for (; nblocks >= 8; nblocks -= 8)
+	{
+	  b0 = VEC_LOAD_BE (in + 0, bige_const);
+	  b1 = VEC_LOAD_BE (in + 1, bige_const);
+	  b2 = VEC_LOAD_BE (in + 2, bige_const);
+	  b3 = VEC_LOAD_BE (in + 3, bige_const);
+	  b4 = VEC_LOAD_BE (in + 4, bige_const);
+	  b5 = VEC_LOAD_BE (in + 5, bige_const);
+	  b6 = VEC_LOAD_BE (in + 6, bige_const);
+	  b7 = VEC_LOAD_BE (in + 7, bige_const);
+
+	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 8), bige_const);
+
+	  ctr ^= b0 ^ b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6 ^ b7;
+
+	  iv ^= rkey0;
+
+	  iv0 = iv ^ l0;
+	  iv1 = iv ^ l0 ^ l1;
+	  iv2 = iv ^ l1;
+	  iv3 = iv ^ l1 ^ l2;
+	  iv4 = iv ^ l1 ^ l2 ^ l0;
+	  iv5 = iv ^ l2 ^ l0;
+	  iv6 = iv ^ l2;
+	  iv7 = iv ^ l2 ^ l;
+
+	  b0 ^= iv0;
+	  b1 ^= iv1;
+	  b2 ^= iv2;
+	  b3 ^= iv3;
+	  b4 ^= iv4;
+	  b5 ^= iv5;
+	  b6 ^= iv6;
+	  b7 ^= iv7;
+	  iv = iv7 ^ rkey0;
+
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (&rk[r]); \
+	      b0 = vec_cipher_be (b0, rkey); \
+	      b1 = vec_cipher_be (b1, rkey); \
+	      b2 = vec_cipher_be (b2, rkey); \
+	      b3 = vec_cipher_be (b3, rkey); \
+	      b4 = vec_cipher_be (b4, rkey); \
+	      b5 = vec_cipher_be (b5, rkey); \
+	      b6 = vec_cipher_be (b6, rkey); \
+	      b7 = vec_cipher_be (b7, rkey);
+
+	  DO_ROUND(1);
+	  DO_ROUND(2);
+	  DO_ROUND(3);
+	  DO_ROUND(4);
+	  DO_ROUND(5);
+	  DO_ROUND(6);
+	  DO_ROUND(7);
+	  DO_ROUND(8);
+	  DO_ROUND(9);
+	  if (rounds >= 12)
+	    {
+	      DO_ROUND(10);
+	      DO_ROUND(11);
+	      if (rounds > 12)
+		{
+		  DO_ROUND(12);
+		  DO_ROUND(13);
+		}
+	    }
+
+#undef DO_ROUND
+
+	  rkey = rkeylast ^ rkey0;
+	  b0 = vec_cipherlast_be (b0, rkey ^ iv0);
+	  b1 = vec_cipherlast_be (b1, rkey ^ iv1);
+	  b2 = vec_cipherlast_be (b2, rkey ^ iv2);
+	  b3 = vec_cipherlast_be (b3, rkey ^ iv3);
+	  b4 = vec_cipherlast_be (b4, rkey ^ iv4);
+	  b5 = vec_cipherlast_be (b5, rkey ^ iv5);
+	  b6 = vec_cipherlast_be (b6, rkey ^ iv6);
+	  b7 = vec_cipherlast_be (b7, rkey ^ iv7);
+
+	  VEC_STORE_BE (out + 0, b0, bige_const);
+	  VEC_STORE_BE (out + 1, b1, bige_const);
+	  VEC_STORE_BE (out + 2, b2, bige_const);
+	  VEC_STORE_BE (out + 3, b3, bige_const);
+	  VEC_STORE_BE (out + 4, b4, bige_const);
+	  VEC_STORE_BE (out + 5, b5, bige_const);
+	  VEC_STORE_BE (out + 6, b6, bige_const);
+	  VEC_STORE_BE (out + 7, b7, bige_const);
+
+	  in += 8;
+	  out += 8;
+	}
+
+      if (nblocks >= 4 && (data_nblocks % 4) == 0)
+	{
+	  b0 = VEC_LOAD_BE (in + 0, bige_const);
+	  b1 = VEC_LOAD_BE (in + 1, bige_const);
+	  b2 = VEC_LOAD_BE (in + 2, bige_const);
+	  b3 = VEC_LOAD_BE (in + 3, bige_const);
+
+	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), bige_const);
+
+	  ctr ^= b0 ^ b1 ^ b2 ^ b3;
+
+	  iv ^= rkey0;
+
+	  iv0 = iv ^ l0;
+	  iv1 = iv ^ l0 ^ l1;
+	  iv2 = iv ^ l1;
+	  iv3 = iv ^ l1 ^ l;
+
+	  b0 ^= iv0;
+	  b1 ^= iv1;
+	  b2 ^= iv2;
+	  b3 ^= iv3;
+	  iv = iv3 ^ rkey0;
+
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (&rk[r]); \
+	      b0 = vec_cipher_be (b0, rkey); \
+	      b1 = vec_cipher_be (b1, rkey); \
+	      b2 = vec_cipher_be (b2, rkey); \
+	      b3 = vec_cipher_be (b3, rkey);
+
+	  DO_ROUND(1);
+	  DO_ROUND(2);
+	  DO_ROUND(3);
+	  DO_ROUND(4);
+	  DO_ROUND(5);
+	  DO_ROUND(6);
+	  DO_ROUND(7);
+	  DO_ROUND(8);
+	  DO_ROUND(9);
+	  if (rounds >= 12)
+	    {
+	      DO_ROUND(10);
+	      DO_ROUND(11);
+	      if (rounds > 12)
+		{
+		  DO_ROUND(12);
+		  DO_ROUND(13);
+		}
+	    }
+
+#undef DO_ROUND
+
+	  rkey = rkeylast ^ rkey0;
+	  b0 = vec_cipherlast_be (b0, rkey ^ iv0);
+	  b1 = vec_cipherlast_be (b1, rkey ^ iv1);
+	  b2 = vec_cipherlast_be (b2, rkey ^ iv2);
+	  b3 = vec_cipherlast_be (b3, rkey ^ iv3);
+
+	  VEC_STORE_BE (out + 0, b0, bige_const);
+	  VEC_STORE_BE (out + 1, b1, bige_const);
+	  VEC_STORE_BE (out + 2, b2, bige_const);
+	  VEC_STORE_BE (out + 3, b3, bige_const);
+
+	  in += 4;
+	  out += 4;
+	  nblocks -= 4;
+	}
+
+      for (; nblocks; nblocks--)
+	{
+	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
+	  b = VEC_LOAD_BE (in, bige_const);
+
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  iv ^= l;
+	  /* Checksum_i = Checksum_{i-1} xor P_i  */
+	  ctr ^= b;
+	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+	  b ^= iv;
+	  AES_ENCRYPT (b, rounds);
+	  b ^= iv;
+
+	  VEC_STORE_BE (out, b, bige_const);
+
+	  in += 1;
+	  out += 1;
+	}
     }
   else
     {
-      const int unroll = 8;
-      block unalignedprev, ctr, iv;
-      if (((uintptr_t)inbuf % 16) != 0)
+      const u128_t *rk = (u128_t *)&ctx->keyschdec;
+
+      if (!ctx->decryption_prepared)
 	{
-	  unalignedprev = vec_ld (0, in++);
+	  aes_ppc8_prepare_decryption (ctx);
+	  ctx->decryption_prepared = 1;
 	}
 
-      iv = vec_ld (0, (block*)&c->u_iv.iv);
-      ctr = vec_ld (0, (block*)&c->u_ctr.ctr);
+      PRELOAD_ROUND_KEYS (rounds);
 
-      for ( ;nblocks >= unroll; nblocks -= unroll)
+      for (; nblocks >= 8 && data_nblocks % 8; nblocks--)
 	{
-	  u64 i = c->u_mode.ocb.data_nblocks + 1;
-	  block l0, l1, l2, l3, l4, l5, l6, l7;
-	  block b0, b1, b2, b3, b4, b5, b6, b7;
-	  block iv0, iv1, iv2, iv3, iv4, iv5, iv6, iv7;
-	  const block *rk = (block*)&ctx->keyschdec;
-
-	  c->u_mode.ocb.data_nblocks += unroll;
-
-	  iv0 = iv;
-	  if ((uintptr_t)inbuf % 16 == 0)
-	    {
-	      b0 = vec_ld (0, in++);
-	      b1 = vec_ld (0, in++);
-	      b2 = vec_ld (0, in++);
-	      b3 = vec_ld (0, in++);
-	      b4 = vec_ld (0, in++);
-	      b5 = vec_ld (0, in++);
-	      b6 = vec_ld (0, in++);
-	      b7 = vec_ld (0, in++);
-	    }
-	  else
-	    {
-	      block unaligned0, unaligned1, unaligned2,
-		unaligned3, unaligned4, unaligned5, unaligned6;
-	      unaligned0 = vec_ld (0, in++);
-	      unaligned1 = vec_ld (0, in++);
-	      unaligned2 = vec_ld (0, in++);
-	      unaligned3 = vec_ld (0, in++);
-	      unaligned4 = vec_ld (0, in++);
-	      unaligned5 = vec_ld (0, in++);
-	      unaligned6 = vec_ld (0, in++);
-	      b0 = vec_perm (unalignedprev, unaligned0, vec_lvsl (0, inbuf));
-	      unalignedprev = vec_ld (0, in++);
-	      b1 = vec_perm (unaligned0, unaligned1, vec_lvsl (0, inbuf));
-	      b2 = vec_perm (unaligned1, unaligned2, vec_lvsl (0, inbuf));
-	      b3 = vec_perm (unaligned2, unaligned3, vec_lvsl (0, inbuf));
-	      b4 = vec_perm (unaligned3, unaligned4, vec_lvsl (0, inbuf));
-	      b5 = vec_perm (unaligned4, unaligned5, vec_lvsl (0, inbuf));
-	      b6 = vec_perm (unaligned5, unaligned6, vec_lvsl (0, inbuf));
-	      b7 = vec_perm (unaligned6, unalignedprev, vec_lvsl (0, inbuf));
-	    }
-
-	  l0 = *(block*)ocb_get_l (c, i++);
-	  l1 = *(block*)ocb_get_l (c, i++);
-	  l2 = *(block*)ocb_get_l (c, i++);
-	  l3 = *(block*)ocb_get_l (c, i++);
-	  l4 = *(block*)ocb_get_l (c, i++);
-	  l5 = *(block*)ocb_get_l (c, i++);
-	  l6 = *(block*)ocb_get_l (c, i++);
-	  l7 = *(block*)ocb_get_l (c, i++);
-
-	  iv0 ^= l0;
-	  b0 ^= iv0;
-	  iv1 = iv0 ^ l1;
-	  b1 ^= iv1;
-	  iv2 = iv1 ^ l2;
-	  b2 ^= iv2;
-	  iv3 = iv2 ^ l3;
-	  b3 ^= iv3;
-	  iv4 = iv3 ^ l4;
-	  b4 ^= iv4;
-	  iv5 = iv4 ^ l5;
-	  b5 ^= iv5;
-	  iv6 = iv5 ^ l6;
-	  b6 ^= iv6;
-	  iv7 = iv6 ^ l7;
-	  b7 ^= iv7;
-
-	  b0 = swap_if_le (b0);
-	  b1 = swap_if_le (b1);
-	  b2 = swap_if_le (b2);
-	  b3 = swap_if_le (b3);
-	  b4 = swap_if_le (b4);
-	  b5 = swap_if_le (b5);
-	  b6 = swap_if_le (b6);
-	  b7 = swap_if_le (b7);
-
-	  b0 ^= rk[0];
-	  b1 ^= rk[0];
-	  b2 ^= rk[0];
-	  b3 ^= rk[0];
-	  b4 ^= rk[0];
-	  b5 ^= rk[0];
-	  b6 ^= rk[0];
-	  b7 ^= rk[0];
-
-	  for (r = 1;r < rounds;r++)
-	    {
-	      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-		:"+v" (b0)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-		:"+v" (b1)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-		:"+v" (b2)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-		:"+v" (b3)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-		:"+v" (b4)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-		:"+v" (b5)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-		:"+v" (b6)
-		:"v" (rk[r]));
-	      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-		:"+v" (b7)
-		:"v" (rk[r]));
-	    }
-	  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-	    :"+v" (b0)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-	    :"+v" (b1)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-	    :"+v" (b2)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-	    :"+v" (b3)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-	    :"+v" (b4)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-	    :"+v" (b5)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-	    :"+v" (b6)
-	    :"v" (rk[r]));
-	  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-	    :"+v" (b7)
-	    :"v" (rk[r]));
-
-	  iv = iv7;
-
-	  b0 = swap_if_le (b0) ^ iv0;
-	  b1 = swap_if_le (b1) ^ iv1;
-	  b2 = swap_if_le (b2) ^ iv2;
-	  b3 = swap_if_le (b3) ^ iv3;
-	  b4 = swap_if_le (b4) ^ iv4;
-	  b5 = swap_if_le (b5) ^ iv5;
-	  b6 = swap_if_le (b6) ^ iv6;
-	  b7 = swap_if_le (b7) ^ iv7;
-
-	  ctr ^= b0 ^ b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6 ^ b7;
-
-	  /* The unaligned store stxvb16x writes big-endian */
-	  if ((uintptr_t)outbuf % 16 == 0)
-	    {
-	      vec_vsx_st (b0, 0, out++);
-	      vec_vsx_st (b1, 0, out++);
-	      vec_vsx_st (b2, 0, out++);
-	      vec_vsx_st (b3, 0, out++);
-	      vec_vsx_st (b4, 0, out++);
-	      vec_vsx_st (b5, 0, out++);
-	      vec_vsx_st (b6, 0, out++);
-	      vec_vsx_st (b7, 0, out++);
-	    }
-	  else
-	    {
-	      b0 = swap_if_le (b0);
-	      b1 = swap_if_le (b1);
-	      b2 = swap_if_le (b2);
-	      b3 = swap_if_le (b3);
-	      b4 = swap_if_le (b4);
-	      b5 = swap_if_le (b5);
-	      b6 = swap_if_le (b6);
-	      b7 = swap_if_le (b7);
-	      __asm__ ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b0), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b1), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b2), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b3), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b4), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b5), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b6), "r" (zero), "r" ((uintptr_t)(out++)));
-	      __asm__ ("stxvb16x %x0, %1, %2\n\t"
-		:: "wa" (b7), "r" (zero), "r" ((uintptr_t)(out++)));
-	    }
-	}
-
-      for ( ;nblocks; nblocks-- )
-	{
-	  block b;
-	  u64 i = ++c->u_mode.ocb.data_nblocks;
-	  const block l = *(block*)ocb_get_l (c, i);
+	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
+	  b = VEC_LOAD_BE (in, bige_const);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  iv ^= l;
-	  if ((uintptr_t)in % 16 == 0)
-	    {
-	      b = vec_ld (0, in++);
-	    }
-	  else
-	    {
-	      block unalignedprevprev;
-	      unalignedprevprev = unalignedprev;
-	      unalignedprev = vec_ld (0, in++);
-	      b = vec_perm (unalignedprevprev, unalignedprev, vec_lvsl (0, inbuf));
-	    }
-
-	  /* Checksum_i = Checksum_{i-1} xor P_i  */
-	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+	  /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
 	  b ^= iv;
-	  b = swap_if_le (b);
-	  b = _gcry_aes_ppc8_decrypt_altivec (ctx, b);
-	  b = swap_if_le (b) ^ iv;
+	  AES_DECRYPT (b, rounds);
+	  b ^= iv;
+	  /* Checksum_i = Checksum_{i-1} xor P_i  */
 	  ctr ^= b;
-	  if ((uintptr_t)out % 16 == 0)
-	    {
-	      vec_vsx_st (b, 0, out++);
-	    }
-	  else
-	    {
-	      b = swap_if_le (b);
-	      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-		:
-		: "wa" (b), "r" (zero), "r" ((uintptr_t)out++));
-	    }
+
+	  VEC_STORE_BE (out, b, bige_const);
+
+	  in += 1;
+	  out += 1;
 	}
 
-      /* We want to store iv and ctr big-endian and the unaligned
-         store stxvb16x stores them little endian, so we have to swap them. */
-      iv = swap_if_le (iv);
-      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-	:: "wa" (iv), "r" (zero), "r" ((uintptr_t)&c->u_iv.iv));
-      ctr = swap_if_le(ctr);
-      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-	:: "wa" (ctr), "r" (zero), "r" ((uintptr_t)&c->u_ctr.ctr));
+      for (; nblocks >= 8; nblocks -= 8)
+	{
+	  b0 = VEC_LOAD_BE (in + 0, bige_const);
+	  b1 = VEC_LOAD_BE (in + 1, bige_const);
+	  b2 = VEC_LOAD_BE (in + 2, bige_const);
+	  b3 = VEC_LOAD_BE (in + 3, bige_const);
+	  b4 = VEC_LOAD_BE (in + 4, bige_const);
+	  b5 = VEC_LOAD_BE (in + 5, bige_const);
+	  b6 = VEC_LOAD_BE (in + 6, bige_const);
+	  b7 = VEC_LOAD_BE (in + 7, bige_const);
+
+	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 8), bige_const);
+
+	  iv ^= rkey0;
+
+	  iv0 = iv ^ l0;
+	  iv1 = iv ^ l0 ^ l1;
+	  iv2 = iv ^ l1;
+	  iv3 = iv ^ l1 ^ l2;
+	  iv4 = iv ^ l1 ^ l2 ^ l0;
+	  iv5 = iv ^ l2 ^ l0;
+	  iv6 = iv ^ l2;
+	  iv7 = iv ^ l2 ^ l;
+
+	  b0 ^= iv0;
+	  b1 ^= iv1;
+	  b2 ^= iv2;
+	  b3 ^= iv3;
+	  b4 ^= iv4;
+	  b5 ^= iv5;
+	  b6 ^= iv6;
+	  b7 ^= iv7;
+	  iv = iv7 ^ rkey0;
+
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (&rk[r]); \
+	      b0 = vec_ncipher_be (b0, rkey); \
+	      b1 = vec_ncipher_be (b1, rkey); \
+	      b2 = vec_ncipher_be (b2, rkey); \
+	      b3 = vec_ncipher_be (b3, rkey); \
+	      b4 = vec_ncipher_be (b4, rkey); \
+	      b5 = vec_ncipher_be (b5, rkey); \
+	      b6 = vec_ncipher_be (b6, rkey); \
+	      b7 = vec_ncipher_be (b7, rkey);
+
+	  DO_ROUND(1);
+	  DO_ROUND(2);
+	  DO_ROUND(3);
+	  DO_ROUND(4);
+	  DO_ROUND(5);
+	  DO_ROUND(6);
+	  DO_ROUND(7);
+	  DO_ROUND(8);
+	  DO_ROUND(9);
+	  if (rounds >= 12)
+	    {
+	      DO_ROUND(10);
+	      DO_ROUND(11);
+	      if (rounds > 12)
+		{
+		  DO_ROUND(12);
+		  DO_ROUND(13);
+		}
+	    }
+
+#undef DO_ROUND
+
+	  rkey = rkeylast ^ rkey0;
+	  b0 = vec_ncipherlast_be (b0, rkey ^ iv0);
+	  b1 = vec_ncipherlast_be (b1, rkey ^ iv1);
+	  b2 = vec_ncipherlast_be (b2, rkey ^ iv2);
+	  b3 = vec_ncipherlast_be (b3, rkey ^ iv3);
+	  b4 = vec_ncipherlast_be (b4, rkey ^ iv4);
+	  b5 = vec_ncipherlast_be (b5, rkey ^ iv5);
+	  b6 = vec_ncipherlast_be (b6, rkey ^ iv6);
+	  b7 = vec_ncipherlast_be (b7, rkey ^ iv7);
+
+	  VEC_STORE_BE (out + 0, b0, bige_const);
+	  VEC_STORE_BE (out + 1, b1, bige_const);
+	  VEC_STORE_BE (out + 2, b2, bige_const);
+	  VEC_STORE_BE (out + 3, b3, bige_const);
+	  VEC_STORE_BE (out + 4, b4, bige_const);
+	  VEC_STORE_BE (out + 5, b5, bige_const);
+	  VEC_STORE_BE (out + 6, b6, bige_const);
+	  VEC_STORE_BE (out + 7, b7, bige_const);
+
+	  ctr ^= b0 ^ b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6 ^ b7;
+
+	  in += 8;
+	  out += 8;
+	}
+
+      if (nblocks >= 4 && (data_nblocks % 4) == 0)
+	{
+	  b0 = VEC_LOAD_BE (in + 0, bige_const);
+	  b1 = VEC_LOAD_BE (in + 1, bige_const);
+	  b2 = VEC_LOAD_BE (in + 2, bige_const);
+	  b3 = VEC_LOAD_BE (in + 3, bige_const);
+
+	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), bige_const);
+
+	  iv ^= rkey0;
+
+	  iv0 = iv ^ l0;
+	  iv1 = iv ^ l0 ^ l1;
+	  iv2 = iv ^ l1;
+	  iv3 = iv ^ l1 ^ l;
+
+	  b0 ^= iv0;
+	  b1 ^= iv1;
+	  b2 ^= iv2;
+	  b3 ^= iv3;
+	  iv = iv3 ^ rkey0;
+
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (&rk[r]); \
+	      b0 = vec_ncipher_be (b0, rkey); \
+	      b1 = vec_ncipher_be (b1, rkey); \
+	      b2 = vec_ncipher_be (b2, rkey); \
+	      b3 = vec_ncipher_be (b3, rkey);
+
+	  DO_ROUND(1);
+	  DO_ROUND(2);
+	  DO_ROUND(3);
+	  DO_ROUND(4);
+	  DO_ROUND(5);
+	  DO_ROUND(6);
+	  DO_ROUND(7);
+	  DO_ROUND(8);
+	  DO_ROUND(9);
+	  if (rounds >= 12)
+	    {
+	      DO_ROUND(10);
+	      DO_ROUND(11);
+	      if (rounds > 12)
+		{
+		  DO_ROUND(12);
+		  DO_ROUND(13);
+		}
+	    }
+
+#undef DO_ROUND
+
+	  rkey = rkeylast ^ rkey0;
+	  b0 = vec_ncipherlast_be (b0, rkey ^ iv0);
+	  b1 = vec_ncipherlast_be (b1, rkey ^ iv1);
+	  b2 = vec_ncipherlast_be (b2, rkey ^ iv2);
+	  b3 = vec_ncipherlast_be (b3, rkey ^ iv3);
+
+	  VEC_STORE_BE (out + 0, b0, bige_const);
+	  VEC_STORE_BE (out + 1, b1, bige_const);
+	  VEC_STORE_BE (out + 2, b2, bige_const);
+	  VEC_STORE_BE (out + 3, b3, bige_const);
+
+	  ctr ^= b0 ^ b1 ^ b2 ^ b3;
+
+	  in += 4;
+	  out += 4;
+	  nblocks -= 4;
+	}
+
+      for (; nblocks; nblocks--)
+	{
+	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
+	  b = VEC_LOAD_BE (in, bige_const);
+
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  iv ^= l;
+	  /* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
+	  b ^= iv;
+	  AES_DECRYPT (b, rounds);
+	  b ^= iv;
+	  /* Checksum_i = Checksum_{i-1} xor P_i  */
+	  ctr ^= b;
+
+	  VEC_STORE_BE (out, b, bige_const);
+
+	  in += 1;
+	  out += 1;
+	}
     }
+
+  VEC_STORE_BE (c->u_iv.iv, iv, bige_const);
+  VEC_STORE_BE (c->u_ctr.ctr, ctr, bige_const);
+  c->u_mode.ocb.data_nblocks = data_nblocks;
+
   return 0;
 }
-#endif
 
 #endif /* USE_PPC_CRYPTO */
