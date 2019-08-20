@@ -12,6 +12,6 @@ Name: libgcrypt
 Description: General purpose cryptographic library
 Requires: gpg-error
 Version: @PACKAGE_VERSION@
-Cflags: @LIBGCRYPT_CONFIG_CFLAGS@
-Libs: @LIBGCRYPT_CONFIG_LIBS@
+Cflags: -I${includedir} @LIBGCRYPT_CONFIG_CFLAGS@
+Libs: -L${libdir} @LIBGCRYPT_CONFIG_LIBS@
 URL: https://www.gnupg.org/software/libgcrypt/index.html
