@@ -75,7 +75,7 @@
 #   define USE_PADLOCK 1
 #  endif
 # endif
-#endif /*ENABLE_PADLOCK_SUPPORT*/
+#endif /* ENABLE_PADLOCK_SUPPORT */
 
 /* USE_AESNI inidicates whether to compile with Intel AES-NI code.  We
    need the vector-size attribute which seems to be available since
@@ -103,6 +103,18 @@
 #  define USE_ARM_CE 1
 # endif
 #endif /* ENABLE_ARM_CRYPTO_SUPPORT */
+
+/* USE_PPC_CRYPTO indicates whether to enable PowerPC vector crypto
+ * accelerated code. */
+#undef USE_PPC_CRYPTO
+#ifdef ENABLE_PPC_CRYPTO_SUPPORT
+# if defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+     defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC)
+#  if __GNUC__ >= 4
+#   define USE_PPC_CRYPTO 1
+#  endif
+# endif
+#endif /* ENABLE_PPC_CRYPTO_SUPPORT */
 
 struct RIJNDAEL_context_s;
 
@@ -154,6 +166,9 @@ typedef struct RIJNDAEL_context_s
 #ifdef USE_ARM_CE
   unsigned int use_arm_ce:1;          /* ARMv8 CE shall be used.  */
 #endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  unsigned int use_ppc_crypto:1;      /* PowerPC crypto shall be used.  */
+#endif /*USE_PPC_CRYPTO*/
   rijndael_cryptfn_t encrypt_fn;
   rijndael_cryptfn_t decrypt_fn;
   rijndael_prefetchfn_t prefetch_enc_fn;

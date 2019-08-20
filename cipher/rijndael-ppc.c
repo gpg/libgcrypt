@@ -1,5 +1,6 @@
-/* Rijndael (AES) for GnuPG - PowerPC Vector Crypto AES
+/* Rijndael (AES) for GnuPG - PowerPC Vector Crypto AES implementation
  * Copyright (C) 2019 Shawn Landden <shawn@git.icu>
+ * Copyright (C) 2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -24,138 +25,397 @@
 
 #include <config.h>
 
-/* PPC AES extensions */
-#include <altivec.h>
 #include "rijndael-internal.h"
 #include "cipher-internal.h"
+#include "bufhelp.h"
+
+#ifdef USE_PPC_CRYPTO
+
+#include <altivec.h>
+
 
 typedef vector unsigned char block;
-static const vector unsigned char backwards =
-  { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 
-#ifdef __LITTLE_ENDIAN__
-#define swap_if_le(a) \
-  vec_perm(a, a, backwards)
-#elif __BIG_ENDIAN__
-#define swap_if_le(a) (a)
+typedef union
+{
+  u32 data32[4];
+} __attribute__((packed, aligned(1), may_alias)) u128_t;
+
+
+#define ALWAYS_INLINE inline __attribute__((always_inline))
+#define NO_INLINE __attribute__((noinline))
+#define NO_INSTRUMENT_FUNCTION __attribute__((no_instrument_function))
+
+#define ASM_FUNC_ATTR          NO_INSTRUMENT_FUNCTION
+#define ASM_FUNC_ATTR_INLINE   ASM_FUNC_ATTR ALWAYS_INLINE
+#define ASM_FUNC_ATTR_NOINLINE ASM_FUNC_ATTR NO_INLINE
+
+
+#define ALIGNED_LOAD(in_ptr) \
+  (vec_aligned_ld (0, (const unsigned char *)(in_ptr)))
+
+#define ALIGNED_STORE(out_ptr, vec) \
+  (vec_aligned_st ((vec), 0, (unsigned char *)(out_ptr)))
+
+#define VEC_LOAD_BE(in_ptr, bige_const) \
+  (vec_load_be (0, (const unsigned char *)(in_ptr), bige_const))
+
+#define VEC_STORE_BE(out_ptr, vec, bige_const) \
+  (vec_store_be ((vec), 0, (unsigned char *)(out_ptr), bige_const))
+
+
+static const block vec_bswap32_const =
+  { 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12 };
+
+
+static ASM_FUNC_ATTR_INLINE block
+vec_aligned_ld(unsigned long offset, const unsigned char *ptr)
+{
+#ifndef WORDS_BIGENDIAN
+  block vec;
+  __asm__ ("lvx %0,%1,%2\n\t"
+	   : "=v" (vec)
+	   : "r" (offset), "r" ((uintptr_t)ptr)
+	   : "memory");
+  return vec;
 #else
-#error "What endianness?"
+  return vec_vsx_ld (offset, ptr);
 #endif
+}
 
-/* Passes in AltiVec registers (big-endian)
- * sadly compilers don't know how to unroll outer loops into
- * inner loops with more registers on static functions,
- * so that this can be properly optimized for OOO multi-issue
- * without having to hand-unroll.
- */
-static block _gcry_aes_ppc8_encrypt_altivec (const RIJNDAEL_context *ctx,
-                                             block a)
+
+static ASM_FUNC_ATTR_INLINE block
+vec_load_be_const(void)
 {
-  int r;
-  int rounds = ctx->rounds;
-  block *rk = (block*)ctx->keyschenc;
+#ifndef WORDS_BIGENDIAN
+  return ~ALIGNED_LOAD(&vec_bswap32_const);
+#else
+  static const block vec_dummy = { 0 };
+  return vec_dummy;
+#endif
+}
 
-  a = rk[0] ^ a;
-  for (r = 1;r < rounds;r++)
+
+static ASM_FUNC_ATTR_INLINE block
+vec_load_be(unsigned long offset, const unsigned char *ptr,
+	    block be_bswap_const)
+{
+#ifndef WORDS_BIGENDIAN
+  block vec;
+  /* GCC vec_vsx_ld is generating two instructions on little-endian. Use
+   * lxvw4x directly instead. */
+  __asm__ ("lxvw4x %x0,%1,%2\n\t"
+	   : "=wa" (vec)
+	   : "r" (offset), "r" ((uintptr_t)ptr)
+	   : "memory");
+  __asm__ ("vperm %0,%1,%1,%2\n\t"
+	   : "=v" (vec)
+	   : "v" (vec), "v" (be_bswap_const));
+  return vec;
+#else
+  (void)be_bswap_const;
+  return vec_vsx_ld (offset, ptr);
+#endif
+}
+
+
+static ASM_FUNC_ATTR_INLINE void
+vec_aligned_st(block vec, unsigned long offset, unsigned char *ptr)
+{
+#ifndef WORDS_BIGENDIAN
+  __asm__ ("stvx %0,%1,%2\n\t"
+	   :
+	   : "v" (vec), "r" (offset), "r" ((uintptr_t)ptr)
+	   : "memory");
+#else
+  vec_vsx_st (vec, offset, ptr);
+#endif
+}
+
+
+static ASM_FUNC_ATTR_INLINE void
+vec_store_be(block vec, unsigned long offset, unsigned char *ptr,
+	     block be_bswap_const)
+{
+#ifndef WORDS_BIGENDIAN
+  /* GCC vec_vsx_st is generating two instructions on little-endian. Use
+   * stxvw4x directly instead. */
+  __asm__ ("vperm %0,%1,%1,%2\n\t"
+	   : "=v" (vec)
+	   : "v" (vec), "v" (be_bswap_const));
+  __asm__ ("stxvw4x %x0,%1,%2\n\t"
+	   :
+	   : "wa" (vec), "r" (offset), "r" ((uintptr_t)ptr)
+	   : "memory");
+#else
+  (void)be_bswap_const;
+  vec_vsx_st (vec, offset, ptr);
+#endif
+}
+
+
+static ASM_FUNC_ATTR_INLINE u32
+_gcry_aes_sbox4_ppc8(u32 fourbytes)
+{
+  union
     {
-      __asm__ volatile ("vcipher %0, %0, %1\n\t"
-        :"+v" (a)
-        :"v" (rk[r])
-      );
+      PROPERLY_ALIGNED_TYPE dummy;
+      block data_vec;
+      u32 data32[4];
+    } u;
+
+  u.data32[0] = fourbytes;
+  u.data_vec = vec_sbox_be(u.data_vec);
+  return u.data32[0];
+}
+
+void
+_gcry_aes_ppc8_setkey (RIJNDAEL_context *ctx, const byte *key)
+{
+  const block bige_const = vec_load_be_const();
+  union
+    {
+      PROPERLY_ALIGNED_TYPE dummy;
+      byte data[MAXKC][4];
+      u32 data32[MAXKC];
+    } tkk[2];
+  unsigned int rounds = ctx->rounds;
+  int KC = rounds - 6;
+  unsigned int keylen = KC * 4;
+  u128_t *ekey = (u128_t *)(void *)ctx->keyschenc;
+  unsigned int i, r, t;
+  byte rcon = 1;
+  int j;
+#define k      tkk[0].data
+#define k_u32  tkk[0].data32
+#define tk     tkk[1].data
+#define tk_u32 tkk[1].data32
+#define W      (ctx->keyschenc)
+#define W_u32  (ctx->keyschenc32)
+
+  for (i = 0; i < keylen; i++)
+    {
+      k[i >> 2][i & 3] = key[i];
     }
-  __asm__ volatile ("vcipherlast %0, %0, %1\n\t"
-    :"+v" (a)
-    :"v" (rk[r])
-  );
+
+  for (j = KC-1; j >= 0; j--)
+    {
+      tk_u32[j] = k_u32[j];
+    }
+  r = 0;
+  t = 0;
+  /* Copy values into round key array.  */
+  for (j = 0; (j < KC) && (r < rounds + 1); )
+    {
+      for (; (j < KC) && (t < 4); j++, t++)
+        {
+          W_u32[r][t] = le_bswap32(tk_u32[j]);
+        }
+      if (t == 4)
+        {
+          r++;
+          t = 0;
+        }
+    }
+  while (r < rounds + 1)
+    {
+      tk_u32[0] ^=
+	le_bswap32(
+	  _gcry_aes_sbox4_ppc8(rol(le_bswap32(tk_u32[KC - 1]), 24)) ^ rcon);
+
+      if (KC != 8)
+        {
+          for (j = 1; j < KC; j++)
+            {
+              tk_u32[j] ^= tk_u32[j-1];
+            }
+        }
+      else
+        {
+          for (j = 1; j < KC/2; j++)
+            {
+              tk_u32[j] ^= tk_u32[j-1];
+            }
+
+          tk_u32[KC/2] ^=
+	    le_bswap32(_gcry_aes_sbox4_ppc8(le_bswap32(tk_u32[KC/2 - 1])));
+
+          for (j = KC/2 + 1; j < KC; j++)
+            {
+              tk_u32[j] ^= tk_u32[j-1];
+            }
+        }
+
+      /* Copy values into round key array.  */
+      for (j = 0; (j < KC) && (r < rounds + 1); )
+        {
+          for (; (j < KC) && (t < 4); j++, t++)
+            {
+              W_u32[r][t] = le_bswap32(tk_u32[j]);
+            }
+          if (t == 4)
+            {
+              r++;
+              t = 0;
+            }
+        }
+
+      rcon = (rcon << 1) ^ ((rcon >> 7) * 0x1b);
+    }
+
+  /* Store in big-endian order. */
+  for (r = 0; r <= rounds; r++)
+    {
+#ifndef WORDS_BIGENDIAN
+      VEC_STORE_BE(&ekey[r], ALIGNED_LOAD(&ekey[r]), bige_const);
+#else
+      block rvec = ALIGNED_LOAD(&ekey[r]);
+      ALIGNED_STORE(&ekey[r],
+		    vec_perm(rvec, rvec, vec_bswap32_const));
+      (void)bige_const;
+#endif
+    }
+
+#undef W
+#undef tk
+#undef k
+#undef W_u32
+#undef tk_u32
+#undef k_u32
+  wipememory(&tkk, sizeof(tkk));
+}
+
+
+/* Make a decryption key from an encryption key. */
+void
+_gcry_aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
+{
+  u128_t *ekey = (u128_t *)(void *)ctx->keyschenc;
+  u128_t *dkey = (u128_t *)(void *)ctx->keyschdec;
+  int rounds = ctx->rounds;
+  int rr;
+  int r;
+
+  r = 0;
+  rr = rounds;
+  for (r = 0, rr = rounds; r <= rounds; r++, rr--)
+    {
+      ALIGNED_STORE(&dkey[r], ALIGNED_LOAD(&ekey[rr]));
+    }
+}
+
+
+static ASM_FUNC_ATTR_INLINE block
+aes_ppc8_encrypt_altivec (const RIJNDAEL_context *ctx, block a)
+{
+  u128_t *rk = (u128_t *)ctx->keyschenc;
+  int rounds = ctx->rounds;
+  int r;
+
+#define DO_ROUND(r) (a = vec_cipher_be (a, ALIGNED_LOAD (&rk[r])))
+
+  a = ALIGNED_LOAD(&rk[0]) ^ a;
+  DO_ROUND(1);
+  DO_ROUND(2);
+  DO_ROUND(3);
+  DO_ROUND(4);
+  DO_ROUND(5);
+  DO_ROUND(6);
+  DO_ROUND(7);
+  DO_ROUND(8);
+  DO_ROUND(9);
+  r = 10;
+  if (rounds >= 12)
+    {
+      DO_ROUND(10);
+      DO_ROUND(11);
+      r = 12;
+      if (rounds > 12)
+	{
+	  DO_ROUND(12);
+	  DO_ROUND(13);
+	  r = 14;
+	}
+    }
+  a = vec_cipherlast_be(a, ALIGNED_LOAD(&rk[r]));
+
+#undef DO_ROUND
+
   return a;
 }
 
 
-static block _gcry_aes_ppc8_decrypt_altivec (const RIJNDAEL_context *ctx,
-                                             block a)
+static ASM_FUNC_ATTR_INLINE block
+aes_ppc8_decrypt_altivec (const RIJNDAEL_context *ctx, block a)
 {
-  int r;
+  u128_t *rk = (u128_t *)ctx->keyschdec;
   int rounds = ctx->rounds;
-  block *rk = (block*)ctx->keyschdec;
+  int r;
 
-  a = rk[0] ^ a;
-  for (r = 1;r < rounds;r++)
+#define DO_ROUND(r) (a = vec_ncipher_be (a, ALIGNED_LOAD (&rk[r])))
+
+  a = ALIGNED_LOAD(&rk[0]) ^ a;
+  DO_ROUND(1);
+  DO_ROUND(2);
+  DO_ROUND(3);
+  DO_ROUND(4);
+  DO_ROUND(5);
+  DO_ROUND(6);
+  DO_ROUND(7);
+  DO_ROUND(8);
+  DO_ROUND(9);
+  r = 10;
+  if (rounds >= 12)
     {
-      __asm__ volatile ("vncipher %0, %0, %1\n\t"
-        :"+v" (a)
-        :"v" (rk[r])
-      );
+      DO_ROUND(10);
+      DO_ROUND(11);
+      r = 12;
+      if (rounds > 12)
+	{
+	  DO_ROUND(12);
+	  DO_ROUND(13);
+	  r = 14;
+	}
     }
-  __asm__ volatile ("vncipherlast %0, %0, %1\n\t"
-    :"+v" (a)
-    :"v" (rk[r])
-  );
+  a = vec_ncipherlast_be(a, ALIGNED_LOAD(&rk[r]));
+
+#undef DO_ROUND
+
   return a;
 }
+
 
 unsigned int _gcry_aes_ppc8_encrypt (const RIJNDAEL_context *ctx,
 				     unsigned char *b,
 				     const unsigned char *a)
 {
-  uintptr_t zero = 0;
+  const block bige_const = vec_load_be_const();
   block sa;
 
-  if ((uintptr_t)a % 16 == 0)
-    {
-      sa = vec_ld (0, a);
-    }
-  else
-    {
-      block unalignedprev, unalignedcur;
-      unalignedprev = vec_ld (0, a);
-      unalignedcur = vec_ld (16, a);
-      sa = vec_perm (unalignedprev, unalignedcur, vec_lvsl(0, a));
-    }
-
-  sa = swap_if_le(sa);
-  sa = _gcry_aes_ppc8_encrypt_altivec(ctx, sa);
-
-  __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-    :
-    : "wa" (sa), "r" (zero), "r" ((uintptr_t)b));
+  sa = VEC_LOAD_BE (a, bige_const);
+  sa = aes_ppc8_encrypt_altivec (ctx, sa);
+  VEC_STORE_BE (b, sa, bige_const);
 
   return 0; /* does not use stack */
 }
+
 
 unsigned int _gcry_aes_ppc8_decrypt (const RIJNDAEL_context *ctx,
 				     unsigned char *b,
 				     const unsigned char *a)
 {
-  uintptr_t zero = 0;
-  block sa, unalignedprev, unalignedcur;
+  const block bige_const = vec_load_be_const();
+  block sa;
 
-  if ((uintptr_t)a % 16 == 0)
-    {
-      sa = vec_ld(0, a);
-    }
-  else
-    {
-      unalignedprev = vec_ld (0, a);
-      unalignedcur = vec_ld (16, a);
-      sa = vec_perm (unalignedprev, unalignedcur, vec_lvsl(0, a));
-    }
+  sa = VEC_LOAD_BE (a, bige_const);
+  sa = aes_ppc8_decrypt_altivec (ctx, sa);
+  VEC_STORE_BE (b, sa, bige_const);
 
-  sa = swap_if_le (sa);
-  sa = _gcry_aes_ppc8_decrypt_altivec  (ctx, sa);
-
-  if ((uintptr_t)b % 16 == 0)
-    {
-      vec_vsx_st(swap_if_le(sa), 0, b);
-    }
-  else
-    {
-      __asm__ volatile ("stxvb16x %x0, %1, %2\n\t"
-	:
-	: "wa" (sa), "r" (zero), "r" ((uintptr_t)b));
-    }
   return 0; /* does not use stack */
 }
 
+
+#if 0
 size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
                                             const void *inbuf_arg, size_t nblocks,
                                             int encrypt)
@@ -673,4 +933,6 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     }
   return 0;
 }
+#endif
 
+#endif /* USE_PPC_CRYPTO */

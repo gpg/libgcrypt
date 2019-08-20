@@ -1655,6 +1655,7 @@ if test "$gcry_cv_gcc_platform_as_ok_for_intel_syntax" = "yes" ; then
             [Defined if underlying assembler is compatible with Intel syntax assembly implementations])
 fi
 
+
 #
 # Check whether compiler is configured for ARMv6 or newer architecture
 #
@@ -1828,6 +1829,112 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 Crypto Extension i
 if test "$gcry_cv_gcc_inline_asm_aarch64_crypto" = "yes" ; then
    AC_DEFINE(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO,1,
      [Defined if inline assembler supports AArch64 Crypto Extension instructions])
+fi
+
+
+#
+# Check whether PowerPC AltiVec/VSX intrinsics
+#
+AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX intrinsics],
+      [gcry_cv_cc_ppc_altivec],
+      [if test "$mpi_cpu_arch" != "ppc" ; then
+	gcry_cv_cc_ppc_altivec="n/a"
+      else
+	gcry_cv_cc_ppc_altivec=no
+	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	[[#include <altivec.h>
+	  typedef vector unsigned char block;
+	  block fn(block in)
+	  {
+	    block t = vec_perm (in, in, vec_vsx_ld (0, (unsigned char*)0));
+	    return vec_cipher_be (t, in);
+	  }
+	  ]])],
+	[gcry_cv_cc_ppc_altivec=yes])
+      fi])
+if test "$gcry_cv_cc_ppc_altivec" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_PPC_ALTIVEC,1,
+	    [Defined if underlying compiler supports PowerPC AltiVec/VSX/crypto intrinsics])
+fi
+
+_gcc_cflags_save=$CFLAGS
+CFLAGS="$CFLAGS -maltivec -mvsx -mcrypto"
+
+if test "$gcry_cv_cc_ppc_altivec" = "no" &&
+    test "$mpi_cpu_arch" = "ppc" ; then
+  AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics with extra GCC flags],
+    [gcry_cv_cc_ppc_altivec_cflags],
+    [gcry_cv_cc_ppc_altivec_cflags=no
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+      [[#include <altivec.h>
+	typedef vector unsigned char block;
+	block fn(block in)
+	{
+	  block t = vec_perm (in, in, vec_vsx_ld (0, (unsigned char*)0));
+	  return vec_cipher_be (t, in);
+	}]])],
+      [gcry_cv_cc_ppc_altivec_cflags=yes])])
+  if test "$gcry_cv_cc_ppc_altivec_cflags" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_PPC_ALTIVEC,1,
+	      [Defined if underlying compiler supports PowerPC AltiVec/VSX/crypto intrinsics])
+    AC_DEFINE(HAVE_COMPATIBLE_CC_PPC_ALTIVEC_WITH_CFLAGS,1,
+	      [Defined if underlying compiler supports PowerPC AltiVec/VSX/crypto intrinsics with extra GCC flags])
+  fi
+fi
+
+AM_CONDITIONAL(ENABLE_PPC_VCRYPTO_EXTRA_CFLAGS,
+	       test "$gcry_cv_cc_ppc_altivec_cflags" = "yes")
+
+# Restore flags.
+CFLAGS=$_gcc_cflags_save;
+
+
+#
+# Check whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto instructions],
+       [gcry_cv_gcc_inline_asm_ppc_altivec],
+       [if test "$mpi_cpu_arch" != "ppc" ; then
+          gcry_cv_gcc_inline_asm_ppc_altivec="n/a"
+        else
+          gcry_cv_gcc_inline_asm_ppc_altivec=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(".globl testfn;\n"
+		    "testfn:\n"
+		    "stvx %v31,%r12,%r0;\n"
+		    "lvx  %v20,%r12,%r0;\n"
+		    "vcipher %v0, %v1, %v22;\n"
+		    "lxvw4x %vs32, %r0, %r1;\n"
+		  );
+            ]])],
+          [gcry_cv_gcc_inline_asm_ppc_altivec=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_ppc_altivec" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC,1,
+     [Defined if inline assembler supports PowerPC AltiVec/VSX/crypto instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports PowerISA 3.00 instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports PowerISA 3.00 instructions],
+       [gcry_cv_gcc_inline_asm_ppc_arch_3_00],
+       [if test "$mpi_cpu_arch" != "ppc" ; then
+          gcry_cv_gcc_inline_asm_ppc_arch_3_00="n/a"
+        else
+          gcry_cv_gcc_inline_asm_ppc_arch_3_00=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(".globl testfn;\n"
+		    "testfn:\n"
+		    "stxvb16x %r1,%v12,%v30;\n"
+		  );
+            ]])],
+          [gcry_cv_gcc_inline_asm_ppc_arch_3_00=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_ppc_arch_3_00" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_PPC_ARCH_3_00,1,
+     [Defined if inline assembler supports PowerISA 3.00 instructions])
 fi
 
 
@@ -2228,6 +2335,20 @@ if test "$found" = "1" ; then
          # Build with the ARMv8/AArch64 CE implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv8-ce.lo"
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv8-aarch64-ce.lo"
+      ;;
+      powerpc64le-*-*)
+         # Build with the crypto extension implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ppc.lo"
+      ;;
+      powerpc64-*-*)
+         # Big-Endian.
+         # Build with the crypto extension implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ppc.lo"
+      ;;
+      powerpc-*-*)
+         # Big-Endian.
+         # Build with the crypto extension implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ppc.lo"
       ;;
    esac
 

@@ -199,6 +199,19 @@ extern void _gcry_aes_armv8_ce_xts_crypt (void *context, unsigned char *tweak,
                                           size_t nblocks, int encrypt);
 #endif /*USE_ARM_ASM*/
 
+#ifdef USE_PPC_CRYPTO
+/* PowerPC Crypto implementations of AES */
+extern void _gcry_aes_ppc8_setkey(RIJNDAEL_context *ctx, const byte *key);
+extern void _gcry_aes_ppc8_prepare_decryption(RIJNDAEL_context *ctx);
+
+extern unsigned int _gcry_aes_ppc8_encrypt(const RIJNDAEL_context *ctx,
+					   unsigned char *dst,
+					   const unsigned char *src);
+extern unsigned int _gcry_aes_ppc8_decrypt(const RIJNDAEL_context *ctx,
+					   unsigned char *dst,
+					   const unsigned char *src);
+#endif /*USE_PPC_CRYPTO*/
+
 static unsigned int do_encrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
                                 const unsigned char *ax);
 static unsigned int do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
@@ -280,7 +293,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
   int i,j, r, t, rconpointer = 0;
   int KC;
 #if defined(USE_AESNI) || defined(USE_PADLOCK) || defined(USE_SSSE3) \
-    || defined(USE_ARM_CE)
+    || defined(USE_ARM_CE) || defined(USE_PPC_CRYPTO)
   unsigned int hwfeatures;
 #endif
 
@@ -324,7 +337,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
   ctx->rounds = rounds;
 
 #if defined(USE_AESNI) || defined(USE_PADLOCK) || defined(USE_SSSE3) \
-    || defined(USE_ARM_CE)
+    || defined(USE_ARM_CE) || defined(USE_PPC_CRYPTO)
   hwfeatures = _gcry_get_hw_features ();
 #endif
 
@@ -340,6 +353,9 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 #endif
 #ifdef USE_ARM_CE
   ctx->use_arm_ce = 0;
+#endif
+#ifdef USE_PPC_CRYPTO
+  ctx->use_ppc_crypto = 0;
 #endif
 
   if (0)
@@ -421,6 +437,19 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
         }
     }
 #endif
+#ifdef USE_PPC_CRYPTO
+  else if (hwfeatures & HWF_PPC_VCRYPTO)
+    {
+      ctx->encrypt_fn = _gcry_aes_ppc8_encrypt;
+      ctx->decrypt_fn = _gcry_aes_ppc8_decrypt;
+      ctx->prefetch_enc_fn = NULL;
+      ctx->prefetch_dec_fn = NULL;
+      ctx->use_ppc_crypto = 1;
+      if (hd)
+        {
+        }
+    }
+#endif
   else
     {
       ctx->encrypt_fn = do_encrypt;
@@ -446,6 +475,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 #ifdef USE_ARM_CE
   else if (ctx->use_arm_ce)
     _gcry_aes_armv8_ce_setkey (ctx, key);
+#endif
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    _gcry_aes_ppc8_setkey (ctx, key);
 #endif
   else
     {
@@ -584,7 +617,19 @@ prepare_decryption( RIJNDAEL_context *ctx )
     {
       _gcry_aes_armv8_ce_prepare_decryption (ctx);
     }
-#endif /*USE_SSSE3*/
+#endif /*USE_ARM_CE*/
+#ifdef USE_ARM_CE
+  else if (ctx->use_arm_ce)
+    {
+      _gcry_aes_armv8_ce_prepare_decryption (ctx);
+    }
+#endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    {
+      _gcry_aes_ppc8_prepare_decryption (ctx);
+    }
+#endif
 #ifdef USE_PADLOCK
   else if (ctx->use_padlock)
     {
