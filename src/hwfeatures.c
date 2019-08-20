@@ -67,7 +67,8 @@ static struct
     { HWF_ARM_SHA2,            "arm-sha2" },
     { HWF_ARM_PMULL,           "arm-pmull" },
 #elif defined(HAVE_CPU_ARCH_PPC)
-    { HWF_PPC_VCRYPTO,         "ppc-crypto" },
+    { HWF_PPC_VCRYPTO,         "ppc-vcrypto" },
+    { HWF_PPC_ARCH_3_00,       "ppc-arch_3_00" },
 #endif
   };
 

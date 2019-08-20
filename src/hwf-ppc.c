@@ -70,7 +70,6 @@ struct feature_map_s
   {
     unsigned int hwcap_flag;
     unsigned int hwcap2_flag;
-    const char *feature_match;
     unsigned int hwf_flag;
   };
 
@@ -87,12 +86,16 @@ struct feature_map_s
 #ifndef PPC_FEATURE2_VEC_CRYPTO
 # define PPC_FEATURE2_VEC_CRYPTO    0x02000000
 #endif
+#ifndef PPC_FEATURE2_ARCH_3_00
+# define PPC_FEATURE2_ARCH_3_00     0x00800000
+#endif
 
 static const struct feature_map_s ppc_features[] =
   {
 #ifdef ENABLE_PPC_CRYPTO_SUPPORT
-    { 0, PPC_FEATURE2_VEC_CRYPTO, " crypto", HWF_PPC_VCRYPTO },
+    { 0, PPC_FEATURE2_VEC_CRYPTO, HWF_PPC_VCRYPTO },
 #endif
+    { 0, PPC_FEATURE2_ARCH_3_00, HWF_PPC_ARCH_3_00 },
   };
 #endif
 
@@ -114,22 +117,23 @@ get_hwcap(unsigned int *hwcap, unsigned int *hwcap2)
     }
 
 #if 0 // TODO: configure.ac detection for __builtin_cpu_supports
-#if defined(__GLIBC__) && defined(__GNUC__)
-#if __GNUC__ >= 6
-  /* Returns 0 if glibc support doesn't exist, so we can
-   * only trust positive results. This function will need updating
-   * if we ever need more than one cpu feature.
-   */
-  // TODO: fix, false if ENABLE_PPC_CRYPTO_SUPPORT
-  if (sizeof(ppc_features)/sizeof(ppc_features[0]) == 0) {
-    if (__builtin_cpu_supports("vcrypto")) {
-      stored_hwcap = 0;
-      stored_hwcap2 = PPC_FEATURE2_VEC_CRYPTO;
-	    hwcap_initialized = 1;
-      return 0;
+      // TODO: move to 'detect_ppc_builtin_cpu_supports'
+#if defined(__GLIBC__) && defined(__GNUC__) && __GNUC__ >= 6
+  /* __builtin_cpu_supports returns 0 if glibc support doesn't exist, so
+   * we can only trust positive results. */
+#ifdef ENABLE_PPC_CRYPTO_SUPPORT
+  if (__builtin_cpu_supports("vcrypto")) /* TODO: Configure.ac */
+    {
+      stored_hwcap2 |= PPC_FEATURE2_VEC_CRYPTO;
+      hwcap_initialized = 1;
     }
-  }
 #endif
+
+  if (__builtin_cpu_supports("arch_3_00")) /* TODO: Configure.ac */
+    {
+      stored_hwcap2 |= PPC_FEATURE2_ARCH_3_00;
+      hwcap_initialized = 1;
+    }
 #endif
 #endif
 
@@ -188,6 +192,7 @@ get_hwcap(unsigned int *hwcap, unsigned int *hwcap2)
       err = 0;
 
   fclose(f);
+
   *hwcap = stored_hwcap;
   *hwcap2 = stored_hwcap2;
   return err;
