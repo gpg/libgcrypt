@@ -42,6 +42,7 @@ static struct
   const char *desc;
 } hwflist[] =
   {
+#if defined(HAVE_CPU_ARCH_X86)
     { HWF_PADLOCK_RNG,         "padlock-rng" },
     { HWF_PADLOCK_AES,         "padlock-aes" },
     { HWF_PADLOCK_SHA,         "padlock-sha" },
@@ -59,11 +60,15 @@ static struct
     { HWF_INTEL_FAST_VPGATHER, "intel-fast-vpgather" },
     { HWF_INTEL_RDTSC,         "intel-rdtsc" },
     { HWF_INTEL_SHAEXT,        "intel-shaext" },
+#elif defined(HAVE_CPU_ARCH_ARM)
     { HWF_ARM_NEON,            "arm-neon" },
     { HWF_ARM_AES,             "arm-aes" },
     { HWF_ARM_SHA1,            "arm-sha1" },
     { HWF_ARM_SHA2,            "arm-sha2" },
-    { HWF_ARM_PMULL,           "arm-pmull" }
+    { HWF_ARM_PMULL,           "arm-pmull" },
+#elif defined(HAVE_CPU_ARCH_PPC)
+    { HWF_PPC_VCRYPTO,         "ppc-crypto" },
+#endif
   };
 
 /* A bit vector with the hardware features which shall not be used.
@@ -208,12 +213,14 @@ _gcry_detect_hw_features (void)
   {
     hw_features = _gcry_hwf_detect_x86 ();
   }
-#endif /* HAVE_CPU_ARCH_X86 */
-#if defined (HAVE_CPU_ARCH_ARM)
+#elif defined (HAVE_CPU_ARCH_ARM)
   {
     hw_features = _gcry_hwf_detect_arm ();
   }
-#endif /* HAVE_CPU_ARCH_ARM */
-
+#elif defined (HAVE_CPU_ARCH_PPC)
+  {
+    hw_features = _gcry_hwf_detect_ppc ();
+  }
+#endif
   hw_features &= ~disabled_hw_features;
 }
