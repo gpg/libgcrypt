@@ -210,11 +210,33 @@ extern unsigned int _gcry_aes_ppc8_encrypt(const RIJNDAEL_context *ctx,
 extern unsigned int _gcry_aes_ppc8_decrypt(const RIJNDAEL_context *ctx,
 					   unsigned char *dst,
 					   const unsigned char *src);
+
+extern void _gcry_aes_ppc8_cfb_enc (void *context, unsigned char *iv,
+				    void *outbuf_arg, const void *inbuf_arg,
+				    size_t nblocks);
+extern void _gcry_aes_ppc8_cbc_enc (void *context, unsigned char *iv,
+				    void *outbuf_arg, const void *inbuf_arg,
+				    size_t nblocks, int cbc_mac);
+extern void _gcry_aes_ppc8_ctr_enc (void *context, unsigned char *ctr,
+				    void *outbuf_arg, const void *inbuf_arg,
+				    size_t nblocks);
+extern void _gcry_aes_ppc8_cfb_dec (void *context, unsigned char *iv,
+				    void *outbuf_arg, const void *inbuf_arg,
+				    size_t nblocks);
+extern void _gcry_aes_ppc8_cbc_dec (void *context, unsigned char *iv,
+				    void *outbuf_arg, const void *inbuf_arg,
+				    size_t nblocks);
+
 extern size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 					const void *inbuf_arg, size_t nblocks,
 					int encrypt);
 extern size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c,
 				       const void *abuf_arg, size_t nblocks);
+
+extern void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak,
+				      void *outbuf_arg,
+				      const void *inbuf_arg,
+				      size_t nblocks, int encrypt);
 #endif /*USE_PPC_CRYPTO*/
 
 static unsigned int do_encrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
@@ -452,8 +474,14 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->use_ppc_crypto = 1;
       if (hd)
         {
+          hd->bulk.cfb_enc = _gcry_aes_ppc8_cfb_enc;
+          hd->bulk.cfb_dec = _gcry_aes_ppc8_cfb_dec;
+          hd->bulk.cbc_enc = _gcry_aes_ppc8_cbc_enc;
+          hd->bulk.cbc_dec = _gcry_aes_ppc8_cbc_dec;
+          hd->bulk.ctr_enc = _gcry_aes_ppc8_ctr_enc;
           hd->bulk.ocb_crypt = _gcry_aes_ppc8_ocb_crypt;
           hd->bulk.ocb_auth = _gcry_aes_ppc8_ocb_auth;
+          hd->bulk.xts_crypt = _gcry_aes_ppc8_xts_crypt;
         }
     }
 #endif
@@ -896,6 +924,13 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
       return;
     }
 #endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    {
+      _gcry_aes_ppc8_cfb_enc (ctx, iv, outbuf, inbuf, nblocks);
+      return;
+    }
+#endif /*USE_PPC_CRYPTO*/
   else
     {
       rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
@@ -957,6 +992,13 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
       return;
     }
 #endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    {
+      _gcry_aes_ppc8_cbc_enc (ctx, iv, outbuf, inbuf, nblocks, cbc_mac);
+      return;
+    }
+#endif /*USE_PPC_CRYPTO*/
   else
     {
       rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
@@ -1025,6 +1067,13 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
       return;
     }
 #endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    {
+      _gcry_aes_ppc8_ctr_enc (ctx, ctr, outbuf, inbuf, nblocks);
+      return;
+    }
+#endif /*USE_PPC_CRYPTO*/
   else
     {
       union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } tmp;
@@ -1268,6 +1317,13 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
       return;
     }
 #endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    {
+      _gcry_aes_ppc8_cfb_dec (ctx, iv, outbuf, inbuf, nblocks);
+      return;
+    }
+#endif /*USE_PPC_CRYPTO*/
   else
     {
       rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
@@ -1326,6 +1382,13 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
       return;
     }
 #endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    {
+      _gcry_aes_ppc8_cbc_dec (ctx, iv, outbuf, inbuf, nblocks);
+      return;
+    }
+#endif /*USE_PPC_CRYPTO*/
   else
     {
       unsigned char savebuf[BLOCKSIZE] ATTR_ALIGNED_16;
@@ -1556,6 +1619,13 @@ _gcry_aes_xts_crypt (void *context, unsigned char *tweak,
       return;
     }
 #endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    {
+      _gcry_aes_ppc8_xts_crypt (ctx, tweak, outbuf, inbuf, nblocks, encrypt);
+      return;
+    }
+#endif /*USE_PPC_CRYPTO*/
   else
     {
       if (encrypt)

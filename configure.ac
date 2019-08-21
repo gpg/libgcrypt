@@ -1905,6 +1905,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto
 		    "lvx  %v20,%r12,%r0;\n"
 		    "vcipher %v0, %v1, %v22;\n"
 		    "lxvw4x %vs32, %r0, %r1;\n"
+		    "vadduwm %v0, %v1, %v22;\n"
 		  );
             ]])],
           [gcry_cv_gcc_inline_asm_ppc_altivec=yes])
