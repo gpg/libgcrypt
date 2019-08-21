@@ -868,4 +868,213 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   return 0;
 }
 
+size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
+				size_t nblocks)
+{
+  const block bige_const = vec_load_be_const();
+  RIJNDAEL_context *ctx = (void *)&c->context.c;
+  const u128_t *rk = (u128_t *)&ctx->keyschenc;
+  const u128_t *abuf = (const u128_t *)abuf_arg;
+  int rounds = ctx->rounds;
+  u64 data_nblocks = c->u_mode.ocb.aad_nblocks;
+  block l0, l1, l2, l;
+  block b0, b1, b2, b3, b4, b5, b6, b7, b;
+  block iv0, iv1, iv2, iv3, iv4, iv5, iv6, iv7;
+  block rkey, frkey;
+  block ctr, iv;
+  ROUND_KEY_VARIABLES;
+
+  iv = VEC_LOAD_BE (c->u_mode.ocb.aad_offset, bige_const);
+  ctr = VEC_LOAD_BE (c->u_mode.ocb.aad_sum, bige_const);
+
+  l0 = VEC_LOAD_BE (c->u_mode.ocb.L[0], bige_const);
+  l1 = VEC_LOAD_BE (c->u_mode.ocb.L[1], bige_const);
+  l2 = VEC_LOAD_BE (c->u_mode.ocb.L[2], bige_const);
+
+  PRELOAD_ROUND_KEYS (rounds);
+
+  for (; nblocks >= 8 && data_nblocks % 8; nblocks--)
+    {
+      l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
+      b = VEC_LOAD_BE (abuf, bige_const);
+
+      /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+      iv ^= l;
+      /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+      b ^= iv;
+      AES_ENCRYPT (b, rounds);
+      ctr ^= b;
+
+      abuf += 1;
+    }
+
+  for (; nblocks >= 8; nblocks -= 8)
+    {
+      b0 = VEC_LOAD_BE (abuf + 0, bige_const);
+      b1 = VEC_LOAD_BE (abuf + 1, bige_const);
+      b2 = VEC_LOAD_BE (abuf + 2, bige_const);
+      b3 = VEC_LOAD_BE (abuf + 3, bige_const);
+      b4 = VEC_LOAD_BE (abuf + 4, bige_const);
+      b5 = VEC_LOAD_BE (abuf + 5, bige_const);
+      b6 = VEC_LOAD_BE (abuf + 6, bige_const);
+      b7 = VEC_LOAD_BE (abuf + 7, bige_const);
+
+      l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 8), bige_const);
+
+      frkey = rkey0;
+      iv ^= frkey;
+
+      iv0 = iv ^ l0;
+      iv1 = iv ^ l0 ^ l1;
+      iv2 = iv ^ l1;
+      iv3 = iv ^ l1 ^ l2;
+      iv4 = iv ^ l1 ^ l2 ^ l0;
+      iv5 = iv ^ l2 ^ l0;
+      iv6 = iv ^ l2;
+      iv7 = iv ^ l2 ^ l;
+
+      b0 ^= iv0;
+      b1 ^= iv1;
+      b2 ^= iv2;
+      b3 ^= iv3;
+      b4 ^= iv4;
+      b5 ^= iv5;
+      b6 ^= iv6;
+      b7 ^= iv7;
+      iv = iv7 ^ frkey;
+
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (&rk[r]); \
+	      b0 = vec_cipher_be (b0, rkey); \
+	      b1 = vec_cipher_be (b1, rkey); \
+	      b2 = vec_cipher_be (b2, rkey); \
+	      b3 = vec_cipher_be (b3, rkey); \
+	      b4 = vec_cipher_be (b4, rkey); \
+	      b5 = vec_cipher_be (b5, rkey); \
+	      b6 = vec_cipher_be (b6, rkey); \
+	      b7 = vec_cipher_be (b7, rkey);
+
+      DO_ROUND(1);
+      DO_ROUND(2);
+      DO_ROUND(3);
+      DO_ROUND(4);
+      DO_ROUND(5);
+      DO_ROUND(6);
+      DO_ROUND(7);
+      DO_ROUND(8);
+      DO_ROUND(9);
+      if (rounds >= 12)
+	{
+	  DO_ROUND(10);
+	  DO_ROUND(11);
+	  if (rounds > 12)
+	    {
+	      DO_ROUND(12);
+	      DO_ROUND(13);
+	    }
+	}
+
+#undef DO_ROUND
+
+      rkey = rkeylast;
+      b0 = vec_cipherlast_be (b0, rkey);
+      b1 = vec_cipherlast_be (b1, rkey);
+      b2 = vec_cipherlast_be (b2, rkey);
+      b3 = vec_cipherlast_be (b3, rkey);
+      b4 = vec_cipherlast_be (b4, rkey);
+      b5 = vec_cipherlast_be (b5, rkey);
+      b6 = vec_cipherlast_be (b6, rkey);
+      b7 = vec_cipherlast_be (b7, rkey);
+
+      ctr ^= b0 ^ b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6 ^ b7;
+
+      abuf += 8;
+    }
+
+  if (nblocks >= 4 && (data_nblocks % 4) == 0)
+    {
+      b0 = VEC_LOAD_BE (abuf + 0, bige_const);
+      b1 = VEC_LOAD_BE (abuf + 1, bige_const);
+      b2 = VEC_LOAD_BE (abuf + 2, bige_const);
+      b3 = VEC_LOAD_BE (abuf + 3, bige_const);
+
+      l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), bige_const);
+
+      frkey = rkey0;
+      iv ^= frkey;
+
+      iv0 = iv ^ l0;
+      iv1 = iv ^ l0 ^ l1;
+      iv2 = iv ^ l1;
+      iv3 = iv ^ l1 ^ l;
+
+      b0 ^= iv0;
+      b1 ^= iv1;
+      b2 ^= iv2;
+      b3 ^= iv3;
+      iv = iv3 ^ frkey;
+
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (&rk[r]); \
+	      b0 = vec_cipher_be (b0, rkey); \
+	      b1 = vec_cipher_be (b1, rkey); \
+	      b2 = vec_cipher_be (b2, rkey); \
+	      b3 = vec_cipher_be (b3, rkey);
+
+      DO_ROUND(1);
+      DO_ROUND(2);
+      DO_ROUND(3);
+      DO_ROUND(4);
+      DO_ROUND(5);
+      DO_ROUND(6);
+      DO_ROUND(7);
+      DO_ROUND(8);
+      DO_ROUND(9);
+      if (rounds >= 12)
+	{
+	  DO_ROUND(10);
+	  DO_ROUND(11);
+	  if (rounds > 12)
+	    {
+	      DO_ROUND(12);
+	      DO_ROUND(13);
+	    }
+	}
+
+#undef DO_ROUND
+
+      rkey = rkeylast;
+      b0 = vec_cipherlast_be (b0, rkey);
+      b1 = vec_cipherlast_be (b1, rkey);
+      b2 = vec_cipherlast_be (b2, rkey);
+      b3 = vec_cipherlast_be (b3, rkey);
+
+      ctr ^= b0 ^ b1 ^ b2 ^ b3;
+
+      abuf += 4;
+      nblocks -= 4;
+    }
+
+  for (; nblocks; nblocks--)
+    {
+      l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
+      b = VEC_LOAD_BE (abuf, bige_const);
+
+      /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+      iv ^= l;
+      /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+      b ^= iv;
+      AES_ENCRYPT (b, rounds);
+      ctr ^= b;
+
+      abuf += 1;
+    }
+
+  VEC_STORE_BE (c->u_mode.ocb.aad_offset, iv, bige_const);
+  VEC_STORE_BE (c->u_mode.ocb.aad_sum, ctr, bige_const);
+  c->u_mode.ocb.aad_nblocks = data_nblocks;
+
+  return 0;
+}
+
 #endif /* USE_PPC_CRYPTO */

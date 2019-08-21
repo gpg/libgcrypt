@@ -213,6 +213,8 @@ extern unsigned int _gcry_aes_ppc8_decrypt(const RIJNDAEL_context *ctx,
 extern size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 					const void *inbuf_arg, size_t nblocks,
 					int encrypt);
+extern size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c,
+				       const void *abuf_arg, size_t nblocks);
 #endif /*USE_PPC_CRYPTO*/
 
 static unsigned int do_encrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
@@ -451,6 +453,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       if (hd)
         {
           hd->bulk.ocb_crypt = _gcry_aes_ppc8_ocb_crypt;
+          hd->bulk.ocb_auth = _gcry_aes_ppc8_ocb_auth;
         }
     }
 #endif
@@ -1484,6 +1487,12 @@ _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
       return _gcry_aes_armv8_ce_ocb_auth (c, abuf, nblocks);
     }
 #endif /*USE_ARM_CE*/
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc_crypto)
+    {
+      return _gcry_aes_ppc8_ocb_auth (c, abuf, nblocks);
+    }
+#endif /*USE_PPC_CRYPTO*/
   else
     {
       union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
