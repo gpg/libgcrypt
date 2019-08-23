@@ -3,8 +3,16 @@ Noteworthy changes in version 1.8.5 (unreleased)  [C22/A2/R5]
 
  * Bug fixes:
 
+   - Add mitigation against an ECDSA timing attack.
+     [#4626,CVE-2019-13627]
 
- Release-info: https://dev.gnupg.org/T
+   - Improve ECDSA unblinding.
+
+ * Other features:
+
+   - Provide a pkg-config file for libgcrypt.
+
+ Release-info: https://dev.gnupg.org/T4683
 
 
 Noteworthy changes in version 1.8.4 (2018-10-26)  [C22/A2/R4]
