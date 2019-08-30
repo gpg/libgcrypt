@@ -110,7 +110,7 @@ EXTRA_libcipher_la_SOURCES = \
 	sha256.c sha256-ssse3-amd64.S sha256-avx-amd64.S \
 	sha256-avx2-bmi2-amd64.S \
 	sha256-armv8-aarch32-ce.S sha256-armv8-aarch64-ce.S \
-	sha256-intel-shaext.c \
+	sha256-intel-shaext.c sha256-ppc.c \
 	sha512.c sha512-ssse3-amd64.S sha512-avx-amd64.S \
 	sha512-avx2-bmi2-amd64.S \
 	sha512-armv7-neon.S sha512-arm.S \
@@ -209,4 +209,10 @@ rijndael-ppc.o: $(srcdir)/rijndael-ppc.c Makefile
 	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
 
 rijndael-ppc.lo: $(srcdir)/rijndael-ppc.c Makefile
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+sha256-ppc.o: $(srcdir)/sha256-ppc.c Makefile
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+sha256-ppc.lo: $(srcdir)/sha256-ppc.c Makefile
 	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
