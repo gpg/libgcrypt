@@ -104,6 +104,19 @@
 #endif
 
 
+/* USE_PPC_CRYPTO indicates whether to enable PowerPC vector crypto
+ * accelerated code. */
+#undef USE_PPC_CRYPTO
+#ifdef ENABLE_PPC_CRYPTO_SUPPORT
+# if defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+     defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC)
+#  if __GNUC__ >= 4
+#   define USE_PPC_CRYPTO 1
+#  endif
+# endif
+#endif
+
+
 typedef struct
 {
   u64 h0, h1, h2, h3, h4, h5, h6, h7;
@@ -253,6 +266,31 @@ do_transform_generic (void *context, const unsigned char *data, size_t nblks);
 #endif
 
 
+#ifdef USE_PPC_CRYPTO
+unsigned int _gcry_sha512_transform_ppc8(u64 state[8],
+					 const unsigned char *input_data,
+					 size_t num_blks);
+
+unsigned int _gcry_sha512_transform_ppc9(u64 state[8],
+					 const unsigned char *input_data,
+					 size_t num_blks);
+
+static unsigned int
+do_sha512_transform_ppc8(void *ctx, const unsigned char *data, size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_ppc8 (&hd->state.h0, data, nblks);
+}
+
+static unsigned int
+do_sha512_transform_ppc9(void *ctx, const unsigned char *data, size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_ppc9 (&hd->state.h0, data, nblks);
+}
+#endif
+
+
 static void
 sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 {
@@ -285,6 +323,12 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 #ifdef USE_AVX2
   if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
     ctx->bctx.bwrite = do_sha512_transform_amd64_avx2;
+#endif
+#ifdef USE_PPC_CRYPTO
+  if ((features & HWF_PPC_VCRYPTO) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_ppc8;
+  if ((features & HWF_PPC_VCRYPTO) != 0 && (features & HWF_PPC_ARCH_3_00) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_ppc9;
 #endif
   (void)features;
 }

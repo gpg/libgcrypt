@@ -1907,6 +1907,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto
 		    "lxvw4x %vs32, %r0, %r1;\n"
 		    "vadduwm %v0, %v1, %v22;\n"
 		    "vshasigmaw %v0, %v1, 0, 15;\n"
+		    "vshasigmad %v0, %v1, 0, 15;\n"
 		  );
             ]])],
           [gcry_cv_gcc_inline_asm_ppc_altivec=yes])
@@ -2653,6 +2654,19 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-arm.lo"
       ;;
+      powerpc64le-*-*)
+         # Build with the crypto extension implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha512-ppc.lo"
+      ;;
+      powerpc64-*-*)
+         # Big-Endian.
+         # Build with the crypto extension implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha512-ppc.lo"
+      ;;
+      powerpc-*-*)
+         # Big-Endian.
+         # Build with the crypto extension implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha512-ppc.lo"
    esac
 
    if test x"$neonsupport" = xyes ; then
