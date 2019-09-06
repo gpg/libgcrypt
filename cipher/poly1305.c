@@ -99,6 +99,19 @@ static void poly1305_init (poly1305_context_t *ctx,
 
 #endif /* __x86_64__ */
 
+#if defined (__powerpc__) && __GNUC__ >= 4
+
+/* A += B (ppc64) */
+#define ADD_1305_64(A2, A1, A0, B2, B1, B0) \
+      __asm__ ("addc %0, %3, %0\n" \
+	       "adde %1, %4, %1\n" \
+	       "adde %2, %5, %2\n" \
+	       : "+r" (A0), "+r" (A1), "+r" (A2) \
+	       : "r" (B0), "r" (B1), "r" (B2) \
+	       : "cc" )
+
+#endif /* __powerpc__ */
+
 #ifndef ADD_1305_64
 /* A += B (generic, mpi) */
 #  define ADD_1305_64(A2, A1, A0, B2, B1, B0) do { \
