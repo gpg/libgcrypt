@@ -2503,6 +2503,18 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-aarch64.lo"
       ;;
+      powerpc64le-*-*)
+         # Build with the ppc8 vector implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-ppc.lo"
+      ;;
+      powerpc64-*-*)
+         # Build with the ppc8 vector implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-ppc.lo"
+      ;;
+      powerpc-*-*)
+         # Build with the ppc8 vector implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-ppc.lo"
+      ;;
    esac
 
    if test x"$neonsupport" = xyes ; then

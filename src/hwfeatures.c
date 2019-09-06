@@ -69,6 +69,7 @@ static struct
 #elif defined(HAVE_CPU_ARCH_PPC)
     { HWF_PPC_VCRYPTO,         "ppc-vcrypto" },
     { HWF_PPC_ARCH_3_00,       "ppc-arch_3_00" },
+    { HWF_PPC_ARCH_2_07,       "ppc-arch_2_07" },
 #endif
   };
 

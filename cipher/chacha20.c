@@ -85,6 +85,18 @@
 # endif
 #endif
 
+/* USE_PPC_VEC indicates whether to enable PowerPC vector
+ * accelerated code. */
+#undef USE_PPC_VEC
+#ifdef ENABLE_PPC_CRYPTO_SUPPORT
+# if defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+     defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC)
+#  if __GNUC__ >= 4
+#   define USE_PPC_VEC 1
+#  endif
+# endif
+#endif
+
 /* Assembly implementations use SystemV ABI, ABI conversion and additional
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
@@ -104,6 +116,7 @@ typedef struct CHACHA20_context_s
   int use_ssse3:1;
   int use_avx2:1;
   int use_neon:1;
+  int use_ppc:1;
 } CHACHA20_context_t;
 
 
@@ -138,6 +151,26 @@ unsigned int _gcry_chacha20_poly1305_amd64_avx2_blocks8(
 		void *poly1305_state, const byte *poly1305_src) ASM_FUNC_ABI;
 
 #endif /* USE_AVX2 */
+
+#ifdef USE_PPC_VEC
+
+unsigned int _gcry_chacha20_ppc8_blocks4(u32 *state, byte *dst,
+					 const byte *src,
+					 size_t nblks);
+
+unsigned int _gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst,
+					 const byte *src,
+					 size_t nblks);
+
+#undef USE_PPC_VEC_POLY1305
+#if SIZEOF_UNSIGNED_LONG == 8
+#define USE_PPC_VEC_POLY1305 1
+unsigned int _gcry_chacha20_poly1305_ppc8_blocks4(
+		u32 *state, byte *dst, const byte *src, size_t nblks,
+		POLY1305_STATE *st, const byte *poly1305_src);
+#endif
+
+#endif /* USE_PPC_VEC */
 
 #ifdef USE_ARMV7_NEON
 
@@ -267,6 +300,13 @@ chacha20_blocks (CHACHA20_context_t *ctx, byte *dst, const byte *src,
     }
 #endif
 
+#ifdef USE_PPC_VEC
+  if (ctx->use_ppc)
+    {
+      return _gcry_chacha20_ppc8_blocks1(ctx->input, dst, src, nblks);
+    }
+#endif
+
   return do_chacha20_blocks (ctx->input, dst, src, nblks);
 }
 
@@ -391,6 +431,9 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 #ifdef USE_AARCH64_SIMD
   ctx->use_neon = (features & HWF_ARM_NEON) != 0;
 #endif
+#ifdef USE_PPC_VEC
+  ctx->use_ppc = (features & HWF_PPC_ARCH_2_07) != 0;
+#endif
 
   (void)features;
 
@@ -471,6 +514,19 @@ do_chacha20_encrypt_stream_tail (CHACHA20_context_t *ctx, byte *outbuf,
       nblocks -= nblocks % 4;
       nburn = _gcry_chacha20_aarch64_blocks4(ctx->input, outbuf, inbuf,
 					     nblocks);
+      burn = nburn > burn ? nburn : burn;
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+
+#ifdef USE_PPC_VEC
+  if (ctx->use_ppc && length >= CHACHA20_BLOCK_SIZE * 4)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 4;
+      nburn = _gcry_chacha20_ppc8_blocks4(ctx->input, outbuf, inbuf, nblocks);
       burn = nburn > burn ? nburn : burn;
       length -= nblocks * CHACHA20_BLOCK_SIZE;
       outbuf += nblocks * CHACHA20_BLOCK_SIZE;
@@ -632,6 +688,18 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
       inbuf  += 1 * CHACHA20_BLOCK_SIZE;
     }
 #endif
+#ifdef USE_PPC_VEC_POLY1305
+  else if (ctx->use_ppc && length >= CHACHA20_BLOCK_SIZE * 4)
+    {
+      nburn = _gcry_chacha20_ppc8_blocks4(ctx->input, outbuf, inbuf, 4);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 4 * CHACHA20_BLOCK_SIZE;
+      outbuf += 4 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 4 * CHACHA20_BLOCK_SIZE;
+    }
+#endif
 
   if (authptr)
     {
@@ -692,6 +760,26 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
 	      inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
 	      authptr += nblocks * CHACHA20_BLOCK_SIZE;
 	    }
+	}
+#endif
+
+#ifdef USE_PPC_VEC_POLY1305
+      if (ctx->use_ppc &&
+	  length >= 4 * CHACHA20_BLOCK_SIZE &&
+	  authoffset >= 4 * CHACHA20_BLOCK_SIZE)
+	{
+	  size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+	  nblocks -= nblocks % 4;
+
+	  nburn = _gcry_chacha20_poly1305_ppc8_blocks4(
+		      ctx->input, outbuf, inbuf, nblocks,
+		      &c->u_mode.poly1305.ctx.state, authptr);
+	  burn = nburn > burn ? nburn : burn;
+
+	  length  -= nblocks * CHACHA20_BLOCK_SIZE;
+	  outbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	  inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
+	  authptr += nblocks * CHACHA20_BLOCK_SIZE;
 	}
 #endif
 
@@ -822,6 +910,23 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 	  outbuf += nblocks * CHACHA20_BLOCK_SIZE;
 	  inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
 	}
+    }
+#endif
+
+#ifdef USE_PPC_VEC_POLY1305
+  if (ctx->use_ppc && length >= 4 * CHACHA20_BLOCK_SIZE)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 4;
+
+      nburn = _gcry_chacha20_poly1305_ppc8_blocks4(
+			ctx->input, outbuf, inbuf, nblocks,
+			&c->u_mode.poly1305.ctx.state, inbuf);
+      burn = nburn > burn ? nburn : burn;
+
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
     }
 #endif
 

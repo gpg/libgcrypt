@@ -238,6 +238,7 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 
 #define HWF_PPC_VCRYPTO         (1 << 22)
 #define HWF_PPC_ARCH_3_00       (1 << 23)
+#define HWF_PPC_ARCH_2_07       (1 << 24)
 
 gpg_err_code_t _gcry_disable_hw_feature (const char *name);
 void _gcry_detect_hw_features (void);

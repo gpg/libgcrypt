@@ -78,6 +78,7 @@ EXTRA_libcipher_la_SOURCES = \
 	cast5.c cast5-amd64.S cast5-arm.S \
 	chacha20.c chacha20-amd64-ssse3.S chacha20-amd64-avx2.S \
 	chacha20-armv7-neon.S chacha20-aarch64.S \
+	chacha20-ppc.c \
 	crc.c crc-intel-pclmul.c crc-armv8-ce.c \
 	crc-armv8-aarch64-ce.S \
 	des.c des-amd64.S \

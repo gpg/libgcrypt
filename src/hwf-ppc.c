@@ -83,6 +83,9 @@ struct feature_map_s
 # define AT_HWCAP2     26
 #endif
 
+#ifndef PPC_FEATURE2_ARCH_2_07
+# define PPC_FEATURE2_ARCH_2_07     0x80000000
+#endif
 #ifndef PPC_FEATURE2_VEC_CRYPTO
 # define PPC_FEATURE2_VEC_CRYPTO    0x02000000
 #endif
@@ -92,6 +95,7 @@ struct feature_map_s
 
 static const struct feature_map_s ppc_features[] =
   {
+    { 0, PPC_FEATURE2_ARCH_2_07, HWF_PPC_ARCH_2_07 },
 #ifdef ENABLE_PPC_CRYPTO_SUPPORT
     { 0, PPC_FEATURE2_VEC_CRYPTO, HWF_PPC_VCRYPTO },
 #endif
