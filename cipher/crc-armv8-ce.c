@@ -226,4 +226,4 @@ _gcry_crc24rfc2440_armv8_ce_pmull (u32 *pcrc, const byte *inbuf, size_t inlen)
     crc32_less_than_16 (pcrc, inbuf, inlen, consts);
 }
 
-#endif /* USE_INTEL_PCLMUL */
+#endif

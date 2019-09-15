@@ -1908,6 +1908,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto
 		    "vadduwm %v0, %v1, %v22;\n"
 		    "vshasigmaw %v0, %v1, 0, 15;\n"
 		    "vshasigmad %v0, %v1, 0, 15;\n"
+		    "vpmsumd %v11, %v11, %v11;\n"
 		  );
             ]])],
           [gcry_cv_gcc_inline_asm_ppc_altivec=yes])
@@ -2563,6 +2564,15 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-armv8-ce.lo"
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-armv8-aarch64-ce.lo"
+      ;;
+      powerpc64le-*-*)
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-ppc.lo"
+      ;;
+      powerpc64-*-*)
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-ppc.lo"
+      ;;
+      powerpc-*-*)
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-ppc.lo"
       ;;
    esac
 fi

@@ -52,6 +52,19 @@
 # endif
 #endif /* USE_ARM_PMULL */
 
+/* USE_PPC_VPMSUM indicates whether to enable PowerPC vector
+ * accelerated code. */
+#undef USE_PPC_VPMSUM
+#ifdef ENABLE_PPC_CRYPTO_SUPPORT
+# if defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+     defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC)
+#  if __GNUC__ >= 4
+#   define USE_PPC_VPMSUM 1
+#  endif
+# endif
+#endif /* USE_PPC_VPMSUM */
+
+
 typedef struct
 {
   u32 CRC;
@@ -60,6 +73,9 @@ typedef struct
 #endif
 #ifdef USE_ARM_PMULL
   unsigned int use_pmull:1;            /* ARMv8 PMULL shall be used. */
+#endif
+#ifdef USE_PPC_VPMSUM
+  unsigned int use_vpmsum:1;           /* POWER vpmsum shall be used. */
 #endif
   byte buf[4];
 }
@@ -78,6 +94,13 @@ void _gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf,
 void _gcry_crc32_armv8_ce_pmull (u32 *pcrc, const byte *inbuf, size_t inlen);
 void _gcry_crc24rfc2440_armv8_ce_pmull (u32 *pcrc, const byte *inbuf,
 					size_t inlen);
+#endif
+
+#ifdef USE_PPC_VPMSUM
+/*-- crc-ppc.c --*/
+void _gcry_crc32_ppc8_vpmsum (u32 *pcrc, const byte *inbuf, size_t inlen);
+void _gcry_crc24rfc2440_ppc8_vpmsum (u32 *pcrc, const byte *inbuf,
+				     size_t inlen);
 #endif
 
 
@@ -388,6 +411,9 @@ crc32_init (void *context, unsigned int flags)
 #ifdef USE_ARM_PMULL
   ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
 #endif
+#ifdef USE_PPC_VPMSUM
+  ctx->use_vpmsum = !!(hwf & HWF_PPC_ARCH_2_07);
+#endif
 
   (void)flags;
   (void)hwf;
@@ -413,6 +439,13 @@ crc32_write (void *context, const void *inbuf_arg, size_t inlen)
   if (ctx->use_pmull)
     {
       _gcry_crc32_armv8_ce_pmull(&ctx->CRC, inbuf, inlen);
+      return;
+    }
+#endif
+#ifdef USE_PPC_VPMSUM
+  if (ctx->use_vpmsum)
+    {
+      _gcry_crc32_ppc8_vpmsum(&ctx->CRC, inbuf, inlen);
       return;
     }
 #endif
@@ -476,6 +509,9 @@ crc32rfc1510_init (void *context, unsigned int flags)
 #endif
 #ifdef USE_ARM_PMULL
   ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
+#endif
+#ifdef USE_PPC_VPMSUM
+  ctx->use_vpmsum = !!(hwf & HWF_PPC_ARCH_2_07);
 #endif
 
   (void)flags;
@@ -811,6 +847,9 @@ crc24rfc2440_init (void *context, unsigned int flags)
 #ifdef USE_ARM_PMULL
   ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
 #endif
+#ifdef USE_PPC_VPMSUM
+  ctx->use_vpmsum = !!(hwf & HWF_PPC_ARCH_2_07);
+#endif
 
   (void)hwf;
   (void)flags;
@@ -836,6 +875,13 @@ crc24rfc2440_write (void *context, const void *inbuf_arg, size_t inlen)
   if (ctx->use_pmull)
     {
       _gcry_crc24rfc2440_armv8_ce_pmull(&ctx->CRC, inbuf, inlen);
+      return;
+    }
+#endif
+#ifdef USE_PPC_VPMSUM
+  if (ctx->use_vpmsum)
+    {
+      _gcry_crc24rfc2440_ppc8_vpmsum(&ctx->CRC, inbuf, inlen);
       return;
     }
 #endif

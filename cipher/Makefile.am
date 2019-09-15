@@ -81,6 +81,7 @@ EXTRA_libcipher_la_SOURCES = \
 	chacha20-ppc.c \
 	crc.c crc-intel-pclmul.c crc-armv8-ce.c \
 	crc-armv8-aarch64-ce.S \
+	crc-ppc.c \
 	des.c des-amd64.S \
 	dsa.c \
 	elgamal.c \
