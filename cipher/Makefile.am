@@ -225,3 +225,15 @@ sha512-ppc.o: $(srcdir)/sha512-ppc.c Makefile
 
 sha512-ppc.lo: $(srcdir)/sha512-ppc.c Makefile
 	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+chacha20-ppc.o: $(srcdir)/chacha20-ppc.c Makefile
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+chacha20-ppc.lo: $(srcdir)/chacha20-ppc.c Makefile
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+crc-ppc.o: $(srcdir)/crc-ppc.c Makefile
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+crc-ppc.lo: $(srcdir)/crc-ppc.c Makefile
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
