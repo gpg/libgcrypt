@@ -469,7 +469,7 @@ _gcry_chacha20_poly1305_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
   u64 m0, m1, m2;
   u64 x0_lo, x0_hi, x1_lo, x1_hi;
   u64 t0_lo, t0_hi, t1_lo, t1_hi;
-  int i;
+  unsigned int i, o;
 
   /* load poly1305 state */
   m2 = 1;
@@ -515,19 +515,21 @@ _gcry_chacha20_poly1305_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
       v12 += counters_0123;
       v13 -= vec_cmplt(v12, counters_0123);
 
-      for (i = 0; i < 16; i += 2)
+      for (o = 20; o; o -= 10)
 	{
-	  POLY1305_BLOCK_PART1((i + 0) * 16);
-	  QUARTERROUND2(v0, v4,  v8, v12,   v1, v5,  v9, v13)
-	  POLY1305_BLOCK_PART2();
-	  QUARTERROUND2(v2, v6, v10, v14,   v3, v7, v11, v15)
-	  POLY1305_BLOCK_PART1((i + 1) * 16);
-	  QUARTERROUND2(v0, v5, v10, v15,   v1, v6, v11, v12)
-	  POLY1305_BLOCK_PART2();
-	  QUARTERROUND2(v2, v7,  v8, v13,   v3, v4,  v9, v14)
-	}
-      for (; i < 20; i += 2)
-	{
+	  for (i = 8; i; i -= 2)
+	    {
+	      POLY1305_BLOCK_PART1(0 * 16);
+	      QUARTERROUND2(v0, v4,  v8, v12,   v1, v5,  v9, v13)
+	      POLY1305_BLOCK_PART2();
+	      QUARTERROUND2(v2, v6, v10, v14,   v3, v7, v11, v15)
+	      POLY1305_BLOCK_PART1(1 * 16);
+	      poly1305_src += 2 * 16;
+	      QUARTERROUND2(v0, v5, v10, v15,   v1, v6, v11, v12)
+	      POLY1305_BLOCK_PART2();
+	      QUARTERROUND2(v2, v7,  v8, v13,   v3, v4,  v9, v14)
+	    }
+
 	  QUARTERROUND2(v0, v4,  v8, v12,   v1, v5,  v9, v13)
 	  QUARTERROUND2(v2, v6, v10, v14,   v3, v7, v11, v15)
 	  QUARTERROUND2(v0, v5, v10, v15,   v1, v6, v11, v12)
@@ -601,7 +603,6 @@ _gcry_chacha20_poly1305_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
 
       src += 4*64;
       dst += 4*64;
-      poly1305_src += 16*16;
 
       nblks -= 4;
     }
