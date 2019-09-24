@@ -185,6 +185,10 @@ unsigned int _gcry_chacha20_armv7_neon_blocks4(u32 *state, byte *dst,
 unsigned int _gcry_chacha20_aarch64_blocks4(u32 *state, byte *dst,
 					    const byte *src, size_t nblks);
 
+unsigned int _gcry_chacha20_poly1305_aarch64_blocks4(
+		u32 *state, byte *dst, const byte *src, size_t nblks,
+		void *poly1305_state, const byte *poly1305_src);
+
 #endif /* USE_AARCH64_SIMD */
 
 
@@ -688,6 +692,18 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
       inbuf  += 1 * CHACHA20_BLOCK_SIZE;
     }
 #endif
+#ifdef USE_AARCH64_SIMD
+  else if (ctx->use_neon && length >= CHACHA20_BLOCK_SIZE * 4)
+    {
+      nburn = _gcry_chacha20_aarch64_blocks4(ctx->input, outbuf, inbuf, 4);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 4 * CHACHA20_BLOCK_SIZE;
+      outbuf += 4 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 4 * CHACHA20_BLOCK_SIZE;
+    }
+#endif
 #ifdef USE_PPC_VEC_POLY1305
   else if (ctx->use_ppc && length >= CHACHA20_BLOCK_SIZE * 4)
     {
@@ -760,6 +776,26 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
 	      inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
 	      authptr += nblocks * CHACHA20_BLOCK_SIZE;
 	    }
+	}
+#endif
+
+#ifdef USE_AARCH64_SIMD
+      if (ctx->use_neon &&
+	  length >= 4 * CHACHA20_BLOCK_SIZE &&
+	  authoffset >= 4 * CHACHA20_BLOCK_SIZE)
+	{
+	  size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+	  nblocks -= nblocks % 4;
+
+	  nburn = _gcry_chacha20_poly1305_aarch64_blocks4(
+		      ctx->input, outbuf, inbuf, nblocks,
+		      &c->u_mode.poly1305.ctx.state, authptr);
+	  burn = nburn > burn ? nburn : burn;
+
+	  length  -= nblocks * CHACHA20_BLOCK_SIZE;
+	  outbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	  inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
+	  authptr += nblocks * CHACHA20_BLOCK_SIZE;
 	}
 #endif
 
@@ -910,6 +946,23 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 	  outbuf += nblocks * CHACHA20_BLOCK_SIZE;
 	  inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
 	}
+    }
+#endif
+
+#ifdef USE_AARCH64_SIMD
+  if (ctx->use_neon && length >= 4 * CHACHA20_BLOCK_SIZE)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 4;
+
+      nburn = _gcry_chacha20_poly1305_aarch64_blocks4(
+			ctx->input, outbuf, inbuf, nblocks,
+			&c->u_mode.poly1305.ctx.state, inbuf);
+      burn = nburn > burn ? nburn : burn;
+
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
     }
 #endif
 

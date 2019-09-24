@@ -70,8 +70,9 @@ libcipher_la_SOURCES = \
 	sha1.h
 
 EXTRA_libcipher_la_SOURCES = \
-	asm-common-amd64.h \
 	asm-common-aarch64.h \
+	asm-common-amd64.h \
+	asm-poly1305-aarch64.h \
 	asm-poly1305-amd64.h \
 	arcfour.c arcfour-amd64.S \
 	blowfish.c blowfish-amd64.S blowfish-arm.S \
