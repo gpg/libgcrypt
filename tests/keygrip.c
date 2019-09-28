@@ -189,6 +189,17 @@ static struct
       " ))",
       "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
       "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
+    },
+    { /* Cv25519 */
+      GCRY_PK_ECC,
+      "(public-key"
+      " (ecc"
+      " (curve Curve25519)(flags djb-tweak)"
+      " (q #40"
+      "     918C1733127F6BF2646FAE3D081A18AE77111C903B906310B077505EFFF12740#)"
+      " ))",
+      "\x0F\x89\xA5\x65\xD3\xEA\x18\x7C\xE8\x39"
+      "\x33\x23\x98\xF5\xD4\x80\x67\x7D\xF4\x9C"
     }
   };
 
