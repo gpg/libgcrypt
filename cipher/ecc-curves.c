@@ -158,7 +158,8 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x08"
       /* Note: As per RFC-7748 errata eid4730 the g_y value should be
        * "0x5F51E65E475F794B1FE122D388B72EB36DC2B28192839E4DD6163A5D81312C14"
-       * but that breaks the keygrip.
+       * but that breaks the keygrip.  The new value is recovered in
+       * the function _gcry_ecc_fill_in_curve.
        */
     },
 #if 0 /* No real specs yet found.  */
@@ -610,6 +611,16 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
         curve->G.x = scanval (domain_parms[idx].g_x);
       if (!curve->G.y)
         curve->G.y = scanval (domain_parms[idx].g_y);
+
+      /*
+       * In the constants of domain_parms, we defined Curve25519
+       * domain parameters as the ones in RFC-7748 before the errata
+       * (eid4730).  To keep the computation having exact same values,
+       * we recover the new value of g_y, here.
+       */
+      if (!strcmp (resname, "Curve25519"))
+        mpi_sub (curve->G.y, curve->p, curve->G.y);
+
       if (!curve->G.z)
         curve->G.z = mpi_alloc_set_ui (1);
       if (!curve->name)
