@@ -164,13 +164,17 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   if (ctx->dialect == ECC_DIALECT_ED25519 || (flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       char *rndbuf;
+      int len = (pbits+7)/8;
+      unsigned int h;
 
-      sk->d = mpi_snew (256);
-      rndbuf = _gcry_random_bytes_secure (32, random_level);
-      rndbuf[0] &= 0x7f;  /* Clear bit 255. */
-      rndbuf[0] |= 0x40;  /* Set bit 254.   */
-      rndbuf[31] &= 0xf8; /* Clear bits 2..0 so that d mod 8 == 0  */
-      _gcry_mpi_set_buffer (sk->d, rndbuf, 32, 0);
+      mpi_get_ui (&h, E->h);
+      sk->d = mpi_snew (pbits);
+      rndbuf = _gcry_random_bytes_secure (len, random_level);
+      if ((pbits % 8))
+        rndbuf[0] &= (1 << (pbits % 8)) - 1;
+      rndbuf[0] |= (1 << ((pbits + 7) % 8));
+      rndbuf[(pbits-1)/8] &= (256 - h);
+      _gcry_mpi_set_buffer (sk->d, rndbuf, len, 0);
       xfree (rndbuf);
     }
   else
@@ -341,13 +345,18 @@ test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits, int flags)
   if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       char *rndbuf;
+      const unsigned int pbits = mpi_get_nbits (sk->E.p);
+      int len = (pbits+7)/8;
+      unsigned int h;
 
-      test = mpi_new (256);
-      rndbuf = _gcry_random_bytes (32, GCRY_WEAK_RANDOM);
-      rndbuf[0] &= 0x7f;  /* Clear bit 255. */
-      rndbuf[0] |= 0x40;  /* Set bit 254.   */
-      rndbuf[31] &= 0xf8; /* Clear bits 2..0 so that d mod 8 == 0  */
-      _gcry_mpi_set_buffer (test, rndbuf, 32, 0);
+      mpi_get_ui (&h, sk->E.h);
+      test = mpi_new (pbits);
+      rndbuf = _gcry_random_bytes (len, GCRY_WEAK_RANDOM);
+      if ((pbits % 8))
+        rndbuf[0] &= (1 << (pbits % 8)) - 1;
+      rndbuf[0] |= (1 << ((pbits + 7) % 8));
+      rndbuf[(pbits-1)/8] &= (256 - h);
+      _gcry_mpi_set_buffer (test, rndbuf, len, 0);
       xfree (rndbuf);
     }
   else
@@ -431,7 +440,7 @@ check_secret_key (ECC_secret_key *sk, mpi_ec_t ec, int flags)
     }
 
   /* Check order of curve.  */
-  if (sk->E.dialect != ECC_DIALECT_ED25519 && !(flags & PUBKEY_FLAG_DJB_TWEAK))
+  if (sk->E.dialect == ECC_DIALECT_STANDARD && !(flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ec);
       if (mpi_cmp_ui (Q.z, 0))
@@ -2007,6 +2016,25 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
         goto leave;
       mpi_Q = mpi_set_opaque (NULL, encpk, encpklen*8);
       encpk = NULL;
+    }
+  else if (ec->model == MPI_EC_MONTGOMERY)
+    {
+      unsigned char *encpk;
+      unsigned int encpklen;
+
+      encpk = _gcry_mpi_get_buffer_extra (ec->Q->x, (ec->nbits+7)/8,
+                                          -1, &encpklen, NULL);
+      if (encpk == NULL)
+        rc = gpg_err_code_from_syserror ();
+      else
+        {
+          encpk[0] = 0x40;
+          encpklen++;
+          rc = 0;
+        }
+      if (rc)
+        goto leave;
+      mpi_Q = mpi_set_opaque (NULL, encpk, encpklen*8);
     }
   else
     {
