@@ -870,10 +870,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
         return GPG_ERR_INV_OBJ;
 
       point = mpi_point_new (0);
-      if (ec && ec->dialect == ECC_DIALECT_ED25519)
-        rc = _gcry_ecc_eddsa_decodepoint (a, ec, point, NULL, NULL);
-      else
-        rc = _gcry_ecc_os2ec (point, a);
+      rc = _gcry_mpi_ec_decode_point (point, a, ec);
       mpi_free (a);
       if (rc)
         {
@@ -1333,10 +1330,7 @@ _gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
         {
           if (!ec->Q)
             ec->Q = mpi_point_new (0);
-          if (ec->dialect == ECC_DIALECT_ED25519)
-            rc = _gcry_ecc_eddsa_decodepoint (newvalue, ec, ec->Q, NULL, NULL);
-          else
-            rc = _gcry_ecc_os2ec (ec->Q, newvalue);
+          rc = _gcry_mpi_ec_decode_point (ec->Q, newvalue, ec);
         }
       if (rc || !newvalue)
         {

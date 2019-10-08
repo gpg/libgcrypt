@@ -839,12 +839,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
   if (mpi_q)
     {
       point_init (&sk.Q);
-      if (ec->dialect == ECC_DIALECT_ED25519)
-        rc = _gcry_ecc_eddsa_decodepoint (mpi_q, ec, &sk.Q, NULL, NULL);
-      else if (ec->model == MPI_EC_MONTGOMERY)
-        rc = _gcry_ecc_mont_decodepoint (mpi_q, ec, &sk.Q);
-      else
-        rc = _gcry_ecc_os2ec (&sk.Q, mpi_q);
+      rc = _gcry_mpi_ec_decode_point (&sk.Q, mpi_q, ec);
       if (rc)
         goto leave;
     }
