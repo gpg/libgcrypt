@@ -40,7 +40,6 @@ int  _gcry_use_random_daemon (int onoff);
 void _gcry_set_random_seed_file (const char *name);
 void _gcry_update_random_seed_file (void);
 
-byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
 
 gcry_err_code_t _gcry_random_init_external_test (void **r_context,
