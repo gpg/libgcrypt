@@ -266,7 +266,8 @@ enum gcry_mpi_ec_models
 enum ecc_dialects
   {
     ECC_DIALECT_STANDARD = 0,
-    ECC_DIALECT_ED25519
+    ECC_DIALECT_ED25519,
+    ECC_DIALECT_SAFECURVE
   };
 
 

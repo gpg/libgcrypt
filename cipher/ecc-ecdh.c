@@ -38,13 +38,17 @@ static mpi_ec_t
 prepare_ec (const char *curve_name, elliptic_curve_t *E)
 {
   mpi_ec_t ec;
+  int flags = 0;
 
   memset (E, 0, sizeof *E);
   if (_gcry_ecc_fill_in_curve (0, curve_name, E, NULL))
     return NULL;
 
+  if (E->dialect != ECC_DIALECT_SAFECURVE)
+    flags = PUBKEY_FLAG_DJB_TWEAK;
+
   ec = _gcry_mpi_ec_p_internal_new (E->model, E->dialect,
-                                    PUBKEY_FLAG_DJB_TWEAK, E->p, E->a, E->b);
+                                    flags, E->p, E->a, E->b);
   return ec;
 }
 

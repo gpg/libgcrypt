@@ -176,7 +176,6 @@ test_cv_hl (int testno, const char *k_str, const char *u_str,
                               "(public-key"
                               " (ecc"
                               "  (curve \"X448\")"
-                              "  (flags djb-tweak)"
                               "  (q%b)))", (int)buflen, buffer)))
     {
       fail ("error building s-exp for test %d, %s: %s",
