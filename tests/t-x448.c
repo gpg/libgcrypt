@@ -1,4 +1,4 @@
-/* t-cv448.c - Check the Curve488 computation
+/* t-x448.c - Check the X488 computation
  * Copyright (C) 2019 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
@@ -30,7 +30,7 @@
 
 #include "stopwatch.h"
 
-#define PGM "t-cv448"
+#define PGM "t-x448"
 #include "t-common.h"
 #define N_TESTS 9
 
@@ -175,7 +175,7 @@ test_cv_hl (int testno, const char *k_str, const char *u_str,
   if ((err = gcry_sexp_build (&s_pk, NULL,
                               "(public-key"
                               " (ecc"
-                              "  (curve \"Curve448\")"
+                              "  (curve \"X448\")"
                               "  (flags djb-tweak)"
                               "  (q%b)))", (int)buflen, buffer)))
     {
@@ -319,7 +319,7 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
   if (verbose > 1)
     info ("Running test %d: iteration=%d\n", testno, iter);
 
-  gcry_mpi_ec_new (&ctx, NULL, "Curve448");
+  gcry_mpi_ec_new (&ctx, NULL, "X448");
   Q = gcry_mpi_point_new (0);
 
   if (!(buffer = hex2buffer (k_str, &buflen)) || buflen != 56)

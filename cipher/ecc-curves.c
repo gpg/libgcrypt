@@ -56,7 +56,7 @@ static const struct
     { "X22519",     "1.3.101.110" },         /* rfc8410 */
 #endif
 
-    { "Curve448",   "1.3.101.111" },         /* X448 in rfc8410 */
+    { "X448",   "1.3.101.111" },             /* rfc8410 */
 
     { "NIST P-192", "1.2.840.10045.3.1.1" }, /* X9.62 OID  */
     { "NIST P-192", "prime192v1" },          /* X9.62 name.  */
@@ -164,7 +164,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
     {
       /* (y^2 = x^3 + 156326*x^2 + x) */
-      "Curve448", 448, 0,
+      "X448", 448, 0,
       MPI_EC_MONTGOMERY, ECC_DIALECT_STANDARD,
       "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"
       "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",

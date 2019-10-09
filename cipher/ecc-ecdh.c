@@ -88,7 +88,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   else if (algo == GCRY_ECC_CURVE448)
     {
       nbits = ECC_CURVE448_BITS;
-      curve = "Curve448";
+      curve = "X448";
     }
   else
     return gpg_error (GPG_ERR_UNKNOWN_ALGORITHM);
