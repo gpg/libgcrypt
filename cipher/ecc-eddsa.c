@@ -180,7 +180,7 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
               return rc;
             }
 
-          rc = eddsa_encode_x_y (x, y, nbits/8, 0, &enc, &enclen);
+          rc = eddsa_encode_x_y (x, y, (nbits+7)/8, 0, &enc, &enclen);
           mpi_free (x);
           mpi_free (y);
           if (rc)

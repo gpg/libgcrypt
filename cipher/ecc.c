@@ -1302,9 +1302,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = sexp_extract_param (keyparms, NULL,
-                           (flags & PUBKEY_FLAG_DJB_TWEAK)?
-                           "-p?a?b?g?n?h?/q" : "-p?a?b?g?n?h?+q",
+  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?/q",
                            &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n, &pk.E.h,
                            &mpi_q, NULL);
   if (rc)
@@ -1820,6 +1818,8 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
   int flags = 0;
   enum gcry_mpi_ec_models model = 0;
   enum ecc_dialects dialect = 0;
+  const unsigned char *raw;
+  unsigned int n;
 
   /* Clear the values first.  */
   for (idx=0; idx < N_COMPONENTS; idx++)
@@ -1837,27 +1837,12 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
 
   /* Extract the parameters.  */
   if ((flags & PUBKEY_FLAG_PARAM))
-    {
-      if ((flags & PUBKEY_FLAG_DJB_TWEAK))
-        rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?h?/q",
-                                 &values[0], &values[1], &values[2],
-                                 &values[3], &values[4], &values[5],
-                                 &values[6], NULL);
-      else
-        rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?h?q",
-                                 &values[0], &values[1], &values[2],
-                                 &values[3], &values[4], &values[5],
-                                 &values[6], NULL);
-    }
+    rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?h?/q",
+                             &values[0], &values[1], &values[2],
+                             &values[3], &values[4], &values[5],
+                             &values[6], NULL);
   else
-    {
-      if ((flags & PUBKEY_FLAG_DJB_TWEAK))
-        rc = sexp_extract_param (keyparms, NULL, "/q",
-                                 &values[6], NULL);
-      else
-        rc = sexp_extract_param (keyparms, NULL, "q",
-                                 &values[6], NULL);
-    }
+    rc = sexp_extract_param (keyparms, NULL, "/q", &values[6], NULL);
   if (rc)
     goto leave;
 
@@ -1890,7 +1875,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
                  ? ECC_DIALECT_ED25519
                  : ECC_DIALECT_STANDARD);
       if (!values[5])
-	values[5] = mpi_const (MPI_C_ONE);
+        values[5] = mpi_const (MPI_C_ONE);
     }
 
   /* Check that all parameters are known and normalize all MPIs (that
@@ -1910,11 +1895,31 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
      the compressed version.  Because we don't support any non-eddsa
      compression, the only thing we need to do is to compress
      EdDSA.  */
-  if ((flags & PUBKEY_FLAG_DJB_TWEAK))
+  if ((flags & PUBKEY_FLAG_EDDSA) && dialect == ECC_DIALECT_ED25519)
     {
-      rc = _gcry_ecc_eddsa_ensure_compact (values[6], 256);
+      const unsigned int pbits = mpi_get_nbits (values[0]);
+
+      rc = _gcry_ecc_eddsa_ensure_compact (values[6], pbits);
       if (rc)
         goto leave;
+    }
+  else if ((flags & PUBKEY_FLAG_DJB_TWEAK))
+    {
+      /* Remove the prefix 0x40 for keygrip computation.  */
+      raw = mpi_get_opaque (values[6], &n);
+      if (raw)
+        {
+          n = (n + 7)/8;
+
+          if (n > 1 && (n%2) && raw[0] == 0x40)
+            if (!_gcry_mpi_set_opaque_copy (values[6], raw + 1, (n - 1)*8))
+                rc = gpg_err_code_from_syserror ();
+        }
+      else
+        {
+          rc = GPG_ERR_INV_OBJ;
+          goto leave;
+        }
     }
 
   /* Hash them all.  */
@@ -1927,9 +1932,6 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
 
       if (mpi_is_opaque (values[idx]))
         {
-          const unsigned char *raw;
-          unsigned int n;
-
           raw = mpi_get_opaque (values[idx], &n);
           n = (n + 7)/8;
           snprintf (buf, sizeof buf, "(1:%c%u:", names[idx], n);
