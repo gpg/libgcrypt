@@ -142,13 +142,7 @@ test_cv_hl (int testno, const char *k_str, const char *u_str,
       goto leave;
     }
 
-  reverse_buffer (buffer, buflen);
-  if ((err = gcry_mpi_scan (&mpi_k, GCRYMPI_FMT_USG, buffer, buflen, NULL)))
-    {
-      fail ("error converting MPI for test %d: %s", testno, gpg_strerror (err));
-      goto leave;
-    }
-
+  mpi_k = gcry_mpi_set_opaque (NULL, buffer, buflen*8);
   if ((err = gcry_sexp_build (&s_data, NULL, "%m", mpi_k)))
     {
       fail ("error building s-exp for test %d, %s: %s",
@@ -156,7 +150,6 @@ test_cv_hl (int testno, const char *k_str, const char *u_str,
       goto leave;
     }
 
-  xfree (buffer);
   if (!(buffer = hex2buffer (u_str, &buflen)) || buflen != 56)
     {
       fail ("error building s-exp for test %d, %s: %s",
@@ -198,7 +191,6 @@ test_cv_hl (int testno, const char *k_str, const char *u_str,
       char *r, *r0;
       int i;
 
-      /* To skip the prefix 0x40, for-loop start with i=1 */
       r0 = r = xmalloc (2*(res_len)+1);
       if (!r0)
         {
@@ -206,7 +198,7 @@ test_cv_hl (int testno, const char *k_str, const char *u_str,
           goto leave;
         }
 
-      for (i=1; i < res_len; i++, r += 2)
+      for (i=0; i < res_len; i++, r += 2)
         snprintf (r, 3, "%02x", res[i]);
       if (strcmp (result_str, r0))
         {

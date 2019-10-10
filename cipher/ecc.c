@@ -167,17 +167,23 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
     {
       char *rndbuf;
       int len = (pbits+7)/8;
-      unsigned int h;
 
-      mpi_get_ui (&h, E->h);
-      sk->d = mpi_snew (pbits);
       rndbuf = _gcry_random_bytes_secure (len, random_level);
-      if ((pbits % 8))
-        rndbuf[0] &= (1 << (pbits % 8)) - 1;
-      rndbuf[0] |= (1 << ((pbits + 7) % 8));
-      rndbuf[(pbits-1)/8] &= (256 - h);
-      _gcry_mpi_set_buffer (sk->d, rndbuf, len, 0);
-      xfree (rndbuf);
+      if (ctx->dialect == ECC_DIALECT_SAFECURVE)
+        sk->d = mpi_set_opaque (NULL, rndbuf, len*8);
+      else
+        {
+          unsigned int h;
+
+          mpi_get_ui (&h, E->h);
+          sk->d = mpi_snew (pbits);
+          if ((pbits % 8))
+            rndbuf[0] &= (1 << (pbits % 8)) - 1;
+          rndbuf[0] |= (1 << ((pbits + 7) % 8));
+          rndbuf[(pbits-1)/8] &= (256 - h);
+          _gcry_mpi_set_buffer (sk->d, rndbuf, len, 0);
+          xfree (rndbuf);
+        }
     }
   else
     sk->d = _gcry_dsa_gen_k (E->n, random_level);
@@ -350,17 +356,23 @@ test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits, int flags)
       char *rndbuf;
       const unsigned int pbits = mpi_get_nbits (sk->E.p);
       int len = (pbits+7)/8;
-      unsigned int h;
 
-      mpi_get_ui (&h, sk->E.h);
-      test = mpi_new (pbits);
       rndbuf = _gcry_random_bytes (len, GCRY_WEAK_RANDOM);
-      if ((pbits % 8))
-        rndbuf[0] &= (1 << (pbits % 8)) - 1;
-      rndbuf[0] |= (1 << ((pbits + 7) % 8));
-      rndbuf[(pbits-1)/8] &= (256 - h);
-      _gcry_mpi_set_buffer (test, rndbuf, len, 0);
-      xfree (rndbuf);
+      if (sk->E.dialect == ECC_DIALECT_SAFECURVE)
+        test = mpi_set_opaque (NULL, rndbuf, len*8);
+      else
+        {
+          unsigned int h;
+
+          mpi_get_ui (&h, sk->E.h);
+          test = mpi_new (pbits);
+          if ((pbits % 8))
+            rndbuf[0] &= (1 << (pbits % 8)) - 1;
+          rndbuf[0] |= (1 << ((pbits + 7) % 8));
+          rndbuf[(pbits-1)/8] &= (256 - h);
+          _gcry_mpi_set_buffer (test, rndbuf, len, 0);
+          xfree (rndbuf);
+        }
     }
   else
     {
@@ -605,6 +617,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     }
 
   ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, flags, E.p, E.a, E.b);
+  ctx->h = mpi_copy (E.h);
 
   if (E.model == MPI_EC_MONTGOMERY)
     rc = nist_generate_key (&sk, &E, ctx, flags, nbits, &Qx, NULL);
@@ -631,7 +644,9 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       unsigned int encpklen;
 
       if (E.model == MPI_EC_MONTGOMERY)
-        rc = _gcry_ecc_mont_encodepoint (Qx, nbits, 1, &encpk, &encpklen);
+        rc = _gcry_ecc_mont_encodepoint (Qx, nbits,
+                                         sk.E.dialect != ECC_DIALECT_SAFECURVE,
+                                         &encpk, &encpklen);
       else
         /* (Gx and Gy are used as scratch variables)  */
         rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, Gx, Gy,
@@ -768,12 +783,11 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
 
   /* Extract the parameters.  */
   if ((flags & PUBKEY_FLAG_PARAM))
-    rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?/q?+d",
+    rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?/q?",
                              &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                             &sk.E.h, &mpi_q, &sk.d, NULL);
+                             &sk.E.h, &mpi_q, NULL);
   else
-    rc = sexp_extract_param (keyparms, NULL, "/q?+d",
-                             &mpi_q, &sk.d, NULL);
+    rc = sexp_extract_param (keyparms, NULL, "/q?", &mpi_q, NULL);
   if (rc)
     goto leave;
 
@@ -812,6 +826,14 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
       if (!sk.E.h)
         sk.E.h = mpi_const (MPI_C_ONE);
     }
+
+  if (sk.E.dialect == ECC_DIALECT_SAFECURVE)
+    rc = sexp_extract_param (keyparms, NULL, "/d", &sk.d, NULL);
+  else
+    rc = sexp_extract_param (keyparms, NULL, "+d", &sk.d, NULL);
+  if (rc)
+    goto leave;
+
   if (DBG_CIPHER)
     {
       log_debug ("ecc_testkey info: %s/%s\n",
@@ -837,6 +859,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
 
   ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, flags,
                                     sk.E.p, sk.E.a, sk.E.b);
+  ec->h = mpi_copy (sk.E.h);
 
   if (mpi_q)
     {
@@ -1282,18 +1305,6 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   l1 = NULL;
 
   /*
-   * Extract the data.
-   */
-  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
-  if (rc)
-    goto leave;
-  if (mpi_is_opaque (data))
-    {
-      rc = GPG_ERR_INV_DATA;
-      goto leave;
-    }
-
-  /*
    * Extract the key.
    */
   rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?/q",
@@ -1327,16 +1338,33 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         pk.E.h = mpi_const (MPI_C_ONE);
     }
 
-  if (pk.E.dialect == ECC_DIALECT_SAFECURVE || (flags & PUBKEY_FLAG_DJB_TWEAK))
+  if (pk.E.dialect == ECC_DIALECT_SAFECURVE)
+    {
+      ctx.flags |= PUBKEY_FLAG_RAW_FLAG;
+      safecurve = 1;
+    }
+  else if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     safecurve = 1;
   else
     safecurve = 0;
 
   /*
+   * Extract the data.
+   */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (pk.E.dialect != ECC_DIALECT_SAFECURVE && mpi_is_opaque (data))
+    {
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
+    }
+
+  /*
    * Tweak the scalar bits by cofactor and number of bits of the field.
    * It assumes the cofactor is a power of 2.
    */
-  if (safecurve)
+  if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       int i;
 
@@ -1371,6 +1399,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /* Compute the encrypted value.  */
   ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, flags,
                                     pk.E.p, pk.E.a, pk.E.b);
+  ec->h = mpi_copy (pk.E.h);
 
   /* Convert the public key.  */
   if (mpi_q)
@@ -1425,7 +1454,9 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_s = _gcry_ecc_ec2os (x, y, pk.E.p);
     else
       {
-        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        rc = _gcry_ecc_mont_encodepoint (x, nbits,
+                                         pk.E.dialect != ECC_DIALECT_SAFECURVE,
+                                         &rawmpi, &rawmpilen);
         if (rc)
           goto leave_main;
         mpi_s = mpi_new (0);
@@ -1444,7 +1475,9 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_e = _gcry_ecc_ec2os (x, y, pk.E.p);
     else
       {
-        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        rc = _gcry_ecc_mont_encodepoint (x, nbits,
+                                         pk.E.dialect != ECC_DIALECT_SAFECURVE,
+                                         &rawmpi, &rawmpilen);
         if (!rc)
           {
             mpi_e = mpi_new (0);
@@ -1535,23 +1568,18 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_preparse_encval (s_data, ecc_names, &l1, &ctx);
   if (rc)
     goto leave;
-  rc = sexp_extract_param (l1, NULL, "e", &data_e, NULL);
+  rc = sexp_extract_param (l1, NULL, "/e", &data_e, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
     log_printmpi ("ecc_decrypt  d_e", data_e);
-  if (mpi_is_opaque (data_e))
-    {
-      rc = GPG_ERR_INV_DATA;
-      goto leave;
-    }
 
   /*
    * Extract the key.
    */
-  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?+d",
+  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?",
                            &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                           &sk.E.h, &sk.d, NULL);
+                           &sk.E.h, NULL);
   if (rc)
     goto leave;
   if (mpi_g)
@@ -1580,6 +1608,14 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       if (!sk.E.h)
         sk.E.h = mpi_const (MPI_C_ONE);
     }
+
+  if (sk.E.dialect == ECC_DIALECT_SAFECURVE)
+    rc = sexp_extract_param (keyparms, NULL, "/d", &sk.d, NULL);
+  else
+    rc = sexp_extract_param (keyparms, NULL, "+d", &sk.d, NULL);
+  if (rc)
+    goto leave;
+
   if (DBG_CIPHER)
     {
       log_debug ("ecc_decrypt info: %s/%s\n",
@@ -1609,6 +1645,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, flags,
                                     sk.E.p, sk.E.a, sk.E.b);
+  ec->h = mpi_copy (sk.E.h);
 
   /*
    * Compute the plaintext.
@@ -1692,7 +1729,9 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         unsigned char *rawmpi;
         unsigned int rawmpilen;
 
-        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        rc = _gcry_ecc_mont_encodepoint (x, nbits,
+                                         sk.E.dialect != ECC_DIALECT_SAFECURVE,
+                                         &rawmpi, &rawmpilen);
         if (rc)
           goto leave;
 
@@ -2008,7 +2047,8 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
       unsigned char *encpk;
       unsigned int encpklen;
 
-      rc = _gcry_ecc_mont_encodepoint (ec->Q->x, ec->nbits, 1,
+      rc = _gcry_ecc_mont_encodepoint (ec->Q->x, ec->nbits,
+                                       ec->dialect != ECC_DIALECT_SAFECURVE,
                                        &encpk, &encpklen);
       if (rc)
         goto leave;

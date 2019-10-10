@@ -685,7 +685,10 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
   ldata = sexp_find_token (input, "data", 0);
   if (!ldata)
     { /* assume old style */
-      *ret_mpi = sexp_nth_mpi (input, 0, 0);
+      if ((ctx->flags & PUBKEY_FLAG_RAW_FLAG))
+        *ret_mpi = sexp_nth_mpi (input, 0, GCRYMPI_FMT_OPAQUE);
+      else
+        *ret_mpi = sexp_nth_mpi (input, 0, 0);
       return *ret_mpi ? GPG_ERR_NO_ERROR : GPG_ERR_INV_OBJ;
     }
 

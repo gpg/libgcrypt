@@ -49,6 +49,7 @@ prepare_ec (const char *curve_name, elliptic_curve_t *E)
 
   ec = _gcry_mpi_ec_p_internal_new (E->model, E->dialect,
                                     flags, E->p, E->a, E->b);
+  ec->h = mpi_copy (E->h);
   return ec;
 }
 
@@ -99,19 +100,24 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
 
   nbytes = nbits / 8;
 
-  mpi_k = mpi_new (nbits);
   ec = prepare_ec (curve, &E);
   mpi_u = mpi_new (nbits);
   Q = mpi_point_new (nbits);
   x = mpi_new (nbits);
 
   memcpy (buffer, scalar, nbytes);
-  reverse_buffer (buffer, nbytes);
-  _gcry_mpi_set_buffer (mpi_k, buffer, nbytes, 0);
+  if (algo == GCRY_ECC_CURVE25519)
+    {
+      mpi_k = mpi_new (nbits);
+      reverse_buffer (buffer, nbytes);
+      _gcry_mpi_set_buffer (mpi_k, buffer, nbytes, 0);
 
-  for (i = 0; i < mpi_get_nbits (E.h) - 1; i++)
-    mpi_clear_bit (mpi_k, i);
-  mpi_set_highbit (mpi_k, mpi_get_nbits (E.p) - 1);
+      for (i = 0; i < mpi_get_nbits (E.h) - 1; i++)
+        mpi_clear_bit (mpi_k, i);
+      mpi_set_highbit (mpi_k, mpi_get_nbits (E.p) - 1);
+    }
+  else
+    mpi_k = _gcry_mpi_set_opaque_copy (NULL, buffer, nbytes*8);
 
   if (point)
     {
