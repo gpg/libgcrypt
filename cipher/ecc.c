@@ -630,23 +630,13 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       unsigned char *encpk;
       unsigned int encpklen;
 
-      if (E.model != MPI_EC_MONTGOMERY)
+      if (E.model == MPI_EC_MONTGOMERY)
+        rc = _gcry_ecc_mont_encodepoint (Qx, nbits, 1, &encpk, &encpklen);
+      else
         /* (Gx and Gy are used as scratch variables)  */
         rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, Gx, Gy,
                                           !!(flags & PUBKEY_FLAG_COMP),
                                           &encpk, &encpklen);
-      else
-        {
-          encpk = _gcry_mpi_get_buffer_extra (Qx, nbits/8,
-                                              -1, &encpklen, NULL);
-          if (encpk == NULL)
-            rc = gpg_err_code_from_syserror ();
-          else
-            {
-              encpk[0] = 0x40;
-              encpklen++;
-            }
-        }
       if (rc)
         goto leave;
       public = mpi_new (0);
@@ -1435,16 +1425,11 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_s = _gcry_ecc_ec2os (x, y, pk.E.p);
     else
       {
-        rawmpi = _gcry_mpi_get_buffer_extra (x, nbits/8, -1, &rawmpilen, NULL);
-        if (!rawmpi)
-          rc = gpg_err_code_from_syserror ();
-        else
-          {
-            rawmpi[0] = 0x40;
-            rawmpilen++;
-            mpi_s = mpi_new (0);
-            mpi_set_opaque (mpi_s, rawmpi, rawmpilen*8);
-          }
+        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        if (rc)
+          goto leave_main;
+        mpi_s = mpi_new (0);
+        mpi_set_opaque (mpi_s, rawmpi, rawmpilen*8);
       }
 
     /* R = kG */
@@ -1459,13 +1444,9 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_e = _gcry_ecc_ec2os (x, y, pk.E.p);
     else
       {
-        rawmpi = _gcry_mpi_get_buffer_extra (x, nbits/8, -1, &rawmpilen, NULL);
-        if (!rawmpi)
-          rc = gpg_err_code_from_syserror ();
-        else
+        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        if (!rc)
           {
-            rawmpi[0] = 0x40;
-            rawmpilen++;
             mpi_e = mpi_new (0);
             mpi_set_opaque (mpi_e, rawmpi, rawmpilen*8);
           }
@@ -1707,23 +1688,16 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       r = _gcry_ecc_ec2os (x, y, sk.E.p);
     else
       {
+
         unsigned char *rawmpi;
         unsigned int rawmpilen;
 
-        rawmpi = _gcry_mpi_get_buffer_extra (x, nbits/8, -1,
-                                             &rawmpilen, NULL);
-        if (!rawmpi)
-          {
-            rc = gpg_err_code_from_syserror ();
-            goto leave;
-          }
-        else
-          {
-            rawmpi[0] = 0x40;
-            rawmpilen++;
-            r = mpi_new (0);
-            mpi_set_opaque (r, rawmpi, rawmpilen*8);
-          }
+        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        if (rc)
+          goto leave;
+
+        r = mpi_new (0);
+        mpi_set_opaque (r, rawmpi, rawmpilen*8);
       }
     if (!r)
       rc = gpg_err_code_from_syserror ();
@@ -2034,16 +2008,8 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
       unsigned char *encpk;
       unsigned int encpklen;
 
-      encpk = _gcry_mpi_get_buffer_extra (ec->Q->x, (ec->nbits+7)/8,
-                                          -1, &encpklen, NULL);
-      if (encpk == NULL)
-        rc = gpg_err_code_from_syserror ();
-      else
-        {
-          encpk[0] = 0x40;
-          encpklen++;
-          rc = 0;
-        }
+      rc = _gcry_ecc_mont_encodepoint (ec->Q->x, ec->nbits, 1,
+                                       &encpk, &encpklen);
       if (rc)
         goto leave;
       mpi_Q = mpi_set_opaque (NULL, encpk, encpklen*8);

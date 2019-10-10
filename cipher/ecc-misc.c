@@ -147,16 +147,16 @@ _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
    return a newly allocated MPI.  If the conversion is not possible
    NULL is returned.  This function won't print an error message.  */
 gcry_mpi_t
-_gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ectx)
+_gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ec)
 {
   gcry_mpi_t g_x, g_y, result;
 
   g_x = mpi_new (0);
   g_y = mpi_new (0);
-  if (_gcry_mpi_ec_get_affine (g_x, g_y, point, ectx))
+  if (_gcry_mpi_ec_get_affine (g_x, g_y, point, ec))
     result = NULL;
   else
-    result = _gcry_ecc_ec2os (g_x, g_y, ectx->p);
+    result = _gcry_ecc_ec2os (g_x, g_y, ec->p);
   mpi_free (g_x);
   mpi_free (g_y);
 
@@ -291,7 +291,32 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
 
 
 gpg_err_code_t
-_gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
+_gcry_ecc_mont_encodepoint (gcry_mpi_t x, unsigned int nbits,
+                            int with_prefix,
+                            unsigned char **r_buffer, unsigned int *r_buflen)
+{
+  unsigned char *rawmpi;
+  unsigned int rawmpilen;
+
+  rawmpi = _gcry_mpi_get_buffer_extra (x, (nbits+7)/8,
+                                       with_prefix? -1 : 0, &rawmpilen, NULL);
+  if (rawmpi == NULL)
+    return gpg_err_code_from_syserror ();
+
+  if (with_prefix)
+    {
+      rawmpi[0] = 0x40;
+      rawmpilen++;
+    }
+
+  *r_buffer = rawmpi;
+  *r_buflen = rawmpilen;
+  return 0;
+}
+
+
+gpg_err_code_t
+_gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ec, mpi_point_t result)
 {
   unsigned char *rawmpi;
   unsigned int rawmpilen;
@@ -322,7 +347,7 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
     }
   else
     {
-      unsigned int nbytes = (ctx->nbits+7)/8;
+      unsigned int nbytes = (ec->nbits+7)/8;
 
       rawmpi = _gcry_mpi_get_buffer (pk, nbytes, &rawmpilen, NULL);
       if (!rawmpi)
@@ -361,8 +386,8 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
       rawmpilen = nbytes;
     }
 
-  if ((ctx->nbits % 8))
-    rawmpi[0] &= (1 << (ctx->nbits % 8)) - 1;
+  if ((ec->nbits % 8))
+    rawmpi[0] &= (1 << (ec->nbits % 8)) - 1;
   _gcry_mpi_set_buffer (result->x, rawmpi, rawmpilen, 0);
   xfree (rawmpi);
   mpi_set_ui (result->z, 1);

@@ -92,6 +92,10 @@ gcry_mpi_t   _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p);
 
 mpi_point_t  _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
                                        mpi_point_t G, gcry_mpi_t d);
+gpg_err_code_t _gcry_ecc_mont_encodepoint (gcry_mpi_t x, unsigned int nbits,
+                                           int with_prefix,
+                                           unsigned char **r_buffer,
+                                           unsigned int *r_buflen);
 
 
 /*-- ecc.c --*/
