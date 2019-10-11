@@ -1527,16 +1527,11 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_preparse_encval (s_data, ecc_names, &l1, &ctx);
   if (rc)
     goto leave;
-  rc = sexp_extract_param (l1, NULL, "e", &data_e, NULL);
+  rc = sexp_extract_param (l1, NULL, "/e", &data_e, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
     log_printmpi ("ecc_decrypt  d_e", data_e);
-  if (mpi_is_opaque (data_e))
-    {
-      rc = GPG_ERR_INV_DATA;
-      goto leave;
-    }
 
   /*
    * Extract the key.
