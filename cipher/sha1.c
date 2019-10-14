@@ -274,7 +274,7 @@ sha1_init (void *context, unsigned int flags)
   hd->bctx.nblocks = 0;
   hd->bctx.nblocks_high = 0;
   hd->bctx.count = 0;
-  hd->bctx.blocksize = 64;
+  hd->bctx.blocksize_shift = _gcry_ctz(64);
 
   /* Order of feature checks is important here; last match will be
    * selected.  Keep slower implementations at the top and faster at

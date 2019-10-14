@@ -77,7 +77,7 @@ sm3_init (void *context, unsigned int flags)
   hd->bctx.nblocks = 0;
   hd->bctx.nblocks_high = 0;
   hd->bctx.count = 0;
-  hd->bctx.blocksize = 64;
+  hd->bctx.blocksize_shift = _gcry_ctz(64);
   hd->bctx.bwrite = transform;
 
   (void)features;

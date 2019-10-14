@@ -135,7 +135,7 @@ md2_init (void *context, unsigned int flags)
   (void)flags;
 
   memset (ctx, 0, sizeof(*ctx));
-  ctx->bctx.blocksize = 16;
+  ctx->bctx.blocksize_shift = _gcry_ctz(16);
   ctx->bctx.bwrite = transform;
 }
 

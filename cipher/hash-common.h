@@ -51,7 +51,7 @@ typedef struct gcry_md_block_ctx
     MD_NBLOCKS_TYPE nblocks;
     MD_NBLOCKS_TYPE nblocks_high;
     int count;
-    size_t blocksize;
+    unsigned int blocksize_shift;
     _gcry_md_block_write_t bwrite;
 } gcry_md_block_ctx_t;
 

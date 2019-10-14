@@ -1179,7 +1179,7 @@ whirlpool_init (void *ctx, unsigned int flags)
 
   memset (context, 0, sizeof (*context));
 
-  context->bctx.blocksize = BLOCK_SIZE;
+  context->bctx.blocksize_shift = _gcry_ctz(BLOCK_SIZE);
   context->bctx.bwrite = whirlpool_transform;
   if ((flags & GCRY_MD_FLAG_BUGEMU1))
     {

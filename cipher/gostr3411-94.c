@@ -61,7 +61,7 @@ gost3411_init (void *context, unsigned int flags)
 
   hd->bctx.nblocks = 0;
   hd->bctx.count = 0;
-  hd->bctx.blocksize = 32;
+  hd->bctx.blocksize_shift = _gcry_ctz(32);
   hd->bctx.bwrite = transform;
   hd->cryptopro = 0;
 }
