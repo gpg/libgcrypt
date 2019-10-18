@@ -632,15 +632,15 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
 
 
 /* Give the name of the curve NAME, store the curve parameters into P,
-   A, B, G, N, and H if they point to NULL value.  Note that G is returned
-   in standard uncompressed format.  Also update MODEL and DIALECT if
-   they are not NULL. */
+   A, B, G, and N if they point to NULL value.  Note that G is
+   returned in standard uncompressed format.  Also update MODEL and
+   DIALECT if they are not NULL. */
 gpg_err_code_t
 _gcry_ecc_update_curve_param (const char *name,
                               enum gcry_mpi_ec_models *model,
                               enum ecc_dialects *dialect,
                               gcry_mpi_t *p, gcry_mpi_t *a, gcry_mpi_t *b,
-                              gcry_mpi_t *g, gcry_mpi_t *n, gcry_mpi_t *h)
+                              gcry_mpi_t *g, gcry_mpi_t *n)
 {
   int idx;
 
@@ -689,11 +689,6 @@ _gcry_ecc_update_curve_param (const char *name,
     {
       _gcry_mpi_release (*n);
       *n = scanval (domain_parms[idx].n);
-    }
-  if (h)
-    {
-      _gcry_mpi_release (*h);
-      *h = scanval (domain_parms[idx].h);
     }
   return 0;
 }

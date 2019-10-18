@@ -76,7 +76,7 @@ gpg_err_code_t _gcry_ecc_update_curve_param (const char *name,
                                              enum ecc_dialects *dialect,
                                              gcry_mpi_t *p, gcry_mpi_t *a,
                                              gcry_mpi_t *b, gcry_mpi_t *g,
-                                             gcry_mpi_t *n, gcry_mpi_t *h);
+                                             gcry_mpi_t *n);
 
 const char *_gcry_ecc_get_curve (gcry_sexp_t keyparms,
                                  int iterator,

@@ -1769,8 +1769,8 @@ ecc_get_nbits (gcry_sexp_t parms)
 static gpg_err_code_t
 compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
 {
-#define N_COMPONENTS 7
-  static const char names[N_COMPONENTS] = "pabgnhq";
+#define N_COMPONENTS 6
+  static const char names[N_COMPONENTS] = "pabgnq";
   gpg_err_code_t rc;
   gcry_sexp_t l1;
   gcry_mpi_t values[N_COMPONENTS];
@@ -1798,12 +1798,12 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
 
   /* Extract the parameters.  */
   if ((flags & PUBKEY_FLAG_PARAM))
-    rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?h?/q",
+    rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?/q",
                              &values[0], &values[1], &values[2],
                              &values[3], &values[4], &values[5],
-                             &values[6], NULL);
+                             NULL);
   else
-    rc = sexp_extract_param (keyparms, NULL, "/q", &values[6], NULL);
+    rc = sexp_extract_param (keyparms, NULL, "/q", &values[5], NULL);
   if (rc)
     goto leave;
 
@@ -1819,7 +1819,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
           rc = _gcry_ecc_update_curve_param (curvename,
                                              &model, &dialect,
                                              &values[0], &values[1], &values[2],
-                                             &values[3], &values[4], &values[5]);
+                                             &values[3], &values[4]);
           if (rc)
             goto leave;
         }
@@ -1835,8 +1835,6 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
       dialect = ((flags & PUBKEY_FLAG_EDDSA)
                  ? ECC_DIALECT_ED25519
                  : ECC_DIALECT_STANDARD);
-      if (!values[5])
-        values[5] = mpi_const (MPI_C_ONE);
     }
 
   /* Check that all parameters are known and normalize all MPIs (that
@@ -1860,20 +1858,20 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
     {
       const unsigned int pbits = mpi_get_nbits (values[0]);
 
-      rc = _gcry_ecc_eddsa_ensure_compact (values[6], pbits);
+      rc = _gcry_ecc_eddsa_ensure_compact (values[5], pbits);
       if (rc)
         goto leave;
     }
   else if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       /* Remove the prefix 0x40 for keygrip computation.  */
-      raw = mpi_get_opaque (values[6], &n);
+      raw = mpi_get_opaque (values[5], &n);
       if (raw)
         {
           n = (n + 7)/8;
 
           if (n > 1 && (n%2) && raw[0] == 0x40)
-            if (!_gcry_mpi_set_opaque_copy (values[6], raw + 1, (n - 1)*8))
+            if (!_gcry_mpi_set_opaque_copy (values[5], raw + 1, (n - 1)*8))
                 rc = gpg_err_code_from_syserror ();
         }
       else
@@ -1887,9 +1885,6 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
   for (idx = 0; idx < N_COMPONENTS; idx++)
     {
       char buf[30];
-
-      if (idx == 5)
-        continue;               /* Skip cofactor. */
 
       if (mpi_is_opaque (values[idx]))
         {
