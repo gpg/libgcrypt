@@ -920,33 +920,19 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
 }
 
 
-/* This function creates a new context for elliptic curve operations.
-   Either KEYPARAM or CURVENAME must be given.  If both are given and
-   KEYPARAM has no curve parameter, CURVENAME is used to add missing
-   parameters.  On success 0 is returned and the new context stored at
-   R_CTX.  On error NULL is stored at R_CTX and an error code is
-   returned.  The context needs to be released using
-   gcry_ctx_release.  */
-gpg_err_code_t
-_gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
-                  gcry_sexp_t keyparam, const char *curvename)
+
+static gpg_err_code_t
+mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
+                           gcry_sexp_t keyparam, const char *curvename)
 {
-  gpg_err_code_t errc;
-  gcry_ctx_t ctx = NULL;
-  enum gcry_mpi_ec_models model = MPI_EC_WEIERSTRASS;
-  enum ecc_dialects dialect = ECC_DIALECT_STANDARD;
-  gcry_mpi_t p = NULL;
-  gcry_mpi_t a = NULL;
-  gcry_mpi_t b = NULL;
-  gcry_mpi_point_t G = NULL;
-  gcry_mpi_t n = NULL;
-  unsigned int h = 1;
-  gcry_mpi_point_t Q = NULL;
-  gcry_mpi_t d = NULL;
-  int flags = 0;
+  gpg_err_code_t errc = 0;
   gcry_sexp_t l1;
 
-  *r_ctx = NULL;
+  *r_flags = 0;
+
+  E->model = MPI_EC_WEIERSTRASS;
+  E->dialect = ECC_DIALECT_STANDARD;
+  E->h = 1;
 
   if (keyparam)
     {
@@ -954,7 +940,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
       l1 = sexp_find_token (keyparam, "flags", 0);
       if (l1)
         {
-          errc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+          errc = _gcry_pk_util_parse_flaglist (l1, r_flags, NULL);
           sexp_release (l1);
           l1 = NULL;
           if (errc)
@@ -966,23 +952,30 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
 
       /* If we don't have a curve name or if override parameters have
          explicitly been requested, parse them.  */
-      if (!l1 || (flags & PUBKEY_FLAG_PARAM))
+      if (!l1 || (*r_flags & PUBKEY_FLAG_PARAM))
         {
+          gcry_mpi_point_t G = NULL;
           gcry_mpi_t cofactor = NULL;
 
-          errc = mpi_from_keyparam (&p, keyparam, "p");
+          errc = mpi_from_keyparam (&E->p, keyparam, "p");
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&a, keyparam, "a");
+          errc = mpi_from_keyparam (&E->a, keyparam, "a");
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&b, keyparam, "b");
+          errc = mpi_from_keyparam (&E->b, keyparam, "b");
           if (errc)
             goto leave;
           errc = point_from_keyparam (&G, keyparam, "g", NULL);
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&n, keyparam, "n");
+          if (G)
+            {
+              mpi_point_set (&E->G, G->x, G->y, G->z);
+              mpi_point_set (G, NULL, NULL, NULL);
+              mpi_point_release (G);
+            }
+          errc = mpi_from_keyparam (&E->n, keyparam, "n");
           if (errc)
             goto leave;
           errc = mpi_from_keyparam (&cofactor, keyparam, "h");
@@ -990,7 +983,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
             goto leave;
           if (cofactor)
             {
-              mpi_get_ui (&h, cofactor);
+              mpi_get_ui (&E->h, cofactor);
               mpi_free (cofactor);
             }
         }
@@ -1005,7 +998,6 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
   if (l1 || curvename)
     {
       char *name;
-      elliptic_curve_t *E;
 
       if (l1)
         {
@@ -1020,120 +1012,119 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
       else
         name = NULL;
 
-      E = xtrycalloc (1, sizeof *E);
-      if (!E)
-        {
-          errc = gpg_err_code_from_syserror ();
-          xfree (name);
-          goto leave;
-        }
-
       errc = _gcry_ecc_fill_in_curve (0, name? name : curvename, E, NULL);
       xfree (name);
       if (errc)
-        {
-          xfree (E);
-          goto leave;
-        }
-
-      model = E->model;
-      dialect = E->dialect;
-
-      if (!p)
-        {
-          p = E->p;
-          E->p = NULL;
-        }
-      if (!a)
-        {
-          a = E->a;
-          E->a = NULL;
-        }
-      if (!b)
-        {
-          b = E->b;
-          E->b = NULL;
-        }
-      if (!G)
-        {
-          G = mpi_point_snatch_set (NULL, E->G.x, E->G.y, E->G.z);
-          E->G.x = NULL;
-          E->G.y = NULL;
-          E->G.z = NULL;
-        }
-      if (!n)
-        {
-          n = E->n;
-          E->n = NULL;
-        }
-      h = E->h;
-      _gcry_ecc_curve_free (E);
-      xfree (E);
-    }
-
-
-  errc = _gcry_mpi_ec_p_new (&ctx, model, dialect, flags, p, a, b);
-  if (!errc)
-    {
-      mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
-
-      if (b)
-        {
-          mpi_free (ec->b);
-          ec->b = b;
-          b = NULL;
-        }
-      if (G)
-        {
-          ec->G = G;
-          G = NULL;
-        }
-      if (n)
-        {
-          ec->n = n;
-          n = NULL;
-        }
-      ec->h = h;
-
-      /* Now that we know the curve name we can look for the public key
-         Q.  point_from_keyparam needs to know the curve parameters so
-         that it is able to use the correct decompression.  Parsing
-         the private key D could have been done earlier but it is less
-         surprising if we do it here as well.  */
-      if (keyparam)
-        {
-          errc = point_from_keyparam (&Q, keyparam, "q", ec);
-          if (errc)
-            goto leave;
-          errc = mpi_from_keyparam (&d, keyparam, "d");
-          if (errc)
-            goto leave;
-        }
-
-      if (Q)
-        {
-          ec->Q = Q;
-          Q = NULL;
-        }
-      if (d)
-        {
-          ec->d = d;
-          d = NULL;
-        }
-
-      *r_ctx = ctx;
-      ctx = NULL;
+        goto leave;
     }
 
  leave:
+  return errc;
+}
+
+static gpg_err_code_t
+mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
+                              elliptic_curve_t *E, gcry_sexp_t keyparam)
+{
+  gpg_err_code_t errc = 0;
+
+  ec->G = mpi_point_snatch_set (NULL, E->G.x, E->G.y, E->G.z);
+  E->G.x = NULL;
+  E->G.y = NULL;
+  E->G.z = NULL;
+  ec->n = E->n;
+  E->n = NULL;
+  ec->h = E->h;
+
+  /* Now that we know the curve name we can look for the public key
+     Q.  point_from_keyparam needs to know the curve parameters so
+     that it is able to use the correct decompression.  Parsing
+     the private key D could have been done earlier but it is less
+     surprising if we do it here as well.  */
+  if (keyparam)
+    {
+      errc = point_from_keyparam (&ec->Q, keyparam, "q", ec);
+      if (errc)
+        return errc;
+      errc = mpi_from_keyparam (&ec->d, keyparam, "d");
+    }
+
+  return errc;
+}
+
+gpg_err_code_t
+_gcry_mpi_ec_internal_new (mpi_ec_t *r_ec,
+                           gcry_sexp_t keyparam, const char *curvename)
+{
+  gpg_err_code_t errc;
+  elliptic_curve_t E;
+  int flags = 0;
+  mpi_ec_t ec;
+
+  *r_ec = NULL;
+
+  memset (&E, 0, sizeof E);
+  errc = mpi_ec_get_elliptic_curve (&E, &flags, keyparam, curvename);
+  if (errc)
+    goto leave;
+
+  ec = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, flags, E.p, E.a, E.b);
+  if (!ec)
+    goto leave;
+
+  errc = mpi_ec_setup_elliptic_curve (ec, &E, keyparam);
+  if (errc)
+    {
+      _gcry_mpi_ec_free (ec);
+      goto leave;
+    }
+  else
+    *r_ec = ec;
+
+ leave:
+  _gcry_ecc_curve_free (&E);
+  return errc;
+}
+
+/* This function creates a new context for elliptic curve operations.
+   Either KEYPARAM or CURVENAME must be given.  If both are given and
+   KEYPARAM has no curve parameter, CURVENAME is used to add missing
+   parameters.  On success 0 is returned and the new context stored at
+   R_CTX.  On error NULL is stored at R_CTX and an error code is
+   returned.  The context needs to be released using
+   gcry_ctx_release.  */
+gpg_err_code_t
+_gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
+                  gcry_sexp_t keyparam, const char *curvename)
+{
+  gpg_err_code_t errc;
+  gcry_ctx_t ctx = NULL;
+  elliptic_curve_t E;
+  int flags = 0;
+  mpi_ec_t ec;
+
+  *r_ctx = NULL;
+
+  memset (&E, 0, sizeof E);
+  errc = mpi_ec_get_elliptic_curve (&E, &flags, keyparam, curvename);
+  if (errc)
+    goto leave;
+
+  errc = _gcry_mpi_ec_p_new (&ctx, E.model, E.dialect, flags, E.p, E.a, E.b);
+  if (errc)
+    goto leave;
+
+  ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
+  errc = mpi_ec_setup_elliptic_curve (ec, &E, keyparam);
+  if (errc)
+    goto leave;
+
+  *r_ctx = ctx;
+  ctx = NULL;
+
+ leave:
+  _gcry_ecc_curve_free (&E);
   _gcry_ctx_release (ctx);
-  mpi_free (p);
-  mpi_free (a);
-  mpi_free (b);
-  _gcry_mpi_point_release (G);
-  mpi_free (n);
-  _gcry_mpi_point_release (Q);
-  mpi_free (d);
   return errc;
 }
 
