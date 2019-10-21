@@ -106,7 +106,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   reverse_buffer (buffer, nbytes);
   _gcry_mpi_set_buffer (mpi_k, buffer, nbytes, 0);
 
-  for (i = 0; i < mpi_get_nbits (E.h) - 1; i++)
+  for (i = 0; (E.h & (1 << i)) == 0; i++)
     mpi_clear_bit (mpi_k, i);
   mpi_set_highbit (mpi_k, mpi_get_nbits (E.p) - 1);
 

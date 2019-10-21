@@ -690,7 +690,6 @@ ec_deinit (void *opaque)
   mpi_free (ctx->b);
   _gcry_mpi_point_release (ctx->G);
   mpi_free (ctx->n);
-  mpi_free (ctx->h);
 
   /* The key.  */
   _gcry_mpi_point_release (ctx->Q);

@@ -32,7 +32,7 @@ typedef struct
                            or d as used by Twisted Edwards curves.  */
   mpi_point_struct G;   /* Base point (generator).  */
   gcry_mpi_t n;         /* Order of G.  */
-  gcry_mpi_t h;         /* Cofactor.  */
+  unsigned int h;       /* Cofactor.  */
   const char *name;     /* Name of the curve or NULL.  */
 } elliptic_curve_t;
 
