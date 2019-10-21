@@ -928,8 +928,6 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
   gpg_err_code_t errc = 0;
   gcry_sexp_t l1;
 
-  *r_flags = 0;
-
   E->model = MPI_EC_WEIERSTRASS;
   E->dialect = ECC_DIALECT_STANDARD;
   E->h = 1;
@@ -1024,7 +1022,7 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
 
 static gpg_err_code_t
 mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
-                              elliptic_curve_t *E, gcry_sexp_t keyparam)
+                             elliptic_curve_t *E, gcry_sexp_t keyparam)
 {
   gpg_err_code_t errc = 0;
 
@@ -1053,22 +1051,39 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
 }
 
 gpg_err_code_t
-_gcry_mpi_ec_internal_new (mpi_ec_t *r_ec,
+_gcry_mpi_ec_internal_new (mpi_ec_t *r_ec, int *r_flags, const char *name_op,
                            gcry_sexp_t keyparam, const char *curvename)
 {
   gpg_err_code_t errc;
   elliptic_curve_t E;
-  int flags = 0;
   mpi_ec_t ec;
 
   *r_ec = NULL;
 
+  /* Look for flags. */
+  {
+    gcry_sexp_t l1;
+    int flags = 0;
+
+    l1 = sexp_find_token (keyparam, "flags", 0);
+    if (l1)
+      {
+        errc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+        if (errc)
+          return errc;
+      }
+    sexp_release (l1);
+
+    *r_flags |= flags;
+  }
+
   memset (&E, 0, sizeof E);
-  errc = mpi_ec_get_elliptic_curve (&E, &flags, keyparam, curvename);
+  errc = mpi_ec_get_elliptic_curve (&E, r_flags, keyparam, curvename);
   if (errc)
     goto leave;
 
-  ec = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, flags, E.p, E.a, E.b);
+  ec = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, *r_flags,
+                                    E.p, E.a, E.b);
   if (!ec)
     goto leave;
 
@@ -1080,6 +1095,54 @@ _gcry_mpi_ec_internal_new (mpi_ec_t *r_ec,
     }
   else
     *r_ec = ec;
+
+  if (!errc && DBG_CIPHER)
+    {
+      gcry_mpi_t mpi_q = NULL;
+      gcry_sexp_t l1;
+
+      E.G.x = ec->G->x;
+      E.G.y = ec->G->y;
+      E.G.z = ec->G->z;
+
+      l1 = sexp_find_token (keyparam, "q", 0);
+      if (l1)
+        {
+          mpi_q = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_OPAQUE);
+          sexp_release (l1);
+        }
+
+      log_debug ("%s info: %s/%s\n", name_op,
+                 _gcry_ecc_model2str (E.model),
+                 _gcry_ecc_dialect2str (E.dialect));
+      if (E.name)
+        log_debug  ("%s name: %s\n", name_op, E.name);
+      log_debug ("%s", name_op);
+      log_printmpi ("    p", E.p);
+      log_debug ("%s", name_op);
+      log_printmpi ("    a", E.a);
+      log_debug ("%s", name_op);
+      log_printmpi ("    b", E.b);
+      log_printpnt ("%s  g", &E.G, NULL);
+      log_debug ("%s", name_op);
+      log_printmpi ("    n", E.n);
+      log_printf   ("%s    h %02x\n", name_op, E.h);
+      if (mpi_q)
+        {
+          log_debug ("%s", name_op);
+          log_printmpi ("    q", mpi_q);
+          mpi_free (mpi_q);
+        }
+      if (!fips_mode () && ec->d)
+        {
+          log_debug ("%s", name_op);
+          log_printmpi ("    d", ec->d);
+        }
+
+      E.G.x = NULL;
+      E.G.y = NULL;
+      E.G.z = NULL;
+    }
 
  leave:
   _gcry_ecc_curve_free (&E);
