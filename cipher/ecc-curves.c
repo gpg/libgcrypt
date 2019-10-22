@@ -925,8 +925,13 @@ static gpg_err_code_t
 mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
                            gcry_sexp_t keyparam, const char *curvename)
 {
-  gpg_err_code_t errc = 0;
+  gpg_err_code_t errc;
+  unsigned int nbits;
   gcry_sexp_t l1;
+
+  errc = _gcry_pk_util_get_nbits (keyparam, &nbits);
+  if (errc)
+    return errc;
 
   E->model = MPI_EC_WEIERSTRASS;
   E->dialect = ECC_DIALECT_STANDARD;
@@ -938,11 +943,23 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
       l1 = sexp_find_token (keyparam, "flags", 0);
       if (l1)
         {
-          errc = _gcry_pk_util_parse_flaglist (l1, r_flags, NULL);
+          int flags = 0;
+
+          errc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
           sexp_release (l1);
           l1 = NULL;
           if (errc)
             goto leave;
+
+          *r_flags |= flags;
+        }
+
+      /* Parse the deprecated optional transient-key flag.  */
+      l1 = sexp_find_token (keyparam, "transient-key", 0);
+      if (l1)
+        {
+          *r_flags |= PUBKEY_FLAG_TRANSIENT_KEY;
+          sexp_release (l1);
         }
 
       /* Check whether a curve name was given.  */
@@ -1010,7 +1027,7 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
       else
         name = NULL;
 
-      errc = _gcry_ecc_fill_in_curve (0, name? name : curvename, E, NULL);
+      errc = _gcry_ecc_fill_in_curve (nbits, name? name : curvename, E, NULL);
       xfree (name);
       if (errc)
         goto leave;
@@ -1059,23 +1076,6 @@ _gcry_mpi_ec_internal_new (mpi_ec_t *r_ec, int *r_flags, const char *name_op,
   mpi_ec_t ec;
 
   *r_ec = NULL;
-
-  /* Look for flags. */
-  {
-    gcry_sexp_t l1;
-    int flags = 0;
-
-    l1 = sexp_find_token (keyparam, "flags", 0);
-    if (l1)
-      {
-        errc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
-        if (errc)
-          return errc;
-      }
-    sexp_release (l1);
-
-    *r_flags |= flags;
-  }
 
   memset (&E, 0, sizeof E);
   errc = mpi_ec_get_elliptic_curve (&E, r_flags, keyparam, curvename);
@@ -1161,8 +1161,8 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
                   gcry_sexp_t keyparam, const char *curvename)
 {
   gpg_err_code_t errc;
-  gcry_ctx_t ctx = NULL;
   elliptic_curve_t E;
+  gcry_ctx_t ctx = NULL;
   int flags = 0;
   mpi_ec_t ec;
 
