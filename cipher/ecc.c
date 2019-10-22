@@ -1245,33 +1245,14 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   unsigned int nbits;
   gcry_err_code_t rc;
   struct pk_encoding_ctx ctx;
-  gcry_sexp_t l1 = NULL;
-  char *curvename = NULL;
-  gcry_mpi_t mpi_g = NULL;
-  gcry_mpi_t mpi_h = NULL;
-  gcry_mpi_t mpi_q = NULL;
   gcry_mpi_t mpi_s = NULL;
   gcry_mpi_t mpi_e = NULL;
   gcry_mpi_t data = NULL;
-  elliptic_curve_t E;
-  mpi_point_struct Q;
   mpi_ec_t ec = NULL;
   int flags = 0;
 
-  memset (&E, 0, sizeof E);
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT,
                                    (nbits = ecc_get_nbits (keyparms)));
-
-  /* Look for flags. */
-  l1 = sexp_find_token (keyparms, "flags", 0);
-  if (l1)
-    {
-      rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
-      if (rc)
-        goto leave;
-    }
-  sexp_release (l1);
-  l1 = NULL;
 
   /*
    * Extract the data.
@@ -1288,39 +1269,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?/q",
-                           &E.p, &E.a, &E.b, &mpi_g, &E.n, &mpi_h,
-                           &mpi_q, NULL);
-  if (rc)
-    goto leave;
-  if (mpi_g)
-    {
-      point_init (&E.G);
-      rc = _gcry_ecc_os2ec (&E.G, mpi_g);
-      if (rc)
-        goto leave;
-    }
-  if (mpi_h)
-    mpi_get_ui (&E.h, mpi_h);
-  /* Add missing parameters using the optional curve parameter.  */
-  l1 = sexp_find_token (keyparms, "curve", 5);
-  if (l1)
-    {
-      curvename = sexp_nth_string (l1, 1);
-      if (curvename)
-        {
-          rc = _gcry_ecc_fill_in_curve (0, curvename, &E, NULL);
-          if (rc)
-            goto leave;
-        }
-    }
-  /* Guess required fields if a curve parameter has not been given.  */
-  if (!curvename)
-    {
-      E.model = MPI_EC_WEIERSTRASS;
-      E.dialect = ECC_DIALECT_STANDARD;
-      E.h = 1;
-    }
+  rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecc_encrypt", keyparms, NULL);
 
   /*
    * Tweak the scalar bits by cofactor and number of bits of the field.
@@ -1330,48 +1279,17 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     {
       int i;
 
-      for (i = 0; (E.h & (1 << i)) == 0; i++)
+      for (i = 0; (ec->h & (1 << i)) == 0; i++)
         mpi_clear_bit (data, i);
-      mpi_set_highbit (data, mpi_get_nbits (E.p) - 1);
+      mpi_set_highbit (data, mpi_get_nbits (ec->p) - 1);
     }
   if (DBG_CIPHER)
     log_mpidump ("ecc_encrypt data", data);
 
-  if (DBG_CIPHER)
-    {
-      log_debug ("ecc_encrypt info: %s/%s\n",
-                 _gcry_ecc_model2str (E.model),
-                 _gcry_ecc_dialect2str (E.dialect));
-      if (E.name)
-        log_debug  ("ecc_encrypt name: %s\n", E.name);
-      log_printmpi ("ecc_encrypt    p", E.p);
-      log_printmpi ("ecc_encrypt    a", E.a);
-      log_printmpi ("ecc_encrypt    b", E.b);
-      log_printpnt ("ecc_encrypt  g",   &E.G, NULL);
-      log_printmpi ("ecc_encrypt    n", E.n);
-      log_printf   ("ecc_encrypt    h %02x\n", E.h);
-      log_printmpi ("ecc_encrypt    q", mpi_q);
-    }
-  if (!E.p || !E.a || !E.b || !E.G.x || !E.n || !mpi_q)
+  if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n || !ec->Q)
     {
       rc = GPG_ERR_NO_OBJ;
       goto leave;
-    }
-
-  /* Compute the encrypted value.  */
-  ec = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, flags,
-                                    E.p, E.a, E.b);
-
-  /* Convert the public key.  */
-  if (mpi_q)
-    {
-      point_init (&Q);
-      if (ec->model == MPI_EC_MONTGOMERY)
-        rc = _gcry_ecc_mont_decodepoint (mpi_q, ec, &Q);
-      else
-        rc = _gcry_ecc_os2ec (&Q, mpi_q);
-      if (rc)
-        goto leave;
     }
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so */
@@ -1391,7 +1309,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     point_init (&R);
 
     /* R = kQ  <=>  R = kdG  */
-    _gcry_mpi_ec_mul_point (&R, data, &Q, ec);
+    _gcry_mpi_ec_mul_point (&R, data, ec->Q, ec);
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
       {
@@ -1412,7 +1330,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
           }
       }
     if (y)
-      mpi_s = _gcry_ecc_ec2os (x, y, E.p);
+      mpi_s = _gcry_ecc_ec2os (x, y, ec->p);
     else
       {
         rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
@@ -1423,7 +1341,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       }
 
     /* R = kG */
-    _gcry_mpi_ec_mul_point (&R, data, &E.G, ec);
+    _gcry_mpi_ec_mul_point (&R, data, ec->G, ec);
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
       {
@@ -1431,7 +1349,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         goto leave_main;
       }
     if (y)
-      mpi_e = _gcry_ecc_ec2os (x, y, E.p);
+      mpi_e = _gcry_ecc_ec2os (x, y, ec->p);
     else
       {
         rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
@@ -1454,20 +1372,9 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     rc = sexp_build (r_ciph, NULL, "(enc-val(ecdh(s%m)(e%m)))", mpi_s, mpi_e);
 
  leave:
-  _gcry_mpi_release (E.p);
-  _gcry_mpi_release (E.a);
-  _gcry_mpi_release (E.b);
-  _gcry_mpi_release (mpi_g);
-  _gcry_mpi_release (mpi_h);
-  point_free (&E.G);
-  _gcry_mpi_release (E.n);
-  _gcry_mpi_release (mpi_q);
-  point_free (&Q);
   _gcry_mpi_release (data);
   _gcry_mpi_release (mpi_s);
   _gcry_mpi_release (mpi_e);
-  xfree (curvename);
-  sexp_release (l1);
   _gcry_mpi_ec_free (ec);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
@@ -1491,34 +1398,17 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   struct pk_encoding_ctx ctx;
   gcry_sexp_t l1 = NULL;
   gcry_mpi_t data_e = NULL;
-  elliptic_curve_t E;
-  gcry_mpi_t d;
-  gcry_mpi_t mpi_g = NULL;
-  gcry_mpi_t mpi_h = NULL;
-  char *curvename = NULL;
   mpi_ec_t ec = NULL;
   mpi_point_struct kG;
   mpi_point_struct R;
   gcry_mpi_t r = NULL;
   int flags = 0;
 
-  memset (&E, 0, sizeof E);
   point_init (&kG);
   point_init (&R);
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT,
                                    (nbits = ecc_get_nbits (keyparms)));
-
-  /* Look for flags. */
-  l1 = sexp_find_token (keyparms, "flags", 0);
-  if (l1)
-    {
-      rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
-      if (rc)
-        goto leave;
-    }
-  sexp_release (l1);
-  l1 = NULL;
 
   /*
    * Extract the data.
@@ -1535,65 +1425,15 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?+d",
-                           &E.p, &E.a, &E.b, &mpi_g, &E.n,
-                           &mpi_h, &d, NULL);
+  rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecc_decrypt", keyparms, NULL);
   if (rc)
     goto leave;
-  if (mpi_g)
-    {
-      point_init (&E.G);
-      rc = _gcry_ecc_os2ec (&E.G, mpi_g);
-      if (rc)
-        goto leave;
-    }
-  if (mpi_h)
-    mpi_get_ui (&E.h, mpi_h);
-  /* Add missing parameters using the optional curve parameter.  */
-  sexp_release (l1);
-  l1 = sexp_find_token (keyparms, "curve", 5);
-  if (l1)
-    {
-      curvename = sexp_nth_string (l1, 1);
-      if (curvename)
-        {
-          rc = _gcry_ecc_fill_in_curve (0, curvename, &E, NULL);
-          if (rc)
-            goto leave;
-        }
-    }
-  /* Guess required fields if a curve parameter has not been given.  */
-  if (!curvename)
-    {
-      E.model = MPI_EC_WEIERSTRASS;
-      E.dialect = ECC_DIALECT_STANDARD;
-      E.h = 1;
-    }
-  if (DBG_CIPHER)
-    {
-      log_debug ("ecc_decrypt info: %s/%s\n",
-                 _gcry_ecc_model2str (E.model),
-                 _gcry_ecc_dialect2str (E.dialect));
-      if (E.name)
-        log_debug  ("ecc_decrypt name: %s\n", E.name);
-      log_printmpi ("ecc_decrypt    p", E.p);
-      log_printmpi ("ecc_decrypt    a", E.a);
-      log_printmpi ("ecc_decrypt    b", E.b);
-      log_printpnt ("ecc_decrypt  g",   &E.G, NULL);
-      log_printmpi ("ecc_decrypt    n", E.n);
-      log_printf   ("ecc_decrypt    h %02x\n", E.h);
-      if (!fips_mode ())
-        log_printmpi ("ecc_decrypt    d", d);
-    }
-  if (!E.p || !E.a || !E.b || !E.G.x || !E.n || !d)
+
+  if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n || !ec->d)
     {
       rc = GPG_ERR_NO_OBJ;
       goto leave;
     }
-
-
-  ec = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, flags,
-                                    E.p, E.a, E.b);
 
   /*
    * Compute the plaintext.
@@ -1630,7 +1470,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* R = dkG */
-  _gcry_mpi_ec_mul_point (&R, d, &kG, ec);
+  _gcry_mpi_ec_mul_point (&R, ec->d, &kG, ec);
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so:  */
   {
@@ -1670,7 +1510,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       }
 
     if (y)
-      r = _gcry_ecc_ec2os (x, y, E.p);
+      r = _gcry_ecc_ec2os (x, y, ec->p);
     else
       {
 
@@ -1701,16 +1541,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   point_free (&R);
   point_free (&kG);
   _gcry_mpi_release (r);
-  _gcry_mpi_release (E.p);
-  _gcry_mpi_release (E.a);
-  _gcry_mpi_release (E.b);
-  _gcry_mpi_release (mpi_g);
-  _gcry_mpi_release (mpi_h);
-  point_free (&E.G);
-  _gcry_mpi_release (E.n);
-  _gcry_mpi_release (d);
   _gcry_mpi_release (data_e);
-  xfree (curvename);
   sexp_release (l1);
   _gcry_mpi_ec_free (ec);
   _gcry_pk_util_free_encoding_ctx (&ctx);
