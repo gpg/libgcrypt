@@ -368,7 +368,6 @@ test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags)
 
   mpi_free (x0);
   mpi_free (x1);
-  _gcry_mpi_ec_free (ec);
 
   point_free (&R_);
   mpi_free (test);
