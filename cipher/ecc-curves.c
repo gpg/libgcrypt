@@ -1050,6 +1050,7 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
   ec->n = E->n;
   E->n = NULL;
   ec->h = E->h;
+  ec->name = E->name;
 
   /* Now that we know the curve name we can look for the public key
      Q.  point_from_keyparam needs to know the curve parameters so

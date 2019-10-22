@@ -44,6 +44,7 @@ struct mpi_ec_ctx_s
   gcry_mpi_point_t Q;   /* Public key.   */
   gcry_mpi_t d;         /* Private key.  */
 
+  const char *name;      /* Name of the curve.  */
 
   /* This structure is private to mpi/ec.c! */
   struct {
