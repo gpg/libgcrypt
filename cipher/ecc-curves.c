@@ -1010,7 +1010,7 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
      in missing values.  If no curve parameter is available try an
      optional provided curvename.  If only the curvename has been
      given use that one. */
-  if (l1 || curvename)
+  if (l1 || curvename || nbits)
     {
       char *name;
 
@@ -1113,9 +1113,10 @@ _gcry_mpi_ec_internal_new (mpi_ec_t *r_ec, int *r_flags, const char *name_op,
           sexp_release (l1);
         }
 
-      log_debug ("%s info: %s/%s\n", name_op,
+      log_debug ("%s info: %s/%s%s\n", name_op,
                  _gcry_ecc_model2str (E.model),
-                 _gcry_ecc_dialect2str (E.dialect));
+                 _gcry_ecc_dialect2str (E.dialect),
+                 (*r_flags & PUBKEY_FLAG_EDDSA)? "+EdDSA" : "");
       if (E.name)
         log_debug  ("%s name: %s\n", name_op, E.name);
       log_debug ("%s", name_op);
