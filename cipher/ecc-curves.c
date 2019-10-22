@@ -126,7 +126,7 @@ typedef struct
                                  Curves (a,b) has ((A-2)/4,B^-1).  */
   const char *n;              /* The order of the base point.  */
   const char *g_x, *g_y;      /* Base point.  */
-  const char *h;              /* Cofactor.  */
+  unsigned int h;             /* Cofactor.  */
 } ecc_domain_parms_t;
 
 
@@ -143,7 +143,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
       "0x216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A",
       "0x6666666666666666666666666666666666666666666666666666666666666658",
-      "0x08"
+      8
     },
     {
       /* (y^2 = x^3 + 486662*x^2 + x) */
@@ -155,7 +155,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
       "0x0000000000000000000000000000000000000000000000000000000000000009",
       "0x20AE19A1B8A086B4E01EDD2C7748D14C923D4D7E6D7C61B229E9C5A27ECED3D9",
-      "0x08"
+      8
       /* Note: As per RFC-7748 errata eid4730 the g_y value should be
        * "0x5F51E65E475F794B1FE122D388B72EB36DC2B28192839E4DD6163A5D81312C14"
        * but that breaks the keygrip.  The new value is recovered in
@@ -176,7 +176,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "00000000000000000000000000000000000000000000000000000005",
       "0x7D235D1295F5B1F66C98AB6E58326FCECBAE5D34F55545D060F75DC2"
       "8DF3F6EDB8027E2346430D211312C4B150677AF76FD7223D457B5B1A",
-      "0x04"
+      4,
     },
 #if 0 /* No real specs yet found.  */
     {
@@ -192,7 +192,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x1A334905141443300218C0631C326E5FCD46369F44C03EC7F57FF35498A4AB4D"
       "6D6BA111301A73FAA8537C64C4FD3812F3CBC595",
       "0x22",
-      "0x08"
+      8
     },
 #endif /*0*/
     {
@@ -205,7 +205,7 @@ static const ecc_domain_parms_t domain_parms[] =
 
       "0x188da80eb03090f67cbf20eb43a18800f4ff0afd82ff1012",
       "0x07192b95ffc8da78631011ed6b24cdd573f977a11e794811",
-      "0x01"
+      1
     },
     {
       "NIST P-224", 224, 1,
@@ -217,7 +217,7 @@ static const ecc_domain_parms_t domain_parms[] =
 
       "0xb70e0cbd6bb4bf7f321390b94a03c1d356c21122343280d6115c1d21",
       "0xbd376388b5f723fb4c22dfe6cd4375a05a07476444d5819985007e34",
-      "0x01"
+      1
     },
     {
       "NIST P-256", 256, 1,
@@ -229,7 +229,7 @@ static const ecc_domain_parms_t domain_parms[] =
 
       "0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
       "0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5",
-      "0x01"
+      1
     },
     {
       "NIST P-384", 384, 1,
@@ -247,7 +247,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "5502f25dbf55296c3a545e3872760ab7",
       "0x3617de4a96262c6f5d9e98bf9292dc29f8f41dbd289a147ce9da3113b5f0b8c0"
       "0a60b1ce1d7e819d7a431d7c90ea0e5f",
-      "0x01"
+      1
     },
     {
       "NIST P-521", 521, 1,
@@ -265,7 +265,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "3dbaa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66",
       "0x011839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e"
       "662c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650",
-      "0x01"
+      1
     },
 
     { "brainpoolP160r1", 160, 0,
@@ -276,7 +276,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0xe95e4a5f737059dc60df5991d45029409e60fc09",
       "0xbed5af16ea3f6a4f62938c4631eb5af7bdbcdbc3",
       "0x1667cb477a1a8ec338f94741669c976316da6321",
-      "0x01"
+      1
     },
 
     { "brainpoolP192r1", 192, 0,
@@ -287,7 +287,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0xc302f41d932a36cda7a3462f9e9e916b5be8f1029ac4acc1",
       "0xc0a0647eaab6a48753b033c56cb0f0900a2f5c4853375fd6",
       "0x14b690866abd5bb88b5f4828c1490002e6773fa2fa299b8f",
-      "0x01"
+      1
     },
 
     { "brainpoolP224r1", 224, 0,
@@ -298,7 +298,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0xd7c134aa264366862a18302575d0fb98d116bc4b6ddebca3a5a7939f",
       "0x0d9029ad2c7e5cf4340823b2a87dc68c9e4ce3174c1e6efdee12c07d",
       "0x58aa56f772c0726f24c6b89e4ecdac24354b9e99caa3f6d3761402cd",
-      "0x01"
+      1
     },
 
     { "brainpoolP256r1", 256, 0,
@@ -309,7 +309,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0xa9fb57dba1eea9bc3e660a909d838d718c397aa3b561a6f7901e0e82974856a7",
       "0x8bd2aeb9cb7e57cb2c4b482ffc81b7afb9de27e1e3bd23c23a4453bd9ace3262",
       "0x547ef835c3dac4fd97f8461a14611dc9c27745132ded8e545c1d54c72f046997",
-      "0x01"
+      1
     },
 
     { "brainpoolP320r1", 320, 0,
@@ -326,7 +326,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "10af8d0d39e20611",
       "0x14fdd05545ec1cc8ab4093247f77275e0743ffed117182eaa9c77877aaac6ac7"
       "d35245d1692e8ee1",
-      "0x01"
+      1
     },
 
     { "brainpoolP384r1", 384, 0,
@@ -343,7 +343,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "e826e03436d646aaef87b2e247d4af1e",
       "0x8abe1d7520f9c2a45cb1eb8e95cfd55262b70b29feec5864e19c054ff9912928"
       "0e4646217791811142820341263c5315",
-      "0x01"
+      1
     },
 
     { "brainpoolP512r1", 512, 0,
@@ -360,7 +360,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "ff3b1f78e2d0d48d50d1687b93b97d5f7c6d5047406a5e688b352209bcb9f822",
       "0x7dde385d566332ecc0eabfa9cf7822fdf209f70024a57b1aa000c55b881f8111"
       "b2dcde494a5f485e5bca4bd88a2763aed1ca2b2fa8f0540678cd1e0f3ad80892",
-      "0x01"
+      1
     },
     {
       "GOST2001-test", 256, 0,
@@ -372,7 +372,7 @@ static const ecc_domain_parms_t domain_parms[] =
 
       "0x0000000000000000000000000000000000000000000000000000000000000002",
       "0x08e2a8a0e65147d4bd6316030e16d19c85c97f0a9ca267122b96abbcea7e8fc8",
-      "0x01"
+      1
     },
     {
       "GOST2001-CryptoPro-A", 256, 0,
@@ -383,7 +383,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0xffffffffffffffffffffffffffffffff6c611070995ad10045841b09b761b893",
       "0x0000000000000000000000000000000000000000000000000000000000000001",
       "0x8d91e471e0989cda27df505a453f2b7635294f2ddf23e3b122acc99c9e9f1e14",
-      "0x01"
+      1
     },
     {
       "GOST2001-CryptoPro-B", 256, 0,
@@ -394,7 +394,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x800000000000000000000000000000015f700cfff1a624e5e497161bcc8a198f",
       "0x0000000000000000000000000000000000000000000000000000000000000001",
       "0x3fa8124359f96680b83d1c3eb2c070e5c545c9858d03ecfb744bf8d717717efc",
-      "0x01"
+      1
     },
     {
       "GOST2001-CryptoPro-C", 256, 0,
@@ -405,7 +405,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x9b9f605f5a858107ab1ec85e6b41c8aa582ca3511eddfb74f02f3a6598980bb9",
       "0x0000000000000000000000000000000000000000000000000000000000000000",
       "0x41ece55743711a8c3cbf3783cd08c0ee4d4dc440d4641a8f366e550dfdb3bb67",
-      "0x01"
+      1
     },
     {
       "GOST2012-test", 511, 0,
@@ -422,7 +422,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "fd60611262cd838dc6b60aa7eee804e28bc849977fac33b4b530f1b120248a9a",
       "0x2bb312a43bd2ce6e0d020613c857acddcfbf061e91e5f2c3f32447c259f39b2"
       "c83ab156d77f1496bf7eb3351e1ee4e43dc1a18b91b24640b6dbb92cb1add371e",
-      "0x01"
+      1
     },
     {
       "GOST2012-tc26-A", 512, 0,
@@ -439,7 +439,7 @@ static const ecc_domain_parms_t domain_parms[] =
         "0000000000000000000000000000000000000000000000000000000000000003",
       "0x7503cfe87a836ae3a61b8816e25450e6ce5e1c93acf1abc1778064fdcbefa921"
         "df1626be4fd036e93d75e6a50e3a41e98028fe5fc235f5b889a589cb5215f2a4",
-      "0x01"
+      1
     },
     {
       "GOST2012-tc26-B", 512, 0,
@@ -456,7 +456,7 @@ static const ecc_domain_parms_t domain_parms[] =
         "0000000000000000000000000000000000000000000000000000000000000002",
       "0x1a8f7eda389b094c2c071e3647a8940f3c123b697578c213be6dd9e6c8ec7335"
         "dcb228fd1edf4a39152cbcaaf8c0398828041055f94ceeec7e21340780fe41bd",
-      "0x01"
+      1
     },
 
     {
@@ -468,7 +468,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
       "0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798",
       "0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8",
-      "0x01"
+      1
     },
 
     { NULL, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL }
@@ -621,12 +621,11 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
         }
       if (!curve->n)
         curve->n = scanval (domain_parms[idx].n);
-      if (!curve->h)
-        curve->h = scanval (domain_parms[idx].h);
       if (!curve->G.x)
         curve->G.x = scanval (domain_parms[idx].g_x);
       if (!curve->G.y)
         curve->G.y = scanval (domain_parms[idx].g_y);
+      curve->h = domain_parms[idx].h;
 
       /*
        * In the constants of domain_parms, we defined Curve25519
@@ -648,15 +647,15 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
 
 
 /* Give the name of the curve NAME, store the curve parameters into P,
-   A, B, G, N, and H if they point to NULL value.  Note that G is returned
-   in standard uncompressed format.  Also update MODEL and DIALECT if
-   they are not NULL. */
+   A, B, G, and N if they point to NULL value.  Note that G is
+   returned in standard uncompressed format.  Also update MODEL and
+   DIALECT if they are not NULL. */
 gpg_err_code_t
 _gcry_ecc_update_curve_param (const char *name,
                               enum gcry_mpi_ec_models *model,
                               enum ecc_dialects *dialect,
                               gcry_mpi_t *p, gcry_mpi_t *a, gcry_mpi_t *b,
-                              gcry_mpi_t *g, gcry_mpi_t *n, gcry_mpi_t *h)
+                              gcry_mpi_t *g, gcry_mpi_t *n)
 {
   int idx;
 
@@ -706,11 +705,6 @@ _gcry_ecc_update_curve_param (const char *name,
       _gcry_mpi_release (*n);
       *n = scanval (domain_parms[idx].n);
     }
-  if (h)
-    {
-      _gcry_mpi_release (*h);
-      *h = scanval (domain_parms[idx].h);
-    }
   return 0;
 }
 
@@ -748,8 +742,8 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   /*
    * Extract the curve parameters..
    */
-  rc = gpg_err_code (sexp_extract_param (keyparms, NULL, "-pabgnh",
-                                         &E.p, &E.a, &E.b, &mpi_g, &E.n, &E.h,
+  rc = gpg_err_code (sexp_extract_param (keyparms, NULL, "-pabgn",
+                                         &E.p, &E.a, &E.b, &mpi_g, &E.n,
                                          NULL));
   if (rc == GPG_ERR_NO_OBJ)
     {
@@ -807,22 +801,17 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
                   if (!mpi_cmp (tmp, E.n))
                     {
                       mpi_free (tmp);
-                      tmp = scanval (domain_parms[idx].h);
-                      if (!mpi_cmp (tmp, E.h))
+                      tmp = scanval (domain_parms[idx].g_x);
+                      if (!mpi_cmp (tmp, E.G.x))
                         {
                           mpi_free (tmp);
-                          tmp = scanval (domain_parms[idx].g_x);
-                          if (!mpi_cmp (tmp, E.G.x))
+                          tmp = scanval (domain_parms[idx].g_y);
+                          if (!mpi_cmp (tmp, E.G.y))
                             {
-                              mpi_free (tmp);
-                              tmp = scanval (domain_parms[idx].g_y);
-                              if (!mpi_cmp (tmp, E.G.y))
-                                {
-                                  result = domain_parms[idx].desc;
-                                  if (r_nbits)
-                                    *r_nbits = domain_parms[idx].nbits;
-                                  goto leave;
-                                }
+                              result = domain_parms[idx].desc;
+                              if (r_nbits)
+                                *r_nbits = domain_parms[idx].nbits;
+                              goto leave;
                             }
                         }
                     }
@@ -839,14 +828,14 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   _gcry_mpi_release (mpi_g);
   _gcry_mpi_point_free_parts (&E.G);
   _gcry_mpi_release (E.n);
-  _gcry_mpi_release (E.h);
   return result;
 }
 
 
 /* Helper to extract an MPI from key parameters.  */
 static gpg_err_code_t
-mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name)
+mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name,
+                   int opaque)
 {
   gcry_err_code_t ec = 0;
   gcry_sexp_t l1;
@@ -854,7 +843,7 @@ mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name)
   l1 = sexp_find_token (keyparam, name, 0);
   if (l1)
     {
-      *r_a = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      *r_a = sexp_nth_mpi (l1, 1, opaque? GCRYMPI_FMT_OPAQUE : GCRYMPI_FMT_USG);
       sexp_release (l1);
       if (!*r_a)
         ec = GPG_ERR_INV_OBJ;
@@ -905,14 +894,14 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       if (!tmpname)
         return gpg_err_code_from_syserror ();
       strcpy (stpcpy (tmpname, name), ".x");
-      rc = mpi_from_keyparam (&x, keyparam, tmpname);
+      rc = mpi_from_keyparam (&x, keyparam, tmpname, 0);
       if (rc)
         {
           xfree (tmpname);
           return rc;
         }
       strcpy (stpcpy (tmpname, name), ".y");
-      rc = mpi_from_keyparam (&y, keyparam, tmpname);
+      rc = mpi_from_keyparam (&y, keyparam, tmpname, 0);
       if (rc)
         {
           mpi_free (x);
@@ -920,7 +909,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
           return rc;
         }
       strcpy (stpcpy (tmpname, name), ".z");
-      rc = mpi_from_keyparam (&z, keyparam, tmpname);
+      rc = mpi_from_keyparam (&z, keyparam, tmpname, 0);
       if (rc)
         {
           mpi_free (y);
@@ -948,33 +937,22 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
 }
 
 
-/* This function creates a new context for elliptic curve operations.
-   Either KEYPARAM or CURVENAME must be given.  If both are given and
-   KEYPARAM has no curve parameter, CURVENAME is used to add missing
-   parameters.  On success 0 is returned and the new context stored at
-   R_CTX.  On error NULL is stored at R_CTX and an error code is
-   returned.  The context needs to be released using
-   gcry_ctx_release.  */
-gpg_err_code_t
-_gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
-                  gcry_sexp_t keyparam, const char *curvename)
+
+static gpg_err_code_t
+mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
+                           gcry_sexp_t keyparam, const char *curvename)
 {
   gpg_err_code_t errc;
-  gcry_ctx_t ctx = NULL;
-  enum gcry_mpi_ec_models model = MPI_EC_WEIERSTRASS;
-  enum ecc_dialects dialect = ECC_DIALECT_STANDARD;
-  gcry_mpi_t p = NULL;
-  gcry_mpi_t a = NULL;
-  gcry_mpi_t b = NULL;
-  gcry_mpi_point_t G = NULL;
-  gcry_mpi_t n = NULL;
-  gcry_mpi_t h = NULL;
-  gcry_mpi_point_t Q = NULL;
-  gcry_mpi_t d = NULL;
-  int flags = 0;
+  unsigned int nbits;
   gcry_sexp_t l1;
 
-  *r_ctx = NULL;
+  errc = _gcry_pk_util_get_nbits (keyparam, &nbits);
+  if (errc)
+    return errc;
+
+  E->model = MPI_EC_WEIERSTRASS;
+  E->dialect = ECC_DIALECT_STANDARD;
+  E->h = 1;
 
   if (keyparam)
     {
@@ -982,11 +960,23 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
       l1 = sexp_find_token (keyparam, "flags", 0);
       if (l1)
         {
+          int flags = 0;
+
           errc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
           sexp_release (l1);
           l1 = NULL;
           if (errc)
             goto leave;
+
+          *r_flags |= flags;
+        }
+
+      /* Parse the deprecated optional transient-key flag.  */
+      l1 = sexp_find_token (keyparam, "transient-key", 0);
+      if (l1)
+        {
+          *r_flags |= PUBKEY_FLAG_TRANSIENT_KEY;
+          sexp_release (l1);
         }
 
       /* Check whether a curve name was given.  */
@@ -994,26 +984,40 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
 
       /* If we don't have a curve name or if override parameters have
          explicitly been requested, parse them.  */
-      if (!l1 || (flags & PUBKEY_FLAG_PARAM))
+      if (!l1 || (*r_flags & PUBKEY_FLAG_PARAM))
         {
-          errc = mpi_from_keyparam (&p, keyparam, "p");
+          gcry_mpi_point_t G = NULL;
+          gcry_mpi_t cofactor = NULL;
+
+          errc = mpi_from_keyparam (&E->p, keyparam, "p", 0);
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&a, keyparam, "a");
+          errc = mpi_from_keyparam (&E->a, keyparam, "a", 0);
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&b, keyparam, "b");
+          errc = mpi_from_keyparam (&E->b, keyparam, "b", 0);
           if (errc)
             goto leave;
           errc = point_from_keyparam (&G, keyparam, "g", NULL);
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&n, keyparam, "n");
+          if (G)
+            {
+              mpi_point_set (&E->G, G->x, G->y, G->z);
+              mpi_point_set (G, NULL, NULL, NULL);
+              mpi_point_release (G);
+            }
+          errc = mpi_from_keyparam (&E->n, keyparam, "n", 0);
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&h, keyparam, "h");
+          errc = mpi_from_keyparam (&cofactor, keyparam, "h", 0);
           if (errc)
             goto leave;
+          if (cofactor)
+            {
+              mpi_get_ui (&E->h, cofactor);
+              mpi_free (cofactor);
+            }
         }
     }
   else
@@ -1023,10 +1027,9 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
      in missing values.  If no curve parameter is available try an
      optional provided curvename.  If only the curvename has been
      given use that one. */
-  if (l1 || curvename)
+  if (l1 || curvename || nbits)
     {
       char *name;
-      elliptic_curve_t *E;
 
       if (l1)
         {
@@ -1041,129 +1044,170 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
       else
         name = NULL;
 
-      E = xtrycalloc (1, sizeof *E);
-      if (!E)
-        {
-          errc = gpg_err_code_from_syserror ();
-          xfree (name);
-          goto leave;
-        }
-
-      errc = _gcry_ecc_fill_in_curve (0, name? name : curvename, E, NULL);
+      errc = _gcry_ecc_fill_in_curve (nbits, name? name : curvename, E, NULL);
       xfree (name);
       if (errc)
-        {
-          xfree (E);
-          goto leave;
-        }
-
-      model = E->model;
-      dialect = E->dialect;
-
-      if (!p)
-        {
-          p = E->p;
-          E->p = NULL;
-        }
-      if (!a)
-        {
-          a = E->a;
-          E->a = NULL;
-        }
-      if (!b)
-        {
-          b = E->b;
-          E->b = NULL;
-        }
-      if (!G)
-        {
-          G = mpi_point_snatch_set (NULL, E->G.x, E->G.y, E->G.z);
-          E->G.x = NULL;
-          E->G.y = NULL;
-          E->G.z = NULL;
-        }
-      if (!n)
-        {
-          n = E->n;
-          E->n = NULL;
-        }
-      if (!h)
-        {
-          h = E->h;
-          E->h = NULL;
-        }
-      _gcry_ecc_curve_free (E);
-      xfree (E);
-    }
-
-
-  errc = _gcry_mpi_ec_p_new (&ctx, model, dialect, flags, p, a, b);
-  if (!errc)
-    {
-      mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
-
-      if (b)
-        {
-          mpi_free (ec->b);
-          ec->b = b;
-          b = NULL;
-        }
-      if (G)
-        {
-          ec->G = G;
-          G = NULL;
-        }
-      if (n)
-        {
-          ec->n = n;
-          n = NULL;
-        }
-      if (h)
-        {
-          ec->h = h;
-          h = NULL;
-        }
-
-      /* Now that we know the curve name we can look for the public key
-         Q.  point_from_keyparam needs to know the curve parameters so
-         that it is able to use the correct decompression.  Parsing
-         the private key D could have been done earlier but it is less
-         surprising if we do it here as well.  */
-      if (keyparam)
-        {
-          errc = point_from_keyparam (&Q, keyparam, "q", ec);
-          if (errc)
-            goto leave;
-          errc = mpi_from_keyparam (&d, keyparam, "d");
-          if (errc)
-            goto leave;
-        }
-
-      if (Q)
-        {
-          ec->Q = Q;
-          Q = NULL;
-        }
-      if (d)
-        {
-          ec->d = d;
-          d = NULL;
-        }
-
-      *r_ctx = ctx;
-      ctx = NULL;
+        goto leave;
     }
 
  leave:
+  return errc;
+}
+
+static gpg_err_code_t
+mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
+                             elliptic_curve_t *E, gcry_sexp_t keyparam)
+{
+  gpg_err_code_t errc = 0;
+
+  ec->G = mpi_point_snatch_set (NULL, E->G.x, E->G.y, E->G.z);
+  E->G.x = NULL;
+  E->G.y = NULL;
+  E->G.z = NULL;
+  ec->n = E->n;
+  E->n = NULL;
+  ec->h = E->h;
+  ec->name = E->name;
+
+  /* Now that we know the curve name we can look for the public key
+     Q.  point_from_keyparam needs to know the curve parameters so
+     that it is able to use the correct decompression.  Parsing
+     the private key D could have been done earlier but it is less
+     surprising if we do it here as well.  */
+  if (keyparam)
+    {
+      errc = point_from_keyparam (&ec->Q, keyparam, "q", ec);
+      if (errc)
+        return errc;
+      errc = mpi_from_keyparam (&ec->d, keyparam, "d",
+                                ec->dialect == ECC_DIALECT_SAFECURVE);
+    }
+
+  return errc;
+}
+
+gpg_err_code_t
+_gcry_mpi_ec_internal_new (mpi_ec_t *r_ec, int *r_flags, const char *name_op,
+                           gcry_sexp_t keyparam, const char *curvename)
+{
+  gpg_err_code_t errc;
+  elliptic_curve_t E;
+  mpi_ec_t ec;
+
+  *r_ec = NULL;
+
+  memset (&E, 0, sizeof E);
+  errc = mpi_ec_get_elliptic_curve (&E, r_flags, keyparam, curvename);
+  if (errc)
+    goto leave;
+
+  ec = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, *r_flags,
+                                    E.p, E.a, E.b);
+  if (!ec)
+    goto leave;
+
+  errc = mpi_ec_setup_elliptic_curve (ec, &E, keyparam);
+  if (errc)
+    {
+      _gcry_mpi_ec_free (ec);
+      goto leave;
+    }
+  else
+    *r_ec = ec;
+
+  if (!errc && DBG_CIPHER)
+    {
+      gcry_mpi_t mpi_q = NULL;
+      gcry_sexp_t l1;
+
+      E.G.x = ec->G->x;
+      E.G.y = ec->G->y;
+      E.G.z = ec->G->z;
+
+      l1 = sexp_find_token (keyparam, "q", 0);
+      if (l1)
+        {
+          mpi_q = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_OPAQUE);
+          sexp_release (l1);
+        }
+
+      log_debug ("%s info: %s/%s%s\n", name_op,
+                 _gcry_ecc_model2str (E.model),
+                 _gcry_ecc_dialect2str (E.dialect),
+                 (*r_flags & PUBKEY_FLAG_EDDSA)? "+EdDSA" : "");
+      if (E.name)
+        log_debug  ("%s name: %s\n", name_op, E.name);
+      log_debug ("%s", name_op);
+      log_printmpi ("    p", E.p);
+      log_debug ("%s", name_op);
+      log_printmpi ("    a", E.a);
+      log_debug ("%s", name_op);
+      log_printmpi ("    b", E.b);
+      log_printpnt ("%s  g", &E.G, NULL);
+      log_debug ("%s", name_op);
+      log_printmpi ("    n", E.n);
+      log_printf   ("%s    h %02x\n", name_op, E.h);
+      if (mpi_q)
+        {
+          log_debug ("%s", name_op);
+          log_printmpi ("    q", mpi_q);
+          mpi_free (mpi_q);
+        }
+      if (!fips_mode () && ec->d)
+        {
+          log_debug ("%s", name_op);
+          log_printmpi ("    d", ec->d);
+        }
+
+      E.G.x = NULL;
+      E.G.y = NULL;
+      E.G.z = NULL;
+    }
+
+ leave:
+  _gcry_ecc_curve_free (&E);
+  return errc;
+}
+
+/* This function creates a new context for elliptic curve operations.
+   Either KEYPARAM or CURVENAME must be given.  If both are given and
+   KEYPARAM has no curve parameter, CURVENAME is used to add missing
+   parameters.  On success 0 is returned and the new context stored at
+   R_CTX.  On error NULL is stored at R_CTX and an error code is
+   returned.  The context needs to be released using
+   gcry_ctx_release.  */
+gpg_err_code_t
+_gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
+                  gcry_sexp_t keyparam, const char *curvename)
+{
+  gpg_err_code_t errc;
+  elliptic_curve_t E;
+  gcry_ctx_t ctx = NULL;
+  int flags = 0;
+  mpi_ec_t ec;
+
+  *r_ctx = NULL;
+
+  memset (&E, 0, sizeof E);
+  errc = mpi_ec_get_elliptic_curve (&E, &flags, keyparam, curvename);
+  if (errc)
+    goto leave;
+
+  errc = _gcry_mpi_ec_p_new (&ctx, E.model, E.dialect, flags, E.p, E.a, E.b);
+  if (errc)
+    goto leave;
+
+  ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
+  errc = mpi_ec_setup_elliptic_curve (ec, &E, keyparam);
+  if (errc)
+    goto leave;
+
+  *r_ctx = ctx;
+  ctx = NULL;
+
+ leave:
+  _gcry_ecc_curve_free (&E);
   _gcry_ctx_release (ctx);
-  mpi_free (p);
-  mpi_free (a);
-  mpi_free (b);
-  _gcry_mpi_point_release (G);
-  mpi_free (n);
-  mpi_free (h);
-  _gcry_mpi_point_release (Q);
-  mpi_free (d);
   return errc;
 }
 
@@ -1176,7 +1220,7 @@ _gcry_ecc_get_param_sexp (const char *name)
   elliptic_curve_t E;
   mpi_ec_t ctx;
   gcry_mpi_t g_x, g_y;
-  gcry_mpi_t pkey[7];
+  gcry_mpi_t pkey[5];
   gcry_sexp_t result;
   int i;
 
@@ -1186,10 +1230,10 @@ _gcry_ecc_get_param_sexp (const char *name)
 
   g_x = mpi_new (0);
   g_y = mpi_new (0);
-  ctx = _gcry_mpi_ec_p_internal_new (MPI_EC_WEIERSTRASS,
-                                     ECC_DIALECT_STANDARD,
+  ctx = _gcry_mpi_ec_p_internal_new (E.model,
+                                     E.dialect,
                                      0,
-                                     E.p, E.a, NULL);
+                                     E.p, E.a, E.b);
   if (_gcry_mpi_ec_get_affine (g_x, g_y, &E.G, ctx))
     log_fatal ("ecc get param: Failed to get affine coordinates\n");
   _gcry_mpi_ec_free (ctx);
@@ -1200,18 +1244,16 @@ _gcry_ecc_get_param_sexp (const char *name)
   pkey[2] = E.b;
   pkey[3] = _gcry_ecc_ec2os (g_x, g_y, E.p);
   pkey[4] = E.n;
-  pkey[5] = E.h;
-  pkey[6] = NULL;
 
   mpi_free (g_x);
   mpi_free (g_y);
 
   if (sexp_build (&result, NULL,
-                  "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(h%m)))",
-                  pkey[0], pkey[1], pkey[2], pkey[3], pkey[4], pkey[5]))
+                  "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(h%u)))",
+                  pkey[0], pkey[1], pkey[2], pkey[3], pkey[4], E.h))
     result = NULL;
 
-  for (i=0; pkey[i]; i++)
+  for (i=0; i < DIM (pkey); i++)
     _gcry_mpi_release (pkey[i]);
 
   return result;
@@ -1235,8 +1277,12 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
     return mpi_is_const (ec->b) && !copy? ec->b : mpi_copy (ec->b);
   if (!strcmp (name, "n") && ec->n)
     return mpi_is_const (ec->n) && !copy? ec->n : mpi_copy (ec->n);
-  if (!strcmp (name, "h") && ec->h)
-    return mpi_is_const (ec->h) && !copy? ec->h : mpi_copy (ec->h);
+  if (!strcmp (name, "h"))
+    {
+      gcry_mpi_t h = _gcry_mpi_get_const (ec->h);
+
+      return !copy? h : mpi_set (NULL, h);
+    }
   if (!strcmp (name, "d") && ec->d)
     return mpi_is_const (ec->d) && !copy? ec->d : mpi_copy (ec->d);
 
@@ -1337,8 +1383,7 @@ _gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
     }
   else if (!strcmp (name, "h"))
     {
-      mpi_free (ec->h);
-      ec->h = mpi_copy (newvalue);
+      mpi_get_ui (&ec->h, newvalue);
     }
   else if (*name == 'q' && (!name[1] || name[1] == '@'))
     {

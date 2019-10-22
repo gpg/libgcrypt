@@ -83,7 +83,7 @@ md4_init (void *context, unsigned int flags)
   ctx->bctx.nblocks = 0;
   ctx->bctx.nblocks_high = 0;
   ctx->bctx.count = 0;
-  ctx->bctx.blocksize = 64;
+  ctx->bctx.blocksize_shift = _gcry_ctz(64);
   ctx->bctx.bwrite = transform;
 }
 

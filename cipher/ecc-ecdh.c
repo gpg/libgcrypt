@@ -34,23 +34,15 @@
 #define ECC_CURVE25519_BITS 256
 #define ECC_CURVE448_BITS   448
 
-static mpi_ec_t
-prepare_ec (const char *curve_name, elliptic_curve_t *E)
+static gpg_err_code_t
+prepare_ec (mpi_ec_t *r_ec, const char *name)
 {
-  mpi_ec_t ec;
   int flags = 0;
 
-  memset (E, 0, sizeof *E);
-  if (_gcry_ecc_fill_in_curve (0, curve_name, E, NULL))
-    return NULL;
-
-  if (E->dialect != ECC_DIALECT_SAFECURVE)
+  if (!strcmp (name, "Curve25519"))
     flags = PUBKEY_FLAG_DJB_TWEAK;
 
-  ec = _gcry_mpi_ec_p_internal_new (E->model, E->dialect,
-                                    flags, E->p, E->a, E->b);
-  ec->h = mpi_copy (E->h);
-  return ec;
+  return _gcry_mpi_ec_internal_new (r_ec, &flags, "ecc_mul_point", NULL, name);
 }
 
 unsigned int
@@ -74,11 +66,9 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   unsigned int nbytes;
   const char *curve;
   gpg_err_code_t err;
-  elliptic_curve_t E;
   unsigned char buffer[ECC_CURVE448_BITS/8];
   gcry_mpi_t mpi_k;
   mpi_ec_t ec;
-  gcry_mpi_t mpi_u;
   mpi_point_t Q;
   gcry_mpi_t x;
   unsigned int len;
@@ -100,8 +90,11 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
 
   nbytes = nbits / 8;
 
-  ec = prepare_ec (curve, &E);
-  mpi_u = mpi_new (nbits);
+  err = prepare_ec (&ec, curve);
+  if (err)
+    return err;
+
+  mpi_k = mpi_new (nbits);
   Q = mpi_point_new (nbits);
   x = mpi_new (nbits);
 
@@ -112,9 +105,9 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
       reverse_buffer (buffer, nbytes);
       _gcry_mpi_set_buffer (mpi_k, buffer, nbytes, 0);
 
-      for (i = 0; i < mpi_get_nbits (E.h) - 1; i++)
+      for (i = 0; (ec->h & (1 << i)) == 0; i++)
         mpi_clear_bit (mpi_k, i);
-      mpi_set_highbit (mpi_k, mpi_get_nbits (E.p) - 1);
+      mpi_set_highbit (mpi_k, mpi_get_nbits (ec->p) - 1);
     }
   else
     mpi_k = _gcry_mpi_set_opaque_copy (NULL, buffer, nbytes*8);
@@ -122,6 +115,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   if (point)
     {
       mpi_point_t P = mpi_point_new (nbits);
+      gcry_mpi_t mpi_u = mpi_new (nbits);
 
       _gcry_mpi_set_buffer (mpi_u, point, nbytes, 0);
 
@@ -133,7 +127,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
       _gcry_mpi_point_release (P);
     }
   else
-    _gcry_mpi_ec_mul_point (Q, mpi_k, &E.G, ec);
+    _gcry_mpi_ec_mul_point (Q, mpi_k, ec->G, ec);
 
   _gcry_mpi_ec_get_affine (x, NULL, Q, ec);
 

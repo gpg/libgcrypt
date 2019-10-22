@@ -90,7 +90,7 @@ struct thread_arg_s
 
 
 
-#ifdef HAVE_PTHREAD
+#if defined(HAVE_PTHREAD) || defined(_WIN32)
 /* Wrapper functions to access Libgcrypt's internal test lock.  */
 static void
 external_lock_test_init (int line)
@@ -136,7 +136,7 @@ external_lock_test_destroy (int line)
 
 
 
-#ifdef HAVE_PTHREAD
+#if defined(HAVE_PTHREAD) || defined(_WIN32)
 /* The nonce thread.  We simply request a couple of nonces and
    return.  */
 static THREAD_RET_TYPE
@@ -253,7 +253,7 @@ print_accounts (void)
 }
 
 
-#ifdef HAVE_PTHREAD
+#if defined(HAVE_PTHREAD) || defined(_WIN32)
 /* Get a a random integer value in the range 0 to HIGH.  */
 static unsigned int
 get_rand (int high)

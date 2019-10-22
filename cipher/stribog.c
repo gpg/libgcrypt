@@ -1206,7 +1206,7 @@ stribog_init_512 (void *context, unsigned int flags)
 
   memset (hd, 0, sizeof (*hd));
 
-  hd->bctx.blocksize = 64;
+  hd->bctx.blocksize_shift = _gcry_ctz(64);
   hd->bctx.bwrite = transform;
 }
 

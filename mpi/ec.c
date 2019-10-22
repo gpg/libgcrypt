@@ -891,7 +891,6 @@ ec_deinit (void *opaque)
   mpi_free (ctx->b);
   _gcry_mpi_point_release (ctx->G);
   mpi_free (ctx->n);
-  mpi_free (ctx->h);
 
   /* The key.  */
   _gcry_mpi_point_release (ctx->Q);
@@ -1790,19 +1789,18 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       if (mpi_is_opaque (scalar))
         {
           gcry_mpi_t a;
-          unsigned int cofactor, n;
+          unsigned int n;
           const unsigned int pbits = mpi_get_nbits (ctx->p);
           unsigned char *raw;
 
           scalar_copied = 1;
 
           raw = _gcry_mpi_get_opaque_copy (scalar, &n);
-          mpi_get_ui (&cofactor, ctx->h);
           reverse_buffer (raw, (n+7)/8);
           if ((pbits % 8))
             raw[0] &= (1 << (pbits % 8)) - 1;
           raw[0] |= (1 << ((pbits + 7) % 8));
-          raw[(pbits-1)/8] &= (256 - cofactor);
+          raw[(pbits-1)/8] &= (256 - ctx->h);
           a = mpi_is_secure (scalar) ? mpi_snew (pbits): mpi_new (pbits);
           _gcry_mpi_set_buffer (a, raw, (n+7)/8, 0);
           xfree (raw);

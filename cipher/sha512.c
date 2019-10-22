@@ -302,7 +302,7 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
   ctx->bctx.nblocks = 0;
   ctx->bctx.nblocks_high = 0;
   ctx->bctx.count = 0;
-  ctx->bctx.blocksize = 128;
+  ctx->bctx.blocksize_shift = _gcry_ctz(128);
 
   /* Order of feature checks is important here; last match will be
    * selected.  Keep slower implementations at the top and faster at

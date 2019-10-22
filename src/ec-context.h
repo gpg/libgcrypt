@@ -38,12 +38,13 @@ struct mpi_ec_ctx_s
   gcry_mpi_t b;         /* Second coefficient of the Weierstrass equation.  */
   gcry_mpi_point_t G;   /* Base point (generator).  */
   gcry_mpi_t n;         /* Order of G.  */
-  gcry_mpi_t h;         /* Cofactor.  */
+  unsigned int h;       /* Cofactor.  */
 
   /* The actual key.  May not be set.  */
   gcry_mpi_point_t Q;   /* Public key.   */
   gcry_mpi_t d;         /* Private key.  */
 
+  const char *name;      /* Name of the curve.  */
 
   /* This structure is private to mpi/ec.c! */
   struct {

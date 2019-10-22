@@ -123,7 +123,8 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
   gcry_md_block_ctx_t *hd = context;
   unsigned int stack_burn = 0;
   unsigned int nburn;
-  const unsigned int blocksize = hd->blocksize;
+  const unsigned int blocksize_shift = hd->blocksize_shift;
+  const unsigned int blocksize = 1 << blocksize_shift;
   size_t inblocks;
   size_t copylen;
 
@@ -164,14 +165,14 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
 
   if (inlen >= blocksize)
     {
-      inblocks = inlen / blocksize;
+      inblocks = inlen >> blocksize_shift;
       nburn = hd->bwrite (hd, inbuf, inblocks);
       stack_burn = nburn > stack_burn ? nburn : stack_burn;
       hd->count = 0;
       hd->nblocks_high += (hd->nblocks + inblocks < inblocks);
       hd->nblocks += inblocks;
-      inlen -= inblocks * blocksize;
-      inbuf += inblocks * blocksize;
+      inlen -= inblocks << blocksize_shift;
+      inbuf += inblocks << blocksize_shift;
     }
 
   if (inlen)

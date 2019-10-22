@@ -32,24 +32,9 @@ typedef struct
                            or d as used by Twisted Edwards curves.  */
   mpi_point_struct G;   /* Base point (generator).  */
   gcry_mpi_t n;         /* Order of G.  */
-  gcry_mpi_t h;         /* Cofactor.  */
+  unsigned int h;       /* Cofactor.  */
   const char *name;     /* Name of the curve or NULL.  */
 } elliptic_curve_t;
-
-
-typedef struct
-{
-  elliptic_curve_t E;
-  mpi_point_struct Q; /* Q = [d]G  */
-} ECC_public_key;
-
-
-typedef struct
-{
-  elliptic_curve_t E;
-  mpi_point_struct Q;
-  gcry_mpi_t d;
-} ECC_secret_key;
 
 
 
@@ -76,7 +61,7 @@ gpg_err_code_t _gcry_ecc_update_curve_param (const char *name,
                                              enum ecc_dialects *dialect,
                                              gcry_mpi_t *p, gcry_mpi_t *a,
                                              gcry_mpi_t *b, gcry_mpi_t *g,
-                                             gcry_mpi_t *n, gcry_mpi_t *h);
+                                             gcry_mpi_t *n);
 
 const char *_gcry_ecc_get_curve (gcry_sexp_t keyparms,
                                  int iterator,
@@ -101,10 +86,10 @@ gpg_err_code_t _gcry_ecc_mont_encodepoint (gcry_mpi_t x, unsigned int nbits,
 /*-- ecc.c --*/
 
 /*-- ecc-ecdsa.c --*/
-gpg_err_code_t _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
+gpg_err_code_t _gcry_ecc_ecdsa_sign (gcry_mpi_t input, mpi_ec_t ec,
                                      gcry_mpi_t r, gcry_mpi_t s,
                                      int flags, int hashalgo);
-gpg_err_code_t _gcry_ecc_ecdsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
+gpg_err_code_t _gcry_ecc_ecdsa_verify (gcry_mpi_t input, mpi_ec_t ec,
                                        gcry_mpi_t r, gcry_mpi_t s);
 
 /*-- ecc-eddsa.c --*/
@@ -122,25 +107,22 @@ gpg_err_code_t _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value,
 gpg_err_code_t _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
                                             gcry_mpi_t d, mpi_ec_t ec);
 
-gpg_err_code_t _gcry_ecc_eddsa_genkey (ECC_secret_key *sk,
-                                       elliptic_curve_t *E,
-                                       mpi_ec_t ctx,
-                                       int flags);
+gpg_err_code_t _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags);
 gpg_err_code_t _gcry_ecc_eddsa_sign (gcry_mpi_t input,
-                                     ECC_secret_key *sk,
+                                     mpi_ec_t ec,
                                      gcry_mpi_t r_r, gcry_mpi_t s,
-                                     int hashalgo, gcry_mpi_t pk);
+                                     int hashalgo);
 gpg_err_code_t _gcry_ecc_eddsa_verify (gcry_mpi_t input,
-                                       ECC_public_key *pk,
+                                       mpi_ec_t ec,
                                        gcry_mpi_t r, gcry_mpi_t s,
-                                       int hashalgo, gcry_mpi_t pkmpi);
+                                       int hashalgo);
 void reverse_buffer (unsigned char *buffer, unsigned int length);
 
 
 /*-- ecc-gost.c --*/
-gpg_err_code_t _gcry_ecc_gost_sign (gcry_mpi_t input, ECC_secret_key *skey,
+gpg_err_code_t _gcry_ecc_gost_sign (gcry_mpi_t input, mpi_ec_t ec,
                                     gcry_mpi_t r, gcry_mpi_t s);
-gpg_err_code_t _gcry_ecc_gost_verify (gcry_mpi_t input, ECC_public_key *pkey,
+gpg_err_code_t _gcry_ecc_gost_verify (gcry_mpi_t input, mpi_ec_t ec,
                                       gcry_mpi_t r, gcry_mpi_t s);
 
 
