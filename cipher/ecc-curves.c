@@ -1119,10 +1119,7 @@ _gcry_mpi_ec_internal_new (mpi_ec_t *r_ec, int *r_flags, const char *name_op,
     {
       gcry_mpi_t mpi_q = NULL;
       gcry_sexp_t l1;
-
-      E.G.x = ec->G->x;
-      E.G.y = ec->G->y;
-      E.G.z = ec->G->z;
+      char msg[80];
 
       l1 = sexp_find_token (keyparam, "q", 0);
       if (l1)
@@ -1132,36 +1129,33 @@ _gcry_mpi_ec_internal_new (mpi_ec_t *r_ec, int *r_flags, const char *name_op,
         }
 
       log_debug ("%s info: %s/%s%s\n", name_op,
-                 _gcry_ecc_model2str (E.model),
-                 _gcry_ecc_dialect2str (E.dialect),
+                 _gcry_ecc_model2str (ec->model),
+                 _gcry_ecc_dialect2str (ec->dialect),
                  (*r_flags & PUBKEY_FLAG_EDDSA)? "+EdDSA" : "");
-      if (E.name)
-        log_debug  ("%s name: %s\n", name_op, E.name);
-      log_debug ("%s", name_op);
-      log_printmpi ("    p", E.p);
-      log_debug ("%s", name_op);
-      log_printmpi ("    a", E.a);
-      log_debug ("%s", name_op);
-      log_printmpi ("    b", E.b);
-      log_printpnt ("%s  g", &E.G, NULL);
-      log_debug ("%s", name_op);
-      log_printmpi ("    n", E.n);
-      log_printf   ("%s    h %02x\n", name_op, E.h);
+      if (ec->name)
+        log_debug  ("%s name: %s\n", name_op, ec->name);
+      snprintf (msg, sizeof msg, "%s    p", name_op);
+      log_printmpi (msg, ec->p);
+      snprintf (msg, sizeof msg, "%s    a", name_op);
+      log_printmpi (msg, ec->a);
+      snprintf (msg, sizeof msg, "%s    b", name_op);
+      log_printmpi (msg, ec->b);
+      snprintf (msg, sizeof msg, "%s  g", name_op);
+      log_printpnt (msg, ec->G, NULL);
+      snprintf (msg, sizeof msg, "%s    n", name_op);
+      log_printmpi (msg, ec->n);
+      log_debug ("%s    h:+%02x\n", name_op, ec->h);
       if (mpi_q)
         {
-          log_debug ("%s", name_op);
-          log_printmpi ("    q", mpi_q);
+          snprintf (msg, sizeof msg, "%s    q", name_op);
+          log_printmpi (msg, mpi_q);
           mpi_free (mpi_q);
         }
       if (!fips_mode () && ec->d)
         {
-          log_debug ("%s", name_op);
-          log_printmpi ("    d", ec->d);
+          snprintf (msg, sizeof msg, "%s    d", name_op);
+          log_printmpi (msg, ec->d);
         }
-
-      E.G.x = NULL;
-      E.G.y = NULL;
-      E.G.z = NULL;
     }
 
  leave:
