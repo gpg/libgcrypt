@@ -106,7 +106,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
       mpi_point_t P = mpi_point_new (nbits);
       gcry_mpi_t mpi_u = mpi_new (nbits);
 
-      _gcry_mpi_set_buffer (mpi_u, point, nbytes, 0);
+      _gcry_mpi_set_opaque_copy (mpi_u, point, nbytes*8);
 
       err = _gcry_ecc_mont_decodepoint (mpi_u, ec, P);
       _gcry_mpi_release (mpi_u);
