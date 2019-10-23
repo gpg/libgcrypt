@@ -167,7 +167,7 @@ nist_generate_key (mpi_ec_t ec, int flags,
       if ((pbits % 8))
         rndbuf[0] &= (1 << (pbits % 8)) - 1;
       rndbuf[0] |= (1 << ((pbits + 7) % 8));
-      rndbuf[(pbits-1)/8] &= (256 - ec->h);
+      rndbuf[len-1] &= (256 - ec->h);
       _gcry_mpi_set_buffer (ec->d, rndbuf, len, 0);
       xfree (rndbuf);
     }
@@ -312,7 +312,7 @@ test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags)
   if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       char *rndbuf;
-      const unsigned int pbits = mpi_get_nbits (ec->p);
+      const unsigned int pbits = ec->nbits;
       int len = (pbits+7)/8;
 
       test = mpi_new (pbits);
@@ -320,7 +320,7 @@ test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags)
       if ((pbits % 8))
         rndbuf[0] &= (1 << (pbits % 8)) - 1;
       rndbuf[0] |= (1 << ((pbits + 7) % 8));
-      rndbuf[(pbits-1)/8] &= (256 - ec->h);
+      rndbuf[len-1] &= (256 - ec->h);
       _gcry_mpi_set_buffer (test, rndbuf, len, 0);
       xfree (rndbuf);
     }
@@ -607,7 +607,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       log_printmpi ("ecgen result  b", ec->b);
       log_printmpi ("ecgen result  G", base);
       log_printmpi ("ecgen result  n", ec->n);
-      log_printf   ("ecgen result  h %02x\n", ec->h);
+      log_debug    ("ecgen result  h:+%02x\n", ec->h);
       log_printmpi ("ecgen result  Q", public);
       log_printmpi ("ecgen result  d", ec->d);
       if ((flags & PUBKEY_FLAG_EDDSA))
@@ -905,7 +905,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
       for (i = 0; (ec->h & (1 << i)) == 0; i++)
         mpi_clear_bit (data, i);
-      mpi_set_highbit (data, mpi_get_nbits (ec->p) - 1);
+      mpi_set_highbit (data, ec->nbits - 1);
     }
   if (DBG_CIPHER)
     log_mpidump ("ecc_encrypt data", data);
