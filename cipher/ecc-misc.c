@@ -318,6 +318,24 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ec, mpi_point_t result)
 {
   unsigned char *rawmpi;
   unsigned int rawmpilen;
+  unsigned int nbytes = (ec->nbits+7)/8;
+
+  /*
+   * It is not reliable to assume that the first byte of 0x40
+   * means the prefix.
+   *
+   * For newer implementation, it is reliable since we always put
+   * 0x40 for x-only coordinate.
+   *
+   * For data by older implementation (non-released development
+   * version in 2015), there is no 0x40 prefix added.
+   *
+   * So, it is possible to have shorter length of data when it was
+   * handled as MPI, removing preceding zeros.
+   *
+   * Besides, when data was parsed as MPI, we might have 0x00
+   * prefix (when the MSB in the first byte is set).
+   */
 
   if (mpi_is_opaque (pk))
     {
@@ -329,52 +347,29 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ec, mpi_point_t result)
         return GPG_ERR_INV_OBJ;
       rawmpilen = (rawmpilen + 7)/8;
 
-      if (rawmpilen > 1 && (rawmpilen%2) && buf[0] == 0x40)
+      if (rawmpilen > nbytes
+          && (buf[0] == 0x00 || buf[0] == 0x40))
         {
           rawmpilen--;
           buf++;
         }
 
-      rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
+      rawmpi = xtrymalloc (nbytes);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
 
       p = rawmpi + rawmpilen;
       while (p > rawmpi)
         *--p = *buf++;
+
+      if (rawmpilen < nbytes)
+        memset (rawmpi + nbytes - rawmpilen, 0, nbytes - rawmpilen);
     }
   else
     {
-      unsigned int nbytes = (ec->nbits+7)/8;
-
       rawmpi = _gcry_mpi_get_buffer (pk, nbytes, &rawmpilen, NULL);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
-      /*
-       * It is not reliable to assume that 0x40 means the prefix.
-       *
-       * For newer implementation, it is reliable since we always put
-       * 0x40 for x-only coordinate.
-       *
-       * For data with older implementation (non-released development
-       * version), it is possible to have the 0x40 as a part of data.
-       * Besides, when data was parsed as MPI, we might have 0x00
-       * prefix.
-       *
-       * So, we need to check if it's really the prefix or not.
-       * Only when it's the prefix, we remove it.
-       */
-      if (pk->nlimbs * BYTES_PER_MPI_LIMB < nbytes)
-        {/*
-          * It is possible for data created by older implementation
-          * to have shorter length when it was parsed as MPI.
-          */
-          unsigned int len = pk->nlimbs * BYTES_PER_MPI_LIMB;
-
-          memmove (rawmpi + nbytes - len, rawmpi, len);
-          memset (rawmpi, 0, nbytes - len);
-        }
-
       /*
        * When we have the prefix (0x40 or 0x00), it comes at the end,
        * since it is taken by _gcry_mpi_get_buffer with little endian.
