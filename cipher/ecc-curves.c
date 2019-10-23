@@ -1081,6 +1081,21 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
         return errc;
       errc = mpi_from_keyparam (&ec->d, keyparam, "d",
                                 ec->dialect == ECC_DIALECT_SAFECURVE);
+
+      /* Size of opaque bytes should match size of P.  */
+      if (ec->d && ec->dialect == ECC_DIALECT_SAFECURVE)
+        {
+          unsigned int n = mpi_get_nbits (ec->d);
+
+          if ((n+7)/8 != (ec->nbits+7)/8)
+            {
+              if (DBG_CIPHER)
+                log_debug ("scalar size (%d) != prime size (%d)",
+                           (n+7)/8, (ec->nbits+7)/8);
+
+              errc = GPG_ERR_INV_OBJ;
+            }
+        }
     }
 
   return errc;

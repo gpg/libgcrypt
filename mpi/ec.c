@@ -1797,7 +1797,8 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
 
           raw = _gcry_mpi_get_opaque_copy (scalar, &n);
           if ((n+7)/8 != (pbits+7)/8)
-            log_fatal ("scalar size (%d) != prime size (%s)\n", n, pbits);
+            log_fatal ("scalar size (%d) != prime size (%d)\n",
+                       (n+7)/8, (pbits+7)/8);
 
           reverse_buffer (raw, (n+7)/8);
           if ((pbits % 8))
