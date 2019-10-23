@@ -31,8 +31,8 @@
 #include "ec-context.h"
 #include "ecc-common.h"
 
-#define ECC_CURVE25519_BITS 256
-#define ECC_CURVE448_BITS   448
+#define ECC_CURVE25519_BYTES 32
+#define ECC_CURVE448_BYTES   56
 
 static gpg_err_code_t
 prepare_ec (mpi_ec_t *r_ec, const char *name)
@@ -51,9 +51,9 @@ _gcry_ecc_get_algo_keylen (int algo)
   unsigned int len = 0;
 
   if (algo == GCRY_ECC_CURVE25519)
-    len = ECC_CURVE25519_BITS/8;
+    len = ECC_CURVE25519_BYTES;
   else if (algo == GCRY_ECC_CURVE448)
-    len = ECC_CURVE448_BITS/8;
+    len = ECC_CURVE448_BYTES;
 
   return len;
 }
@@ -66,7 +66,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   unsigned int nbytes;
   const char *curve;
   gpg_err_code_t err;
-  unsigned char buffer[ECC_CURVE448_BITS/8];
+  unsigned char buffer[ECC_CURVE448_BYTES];
   gcry_mpi_t mpi_k;
   mpi_ec_t ec;
   mpi_point_t Q;
@@ -76,23 +76,20 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   unsigned char *buf;
 
   if (algo == GCRY_ECC_CURVE25519)
-    {
-      nbits = ECC_CURVE25519_BITS;
-      curve = "Curve25519";
-    }
+    curve = "Curve25519";
   else if (algo == GCRY_ECC_CURVE448)
     {
-      nbits = ECC_CURVE448_BITS;
       curve = "X448";
     }
   else
     return gpg_error (GPG_ERR_UNKNOWN_ALGORITHM);
 
-  nbytes = nbits / 8;
-
   err = prepare_ec (&ec, curve);
   if (err)
     return err;
+
+  nbits = ec->nbits;
+  nbytes = (nbits + 7)/8;
 
   mpi_k = mpi_new (nbits);
   Q = mpi_point_new (nbits);
@@ -107,7 +104,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
 
       for (i = 0; (ec->h & (1 << i)) == 0; i++)
         mpi_clear_bit (mpi_k, i);
-      mpi_set_highbit (mpi_k, mpi_get_nbits (ec->p) - 1);
+      mpi_set_highbit (mpi_k, nbits - 1);
     }
   else
     mpi_k = _gcry_mpi_set_opaque_copy (NULL, buffer, nbytes*8);
@@ -117,7 +114,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
       mpi_point_t P = mpi_point_new (nbits);
       gcry_mpi_t mpi_u = mpi_new (nbits);
 
-      _gcry_mpi_set_buffer (mpi_u, point, nbytes, 0);
+      _gcry_mpi_set_opaque_copy (mpi_u, point, nbytes*8);
 
       err = _gcry_ecc_mont_decodepoint (mpi_u, ec, P);
       _gcry_mpi_release (mpi_u);
