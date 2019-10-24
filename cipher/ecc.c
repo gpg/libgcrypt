@@ -431,7 +431,7 @@ check_secret_key (mpi_ec_t ec, int flags)
     }
 
   /* pubkey = [d]G over E */
-  if (!_gcry_ecc_compute_public (&Q, ec, ec->G, ec->d))
+  if (!_gcry_ecc_compute_public (&Q, ec))
     {
       if (DBG_CIPHER)
         log_debug ("Bad check: computation of dG failed\n");
@@ -1445,7 +1445,7 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
 
   /* Compute the public point if it is missing.  */
   if (!ec->Q && ec->d)
-    ec->Q = _gcry_ecc_compute_public (NULL, ec, NULL, NULL);
+    ec->Q = _gcry_ecc_compute_public (NULL, ec);
 
   /* Encode G and Q.  */
   mpi_G = _gcry_mpi_ec_ec2os (ec->G, ec);

@@ -75,8 +75,7 @@ const char *_gcry_ecc_model2str (enum gcry_mpi_ec_models model);
 const char *_gcry_ecc_dialect2str (enum ecc_dialects dialect);
 gcry_mpi_t   _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p);
 
-mpi_point_t  _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
-                                       mpi_point_t G, gcry_mpi_t d);
+mpi_point_t  _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec);
 gpg_err_code_t _gcry_ecc_mont_encodepoint (gcry_mpi_t x, unsigned int nbits,
                                            int with_prefix,
                                            unsigned char **r_buffer,
@@ -105,7 +104,7 @@ gpg_err_code_t _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value,
 
 
 gpg_err_code_t _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
-                                            gcry_mpi_t d, mpi_ec_t ec);
+                                            mpi_ec_t ec);
 
 gpg_err_code_t _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags);
 gpg_err_code_t _gcry_ecc_eddsa_sign (gcry_mpi_t input,

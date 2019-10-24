@@ -258,8 +258,8 @@ static const ecc_domain_parms_t domain_parms[] =
       "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
       "0x051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef10"
       "9e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00",
-      "0x1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-      "ffa51868783bf2f966b7fcc0148f709a5d03bb5c9b8899c47aebb6fb71e91386409",
+      "0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "fffa51868783bf2f966b7fcc0148f709a5d03bb5c9b8899c47aebb6fb71e91386409",
 
       "0x00c6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d"
       "3dbaa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66",
@@ -1317,7 +1317,7 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q)
-        ec->Q = _gcry_ecc_compute_public (NULL, ec, NULL, NULL);
+        ec->Q = _gcry_ecc_compute_public (NULL, ec);
 
       if (!ec->Q)
         return NULL;
@@ -1350,7 +1350,7 @@ _gcry_ecc_get_point (const char *name, mpi_ec_t ec)
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q)
-        ec->Q = _gcry_ecc_compute_public (NULL, ec, NULL, NULL);
+        ec->Q = _gcry_ecc_compute_public (NULL, ec);
 
       if (ec->Q)
         return point_copy (ec->Q);
