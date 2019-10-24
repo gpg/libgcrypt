@@ -340,17 +340,11 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
        * So, we need to check if it's really the prefix or not.
        * Only when it's the prefix, we remove it.
        */
-      if (pk->nlimbs * BYTES_PER_MPI_LIMB < nbytes)
-        {/*
-          * It is possible for data created by older implementation
-          * to have shorter length when it was parsed as MPI.
-          */
-          unsigned int len = pk->nlimbs * BYTES_PER_MPI_LIMB;
-
-          memmove (rawmpi + nbytes - len, rawmpi, len);
-          memset (rawmpi, 0, nbytes - len);
-        }
-
+      /*
+       * It is possible for data created by older implementation to
+       * have shorter length when it was parsed as MPI.  Those removed
+       * zero(s) are recovered by _gcry_mpi_get_buffer.
+       */
       /*
        * When we have the prefix (0x40 or 0x00), it comes at the end,
        * since it is taken by _gcry_mpi_get_buffer with little endian.
