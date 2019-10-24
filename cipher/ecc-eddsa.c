@@ -168,11 +168,11 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
         {
           /* Buffer is in SEC1 uncompressed format.  Extract y and
              compress.  */
-          rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
+          rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG,
                                buf+1, (rawmpilen-1)/2, NULL);
           if (rc)
             return rc;
-          rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
+          rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_USG,
                                buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
           if (rc)
             {
@@ -316,11 +316,11 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
             {
               gcry_mpi_t x, y;
 
-              rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
+              rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG,
                                    buf+1, (rawmpilen-1)/2, NULL);
               if (rc)
                 return rc;
-              rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
+              rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_USG,
                                    buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2,NULL);
               if (rc)
                 {
