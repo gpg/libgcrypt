@@ -406,8 +406,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
    bytes represent the A value.  NULL is returned on error and NULL
    stored at R_DIGEST.  */
 gpg_err_code_t
-_gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
-                             gcry_mpi_t d, mpi_ec_t ec)
+_gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest, mpi_ec_t ec)
 {
   gpg_err_code_t rc;
   unsigned char *rawmpi = NULL;
@@ -434,7 +433,7 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
 
   memset (hvec, 0, sizeof hvec);
 
-  rawmpi = _gcry_mpi_get_buffer (d, 0, &rawmpilen, NULL);
+  rawmpi = _gcry_mpi_get_buffer (ec->d, 0, &rawmpilen, NULL);
   if (!rawmpi)
     {
       xfree (digest);
@@ -597,7 +596,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
       goto leave;
     }
 
-  rc = _gcry_ecc_eddsa_compute_h_d (&digest, ec->d, ec);
+  rc = _gcry_ecc_eddsa_compute_h_d (&digest, ec);
   if (rc)
     goto leave;
   _gcry_mpi_set_buffer (a, digest, 32, 0);

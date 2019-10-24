@@ -243,15 +243,9 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
    is returned.  If G or D are given they override the values taken
    from EC. */
 mpi_point_t
-_gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
-                          mpi_point_t G, gcry_mpi_t d)
+_gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
 {
-  if (!G)
-    G = ec->G;
-  if (!d)
-    d = ec->d;
-
-  if (!d || !G || !ec->p || !ec->a)
+  if (!ec->d || !ec->G || !ec->p || !ec->a)
     return NULL;
   if (ec->model == MPI_EC_EDWARDS && !ec->b)
     return NULL;
@@ -262,7 +256,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
       gcry_mpi_t a;
       unsigned char *digest;
 
-      if (_gcry_ecc_eddsa_compute_h_d (&digest, d, ec))
+      if (_gcry_ecc_eddsa_compute_h_d (&digest, ec))
         return NULL;
 
       a = mpi_snew (0);
@@ -273,7 +267,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
       if (!Q)
         Q = mpi_point_new (0);
       if (Q)
-        _gcry_mpi_ec_mul_point (Q, a, G, ec);
+        _gcry_mpi_ec_mul_point (Q, a, ec->G, ec);
       mpi_free (a);
     }
   else
@@ -281,7 +275,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
       if (!Q)
         Q = mpi_point_new (0);
       if (Q)
-        _gcry_mpi_ec_mul_point (Q, d, G, ec);
+        _gcry_mpi_ec_mul_point (Q, ec->d, ec->G, ec);
     }
 
   return Q;

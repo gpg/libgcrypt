@@ -1284,7 +1284,7 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q)
-        ec->Q = _gcry_ecc_compute_public (NULL, ec, NULL, NULL);
+        ec->Q = _gcry_ecc_compute_public (NULL, ec);
 
       if (!ec->Q)
         return NULL;
@@ -1317,7 +1317,7 @@ _gcry_ecc_get_point (const char *name, mpi_ec_t ec)
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q)
-        ec->Q = _gcry_ecc_compute_public (NULL, ec, NULL, NULL);
+        ec->Q = _gcry_ecc_compute_public (NULL, ec);
 
       if (ec->Q)
         return point_copy (ec->Q);
