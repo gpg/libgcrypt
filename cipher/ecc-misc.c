@@ -109,7 +109,6 @@ _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
   int pbytes = (mpi_get_nbits (p)+7)/8;
   size_t n;
   unsigned char *buf, *ptr;
-  gcry_mpi_t result;
 
   buf = xmalloc ( 1 + 2*pbytes );
   *buf = 04; /* Uncompressed point.  */
@@ -132,12 +131,7 @@ _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
       memset (ptr, 0, (pbytes-n));
     }
 
-  rc = _gcry_mpi_scan (&result, GCRYMPI_FMT_USG, buf, 1+2*pbytes, NULL);
-  if (rc)
-    log_fatal ("mpi_scan failed: %s\n", gpg_strerror (rc));
-  xfree (buf);
-
-  return result;
+  return mpi_set_opaque (NULL, buf, (1+2*pbytes)*8);
 }
 
 
