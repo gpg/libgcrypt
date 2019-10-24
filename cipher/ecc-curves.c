@@ -818,7 +818,8 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
 
 /* Helper to extract an MPI from key parameters.  */
 static gpg_err_code_t
-mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name)
+mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name,
+                   int opaque)
 {
   gcry_err_code_t ec = 0;
   gcry_sexp_t l1;
@@ -826,7 +827,7 @@ mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name)
   l1 = sexp_find_token (keyparam, name, 0);
   if (l1)
     {
-      *r_a = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      *r_a = sexp_nth_mpi (l1, 1, opaque? GCRYMPI_FMT_OPAQUE : GCRYMPI_FMT_USG);
       sexp_release (l1);
       if (!*r_a)
         ec = GPG_ERR_INV_OBJ;
@@ -877,14 +878,14 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       if (!tmpname)
         return gpg_err_code_from_syserror ();
       strcpy (stpcpy (tmpname, name), ".x");
-      rc = mpi_from_keyparam (&x, keyparam, tmpname);
+      rc = mpi_from_keyparam (&x, keyparam, tmpname, 0);
       if (rc)
         {
           xfree (tmpname);
           return rc;
         }
       strcpy (stpcpy (tmpname, name), ".y");
-      rc = mpi_from_keyparam (&y, keyparam, tmpname);
+      rc = mpi_from_keyparam (&y, keyparam, tmpname, 0);
       if (rc)
         {
           mpi_free (x);
@@ -892,7 +893,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
           return rc;
         }
       strcpy (stpcpy (tmpname, name), ".z");
-      rc = mpi_from_keyparam (&z, keyparam, tmpname);
+      rc = mpi_from_keyparam (&z, keyparam, tmpname, 0);
       if (rc)
         {
           mpi_free (y);
@@ -972,13 +973,13 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
           gcry_mpi_point_t G = NULL;
           gcry_mpi_t cofactor = NULL;
 
-          errc = mpi_from_keyparam (&E->p, keyparam, "p");
+          errc = mpi_from_keyparam (&E->p, keyparam, "p", 0);
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&E->a, keyparam, "a");
+          errc = mpi_from_keyparam (&E->a, keyparam, "a", 0);
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&E->b, keyparam, "b");
+          errc = mpi_from_keyparam (&E->b, keyparam, "b", 0);
           if (errc)
             goto leave;
           errc = point_from_keyparam (&G, keyparam, "g", NULL);
@@ -990,10 +991,10 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
               mpi_point_set (G, NULL, NULL, NULL);
               mpi_point_release (G);
             }
-          errc = mpi_from_keyparam (&E->n, keyparam, "n");
+          errc = mpi_from_keyparam (&E->n, keyparam, "n", 0);
           if (errc)
             goto leave;
-          errc = mpi_from_keyparam (&cofactor, keyparam, "h");
+          errc = mpi_from_keyparam (&cofactor, keyparam, "h", 0);
           if (errc)
             goto leave;
           if (cofactor)
@@ -1062,7 +1063,7 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
       errc = point_from_keyparam (&ec->Q, keyparam, "q", ec);
       if (errc)
         return errc;
-      errc = mpi_from_keyparam (&ec->d, keyparam, "d");
+      errc = mpi_from_keyparam (&ec->d, keyparam, "d", 0);
     }
 
   return errc;
