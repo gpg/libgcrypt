@@ -94,18 +94,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   x = mpi_new (nbits);
 
   memcpy (buffer, scalar, nbytes);
-  if (algo == GCRY_ECC_CURVE25519)
-    {
-      mpi_k = mpi_new (nbits);
-      reverse_buffer (buffer, nbytes);
-      _gcry_mpi_set_buffer (mpi_k, buffer, nbytes, 0);
-
-      for (i = 0; (ec->h & (1 << i)) == 0; i++)
-        mpi_clear_bit (mpi_k, i);
-      mpi_set_highbit (mpi_k, nbits - 1);
-    }
-  else
-    mpi_k = _gcry_mpi_set_opaque_copy (NULL, buffer, nbytes*8);
+  mpi_k = _gcry_mpi_set_opaque_copy (NULL, buffer, nbytes*8);
 
   if (point)
     {
