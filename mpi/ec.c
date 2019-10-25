@@ -30,6 +30,7 @@
 #include "ec-context.h"
 #include "ec-internal.h"
 
+extern void reverse_buffer (unsigned char *buffer, unsigned int length);
 
 #define point_init(a)  _gcry_mpi_point_init ((a))
 #define point_free(a)  _gcry_mpi_point_free_parts ((a))
@@ -1569,6 +1570,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       mpi_point_t q1, q2, prd, sum;
       unsigned long sw;
       mpi_size_t rsize;
+      int scalar_copied = 0;
 
       /* Compute scalar point multiplication with Montgomery Ladder.
          Note that we don't use Y-coordinate in the points at all.
@@ -1583,6 +1585,32 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       mpi_free (p2.x);
       p2.x  = mpi_copy (point->x);
       mpi_set_ui (p2.z, 1);
+
+      if (mpi_is_opaque (scalar))
+        {
+          const unsigned int pbits = ctx->nbits;
+          gcry_mpi_t a;
+          unsigned int n;
+          unsigned char *raw;
+
+          scalar_copied = 1;
+
+          raw = _gcry_mpi_get_opaque_copy (scalar, &n);
+          if ((n+7)/8 != (pbits+7)/8)
+            log_fatal ("scalar size (%d) != prime size (%d)\n",
+                       (n+7)/8, (pbits+7)/8);
+
+          reverse_buffer (raw, (n+7)/8);
+          if ((pbits % 8))
+            raw[0] &= (1 << (pbits % 8)) - 1;
+          raw[0] |= (1 << ((pbits + 7) % 8));
+          raw[(pbits+7)/8 - 1] &= (256 - ctx->h);
+          a = mpi_is_secure (scalar) ? mpi_snew (pbits): mpi_new (pbits);
+          _gcry_mpi_set_buffer (a, raw, (n+7)/8, 0);
+          xfree (raw);
+
+          scalar = a;
+        }
 
       point_resize (&p1, ctx);
       point_resize (&p2, ctx);
@@ -1633,6 +1661,8 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       point_free (&p2);
       point_free (&p1_);
       point_free (&p2_);
+      if (scalar_copied)
+        _gcry_mpi_release (scalar);
       return;
     }
 
