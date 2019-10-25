@@ -157,19 +157,26 @@ nist_generate_key (mpi_ec_t ec, int flags,
     random_level = GCRY_VERY_STRONG_RANDOM;
 
   /* Generate a secret.  */
-  if (ec->dialect == ECC_DIALECT_ED25519 || (flags & PUBKEY_FLAG_DJB_TWEAK))
+  if (ec->dialect == ECC_DIALECT_ED25519
+      || ec->dialect == ECC_DIALECT_SAFECURVE
+      || (flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       char *rndbuf;
       int len = (pbits+7)/8;
 
-      ec->d = mpi_snew (pbits);
       rndbuf = _gcry_random_bytes_secure (len, random_level);
-      if ((pbits % 8))
-        rndbuf[0] &= (1 << (pbits % 8)) - 1;
-      rndbuf[0] |= (1 << ((pbits + 7) % 8));
-      rndbuf[len-1] &= (256 - ec->h);
-      _gcry_mpi_set_buffer (ec->d, rndbuf, len, 0);
-      xfree (rndbuf);
+      if (ec->dialect == ECC_DIALECT_SAFECURVE)
+        ec->d = mpi_set_opaque (NULL, rndbuf, len*8);
+      else
+        {
+          ec->d = mpi_snew (pbits);
+          if ((pbits % 8))
+            rndbuf[0] &= (1 << (pbits % 8)) - 1;
+          rndbuf[0] |= (1 << ((pbits + 7) % 8));
+          rndbuf[len-1] &= (256 - ec->h);
+          _gcry_mpi_set_buffer (ec->d, rndbuf, len, 0);
+          xfree (rndbuf);
+        }
     }
   else
     ec->d = _gcry_dsa_gen_k (ec->n, random_level);
@@ -309,20 +316,25 @@ test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags)
 
   point_init (&R_);
 
-  if ((flags & PUBKEY_FLAG_DJB_TWEAK))
+  if (ec->dialect == ECC_DIALECT_SAFECURVE || (flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       char *rndbuf;
       const unsigned int pbits = ec->nbits;
       int len = (pbits+7)/8;
 
-      test = mpi_new (pbits);
       rndbuf = _gcry_random_bytes (len, GCRY_WEAK_RANDOM);
-      if ((pbits % 8))
-        rndbuf[0] &= (1 << (pbits % 8)) - 1;
-      rndbuf[0] |= (1 << ((pbits + 7) % 8));
-      rndbuf[len-1] &= (256 - ec->h);
-      _gcry_mpi_set_buffer (test, rndbuf, len, 0);
-      xfree (rndbuf);
+      if (ec->dialect == ECC_DIALECT_SAFECURVE)
+        test = mpi_set_opaque (NULL, rndbuf, len*8);
+      else
+        {
+          test = mpi_new (pbits);
+          if ((pbits % 8))
+            rndbuf[0] &= (1 << (pbits % 8)) - 1;
+          rndbuf[0] |= (1 << ((pbits + 7) % 8));
+          rndbuf[len-1] &= (256 - ec->h);
+          _gcry_mpi_set_buffer (test, rndbuf, len, 0);
+          xfree (rndbuf);
+        }
     }
   else
     {
@@ -335,7 +347,7 @@ test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags)
 
   /* R_ = hkQ  <=>  R_ = hkdG  */
   _gcry_mpi_ec_mul_point (&R_, test, ec->Q, ec);
-  if (!(flags & PUBKEY_FLAG_DJB_TWEAK))
+  if (ec->dialect == ECC_DIALECT_STANDARD && !(flags & PUBKEY_FLAG_DJB_TWEAK))
     _gcry_mpi_ec_mul_point (&R_, _gcry_mpi_get_const (ec->h), &R_, ec);
   if (_gcry_mpi_ec_get_affine (x0, NULL, &R_, ec))
     log_fatal ("ecdh: Failed to get affine coordinates for hkQ\n");
@@ -343,7 +355,7 @@ test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags)
   _gcry_mpi_ec_mul_point (&R_, test, ec->G, ec);
   _gcry_mpi_ec_mul_point (&R_, ec->d, &R_, ec);
   /* R_ = hdkG */
-  if (!(flags & PUBKEY_FLAG_DJB_TWEAK))
+  if (ec->dialect == ECC_DIALECT_STANDARD && !(flags & PUBKEY_FLAG_DJB_TWEAK))
     _gcry_mpi_ec_mul_point (&R_, _gcry_mpi_get_const (ec->h), &R_, ec);
 
   if (_gcry_mpi_ec_get_affine (x1, NULL, &R_, ec))
@@ -525,7 +537,9 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       unsigned int encpklen;
 
       if (ec->model == MPI_EC_MONTGOMERY)
-        rc = _gcry_ecc_mont_encodepoint (Qx, ec->nbits, 1, &encpk, &encpklen);
+        rc = _gcry_ecc_mont_encodepoint (Qx, ec->nbits,
+                                         ec->dialect != ECC_DIALECT_SAFECURVE,
+                                         &encpk, &encpklen);
       else
         /* (Gx and Gy are used as scratch variables)  */
         rc = _gcry_ecc_eddsa_encodepoint (ec->Q, ec, Gx, Gy,
@@ -874,9 +888,27 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_mpi_t data = NULL;
   mpi_ec_t ec = NULL;
   int flags = 0;
+  int no_error_on_infinity;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT,
                                    (nbits = ecc_get_nbits (keyparms)));
+
+  /*
+   * Extract the key.
+   */
+  rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecc_encrypt", keyparms, NULL);
+  if (rc)
+    goto leave;
+
+  if (ec->dialect == ECC_DIALECT_SAFECURVE)
+    {
+      ctx.flags |= PUBKEY_FLAG_RAW_FLAG;
+      no_error_on_infinity = 1;
+    }
+  else if ((flags & PUBKEY_FLAG_DJB_TWEAK))
+    no_error_on_infinity = 1;
+  else
+    no_error_on_infinity = 0;
 
   /*
    * Extract the data.
@@ -884,16 +916,6 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
   if (rc)
     goto leave;
-  if (mpi_is_opaque (data))
-    {
-      rc = GPG_ERR_INV_DATA;
-      goto leave;
-    }
-
-  /*
-   * Extract the key.
-   */
-  rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecc_encrypt", keyparms, NULL);
 
   /*
    * Tweak the scalar bits by cofactor and number of bits of the field.
@@ -947,7 +969,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
          * imported public key which might not follow the key
          * generation procedure.
          */
-        if (!(flags & PUBKEY_FLAG_DJB_TWEAK))
+        if (!no_error_on_infinity)
           { /* It's not for X25519, then, the input data was simply wrong.  */
             rc = GPG_ERR_INV_DATA;
             goto leave_main;
@@ -957,7 +979,9 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_s = _gcry_ecc_ec2os (x, y, ec->p);
     else
       {
-        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        rc = _gcry_ecc_mont_encodepoint (x, nbits,
+                                         ec->dialect != ECC_DIALECT_SAFECURVE,
+                                         &rawmpi, &rawmpilen);
         if (rc)
           goto leave_main;
         mpi_s = mpi_new (0);
@@ -976,7 +1000,9 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_e = _gcry_ecc_ec2os (x, y, ec->p);
     else
       {
-        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        rc = _gcry_ecc_mont_encodepoint (x, nbits,
+                                         ec->dialect != ECC_DIALECT_SAFECURVE,
+                                         &rawmpi, &rawmpilen);
         if (!rc)
           {
             mpi_e = mpi_new (0);
@@ -1027,6 +1053,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   mpi_point_struct R;
   gcry_mpi_t r = NULL;
   int flags = 0;
+  int enable_specific_point_validation;
 
   point_init (&kG);
   point_init (&R);
@@ -1059,6 +1086,11 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       goto leave;
     }
 
+  if (ec->dialect == ECC_DIALECT_SAFECURVE || (flags & PUBKEY_FLAG_DJB_TWEAK))
+    enable_specific_point_validation = 1;
+  else
+    enable_specific_point_validation = 0;
+
   /*
    * Compute the plaintext.
    */
@@ -1072,7 +1104,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (DBG_CIPHER)
     log_printpnt ("ecc_decrypt    kG", &kG, NULL);
 
-  if ((flags & PUBKEY_FLAG_DJB_TWEAK))
+  if (enable_specific_point_validation)
     {
       /* For X25519, by its definition, validation should not be done.  */
       /* (Instead, we do output check.)
@@ -1141,7 +1173,9 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         unsigned char *rawmpi;
         unsigned int rawmpilen;
 
-        rc = _gcry_ecc_mont_encodepoint (x, nbits, 1, &rawmpi, &rawmpilen);
+        rc = _gcry_ecc_mont_encodepoint (x, nbits,
+                                         ec->dialect != ECC_DIALECT_SAFECURVE,
+                                         &rawmpi, &rawmpilen);
         if (rc)
           goto leave;
 
@@ -1443,7 +1477,8 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
       unsigned char *encpk;
       unsigned int encpklen;
 
-      rc = _gcry_ecc_mont_encodepoint (ec->Q->x, ec->nbits, 1,
+      rc = _gcry_ecc_mont_encodepoint (ec->Q->x, ec->nbits,
+                                       ec->dialect != ECC_DIALECT_SAFECURVE,
                                        &encpk, &encpklen);
       if (rc)
         goto leave;

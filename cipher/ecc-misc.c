@@ -97,6 +97,7 @@ _gcry_ecc_dialect2str (enum ecc_dialects dialect)
     {
     case ECC_DIALECT_STANDARD:  str = "Standard"; break;
     case ECC_DIALECT_ED25519:   str = "Ed25519"; break;
+    case ECC_DIALECT_SAFECURVE: str = "SafeCurve"; break;
     }
   return str;
 }
