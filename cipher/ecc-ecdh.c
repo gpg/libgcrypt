@@ -66,13 +66,11 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   unsigned int nbytes;
   const char *curve;
   gpg_err_code_t err;
-  unsigned char buffer[ECC_CURVE448_BYTES];
   gcry_mpi_t mpi_k;
   mpi_ec_t ec;
-  mpi_point_t Q;
+  mpi_point_struct Q;
   gcry_mpi_t x;
   unsigned int len;
-  int i;
   unsigned char *buf;
 
   if (algo == GCRY_ECC_CURVE25519)
@@ -90,30 +88,30 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   nbytes = (nbits + 7)/8;
 
   mpi_k = mpi_new (nbits);
-  Q = mpi_point_new (nbits);
   x = mpi_new (nbits);
+  point_init (&Q);
 
-  memcpy (buffer, scalar, nbytes);
-  mpi_k = _gcry_mpi_set_opaque_copy (NULL, buffer, nbytes*8);
+  mpi_k = _gcry_mpi_set_opaque_copy (NULL, scalar, nbytes*8);
 
   if (point)
     {
-      mpi_point_t P = mpi_point_new (nbits);
+      mpi_point_struct P;
       gcry_mpi_t mpi_u = mpi_new (nbits);
 
+      point_init (&P);
       _gcry_mpi_set_opaque_copy (mpi_u, point, nbytes*8);
 
-      err = _gcry_ecc_mont_decodepoint (mpi_u, ec, P);
+      err = _gcry_ecc_mont_decodepoint (mpi_u, ec, &P);
       _gcry_mpi_release (mpi_u);
       if (err)
         goto leave;
-      _gcry_mpi_ec_mul_point (Q, mpi_k, P, ec);
-      _gcry_mpi_point_release (P);
+      _gcry_mpi_ec_mul_point (&Q, mpi_k, &P, ec);
+      point_free (&P);
     }
   else
-    _gcry_mpi_ec_mul_point (Q, mpi_k, ec->G, ec);
+    _gcry_mpi_ec_mul_point (&Q, mpi_k, ec->G, ec);
 
-  _gcry_mpi_ec_get_affine (x, NULL, Q, ec);
+  _gcry_mpi_ec_get_affine (x, NULL, &Q, ec);
 
   buf = _gcry_mpi_get_buffer (x, nbytes, &len, NULL);
   if (!buf)
@@ -122,8 +120,8 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   xfree (buf);
 
  leave:
+  point_free (&Q);
   _gcry_mpi_release (x);
-  _gcry_mpi_point_release (Q);
   _gcry_mpi_release (mpi_k);
   return err;
 }
