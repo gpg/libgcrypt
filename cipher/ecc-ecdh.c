@@ -87,20 +87,16 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   nbits = ec->nbits;
   nbytes = (nbits + 7)/8;
 
-  mpi_k = mpi_new (nbits);
+  mpi_k = _gcry_mpi_set_opaque_copy (NULL, scalar, nbytes*8);
   x = mpi_new (nbits);
   point_init (&Q);
 
-  mpi_k = _gcry_mpi_set_opaque_copy (NULL, scalar, nbytes*8);
-
   if (point)
     {
+      gcry_mpi_t mpi_u = _gcry_mpi_set_opaque_copy (NULL, point, nbytes*8);
       mpi_point_struct P;
-      gcry_mpi_t mpi_u = mpi_new (nbits);
 
       point_init (&P);
-      _gcry_mpi_set_opaque_copy (mpi_u, point, nbytes*8);
-
       err = _gcry_ecc_mont_decodepoint (mpi_u, ec, &P);
       _gcry_mpi_release (mpi_u);
       if (err)
@@ -120,8 +116,8 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   xfree (buf);
 
  leave:
-  point_free (&Q);
   _gcry_mpi_release (x);
+  point_free (&Q);
   _gcry_mpi_release (mpi_k);
   return err;
 }
