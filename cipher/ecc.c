@@ -1359,7 +1359,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
       if (rc)
         goto leave;
     }
-  else if (dialect == ECC_DIALECT_SAFECURVE || (flags & PUBKEY_FLAG_DJB_TWEAK))
+  else if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       /* Remove the prefix 0x40 for keygrip computation.  */
       raw = mpi_get_opaque (values[5], &n);
