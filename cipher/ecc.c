@@ -888,7 +888,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_mpi_t data = NULL;
   mpi_ec_t ec = NULL;
   int flags = 0;
-  int safecurve;
+  int no_error_on_infinity;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT,
                                    (nbits = ecc_get_nbits (keyparms)));
@@ -903,12 +903,12 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (ec->dialect == ECC_DIALECT_SAFECURVE)
     {
       ctx.flags |= PUBKEY_FLAG_RAW_FLAG;
-      safecurve = 1;
+      no_error_on_infinity = 1;
     }
   else if ((flags & PUBKEY_FLAG_DJB_TWEAK))
-    safecurve = 1;
+    no_error_on_infinity = 1;
   else
-    safecurve = 0;
+    no_error_on_infinity = 0;
 
   /*
    * Extract the data.
@@ -969,7 +969,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
          * imported public key which might not follow the key
          * generation procedure.
          */
-        if (!safecurve)
+        if (!no_error_on_infinity)
           { /* It's not for X25519, then, the input data was simply wrong.  */
             rc = GPG_ERR_INV_DATA;
             goto leave_main;
@@ -1053,7 +1053,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   mpi_point_struct R;
   gcry_mpi_t r = NULL;
   int flags = 0;
-  int safecurve;
+  int enable_specific_point_validation;
 
   point_init (&kG);
   point_init (&R);
@@ -1087,9 +1087,9 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   if (ec->dialect == ECC_DIALECT_SAFECURVE || (flags & PUBKEY_FLAG_DJB_TWEAK))
-    safecurve = 1;
+    enable_specific_point_validation = 1;
   else
-    safecurve = 0;
+    enable_specific_point_validation = 0;
 
   /*
    * Compute the plaintext.
@@ -1104,7 +1104,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (DBG_CIPHER)
     log_printpnt ("ecc_decrypt    kG", &kG, NULL);
 
-  if (safecurve)
+  if (enable_specific_point_validation)
     {
       /* For X25519, by its definition, validation should not be done.  */
       /* (Instead, we do output check.)
