@@ -33,7 +33,7 @@
 #include "t-common.h"
 
 /* Number of curves defined in ../cipger/ecc.c */
-#define N_CURVES 22
+#define N_CURVES 23
 
 /* A real world sample public key.  */
 static char const sample_key_1[] =

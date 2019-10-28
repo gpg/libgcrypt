@@ -37,7 +37,10 @@
 static gpg_err_code_t
 prepare_ec (mpi_ec_t *r_ec, const char *name)
 {
-  int flags = PUBKEY_FLAG_DJB_TWEAK;
+  int flags = 0;
+
+  if (!strcmp (name, "Curve25519"))
+    flags = PUBKEY_FLAG_DJB_TWEAK;
 
   return _gcry_mpi_ec_internal_new (r_ec, &flags, "ecc_mul_point", NULL, name);
 }
@@ -73,10 +76,7 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   if (algo == GCRY_ECC_CURVE25519)
     curve = "Curve25519";
   else if (algo == GCRY_ECC_CURVE448)
-    {
-      curve = "X448";
-      return gpg_error (GPG_ERR_UNSUPPORTED_ALGORITHM);
-    }
+    curve = "X448";
   else
     return gpg_error (GPG_ERR_UNKNOWN_ALGORITHM);
 

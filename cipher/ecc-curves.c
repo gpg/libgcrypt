@@ -54,9 +54,9 @@ static const struct
     { "Ed448",      "1.3.101.113" },         /* rfc8410 */
 
     { "X22519",     "1.3.101.110" },         /* rfc8410 */
+#endif
 
     { "X448",       "1.3.101.111" },         /* rfc8410 */
-#endif
 
     { "NIST P-192", "1.2.840.10045.3.1.1" }, /* X9.62 OID  */
     { "NIST P-192", "prime192v1" },          /* X9.62 name.  */
@@ -161,6 +161,22 @@ static const ecc_domain_parms_t domain_parms[] =
        * but that breaks the keygrip.  The new value is recovered in
        * the function _gcry_ecc_fill_in_curve.
        */
+    },
+    {
+      /* (y^2 = x^3 + 156326*x^2 + x) */
+      "X448", 448, 0,
+      MPI_EC_MONTGOMERY, ECC_DIALECT_SAFECURVE,
+      "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"
+      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      "0x98A9",
+      "0x01",
+      "0x3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+      "7CCA23E9C44EDB49AED63690216CC2728DC58F552378C292AB5844F3",
+      "0x00000000000000000000000000000000000000000000000000000000"
+      "00000000000000000000000000000000000000000000000000000005",
+      "0x7D235D1295F5B1F66C98AB6E58326FCECBAE5D34F55545D060F75DC2"
+      "8DF3F6EDB8027E2346430D211312C4B150677AF76FD7223D457B5B1A",
+      4,
     },
 #if 0 /* No real specs yet found.  */
     {
