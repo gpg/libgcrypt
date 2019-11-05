@@ -104,6 +104,14 @@
 #endif
 
 
+/* USE_SSSE3_I386 indicates whether to compile with Intel SSSE3/i386 code. */
+#undef USE_SSSE3_I386
+#if defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4 && \
+    defined(HAVE_GCC_INLINE_ASM_SSSE3)
+# define USE_SSSE3_I386 1
+#endif
+
+
 /* USE_PPC_CRYPTO indicates whether to enable PowerPC vector crypto
  * accelerated code. */
 #undef USE_PPC_CRYPTO
@@ -248,6 +256,20 @@ do_sha512_transform_amd64_avx2(void *ctx, const unsigned char *data,
 }
 #endif
 
+#ifdef USE_SSSE3_I386
+unsigned int _gcry_sha512_transform_i386_ssse3(u64 state[8],
+					       const unsigned char *input_data,
+					       size_t num_blks);
+
+static unsigned int
+do_sha512_transform_i386_ssse3(void *ctx, const unsigned char *data,
+			       size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_i386_ssse3 (&hd->state.h0, data, nblks);
+}
+#endif
+
 
 #ifdef USE_ARM_ASM
 unsigned int _gcry_sha512_transform_arm (SHA512_STATE *hd,
@@ -329,6 +351,10 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
     ctx->bctx.bwrite = do_sha512_transform_ppc8;
   if ((features & HWF_PPC_VCRYPTO) != 0 && (features & HWF_PPC_ARCH_3_00) != 0)
     ctx->bctx.bwrite = do_sha512_transform_ppc9;
+#endif
+#ifdef USE_SSSE3_I386
+  if ((features & HWF_INTEL_SSSE3) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_i386_ssse3;
 #endif
   (void)features;
 }

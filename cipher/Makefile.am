@@ -117,7 +117,7 @@ EXTRA_libcipher_la_SOURCES = \
 	sha512.c sha512-ssse3-amd64.S sha512-avx-amd64.S \
 	sha512-avx2-bmi2-amd64.S \
 	sha512-armv7-neon.S sha512-arm.S \
-	sha512-ppc.c \
+	sha512-ppc.c sha512-ssse3-i386.c \
 	sm3.c \
 	keccak.c keccak_permute_32.h keccak_permute_64.h keccak-armv7-neon.S \
 	stribog.c \
@@ -195,6 +195,12 @@ sha256-intel-shaext.o: $(srcdir)/sha256-intel-shaext.c Makefile
 	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
 
 sha256-intel-shaext.lo: $(srcdir)/sha256-intel-shaext.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+
+sha256-ssse3-i386.o: $(srcdir)/sha256-ssse3-i386.c Makefile
+	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+
+sha256-ssse3-i386.lo: $(srcdir)/sha256-ssse3-i386.c Makefile
 	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
 
 crc-intel-pclmul.o: $(srcdir)/crc-intel-pclmul.c Makefile
