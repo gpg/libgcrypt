@@ -43,37 +43,37 @@
 	.globl C_SYMBOL_NAME(_gcry_mpih_lshift)
 C_SYMBOL_NAME(_gcry_mpih_lshift:)
 	FUNC_ENTRY()
-	movq	-8(%rsi,%rdx,8), %mm7
-	movd	%ecx, %mm1
+	/* Note: %xmm6 and %xmm7 not used for WIN64 ABI compatibility. */
+	movq	-8(%rsi,%rdx,8), %xmm4
+	movd	%ecx, %xmm1
 	movl	$64, %eax
 	subl	%ecx, %eax
-	movd	%eax, %mm0
-	movq	%mm7, %mm3
-	psrlq	%mm0, %mm7
-	movd	%mm7, %rax
+	movd	%eax, %xmm0
+	movdqa	%xmm4, %xmm3
+	psrlq	%xmm0, %xmm4
+	movd	%xmm4, %rax
 	subq	$2, %rdx
 	jl	.Lendo
 
 	ALIGN(4)			/* minimal alignment for claimed speed */
-.Loop:	movq	(%rsi,%rdx,8), %mm6
-	movq	%mm6, %mm2
-	psrlq	%mm0, %mm6
-	psllq	%mm1, %mm3
-	por	%mm6, %mm3
-	movq	%mm3, 8(%rdi,%rdx,8)
+.Loop:	movq	(%rsi,%rdx,8), %xmm5
+	movdqa	%xmm5, %xmm2
+	psrlq	%xmm0, %xmm5
+	psllq	%xmm1, %xmm3
+	por	%xmm5, %xmm3
+	movq	%xmm3, 8(%rdi,%rdx,8)
 	je	.Lende
-	movq	-8(%rsi,%rdx,8), %mm7
-	movq	%mm7, %mm3
-	psrlq	%mm0, %mm7
-	psllq	%mm1, %mm2
-	por	%mm7, %mm2
-	movq	%mm2, (%rdi,%rdx,8)
+	movq	-8(%rsi,%rdx,8), %xmm4
+	movdqa	%xmm4, %xmm3
+	psrlq	%xmm0, %xmm4
+	psllq	%xmm1, %xmm2
+	por	%xmm4, %xmm2
+	movq	%xmm2, (%rdi,%rdx,8)
 	subq	$2, %rdx
 	jge	.Loop
 
-.Lendo:	movq	%mm3, %mm2
-.Lende:	psllq	%mm1, %mm2
-	movq	%mm2, (%rdi)
-	emms
+.Lendo:	movdqa	%xmm3, %xmm2
+.Lende:	psllq	%xmm1, %xmm2
+	movq	%xmm2, (%rdi)
 	FUNC_EXIT()
 	ret
