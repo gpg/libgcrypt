@@ -60,7 +60,7 @@ gost_setkey (void *c, const byte *key, unsigned keylen,
   return GPG_ERR_NO_ERROR;
 }
 
-static u32
+static inline u32
 gost_val (u32 subkey, u32 cm1, const u32 *sbox)
 {
   cm1 += subkey;
