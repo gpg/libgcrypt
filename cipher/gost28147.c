@@ -61,40 +61,38 @@ gost_setkey (void *c, const byte *key, unsigned keylen,
 }
 
 static u32
-gost_val (GOST28147_context *ctx, u32 cm1, int subkey)
+gost_val (u32 subkey, u32 cm1, const u32 *sbox)
 {
-  cm1 += ctx->key[subkey];
-  cm1 = ctx->sbox[0*256 + ((cm1 >>  0) & 0xff)] |
-        ctx->sbox[1*256 + ((cm1 >>  8) & 0xff)] |
-        ctx->sbox[2*256 + ((cm1 >> 16) & 0xff)] |
-        ctx->sbox[3*256 + ((cm1 >> 24) & 0xff)];
+  cm1 += subkey;
+  cm1 = sbox[0*256 + ((cm1 >>  0) & 0xff)] |
+        sbox[1*256 + ((cm1 >>  8) & 0xff)] |
+        sbox[2*256 + ((cm1 >> 16) & 0xff)] |
+        sbox[3*256 + ((cm1 >> 24) & 0xff)];
   return cm1;
 }
 
 static unsigned int
-_gost_encrypt_data (void *c, u32 *o1, u32 *o2, u32 n1, u32 n2)
+_gost_encrypt_data (const u32 *sbox, const u32 *key, u32 *o1, u32 *o2, u32 n1, u32 n2)
 {
-  GOST28147_context *ctx = c;
+  n2 ^= gost_val (key[0], n1, sbox); n1 ^= gost_val (key[1], n2, sbox);
+  n2 ^= gost_val (key[2], n1, sbox); n1 ^= gost_val (key[3], n2, sbox);
+  n2 ^= gost_val (key[4], n1, sbox); n1 ^= gost_val (key[5], n2, sbox);
+  n2 ^= gost_val (key[6], n1, sbox); n1 ^= gost_val (key[7], n2, sbox);
 
-  n2 ^= gost_val (ctx, n1, 0); n1 ^= gost_val (ctx, n2, 1);
-  n2 ^= gost_val (ctx, n1, 2); n1 ^= gost_val (ctx, n2, 3);
-  n2 ^= gost_val (ctx, n1, 4); n1 ^= gost_val (ctx, n2, 5);
-  n2 ^= gost_val (ctx, n1, 6); n1 ^= gost_val (ctx, n2, 7);
+  n2 ^= gost_val (key[0], n1, sbox); n1 ^= gost_val (key[1], n2, sbox);
+  n2 ^= gost_val (key[2], n1, sbox); n1 ^= gost_val (key[3], n2, sbox);
+  n2 ^= gost_val (key[4], n1, sbox); n1 ^= gost_val (key[5], n2, sbox);
+  n2 ^= gost_val (key[6], n1, sbox); n1 ^= gost_val (key[7], n2, sbox);
 
-  n2 ^= gost_val (ctx, n1, 0); n1 ^= gost_val (ctx, n2, 1);
-  n2 ^= gost_val (ctx, n1, 2); n1 ^= gost_val (ctx, n2, 3);
-  n2 ^= gost_val (ctx, n1, 4); n1 ^= gost_val (ctx, n2, 5);
-  n2 ^= gost_val (ctx, n1, 6); n1 ^= gost_val (ctx, n2, 7);
+  n2 ^= gost_val (key[0], n1, sbox); n1 ^= gost_val (key[1], n2, sbox);
+  n2 ^= gost_val (key[2], n1, sbox); n1 ^= gost_val (key[3], n2, sbox);
+  n2 ^= gost_val (key[4], n1, sbox); n1 ^= gost_val (key[5], n2, sbox);
+  n2 ^= gost_val (key[6], n1, sbox); n1 ^= gost_val (key[7], n2, sbox);
 
-  n2 ^= gost_val (ctx, n1, 0); n1 ^= gost_val (ctx, n2, 1);
-  n2 ^= gost_val (ctx, n1, 2); n1 ^= gost_val (ctx, n2, 3);
-  n2 ^= gost_val (ctx, n1, 4); n1 ^= gost_val (ctx, n2, 5);
-  n2 ^= gost_val (ctx, n1, 6); n1 ^= gost_val (ctx, n2, 7);
-
-  n2 ^= gost_val (ctx, n1, 7); n1 ^= gost_val (ctx, n2, 6);
-  n2 ^= gost_val (ctx, n1, 5); n1 ^= gost_val (ctx, n2, 4);
-  n2 ^= gost_val (ctx, n1, 3); n1 ^= gost_val (ctx, n2, 2);
-  n2 ^= gost_val (ctx, n1, 1); n1 ^= gost_val (ctx, n2, 0);
+  n2 ^= gost_val (key[7], n1, sbox); n1 ^= gost_val (key[6], n2, sbox);
+  n2 ^= gost_val (key[5], n1, sbox); n1 ^= gost_val (key[4], n2, sbox);
+  n2 ^= gost_val (key[3], n1, sbox); n1 ^= gost_val (key[2], n2, sbox);
+  n2 ^= gost_val (key[1], n1, sbox); n1 ^= gost_val (key[0], n2, sbox);
 
   *o1 = n2;
   *o2 = n1;
@@ -114,7 +112,7 @@ gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
   n1 = buf_get_le32 (inbuf);
   n2 = buf_get_le32 (inbuf+4);
 
-  burn = _gost_encrypt_data(ctx, &n1, &n2, n1, n2);
+  burn = _gost_encrypt_data(ctx->sbox, ctx->key, &n1, &n2, n1, n2);
 
   buf_put_le32 (outbuf+0, n1);
   buf_put_le32 (outbuf+4, n2);
@@ -125,12 +123,12 @@ gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
 unsigned int _gcry_gost_enc_data (GOST28147_context *c, const u32 *key,
     u32 *o1, u32 *o2, u32 n1, u32 n2, int cryptopro)
 {
+  const u32 *sbox;
   if (cryptopro)
-    c->sbox = sbox_CryptoPro_3411;
+    sbox = sbox_CryptoPro_3411;
   else
-    c->sbox = sbox_test_3411;
-  memcpy (c->key, key, 8*4);
-  return _gost_encrypt_data (c, o1, o2, n1, n2) + 7 * sizeof(void *);
+    sbox = sbox_test_3411;
+  return _gost_encrypt_data (sbox, key, o1, o2, n1, n2) + 7 * sizeof(void *);
 }
 
 static unsigned int
@@ -138,29 +136,30 @@ gost_decrypt_block (void *c, byte *outbuf, const byte *inbuf)
 {
   GOST28147_context *ctx = c;
   u32 n1, n2;
+  const u32 *sbox = ctx->sbox;
 
   n1 = buf_get_le32 (inbuf);
   n2 = buf_get_le32 (inbuf+4);
 
-  n2 ^= gost_val (ctx, n1, 0); n1 ^= gost_val (ctx, n2, 1);
-  n2 ^= gost_val (ctx, n1, 2); n1 ^= gost_val (ctx, n2, 3);
-  n2 ^= gost_val (ctx, n1, 4); n1 ^= gost_val (ctx, n2, 5);
-  n2 ^= gost_val (ctx, n1, 6); n1 ^= gost_val (ctx, n2, 7);
+  n2 ^= gost_val (ctx->key[0], n1, sbox); n1 ^= gost_val (ctx->key[1], n2, sbox);
+  n2 ^= gost_val (ctx->key[2], n1, sbox); n1 ^= gost_val (ctx->key[3], n2, sbox);
+  n2 ^= gost_val (ctx->key[4], n1, sbox); n1 ^= gost_val (ctx->key[5], n2, sbox);
+  n2 ^= gost_val (ctx->key[6], n1, sbox); n1 ^= gost_val (ctx->key[7], n2, sbox);
 
-  n2 ^= gost_val (ctx, n1, 7); n1 ^= gost_val (ctx, n2, 6);
-  n2 ^= gost_val (ctx, n1, 5); n1 ^= gost_val (ctx, n2, 4);
-  n2 ^= gost_val (ctx, n1, 3); n1 ^= gost_val (ctx, n2, 2);
-  n2 ^= gost_val (ctx, n1, 1); n1 ^= gost_val (ctx, n2, 0);
+  n2 ^= gost_val (ctx->key[7], n1, sbox); n1 ^= gost_val (ctx->key[6], n2, sbox);
+  n2 ^= gost_val (ctx->key[5], n1, sbox); n1 ^= gost_val (ctx->key[4], n2, sbox);
+  n2 ^= gost_val (ctx->key[3], n1, sbox); n1 ^= gost_val (ctx->key[2], n2, sbox);
+  n2 ^= gost_val (ctx->key[1], n1, sbox); n1 ^= gost_val (ctx->key[0], n2, sbox);
 
-  n2 ^= gost_val (ctx, n1, 7); n1 ^= gost_val (ctx, n2, 6);
-  n2 ^= gost_val (ctx, n1, 5); n1 ^= gost_val (ctx, n2, 4);
-  n2 ^= gost_val (ctx, n1, 3); n1 ^= gost_val (ctx, n2, 2);
-  n2 ^= gost_val (ctx, n1, 1); n1 ^= gost_val (ctx, n2, 0);
+  n2 ^= gost_val (ctx->key[7], n1, sbox); n1 ^= gost_val (ctx->key[6], n2, sbox);
+  n2 ^= gost_val (ctx->key[5], n1, sbox); n1 ^= gost_val (ctx->key[4], n2, sbox);
+  n2 ^= gost_val (ctx->key[3], n1, sbox); n1 ^= gost_val (ctx->key[2], n2, sbox);
+  n2 ^= gost_val (ctx->key[1], n1, sbox); n1 ^= gost_val (ctx->key[0], n2, sbox);
 
-  n2 ^= gost_val (ctx, n1, 7); n1 ^= gost_val (ctx, n2, 6);
-  n2 ^= gost_val (ctx, n1, 5); n1 ^= gost_val (ctx, n2, 4);
-  n2 ^= gost_val (ctx, n1, 3); n1 ^= gost_val (ctx, n2, 2);
-  n2 ^= gost_val (ctx, n1, 1); n1 ^= gost_val (ctx, n2, 0);
+  n2 ^= gost_val (ctx->key[7], n1, sbox); n1 ^= gost_val (ctx->key[6], n2, sbox);
+  n2 ^= gost_val (ctx->key[5], n1, sbox); n1 ^= gost_val (ctx->key[4], n2, sbox);
+  n2 ^= gost_val (ctx->key[3], n1, sbox); n1 ^= gost_val (ctx->key[2], n2, sbox);
+  n2 ^= gost_val (ctx->key[1], n1, sbox); n1 ^= gost_val (ctx->key[0], n2, sbox);
 
   buf_put_le32 (outbuf+0, n2);
   buf_put_le32 (outbuf+4, n1);
