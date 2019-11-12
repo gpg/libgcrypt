@@ -13227,7 +13227,7 @@ check_pubkey (void)
     {
       "(private-key\n"
       " (ecc\n"
-      "  (curve GOST2012-test)\n"
+      "  (curve GOST2012-512-test)\n"
       "  (q #04115DC5BC96760C7B48598D8AB9E740D4C4A85A65BE33C1"
       "        815B5C320C854621DD5A515856D13314AF69BC5B924C8B"
       "        4DDFF75C45415C1D9DD9DD33612CD530EFE137C7C90CD4"
@@ -13240,7 +13240,7 @@ check_pubkey (void)
 
       "(public-key\n"
       " (ecc\n"
-      "  (curve GOST2012-test)\n"
+      "  (curve GOST2012-512-test)\n"
       "  (q #04115DC5BC96760C7B48598D8AB9E740D4C4A85A65BE33C1"
       "        815B5C320C854621DD5A515856D13314AF69BC5B924C8B"
       "        4DDFF75C45415C1D9DD9DD33612CD530EFE137C7C90CD4"

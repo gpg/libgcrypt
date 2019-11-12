@@ -97,8 +97,21 @@ static const struct
     { "GOST2001-CryptoPro-A", "1.2.643.2.2.36.0" },
     { "GOST2001-CryptoPro-C", "1.2.643.2.2.36.1" },
 
-    { "GOST2012-tc26-A", "1.2.643.7.1.2.1.2.1" },
-    { "GOST2012-tc26-B", "1.2.643.7.1.2.1.2.2" },
+    { "GOST2012-256-tc26-A", "1.2.643.7.1.2.1.1.1" },
+    { "GOST2001-CryptoPro-A", "1.2.643.7.1.2.1.1.2" },
+    { "GOST2001-CryptoPro-A", "GOST2012-256-tc26-B" },
+    { "GOST2001-CryptoPro-B", "1.2.643.7.1.2.1.1.3" },
+    { "GOST2001-CryptoPro-B", "GOST2012-256-tc26-C" },
+    { "GOST2001-CryptoPro-C", "1.2.643.7.1.2.1.1.4" },
+    { "GOST2001-CryptoPro-C", "GOST2012-256-tc26-D" },
+
+    { "GOST2012-512-test", "GOST2012-test" },
+    { "GOST2012-512-test", "1.2.643.7.1.2.1.2.0" },
+    { "GOST2012-512-tc26-A", "GOST2012-tc26-A" },
+    { "GOST2012-512-tc26-B", "GOST2012-tc26-B" },
+    { "GOST2012-512-tc26-A", "1.2.643.7.1.2.1.2.1" },
+    { "GOST2012-512-tc26-B", "1.2.643.7.1.2.1.2.2" },
+    { "GOST2012-512-tc26-C", "1.2.643.7.1.2.1.2.3" },
 
     { "secp256k1", "1.3.132.0.10" },
 
@@ -408,7 +421,18 @@ static const ecc_domain_parms_t domain_parms[] =
       1
     },
     {
-      "GOST2012-test", 511, 0,
+      "GOST2012-256-A", 256, 0,
+      MPI_EC_WEIERSTRASS, ECC_DIALECT_STANDARD,
+      "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd97",
+      "0xc2173f1513981673af4892c23035a27ce25e2013bf95aa33b22c656f277e7335",
+      "0x295f9bae7428ed9ccc20e7c359a9d41a22fccd9108e17bf7ba9337a6f8ae9513",
+      "0x400000000000000000000000000000000fd8cddfc87b6635c115af556c360c67",
+      "0x91e38443a5e82c0d880923425712b2bb658b9196932e02c78b2582fe742daa28",
+      "0x32879423ab1a0375895786c4bb46e9565fde0b5344766740af268adb32322e5c",
+      4
+    },
+    {
+      "GOST2012-512-test", 511, 0,
       MPI_EC_WEIERSTRASS, ECC_DIALECT_STANDARD,
       "0x4531acd1fe0023c7550d267b6b2fee80922b14b2ffb90f04d4eb7c09b5d2d15d"
       "f1d852741af4704a0458047e80e4546d35b8336fac224dd81664bbf528be6373",
@@ -425,7 +449,7 @@ static const ecc_domain_parms_t domain_parms[] =
       1
     },
     {
-      "GOST2012-tc26-A", 512, 0,
+      "GOST2012-512-tc26-A", 512, 0,
       MPI_EC_WEIERSTRASS, ECC_DIALECT_STANDARD,
       "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
         "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdc7",
@@ -442,7 +466,7 @@ static const ecc_domain_parms_t domain_parms[] =
       1
     },
     {
-      "GOST2012-tc26-B", 512, 0,
+      "GOST2012-512-tc26-B", 512, 0,
       MPI_EC_WEIERSTRASS, ECC_DIALECT_STANDARD,
       "0x8000000000000000000000000000000000000000000000000000000000000000"
         "000000000000000000000000000000000000000000000000000000000000006f",
@@ -457,6 +481,23 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x1a8f7eda389b094c2c071e3647a8940f3c123b697578c213be6dd9e6c8ec7335"
         "dcb228fd1edf4a39152cbcaaf8c0398828041055f94ceeec7e21340780fe41bd",
       1
+    },
+    {
+      "GOST2012-512-tc26-C", 512, 0,
+      MPI_EC_WEIERSTRASS, ECC_DIALECT_STANDARD,
+      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdc7",
+      "0xdc9203e514a721875485a529d2c722fb187bc8980eb866644de41c68e1430645"
+        "46e861c0e2c9edd92ade71f46fcf50ff2ad97f951fda9f2a2eb6546f39689bd3",
+      "0xb4c4ee28cebc6c2c8ac12952cf37f16ac7efb6a9f69f4b57ffda2e4f0de5ade0"
+        "38cbc2fff719d2c18de0284b8bfef3b52b8cc7a5f5bf0a3c8d2319a5312557e1",
+      "0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        "c98cdba46506ab004c33a9ff5147502cc8eda9e7a769a12694623cef47f023ed",
+      "0xe2e31edfc23de7bdebe241ce593ef5de2295b7a9cbaef021d385f7074cea043a"
+        "a27272a7ae602bf2a7b9033db9ed3610c6fb85487eae97aac5bc7928c1950148",
+      "0xf5ce40d95b5eb899abbccff5911cb8577939804d6527378b8c108c3d2090ff9be"
+        "18e2d33e3021ed2ef32d85822423b6304f726aa854bae07d0396e9a9addc40f",
+      4
     },
 
     {

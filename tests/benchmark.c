@@ -1528,7 +1528,7 @@ ecc_bench (int iterations, int print_header)
       else if (is_gost)
         err = gcry_sexp_build (&key_spec, NULL,
                                "(genkey (ecdsa (curve %s)))",
-                               p_size == 256 ? "GOST2001-test" : "GOST2012-test");
+                               p_size == 256 ? "GOST2001-test" : "GOST2012-512-test");
       else
         err = gcry_sexp_build (&key_spec, NULL,
                                "(genkey (ECDSA (nbits %d)))", p_size);
