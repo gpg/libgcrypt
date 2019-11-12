@@ -35,7 +35,6 @@
 
 typedef struct {
   gcry_md_block_ctx_t bctx;
-  GOST28147_context hd;
   union {
     u32 h[8];
     byte result[32];
@@ -55,7 +54,6 @@ gost3411_init (void *context, unsigned int flags)
 
   (void)flags;
 
-  memset (&hd->hd, 0, sizeof(hd->hd));
   memset (hd->h, 0, 32);
   memset (hd->sigma, 0, 32);
 
@@ -228,7 +226,7 @@ do_hash_step (GOSTR3411_CONTEXT *hd, u32 *h, u32 *m)
   for (i = 0; i < 4; i++) {
     do_p (k, u, v);
 
-    burn = _gcry_gost_enc_data (&hd->hd, k, &s[2*i], &s[2*i+1], h[2*i], h[2*i+1], hd->cryptopro);
+    burn = _gcry_gost_enc_data (k, &s[2*i], &s[2*i+1], h[2*i], h[2*i+1], hd->cryptopro);
 
     do_a (u);
     if (i == 1)

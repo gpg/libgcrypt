@@ -120,7 +120,7 @@ gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
   return /* burn_stack */ burn + 6*sizeof(void*) /* func call */;
 }
 
-unsigned int _gcry_gost_enc_data (GOST28147_context *c, const u32 *key,
+unsigned int _gcry_gost_enc_data (const u32 *key,
     u32 *o1, u32 *o2, u32 n1, u32 n2, int cryptopro)
 {
   const u32 *sbox;
