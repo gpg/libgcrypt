@@ -32,8 +32,8 @@
 #define PGM "curves"
 #include "t-common.h"
 
-/* Number of curves defined in ../cipger/ecc.c */
-#define N_CURVES 23
+/* Number of curves defined in ../cipger/ecc-curves.c */
+#define N_CURVES 25
 
 /* A real world sample public key.  */
 static char const sample_key_1[] =
