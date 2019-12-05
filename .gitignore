@@ -32,6 +32,8 @@ cipher/libcipher.la
 compat/Makefile
 compat/libcompat.la
 doc/gcrypt.info
+doc/gcrypt.info-1
+doc/gcrypt.info-2
 doc/stamp-vti
 doc/version.texi
 doc/Makefile
@@ -65,6 +67,7 @@ src/gcrypt.h
 src/hmac256
 src/libgcrypt-config
 src/libgcrypt.la
+src/libgcrypt.pc
 src/mpicalc
 src/versioninfo.rc
 src/*.exe
@@ -103,6 +106,8 @@ tests/t-lock
 tests/t-mpi-bit
 tests/t-mpi-point
 tests/t-sexp
+tests/t-secmem
+tests/t-x448
 tests/tsexp
 tests/version
 tests/*.exe
