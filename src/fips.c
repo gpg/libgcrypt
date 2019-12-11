@@ -536,6 +536,7 @@ run_pubkey_selftests (int extended)
       GCRY_PK_RSA,
       GCRY_PK_DSA,
       GCRY_PK_ECC,
+      GCRY_PK_SM2,
       0
     };
   int idx;

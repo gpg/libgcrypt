@@ -91,6 +91,7 @@ EXTRA_libcipher_la_SOURCES = \
 	idea.c \
 	gost28147.c gost.h \
 	gostr3411-94.c \
+	sm2.c \
 	md4.c \
 	md5.c \
 	rijndael.c rijndael-internal.h rijndael-tables.h   \

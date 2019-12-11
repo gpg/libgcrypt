@@ -12637,6 +12637,77 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 }
 
 
+/* Test the public key sign function using the private ket SKEY. PKEY
+   is used for verification.  This variant is only used for SM2.  */
+static void
+check_pubkey_sign_sm2 (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
+{
+  gcry_error_t rc;
+  gcry_sexp_t sig, badhash, hash;
+  int dataidx;
+  static const char baddata[] =
+    "(data\n (flags raw)\n"
+    " (hash sm3 #11223344556677889900AABBCCDDEEFF10203041#))\n";
+  static const struct
+  {
+    const char *data;
+    int expected_rc;
+  } datas[] =
+    {
+      { "(data\n (flags raw)\n"
+	" (hash sm3 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	0 },
+      { "(data\n (flags raw)\n"
+        " (hash sm3 #B524F552CD82B8B028476E005C377FB1"
+                    "9A87E6FC682D48BB5D42E3D9B9EFFE76#))\n",
+        0 },
+      { "(data\n (flags oaep)\n"
+	" (hash sm3 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	GPG_ERR_CONFLICT },
+      {	"(data\n (flags )\n"
+	" (hash sm3 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	GPG_ERR_CONFLICT },
+      {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
+	0 },
+      {	"(data\n (flags )\n" " (value #0090223344556677889900AA#))\n",
+	0 },
+      { "(data\n (flags raw)\n" " (value #11223344556677889900AA#))\n",
+	0 },
+      { NULL }
+    };
+
+  rc = gcry_sexp_sscan (&badhash, NULL, baddata, strlen (baddata));
+  if (rc)
+    die ("converting data failed: %s\n", gpg_strerror (rc));
+
+  for (dataidx = 0; datas[dataidx].data; dataidx++)
+    {
+      if (verbose)
+	fprintf (stderr, "  test %d, signature test %d (SM2)\n",
+                 n, dataidx);
+
+      rc = gcry_sexp_sscan (&hash, NULL, datas[dataidx].data,
+			    strlen (datas[dataidx].data));
+      if (rc)
+	die ("converting data failed: %s\n", gpg_strerror (rc));
+
+      rc = gcry_pk_sign (&sig, hash, skey);
+      if (gcry_err_code (rc) != datas[dataidx].expected_rc)
+	fail ("gcry_pk_sign failed: %s\n", gpg_strerror (rc));
+
+      if (!rc)
+	verify_one_signature (pkey, hash, badhash, sig);
+
+      gcry_sexp_release (sig);
+      sig = NULL;
+      gcry_sexp_release (hash);
+      hash = NULL;
+    }
+
+  gcry_sexp_release (badhash);
+}
+
+
 static void
 check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 {
@@ -12751,6 +12822,13 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	NULL,
 	0,
 	GPG_ERR_CONFLICT },
+      { GCRY_PK_SM2,
+        "(data\n (flags raw)\n (hash-algo sm3)\n"
+        " (value \"encryption standard\"))\n",
+        NULL,
+        1,
+        0,
+        0 },
       { 0, NULL }
     };
 
@@ -12904,6 +12982,8 @@ do_check_one_pubkey (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
    {
      if (algo == GCRY_PK_ECDSA)
        check_pubkey_sign_ecdsa (n, skey, pkey);
+     else if (algo == GCRY_PK_SM2)
+       check_pubkey_sign_sm2 (n, skey, pkey);
      else
        check_pubkey_sign (n, skey, pkey, algo);
    }
@@ -12936,16 +13016,23 @@ check_one_pubkey (int n, test_spec_pubkey_t spec)
 }
 
 static void
-get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int algo)
 {
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
   if (verbose)
     fprintf (stderr, "  generating RSA key:");
-  rc = gcry_sexp_new (&key_spec,
-		      in_fips_mode ? "(genkey (rsa (nbits 4:2048)))"
-                      : "(genkey (rsa (nbits 4:1024)(transient-key)))",
-                      0, 1);
+  if (algo == GCRY_PK_RSA)
+    rc = gcry_sexp_new (&key_spec,
+		        in_fips_mode ? "(genkey (rsa (nbits 4:2048)))"
+                        : "(genkey (rsa (nbits 4:1024)(transient-key)))",
+                        0, 1);
+  else if (algo == GCRY_PK_SM2)
+    rc = gcry_sexp_new (&key_spec,
+                        "(genkey (sm2 (curve sm2p256v1)))",
+                        0, 1);
+  else
+    return;
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, key_spec);
@@ -12971,9 +13058,17 @@ check_one_pubkey_new (int n)
 {
   gcry_sexp_t skey, pkey;
 
-  get_keys_new (&pkey, &skey);
+  /* rsa */
+  get_keys_new (&pkey, &skey, GCRY_PK_RSA);
   do_check_one_pubkey (n, skey, pkey, NULL,
 		       GCRY_PK_RSA, FLAG_SIGN | FLAG_CRYPT);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  /* sm2 */
+  get_keys_new (&pkey, &skey, GCRY_PK_SM2);
+  do_check_one_pubkey (n, skey, pkey, NULL,
+		       GCRY_PK_SM2, FLAG_SIGN | FLAG_CRYPT);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
 }
@@ -13272,6 +13367,29 @@ check_pubkey (void)
 
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
+  },
+  { /* sm2test */
+    GCRY_PK_SM2, FLAG_CRYPT | FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (sm2\n"
+      "  (curve sm2p256v1)\n"
+      "  (q #04"
+      "      8759389A34AAAD07ECF4E0C8C2650A4459C8D926EE2378324E0261C52538CB47"
+      "      7528106B1E0B7C8DD5FF29A9C86A89065656EB33154BC0556091EF8AC9D17D78#)"
+      "  (d #41EBDBA9C98CBECCE7249CF18BFD427FF8EA0B2FAB7B9D305D9D9BF4DB6ADFC2#)"
+      "))",
+
+      "(public-key\n"
+      " (sm2\n"
+      "  (curve sm2p256v1)\n"
+      "  (q #04"
+      "      8759389A34AAAD07ECF4E0C8C2650A4459C8D926EE2378324E0261C52538CB47"
+      "      7528106B1E0B7C8DD5FF29A9C86A89065656EB33154BC0556091EF8AC9D17D78#)"
+      "))",
+
+      "\xcb\x30\xc9\x71\x54\x05\xde\x05\x20\x7f"
+      "\xa0\x5b\xce\xb9\x0f\x9d\x03\x17\xeb\x73"}
     }
   };
   int i;

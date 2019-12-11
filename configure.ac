@@ -209,7 +209,7 @@ available_ciphers="$available_ciphers camellia idea salsa20 gost28147 chacha20"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
-available_pubkey_ciphers="dsa elgamal rsa ecc"
+available_pubkey_ciphers="dsa elgamal rsa ecc sm2"
 enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
@@ -2548,6 +2548,12 @@ if test "$found" = "1" ; then
                           ecc.lo ecc-curves.lo ecc-misc.lo \
                           ecc-ecdh.lo ecc-ecdsa.lo ecc-eddsa.lo ecc-gost.lo"
    AC_DEFINE(USE_ECC, 1, [Defined if this module should be included])
+fi
+
+LIST_MEMBER(sm2, $enabled_pubkey_ciphers)
+if test "$found" = "1" ; then
+   GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS sm2.lo"
+   AC_DEFINE(USE_SM2, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(crc, $enabled_digests)

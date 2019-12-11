@@ -1117,7 +1117,8 @@ enum gcry_pk_algos
     GCRY_PK_ELG   = 20,     /* Elgamal       */
     GCRY_PK_ECDSA = 301,    /* (only for external use).  */
     GCRY_PK_ECDH  = 302,    /* (only for external use).  */
-    GCRY_PK_EDDSA = 303     /* (only for external use).  */
+    GCRY_PK_EDDSA = 303,    /* (only for external use).  */
+    GCRY_PK_SM2   = 304     /* sm2 TODO: 304 */
   };
 
 /* Flags describing usage capabilities of a PK algorithm. */
