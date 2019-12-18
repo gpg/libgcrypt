@@ -101,7 +101,6 @@ static void *progress_cb_data;
 /* Local prototypes. */
 static void test_keys (mpi_ec_t ec, unsigned int nbits);
 static void test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags);
-static unsigned int ecc_get_nbits (gcry_sexp_t parms);
 
 
 
@@ -125,7 +124,7 @@ _gcry_register_pk_ecc_progress (void (*cb) (void *, const char *,
 
 
 /**
- * nist_generate_key - Standard version of the ECC key generation.
+ * _gcry_ecc_nist_generate_key - Standard version of the ECC key generation.
  * @ec: Elliptic curve computation context.
  * @flags: Flags controlling aspects of the creation.
  * @r_x: On success this receives an allocated MPI with the affine
@@ -140,8 +139,8 @@ _gcry_register_pk_ecc_progress (void (*cb) (void *, const char *,
  *
  * FIXME: Check whether N is needed.
  */
-static gpg_err_code_t
-nist_generate_key (mpi_ec_t ec, int flags,
+gpg_err_code_t
+_gcry_ecc_nist_generate_key (mpi_ec_t ec, int flags,
                    gcry_mpi_t *r_x, gcry_mpi_t *r_y)
 {
   mpi_point_struct Q;
@@ -513,11 +512,11 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     goto leave;
 
   if (ec->model == MPI_EC_MONTGOMERY)
-    rc = nist_generate_key (ec, flags, &Qx, NULL);
+    rc = _gcry_ecc_nist_generate_key (ec, flags, &Qx, NULL);
   else if ((flags & PUBKEY_FLAG_EDDSA))
     rc = _gcry_ecc_eddsa_genkey (ec, flags);
   else
-    rc = nist_generate_key (ec, flags, &Qx, &Qy);
+    rc = _gcry_ecc_nist_generate_key (ec, flags, &Qx, &Qy);
   if (rc)
     goto leave;
 
@@ -642,8 +641,8 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 }
 
 
-static gcry_err_code_t
-ecc_check_secret_key (gcry_sexp_t keyparms)
+gcry_err_code_t
+_gcry_ecc_check_secret_key (gcry_sexp_t keyparms)
 {
   gcry_err_code_t rc;
   int flags = 0;
@@ -758,7 +757,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   int flags;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
-                                   ecc_get_nbits (s_keyparms));
+                                   _gcry_ecc_get_nbits (s_keyparms));
 
   /* Extract the data.  */
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
@@ -891,7 +890,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   int no_error_on_infinity;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT,
-                                   (nbits = ecc_get_nbits (keyparms)));
+                                   (nbits = _gcry_ecc_get_nbits (keyparms)));
 
   /*
    * Extract the key.
@@ -1059,7 +1058,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   point_init (&R);
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT,
-                                   (nbits = ecc_get_nbits (keyparms)));
+                                   (nbits = _gcry_ecc_get_nbits (keyparms)));
 
   /*
    * Extract the data.
@@ -1224,8 +1223,8 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
  *
  * More parameters may be given. Either P or CURVE is needed.
  */
-static unsigned int
-ecc_get_nbits (gcry_sexp_t parms)
+unsigned int
+_gcry_ecc_get_nbits (gcry_sexp_t parms)
 {
   gcry_sexp_t l1;
   gcry_mpi_t p;
@@ -1263,8 +1262,8 @@ ecc_get_nbits (gcry_sexp_t parms)
 
 
 /* See rsa.c for a description of this function.  */
-static gpg_err_code_t
-compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
+gpg_err_code_t
+_gcry_ecc_compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
 {
 #define N_COMPONENTS 6
   static const char names[N_COMPONENTS] = "pabgnq";
@@ -1667,7 +1666,7 @@ selftests_ecdsa (selftest_report_func_t report)
     }
 
   what = "key consistency";
-  err = ecc_check_secret_key(skey);
+  err = _gcry_ecc_check_secret_key(skey);
   if (err)
     {
       errtxt = _gcry_strerror (err);
@@ -1714,14 +1713,14 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecc =
     "ECC", ecc_names,
     "pabgnhq", "pabgnhqd", "sw", "rs", "pabgnhq",
     ecc_generate,
-    ecc_check_secret_key,
+    _gcry_ecc_check_secret_key,
     ecc_encrypt_raw,
     ecc_decrypt_raw,
     ecc_sign,
     ecc_verify,
-    ecc_get_nbits,
+    _gcry_ecc_get_nbits,
     run_selftests,
-    compute_keygrip,
+    _gcry_ecc_compute_keygrip,
     _gcry_ecc_get_curve,
     _gcry_ecc_get_param_sexp
   };

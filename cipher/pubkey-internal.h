@@ -98,6 +98,13 @@ gpg_err_code_t _gcry_dsa_normalize_hash (gcry_mpi_t input,
                                          unsigned int qbits);
 
 /*-- ecc.c --*/
+gpg_err_code_t
+_gcry_ecc_nist_generate_key (mpi_ec_t ec, int flags,
+                   gcry_mpi_t *r_x, gcry_mpi_t *r_y);
+gcry_err_code_t _gcry_ecc_check_secret_key (gcry_sexp_t keyparms);
+unsigned int _gcry_ecc_get_nbits (gcry_sexp_t parms);
+gpg_err_code_t _gcry_ecc_compute_keygrip (gcry_md_hd_t md,
+                                          gcry_sexp_t keyparms);
 gpg_err_code_t _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode,
                                       mpi_ec_t ec);
 
