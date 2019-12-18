@@ -224,16 +224,16 @@ _gcry_mpi_point_set (mpi_point_t point,
     point = mpi_point_new (0);
 
   if (x)
-    mpi_set (point->x, x);
-  else
+    point->x = mpi_set (point->x, x);
+  else if (point->x)
     mpi_clear (point->x);
   if (y)
-    mpi_set (point->y, y);
-  else
+    point->y = mpi_set (point->y, y);
+  else if (point->y)
     mpi_clear (point->y);
   if (z)
-    mpi_set (point->z, z);
-  else
+    point->z = mpi_set (point->z, z);
+  else if (point->z)
     mpi_clear (point->z);
 
   return point;
