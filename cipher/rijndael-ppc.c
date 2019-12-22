@@ -51,17 +51,27 @@ typedef union
 #define ASM_FUNC_ATTR_NOINLINE ASM_FUNC_ATTR NO_INLINE
 
 
-#define ALIGNED_LOAD(in_ptr) \
-  (vec_aligned_ld (0, (const unsigned char *)(in_ptr)))
+#define ALIGNED_LOAD(in_ptr, offs) \
+  (asm_aligned_ld ((offs) * 16, (const void *)(in_ptr)))
 
-#define ALIGNED_STORE(out_ptr, vec) \
-  (vec_aligned_st ((vec), 0, (unsigned char *)(out_ptr)))
+#define ALIGNED_STORE(out_ptr, offs, vec) \
+  (asm_aligned_st ((vec), (offs) * 16, (void *)(out_ptr)))
 
-#define VEC_LOAD_BE(in_ptr, bige_const) \
-  (vec_load_be (0, (const unsigned char *)(in_ptr), bige_const))
+#define VEC_BE_SWAP(vec, bige_const) (asm_be_swap ((vec), (bige_const)))
 
-#define VEC_STORE_BE(out_ptr, vec, bige_const) \
-  (vec_store_be ((vec), 0, (unsigned char *)(out_ptr), bige_const))
+#define VEC_LOAD_BE(in_ptr, offs, bige_const) \
+  (asm_be_swap (asm_load_be_noswap ((offs) * 16, (const void *)(in_ptr)), \
+		bige_const))
+
+#define VEC_LOAD_BE_NOSWAP(in_ptr, offs) \
+  (asm_load_be_noswap ((offs) * 16, (const unsigned char *)(in_ptr)))
+
+#define VEC_STORE_BE(out_ptr, offs, vec, bige_const) \
+  (asm_store_be_noswap (asm_be_swap ((vec), (bige_const)), (offs) * 16, \
+		        (void *)(out_ptr)))
+
+#define VEC_STORE_BE_NOSWAP(out_ptr, offs, vec) \
+  (asm_store_be_noswap ((vec), (offs) * 16, (void *)(out_ptr)))
 
 
 #define ROUND_KEY_VARIABLES \
@@ -69,166 +79,257 @@ typedef union
 
 #define PRELOAD_ROUND_KEYS(nrounds) \
   do { \
-    rkey0 = ALIGNED_LOAD(&rk[0]); \
-    rkeylast = ALIGNED_LOAD(&rk[nrounds]); \
+    rkey0 = ALIGNED_LOAD (rk, 0); \
+    rkeylast = ALIGNED_LOAD (rk, nrounds); \
   } while (0)
-
 
 #define AES_ENCRYPT(blk, nrounds) \
   do { \
     blk ^= rkey0; \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[1])); \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[2])); \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[3])); \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[4])); \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[5])); \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[6])); \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[7])); \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[8])); \
-    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[9])); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 1)); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 2)); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 3)); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 4)); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 5)); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 6)); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 7)); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 8)); \
+    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 9)); \
     if (nrounds >= 12) \
       { \
-	blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[10])); \
-	blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[11])); \
+	blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 10)); \
+	blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 11)); \
 	if (rounds > 12) \
 	  { \
-	    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[12])); \
-	    blk = vec_cipher_be (blk, ALIGNED_LOAD(&rk[13])); \
+	    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 12)); \
+	    blk = asm_cipher_be (blk, ALIGNED_LOAD (rk, 13)); \
 	  } \
       } \
-    blk = vec_cipherlast_be (blk, rkeylast); \
+    blk = asm_cipherlast_be (blk, rkeylast); \
   } while (0)
-
 
 #define AES_DECRYPT(blk, nrounds) \
   do { \
     blk ^= rkey0; \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[1])); \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[2])); \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[3])); \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[4])); \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[5])); \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[6])); \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[7])); \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[8])); \
-    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[9])); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 1)); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 2)); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 3)); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 4)); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 5)); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 6)); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 7)); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 8)); \
+    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 9)); \
     if (nrounds >= 12) \
       { \
-	blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[10])); \
-	blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[11])); \
+	blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 10)); \
+	blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 11)); \
 	if (rounds > 12) \
 	  { \
-	    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[12])); \
-	    blk = vec_ncipher_be (blk, ALIGNED_LOAD(&rk[13])); \
+	    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 12)); \
+	    blk = asm_ncipher_be (blk, ALIGNED_LOAD (rk, 13)); \
 	  } \
       } \
-    blk = vec_ncipherlast_be (blk, rkeylast); \
+    blk = asm_ncipherlast_be (blk, rkeylast); \
   } while (0)
 
 
+#define ROUND_KEY_VARIABLES_ALL \
+  block rkey0, rkey1, rkey2, rkey3, rkey4, rkey5, rkey6, rkey7, rkey8, \
+        rkey9, rkey10, rkey11, rkey12, rkey13, rkeylast
+
+#define PRELOAD_ROUND_KEYS_ALL(nrounds) \
+  do { \
+    rkey0 = ALIGNED_LOAD (rk, 0); \
+    rkey1 = ALIGNED_LOAD (rk, 1); \
+    rkey2 = ALIGNED_LOAD (rk, 2); \
+    rkey3 = ALIGNED_LOAD (rk, 3); \
+    rkey4 = ALIGNED_LOAD (rk, 4); \
+    rkey5 = ALIGNED_LOAD (rk, 5); \
+    rkey6 = ALIGNED_LOAD (rk, 6); \
+    rkey7 = ALIGNED_LOAD (rk, 7); \
+    rkey8 = ALIGNED_LOAD (rk, 8); \
+    rkey9 = ALIGNED_LOAD (rk, 9); \
+    if (nrounds >= 12) \
+      { \
+	rkey10 = ALIGNED_LOAD (rk, 10); \
+	rkey11 = ALIGNED_LOAD (rk, 11); \
+	if (rounds > 12) \
+	  { \
+	    rkey12 = ALIGNED_LOAD (rk, 12); \
+	    rkey13 = ALIGNED_LOAD (rk, 13); \
+	  } \
+      } \
+    rkeylast = ALIGNED_LOAD (rk, nrounds); \
+  } while (0)
+
+#define AES_ENCRYPT_ALL(blk, nrounds) \
+  do { \
+    blk ^= rkey0; \
+    blk = asm_cipher_be (blk, rkey1); \
+    blk = asm_cipher_be (blk, rkey2); \
+    blk = asm_cipher_be (blk, rkey3); \
+    blk = asm_cipher_be (blk, rkey4); \
+    blk = asm_cipher_be (blk, rkey5); \
+    blk = asm_cipher_be (blk, rkey6); \
+    blk = asm_cipher_be (blk, rkey7); \
+    blk = asm_cipher_be (blk, rkey8); \
+    blk = asm_cipher_be (blk, rkey9); \
+    if (nrounds >= 12) \
+      { \
+	blk = asm_cipher_be (blk, rkey10); \
+	blk = asm_cipher_be (blk, rkey11); \
+	if (rounds > 12) \
+	  { \
+	    blk = asm_cipher_be (blk, rkey12); \
+	    blk = asm_cipher_be (blk, rkey13); \
+	  } \
+      } \
+    blk = asm_cipherlast_be (blk, rkeylast); \
+  } while (0)
+
+
+#ifdef WORDS_BIGENDIAN
 static const block vec_bswap32_const =
   { 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12 };
+#else
+static const block vec_bswap32_const_neg =
+  { ~3, ~2, ~1, ~0, ~7, ~6, ~5, ~4, ~11, ~10, ~9, ~8, ~15, ~14, ~13, ~12 };
+#endif
 
 
 static ASM_FUNC_ATTR_INLINE block
-vec_aligned_ld(unsigned long offset, const unsigned char *ptr)
+asm_aligned_ld(unsigned long offset, const void *ptr)
 {
-#ifndef WORDS_BIGENDIAN
   block vec;
-  __asm__ ("lvx %0,%1,%2\n\t"
-	   : "=v" (vec)
-	   : "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory", "r0");
+  __asm__ volatile ("lvx %0,%1,%2\n\t"
+		    : "=v" (vec)
+		    : "r" (offset), "r" ((uintptr_t)ptr)
+		    : "memory", "r0");
   return vec;
-#else
-  return vec_vsx_ld (offset, ptr);
-#endif
 }
 
+static ASM_FUNC_ATTR_INLINE void
+asm_aligned_st(block vec, unsigned long offset, void *ptr)
+{
+  __asm__ volatile ("stvx %0,%1,%2\n\t"
+		    :
+		    : "v" (vec), "r" (offset), "r" ((uintptr_t)ptr)
+		    : "memory", "r0");
+}
 
 static ASM_FUNC_ATTR_INLINE block
-vec_load_be_const(void)
+asm_load_be_const(void)
 {
 #ifndef WORDS_BIGENDIAN
-  return ~ALIGNED_LOAD(&vec_bswap32_const);
+  return ALIGNED_LOAD (&vec_bswap32_const_neg, 0);
 #else
   static const block vec_dummy = { 0 };
   return vec_dummy;
 #endif
 }
 
+static ASM_FUNC_ATTR_INLINE block
+asm_vperm1(block vec, block mask)
+{
+  block o;
+  __asm__ volatile ("vperm %0,%1,%1,%2\n\t"
+		    : "=v" (o)
+		    : "v" (vec), "v" (mask));
+  return o;
+}
 
 static ASM_FUNC_ATTR_INLINE block
-vec_load_be(unsigned long offset, const unsigned char *ptr,
-	    block be_bswap_const)
+asm_be_swap(block vec, block be_bswap_const)
 {
+  (void)be_bswap_const;
 #ifndef WORDS_BIGENDIAN
-  block vec;
-  /* GCC vec_vsx_ld is generating two instructions on little-endian. Use
-   * lxvw4x directly instead. */
-  __asm__ ("lxvw4x %x0,%1,%2\n\t"
-	   : "=wa" (vec)
-	   : "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory", "r0");
-  __asm__ ("vperm %0,%1,%1,%2\n\t"
-	   : "=v" (vec)
-	   : "v" (vec), "v" (be_bswap_const));
+  return asm_vperm1 (vec, be_bswap_const);
+#else
   return vec;
-#else
-  (void)be_bswap_const;
-  return vec_vsx_ld (offset, ptr);
 #endif
 }
-
-
-static ASM_FUNC_ATTR_INLINE void
-vec_aligned_st(block vec, unsigned long offset, unsigned char *ptr)
-{
-#ifndef WORDS_BIGENDIAN
-  __asm__ ("stvx %0,%1,%2\n\t"
-	   :
-	   : "v" (vec), "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory", "r0");
-#else
-  vec_vsx_st (vec, offset, ptr);
-#endif
-}
-
-
-static ASM_FUNC_ATTR_INLINE void
-vec_store_be(block vec, unsigned long offset, unsigned char *ptr,
-	     block be_bswap_const)
-{
-#ifndef WORDS_BIGENDIAN
-  /* GCC vec_vsx_st is generating two instructions on little-endian. Use
-   * stxvw4x directly instead. */
-  __asm__ ("vperm %0,%1,%1,%2\n\t"
-	   : "=v" (vec)
-	   : "v" (vec), "v" (be_bswap_const));
-  __asm__ ("stxvw4x %x0,%1,%2\n\t"
-	   :
-	   : "wa" (vec), "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory", "r0");
-#else
-  (void)be_bswap_const;
-  vec_vsx_st (vec, offset, ptr);
-#endif
-}
-
 
 static ASM_FUNC_ATTR_INLINE block
-vec_add_uint128(block a, block b)
+asm_load_be_noswap(unsigned long offset, const void *ptr)
 {
-#if 1
+  block vec;
+  __asm__ volatile ("lxvw4x %x0,%1,%2\n\t"
+		    : "=wa" (vec)
+		    : "r" (offset), "r" ((uintptr_t)ptr)
+		    : "memory", "r0");
+  /* NOTE: vec needs to be be-swapped using 'asm_be_swap' by caller */
+  return vec;
+}
+
+static ASM_FUNC_ATTR_INLINE void
+asm_store_be_noswap(block vec, unsigned long offset, void *ptr)
+{
+  /* NOTE: vec be-swapped using 'asm_be_swap' by caller */
+  __asm__ volatile ("stxvw4x %x0,%1,%2\n\t"
+		    :
+		    : "wa" (vec), "r" (offset), "r" ((uintptr_t)ptr)
+		    : "memory", "r0");
+}
+
+static ASM_FUNC_ATTR_INLINE block
+asm_add_uint128(block a, block b)
+{
   block res;
-  /* Use assembly as GCC (v8.3) generates slow code for vec_vadduqm. */
-  __asm__ ("vadduqm %0,%1,%2\n\t"
-	   : "=v" (res)
-	   : "v" (a), "v" (b));
+  __asm__ volatile ("vadduqm %0,%1,%2\n\t"
+		    : "=v" (res)
+		    : "v" (a), "v" (b));
   return res;
-#else
-  return (block)vec_vadduqm((vector __uint128_t)a, (vector __uint128_t)b);
-#endif
+}
+
+static ASM_FUNC_ATTR_INLINE block
+asm_xor(block a, block b)
+{
+  block res;
+  __asm__ volatile ("vxor %0,%1,%2\n\t"
+		    : "=v" (res)
+		    : "v" (a), "v" (b));
+  return res;
+}
+
+static ASM_FUNC_ATTR_INLINE block
+asm_cipher_be(block b, block rk)
+{
+  block o;
+  __asm__ volatile ("vcipher %0, %1, %2\n\t"
+		    : "=v" (o)
+		    : "v" (b), "v" (rk));
+  return o;
+}
+
+static ASM_FUNC_ATTR_INLINE block
+asm_cipherlast_be(block b, block rk)
+{
+  block o;
+  __asm__ volatile ("vcipherlast %0, %1, %2\n\t"
+		    : "=v" (o)
+		    : "v" (b), "v" (rk));
+  return o;
+}
+
+static ASM_FUNC_ATTR_INLINE block
+asm_ncipher_be(block b, block rk)
+{
+  block o;
+  __asm__ volatile ("vncipher %0, %1, %2\n\t"
+		    : "=v" (o)
+		    : "v" (b), "v" (rk));
+  return o;
+}
+
+static ASM_FUNC_ATTR_INLINE block
+asm_ncipherlast_be(block b, block rk)
+{
+  block o;
+  __asm__ volatile ("vncipherlast %0, %1, %2\n\t"
+		    : "=v" (o)
+		    : "v" (b), "v" (rk));
+  return o;
 }
 
 
@@ -250,7 +351,7 @@ _gcry_aes_sbox4_ppc8(u32 fourbytes)
 void
 _gcry_aes_ppc8_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   union
     {
       PROPERLY_ALIGNED_TYPE dummy;
@@ -345,11 +446,11 @@ _gcry_aes_ppc8_setkey (RIJNDAEL_context *ctx, const byte *key)
   for (r = 0; r <= rounds; r++)
     {
 #ifndef WORDS_BIGENDIAN
-      VEC_STORE_BE(&ekey[r], ALIGNED_LOAD(&ekey[r]), bige_const);
+      VEC_STORE_BE(ekey, r, ALIGNED_LOAD (ekey, r), bige_const);
 #else
-      block rvec = ALIGNED_LOAD(&ekey[r]);
-      ALIGNED_STORE(&ekey[r],
-		    vec_perm(rvec, rvec, vec_bswap32_const));
+      block rvec = ALIGNED_LOAD (ekey, r);
+      ALIGNED_STORE (ekey, r,
+		     vec_perm(rvec, rvec, vec_bswap32_const));
       (void)bige_const;
 #endif
     }
@@ -378,7 +479,7 @@ aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
   rr = rounds;
   for (r = 0, rr = rounds; r <= rounds; r++, rr--)
     {
-      ALIGNED_STORE(&dkey[r], ALIGNED_LOAD(&ekey[rr]));
+      ALIGNED_STORE (dkey, r, ALIGNED_LOAD (ekey, rr));
     }
 }
 
@@ -394,18 +495,18 @@ unsigned int _gcry_aes_ppc8_encrypt (const RIJNDAEL_context *ctx,
 				     unsigned char *out,
 				     const unsigned char *in)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   const u128_t *rk = (u128_t *)&ctx->keyschenc;
   int rounds = ctx->rounds;
   ROUND_KEY_VARIABLES;
   block b;
 
-  b = VEC_LOAD_BE (in, bige_const);
+  b = VEC_LOAD_BE (in, 0, bige_const);
 
   PRELOAD_ROUND_KEYS (rounds);
 
   AES_ENCRYPT (b, rounds);
-  VEC_STORE_BE (out, b, bige_const);
+  VEC_STORE_BE (out, 0, b, bige_const);
 
   return 0; /* does not use stack */
 }
@@ -415,18 +516,18 @@ unsigned int _gcry_aes_ppc8_decrypt (const RIJNDAEL_context *ctx,
 				     unsigned char *out,
 				     const unsigned char *in)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   const u128_t *rk = (u128_t *)&ctx->keyschdec;
   int rounds = ctx->rounds;
   ROUND_KEY_VARIABLES;
   block b;
 
-  b = VEC_LOAD_BE (in, bige_const);
+  b = VEC_LOAD_BE (in, 0, bige_const);
 
   PRELOAD_ROUND_KEYS (rounds);
 
   AES_DECRYPT (b, rounds);
-  VEC_STORE_BE (out, b, bige_const);
+  VEC_STORE_BE (out, 0, b, bige_const);
 
   return 0; /* does not use stack */
 }
@@ -436,41 +537,41 @@ void _gcry_aes_ppc8_cfb_enc (void *context, unsigned char *iv_arg,
 			     void *outbuf_arg, const void *inbuf_arg,
 			     size_t nblocks)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
   const u128_t *rk = (u128_t *)&ctx->keyschenc;
   const u128_t *in = (const u128_t *)inbuf_arg;
   u128_t *out = (u128_t *)outbuf_arg;
   int rounds = ctx->rounds;
-  ROUND_KEY_VARIABLES;
+  ROUND_KEY_VARIABLES_ALL;
   block rkeylast_orig;
   block iv;
 
-  iv = VEC_LOAD_BE (iv_arg, bige_const);
+  iv = VEC_LOAD_BE (iv_arg, 0, bige_const);
 
-  PRELOAD_ROUND_KEYS (rounds);
+  PRELOAD_ROUND_KEYS_ALL (rounds);
   rkeylast_orig = rkeylast;
 
   for (; nblocks; nblocks--)
     {
-      rkeylast = rkeylast_orig ^ VEC_LOAD_BE (in, bige_const);
+      rkeylast = rkeylast_orig ^ VEC_LOAD_BE (in, 0, bige_const);
 
-      AES_ENCRYPT (iv, rounds);
+      AES_ENCRYPT_ALL (iv, rounds);
 
-      VEC_STORE_BE (out, iv, bige_const);
+      VEC_STORE_BE (out, 0, iv, bige_const);
 
       out++;
       in++;
     }
 
-  VEC_STORE_BE (iv_arg, iv, bige_const);
+  VEC_STORE_BE (iv_arg, 0, iv, bige_const);
 }
 
 void _gcry_aes_ppc8_cfb_dec (void *context, unsigned char *iv_arg,
 			     void *outbuf_arg, const void *inbuf_arg,
 			     size_t nblocks)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
   const u128_t *rk = (u128_t *)&ctx->keyschenc;
   const u128_t *in = (const u128_t *)inbuf_arg;
@@ -483,7 +584,7 @@ void _gcry_aes_ppc8_cfb_dec (void *context, unsigned char *iv_arg,
   block b0, b1, b2, b3, b4, b5, b6, b7;
   block rkey;
 
-  iv = VEC_LOAD_BE (iv_arg, bige_const);
+  iv = VEC_LOAD_BE (iv_arg, 0, bige_const);
 
   PRELOAD_ROUND_KEYS (rounds);
   rkeylast_orig = rkeylast;
@@ -491,34 +592,42 @@ void _gcry_aes_ppc8_cfb_dec (void *context, unsigned char *iv_arg,
   for (; nblocks >= 8; nblocks -= 8)
     {
       in0 = iv;
-      in1 = VEC_LOAD_BE (in + 0, bige_const);
-      in2 = VEC_LOAD_BE (in + 1, bige_const);
-      in3 = VEC_LOAD_BE (in + 2, bige_const);
-      in4 = VEC_LOAD_BE (in + 3, bige_const);
-      in5 = VEC_LOAD_BE (in + 4, bige_const);
-      in6 = VEC_LOAD_BE (in + 5, bige_const);
-      in7 = VEC_LOAD_BE (in + 6, bige_const);
-      iv = VEC_LOAD_BE (in + 7, bige_const);
-
-      b0 = rkey0 ^ in0;
-      b1 = rkey0 ^ in1;
-      b2 = rkey0 ^ in2;
-      b3 = rkey0 ^ in3;
-      b4 = rkey0 ^ in4;
-      b5 = rkey0 ^ in5;
-      b6 = rkey0 ^ in6;
-      b7 = rkey0 ^ in7;
+      in1 = VEC_LOAD_BE_NOSWAP (in, 0);
+      in2 = VEC_LOAD_BE_NOSWAP (in, 1);
+      in3 = VEC_LOAD_BE_NOSWAP (in, 2);
+      in4 = VEC_LOAD_BE_NOSWAP (in, 3);
+      in1 = VEC_BE_SWAP (in1, bige_const);
+      in2 = VEC_BE_SWAP (in2, bige_const);
+      in5 = VEC_LOAD_BE_NOSWAP (in, 4);
+      in6 = VEC_LOAD_BE_NOSWAP (in, 5);
+      in3 = VEC_BE_SWAP (in3, bige_const);
+      in4 = VEC_BE_SWAP (in4, bige_const);
+      in7 = VEC_LOAD_BE_NOSWAP (in, 6);
+      iv = VEC_LOAD_BE_NOSWAP (in, 7);
+      in += 8;
+      in5 = VEC_BE_SWAP (in5, bige_const);
+      in6 = VEC_BE_SWAP (in6, bige_const);
+      b0 = asm_xor (rkey0, in0);
+      b1 = asm_xor (rkey0, in1);
+      in7 = VEC_BE_SWAP (in7, bige_const);
+      iv = VEC_BE_SWAP (iv, bige_const);
+      b2 = asm_xor (rkey0, in2);
+      b3 = asm_xor (rkey0, in3);
+      b4 = asm_xor (rkey0, in4);
+      b5 = asm_xor (rkey0, in5);
+      b6 = asm_xor (rkey0, in6);
+      b7 = asm_xor (rkey0, in7);
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD(&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey); \
-	      b4 = vec_cipher_be (b4, rkey); \
-	      b5 = vec_cipher_be (b5, rkey); \
-	      b6 = vec_cipher_be (b6, rkey); \
-	      b7 = vec_cipher_be (b7, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey); \
+	      b4 = asm_cipher_be (b4, rkey); \
+	      b5 = asm_cipher_be (b5, rkey); \
+	      b6 = asm_cipher_be (b6, rkey); \
+	      b7 = asm_cipher_be (b7, rkey);
 
       DO_ROUND(1);
       DO_ROUND(2);
@@ -542,48 +651,60 @@ void _gcry_aes_ppc8_cfb_dec (void *context, unsigned char *iv_arg,
 
 #undef DO_ROUND
 
-      rkey = rkeylast;
-      b0 = vec_cipherlast_be (b0, rkey ^ in1);
-      b1 = vec_cipherlast_be (b1, rkey ^ in2);
-      b2 = vec_cipherlast_be (b2, rkey ^ in3);
-      b3 = vec_cipherlast_be (b3, rkey ^ in4);
-      b4 = vec_cipherlast_be (b4, rkey ^ in5);
-      b5 = vec_cipherlast_be (b5, rkey ^ in6);
-      b6 = vec_cipherlast_be (b6, rkey ^ in7);
-      b7 = vec_cipherlast_be (b7, rkey ^ iv);
-
-      VEC_STORE_BE (out + 0, b0, bige_const);
-      VEC_STORE_BE (out + 1, b1, bige_const);
-      VEC_STORE_BE (out + 2, b2, bige_const);
-      VEC_STORE_BE (out + 3, b3, bige_const);
-      VEC_STORE_BE (out + 4, b4, bige_const);
-      VEC_STORE_BE (out + 5, b5, bige_const);
-      VEC_STORE_BE (out + 6, b6, bige_const);
-      VEC_STORE_BE (out + 7, b7, bige_const);
-
-      in += 8;
+      in1 = asm_xor (rkeylast, in1);
+      in2 = asm_xor (rkeylast, in2);
+      in3 = asm_xor (rkeylast, in3);
+      in4 = asm_xor (rkeylast, in4);
+      b0 = asm_cipherlast_be (b0, in1);
+      b1 = asm_cipherlast_be (b1, in2);
+      in5 = asm_xor (rkeylast, in5);
+      in6 = asm_xor (rkeylast, in6);
+      b2 = asm_cipherlast_be (b2, in3);
+      b3 = asm_cipherlast_be (b3, in4);
+      in7 = asm_xor (rkeylast, in7);
+      in0 = asm_xor (rkeylast, iv);
+      b0 = VEC_BE_SWAP (b0, bige_const);
+      b1 = VEC_BE_SWAP (b1, bige_const);
+      b4 = asm_cipherlast_be (b4, in5);
+      b5 = asm_cipherlast_be (b5, in6);
+      b2 = VEC_BE_SWAP (b2, bige_const);
+      b3 = VEC_BE_SWAP (b3, bige_const);
+      b6 = asm_cipherlast_be (b6, in7);
+      b7 = asm_cipherlast_be (b7, in0);
+      b4 = VEC_BE_SWAP (b4, bige_const);
+      b5 = VEC_BE_SWAP (b5, bige_const);
+      b6 = VEC_BE_SWAP (b6, bige_const);
+      b7 = VEC_BE_SWAP (b7, bige_const);
+      VEC_STORE_BE_NOSWAP (out, 0, b0);
+      VEC_STORE_BE_NOSWAP (out, 1, b1);
+      VEC_STORE_BE_NOSWAP (out, 2, b2);
+      VEC_STORE_BE_NOSWAP (out, 3, b3);
+      VEC_STORE_BE_NOSWAP (out, 4, b4);
+      VEC_STORE_BE_NOSWAP (out, 5, b5);
+      VEC_STORE_BE_NOSWAP (out, 6, b6);
+      VEC_STORE_BE_NOSWAP (out, 7, b7);
       out += 8;
     }
 
   if (nblocks >= 4)
     {
       in0 = iv;
-      in1 = VEC_LOAD_BE (in + 0, bige_const);
-      in2 = VEC_LOAD_BE (in + 1, bige_const);
-      in3 = VEC_LOAD_BE (in + 2, bige_const);
-      iv = VEC_LOAD_BE (in + 3, bige_const);
+      in1 = VEC_LOAD_BE (in, 0, bige_const);
+      in2 = VEC_LOAD_BE (in, 1, bige_const);
+      in3 = VEC_LOAD_BE (in, 2, bige_const);
+      iv = VEC_LOAD_BE (in, 3, bige_const);
 
-      b0 = rkey0 ^ in0;
-      b1 = rkey0 ^ in1;
-      b2 = rkey0 ^ in2;
-      b3 = rkey0 ^ in3;
+      b0 = asm_xor (rkey0, in0);
+      b1 = asm_xor (rkey0, in1);
+      b2 = asm_xor (rkey0, in2);
+      b3 = asm_xor (rkey0, in3);
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD(&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey);
 
       DO_ROUND(1);
       DO_ROUND(2);
@@ -607,16 +728,18 @@ void _gcry_aes_ppc8_cfb_dec (void *context, unsigned char *iv_arg,
 
 #undef DO_ROUND
 
-      rkey = rkeylast;
-      b0 = vec_cipherlast_be (b0, rkey ^ in1);
-      b1 = vec_cipherlast_be (b1, rkey ^ in2);
-      b2 = vec_cipherlast_be (b2, rkey ^ in3);
-      b3 = vec_cipherlast_be (b3, rkey ^ iv);
-
-      VEC_STORE_BE (out + 0, b0, bige_const);
-      VEC_STORE_BE (out + 1, b1, bige_const);
-      VEC_STORE_BE (out + 2, b2, bige_const);
-      VEC_STORE_BE (out + 3, b3, bige_const);
+      in1 = asm_xor (rkeylast, in1);
+      in2 = asm_xor (rkeylast, in2);
+      in3 = asm_xor (rkeylast, in3);
+      in0 = asm_xor (rkeylast, iv);
+      b0 = asm_cipherlast_be (b0, in1);
+      b1 = asm_cipherlast_be (b1, in2);
+      b2 = asm_cipherlast_be (b2, in3);
+      b3 = asm_cipherlast_be (b3, in0);
+      VEC_STORE_BE (out, 0, b0, bige_const);
+      VEC_STORE_BE (out, 1, b1, bige_const);
+      VEC_STORE_BE (out, 2, b2, bige_const);
+      VEC_STORE_BE (out, 3, b3, bige_const);
 
       in += 4;
       out += 4;
@@ -625,20 +748,20 @@ void _gcry_aes_ppc8_cfb_dec (void *context, unsigned char *iv_arg,
 
   for (; nblocks; nblocks--)
     {
-      bin = VEC_LOAD_BE (in, bige_const);
+      bin = VEC_LOAD_BE (in, 0, bige_const);
       rkeylast = rkeylast_orig ^ bin;
       b = iv;
       iv = bin;
 
       AES_ENCRYPT (b, rounds);
 
-      VEC_STORE_BE (out, b, bige_const);
+      VEC_STORE_BE (out, 0, b, bige_const);
 
       out++;
       in++;
     }
 
-  VEC_STORE_BE (iv_arg, iv, bige_const);
+  VEC_STORE_BE (iv_arg, 0, iv, bige_const);
 }
 
 
@@ -646,41 +769,41 @@ void _gcry_aes_ppc8_cbc_enc (void *context, unsigned char *iv_arg,
 			     void *outbuf_arg, const void *inbuf_arg,
 			     size_t nblocks, int cbc_mac)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
   const u128_t *rk = (u128_t *)&ctx->keyschenc;
   const u128_t *in = (const u128_t *)inbuf_arg;
   u128_t *out = (u128_t *)outbuf_arg;
   int rounds = ctx->rounds;
-  ROUND_KEY_VARIABLES;
+  ROUND_KEY_VARIABLES_ALL;
   block lastiv, b;
+  unsigned int outadd = !cbc_mac;
 
-  lastiv = VEC_LOAD_BE (iv_arg, bige_const);
+  lastiv = VEC_LOAD_BE (iv_arg, 0, bige_const);
 
-  PRELOAD_ROUND_KEYS (rounds);
+  PRELOAD_ROUND_KEYS_ALL (rounds);
 
   for (; nblocks; nblocks--)
     {
-      b = lastiv ^ VEC_LOAD_BE (in, bige_const);
+      b = lastiv ^ VEC_LOAD_BE (in, 0, bige_const);
 
-      AES_ENCRYPT (b, rounds);
+      AES_ENCRYPT_ALL (b, rounds);
 
       lastiv = b;
-      VEC_STORE_BE (out, b, bige_const);
+      VEC_STORE_BE (out, 0, b, bige_const);
 
       in++;
-      if (!cbc_mac)
-	out++;
+      out += outadd;
     }
 
-  VEC_STORE_BE (iv_arg, lastiv, bige_const);
+  VEC_STORE_BE (iv_arg, 0, lastiv, bige_const);
 }
 
 void _gcry_aes_ppc8_cbc_dec (void *context, unsigned char *iv_arg,
 			     void *outbuf_arg, const void *inbuf_arg,
 			     size_t nblocks)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
   const u128_t *rk = (u128_t *)&ctx->keyschdec;
   const u128_t *in = (const u128_t *)inbuf_arg;
@@ -699,41 +822,49 @@ void _gcry_aes_ppc8_cbc_dec (void *context, unsigned char *iv_arg,
       ctx->decryption_prepared = 1;
     }
 
-  iv = VEC_LOAD_BE (iv_arg, bige_const);
+  iv = VEC_LOAD_BE (iv_arg, 0, bige_const);
 
   PRELOAD_ROUND_KEYS (rounds);
   rkeylast_orig = rkeylast;
 
   for (; nblocks >= 8; nblocks -= 8)
     {
-      in0 = VEC_LOAD_BE (in + 0, bige_const);
-      in1 = VEC_LOAD_BE (in + 1, bige_const);
-      in2 = VEC_LOAD_BE (in + 2, bige_const);
-      in3 = VEC_LOAD_BE (in + 3, bige_const);
-      in4 = VEC_LOAD_BE (in + 4, bige_const);
-      in5 = VEC_LOAD_BE (in + 5, bige_const);
-      in6 = VEC_LOAD_BE (in + 6, bige_const);
-      in7 = VEC_LOAD_BE (in + 7, bige_const);
-
-      b0 = rkey0 ^ in0;
-      b1 = rkey0 ^ in1;
-      b2 = rkey0 ^ in2;
-      b3 = rkey0 ^ in3;
-      b4 = rkey0 ^ in4;
-      b5 = rkey0 ^ in5;
-      b6 = rkey0 ^ in6;
-      b7 = rkey0 ^ in7;
+      in0 = VEC_LOAD_BE_NOSWAP (in, 0);
+      in1 = VEC_LOAD_BE_NOSWAP (in, 1);
+      in2 = VEC_LOAD_BE_NOSWAP (in, 2);
+      in3 = VEC_LOAD_BE_NOSWAP (in, 3);
+      in0 = VEC_BE_SWAP (in0, bige_const);
+      in1 = VEC_BE_SWAP (in1, bige_const);
+      in4 = VEC_LOAD_BE_NOSWAP (in, 4);
+      in5 = VEC_LOAD_BE_NOSWAP (in, 5);
+      in2 = VEC_BE_SWAP (in2, bige_const);
+      in3 = VEC_BE_SWAP (in3, bige_const);
+      in6 = VEC_LOAD_BE_NOSWAP (in, 6);
+      in7 = VEC_LOAD_BE_NOSWAP (in, 7);
+      in += 8;
+      b0 = asm_xor (rkey0, in0);
+      b1 = asm_xor (rkey0, in1);
+      in4 = VEC_BE_SWAP (in4, bige_const);
+      in5 = VEC_BE_SWAP (in5, bige_const);
+      b2 = asm_xor (rkey0, in2);
+      b3 = asm_xor (rkey0, in3);
+      in6 = VEC_BE_SWAP (in6, bige_const);
+      in7 = VEC_BE_SWAP (in7, bige_const);
+      b4 = asm_xor (rkey0, in4);
+      b5 = asm_xor (rkey0, in5);
+      b6 = asm_xor (rkey0, in6);
+      b7 = asm_xor (rkey0, in7);
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD(&rk[r]); \
-	      b0 = vec_ncipher_be (b0, rkey); \
-	      b1 = vec_ncipher_be (b1, rkey); \
-	      b2 = vec_ncipher_be (b2, rkey); \
-	      b3 = vec_ncipher_be (b3, rkey); \
-	      b4 = vec_ncipher_be (b4, rkey); \
-	      b5 = vec_ncipher_be (b5, rkey); \
-	      b6 = vec_ncipher_be (b6, rkey); \
-	      b7 = vec_ncipher_be (b7, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_ncipher_be (b0, rkey); \
+	      b1 = asm_ncipher_be (b1, rkey); \
+	      b2 = asm_ncipher_be (b2, rkey); \
+	      b3 = asm_ncipher_be (b3, rkey); \
+	      b4 = asm_ncipher_be (b4, rkey); \
+	      b5 = asm_ncipher_be (b5, rkey); \
+	      b6 = asm_ncipher_be (b6, rkey); \
+	      b7 = asm_ncipher_be (b7, rkey);
 
       DO_ROUND(1);
       DO_ROUND(2);
@@ -757,48 +888,60 @@ void _gcry_aes_ppc8_cbc_dec (void *context, unsigned char *iv_arg,
 
 #undef DO_ROUND
 
-      rkey = rkeylast;
-      b0 = vec_ncipherlast_be (b0, rkey ^ iv);
-      b1 = vec_ncipherlast_be (b1, rkey ^ in0);
-      b2 = vec_ncipherlast_be (b2, rkey ^ in1);
-      b3 = vec_ncipherlast_be (b3, rkey ^ in2);
-      b4 = vec_ncipherlast_be (b4, rkey ^ in3);
-      b5 = vec_ncipherlast_be (b5, rkey ^ in4);
-      b6 = vec_ncipherlast_be (b6, rkey ^ in5);
-      b7 = vec_ncipherlast_be (b7, rkey ^ in6);
+      iv = asm_xor (rkeylast, iv);
+      in0 = asm_xor (rkeylast, in0);
+      in1 = asm_xor (rkeylast, in1);
+      in2 = asm_xor (rkeylast, in2);
+      b0 = asm_ncipherlast_be (b0, iv);
       iv = in7;
-
-      VEC_STORE_BE (out + 0, b0, bige_const);
-      VEC_STORE_BE (out + 1, b1, bige_const);
-      VEC_STORE_BE (out + 2, b2, bige_const);
-      VEC_STORE_BE (out + 3, b3, bige_const);
-      VEC_STORE_BE (out + 4, b4, bige_const);
-      VEC_STORE_BE (out + 5, b5, bige_const);
-      VEC_STORE_BE (out + 6, b6, bige_const);
-      VEC_STORE_BE (out + 7, b7, bige_const);
-
-      in += 8;
+      b1 = asm_ncipherlast_be (b1, in0);
+      in3 = asm_xor (rkeylast, in3);
+      in4 = asm_xor (rkeylast, in4);
+      b2 = asm_ncipherlast_be (b2, in1);
+      b3 = asm_ncipherlast_be (b3, in2);
+      in5 = asm_xor (rkeylast, in5);
+      in6 = asm_xor (rkeylast, in6);
+      b0 = VEC_BE_SWAP (b0, bige_const);
+      b1 = VEC_BE_SWAP (b1, bige_const);
+      b4 = asm_ncipherlast_be (b4, in3);
+      b5 = asm_ncipherlast_be (b5, in4);
+      b2 = VEC_BE_SWAP (b2, bige_const);
+      b3 = VEC_BE_SWAP (b3, bige_const);
+      b6 = asm_ncipherlast_be (b6, in5);
+      b7 = asm_ncipherlast_be (b7, in6);
+      b4 = VEC_BE_SWAP (b4, bige_const);
+      b5 = VEC_BE_SWAP (b5, bige_const);
+      b6 = VEC_BE_SWAP (b6, bige_const);
+      b7 = VEC_BE_SWAP (b7, bige_const);
+      VEC_STORE_BE_NOSWAP (out, 0, b0);
+      VEC_STORE_BE_NOSWAP (out, 1, b1);
+      VEC_STORE_BE_NOSWAP (out, 2, b2);
+      VEC_STORE_BE_NOSWAP (out, 3, b3);
+      VEC_STORE_BE_NOSWAP (out, 4, b4);
+      VEC_STORE_BE_NOSWAP (out, 5, b5);
+      VEC_STORE_BE_NOSWAP (out, 6, b6);
+      VEC_STORE_BE_NOSWAP (out, 7, b7);
       out += 8;
     }
 
   if (nblocks >= 4)
     {
-      in0 = VEC_LOAD_BE (in + 0, bige_const);
-      in1 = VEC_LOAD_BE (in + 1, bige_const);
-      in2 = VEC_LOAD_BE (in + 2, bige_const);
-      in3 = VEC_LOAD_BE (in + 3, bige_const);
+      in0 = VEC_LOAD_BE (in, 0, bige_const);
+      in1 = VEC_LOAD_BE (in, 1, bige_const);
+      in2 = VEC_LOAD_BE (in, 2, bige_const);
+      in3 = VEC_LOAD_BE (in, 3, bige_const);
 
-      b0 = rkey0 ^ in0;
-      b1 = rkey0 ^ in1;
-      b2 = rkey0 ^ in2;
-      b3 = rkey0 ^ in3;
+      b0 = asm_xor (rkey0, in0);
+      b1 = asm_xor (rkey0, in1);
+      b2 = asm_xor (rkey0, in2);
+      b3 = asm_xor (rkey0, in3);
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD(&rk[r]); \
-	      b0 = vec_ncipher_be (b0, rkey); \
-	      b1 = vec_ncipher_be (b1, rkey); \
-	      b2 = vec_ncipher_be (b2, rkey); \
-	      b3 = vec_ncipher_be (b3, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_ncipher_be (b0, rkey); \
+	      b1 = asm_ncipher_be (b1, rkey); \
+	      b2 = asm_ncipher_be (b2, rkey); \
+	      b3 = asm_ncipher_be (b3, rkey);
 
       DO_ROUND(1);
       DO_ROUND(2);
@@ -822,17 +965,21 @@ void _gcry_aes_ppc8_cbc_dec (void *context, unsigned char *iv_arg,
 
 #undef DO_ROUND
 
-      rkey = rkeylast;
-      b0 = vec_ncipherlast_be (b0, rkey ^ iv);
-      b1 = vec_ncipherlast_be (b1, rkey ^ in0);
-      b2 = vec_ncipherlast_be (b2, rkey ^ in1);
-      b3 = vec_ncipherlast_be (b3, rkey ^ in2);
-      iv = in3;
+      iv = asm_xor (rkeylast, iv);
+      in0 = asm_xor (rkeylast, in0);
+      in1 = asm_xor (rkeylast, in1);
+      in2 = asm_xor (rkeylast, in2);
 
-      VEC_STORE_BE (out + 0, b0, bige_const);
-      VEC_STORE_BE (out + 1, b1, bige_const);
-      VEC_STORE_BE (out + 2, b2, bige_const);
-      VEC_STORE_BE (out + 3, b3, bige_const);
+      b0 = asm_ncipherlast_be (b0, iv);
+      iv = in3;
+      b1 = asm_ncipherlast_be (b1, in0);
+      b2 = asm_ncipherlast_be (b2, in1);
+      b3 = asm_ncipherlast_be (b3, in2);
+
+      VEC_STORE_BE (out, 0, b0, bige_const);
+      VEC_STORE_BE (out, 1, b1, bige_const);
+      VEC_STORE_BE (out, 2, b2, bige_const);
+      VEC_STORE_BE (out, 3, b3, bige_const);
 
       in += 4;
       out += 4;
@@ -843,17 +990,17 @@ void _gcry_aes_ppc8_cbc_dec (void *context, unsigned char *iv_arg,
     {
       rkeylast = rkeylast_orig ^ iv;
 
-      iv = VEC_LOAD_BE (in, bige_const);
+      iv = VEC_LOAD_BE (in, 0, bige_const);
       b = iv;
       AES_DECRYPT (b, rounds);
 
-      VEC_STORE_BE (out, b, bige_const);
+      VEC_STORE_BE (out, 0, b, bige_const);
 
       in++;
       out++;
     }
 
-  VEC_STORE_BE (iv_arg, iv, bige_const);
+  VEC_STORE_BE (iv_arg, 0, iv, bige_const);
 }
 
 
@@ -863,7 +1010,7 @@ void _gcry_aes_ppc8_ctr_enc (void *context, unsigned char *ctr_arg,
 {
   static const unsigned char vec_one_const[16] =
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
   const u128_t *rk = (u128_t *)&ctx->keyschenc;
   const u128_t *in = (const u128_t *)inbuf_arg;
@@ -873,56 +1020,80 @@ void _gcry_aes_ppc8_ctr_enc (void *context, unsigned char *ctr_arg,
   block rkeylast_orig;
   block ctr, b, one;
 
-  ctr = VEC_LOAD_BE (ctr_arg, bige_const);
-  one = VEC_LOAD_BE (&vec_one_const, bige_const);
+  ctr = VEC_LOAD_BE (ctr_arg, 0, bige_const);
+  one = VEC_LOAD_BE (&vec_one_const, 0, bige_const);
 
   PRELOAD_ROUND_KEYS (rounds);
   rkeylast_orig = rkeylast;
 
   if (nblocks >= 4)
     {
+      block in0, in1, in2, in3, in4, in5, in6, in7;
       block b0, b1, b2, b3, b4, b5, b6, b7;
       block two, three, four;
-      block ctr4;
       block rkey;
 
-      two   = vec_add_uint128 (one, one);
-      three = vec_add_uint128 (two, one);
-      four  = vec_add_uint128 (two, two);
+      two   = asm_add_uint128 (one, one);
+      three = asm_add_uint128 (two, one);
+      four  = asm_add_uint128 (two, two);
 
       for (; nblocks >= 8; nblocks -= 8)
 	{
-	  ctr4 = vec_add_uint128 (ctr, four);
-	  b0 = rkey0 ^ ctr;
-	  b1 = rkey0 ^ vec_add_uint128 (ctr, one);
-	  b2 = rkey0 ^ vec_add_uint128 (ctr, two);
-	  b3 = rkey0 ^ vec_add_uint128 (ctr, three);
-	  b4 = rkey0 ^ ctr4;
-	  b5 = rkey0 ^ vec_add_uint128 (ctr4, one);
-	  b6 = rkey0 ^ vec_add_uint128 (ctr4, two);
-	  b7 = rkey0 ^ vec_add_uint128 (ctr4, three);
-	  ctr = vec_add_uint128 (ctr4, four);
+	  b1 = asm_add_uint128 (ctr, one);
+	  b2 = asm_add_uint128 (ctr, two);
+	  b3 = asm_add_uint128 (ctr, three);
+	  b4 = asm_add_uint128 (ctr, four);
+	  b5 = asm_add_uint128 (b1, four);
+	  b6 = asm_add_uint128 (b2, four);
+	  b7 = asm_add_uint128 (b3, four);
+	  b0 = asm_xor (rkey0, ctr);
+	  rkey = ALIGNED_LOAD (rk, 1);
+	  ctr = asm_add_uint128 (b4, four);
+	  b1 = asm_xor (rkey0, b1);
+	  b2 = asm_xor (rkey0, b2);
+	  b3 = asm_xor (rkey0, b3);
+	  b0 = asm_cipher_be (b0, rkey);
+	  b1 = asm_cipher_be (b1, rkey);
+	  b2 = asm_cipher_be (b2, rkey);
+	  b3 = asm_cipher_be (b3, rkey);
+	  b4 = asm_xor (rkey0, b4);
+	  b5 = asm_xor (rkey0, b5);
+	  b6 = asm_xor (rkey0, b6);
+	  b7 = asm_xor (rkey0, b7);
+	  b4 = asm_cipher_be (b4, rkey);
+	  b5 = asm_cipher_be (b5, rkey);
+	  b6 = asm_cipher_be (b6, rkey);
+	  b7 = asm_cipher_be (b7, rkey);
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD(&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey); \
-	      b4 = vec_cipher_be (b4, rkey); \
-	      b5 = vec_cipher_be (b5, rkey); \
-	      b6 = vec_cipher_be (b6, rkey); \
-	      b7 = vec_cipher_be (b7, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey); \
+	      b4 = asm_cipher_be (b4, rkey); \
+	      b5 = asm_cipher_be (b5, rkey); \
+	      b6 = asm_cipher_be (b6, rkey); \
+	      b7 = asm_cipher_be (b7, rkey);
 
-	  DO_ROUND(1);
+	  in0 = VEC_LOAD_BE_NOSWAP (in, 0);
 	  DO_ROUND(2);
+	  in1 = VEC_LOAD_BE_NOSWAP (in, 1);
 	  DO_ROUND(3);
+	  in2 = VEC_LOAD_BE_NOSWAP (in, 2);
 	  DO_ROUND(4);
+	  in3 = VEC_LOAD_BE_NOSWAP (in, 3);
 	  DO_ROUND(5);
+	  in4 = VEC_LOAD_BE_NOSWAP (in, 4);
 	  DO_ROUND(6);
+	  in5 = VEC_LOAD_BE_NOSWAP (in, 5);
 	  DO_ROUND(7);
+	  in6 = VEC_LOAD_BE_NOSWAP (in, 6);
 	  DO_ROUND(8);
+	  in7 = VEC_LOAD_BE_NOSWAP (in, 7);
+	  in += 8;
 	  DO_ROUND(9);
+
 	  if (rounds >= 12)
 	    {
 	      DO_ROUND(10);
@@ -936,43 +1107,68 @@ void _gcry_aes_ppc8_ctr_enc (void *context, unsigned char *ctr_arg,
 
 #undef DO_ROUND
 
-	  rkey = rkeylast;
-	  b0 = vec_cipherlast_be (b0, rkey ^ VEC_LOAD_BE (in + 0, bige_const));
-	  b1 = vec_cipherlast_be (b1, rkey ^ VEC_LOAD_BE (in + 1, bige_const));
-	  b2 = vec_cipherlast_be (b2, rkey ^ VEC_LOAD_BE (in + 2, bige_const));
-	  b3 = vec_cipherlast_be (b3, rkey ^ VEC_LOAD_BE (in + 3, bige_const));
-	  b4 = vec_cipherlast_be (b4, rkey ^ VEC_LOAD_BE (in + 4, bige_const));
-	  b5 = vec_cipherlast_be (b5, rkey ^ VEC_LOAD_BE (in + 5, bige_const));
-	  b6 = vec_cipherlast_be (b6, rkey ^ VEC_LOAD_BE (in + 6, bige_const));
-	  b7 = vec_cipherlast_be (b7, rkey ^ VEC_LOAD_BE (in + 7, bige_const));
+	  in0 = VEC_BE_SWAP (in0, bige_const);
+	  in1 = VEC_BE_SWAP (in1, bige_const);
+	  in2 = VEC_BE_SWAP (in2, bige_const);
+	  in3 = VEC_BE_SWAP (in3, bige_const);
+	  in4 = VEC_BE_SWAP (in4, bige_const);
+	  in5 = VEC_BE_SWAP (in5, bige_const);
+	  in6 = VEC_BE_SWAP (in6, bige_const);
+	  in7 = VEC_BE_SWAP (in7, bige_const);
 
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
-	  VEC_STORE_BE (out + 4, b4, bige_const);
-	  VEC_STORE_BE (out + 5, b5, bige_const);
-	  VEC_STORE_BE (out + 6, b6, bige_const);
-	  VEC_STORE_BE (out + 7, b7, bige_const);
+	  in0 = asm_xor (rkeylast, in0);
+	  in1 = asm_xor (rkeylast, in1);
+	  in2 = asm_xor (rkeylast, in2);
+	  in3 = asm_xor (rkeylast, in3);
+	  b0 = asm_cipherlast_be (b0, in0);
+	  b1 = asm_cipherlast_be (b1, in1);
+	  in4 = asm_xor (rkeylast, in4);
+	  in5 = asm_xor (rkeylast, in5);
+	  b2 = asm_cipherlast_be (b2, in2);
+	  b3 = asm_cipherlast_be (b3, in3);
+	  in6 = asm_xor (rkeylast, in6);
+	  in7 = asm_xor (rkeylast, in7);
+	  b4 = asm_cipherlast_be (b4, in4);
+	  b5 = asm_cipherlast_be (b5, in5);
+	  b6 = asm_cipherlast_be (b6, in6);
+	  b7 = asm_cipherlast_be (b7, in7);
 
-	  in += 8;
+	  b0 = VEC_BE_SWAP (b0, bige_const);
+	  b1 = VEC_BE_SWAP (b1, bige_const);
+	  b2 = VEC_BE_SWAP (b2, bige_const);
+	  b3 = VEC_BE_SWAP (b3, bige_const);
+	  b4 = VEC_BE_SWAP (b4, bige_const);
+	  b5 = VEC_BE_SWAP (b5, bige_const);
+	  b6 = VEC_BE_SWAP (b6, bige_const);
+	  b7 = VEC_BE_SWAP (b7, bige_const);
+	  VEC_STORE_BE_NOSWAP (out, 0, b0);
+	  VEC_STORE_BE_NOSWAP (out, 1, b1);
+	  VEC_STORE_BE_NOSWAP (out, 2, b2);
+	  VEC_STORE_BE_NOSWAP (out, 3, b3);
+	  VEC_STORE_BE_NOSWAP (out, 4, b4);
+	  VEC_STORE_BE_NOSWAP (out, 5, b5);
+	  VEC_STORE_BE_NOSWAP (out, 6, b6);
+	  VEC_STORE_BE_NOSWAP (out, 7, b7);
 	  out += 8;
 	}
 
       if (nblocks >= 4)
 	{
-	  b0 = rkey0 ^ ctr;
-	  b1 = rkey0 ^ vec_add_uint128 (ctr, one);
-	  b2 = rkey0 ^ vec_add_uint128 (ctr, two);
-	  b3 = rkey0 ^ vec_add_uint128 (ctr, three);
-	  ctr = vec_add_uint128 (ctr, four);
+	  b1 = asm_add_uint128 (ctr, one);
+	  b2 = asm_add_uint128 (ctr, two);
+	  b3 = asm_add_uint128 (ctr, three);
+	  b0 = asm_xor (rkey0, ctr);
+	  ctr = asm_add_uint128 (ctr, four);
+	  b1 = asm_xor (rkey0, b1);
+	  b2 = asm_xor (rkey0, b2);
+	  b3 = asm_xor (rkey0, b3);
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD(&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -982,6 +1178,12 @@ void _gcry_aes_ppc8_ctr_enc (void *context, unsigned char *ctr_arg,
 	  DO_ROUND(6);
 	  DO_ROUND(7);
 	  DO_ROUND(8);
+
+	  in0 = VEC_LOAD_BE (in, 0, bige_const);
+	  in1 = VEC_LOAD_BE (in, 1, bige_const);
+	  in2 = VEC_LOAD_BE (in, 2, bige_const);
+	  in3 = VEC_LOAD_BE (in, 3, bige_const);
+
 	  DO_ROUND(9);
 	  if (rounds >= 12)
 	    {
@@ -996,16 +1198,21 @@ void _gcry_aes_ppc8_ctr_enc (void *context, unsigned char *ctr_arg,
 
 #undef DO_ROUND
 
-	  rkey = rkeylast;
-	  b0 = vec_cipherlast_be (b0, rkey ^ VEC_LOAD_BE (in + 0, bige_const));
-	  b1 = vec_cipherlast_be (b1, rkey ^ VEC_LOAD_BE (in + 1, bige_const));
-	  b2 = vec_cipherlast_be (b2, rkey ^ VEC_LOAD_BE (in + 2, bige_const));
-	  b3 = vec_cipherlast_be (b3, rkey ^ VEC_LOAD_BE (in + 3, bige_const));
+	  in0 = asm_xor (rkeylast, in0);
+	  in1 = asm_xor (rkeylast, in1);
+	  in2 = asm_xor (rkeylast, in2);
+	  in3 = asm_xor (rkeylast, in3);
 
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
+	  b0 = asm_cipherlast_be (b0, in0);
+	  b1 = asm_cipherlast_be (b1, in1);
+	  b2 = asm_cipherlast_be (b2, in2);
+	  b3 = asm_cipherlast_be (b3, in3);
+
+	  VEC_STORE_BE (out, 0, b0, bige_const);
+	  VEC_STORE_BE (out, 1, b1, bige_const);
+	  VEC_STORE_BE (out, 2, b2, bige_const);
+	  VEC_STORE_BE (out, 3, b3, bige_const);
+
 	  in += 4;
 	  out += 4;
 	  nblocks -= 4;
@@ -1015,18 +1222,18 @@ void _gcry_aes_ppc8_ctr_enc (void *context, unsigned char *ctr_arg,
   for (; nblocks; nblocks--)
     {
       b = ctr;
-      ctr = vec_add_uint128 (ctr, one);
-      rkeylast = rkeylast_orig ^ VEC_LOAD_BE (in, bige_const);
+      ctr = asm_add_uint128 (ctr, one);
+      rkeylast = rkeylast_orig ^ VEC_LOAD_BE (in, 0, bige_const);
 
       AES_ENCRYPT (b, rounds);
 
-      VEC_STORE_BE (out, b, bige_const);
+      VEC_STORE_BE (out, 0, b, bige_const);
 
       out++;
       in++;
     }
 
-  VEC_STORE_BE (ctr_arg, ctr, bige_const);
+  VEC_STORE_BE (ctr_arg, 0, ctr, bige_const);
 }
 
 
@@ -1034,7 +1241,7 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 				 const void *inbuf_arg, size_t nblocks,
 				 int encrypt)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   const u128_t *in = (const u128_t *)inbuf_arg;
   u128_t *out = (u128_t *)outbuf_arg;
@@ -1043,16 +1250,16 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   block l0, l1, l2, l;
   block b0, b1, b2, b3, b4, b5, b6, b7, b;
   block iv0, iv1, iv2, iv3, iv4, iv5, iv6, iv7;
-  block rkey;
+  block rkey, rkeylf;
   block ctr, iv;
   ROUND_KEY_VARIABLES;
 
-  iv = VEC_LOAD_BE (c->u_iv.iv, bige_const);
-  ctr = VEC_LOAD_BE (c->u_ctr.ctr, bige_const);
+  iv = VEC_LOAD_BE (c->u_iv.iv, 0, bige_const);
+  ctr = VEC_LOAD_BE (c->u_ctr.ctr, 0, bige_const);
 
-  l0 = VEC_LOAD_BE (c->u_mode.ocb.L[0], bige_const);
-  l1 = VEC_LOAD_BE (c->u_mode.ocb.L[1], bige_const);
-  l2 = VEC_LOAD_BE (c->u_mode.ocb.L[2], bige_const);
+  l0 = VEC_LOAD_BE (c->u_mode.ocb.L[0], 0, bige_const);
+  l1 = VEC_LOAD_BE (c->u_mode.ocb.L[1], 0, bige_const);
+  l2 = VEC_LOAD_BE (c->u_mode.ocb.L[2], 0, bige_const);
 
   if (encrypt)
     {
@@ -1062,8 +1269,8 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
       for (; nblocks >= 8 && data_nblocks % 8; nblocks--)
 	{
-	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
-	  b = VEC_LOAD_BE (in, bige_const);
+	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), 0, bige_const);
+	  b = VEC_LOAD_BE (in, 0, bige_const);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  iv ^= l;
@@ -1074,7 +1281,7 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  AES_ENCRYPT (b, rounds);
 	  b ^= iv;
 
-	  VEC_STORE_BE (out, b, bige_const);
+	  VEC_STORE_BE (out, 0, b, bige_const);
 
 	  in += 1;
 	  out += 1;
@@ -1082,16 +1289,25 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
       for (; nblocks >= 8; nblocks -= 8)
 	{
-	  b0 = VEC_LOAD_BE (in + 0, bige_const);
-	  b1 = VEC_LOAD_BE (in + 1, bige_const);
-	  b2 = VEC_LOAD_BE (in + 2, bige_const);
-	  b3 = VEC_LOAD_BE (in + 3, bige_const);
-	  b4 = VEC_LOAD_BE (in + 4, bige_const);
-	  b5 = VEC_LOAD_BE (in + 5, bige_const);
-	  b6 = VEC_LOAD_BE (in + 6, bige_const);
-	  b7 = VEC_LOAD_BE (in + 7, bige_const);
-
-	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 8), bige_const);
+	  b0 = VEC_LOAD_BE_NOSWAP (in, 0);
+	  b1 = VEC_LOAD_BE_NOSWAP (in, 1);
+	  b2 = VEC_LOAD_BE_NOSWAP (in, 2);
+	  b3 = VEC_LOAD_BE_NOSWAP (in, 3);
+	  b4 = VEC_LOAD_BE_NOSWAP (in, 4);
+	  b5 = VEC_LOAD_BE_NOSWAP (in, 5);
+	  b6 = VEC_LOAD_BE_NOSWAP (in, 6);
+	  b7 = VEC_LOAD_BE_NOSWAP (in, 7);
+	  in += 8;
+	  l = VEC_LOAD_BE_NOSWAP (ocb_get_l (c, data_nblocks += 8), 0);
+	  b0 = VEC_BE_SWAP(b0, bige_const);
+	  b1 = VEC_BE_SWAP(b1, bige_const);
+	  b2 = VEC_BE_SWAP(b2, bige_const);
+	  b3 = VEC_BE_SWAP(b3, bige_const);
+	  b4 = VEC_BE_SWAP(b4, bige_const);
+	  b5 = VEC_BE_SWAP(b5, bige_const);
+	  b6 = VEC_BE_SWAP(b6, bige_const);
+	  b7 = VEC_BE_SWAP(b7, bige_const);
+	  l = VEC_BE_SWAP(l, bige_const);
 
 	  ctr ^= b0 ^ b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6 ^ b7;
 
@@ -1117,15 +1333,15 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  iv = iv7 ^ rkey0;
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey); \
-	      b4 = vec_cipher_be (b4, rkey); \
-	      b5 = vec_cipher_be (b5, rkey); \
-	      b6 = vec_cipher_be (b6, rkey); \
-	      b7 = vec_cipher_be (b7, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey); \
+	      b4 = asm_cipher_be (b4, rkey); \
+	      b5 = asm_cipher_be (b5, rkey); \
+	      b6 = asm_cipher_be (b6, rkey); \
+	      b7 = asm_cipher_be (b7, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -1134,7 +1350,20 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  DO_ROUND(5);
 	  DO_ROUND(6);
 	  DO_ROUND(7);
+
+	  rkeylf = asm_xor (rkeylast, rkey0);
+
 	  DO_ROUND(8);
+
+	  iv0 = asm_xor (rkeylf, iv0);
+	  iv1 = asm_xor (rkeylf, iv1);
+	  iv2 = asm_xor (rkeylf, iv2);
+	  iv3 = asm_xor (rkeylf, iv3);
+	  iv4 = asm_xor (rkeylf, iv4);
+	  iv5 = asm_xor (rkeylf, iv5);
+	  iv6 = asm_xor (rkeylf, iv6);
+	  iv7 = asm_xor (rkeylf, iv7);
+
 	  DO_ROUND(9);
 	  if (rounds >= 12)
 	    {
@@ -1149,37 +1378,42 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
 #undef DO_ROUND
 
-	  rkey = rkeylast ^ rkey0;
-	  b0 = vec_cipherlast_be (b0, rkey ^ iv0);
-	  b1 = vec_cipherlast_be (b1, rkey ^ iv1);
-	  b2 = vec_cipherlast_be (b2, rkey ^ iv2);
-	  b3 = vec_cipherlast_be (b3, rkey ^ iv3);
-	  b4 = vec_cipherlast_be (b4, rkey ^ iv4);
-	  b5 = vec_cipherlast_be (b5, rkey ^ iv5);
-	  b6 = vec_cipherlast_be (b6, rkey ^ iv6);
-	  b7 = vec_cipherlast_be (b7, rkey ^ iv7);
+	  b0 = asm_cipherlast_be (b0, iv0);
+	  b1 = asm_cipherlast_be (b1, iv1);
+	  b2 = asm_cipherlast_be (b2, iv2);
+	  b3 = asm_cipherlast_be (b3, iv3);
+	  b4 = asm_cipherlast_be (b4, iv4);
+	  b5 = asm_cipherlast_be (b5, iv5);
+	  b6 = asm_cipherlast_be (b6, iv6);
+	  b7 = asm_cipherlast_be (b7, iv7);
 
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
-	  VEC_STORE_BE (out + 4, b4, bige_const);
-	  VEC_STORE_BE (out + 5, b5, bige_const);
-	  VEC_STORE_BE (out + 6, b6, bige_const);
-	  VEC_STORE_BE (out + 7, b7, bige_const);
-
-	  in += 8;
+	  b0 = VEC_BE_SWAP (b0, bige_const);
+	  b1 = VEC_BE_SWAP (b1, bige_const);
+	  b2 = VEC_BE_SWAP (b2, bige_const);
+	  b3 = VEC_BE_SWAP (b3, bige_const);
+	  b4 = VEC_BE_SWAP (b4, bige_const);
+	  b5 = VEC_BE_SWAP (b5, bige_const);
+	  b6 = VEC_BE_SWAP (b6, bige_const);
+	  b7 = VEC_BE_SWAP (b7, bige_const);
+	  VEC_STORE_BE_NOSWAP (out, 0, b0);
+	  VEC_STORE_BE_NOSWAP (out, 1, b1);
+	  VEC_STORE_BE_NOSWAP (out, 2, b2);
+	  VEC_STORE_BE_NOSWAP (out, 3, b3);
+	  VEC_STORE_BE_NOSWAP (out, 4, b4);
+	  VEC_STORE_BE_NOSWAP (out, 5, b5);
+	  VEC_STORE_BE_NOSWAP (out, 6, b6);
+	  VEC_STORE_BE_NOSWAP (out, 7, b7);
 	  out += 8;
 	}
 
       if (nblocks >= 4 && (data_nblocks % 4) == 0)
 	{
-	  b0 = VEC_LOAD_BE (in + 0, bige_const);
-	  b1 = VEC_LOAD_BE (in + 1, bige_const);
-	  b2 = VEC_LOAD_BE (in + 2, bige_const);
-	  b3 = VEC_LOAD_BE (in + 3, bige_const);
+	  b0 = VEC_LOAD_BE (in, 0, bige_const);
+	  b1 = VEC_LOAD_BE (in, 1, bige_const);
+	  b2 = VEC_LOAD_BE (in, 2, bige_const);
+	  b3 = VEC_LOAD_BE (in, 3, bige_const);
 
-	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), bige_const);
+	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), 0, bige_const);
 
 	  ctr ^= b0 ^ b1 ^ b2 ^ b3;
 
@@ -1197,11 +1431,11 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  iv = iv3 ^ rkey0;
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -1226,15 +1460,15 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 #undef DO_ROUND
 
 	  rkey = rkeylast ^ rkey0;
-	  b0 = vec_cipherlast_be (b0, rkey ^ iv0);
-	  b1 = vec_cipherlast_be (b1, rkey ^ iv1);
-	  b2 = vec_cipherlast_be (b2, rkey ^ iv2);
-	  b3 = vec_cipherlast_be (b3, rkey ^ iv3);
+	  b0 = asm_cipherlast_be (b0, rkey ^ iv0);
+	  b1 = asm_cipherlast_be (b1, rkey ^ iv1);
+	  b2 = asm_cipherlast_be (b2, rkey ^ iv2);
+	  b3 = asm_cipherlast_be (b3, rkey ^ iv3);
 
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
+	  VEC_STORE_BE (out, 0, b0, bige_const);
+	  VEC_STORE_BE (out, 1, b1, bige_const);
+	  VEC_STORE_BE (out, 2, b2, bige_const);
+	  VEC_STORE_BE (out, 3, b3, bige_const);
 
 	  in += 4;
 	  out += 4;
@@ -1243,8 +1477,8 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
       for (; nblocks; nblocks--)
 	{
-	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
-	  b = VEC_LOAD_BE (in, bige_const);
+	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), 0, bige_const);
+	  b = VEC_LOAD_BE (in, 0, bige_const);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  iv ^= l;
@@ -1255,7 +1489,7 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  AES_ENCRYPT (b, rounds);
 	  b ^= iv;
 
-	  VEC_STORE_BE (out, b, bige_const);
+	  VEC_STORE_BE (out, 0, b, bige_const);
 
 	  in += 1;
 	  out += 1;
@@ -1275,8 +1509,8 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
       for (; nblocks >= 8 && data_nblocks % 8; nblocks--)
 	{
-	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
-	  b = VEC_LOAD_BE (in, bige_const);
+	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), 0, bige_const);
+	  b = VEC_LOAD_BE (in, 0, bige_const);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  iv ^= l;
@@ -1287,7 +1521,7 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  /* Checksum_i = Checksum_{i-1} xor P_i  */
 	  ctr ^= b;
 
-	  VEC_STORE_BE (out, b, bige_const);
+	  VEC_STORE_BE (out, 0, b, bige_const);
 
 	  in += 1;
 	  out += 1;
@@ -1295,16 +1529,25 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
       for (; nblocks >= 8; nblocks -= 8)
 	{
-	  b0 = VEC_LOAD_BE (in + 0, bige_const);
-	  b1 = VEC_LOAD_BE (in + 1, bige_const);
-	  b2 = VEC_LOAD_BE (in + 2, bige_const);
-	  b3 = VEC_LOAD_BE (in + 3, bige_const);
-	  b4 = VEC_LOAD_BE (in + 4, bige_const);
-	  b5 = VEC_LOAD_BE (in + 5, bige_const);
-	  b6 = VEC_LOAD_BE (in + 6, bige_const);
-	  b7 = VEC_LOAD_BE (in + 7, bige_const);
-
-	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 8), bige_const);
+	  b0 = VEC_LOAD_BE_NOSWAP (in, 0);
+	  b1 = VEC_LOAD_BE_NOSWAP (in, 1);
+	  b2 = VEC_LOAD_BE_NOSWAP (in, 2);
+	  b3 = VEC_LOAD_BE_NOSWAP (in, 3);
+	  b4 = VEC_LOAD_BE_NOSWAP (in, 4);
+	  b5 = VEC_LOAD_BE_NOSWAP (in, 5);
+	  b6 = VEC_LOAD_BE_NOSWAP (in, 6);
+	  b7 = VEC_LOAD_BE_NOSWAP (in, 7);
+	  in += 8;
+	  l = VEC_LOAD_BE_NOSWAP (ocb_get_l (c, data_nblocks += 8), 0);
+	  b0 = VEC_BE_SWAP(b0, bige_const);
+	  b1 = VEC_BE_SWAP(b1, bige_const);
+	  b2 = VEC_BE_SWAP(b2, bige_const);
+	  b3 = VEC_BE_SWAP(b3, bige_const);
+	  b4 = VEC_BE_SWAP(b4, bige_const);
+	  b5 = VEC_BE_SWAP(b5, bige_const);
+	  b6 = VEC_BE_SWAP(b6, bige_const);
+	  b7 = VEC_BE_SWAP(b7, bige_const);
+	  l = VEC_BE_SWAP(l, bige_const);
 
 	  iv ^= rkey0;
 
@@ -1328,15 +1571,15 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  iv = iv7 ^ rkey0;
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_ncipher_be (b0, rkey); \
-	      b1 = vec_ncipher_be (b1, rkey); \
-	      b2 = vec_ncipher_be (b2, rkey); \
-	      b3 = vec_ncipher_be (b3, rkey); \
-	      b4 = vec_ncipher_be (b4, rkey); \
-	      b5 = vec_ncipher_be (b5, rkey); \
-	      b6 = vec_ncipher_be (b6, rkey); \
-	      b7 = vec_ncipher_be (b7, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_ncipher_be (b0, rkey); \
+	      b1 = asm_ncipher_be (b1, rkey); \
+	      b2 = asm_ncipher_be (b2, rkey); \
+	      b3 = asm_ncipher_be (b3, rkey); \
+	      b4 = asm_ncipher_be (b4, rkey); \
+	      b5 = asm_ncipher_be (b5, rkey); \
+	      b6 = asm_ncipher_be (b6, rkey); \
+	      b7 = asm_ncipher_be (b7, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -1345,7 +1588,20 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  DO_ROUND(5);
 	  DO_ROUND(6);
 	  DO_ROUND(7);
+
+	  rkeylf = asm_xor (rkeylast, rkey0);
+
 	  DO_ROUND(8);
+
+	  iv0 = asm_xor (rkeylf, iv0);
+	  iv1 = asm_xor (rkeylf, iv1);
+	  iv2 = asm_xor (rkeylf, iv2);
+	  iv3 = asm_xor (rkeylf, iv3);
+	  iv4 = asm_xor (rkeylf, iv4);
+	  iv5 = asm_xor (rkeylf, iv5);
+	  iv6 = asm_xor (rkeylf, iv6);
+	  iv7 = asm_xor (rkeylf, iv7);
+
 	  DO_ROUND(9);
 	  if (rounds >= 12)
 	    {
@@ -1360,39 +1616,44 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
 #undef DO_ROUND
 
-	  rkey = rkeylast ^ rkey0;
-	  b0 = vec_ncipherlast_be (b0, rkey ^ iv0);
-	  b1 = vec_ncipherlast_be (b1, rkey ^ iv1);
-	  b2 = vec_ncipherlast_be (b2, rkey ^ iv2);
-	  b3 = vec_ncipherlast_be (b3, rkey ^ iv3);
-	  b4 = vec_ncipherlast_be (b4, rkey ^ iv4);
-	  b5 = vec_ncipherlast_be (b5, rkey ^ iv5);
-	  b6 = vec_ncipherlast_be (b6, rkey ^ iv6);
-	  b7 = vec_ncipherlast_be (b7, rkey ^ iv7);
-
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
-	  VEC_STORE_BE (out + 4, b4, bige_const);
-	  VEC_STORE_BE (out + 5, b5, bige_const);
-	  VEC_STORE_BE (out + 6, b6, bige_const);
-	  VEC_STORE_BE (out + 7, b7, bige_const);
+	  b0 = asm_ncipherlast_be (b0, iv0);
+	  b1 = asm_ncipherlast_be (b1, iv1);
+	  b2 = asm_ncipherlast_be (b2, iv2);
+	  b3 = asm_ncipherlast_be (b3, iv3);
+	  b4 = asm_ncipherlast_be (b4, iv4);
+	  b5 = asm_ncipherlast_be (b5, iv5);
+	  b6 = asm_ncipherlast_be (b6, iv6);
+	  b7 = asm_ncipherlast_be (b7, iv7);
 
 	  ctr ^= b0 ^ b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6 ^ b7;
 
-	  in += 8;
+	  b0 = VEC_BE_SWAP (b0, bige_const);
+	  b1 = VEC_BE_SWAP (b1, bige_const);
+	  b2 = VEC_BE_SWAP (b2, bige_const);
+	  b3 = VEC_BE_SWAP (b3, bige_const);
+	  b4 = VEC_BE_SWAP (b4, bige_const);
+	  b5 = VEC_BE_SWAP (b5, bige_const);
+	  b6 = VEC_BE_SWAP (b6, bige_const);
+	  b7 = VEC_BE_SWAP (b7, bige_const);
+	  VEC_STORE_BE_NOSWAP (out, 0, b0);
+	  VEC_STORE_BE_NOSWAP (out, 1, b1);
+	  VEC_STORE_BE_NOSWAP (out, 2, b2);
+	  VEC_STORE_BE_NOSWAP (out, 3, b3);
+	  VEC_STORE_BE_NOSWAP (out, 4, b4);
+	  VEC_STORE_BE_NOSWAP (out, 5, b5);
+	  VEC_STORE_BE_NOSWAP (out, 6, b6);
+	  VEC_STORE_BE_NOSWAP (out, 7, b7);
 	  out += 8;
 	}
 
       if (nblocks >= 4 && (data_nblocks % 4) == 0)
 	{
-	  b0 = VEC_LOAD_BE (in + 0, bige_const);
-	  b1 = VEC_LOAD_BE (in + 1, bige_const);
-	  b2 = VEC_LOAD_BE (in + 2, bige_const);
-	  b3 = VEC_LOAD_BE (in + 3, bige_const);
+	  b0 = VEC_LOAD_BE (in, 0, bige_const);
+	  b1 = VEC_LOAD_BE (in, 1, bige_const);
+	  b2 = VEC_LOAD_BE (in, 2, bige_const);
+	  b3 = VEC_LOAD_BE (in, 3, bige_const);
 
-	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), bige_const);
+	  l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), 0, bige_const);
 
 	  iv ^= rkey0;
 
@@ -1408,11 +1669,11 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  iv = iv3 ^ rkey0;
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_ncipher_be (b0, rkey); \
-	      b1 = vec_ncipher_be (b1, rkey); \
-	      b2 = vec_ncipher_be (b2, rkey); \
-	      b3 = vec_ncipher_be (b3, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_ncipher_be (b0, rkey); \
+	      b1 = asm_ncipher_be (b1, rkey); \
+	      b2 = asm_ncipher_be (b2, rkey); \
+	      b3 = asm_ncipher_be (b3, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -1437,15 +1698,15 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 #undef DO_ROUND
 
 	  rkey = rkeylast ^ rkey0;
-	  b0 = vec_ncipherlast_be (b0, rkey ^ iv0);
-	  b1 = vec_ncipherlast_be (b1, rkey ^ iv1);
-	  b2 = vec_ncipherlast_be (b2, rkey ^ iv2);
-	  b3 = vec_ncipherlast_be (b3, rkey ^ iv3);
+	  b0 = asm_ncipherlast_be (b0, rkey ^ iv0);
+	  b1 = asm_ncipherlast_be (b1, rkey ^ iv1);
+	  b2 = asm_ncipherlast_be (b2, rkey ^ iv2);
+	  b3 = asm_ncipherlast_be (b3, rkey ^ iv3);
 
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
+	  VEC_STORE_BE (out, 0, b0, bige_const);
+	  VEC_STORE_BE (out, 1, b1, bige_const);
+	  VEC_STORE_BE (out, 2, b2, bige_const);
+	  VEC_STORE_BE (out, 3, b3, bige_const);
 
 	  ctr ^= b0 ^ b1 ^ b2 ^ b3;
 
@@ -1456,8 +1717,8 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
       for (; nblocks; nblocks--)
 	{
-	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
-	  b = VEC_LOAD_BE (in, bige_const);
+	  l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), 0, bige_const);
+	  b = VEC_LOAD_BE (in, 0, bige_const);
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  iv ^= l;
@@ -1468,15 +1729,15 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	  /* Checksum_i = Checksum_{i-1} xor P_i  */
 	  ctr ^= b;
 
-	  VEC_STORE_BE (out, b, bige_const);
+	  VEC_STORE_BE (out, 0, b, bige_const);
 
 	  in += 1;
 	  out += 1;
 	}
     }
 
-  VEC_STORE_BE (c->u_iv.iv, iv, bige_const);
-  VEC_STORE_BE (c->u_ctr.ctr, ctr, bige_const);
+  VEC_STORE_BE (c->u_iv.iv, 0, iv, bige_const);
+  VEC_STORE_BE (c->u_ctr.ctr, 0, ctr, bige_const);
   c->u_mode.ocb.data_nblocks = data_nblocks;
 
   return 0;
@@ -1485,7 +1746,7 @@ size_t _gcry_aes_ppc8_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
 				size_t nblocks)
 {
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   const u128_t *rk = (u128_t *)&ctx->keyschenc;
   const u128_t *abuf = (const u128_t *)abuf_arg;
@@ -1498,19 +1759,19 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
   block ctr, iv;
   ROUND_KEY_VARIABLES;
 
-  iv = VEC_LOAD_BE (c->u_mode.ocb.aad_offset, bige_const);
-  ctr = VEC_LOAD_BE (c->u_mode.ocb.aad_sum, bige_const);
+  iv = VEC_LOAD_BE (c->u_mode.ocb.aad_offset, 0, bige_const);
+  ctr = VEC_LOAD_BE (c->u_mode.ocb.aad_sum, 0, bige_const);
 
-  l0 = VEC_LOAD_BE (c->u_mode.ocb.L[0], bige_const);
-  l1 = VEC_LOAD_BE (c->u_mode.ocb.L[1], bige_const);
-  l2 = VEC_LOAD_BE (c->u_mode.ocb.L[2], bige_const);
+  l0 = VEC_LOAD_BE (c->u_mode.ocb.L[0], 0, bige_const);
+  l1 = VEC_LOAD_BE (c->u_mode.ocb.L[1], 0, bige_const);
+  l2 = VEC_LOAD_BE (c->u_mode.ocb.L[2], 0, bige_const);
 
   PRELOAD_ROUND_KEYS (rounds);
 
   for (; nblocks >= 8 && data_nblocks % 8; nblocks--)
     {
-      l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
-      b = VEC_LOAD_BE (abuf, bige_const);
+      l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), 0, bige_const);
+      b = VEC_LOAD_BE (abuf, 0, bige_const);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       iv ^= l;
@@ -1524,16 +1785,16 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
 
   for (; nblocks >= 8; nblocks -= 8)
     {
-      b0 = VEC_LOAD_BE (abuf + 0, bige_const);
-      b1 = VEC_LOAD_BE (abuf + 1, bige_const);
-      b2 = VEC_LOAD_BE (abuf + 2, bige_const);
-      b3 = VEC_LOAD_BE (abuf + 3, bige_const);
-      b4 = VEC_LOAD_BE (abuf + 4, bige_const);
-      b5 = VEC_LOAD_BE (abuf + 5, bige_const);
-      b6 = VEC_LOAD_BE (abuf + 6, bige_const);
-      b7 = VEC_LOAD_BE (abuf + 7, bige_const);
+      b0 = VEC_LOAD_BE (abuf, 0, bige_const);
+      b1 = VEC_LOAD_BE (abuf, 1, bige_const);
+      b2 = VEC_LOAD_BE (abuf, 2, bige_const);
+      b3 = VEC_LOAD_BE (abuf, 3, bige_const);
+      b4 = VEC_LOAD_BE (abuf, 4, bige_const);
+      b5 = VEC_LOAD_BE (abuf, 5, bige_const);
+      b6 = VEC_LOAD_BE (abuf, 6, bige_const);
+      b7 = VEC_LOAD_BE (abuf, 7, bige_const);
 
-      l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 8), bige_const);
+      l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 8), 0, bige_const);
 
       frkey = rkey0;
       iv ^= frkey;
@@ -1558,15 +1819,15 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
       iv = iv7 ^ frkey;
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey); \
-	      b4 = vec_cipher_be (b4, rkey); \
-	      b5 = vec_cipher_be (b5, rkey); \
-	      b6 = vec_cipher_be (b6, rkey); \
-	      b7 = vec_cipher_be (b7, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey); \
+	      b4 = asm_cipher_be (b4, rkey); \
+	      b5 = asm_cipher_be (b5, rkey); \
+	      b6 = asm_cipher_be (b6, rkey); \
+	      b7 = asm_cipher_be (b7, rkey);
 
       DO_ROUND(1);
       DO_ROUND(2);
@@ -1591,14 +1852,14 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
 #undef DO_ROUND
 
       rkey = rkeylast;
-      b0 = vec_cipherlast_be (b0, rkey);
-      b1 = vec_cipherlast_be (b1, rkey);
-      b2 = vec_cipherlast_be (b2, rkey);
-      b3 = vec_cipherlast_be (b3, rkey);
-      b4 = vec_cipherlast_be (b4, rkey);
-      b5 = vec_cipherlast_be (b5, rkey);
-      b6 = vec_cipherlast_be (b6, rkey);
-      b7 = vec_cipherlast_be (b7, rkey);
+      b0 = asm_cipherlast_be (b0, rkey);
+      b1 = asm_cipherlast_be (b1, rkey);
+      b2 = asm_cipherlast_be (b2, rkey);
+      b3 = asm_cipherlast_be (b3, rkey);
+      b4 = asm_cipherlast_be (b4, rkey);
+      b5 = asm_cipherlast_be (b5, rkey);
+      b6 = asm_cipherlast_be (b6, rkey);
+      b7 = asm_cipherlast_be (b7, rkey);
 
       ctr ^= b0 ^ b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6 ^ b7;
 
@@ -1607,12 +1868,12 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
 
   if (nblocks >= 4 && (data_nblocks % 4) == 0)
     {
-      b0 = VEC_LOAD_BE (abuf + 0, bige_const);
-      b1 = VEC_LOAD_BE (abuf + 1, bige_const);
-      b2 = VEC_LOAD_BE (abuf + 2, bige_const);
-      b3 = VEC_LOAD_BE (abuf + 3, bige_const);
+      b0 = VEC_LOAD_BE (abuf, 0, bige_const);
+      b1 = VEC_LOAD_BE (abuf, 1, bige_const);
+      b2 = VEC_LOAD_BE (abuf, 2, bige_const);
+      b3 = VEC_LOAD_BE (abuf, 3, bige_const);
 
-      l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), bige_const);
+      l = VEC_LOAD_BE (ocb_get_l (c, data_nblocks += 4), 0, bige_const);
 
       frkey = rkey0;
       iv ^= frkey;
@@ -1629,11 +1890,11 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
       iv = iv3 ^ frkey;
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey);
 
       DO_ROUND(1);
       DO_ROUND(2);
@@ -1658,10 +1919,10 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
 #undef DO_ROUND
 
       rkey = rkeylast;
-      b0 = vec_cipherlast_be (b0, rkey);
-      b1 = vec_cipherlast_be (b1, rkey);
-      b2 = vec_cipherlast_be (b2, rkey);
-      b3 = vec_cipherlast_be (b3, rkey);
+      b0 = asm_cipherlast_be (b0, rkey);
+      b1 = asm_cipherlast_be (b1, rkey);
+      b2 = asm_cipherlast_be (b2, rkey);
+      b3 = asm_cipherlast_be (b3, rkey);
 
       ctr ^= b0 ^ b1 ^ b2 ^ b3;
 
@@ -1671,8 +1932,8 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
 
   for (; nblocks; nblocks--)
     {
-      l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), bige_const);
-      b = VEC_LOAD_BE (abuf, bige_const);
+      l = VEC_LOAD_BE (ocb_get_l (c, ++data_nblocks), 0, bige_const);
+      b = VEC_LOAD_BE (abuf, 0, bige_const);
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       iv ^= l;
@@ -1684,8 +1945,8 @@ size_t _gcry_aes_ppc8_ocb_auth (gcry_cipher_hd_t c, void *abuf_arg,
       abuf += 1;
     }
 
-  VEC_STORE_BE (c->u_mode.ocb.aad_offset, iv, bige_const);
-  VEC_STORE_BE (c->u_mode.ocb.aad_sum, ctr, bige_const);
+  VEC_STORE_BE (c->u_mode.ocb.aad_offset, 0, iv, bige_const);
+  VEC_STORE_BE (c->u_mode.ocb.aad_sum, 0, ctr, bige_const);
   c->u_mode.ocb.aad_nblocks = data_nblocks;
 
   return 0;
@@ -1696,44 +1957,59 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 			       void *outbuf_arg, const void *inbuf_arg,
 			       size_t nblocks, int encrypt)
 {
+#ifdef WORDS_BIGENDIAN
   static const block vec_bswap64_const =
-    { 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8 };
+    { 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7 };
   static const block vec_bswap128_const =
     { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+#else
+  static const block vec_bswap64_const =
+    { ~8, ~9, ~10, ~11, ~12, ~13, ~14, ~15, ~0, ~1, ~2, ~3, ~4, ~5, ~6, ~7 };
+  static const block vec_bswap128_const =
+    { ~15, ~14, ~13, ~12, ~11, ~10, ~9, ~8, ~7, ~6, ~5, ~4, ~3, ~2, ~1, ~0 };
+  static const block vec_tweakin_swap_const =
+    { ~12, ~13, ~14, ~15, ~8, ~9, ~10, ~11, ~4, ~5, ~6, ~7, ~0, ~1, ~2, ~3 };
+#endif
   static const unsigned char vec_tweak_const[16] =
     { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0x87 };
   static const vector unsigned long long vec_shift63_const =
     { 63, 63 };
   static const vector unsigned long long vec_shift1_const =
     { 1, 1 };
-  const block bige_const = vec_load_be_const();
+  const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
   const u128_t *in = (const u128_t *)inbuf_arg;
   u128_t *out = (u128_t *)outbuf_arg;
   int rounds = ctx->rounds;
-  block tweak_tmp, tweak_next, tweak;
-  block b0, b1, b2, b3, b4, b5, b6, b7, b, rkey;
+  block tweak;
+  block b0, b1, b2, b3, b4, b5, b6, b7, b, rkey, rkeylf;
   block tweak0, tweak1, tweak2, tweak3, tweak4, tweak5, tweak6, tweak7;
   block tweak_const, bswap64_const, bswap128_const;
   vector unsigned long long shift63_const, shift1_const;
   ROUND_KEY_VARIABLES;
 
-  tweak_const = VEC_LOAD_BE (&vec_tweak_const, bige_const);
-  bswap64_const = ALIGNED_LOAD (&vec_bswap64_const);
-  bswap128_const = ALIGNED_LOAD (&vec_bswap128_const);
-  shift63_const = (vector unsigned long long)ALIGNED_LOAD (&vec_shift63_const);
-  shift1_const = (vector unsigned long long)ALIGNED_LOAD (&vec_shift1_const);
+  tweak_const = VEC_LOAD_BE (&vec_tweak_const, 0, bige_const);
+  bswap64_const = ALIGNED_LOAD (&vec_bswap64_const, 0);
+  bswap128_const = ALIGNED_LOAD (&vec_bswap128_const, 0);
+  shift63_const = (vector unsigned long long)ALIGNED_LOAD (&vec_shift63_const, 0);
+  shift1_const = (vector unsigned long long)ALIGNED_LOAD (&vec_shift1_const, 0);
 
-  tweak_next = VEC_LOAD_BE (tweak_arg, bige_const);
+#ifdef WORDS_BIGENDIAN
+  tweak = VEC_LOAD_BE (tweak_arg, 0, bige_const);
+  tweak = asm_vperm1 (tweak, bswap128_const);
+#else
+  tweak = VEC_LOAD_BE (tweak_arg, 0, vec_tweakin_swap_const);
+#endif
 
-#define GEN_TWEAK(tweak, tmp) /* Generate next tweak. */ \
-    tmp = vec_vperm(tweak, tweak, bswap64_const); \
-    tweak = vec_vperm(tweak, tweak, bswap128_const); \
-    tmp = (block)(vec_sra((vector unsigned long long)tmp, shift63_const)) & \
-	  tweak_const; \
-    tweak = (block)vec_sl((vector unsigned long long)tweak, shift1_const); \
-    tweak = tweak ^ tmp; \
-    tweak = vec_vperm(tweak, tweak, bswap128_const);
+#define GEN_TWEAK(tout, tin) /* Generate next tweak. */ \
+    do { \
+      block tmp1, tmp2; \
+      tmp1 = asm_vperm1((tin), bswap64_const); \
+      tmp2 = (block)vec_sl((vector unsigned long long)(tin), shift1_const); \
+      tmp1 = (block)(vec_sra((vector unsigned long long)tmp1, shift63_const)) & \
+	     tweak_const; \
+      tout = asm_xor(tmp1, tmp2); \
+    } while (0)
 
   if (encrypt)
     {
@@ -1743,42 +2019,70 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 
       for (; nblocks >= 8; nblocks -= 8)
 	{
-	  tweak0 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak1 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak2 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak3 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak4 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak5 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak6 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak7 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
+	  b0 = VEC_LOAD_BE_NOSWAP (in, 0);
+	  b1 = VEC_LOAD_BE_NOSWAP (in, 1);
+	  b2 = VEC_LOAD_BE_NOSWAP (in, 2);
+	  b3 = VEC_LOAD_BE_NOSWAP (in, 3);
+	  tweak0 = tweak;
+	  GEN_TWEAK (tweak1, tweak0);
+	  tweak0 = asm_vperm1 (tweak0, bswap128_const);
+	  b4 = VEC_LOAD_BE_NOSWAP (in, 4);
+	  b5 = VEC_LOAD_BE_NOSWAP (in, 5);
+	  GEN_TWEAK (tweak2, tweak1);
+	  tweak1 = asm_vperm1 (tweak1, bswap128_const);
+	  b6 = VEC_LOAD_BE_NOSWAP (in, 6);
+	  b7 = VEC_LOAD_BE_NOSWAP (in, 7);
+	  in += 8;
 
-	  b0 = VEC_LOAD_BE (in + 0, bige_const) ^ tweak0 ^ rkey0;
-	  b1 = VEC_LOAD_BE (in + 1, bige_const) ^ tweak1 ^ rkey0;
-	  b2 = VEC_LOAD_BE (in + 2, bige_const) ^ tweak2 ^ rkey0;
-	  b3 = VEC_LOAD_BE (in + 3, bige_const) ^ tweak3 ^ rkey0;
-	  b4 = VEC_LOAD_BE (in + 4, bige_const) ^ tweak4 ^ rkey0;
-	  b5 = VEC_LOAD_BE (in + 5, bige_const) ^ tweak5 ^ rkey0;
-	  b6 = VEC_LOAD_BE (in + 6, bige_const) ^ tweak6 ^ rkey0;
-	  b7 = VEC_LOAD_BE (in + 7, bige_const) ^ tweak7 ^ rkey0;
+	  b0 = VEC_BE_SWAP(b0, bige_const);
+	  b1 = VEC_BE_SWAP(b1, bige_const);
+	  GEN_TWEAK (tweak3, tweak2);
+	  tweak2 = asm_vperm1 (tweak2, bswap128_const);
+	  GEN_TWEAK (tweak4, tweak3);
+	  tweak3 = asm_vperm1 (tweak3, bswap128_const);
+	  b2 = VEC_BE_SWAP(b2, bige_const);
+	  b3 = VEC_BE_SWAP(b3, bige_const);
+	  GEN_TWEAK (tweak5, tweak4);
+	  tweak4 = asm_vperm1 (tweak4, bswap128_const);
+	  GEN_TWEAK (tweak6, tweak5);
+	  tweak5 = asm_vperm1 (tweak5, bswap128_const);
+	  b4 = VEC_BE_SWAP(b4, bige_const);
+	  b5 = VEC_BE_SWAP(b5, bige_const);
+	  GEN_TWEAK (tweak7, tweak6);
+	  tweak6 = asm_vperm1 (tweak6, bswap128_const);
+	  GEN_TWEAK (tweak, tweak7);
+	  tweak7 = asm_vperm1 (tweak7, bswap128_const);
+	  b6 = VEC_BE_SWAP(b6, bige_const);
+	  b7 = VEC_BE_SWAP(b7, bige_const);
+
+	  tweak0 = asm_xor (tweak0, rkey0);
+	  tweak1 = asm_xor (tweak1, rkey0);
+	  tweak2 = asm_xor (tweak2, rkey0);
+	  tweak3 = asm_xor (tweak3, rkey0);
+	  tweak4 = asm_xor (tweak4, rkey0);
+	  tweak5 = asm_xor (tweak5, rkey0);
+	  tweak6 = asm_xor (tweak6, rkey0);
+	  tweak7 = asm_xor (tweak7, rkey0);
+
+	  b0 = asm_xor (b0, tweak0);
+	  b1 = asm_xor (b1, tweak1);
+	  b2 = asm_xor (b2, tweak2);
+	  b3 = asm_xor (b3, tweak3);
+	  b4 = asm_xor (b4, tweak4);
+	  b5 = asm_xor (b5, tweak5);
+	  b6 = asm_xor (b6, tweak6);
+	  b7 = asm_xor (b7, tweak7);
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey); \
-	      b4 = vec_cipher_be (b4, rkey); \
-	      b5 = vec_cipher_be (b5, rkey); \
-	      b6 = vec_cipher_be (b6, rkey); \
-	      b7 = vec_cipher_be (b7, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey); \
+	      b4 = asm_cipher_be (b4, rkey); \
+	      b5 = asm_cipher_be (b5, rkey); \
+	      b6 = asm_cipher_be (b6, rkey); \
+	      b7 = asm_cipher_be (b7, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -1787,7 +2091,20 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 	  DO_ROUND(5);
 	  DO_ROUND(6);
 	  DO_ROUND(7);
+
+	  rkeylf = asm_xor (rkeylast, rkey0);
+
 	  DO_ROUND(8);
+
+	  tweak0 = asm_xor (tweak0, rkeylf);
+	  tweak1 = asm_xor (tweak1, rkeylf);
+	  tweak2 = asm_xor (tweak2, rkeylf);
+	  tweak3 = asm_xor (tweak3, rkeylf);
+	  tweak4 = asm_xor (tweak4, rkeylf);
+	  tweak5 = asm_xor (tweak5, rkeylf);
+	  tweak6 = asm_xor (tweak6, rkeylf);
+	  tweak7 = asm_xor (tweak7, rkeylf);
+
 	  DO_ROUND(9);
 	  if (rounds >= 12)
 	    {
@@ -1802,51 +2119,62 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 
 #undef DO_ROUND
 
-	  rkey = rkeylast;
-	  b0 = vec_cipherlast_be (b0, rkey ^ tweak0);
-	  b1 = vec_cipherlast_be (b1, rkey ^ tweak1);
-	  b2 = vec_cipherlast_be (b2, rkey ^ tweak2);
-	  b3 = vec_cipherlast_be (b3, rkey ^ tweak3);
-	  b4 = vec_cipherlast_be (b4, rkey ^ tweak4);
-	  b5 = vec_cipherlast_be (b5, rkey ^ tweak5);
-	  b6 = vec_cipherlast_be (b6, rkey ^ tweak6);
-	  b7 = vec_cipherlast_be (b7, rkey ^ tweak7);
-
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
-	  VEC_STORE_BE (out + 4, b4, bige_const);
-	  VEC_STORE_BE (out + 5, b5, bige_const);
-	  VEC_STORE_BE (out + 6, b6, bige_const);
-	  VEC_STORE_BE (out + 7, b7, bige_const);
-
-	  in += 8;
+	  b0 = asm_cipherlast_be (b0, tweak0);
+	  b1 = asm_cipherlast_be (b1, tweak1);
+	  b2 = asm_cipherlast_be (b2, tweak2);
+	  b3 = asm_cipherlast_be (b3, tweak3);
+	  b0 = VEC_BE_SWAP (b0, bige_const);
+	  b1 = VEC_BE_SWAP (b1, bige_const);
+	  b4 = asm_cipherlast_be (b4, tweak4);
+	  b5 = asm_cipherlast_be (b5, tweak5);
+	  b2 = VEC_BE_SWAP (b2, bige_const);
+	  b3 = VEC_BE_SWAP (b3, bige_const);
+	  b6 = asm_cipherlast_be (b6, tweak6);
+	  b7 = asm_cipherlast_be (b7, tweak7);
+	  VEC_STORE_BE_NOSWAP (out, 0, b0);
+	  VEC_STORE_BE_NOSWAP (out, 1, b1);
+	  b4 = VEC_BE_SWAP (b4, bige_const);
+	  b5 = VEC_BE_SWAP (b5, bige_const);
+	  VEC_STORE_BE_NOSWAP (out, 2, b2);
+	  VEC_STORE_BE_NOSWAP (out, 3, b3);
+	  b6 = VEC_BE_SWAP (b6, bige_const);
+	  b7 = VEC_BE_SWAP (b7, bige_const);
+	  VEC_STORE_BE_NOSWAP (out, 4, b4);
+	  VEC_STORE_BE_NOSWAP (out, 5, b5);
+	  VEC_STORE_BE_NOSWAP (out, 6, b6);
+	  VEC_STORE_BE_NOSWAP (out, 7, b7);
 	  out += 8;
 	}
 
       if (nblocks >= 4)
 	{
-	  tweak0 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak1 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak2 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak3 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
+	  tweak0 = tweak;
+	  GEN_TWEAK (tweak1, tweak0);
+	  GEN_TWEAK (tweak2, tweak1);
+	  GEN_TWEAK (tweak3, tweak2);
+	  GEN_TWEAK (tweak, tweak3);
 
-	  b0 = VEC_LOAD_BE (in + 0, bige_const) ^ tweak0 ^ rkey0;
-	  b1 = VEC_LOAD_BE (in + 1, bige_const) ^ tweak1 ^ rkey0;
-	  b2 = VEC_LOAD_BE (in + 2, bige_const) ^ tweak2 ^ rkey0;
-	  b3 = VEC_LOAD_BE (in + 3, bige_const) ^ tweak3 ^ rkey0;
+	  b0 = VEC_LOAD_BE (in, 0, bige_const);
+	  b1 = VEC_LOAD_BE (in, 1, bige_const);
+	  b2 = VEC_LOAD_BE (in, 2, bige_const);
+	  b3 = VEC_LOAD_BE (in, 3, bige_const);
+
+	  tweak0 = asm_vperm1 (tweak0, bswap128_const);
+	  tweak1 = asm_vperm1 (tweak1, bswap128_const);
+	  tweak2 = asm_vperm1 (tweak2, bswap128_const);
+	  tweak3 = asm_vperm1 (tweak3, bswap128_const);
+
+	  b0 ^= tweak0 ^ rkey0;
+	  b1 ^= tweak1 ^ rkey0;
+	  b2 ^= tweak2 ^ rkey0;
+	  b3 ^= tweak3 ^ rkey0;
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_cipher_be (b0, rkey); \
-	      b1 = vec_cipher_be (b1, rkey); \
-	      b2 = vec_cipher_be (b2, rkey); \
-	      b3 = vec_cipher_be (b3, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -1871,15 +2199,15 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 #undef DO_ROUND
 
 	  rkey = rkeylast;
-	  b0 = vec_cipherlast_be (b0, rkey ^ tweak0);
-	  b1 = vec_cipherlast_be (b1, rkey ^ tweak1);
-	  b2 = vec_cipherlast_be (b2, rkey ^ tweak2);
-	  b3 = vec_cipherlast_be (b3, rkey ^ tweak3);
+	  b0 = asm_cipherlast_be (b0, rkey ^ tweak0);
+	  b1 = asm_cipherlast_be (b1, rkey ^ tweak1);
+	  b2 = asm_cipherlast_be (b2, rkey ^ tweak2);
+	  b3 = asm_cipherlast_be (b3, rkey ^ tweak3);
 
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
+	  VEC_STORE_BE (out, 0, b0, bige_const);
+	  VEC_STORE_BE (out, 1, b1, bige_const);
+	  VEC_STORE_BE (out, 2, b2, bige_const);
+	  VEC_STORE_BE (out, 3, b3, bige_const);
 
 	  in += 4;
 	  out += 4;
@@ -1888,18 +2216,18 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 
       for (; nblocks; nblocks--)
 	{
-	  tweak = tweak_next;
+	  tweak0 = asm_vperm1 (tweak, bswap128_const);
 
 	  /* Xor-Encrypt/Decrypt-Xor block. */
-	  b = VEC_LOAD_BE (in, bige_const) ^ tweak;
+	  b = VEC_LOAD_BE (in, 0, bige_const) ^ tweak0;
 
 	  /* Generate next tweak. */
-	  GEN_TWEAK (tweak_next, tweak_tmp);
+	  GEN_TWEAK (tweak, tweak);
 
 	  AES_ENCRYPT (b, rounds);
 
-	  b ^= tweak;
-	  VEC_STORE_BE (out, b, bige_const);
+	  b ^= tweak0;
+	  VEC_STORE_BE (out, 0, b, bige_const);
 
 	  in++;
 	  out++;
@@ -1919,42 +2247,70 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 
       for (; nblocks >= 8; nblocks -= 8)
 	{
-	  tweak0 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak1 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak2 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak3 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak4 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak5 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak6 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak7 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
+	  b0 = VEC_LOAD_BE_NOSWAP (in, 0);
+	  b1 = VEC_LOAD_BE_NOSWAP (in, 1);
+	  b2 = VEC_LOAD_BE_NOSWAP (in, 2);
+	  b3 = VEC_LOAD_BE_NOSWAP (in, 3);
+	  tweak0 = tweak;
+	  GEN_TWEAK (tweak1, tweak0);
+	  tweak0 = asm_vperm1 (tweak0, bswap128_const);
+	  b4 = VEC_LOAD_BE_NOSWAP (in, 4);
+	  b5 = VEC_LOAD_BE_NOSWAP (in, 5);
+	  GEN_TWEAK (tweak2, tweak1);
+	  tweak1 = asm_vperm1 (tweak1, bswap128_const);
+	  b6 = VEC_LOAD_BE_NOSWAP (in, 6);
+	  b7 = VEC_LOAD_BE_NOSWAP (in, 7);
+	  in += 8;
 
-	  b0 = VEC_LOAD_BE (in + 0, bige_const) ^ tweak0 ^ rkey0;
-	  b1 = VEC_LOAD_BE (in + 1, bige_const) ^ tweak1 ^ rkey0;
-	  b2 = VEC_LOAD_BE (in + 2, bige_const) ^ tweak2 ^ rkey0;
-	  b3 = VEC_LOAD_BE (in + 3, bige_const) ^ tweak3 ^ rkey0;
-	  b4 = VEC_LOAD_BE (in + 4, bige_const) ^ tweak4 ^ rkey0;
-	  b5 = VEC_LOAD_BE (in + 5, bige_const) ^ tweak5 ^ rkey0;
-	  b6 = VEC_LOAD_BE (in + 6, bige_const) ^ tweak6 ^ rkey0;
-	  b7 = VEC_LOAD_BE (in + 7, bige_const) ^ tweak7 ^ rkey0;
+	  b0 = VEC_BE_SWAP(b0, bige_const);
+	  b1 = VEC_BE_SWAP(b1, bige_const);
+	  GEN_TWEAK (tweak3, tweak2);
+	  tweak2 = asm_vperm1 (tweak2, bswap128_const);
+	  GEN_TWEAK (tweak4, tweak3);
+	  tweak3 = asm_vperm1 (tweak3, bswap128_const);
+	  b2 = VEC_BE_SWAP(b2, bige_const);
+	  b3 = VEC_BE_SWAP(b3, bige_const);
+	  GEN_TWEAK (tweak5, tweak4);
+	  tweak4 = asm_vperm1 (tweak4, bswap128_const);
+	  GEN_TWEAK (tweak6, tweak5);
+	  tweak5 = asm_vperm1 (tweak5, bswap128_const);
+	  b4 = VEC_BE_SWAP(b4, bige_const);
+	  b5 = VEC_BE_SWAP(b5, bige_const);
+	  GEN_TWEAK (tweak7, tweak6);
+	  tweak6 = asm_vperm1 (tweak6, bswap128_const);
+	  GEN_TWEAK (tweak, tweak7);
+	  tweak7 = asm_vperm1 (tweak7, bswap128_const);
+	  b6 = VEC_BE_SWAP(b6, bige_const);
+	  b7 = VEC_BE_SWAP(b7, bige_const);
+
+	  tweak0 = asm_xor (tweak0, rkey0);
+	  tweak1 = asm_xor (tweak1, rkey0);
+	  tweak2 = asm_xor (tweak2, rkey0);
+	  tweak3 = asm_xor (tweak3, rkey0);
+	  tweak4 = asm_xor (tweak4, rkey0);
+	  tweak5 = asm_xor (tweak5, rkey0);
+	  tweak6 = asm_xor (tweak6, rkey0);
+	  tweak7 = asm_xor (tweak7, rkey0);
+
+	  b0 = asm_xor (b0, tweak0);
+	  b1 = asm_xor (b1, tweak1);
+	  b2 = asm_xor (b2, tweak2);
+	  b3 = asm_xor (b3, tweak3);
+	  b4 = asm_xor (b4, tweak4);
+	  b5 = asm_xor (b5, tweak5);
+	  b6 = asm_xor (b6, tweak6);
+	  b7 = asm_xor (b7, tweak7);
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_ncipher_be (b0, rkey); \
-	      b1 = vec_ncipher_be (b1, rkey); \
-	      b2 = vec_ncipher_be (b2, rkey); \
-	      b3 = vec_ncipher_be (b3, rkey); \
-	      b4 = vec_ncipher_be (b4, rkey); \
-	      b5 = vec_ncipher_be (b5, rkey); \
-	      b6 = vec_ncipher_be (b6, rkey); \
-	      b7 = vec_ncipher_be (b7, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_ncipher_be (b0, rkey); \
+	      b1 = asm_ncipher_be (b1, rkey); \
+	      b2 = asm_ncipher_be (b2, rkey); \
+	      b3 = asm_ncipher_be (b3, rkey); \
+	      b4 = asm_ncipher_be (b4, rkey); \
+	      b5 = asm_ncipher_be (b5, rkey); \
+	      b6 = asm_ncipher_be (b6, rkey); \
+	      b7 = asm_ncipher_be (b7, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -1963,7 +2319,20 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 	  DO_ROUND(5);
 	  DO_ROUND(6);
 	  DO_ROUND(7);
+
+	  rkeylf = asm_xor (rkeylast, rkey0);
+
 	  DO_ROUND(8);
+
+	  tweak0 = asm_xor (tweak0, rkeylf);
+	  tweak1 = asm_xor (tweak1, rkeylf);
+	  tweak2 = asm_xor (tweak2, rkeylf);
+	  tweak3 = asm_xor (tweak3, rkeylf);
+	  tweak4 = asm_xor (tweak4, rkeylf);
+	  tweak5 = asm_xor (tweak5, rkeylf);
+	  tweak6 = asm_xor (tweak6, rkeylf);
+	  tweak7 = asm_xor (tweak7, rkeylf);
+
 	  DO_ROUND(9);
 	  if (rounds >= 12)
 	    {
@@ -1978,51 +2347,62 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 
 #undef DO_ROUND
 
-	  rkey = rkeylast;
-	  b0 = vec_ncipherlast_be (b0, rkey ^ tweak0);
-	  b1 = vec_ncipherlast_be (b1, rkey ^ tweak1);
-	  b2 = vec_ncipherlast_be (b2, rkey ^ tweak2);
-	  b3 = vec_ncipherlast_be (b3, rkey ^ tweak3);
-	  b4 = vec_ncipherlast_be (b4, rkey ^ tweak4);
-	  b5 = vec_ncipherlast_be (b5, rkey ^ tweak5);
-	  b6 = vec_ncipherlast_be (b6, rkey ^ tweak6);
-	  b7 = vec_ncipherlast_be (b7, rkey ^ tweak7);
-
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
-	  VEC_STORE_BE (out + 4, b4, bige_const);
-	  VEC_STORE_BE (out + 5, b5, bige_const);
-	  VEC_STORE_BE (out + 6, b6, bige_const);
-	  VEC_STORE_BE (out + 7, b7, bige_const);
-
-	  in += 8;
+	  b0 = asm_ncipherlast_be (b0, tweak0);
+	  b1 = asm_ncipherlast_be (b1, tweak1);
+	  b2 = asm_ncipherlast_be (b2, tweak2);
+	  b3 = asm_ncipherlast_be (b3, tweak3);
+	  b0 = VEC_BE_SWAP (b0, bige_const);
+	  b1 = VEC_BE_SWAP (b1, bige_const);
+	  b4 = asm_ncipherlast_be (b4, tweak4);
+	  b5 = asm_ncipherlast_be (b5, tweak5);
+	  b2 = VEC_BE_SWAP (b2, bige_const);
+	  b3 = VEC_BE_SWAP (b3, bige_const);
+	  b6 = asm_ncipherlast_be (b6, tweak6);
+	  b7 = asm_ncipherlast_be (b7, tweak7);
+	  VEC_STORE_BE_NOSWAP (out, 0, b0);
+	  VEC_STORE_BE_NOSWAP (out, 1, b1);
+	  b4 = VEC_BE_SWAP (b4, bige_const);
+	  b5 = VEC_BE_SWAP (b5, bige_const);
+	  VEC_STORE_BE_NOSWAP (out, 2, b2);
+	  VEC_STORE_BE_NOSWAP (out, 3, b3);
+	  b6 = VEC_BE_SWAP (b6, bige_const);
+	  b7 = VEC_BE_SWAP (b7, bige_const);
+	  VEC_STORE_BE_NOSWAP (out, 4, b4);
+	  VEC_STORE_BE_NOSWAP (out, 5, b5);
+	  VEC_STORE_BE_NOSWAP (out, 6, b6);
+	  VEC_STORE_BE_NOSWAP (out, 7, b7);
 	  out += 8;
 	}
 
       if (nblocks >= 4)
 	{
-	  tweak0 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak1 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak2 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
-	  tweak3 = tweak_next;
-	  GEN_TWEAK (tweak_next, tweak_tmp);
+	  tweak0 = tweak;
+	  GEN_TWEAK (tweak1, tweak0);
+	  GEN_TWEAK (tweak2, tweak1);
+	  GEN_TWEAK (tweak3, tweak2);
+	  GEN_TWEAK (tweak, tweak3);
 
-	  b0 = VEC_LOAD_BE (in + 0, bige_const) ^ tweak0 ^ rkey0;
-	  b1 = VEC_LOAD_BE (in + 1, bige_const) ^ tweak1 ^ rkey0;
-	  b2 = VEC_LOAD_BE (in + 2, bige_const) ^ tweak2 ^ rkey0;
-	  b3 = VEC_LOAD_BE (in + 3, bige_const) ^ tweak3 ^ rkey0;
+	  b0 = VEC_LOAD_BE (in, 0, bige_const);
+	  b1 = VEC_LOAD_BE (in, 1, bige_const);
+	  b2 = VEC_LOAD_BE (in, 2, bige_const);
+	  b3 = VEC_LOAD_BE (in, 3, bige_const);
+
+	  tweak0 = asm_vperm1 (tweak0, bswap128_const);
+	  tweak1 = asm_vperm1 (tweak1, bswap128_const);
+	  tweak2 = asm_vperm1 (tweak2, bswap128_const);
+	  tweak3 = asm_vperm1 (tweak3, bswap128_const);
+
+	  b0 ^= tweak0 ^ rkey0;
+	  b1 ^= tweak1 ^ rkey0;
+	  b2 ^= tweak2 ^ rkey0;
+	  b3 ^= tweak3 ^ rkey0;
 
 #define DO_ROUND(r) \
-	      rkey = ALIGNED_LOAD (&rk[r]); \
-	      b0 = vec_ncipher_be (b0, rkey); \
-	      b1 = vec_ncipher_be (b1, rkey); \
-	      b2 = vec_ncipher_be (b2, rkey); \
-	      b3 = vec_ncipher_be (b3, rkey);
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_ncipher_be (b0, rkey); \
+	      b1 = asm_ncipher_be (b1, rkey); \
+	      b2 = asm_ncipher_be (b2, rkey); \
+	      b3 = asm_ncipher_be (b3, rkey);
 
 	  DO_ROUND(1);
 	  DO_ROUND(2);
@@ -2047,15 +2427,15 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 #undef DO_ROUND
 
 	  rkey = rkeylast;
-	  b0 = vec_ncipherlast_be (b0, rkey ^ tweak0);
-	  b1 = vec_ncipherlast_be (b1, rkey ^ tweak1);
-	  b2 = vec_ncipherlast_be (b2, rkey ^ tweak2);
-	  b3 = vec_ncipherlast_be (b3, rkey ^ tweak3);
+	  b0 = asm_ncipherlast_be (b0, rkey ^ tweak0);
+	  b1 = asm_ncipherlast_be (b1, rkey ^ tweak1);
+	  b2 = asm_ncipherlast_be (b2, rkey ^ tweak2);
+	  b3 = asm_ncipherlast_be (b3, rkey ^ tweak3);
 
-	  VEC_STORE_BE (out + 0, b0, bige_const);
-	  VEC_STORE_BE (out + 1, b1, bige_const);
-	  VEC_STORE_BE (out + 2, b2, bige_const);
-	  VEC_STORE_BE (out + 3, b3, bige_const);
+	  VEC_STORE_BE (out, 0, b0, bige_const);
+	  VEC_STORE_BE (out, 1, b1, bige_const);
+	  VEC_STORE_BE (out, 2, b2, bige_const);
+	  VEC_STORE_BE (out, 3, b3, bige_const);
 
 	  in += 4;
 	  out += 4;
@@ -2064,25 +2444,30 @@ void _gcry_aes_ppc8_xts_crypt (void *context, unsigned char *tweak_arg,
 
       for (; nblocks; nblocks--)
 	{
-	  tweak = tweak_next;
+	  tweak0 = asm_vperm1 (tweak, bswap128_const);
 
 	  /* Xor-Encrypt/Decrypt-Xor block. */
-	  b = VEC_LOAD_BE (in, bige_const) ^ tweak;
+	  b = VEC_LOAD_BE (in, 0, bige_const) ^ tweak0;
 
 	  /* Generate next tweak. */
-	  GEN_TWEAK (tweak_next, tweak_tmp);
+	  GEN_TWEAK (tweak, tweak);
 
 	  AES_DECRYPT (b, rounds);
 
-	  b ^= tweak;
-	  VEC_STORE_BE (out, b, bige_const);
+	  b ^= tweak0;
+	  VEC_STORE_BE (out, 0, b, bige_const);
 
 	  in++;
 	  out++;
 	}
     }
 
-  VEC_STORE_BE (tweak_arg, tweak_next, bige_const);
+#ifdef WORDS_BIGENDIAN
+  tweak = asm_vperm1 (tweak, bswap128_const);
+  VEC_STORE_BE (tweak_arg, 0, tweak, bige_const);
+#else
+  VEC_STORE_BE (tweak_arg, 0, tweak, vec_tweakin_swap_const);
+#endif
 
 #undef GEN_TWEAK
 }
