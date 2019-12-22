@@ -1125,7 +1125,7 @@ _gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
 
   if (h->mode != GCRY_CIPHER_MODE_NONE && !h->marks.key)
     {
-      log_error ("cipher_decrypt: key not set\n");
+      log_error ("cipher_encrypt: key not set\n");
       return GPG_ERR_MISSING_KEY;
     }
 
