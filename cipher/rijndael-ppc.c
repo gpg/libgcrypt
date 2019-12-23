@@ -138,7 +138,7 @@ vec_aligned_ld(unsigned long offset, const unsigned char *ptr)
   __asm__ ("lvx %0,%1,%2\n\t"
 	   : "=v" (vec)
 	   : "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory");
+	   : "memory", "r0");
   return vec;
 #else
   return vec_vsx_ld (offset, ptr);
@@ -169,7 +169,7 @@ vec_load_be(unsigned long offset, const unsigned char *ptr,
   __asm__ ("lxvw4x %x0,%1,%2\n\t"
 	   : "=wa" (vec)
 	   : "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory");
+	   : "memory", "r0");
   __asm__ ("vperm %0,%1,%1,%2\n\t"
 	   : "=v" (vec)
 	   : "v" (vec), "v" (be_bswap_const));
@@ -188,7 +188,7 @@ vec_aligned_st(block vec, unsigned long offset, unsigned char *ptr)
   __asm__ ("stvx %0,%1,%2\n\t"
 	   :
 	   : "v" (vec), "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory");
+	   : "memory", "r0");
 #else
   vec_vsx_st (vec, offset, ptr);
 #endif
@@ -208,7 +208,7 @@ vec_store_be(block vec, unsigned long offset, unsigned char *ptr,
   __asm__ ("stxvw4x %x0,%1,%2\n\t"
 	   :
 	   : "wa" (vec), "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory");
+	   : "memory", "r0");
 #else
   (void)be_bswap_const;
   vec_vsx_st (vec, offset, ptr);
