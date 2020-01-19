@@ -18,8 +18,9 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef __x86_64
 #include <config.h>
+
+#ifdef __x86_64
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_SERPENT) && \
     defined(ENABLE_AVX2_SUPPORT)
