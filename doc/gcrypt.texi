@@ -2824,7 +2824,7 @@ Return the number of elements a signature created with the algorithm
 @var{algo} consists of.  Return 0 for an unknown algorithm or for an
 algorithm not capable of creating signatures.
 
-@item GCRYCTL_GET_ALGO_NENC
+@item GCRYCTL_GET_ALGO_NENCR
 Return the number of elements a encrypted message created with the algorithm
 @var{algo} consists of.  Return 0 for an unknown algorithm or for an
 algorithm not capable of encryption.
