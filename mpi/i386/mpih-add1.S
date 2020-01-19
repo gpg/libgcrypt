@@ -55,6 +55,11 @@ C_SYMBOL_NAME(_gcry_mpih_add_n:)
 	movl 20(%esp),%edx		/* s2_ptr */
 	movl 24(%esp),%ecx		/* size */
 
+#if defined __CET__ && (__CET__ & 1) != 0
+	pushl	%ebx
+	CFI_PUSH(%ebx)
+#endif
+
 	movl	%ecx,%eax
 	shrl	$3,%ecx 		/* compute count for unrolled loop */
 	negl	%eax
@@ -66,6 +71,9 @@ C_SYMBOL_NAME(_gcry_mpih_add_n:)
 	subl	%eax,%esi		/* ... by a constant when we ... */
 	subl	%eax,%edx		/* ... enter the loop */
 	shrl	$2,%eax 		/* restore previous value */
+#if defined __CET__ && (__CET__ & 1) != 0
+	leal	-4(,%eax,4),%ebx	/* Count for 4-byte endbr32 */
+#endif
 #ifdef PIC
 /* Calculate start address in loop for PIC.  Due to limitations in some
    assemblers, Loop-L0-3 cannot be put into the leal */
@@ -78,29 +86,53 @@ L0:	leal	(%eax,%eax,8),%eax
 /* Calculate start address in loop for non-PIC.  */
 	leal	(Loop - 3)(%eax,%eax,8),%eax
 #endif
+#if defined __CET__ && (__CET__ & 1) != 0
+	addl	%ebx,%eax		/* Adjust for endbr32 */
+#endif
 	jmp	*%eax			/* jump into loop */
 	ALIGN (3)
 Loop:	movl	(%esi),%eax
 	adcl	(%edx),%eax
 	movl	%eax,(%edi)
+#ifdef _CET_ENDBR
+	_CET_ENDBR
+#endif
 	movl	4(%esi),%eax
 	adcl	4(%edx),%eax
 	movl	%eax,4(%edi)
+#ifdef _CET_ENDBR
+	_CET_ENDBR
+#endif
 	movl	8(%esi),%eax
 	adcl	8(%edx),%eax
 	movl	%eax,8(%edi)
+#ifdef _CET_ENDBR
+	_CET_ENDBR
+#endif
 	movl	12(%esi),%eax
 	adcl	12(%edx),%eax
 	movl	%eax,12(%edi)
+#ifdef _CET_ENDBR
+	_CET_ENDBR
+#endif
 	movl	16(%esi),%eax
 	adcl	16(%edx),%eax
 	movl	%eax,16(%edi)
+#ifdef _CET_ENDBR
+	_CET_ENDBR
+#endif
 	movl	20(%esi),%eax
 	adcl	20(%edx),%eax
 	movl	%eax,20(%edi)
+#ifdef _CET_ENDBR
+	_CET_ENDBR
+#endif
 	movl	24(%esi),%eax
 	adcl	24(%edx),%eax
 	movl	%eax,24(%edi)
+#ifdef _CET_ENDBR
+	_CET_ENDBR
+#endif
 	movl	28(%esi),%eax
 	adcl	28(%edx),%eax
 	movl	%eax,28(%edi)
@@ -112,6 +144,11 @@ Loop:	movl	(%esi),%eax
 
 	sbbl	%eax,%eax
 	negl	%eax
+
+#if defined __CET__ && (__CET__ & 1) != 0
+	popl	%ebx
+	CFI_POP(%ebx)
+#endif
 
 	popl %esi
 	CFI_POP(%esi)
