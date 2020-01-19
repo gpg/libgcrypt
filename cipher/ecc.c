@@ -577,7 +577,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         (&curve_flags, NULL,
          ((flags & PUBKEY_FLAG_PARAM) && (flags & PUBKEY_FLAG_EDDSA))?
          "(flags param eddsa)" :
-         ((flags & PUBKEY_FLAG_PARAM) && (flags & PUBKEY_FLAG_EDDSA))?
+         ((flags & PUBKEY_FLAG_PARAM) && (flags & PUBKEY_FLAG_DJB_TWEAK))?
          "(flags param djb-tweak)" :
          ((flags & PUBKEY_FLAG_PARAM))?
          "(flags param)" : ((flags & PUBKEY_FLAG_EDDSA))?
@@ -1712,7 +1712,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecc =
     GCRY_PK_ECC, { 0, 1 },
     (GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR),
     "ECC", ecc_names,
-    "pabgnhq", "pabgnhqd", "sw", "rs", "pabgnhq",
+    "pabgnhq", "pabgnhqd", "se", "rs", "pabgnhq",
     ecc_generate,
     ecc_check_secret_key,
     ecc_encrypt_raw,
