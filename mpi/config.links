@@ -382,6 +382,16 @@ if test x"$mpi_cpu_arch" = x ; then
     mpi_cpu_arch="unknown"
 fi
 
+# Add .note.gnu.property section for Intel CET in assembler sources
+# when CET is enabled.  */
+if test x"$mpi_cpu_arch" = xx86 ; then
+    cat <<EOF >> ./mpi/asm-syntax.h
+
+#if defined(__ASSEMBLER__) && defined(__CET__)
+# include <cet.h>
+#endif
+EOF
+fi
 
 # Make sysdep.h
 echo '/* created by config.links - do not edit */' >./mpi/sysdep.h
