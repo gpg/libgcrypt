@@ -97,6 +97,12 @@ AH_TOP([
 AH_BOTTOM([
 #define _GCRYPT_IN_LIBGCRYPT 1
 
+/* Add .note.gnu.property section for Intel CET in assembler sources
+   when CET is enabled.  */
+#if defined(__ASSEMBLER__) && defined(__CET__)
+# include <cet.h>
+#endif
+
 /* If the configure check for endianness has been disabled, get it from
    OS macros.  This is intended for making fat binary builds on OS X.  */
 #ifdef DISABLED_ENDIAN_CHECK
