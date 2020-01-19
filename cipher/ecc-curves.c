@@ -1058,6 +1058,7 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
             goto leave;
           if (G)
             {
+              _gcry_mpi_point_init (&E->G);
               mpi_point_set (&E->G, G->x, G->y, G->z);
               mpi_point_set (G, NULL, NULL, NULL);
               mpi_point_release (G);
