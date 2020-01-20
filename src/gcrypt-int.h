@@ -362,7 +362,7 @@ gcry_mpi_t _gcry_mpi_copy (const gcry_mpi_t a);
 void _gcry_mpi_snatch (gcry_mpi_t w, gcry_mpi_t u);
 gcry_mpi_t _gcry_mpi_set (gcry_mpi_t w, const gcry_mpi_t u);
 gcry_mpi_t _gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u);
-gcry_err_code_t _gcry_mpi_get_ui (gcry_mpi_t w, ulong *u);
+gcry_err_code_t _gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u);
 void _gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b);
 int _gcry_mpi_is_neg (gcry_mpi_t a);
 void _gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u);
