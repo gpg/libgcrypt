@@ -45,8 +45,7 @@ _gcry_ecc_gost_sign (gcry_mpi_t input, mpi_ec_t ec,
   gcry_mpi_t k, dr, sum, ke, x, e;
   mpi_point_struct I;
   gcry_mpi_t hash;
-  const void *abuf;
-  unsigned int abits, qbits;
+  unsigned int qbits;
 
   if (DBG_CIPHER)
     log_mpidump ("gost sign hash  ", input );
@@ -54,18 +53,9 @@ _gcry_ecc_gost_sign (gcry_mpi_t input, mpi_ec_t ec,
   qbits = mpi_get_nbits (ec->n);
 
   /* Convert the INPUT into an MPI if needed.  */
-  if (mpi_is_opaque (input))
-    {
-      abuf = mpi_get_opaque (input, &abits);
-      rc = _gcry_mpi_scan (&hash, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
-      if (rc)
-        return rc;
-      if (abits > qbits)
-        mpi_rshift (hash, hash, abits - qbits);
-    }
-  else
-    hash = input;
-
+  rc = _gcry_dsa_normalize_hash (input, &hash, qbits);
+  if (rc)
+    return rc;
 
   k = NULL;
   dr = mpi_alloc (0);

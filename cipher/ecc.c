@@ -813,27 +813,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     }
   else
     {
-      if (mpi_is_opaque (data))
-        {
-          const void *abuf;
-          unsigned int abits, qbits;
-          gcry_mpi_t a;
-
-          qbits = mpi_get_nbits (ec->n);
-
-          abuf = mpi_get_opaque (data, &abits);
-          rc = _gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
-          if (!rc)
-            {
-              if (abits > qbits)
-                mpi_rshift (a, a, abits - qbits);
-
-              rc = _gcry_ecc_ecdsa_verify (a, ec, sig_r, sig_s);
-              _gcry_mpi_release (a);
-            }
-        }
-      else
-        rc = _gcry_ecc_ecdsa_verify (data, ec, sig_r, sig_s);
+      rc = _gcry_ecc_ecdsa_verify (data, ec, sig_r, sig_s);
     }
 
  leave:
