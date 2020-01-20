@@ -12594,6 +12594,16 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
         /* */    "000102030405060708090A0B0C0D0E0F#))",
         0
       },
+      { 256,
+        "(data (flags sm2)\n"
+        " (hash sm3 #112233445566778899AABBCCDDEEFF00"
+        /* */       "123456789ABCDEF0123456789ABCDEF0#))",
+        0,
+        "(data (flags sm2)\n"
+        " (hash sm3 #B524F552CD82B8B028476E005C377FB1"
+        /* */       "9A87E6FC682D48BB5D42E3D9B9EFFE76#))",
+        0
+      },
       { 0, NULL }
     };
 
@@ -13269,6 +13279,29 @@ check_pubkey (void)
       "  (q #0439A36013301597DAEF41FBE593A02CC513D0B55527EC2D"
       "      F1050E2E8FF49C85C23CBE7DED0E7CE6A594896B8F62888F"
       "      DBC5C8821305E2EA42BF01E37300116281#)))\n",
+
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
+  },
+  { /* sm2 test */
+    GCRY_PK_ECDSA, FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (ecc\n"
+      "  (curve sm2p256v1)\n"
+      "  (q #04"
+      "      8759389A34AAAD07ECF4E0C8C2650A4459C8D926EE2378324E0261C52538CB47"
+      "      7528106B1E0B7C8DD5FF29A9C86A89065656EB33154BC0556091EF8AC9D17D78#)"
+      "  (d #41EBDBA9C98CBECCE7249CF18BFD427FF8EA0B2FAB7B9D305D9D9BF4DB6ADFC2#)"
+      "))",
+
+      "(public-key\n"
+      " (ecc\n"
+      "  (curve sm2p256v1)\n"
+      "  (q #04"
+      "      8759389A34AAAD07ECF4E0C8C2650A4459C8D926EE2378324E0261C52538CB47"
+      "      7528106B1E0B7C8DD5FF29A9C86A89065656EB33154BC0556091EF8AC9D17D78#)"
+      "))",
 
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
