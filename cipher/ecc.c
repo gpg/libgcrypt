@@ -69,6 +69,7 @@ static const char *ecc_names[] =
     "ecdh",
     "eddsa",
     "gost",
+    "sm2",
     NULL,
   };
 
@@ -723,6 +724,14 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         rc = sexp_build (r_sig, NULL,
                          "(sig-val(gost(r%M)(s%M)))", sig_r, sig_s);
     }
+  else if ((ctx.flags & PUBKEY_FLAG_SM2))
+    {
+      rc = _gcry_ecc_sm2_sign (data, ec, sig_r, sig_s,
+                               ctx.flags, ctx.hash_algo);
+      if (!rc)
+        rc = sexp_build (r_sig, NULL,
+                         "(sig-val(sm2(r%M)(s%M)))", sig_r, sig_s);
+    }
   else
     {
       rc = _gcry_ecc_ecdsa_sign (data, ec, sig_r, sig_s,
@@ -810,6 +819,10 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   else if ((sigflags & PUBKEY_FLAG_GOST))
     {
       rc = _gcry_ecc_gost_verify (data, ec, sig_r, sig_s);
+    }
+  else if ((sigflags & PUBKEY_FLAG_SM2))
+    {
+      rc = _gcry_ecc_sm2_verify (data, ec, sig_r, sig_s);
     }
   else
     {
@@ -915,6 +928,13 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n || !ec->Q)
     {
       rc = GPG_ERR_NO_OBJ;
+      goto leave;
+    }
+
+  if ((ctx.flags & PUBKEY_FLAG_SM2))
+    {
+      /* All encryption will be done, return it.  */
+      rc = _gcry_ecc_sm2_encrypt (r_ciph, data, ec);
       goto leave;
     }
 
@@ -1042,18 +1062,6 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                                    (nbits = ecc_get_nbits (keyparms)));
 
   /*
-   * Extract the data.
-   */
-  rc = _gcry_pk_util_preparse_encval (s_data, ecc_names, &l1, &ctx);
-  if (rc)
-    goto leave;
-  rc = sexp_extract_param (l1, NULL, "/e", &data_e, NULL);
-  if (rc)
-    goto leave;
-  if (DBG_CIPHER)
-    log_printmpi ("ecc_decrypt  d_e", data_e);
-
-  /*
    * Extract the key.
    */
   rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecc_decrypt", keyparms, NULL);
@@ -1064,6 +1072,27 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     {
       rc = GPG_ERR_NO_OBJ;
       goto leave;
+    }
+
+  /*
+   * Extract the data.
+   */
+  rc = _gcry_pk_util_preparse_encval (s_data, ecc_names, &l1, &ctx);
+  if (rc)
+    goto leave;
+  if ((ctx.flags & PUBKEY_FLAG_SM2))
+    {
+      /* All decryption will be done, return it.  */
+      rc = _gcry_ecc_sm2_decrypt (r_plain, l1, ec);
+      goto leave;
+    }
+  else
+    {
+      rc = sexp_extract_param (l1, NULL, "/e", &data_e, NULL);
+      if (rc)
+        goto leave;
+      if (DBG_CIPHER)
+        log_printmpi ("ecc_decrypt  d_e", data_e);
     }
 
   if (ec->dialect == ECC_DIALECT_SAFECURVE || (flags & PUBKEY_FLAG_DJB_TWEAK))

@@ -2545,7 +2545,8 @@ LIST_MEMBER(ecc, $enabled_pubkey_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS \
                           ecc.lo ecc-curves.lo ecc-misc.lo \
-                          ecc-ecdh.lo ecc-ecdsa.lo ecc-eddsa.lo ecc-gost.lo"
+                          ecc-ecdh.lo ecc-ecdsa.lo ecc-eddsa.lo ecc-gost.lo \
+                          ecc-sm2.lo"
    AC_DEFINE(USE_ECC, 1, [Defined if this module should be included])
 fi
 

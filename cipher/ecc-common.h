@@ -125,4 +125,16 @@ gpg_err_code_t _gcry_ecc_gost_verify (gcry_mpi_t input, mpi_ec_t ec,
                                       gcry_mpi_t r, gcry_mpi_t s);
 
 
+/*-- ecc-sm2.c --*/
+gpg_err_code_t _gcry_ecc_sm2_encrypt (gcry_sexp_t *r_ciph,
+                                      gcry_mpi_t input, mpi_ec_t ec);
+gpg_err_code_t _gcry_ecc_sm2_decrypt (gcry_sexp_t *r_plain,
+                                      gcry_sexp_t data_list, mpi_ec_t ec);
+gpg_err_code_t _gcry_ecc_sm2_sign (gcry_mpi_t input, mpi_ec_t ec,
+                                   gcry_mpi_t r, gcry_mpi_t s,
+                                   int flags, int hashalgo);
+gpg_err_code_t _gcry_ecc_sm2_verify (gcry_mpi_t input, mpi_ec_t ec,
+                                     gcry_mpi_t r, gcry_mpi_t s);
+
+
 #endif /*GCRY_ECC_COMMON_H*/

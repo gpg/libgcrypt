@@ -87,7 +87,7 @@ EXTRA_libcipher_la_SOURCES = \
 	dsa.c \
 	elgamal.c \
 	ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
-	ecc-ecdh.c ecc-ecdsa.c ecc-eddsa.c ecc-gost.c \
+	ecc-ecdh.c ecc-ecdsa.c ecc-eddsa.c ecc-gost.c ecc-sm2.c \
 	idea.c \
 	gost28147.c gost.h \
 	gostr3411-94.c \

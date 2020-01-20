@@ -42,6 +42,7 @@
 #define PUBKEY_FLAG_GOST           (1 << 13)
 #define PUBKEY_FLAG_NO_KEYTEST     (1 << 14)
 #define PUBKEY_FLAG_DJB_TWEAK      (1 << 15)
+#define PUBKEY_FLAG_SM2            (1 << 16)
 
 
 enum pk_operation
