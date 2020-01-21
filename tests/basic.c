@@ -12984,7 +12984,7 @@ check_pubkey (void)
 {
   static const test_spec_pubkey_t pubkeys[] = {
   {
-    GCRY_PK_RSA, FLAG_CRYPT | FLAG_SIGN,
+    GCRY_PK_RSA, FLAG_CRYPT | FLAG_SIGN | FLAG_GRIP,
     {
       "(private-key\n"
       " (rsa\n"
@@ -13022,7 +13022,7 @@ check_pubkey (void)
       "\xa2\x5d\x3d\x69\xf8\x6d\x37\xa4\xf9\x39"}
   },
   {
-    GCRY_PK_DSA, FLAG_SIGN,
+    GCRY_PK_DSA, FLAG_SIGN | FLAG_GRIP,
     {
       "(private-key\n"
       " (DSA\n"
@@ -13067,7 +13067,7 @@ check_pubkey (void)
       "\x4a\xa6\xf9\xeb\x23\xbf\xa9\x12\x2d\x5b" }
   },
   {
-    GCRY_PK_ELG, FLAG_SIGN | FLAG_CRYPT,
+    GCRY_PK_ELG, FLAG_SIGN | FLAG_CRYPT | FLAG_GRIP,
     {
       "(private-key\n"
       " (ELG\n"
@@ -13246,7 +13246,7 @@ check_pubkey (void)
       "        4DDFF75C45415C1D9DD9DD33612CD530EFE137C7C90CD4"
       "        0B0F5621DC3AC1B751CFA0E2634FA0503B3D52639F5D7F"
       "        B72AFD61EA199441D943FFE7F0C70A2759A3CDB84C114E"
-      "        1F9339FDF27F35ECA93677BEEC#)))\n"
+      "        1F9339FDF27F35ECA93677BEEC#)))\n",
 
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
@@ -13268,7 +13268,7 @@ check_pubkey (void)
       "  (curve secp256k1)\n"
       "  (q #0439A36013301597DAEF41FBE593A02CC513D0B55527EC2D"
       "      F1050E2E8FF49C85C23CBE7DED0E7CE6A594896B8F62888F"
-      "      DBC5C8821305E2EA42BF01E37300116281#)))\n"
+      "      DBC5C8821305E2EA42BF01E37300116281#)))\n",
 
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
