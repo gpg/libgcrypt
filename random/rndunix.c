@@ -894,7 +894,7 @@ _gcry_rndunix_gather_random (void (*add)(const void*, size_t,
     /* now read from the gatherer */
     while( length ) {
 	int goodness;
-	ulong subtract;
+	unsigned long subtract;
 
 	if( read_a_msg( pipedes[0], &msg ) ) {
 	    log_error("reading from gatherer pipe failed: %s\n",
@@ -928,7 +928,7 @@ _gcry_rndunix_gather_random (void (*add)(const void*, size_t,
 	(*add)( msg.data, n, origin );
 
 	/* this is the trick how we cope with the goodness */
-	subtract = (ulong)n * goodness / 100;
+	subtract = (unsigned long)n * goodness / 100;
 	/* subtract at least 1 byte to avoid infinite loops */
 	length -= subtract ? subtract : 1;
     }

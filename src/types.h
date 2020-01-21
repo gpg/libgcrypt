@@ -70,12 +70,6 @@
 # define HAVE_USHORT_TYPEDEF
 #endif
 
-#ifndef HAVE_ULONG_TYPEDEF
-# undef ulong   /* In case there is a macro with that name.  */
-  typedef unsigned long ulong;
-# define HAVE_ULONG_TYPEDEF
-#endif
-
 #ifndef HAVE_U16_TYPEDEF
 # undef u16	/* In case there is a macro with that name.  */
 # if SIZEOF_UNSIGNED_INT == 2

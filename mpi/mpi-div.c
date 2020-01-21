@@ -64,8 +64,9 @@ _gcry_mpi_fdiv_r( gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor )
  * rem is optional
  */
 
-ulong
-_gcry_mpi_fdiv_r_ui( gcry_mpi_t rem, gcry_mpi_t dividend, ulong divisor )
+unsigned long
+_gcry_mpi_fdiv_r_ui( gcry_mpi_t rem, gcry_mpi_t dividend,
+                     unsigned long divisor )
 {
     mpi_limb_t rlimb;
 
@@ -321,7 +322,7 @@ _gcry_mpi_tdiv_q_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned int count )
  * (note: divisor must fit into a limb)
  */
 int
-_gcry_mpi_divisible_ui(gcry_mpi_t dividend, ulong divisor )
+_gcry_mpi_divisible_ui(gcry_mpi_t dividend, unsigned long divisor )
 {
     return !_gcry_mpih_mod_1( dividend->d, dividend->nlimbs, divisor );
 }

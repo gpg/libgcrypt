@@ -115,7 +115,7 @@ _gcry_rndw32ce_gather_random_fast (void (*add)(const void*, size_t,
       memcpy (bufptr, &along, sizeof (along));                     \
       bufptr += sizeof (along);                                    \
     } while (0)
-    unsigned char buffer[20*sizeof(ulong)], *bufptr;
+    unsigned char buffer[20*sizeof(unsigned long)], *bufptr;
 
     bufptr = buffer;
     ADD (HWND,   GetActiveWindow ());
