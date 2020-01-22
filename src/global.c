@@ -261,7 +261,8 @@ _gcry_check_version (const char *req_version)
     /* Compare version numbers.  */
     if ( my_major > rq_major
 	|| (my_major == rq_major && my_minor > rq_minor)
-	|| (my_major == rq_major && my_minor == rq_minor		                           		 && my_micro > rq_micro)
+	|| (my_major == rq_major && my_minor == rq_minor
+	    && my_micro > rq_micro)
 	|| (my_major == rq_major && my_minor == rq_minor
                                  && my_micro == rq_micro))
       {
