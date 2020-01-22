@@ -1114,7 +1114,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
   int hexcount = 0;
   int b64count = 0;
   int quoted_esc = 0;
-  int datalen = 0;
+  size_t datalen = 0;
   size_t dummy_erroff;
   struct make_space_ctx c;
   int arg_counter = 0;
@@ -1354,7 +1354,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                   goto leave;
                 }
               err = gpgrt_b64dec_proc (b64state, b64buf, b64count,
-                                       (size_t *)&datalen);
+                                       &datalen);
               if (err && gpg_err_code (err) != GPG_ERR_EOF)
                 {
                   xfree (b64state);
