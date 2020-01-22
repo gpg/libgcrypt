@@ -385,6 +385,8 @@ _gcry_ghash_setup_armv8_ce_pmull:
 
   GET_DATA_POINTER(x2, .Lrconst)
 
+  eor vZZ.16b, vZZ.16b, vZZ.16b
+
   /* H¹ */
   ld1 {rh1.16b}, [x0]
   rbit rh1.16b, rh1.16b
