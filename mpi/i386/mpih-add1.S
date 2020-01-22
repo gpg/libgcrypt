@@ -78,10 +78,12 @@ C_SYMBOL_NAME(_gcry_mpih_add_n:)
 /* Calculate start address in loop for PIC.  Due to limitations in some
    assemblers, Loop-L0-3 cannot be put into the leal */
 	call	L0
+	CFI_ADJUST_CFA_OFFSET(4)
 L0:	leal	(%eax,%eax,8),%eax
 	addl	(%esp),%eax
 	addl	$(Loop-L0-3),%eax
 	addl	$4,%esp
+	CFI_ADJUST_CFA_OFFSET(-4)
 #else
 /* Calculate start address in loop for non-PIC.  */
 	leal	(Loop - 3)(%eax,%eax,8),%eax
