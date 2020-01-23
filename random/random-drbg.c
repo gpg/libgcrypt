@@ -146,11 +146,11 @@
  * gcry_randomize(outbuf, OUTLEN, GCRY_STRONG_RANDOM);
  */
 
+#include <config.h>
+
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
-
-#include <config.h>
 
 #include "g10lib.h"
 #include "random.h"
