@@ -87,9 +87,7 @@ _gcry_poly1305_armv7_neon_init_ext:
 .Lpoly1305_init_ext_neon_local:
 	stmfd sp!, {r4-r11, lr}
 	sub sp, sp, #32
-	mov r14, r2
-	and r2, r2, r2
-	moveq r14, #-1
+	mov r14, #-1
 	UNALIGNED_LDMIA4(r1, r2, r3, r4, r5)
 	GET_DATA_POINTER(r7,.Lpoly1305_init_constants_neon,r8)
 	mov r6, r2
