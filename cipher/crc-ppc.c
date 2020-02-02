@@ -1,5 +1,5 @@
 /* crc-ppc.c - POWER8 vpmsum accelerated CRC implementation
- * Copyright (C) 2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2019-2020 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -168,22 +168,37 @@ static const vector16x_u8 bswap_const ALIGNED_64 =
 # define CRC_VEC_U64_LOAD(offs, ptr) \
 	  vec_vsx_ld((offs), (const unsigned long long *)(ptr))
 # define CRC_VEC_U64_LOAD_LE(offs, ptr) CRC_VEC_U64_LOAD((offs), (ptr))
-# define CRC_VEC_U64_LOAD_BE(offs, ptr) \
-	  ({ \
-	    vector2x_u64 __vecu64; \
-	    __asm__ ("lxvd2x %%vs32,%1,%2\n\t" \
-	             "vperm %0,%%v0,%%v0,%3\n\t" \
-		     : "=v" (__vecu64) \
-		     : "r" (offs), "r" ((uintptr_t)(ptr)), \
-		       "v" (vec_load_le_const) \
-		     : "memory", "v0"); \
-	    __vecu64; })
+# define CRC_VEC_U64_LOAD_BE(offs, ptr) asm_vec_u64_load_be(offs, ptr)
 # define CRC_VEC_SWAP_TO_LE(v) (v)
 # define CRC_VEC_SWAP_TO_BE(v) CRC_VEC_SWAP(v)
 # define VEC_U64_LO 0
 # define VEC_U64_HI 1
-static const vector16x_u8 vec_load_le_const =
-  { ~7, ~6, ~5, ~4, ~3, ~2, ~1, ~0, ~15, ~14, ~13, ~12, ~11, ~10, ~9, ~8 };
+
+static ASM_FUNC_ATTR_INLINE vector2x_u64
+asm_vec_u64_load_be(unsigned int offset, const void *ptr)
+{
+  static const vector16x_u8 vec_load_le_const =
+    { ~7, ~6, ~5, ~4, ~3, ~2, ~1, ~0, ~15, ~14, ~13, ~12, ~11, ~10, ~9, ~8 };
+  vector2x_u64 vecu64;
+
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ ("lxvd2x %%vs32,0,%1\n\t"
+	     "vperm %0,%%v0,%%v0,%2\n\t"
+	     : "=v" (vecu64)
+	     : "r" ((uintptr_t)(ptr)), "v" (vec_load_le_const)
+	     : "memory", "v0");
+#endif
+  else
+    __asm__ ("lxvd2x %%vs32,%1,%2\n\t"
+	     "vperm %0,%%v0,%%v0,%3\n\t"
+	     : "=v" (vecu64)
+	     : "r" (offset), "r" ((uintptr_t)(ptr)),
+	       "v" (vec_load_le_const)
+	     : "memory", "r0", "v0");
+
+  return vecu64;
+}
 #endif
 
 
