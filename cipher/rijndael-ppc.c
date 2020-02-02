@@ -69,10 +69,18 @@ static ASM_FUNC_ATTR_INLINE block
 asm_load_be_noswap(unsigned long offset, const void *ptr)
 {
   block vec;
-  __asm__ volatile ("lxvw4x %x0,%1,%2\n\t"
-		    : "=wa" (vec)
-		    : "r" (offset), "r" ((uintptr_t)ptr)
-		    : "memory", "r0");
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("lxvw4x %x0,0,%1\n\t"
+		      : "=wa" (vec)
+		      : "r" ((uintptr_t)ptr)
+		      : "memory");
+  else
+#endif
+    __asm__ volatile ("lxvw4x %x0,%1,%2\n\t"
+		      : "=wa" (vec)
+		      : "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
   /* NOTE: vec needs to be be-swapped using 'asm_be_swap' by caller */
   return vec;
 }
@@ -81,10 +89,18 @@ static ASM_FUNC_ATTR_INLINE void
 asm_store_be_noswap(block vec, unsigned long offset, void *ptr)
 {
   /* NOTE: vec be-swapped using 'asm_be_swap' by caller */
-  __asm__ volatile ("stxvw4x %x0,%1,%2\n\t"
-		    :
-		    : "wa" (vec), "r" (offset), "r" ((uintptr_t)ptr)
-		    : "memory", "r0");
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("stxvw4x %x0,0,%1\n\t"
+		      :
+		      : "wa" (vec), "r" ((uintptr_t)ptr)
+		      : "memory");
+  else
+#endif
+    __asm__ volatile ("stxvw4x %x0,%1,%2\n\t"
+		      :
+		      : "wa" (vec), "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
 }
 
 

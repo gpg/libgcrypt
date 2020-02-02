@@ -188,20 +188,36 @@ static ASM_FUNC_ATTR_INLINE block
 asm_aligned_ld(unsigned long offset, const void *ptr)
 {
   block vec;
-  __asm__ volatile ("lvx %0,%1,%2\n\t"
-		    : "=v" (vec)
-		    : "r" (offset), "r" ((uintptr_t)ptr)
-		    : "memory", "r0");
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("lvx %0,0,%1\n\t"
+		      : "=v" (vec)
+		      : "r" ((uintptr_t)ptr)
+		      : "memory");
+  else
+#endif
+    __asm__ volatile ("lvx %0,%1,%2\n\t"
+		      : "=v" (vec)
+		      : "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
   return vec;
 }
 
 static ASM_FUNC_ATTR_INLINE void
 asm_aligned_st(block vec, unsigned long offset, void *ptr)
 {
-  __asm__ volatile ("stvx %0,%1,%2\n\t"
-		    :
-		    : "v" (vec), "r" (offset), "r" ((uintptr_t)ptr)
-		    : "memory", "r0");
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("stvx %0,0,%1\n\t"
+		      :
+		      : "v" (vec), "r" ((uintptr_t)ptr)
+		      : "memory");
+  else
+#endif
+    __asm__ volatile ("stvx %0,%1,%2\n\t"
+		      :
+		      : "v" (vec), "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
 }
 
 static ASM_FUNC_ATTR_INLINE block
