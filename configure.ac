@@ -2348,6 +2348,7 @@ if test "$found" = "1" ; then
       powerpc64le-*-*)
          # Build with the crypto extension implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ppc.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ppc9le.lo"
       ;;
       powerpc64-*-*)
          # Big-Endian.

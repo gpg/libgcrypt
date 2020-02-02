@@ -105,13 +105,18 @@
 #endif /* ENABLE_ARM_CRYPTO_SUPPORT */
 
 /* USE_PPC_CRYPTO indicates whether to enable PowerPC vector crypto
- * accelerated code. */
+ * accelerated code.  USE_PPC_CRYPTO_WITH_PPC9LE indicates whether to
+ * enable POWER9 optimized variant.  */
 #undef USE_PPC_CRYPTO
+#undef USE_PPC_CRYPTO_WITH_PPC9LE
 #ifdef ENABLE_PPC_CRYPTO_SUPPORT
 # if defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
      defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC)
 #  if __GNUC__ >= 4
 #   define USE_PPC_CRYPTO 1
+#   if !defined(WORDS_BIGENDIAN) && defined(HAVE_GCC_INLINE_ASM_PPC_ARCH_3_00)
+#    define USE_PPC_CRYPTO_WITH_PPC9LE 1
+#   endif
 #  endif
 # endif
 #endif /* ENABLE_PPC_CRYPTO_SUPPORT */
@@ -169,6 +174,9 @@ typedef struct RIJNDAEL_context_s
 #ifdef USE_PPC_CRYPTO
   unsigned int use_ppc_crypto:1;      /* PowerPC crypto shall be used.  */
 #endif /*USE_PPC_CRYPTO*/
+#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
+  unsigned int use_ppc9le_crypto:1;   /* POWER9 LE crypto shall be used.  */
+#endif
   rijndael_cryptfn_t encrypt_fn;
   rijndael_cryptfn_t decrypt_fn;
   rijndael_prefetchfn_t prefetch_enc_fn;
