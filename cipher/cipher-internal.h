@@ -207,6 +207,7 @@ struct gcry_cipher_handle
     unsigned int iv:1;  /* Set to 1 if a IV has been set.  */
     unsigned int tag:1; /* Set to 1 if a tag is finalized. */
     unsigned int finalize:1; /* Next encrypt/decrypt has the final data.  */
+    unsigned int allow_weak_key:1; /* Set to 1 if weak keys are allowed. */
   } marks;
 
   /* The initialization vector.  For best performance we make sure

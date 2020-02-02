@@ -691,6 +691,7 @@ check_ecb_cipher (void)
   {
     int algo;
     const char *key;
+    int is_weak_key;
     struct
     {
       const char *plaintext;
@@ -704,6 +705,7 @@ check_ecb_cipher (void)
       { GCRY_CIPHER_BLOWFISH,
 	"\xf0\xe1\xd2\xc3\xb4\xa5\x96\x87\x78\x69\x5a\x4b\x3c\x2d\x1e\x0f"
 	"\x00\x11\x22\x33\x44\x55\x66\x77\x88",
+	0,
 	{ { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
 	    1,
 	    8,
@@ -813,10 +815,33 @@ check_ecb_cipher (void)
 	"\x00\x11\x22\x33\x44\x55\x66\x77\x04\x68\x91\x04\xc2\xfd\x3b\x2f"
 	"\x58\x40\x23\x64\x1a\xba\x61\x76\x1f\x1f\x1f\x1f\x0e\x0e\x0e\x0e"
 	"\xff\xff\xff\xff\xff\xff\xff\xff",
+	0,
 	{ { "\xfe\xdc\xba\x98\x76\x54\x32\x10",
 	    56,
 	    8,
 	    "\xc0\x45\x04\x01\x2e\x4e\x1f\x53" },
+	  { }
+	}
+      },
+      /* Weak-key testing */
+      { GCRY_CIPHER_DES,
+	"\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe",
+	1,
+	{ { "\x00\x00\x00\x00\x00\x00\x00\x00",
+	    8,
+	    8,
+	    "\xca\xaa\xaf\x4d\xea\xf1\xdb\xae" },
+	  { }
+	}
+      },
+      /* Weak-key testing */
+      { GCRY_CIPHER_DES,
+	"\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe",
+	2,
+	{ { "\x00\x00\x00\x00\x00\x00\x00\x00",
+	    8,
+	    8,
+	    "\xca\xaa\xaf\x4d\xea\xf1\xdb\xae" },
 	  { }
 	}
       },
@@ -858,6 +883,21 @@ check_ecb_cipher (void)
 	  return;
 	}
 
+      if (tv[i].is_weak_key == 2)
+	{
+	  err = gcry_cipher_ctl(hde, GCRYCTL_SET_ALLOW_WEAK_KEY, NULL, 1);
+	  if (!err)
+	    err = gcry_cipher_ctl(hdd, GCRYCTL_SET_ALLOW_WEAK_KEY, NULL, 1);
+	  if (err)
+	    {
+	      fail ("ecb-algo:%d-tv:%d, gcry_cipher_ctl failed: %s\n",
+		    algo, i, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+	}
+
       for (j = 0; tv[i].data[j].inlen; j++)
 	{
 	  keylen = tv[i].data[j].keylen;
@@ -875,9 +915,36 @@ check_ecb_cipher (void)
 	    }
 
 	  err = gcry_cipher_setkey (hde, tv[i].key, keylen);
-	  if (!err)
+	  if (!err || (gcry_err_code(err) == GPG_ERR_WEAK_KEY
+	               && tv[i].is_weak_key == 2))
 	    err = gcry_cipher_setkey (hdd, tv[i].key, keylen);
-	  if (err)
+	  if (tv[i].is_weak_key == 1)
+	    {
+	      if (gcry_err_code(err) != GPG_ERR_WEAK_KEY)
+		{
+		  fail ("ecb-algo:%d-tv:%d-data:%d, expected gcry_cipher_setkey to fail, but got: %s\n",
+			algo, i, j, gpg_strerror (err));
+		  gcry_cipher_close (hde);
+		  gcry_cipher_close (hdd);
+		  return;
+		}
+	      else
+		{
+		  continue;
+		}
+	    }
+	  else if (tv[i].is_weak_key == 2)
+	    {
+	      if (gcry_err_code(err) != GPG_ERR_WEAK_KEY)
+		{
+		  fail ("ecb-algo:%d-tv:%d-data:%d, expected gcry_cipher_setkey to fail, but got: %s\n",
+			algo, i, j, gpg_strerror (err));
+		  gcry_cipher_close (hde);
+		  gcry_cipher_close (hdd);
+		  return;
+		}
+	    }
+	  else if (err)
 	    {
 	      fail ("ecb-algo:%d-tv:%d-data:%d, gcry_cipher_setkey failed: %s\n",
 		    algo, i, j, gpg_strerror (err));

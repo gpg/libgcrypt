@@ -333,7 +333,8 @@ enum gcry_ctl_cmds
     GCRYCTL_SET_TAGLEN = 75,
     GCRYCTL_GET_TAGLEN = 76,
     GCRYCTL_REINIT_SYSCALL_CLAMP = 77,
-    GCRYCTL_AUTO_EXPAND_SECMEM = 78
+    GCRYCTL_AUTO_EXPAND_SECMEM = 78,
+    GCRYCTL_SET_ALLOW_WEAK_KEY = 79
   };
 
 /* Perform various operations defined by CMD. */

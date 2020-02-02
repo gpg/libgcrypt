@@ -794,7 +794,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
     }
 
   rc = c->spec->setkey (&c->context.c, key, keylen, c);
-  if (!rc)
+  if (!rc || (c->marks.allow_weak_key && rc == GPG_ERR_WEAK_KEY))
     {
       /* Duplicate initial context.  */
       memcpy ((void *) ((char *) &c->context.c + c->spec->contextsize),
@@ -828,7 +828,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	  /* Setup tweak cipher with second part of XTS key. */
 	  rc = c->spec->setkey (c->u_mode.xts.tweak_context, key + keylen,
 				keylen, c);
-	  if (!rc)
+	  if (!rc || (c->marks.allow_weak_key && rc == GPG_ERR_WEAK_KEY))
 	    {
 	      /* Duplicate initial tweak context.  */
 	      memcpy (c->u_mode.xts.tweak_context + c->spec->contextsize,
@@ -889,9 +889,10 @@ cipher_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 static void
 cipher_reset (gcry_cipher_hd_t c)
 {
-  unsigned int marks_key;
+  unsigned int marks_key, marks_allow_weak_key;
 
   marks_key = c->marks.key;
+  marks_allow_weak_key = c->marks.allow_weak_key;
 
   memcpy (&c->context.c,
 	  (char *) &c->context.c + c->spec->contextsize,
@@ -903,6 +904,7 @@ cipher_reset (gcry_cipher_hd_t c)
   c->unused = 0;
 
   c->marks.key = marks_key;
+  c->marks.allow_weak_key = marks_allow_weak_key;
 
   switch (c->mode)
     {
@@ -1590,6 +1592,13 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
           (&h->context.c, GCRYCTL_SET_SBOX, buffer, buflen);
       else
         rc = GPG_ERR_NOT_SUPPORTED;
+      break;
+
+    case GCRYCTL_SET_ALLOW_WEAK_KEY:
+      /* Expecting BUFFER to be NULL and buflen to be on/off flag (0 or 1). */
+      if (!h || buffer || buflen > 1)
+	return GPG_ERR_CIPHER_ALGO;
+      h->marks.allow_weak_key = buflen ? 1 : 0;
       break;
 
     default:
