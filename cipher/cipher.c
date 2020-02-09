@@ -83,6 +83,7 @@ static gcry_cipher_spec_t * const cipher_list[] =
 #endif
 #if USE_GOST28147
      &_gcry_cipher_spec_gost28147,
+     &_gcry_cipher_spec_gost28147_mesh,
 #endif
 #if USE_CHACHA20
      &_gcry_cipher_spec_chacha20,
@@ -193,7 +194,12 @@ static gcry_cipher_spec_t * const cipher_list_algo301[] =
     NULL,
 #endif
 #if USE_CHACHA20
-    &_gcry_cipher_spec_chacha20
+    &_gcry_cipher_spec_chacha20,
+#else
+    NULL,
+#endif
+#if USE_GOST28147
+    &_gcry_cipher_spec_gost28147_mesh,
 #else
     NULL,
 #endif

@@ -7126,7 +7126,7 @@ check_xts_cipher (void)
 
 
 static void
-check_gost28147_cipher (void)
+check_gost28147_cipher_basic (enum gcry_cipher_algos algo)
 {
 #if USE_GOST28147
   static const struct {
@@ -7203,7 +7203,7 @@ check_gost28147_cipher (void)
 
   if (verbose)
     fprintf (stderr, "  Starting GOST28147 cipher checks.\n");
-  keylen = gcry_cipher_get_algo_keylen(GCRY_CIPHER_GOST28147);
+  keylen = gcry_cipher_get_algo_keylen(algo);
   if (!keylen)
     {
       fail ("gost28147, gcry_cipher_get_algo_keylen failed\n");
@@ -7212,10 +7212,10 @@ check_gost28147_cipher (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
-      err = gcry_cipher_open (&hde, GCRY_CIPHER_GOST28147,
+      err = gcry_cipher_open (&hde, algo,
                               GCRY_CIPHER_MODE_ECB, 0);
       if (!err)
-        err = gcry_cipher_open (&hdd, GCRY_CIPHER_GOST28147,
+        err = gcry_cipher_open (&hdd, algo,
                                 GCRY_CIPHER_MODE_ECB, 0);
       if (err)
         {
@@ -7292,6 +7292,12 @@ check_gost28147_cipher (void)
 #endif
 }
 
+static void
+check_gost28147_cipher (void)
+{
+	check_gost28147_cipher_basic (GCRY_CIPHER_GOST28147);
+	check_gost28147_cipher_basic (GCRY_CIPHER_GOST28147_MESH);
+}
 
 static void
 check_stream_cipher (void)
@@ -9281,6 +9287,7 @@ check_ciphers (void)
 #endif
 #if USE_GOST28147
     GCRY_CIPHER_GOST28147,
+    GCRY_CIPHER_GOST28147_MESH,
 #endif
     0
   };

@@ -1630,6 +1630,13 @@ This is the Salsa20/12 - reduced round version of Salsa20 stream cipher.
 The GOST 28147-89 cipher, defined in the respective GOST standard.
 Translation of this GOST into English is provided in the RFC-5830.
 
+@item GCRY_CIPHER_GOST28147_MESH
+@cindex GOST 28147-89 CryptoPro keymeshing
+The GOST 28147-89 cipher, defined in the respective GOST standard.
+Translation of this GOST into English is provided in the RFC-5830.
+This cipher will use CryptoPro keymeshing as defined in RFC 4357
+if it has to be used for the selected parameter set.
+
 @item GCRY_CIPHER_CHACHA20
 @cindex ChaCha20
 This is the ChaCha20 stream cipher.

@@ -23,6 +23,8 @@
 typedef struct {
   u32 key[8];
   const u32 *sbox;
+  unsigned int mesh_counter;
+  unsigned int mesh_limit;
 } GOST28147_context;
 
 /* This is a simple interface that will be used by GOST R 34.11-94 */
