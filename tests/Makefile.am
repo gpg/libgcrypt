@@ -48,7 +48,7 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 AM_LDFLAGS = -no-install
 
 standard_ldadd = \
-	../src/libgcrypt.la $(DL_LIBS) \
+	../src/libgcrypt.la \
         ../compat/libcompat.la
 
 EXTRA_PROGRAMS = testapi pkbench
