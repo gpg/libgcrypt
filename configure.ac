@@ -1750,7 +1750,6 @@ if test "$use_hmac_binary_check" = yes ; then
   AC_SEARCH_LIBS(dlopen, c dl,,,)
   DL_LIBS=$LIBS
   LIBS="$_gcry_save_libs"
-  LIBGCRYPT_CONFIG_LIBS="${LIBGCRYPT_CONFIG_LIBS} ${DL_LIBS}"
 fi
 AC_SUBST(DL_LIBS)
 
