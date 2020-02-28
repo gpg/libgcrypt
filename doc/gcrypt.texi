@@ -3205,7 +3205,7 @@ This is the SHA3-384 algorithm which yields a message digest of 48 bytes.
 See FIPS 202 for the specification.
 
 @item GCRY_MD_SHA3_512
-This is the SHA3-384 algorithm which yields a message digest of 64 bytes.
+This is the SHA3-512 algorithm which yields a message digest of 64 bytes.
 See FIPS 202 for the specification.
 
 @item GCRY_MD_SHAKE128
@@ -3684,7 +3684,7 @@ This is HMAC message authentication algorithm based on the SHA-384 hash
 algorithm.
 
 @item GCRY_MAC_HMAC_SHA3_256
-This is HMAC message authentication algorithm based on the SHA3-384 hash
+This is HMAC message authentication algorithm based on the SHA3-256 hash
 algorithm.
 
 @item GCRY_MAC_HMAC_SHA3_224
