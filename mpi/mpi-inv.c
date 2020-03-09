@@ -24,12 +24,262 @@
 #include "g10lib.h"
 
 /****************
+ * Set bit of A, when SET is 1.
+ * This implementation should be constant-time regardless of SET.
+ */
+static void
+mpi_set_bit_cond (gcry_mpi_t a, unsigned int n, unsigned long set)
+{
+  unsigned int limbno, bitno;
+  mpi_limb_t set_the_bit = !!set;
+
+  limbno = n / BITS_PER_MPI_LIMB;
+  bitno  = n % BITS_PER_MPI_LIMB;
+
+  a->d[limbno] |= (set_the_bit<<bitno);
+}
+
+static void
+mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned long set)
+{
+  mpi_size_t i;
+  mpi_limb_t mask = ((mpi_limb_t)0) - set;
+  mpi_limb_t x;
+
+  for (i = 0; i < usize; i++)
+    {
+      x = mask & (wp[i] ^ up[i]);
+      wp[i] = wp[i] ^ x;
+    }
+}
+
+static mpi_limb_t
+mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
+                 mpi_limb_t set)
+{
+  mpi_limb_t ul, vl, sl, rl, cy, cy1, cy2;
+  mpi_limb_t mask = ((mpi_limb_t)0) - set;
+
+  cy = 0;
+  do
+    {
+      ul = *up++;
+      vl = *vp++ & mask;
+      sl = ul + vl;
+      cy1 = sl < ul;
+      rl = sl + cy;
+      cy2 = rl < sl;
+      cy = cy1 | cy2;
+      *wp++ = rl;
+    }
+  while (--usize != 0);
+
+  return cy;
+}
+
+static mpi_limb_t
+mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
+                 unsigned long set)
+{
+  mpi_limb_t ul, vl, sl, rl, cy, cy1, cy2;
+  mpi_limb_t mask = ((mpi_limb_t)0) - set;
+
+  cy = 0;
+  do
+    {
+      ul = *up++;
+      vl = *vp++ & mask;
+      sl = ul - vl;
+      cy1 = sl > ul;
+      rl = sl - cy;
+      cy2 = rl > sl;
+      cy = cy1 | cy2;
+      *wp++ = rl;
+    }
+  while (--usize != 0);
+
+  return cy;
+}
+
+
+static void
+mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize, unsigned long swap)
+{
+  mpi_size_t i;
+  mpi_limb_t mask = ((mpi_limb_t)0) - swap;
+  mpi_limb_t x;
+
+  for (i = 0; i < usize; i++)
+    {
+      x = mask & (up[i] ^ vp[i]);
+      up[i] = up[i] ^ x;
+      vp[i] = vp[i] ^ x;
+    }
+}
+
+static void
+mpih_abs_cond (mpi_limb_t *wp, const mpi_limb_t *up, mpi_size_t usize,
+               unsigned long set)
+{
+  mpi_size_t i;
+  mpi_limb_t mask = ((mpi_limb_t)0) - set;
+  mpi_limb_t x;
+  mpi_limb_t cy = !!set;
+
+  for (i = 0; i < usize; i++)
+    {
+      x = ~up[i] + cy;
+      cy = (x < ~up[i]);
+      wp[i] = up[i] ^ (mask & (x ^ up[i]));
+    }
+}
+
+/*
+ * Calculate the multiplicative inverse X of A mod 2^K
+ * A must be positive.
+ *
+ * From "A New Algorithm for Inversion mod p^k" by Çetin Kaya Koç
+ * https://eprint.iacr.org/2017/411.pdf sections 7.
+ */
+static int
+mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
+{
+  gcry_mpi_t a, b, tb;
+  unsigned int i, iterations;
+  mpi_ptr_t wp, up, vp;
+  mpi_size_t usize;
+
+  if (!mpi_test_bit (a_orig, 0))
+    return 0;
+
+  a = mpi_copy (a_orig);
+  mpi_clear_highbit (a, k);
+
+  b = mpi_alloc_set_ui (1);
+  mpi_set_ui (x, 0);
+
+  iterations = ((k + BITS_PER_MPI_LIMB) / BITS_PER_MPI_LIMB)
+    * BITS_PER_MPI_LIMB;
+  usize = iterations / BITS_PER_MPI_LIMB;
+
+  mpi_resize (b, usize);
+  mpi_resize (x, usize);
+
+  tb = mpi_copy (tb);
+
+  wp = tb->d;
+  up = b->d;
+  vp = a->d;
+
+  /*
+   * In the computation B can be negative, but in the MPI
+   * representation, we don't set the sign.
+   */
+  for (i = 0; i < iterations; i++)
+    {
+      int b0 = mpi_test_bit (b, 0);
+
+      mpi_set_bit_cond (x, i, b0);
+
+      _gcry_mpih_sub_n (wp, up, vp, usize);
+      mpih_set_cond (up, wp, usize, b0);
+    }
+
+  mpi_free (tb);
+  mpi_free (b);
+  mpi_free (a);
+
+  mpi_clear_highbit (x, k);
+  return 1;
+}
+
+
+/*
+ * This uses a modular inversion algorithm designed by Niels Möller
+ * and implemented in Nettle.  The same algorithm was later also
+ * adapted to GMP in mpn_sec_invert.
+ *
+ * For the decription of the algorithm, see Appendix 5 of "Fast
+ * Software Polynomial Multiplication on ARM Processors using the NEON
+ * Engine" by Danilo Câmara, Conrado P. L. Gouvêa, Julio López, and
+ * Ricardo Dahab: https://hal.inria.fr/hal-01506572/document
+ */
+static int
+mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
+{
+  mpi_size_t nsize;
+  gcry_mpi_t a, b, n1h;
+  gcry_mpi_t u;
+  unsigned int iterations;
+  mpi_ptr_t ap, bp, n1hp;
+  mpi_ptr_t up, vp;
+  int is_gcd_one;
+
+  nsize = n->nlimbs;
+
+  a = mpi_copy (a_orig);
+  mpi_resize (a, nsize);
+  ap = a->d;
+
+  b = mpi_copy (n);
+
+  u = mpi_alloc_set_ui (1);
+  n1h = mpi_copy (n);
+
+  mpi_resize (u, nsize);
+  mpi_resize (x, nsize);
+
+  bp = b->d;
+  up = u->d;
+  vp = x->d;
+
+  memset (vp, 0, nsize * BYTES_PER_MPI_LIMB);
+
+  mpi_rshift (n1h, n1h, 1);
+  mpi_add_ui (n1h, n1h, 1);
+  mpi_resize (n1h, nsize);
+
+  n1hp = n1h->d;
+
+  iterations = 2 * nsize * BITS_PER_MPI_LIMB;
+
+  while (iterations-- > 0)
+    {
+      mpi_limb_t odd_a, odd_u, underflow, borrow;
+
+      odd_a = ap[0] & 1;
+
+      underflow = mpih_sub_n_cond (ap, ap, bp, nsize, odd_a);
+      mpih_add_n_cond (bp, bp, ap, nsize, underflow);
+      mpih_abs_cond (ap, ap, nsize, underflow);
+      mpih_swap_cond (up, vp, nsize, underflow);
+
+      _gcry_mpih_rshift (ap, ap, nsize, 1);
+
+      borrow = mpih_sub_n_cond (up, up, vp, nsize, odd_a);
+      mpih_add_n_cond (up, up, n->d, nsize, borrow);
+
+      odd_u = _gcry_mpih_rshift (up, up, nsize, 1);
+      mpih_add_n_cond (up, up, n1hp, nsize, odd_u);
+    }
+
+  is_gcd_one = (mpi_cmp_ui (b, 1) == 0);
+
+  mpi_free (n1h);
+  mpi_free (u);
+  mpi_free (b);
+  mpi_free (a);
+
+  return is_gcd_one;
+}
+
+/****************
  * Calculate the multiplicative inverse X of A mod N
  * That is: Find the solution x for
  *		1 = (a*x) mod n
  */
-int
-_gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
+static int
+mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 {
 #if 0
     gcry_mpi_t u, v, u1, u2, u3, v1, v2, v3, q, t1, t2, t3;
@@ -269,4 +519,19 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
     mpi_free(v);
 #endif
     return 1;
+}
+
+
+int
+_gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
+{
+  if (!mpi_cmp_ui (a, 0))
+    return 0; /* Inverse does not exists.  */
+  if (!mpi_cmp_ui (n, 1))
+    return 0; /* Inverse does not exists.  */
+
+  if (mpi_cmp_ui (n, 3) > 0 && mpi_test_bit (n, 0))
+    return mpi_invm_odd (x, a, n);
+  else /* FIXME: more detection of condition and use of mpi_invm_pow2 */
+    return mpi_invm_generic (x, a, n);
 }
