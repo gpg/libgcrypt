@@ -166,6 +166,9 @@ _gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t d
     if( quot )
 	mpi_resize( quot, qsize);
 
+    if (!dsize)
+      _gcry_divide_by_zero();
+
     /* Read pointers here, when reallocation is finished.  */
     np = num->d;
     dp = den->d;
