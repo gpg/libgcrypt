@@ -55,7 +55,7 @@ mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned long set)
 
 static mpi_limb_t
 mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
-                 mpi_limb_t set)
+                 unsigned long set)
 {
   mpi_limb_t ul, vl, sl, rl, cy, cy1, cy2;
   mpi_limb_t mask = ((mpi_limb_t)0) - set;
@@ -103,7 +103,8 @@ mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
 
 
 static void
-mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize, unsigned long swap)
+mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
+                unsigned long swap)
 {
   mpi_size_t i;
   mpi_limb_t mask = ((mpi_limb_t)0) - swap;
@@ -228,6 +229,7 @@ mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
 
   mpi_resize (u, nsize);
   mpi_resize (x, nsize);
+  x->nlimbs = nsize;
 
   bp = b->d;
   up = u->d;
@@ -530,7 +532,8 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
   if (!mpi_cmp_ui (n, 1))
     return 0; /* Inverse does not exists.  */
 
-  if (mpi_cmp_ui (n, 3) > 0 && mpi_test_bit (n, 0))
+  if (mpi_cmp_ui (n, 3) > 0 && mpi_test_bit (n, 0)
+      && mpi_cmp (a, n) < 0)
     return mpi_invm_odd (x, a, n);
   else /* FIXME: more detection of condition and use of mpi_invm_pow2 */
     return mpi_invm_generic (x, a, n);
