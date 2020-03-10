@@ -57,7 +57,7 @@ static mpi_limb_t
 mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                  unsigned long set)
 {
-  mpi_limb_t ul, vl, sl, rl, cy, cy1, cy2;
+  mpi_limb_t ul, vl, sl, wl, cy, cy1, cy2;
   mpi_limb_t mask = ((mpi_limb_t)0) - set;
 
   cy = 0;
@@ -67,10 +67,10 @@ mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
       vl = *vp++ & mask;
       sl = ul + vl;
       cy1 = sl < ul;
-      rl = sl + cy;
-      cy2 = rl < sl;
+      wl = sl + cy;
+      cy2 = wl < sl;
       cy = cy1 | cy2;
-      *wp++ = rl;
+      *wp++ = wl;
     }
   while (--usize != 0);
 
@@ -81,7 +81,7 @@ static mpi_limb_t
 mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                  unsigned long set)
 {
-  mpi_limb_t ul, vl, sl, rl, cy, cy1, cy2;
+  mpi_limb_t ul, vl, sl, wl, cy, cy1, cy2;
   mpi_limb_t mask = ((mpi_limb_t)0) - set;
 
   cy = 0;
@@ -91,10 +91,10 @@ mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
       vl = *vp++ & mask;
       sl = ul - vl;
       cy1 = sl > ul;
-      rl = sl - cy;
-      cy2 = rl > sl;
+      wl = sl - cy;
+      cy2 = wl > sl;
       cy = cy1 | cy2;
-      *wp++ = rl;
+      *wp++ = wl;
     }
   while (--usize != 0);
 
@@ -120,12 +120,12 @@ mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
 
 static void
 mpih_abs_cond (mpi_limb_t *wp, const mpi_limb_t *up, mpi_size_t usize,
-               unsigned long set)
+               unsigned long negative)
 {
   mpi_size_t i;
-  mpi_limb_t mask = ((mpi_limb_t)0) - set;
+  mpi_limb_t mask = ((mpi_limb_t)0) - negative;
   mpi_limb_t x;
-  mpi_limb_t cy = !!set;
+  mpi_limb_t cy = !!negative;
 
   for (i = 0; i < usize; i++)
     {
@@ -200,10 +200,14 @@ mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
  * and implemented in Nettle.  The same algorithm was later also
  * adapted to GMP in mpn_sec_invert.
  *
- * For the decription of the algorithm, see Appendix 5 of "Fast
- * Software Polynomial Multiplication on ARM Processors using the NEON
- * Engine" by Danilo Câmara, Conrado P. L. Gouvêa, Julio López, and
- * Ricardo Dahab: https://hal.inria.fr/hal-01506572/document
+ * For the decription of the algorithm, see Algorithm 5 in Appendix A
+ * of "Fast Software Polynomial Multiplication on ARM Processors using
+ * the NEON Engine" by Danilo Câmara, Conrado P. L. Gouvêa, Julio
+ * López, and Ricardo Dahab:
+ * https://hal.inria.fr/hal-01506572/document
+ *
+ * Note that in the reference above, at the line 2 of Algorithm 5,
+ * it was described as V:=1 wrongly.  It must be V:=0.
  */
 static int
 mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
@@ -223,20 +227,18 @@ mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
   ap = a->d;
 
   b = mpi_copy (n);
+  bp = b->d;
 
   u = mpi_alloc_set_ui (1);
-  n1h = mpi_copy (n);
-
   mpi_resize (u, nsize);
+  up = u->d;
+
   mpi_resize (x, nsize);
   x->nlimbs = nsize;
-
-  bp = b->d;
-  up = u->d;
   vp = x->d;
-
   memset (vp, 0, nsize * BYTES_PER_MPI_LIMB);
 
+  n1h = mpi_copy (n);
   mpi_rshift (n1h, n1h, 1);
   mpi_add_ui (n1h, n1h, 1);
   mpi_resize (n1h, nsize);
@@ -261,7 +263,7 @@ mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
       borrow = mpih_sub_n_cond (up, up, vp, nsize, odd_a);
       mpih_add_n_cond (up, up, n->d, nsize, borrow);
 
-      odd_u = _gcry_mpih_rshift (up, up, nsize, 1);
+      odd_u = _gcry_mpih_rshift (up, up, nsize, 1) != 0;
       mpih_add_n_cond (up, up, n1hp, nsize, odd_u);
     }
 
@@ -417,11 +419,6 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
     int sign;
     int odd ;
 
-    if (!mpi_cmp_ui (a, 0))
-        return 0; /* Inverse does not exists.  */
-    if (!mpi_cmp_ui (n, 1))
-        return 0; /* Inverse does not exists.  */
-
     u = mpi_copy(a);
     v = mpi_copy(n);
 
@@ -532,8 +529,7 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
   if (!mpi_cmp_ui (n, 1))
     return 0; /* Inverse does not exists.  */
 
-  if (mpi_cmp_ui (n, 3) > 0 && mpi_test_bit (n, 0)
-      && mpi_cmp (a, n) < 0)
+  if (mpi_test_bit (n, 0) && mpi_cmp (a, n) < 0)
     return mpi_invm_odd (x, a, n);
   else /* FIXME: more detection of condition and use of mpi_invm_pow2 */
     return mpi_invm_generic (x, a, n);
