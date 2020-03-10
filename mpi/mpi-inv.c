@@ -44,11 +44,11 @@ mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned long set)
 {
   mpi_size_t i;
   mpi_limb_t mask = ((mpi_limb_t)0) - set;
-  mpi_limb_t x;
 
   for (i = 0; i < usize; i++)
     {
-      x = mask & (wp[i] ^ up[i]);
+      mpi_limb_t x = mask & (wp[i] ^ up[i]);
+
       wp[i] = wp[i] ^ x;
     }
 }
@@ -57,22 +57,22 @@ static mpi_limb_t
 mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                  unsigned long set)
 {
-  mpi_limb_t ul, vl, sl, wl, cy, cy1, cy2;
+  mpi_size_t i;
+  mpi_limb_t cy;
   mpi_limb_t mask = ((mpi_limb_t)0) - set;
 
   cy = 0;
-  do
+  for (i = 0; i < usize; i++)
     {
-      ul = *up++;
-      vl = *vp++ & mask;
-      sl = ul + vl;
-      cy1 = sl < ul;
-      wl = sl + cy;
-      cy2 = wl < sl;
+      mpi_limb_t x = up[i] + (vp[i] & mask);
+      mpi_limb_t cy1 = x < up[i];
+      mpi_limb_t cy2;
+
+      x = x + cy;
+      cy2 = x < cy;
       cy = cy1 | cy2;
-      *wp++ = wl;
+      wp[i] = x;
     }
-  while (--usize != 0);
 
   return cy;
 }
@@ -81,22 +81,22 @@ static mpi_limb_t
 mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                  unsigned long set)
 {
-  mpi_limb_t ul, vl, sl, wl, cy, cy1, cy2;
+  mpi_size_t i;
+  mpi_limb_t cy;
   mpi_limb_t mask = ((mpi_limb_t)0) - set;
 
   cy = 0;
-  do
+  for (i = 0; i < usize; i++)
     {
-      ul = *up++;
-      vl = *vp++ & mask;
-      sl = ul - vl;
-      cy1 = sl > ul;
-      wl = sl - cy;
-      cy2 = wl > sl;
+      mpi_limb_t x = up[i] - (vp[i] & mask);
+      mpi_limb_t cy1 = x > up[i];
+      mpi_limb_t cy2;
+
+      cy2 = x < cy;
+      x = x - cy;
       cy = cy1 | cy2;
-      *wp++ = wl;
+      wp[i] = x;
     }
-  while (--usize != 0);
 
   return cy;
 }
@@ -108,11 +108,11 @@ mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
 {
   mpi_size_t i;
   mpi_limb_t mask = ((mpi_limb_t)0) - swap;
-  mpi_limb_t x;
 
   for (i = 0; i < usize; i++)
     {
-      x = mask & (up[i] ^ vp[i]);
+      mpi_limb_t x = mask & (up[i] ^ vp[i]);
+
       up[i] = up[i] ^ x;
       vp[i] = vp[i] ^ x;
     }
@@ -124,12 +124,12 @@ mpih_abs_cond (mpi_limb_t *wp, const mpi_limb_t *up, mpi_size_t usize,
 {
   mpi_size_t i;
   mpi_limb_t mask = ((mpi_limb_t)0) - negative;
-  mpi_limb_t x;
-  mpi_limb_t cy = !!negative;
+  mpi_limb_t cy = negative;
 
   for (i = 0; i < usize; i++)
     {
-      x = ~up[i] + cy;
+      mpi_limb_t x = ~up[i] + cy;
+
       cy = (x < ~up[i]);
       wp[i] = up[i] ^ (mask & (x ^ up[i]));
     }
