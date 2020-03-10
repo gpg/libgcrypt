@@ -23,43 +23,17 @@
 #include "mpi-internal.h"
 #include "g10lib.h"
 
-/****************
- * Set bit of A, when SET is 1.
- * This implementation should be constant-time regardless of SET.
+/*
+ *  W = U + V when OP_ENABLED=1
+ *  otherwise, W = U
  */
-static void
-mpi_set_bit_cond (gcry_mpi_t a, unsigned int n, unsigned long set)
-{
-  unsigned int limbno, bitno;
-  mpi_limb_t set_the_bit = !!set;
-
-  limbno = n / BITS_PER_MPI_LIMB;
-  bitno  = n % BITS_PER_MPI_LIMB;
-
-  a->d[limbno] |= (set_the_bit<<bitno);
-}
-
-static void
-mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned long set)
-{
-  mpi_size_t i;
-  mpi_limb_t mask = ((mpi_limb_t)0) - set;
-
-  for (i = 0; i < usize; i++)
-    {
-      mpi_limb_t x = mask & (wp[i] ^ up[i]);
-
-      wp[i] = wp[i] ^ x;
-    }
-}
-
 static mpi_limb_t
 mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
-                 unsigned long set)
+                 unsigned long op_enable)
 {
   mpi_size_t i;
   mpi_limb_t cy;
-  mpi_limb_t mask = ((mpi_limb_t)0) - set;
+  mpi_limb_t mask = ((mpi_limb_t)0) - op_enable;
 
   cy = 0;
   for (i = 0; i < usize; i++)
@@ -77,13 +51,18 @@ mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
   return cy;
 }
 
+
+/*
+ *  W = U - V when OP_ENABLED=1
+ *  otherwise, W = U
+ */
 static mpi_limb_t
 mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
-                 unsigned long set)
+                 unsigned long op_enable)
 {
   mpi_size_t i;
   mpi_limb_t cy;
-  mpi_limb_t mask = ((mpi_limb_t)0) - set;
+  mpi_limb_t mask = ((mpi_limb_t)0) - op_enable;
 
   cy = 0;
   for (i = 0; i < usize; i++)
@@ -102,12 +81,16 @@ mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
 }
 
 
+/*
+ *  Swap value of U and V when OP_ENABLED=1
+ *  otherwise, no change
+ */
 static void
 mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
-                unsigned long swap)
+                unsigned long op_enable)
 {
   mpi_size_t i;
-  mpi_limb_t mask = ((mpi_limb_t)0) - swap;
+  mpi_limb_t mask = ((mpi_limb_t)0) - op_enable;
 
   for (i = 0; i < usize; i++)
     {
@@ -118,13 +101,18 @@ mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
     }
 }
 
+
+/*
+ *  W = -U when OP_ENABLED=1
+ *  otherwise, W = U
+ */
 static void
 mpih_abs_cond (mpi_limb_t *wp, const mpi_limb_t *up, mpi_size_t usize,
-               unsigned long negative)
+               unsigned long op_enable)
 {
   mpi_size_t i;
-  mpi_limb_t mask = ((mpi_limb_t)0) - negative;
-  mpi_limb_t cy = negative;
+  mpi_limb_t mask = ((mpi_limb_t)0) - op_enable;
+  mpi_limb_t cy = op_enable;
 
   for (i = 0; i < usize; i++)
     {
@@ -135,79 +123,20 @@ mpih_abs_cond (mpi_limb_t *wp, const mpi_limb_t *up, mpi_size_t usize,
     }
 }
 
-/*
- * Calculate the multiplicative inverse X of A mod 2^K
- * A must be positive.
- *
- * From "A New Algorithm for Inversion mod p^k" by Çetin Kaya Koç
- * https://eprint.iacr.org/2017/411.pdf sections 7.
- */
-static int
-mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
-{
-  gcry_mpi_t a, b, tb;
-  unsigned int i, iterations;
-  mpi_ptr_t wp, up, vp;
-  mpi_size_t usize;
-
-  if (!mpi_test_bit (a_orig, 0))
-    return 0;
-
-  a = mpi_copy (a_orig);
-  mpi_clear_highbit (a, k);
-
-  b = mpi_alloc_set_ui (1);
-  mpi_set_ui (x, 0);
-
-  iterations = ((k + BITS_PER_MPI_LIMB) / BITS_PER_MPI_LIMB)
-    * BITS_PER_MPI_LIMB;
-  usize = iterations / BITS_PER_MPI_LIMB;
-
-  mpi_resize (b, usize);
-  mpi_resize (x, usize);
-
-  tb = mpi_copy (tb);
-
-  wp = tb->d;
-  up = b->d;
-  vp = a->d;
-
-  /*
-   * In the computation B can be negative, but in the MPI
-   * representation, we don't set the sign.
-   */
-  for (i = 0; i < iterations; i++)
-    {
-      int b0 = mpi_test_bit (b, 0);
-
-      mpi_set_bit_cond (x, i, b0);
-
-      _gcry_mpih_sub_n (wp, up, vp, usize);
-      mpih_set_cond (up, wp, usize, b0);
-    }
-
-  mpi_free (tb);
-  mpi_free (b);
-  mpi_free (a);
-
-  mpi_clear_highbit (x, k);
-  return 1;
-}
-
 
 /*
  * This uses a modular inversion algorithm designed by Niels Möller
- * and implemented in Nettle.  The same algorithm was later also
+ * which was implemented in Nettle.  The same algorithm was later also
  * adapted to GMP in mpn_sec_invert.
  *
- * For the decription of the algorithm, see Algorithm 5 in Appendix A
+ * For the description of the algorithm, see Algorithm 5 in Appendix A
  * of "Fast Software Polynomial Multiplication on ARM Processors using
  * the NEON Engine" by Danilo Câmara, Conrado P. L. Gouvêa, Julio
  * López, and Ricardo Dahab:
- * https://hal.inria.fr/hal-01506572/document
+ *   https://hal.inria.fr/hal-01506572/document
  *
  * Note that in the reference above, at the line 2 of Algorithm 5,
- * it was described as V:=1 wrongly.  It must be V:=0.
+ * initial value of V was described as V:=1 wrongly.  It must be V:=0.
  */
 static int
 mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
@@ -531,6 +460,6 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 
   if (mpi_test_bit (n, 0) && mpi_cmp (a, n) < 0)
     return mpi_invm_odd (x, a, n);
-  else /* FIXME: more detection of condition and use of mpi_invm_pow2 */
+  else
     return mpi_invm_generic (x, a, n);
 }
