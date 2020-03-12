@@ -635,15 +635,15 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
       k = _gcry_dsa_gen_k (skey->q, GCRY_STRONG_RANDOM);
     }
 
+  /* kinv = k^(-1) mod q */
+  kinv = mpi_alloc( mpi_get_nlimbs(k) );
+  mpi_invm(kinv, k, skey->q );
+
   _gcry_dsa_modify_k (k, skey->q, qbits);
 
   /* r = (a^k mod p) mod q */
   mpi_powm( r, skey->g, k, skey->p );
   mpi_fdiv_r( r, r, skey->q );
-
-  /* kinv = k^(-1) mod q */
-  kinv = mpi_alloc( mpi_get_nlimbs(k) );
-  mpi_invm(kinv, k, skey->q );
 
   /* s = (kinv * ( hash + x * r)) mod q */
   tmp = mpi_alloc( mpi_get_nlimbs(skey->p) );

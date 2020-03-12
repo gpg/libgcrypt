@@ -110,6 +110,8 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, mpi_ec_t ec,
           else
             k = _gcry_dsa_gen_k (ec->n, GCRY_STRONG_RANDOM);
 
+          mpi_invm (k_1, k, ec->n);     /* k_1 = k^(-1) mod n  */
+
           _gcry_dsa_modify_k (k, ec->n, qbits);
 
           _gcry_mpi_ec_mul_point (&I, k, ec->G, ec);
@@ -129,7 +131,6 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, mpi_ec_t ec,
       mpi_mulm (dr, dr, r, ec->n);      /* dr = d*r mod n */
       mpi_mulm (sum, b, hash, ec->n);
       mpi_addm (sum, sum, dr, ec->n);   /* sum = hash + (d*r) mod n */
-      mpi_invm (k_1, k, ec->n);         /* k_1 = k^(-1) mod n  */
       mpi_mulm (s, k_1, sum, ec->n);    /* s = k^(-1)*(hash+(d*r)) mod n */
       /* Undo blinding by b^-1 */
       mpi_mulm (s, bi, s, ec->n);
