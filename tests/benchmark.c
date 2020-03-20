@@ -613,7 +613,7 @@ mac_bench ( const char *algoname )
   algo = gcry_mac_map_name (algoname);
   if (!algo)
     {
-      fprintf (stderr, PGM ": invalid hash algorithm `%s'\n", algoname);
+      fprintf (stderr, PGM ": invalid MAC algorithm `%s'\n", algoname);
       exit (1);
     }
 
