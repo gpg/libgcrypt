@@ -1440,6 +1440,7 @@ typedef struct gcry_mac_handle *gcry_mac_hd_t;
 enum gcry_mac_algos
   {
     GCRY_MAC_NONE               = 0,
+    GCRY_MAC_GOST28147_IMIT     = 1,
 
     GCRY_MAC_HMAC_SHA256        = 101,
     GCRY_MAC_HMAC_SHA224        = 102,

@@ -127,6 +127,7 @@ static gcry_mac_spec_t * const mac_list[] = {
 #endif
 #if USE_GOST28147
   &_gcry_mac_type_spec_cmac_gost28147,
+  &_gcry_mac_type_spec_gost28147_imit,
 #endif
   &_gcry_mac_type_spec_poly1305mac,
   NULL,
@@ -403,6 +404,10 @@ spec_from_algo (int algo)
     spec = mac_list_algo401[algo - 401];
   else if (algo >= 501 && algo < 501 + DIM(mac_list_algo501))
     spec = mac_list_algo501[algo - 501];
+#ifdef USE_GOST28147
+  else if (algo == GCRY_MAC_GOST28147_IMIT)
+    spec = &_gcry_mac_type_spec_gost28147_imit;
+#endif
 
   if (spec)
     gcry_assert (spec->algo == algo);
