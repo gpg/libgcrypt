@@ -149,7 +149,8 @@ static gcry_mac_spec_ops_t gmac_ops = {
   gmac_read,
   gmac_verify,
   gmac_get_maclen,
-  gmac_get_keylen
+  gmac_get_keylen,
+  NULL
 };
 
 

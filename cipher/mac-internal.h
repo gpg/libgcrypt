@@ -63,6 +63,9 @@ typedef gcry_err_code_t (*gcry_mac_verify_func_t)(gcry_mac_hd_t h,
 typedef unsigned int (*gcry_mac_get_maclen_func_t)(int algo);
 typedef unsigned int (*gcry_mac_get_keylen_func_t)(int algo);
 
+/* The type used to convey additional information to a MAC.  */
+typedef gpg_err_code_t (*gcry_mac_set_extra_info_t)
+     (gcry_mac_hd_t h, int what, const void *buffer, size_t buflen);
 
 typedef struct gcry_mac_spec_ops
 {
@@ -76,6 +79,7 @@ typedef struct gcry_mac_spec_ops
   gcry_mac_verify_func_t verify;
   gcry_mac_get_maclen_func_t get_maclen;
   gcry_mac_get_keylen_func_t get_keylen;
+  gcry_mac_set_extra_info_t set_extra_info;
 } gcry_mac_spec_ops_t;
 
 

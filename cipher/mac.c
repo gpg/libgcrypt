@@ -708,6 +708,13 @@ _gcry_mac_ctl (gcry_mac_hd_t hd, int cmd, void *buffer, size_t buflen)
     case GCRYCTL_RESET:
       rc = mac_reset (hd);
       break;
+    case GCRYCTL_SET_SBOX:
+      if (hd->spec->ops->set_extra_info)
+        rc = hd->spec->ops->set_extra_info
+          (hd, GCRYCTL_SET_SBOX, buffer, buflen);
+      else
+        rc = GPG_ERR_NOT_SUPPORTED;
+      break;
     default:
       rc = GPG_ERR_INV_OP;
     }

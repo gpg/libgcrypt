@@ -233,7 +233,8 @@ static const gcry_mac_spec_ops_t hmac_ops = {
   hmac_read,
   hmac_verify,
   hmac_get_maclen,
-  hmac_get_keylen
+  hmac_get_keylen,
+  NULL
 };
 
 

@@ -322,7 +322,8 @@ static gcry_mac_spec_ops_t poly1305mac_ops = {
   poly1305mac_read,
   poly1305mac_verify,
   poly1305mac_get_maclen,
-  poly1305mac_get_keylen
+  poly1305mac_get_keylen,
+  NULL
 };
 
 
