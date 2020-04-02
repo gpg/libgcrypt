@@ -167,7 +167,7 @@
 	/* carry propagation */ \
 	and POLY_R_H2, POLY_R_H0, #3;
 #define POLY1305_BLOCK_PART25() \
-	mov POLY_R_H0, POLY_R_H0, lsr #2;
+	lsr POLY_R_H0, POLY_R_H0, #2;
 #define POLY1305_BLOCK_PART26() \
 	add POLY_R_H0, POLY_R_H0, POLY_R_H0, lsl #2;
 #define POLY1305_BLOCK_PART27() \
