@@ -154,25 +154,62 @@ static const vector16x_u8 bswap_const ALIGNED_64 =
 #ifdef WORDS_BIGENDIAN
 # define CRC_VEC_U64_DEF(lo, hi) { (hi), (lo) }
 # define CRC_VEC_U64_LOAD(offs, ptr) \
-          asm_swap_u64(vec_vsx_ld((offs), (const unsigned long long *)(ptr)))
+	  asm_swap_u64(asm_vec_u64_load(offs, ptr))
 # define CRC_VEC_U64_LOAD_LE(offs, ptr) \
-	  CRC_VEC_SWAP(vec_vsx_ld((offs), (const unsigned long long *)(ptr)))
+	  CRC_VEC_SWAP(asm_vec_u64_load(offs, ptr))
 # define CRC_VEC_U64_LOAD_BE(offs, ptr) \
-         vec_vsx_ld((offs), (const unsigned long long *)(ptr))
+	  asm_vec_u64_load(offs, ptr)
 # define CRC_VEC_SWAP_TO_LE(v) CRC_VEC_SWAP(v)
 # define CRC_VEC_SWAP_TO_BE(v) (v)
 # define VEC_U64_LO 1
 # define VEC_U64_HI 0
+
+static ASM_FUNC_ATTR_INLINE vector2x_u64
+asm_vec_u64_load(unsigned long offset, const void *ptr)
+{
+  vector2x_u64 vecu64;
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("lxvd2x %x0,0,%1\n\t"
+		      : "=wa" (vecu64)
+		      : "r" ((uintptr_t)ptr)
+		      : "memory");
+  else
+#endif
+    __asm__ volatile ("lxvd2x %x0,%1,%2\n\t"
+		      : "=wa" (vecu64)
+		      : "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
+  return vecu64;
+}
 #else
 # define CRC_VEC_U64_DEF(lo, hi) { (lo), (hi) }
-# define CRC_VEC_U64_LOAD(offs, ptr) \
-	  vec_vsx_ld((offs), (const unsigned long long *)(ptr))
-# define CRC_VEC_U64_LOAD_LE(offs, ptr) CRC_VEC_U64_LOAD((offs), (ptr))
+# define CRC_VEC_U64_LOAD(offs, ptr) asm_vec_u64_load_le(offs, ptr)
+# define CRC_VEC_U64_LOAD_LE(offs, ptr) asm_vec_u64_load_le(offs, ptr)
 # define CRC_VEC_U64_LOAD_BE(offs, ptr) asm_vec_u64_load_be(offs, ptr)
 # define CRC_VEC_SWAP_TO_LE(v) (v)
 # define CRC_VEC_SWAP_TO_BE(v) CRC_VEC_SWAP(v)
 # define VEC_U64_LO 0
 # define VEC_U64_HI 1
+
+static ASM_FUNC_ATTR_INLINE vector2x_u64
+asm_vec_u64_load_le(unsigned long offset, const void *ptr)
+{
+  vector2x_u64 vecu64;
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("lxvd2x %x0,0,%1\n\t"
+		      : "=wa" (vecu64)
+		      : "r" ((uintptr_t)ptr)
+		      : "memory");
+  else
+#endif
+    __asm__ volatile ("lxvd2x %x0,%1,%2\n\t"
+		      : "=wa" (vecu64)
+		      : "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
+  return asm_swap_u64(vecu64);
+}
 
 static ASM_FUNC_ATTR_INLINE vector2x_u64
 asm_vec_u64_load_be(unsigned int offset, const void *ptr)

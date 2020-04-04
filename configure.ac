@@ -1849,10 +1849,12 @@ AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX intrinsics],
 	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 	[[#include <altivec.h>
 	  typedef vector unsigned char block;
+	  typedef vector unsigned int vecu32;
 	  block fn(block in)
 	  {
 	    block t = vec_perm (in, in, vec_vsx_ld (0, (unsigned char*)0));
-	    return vec_cipher_be (t, in);
+	    vecu32 y = vec_vsx_ld (0, (unsigned int*)0);
+	    return vec_cipher_be (t, in) ^ (block)y;
 	  }
 	  ]])],
 	[gcry_cv_cc_ppc_altivec=yes])
@@ -1873,10 +1875,12 @@ if test "$gcry_cv_cc_ppc_altivec" = "no" &&
     AC_COMPILE_IFELSE([AC_LANG_SOURCE(
       [[#include <altivec.h>
 	typedef vector unsigned char block;
+	typedef vector unsigned int vecu32;
 	block fn(block in)
 	{
 	  block t = vec_perm (in, in, vec_vsx_ld (0, (unsigned char*)0));
-	  return vec_cipher_be (t, in);
+	  vecu32 y = vec_vsx_ld (0, (unsigned int*)0);
+	  return vec_cipher_be (t, in) ^ (block)y;
 	}]])],
       [gcry_cv_cc_ppc_altivec_cflags=yes])])
   if test "$gcry_cv_cc_ppc_altivec_cflags" = "yes" ; then

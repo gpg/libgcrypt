@@ -115,11 +115,59 @@ vec_merge_idx0_elems(vector2x_u64 v0, vector2x_u64 v1)
 static ASM_FUNC_ATTR_INLINE vector2x_u64
 vec_vshasigma_u64(vector2x_u64 v, unsigned int a, unsigned int b)
 {
-  asm ("vshasigmad %0,%1,%2,%3"
-       : "=v" (v)
-       : "v" (v), "g" (a), "g" (b)
-       : "memory");
+  __asm__ ("vshasigmad %0,%1,%2,%3"
+	   : "=v" (v)
+	   : "v" (v), "g" (a), "g" (b)
+	   : "memory");
   return v;
+}
+
+
+static ASM_FUNC_ATTR_INLINE vector2x_u64
+vec_u64_load(unsigned long offset, const void *ptr)
+{
+  vector2x_u64 vecu64;
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ ("lxvd2x %x0,0,%1\n\t"
+	     : "=wa" (vecu64)
+	     : "r" ((uintptr_t)ptr)
+	     : "memory");
+  else
+#endif
+    __asm__ ("lxvd2x %x0,%1,%2\n\t"
+	     : "=wa" (vecu64)
+	     : "r" (offset), "r" ((uintptr_t)ptr)
+	     : "memory", "r0");
+#ifndef WORDS_BIGENDIAN
+  __asm__ ("xxswapd %x0, %x1"
+	   : "=wa" (vecu64)
+	   : "wa" (vecu64));
+#endif
+  return vecu64;
+}
+
+
+static ASM_FUNC_ATTR_INLINE void
+vec_u64_store(vector2x_u64 vecu64, unsigned long offset, void *ptr)
+{
+#ifndef WORDS_BIGENDIAN
+  __asm__ ("xxswapd %x0, %x1"
+	   : "=wa" (vecu64)
+	   : "wa" (vecu64));
+#endif
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ ("stxvd2x %x0,0,%1\n\t"
+	     :
+	     : "wa" (vecu64), "r" ((uintptr_t)ptr)
+	     : "memory");
+  else
+#endif
+    __asm__ ("stxvd2x %x0,%1,%2\n\t"
+	     :
+	     : "wa" (vecu64), "r" (offset), "r" ((uintptr_t)ptr)
+	     : "memory", "r0");
 }
 
 
@@ -168,13 +216,13 @@ _gcry_sha512_transform_ppc8(u64 state[8],
   vector2x_u64 a, b, c, d, e, f, g, h, t1, t2;
   u64 w[16];
 
-  h0 = vec_vsx_ld (8 * 0, (unsigned long long *)state);
+  h0 = vec_u64_load (8 * 0, (unsigned long long *)state);
   h1 = vec_rol_elems (h0, 1);
-  h2 = vec_vsx_ld (8 * 2, (unsigned long long *)state);
+  h2 = vec_u64_load (8 * 2, (unsigned long long *)state);
   h3 = vec_rol_elems (h2, 1);
-  h4 = vec_vsx_ld (8 * 4, (unsigned long long *)state);
+  h4 = vec_u64_load (8 * 4, (unsigned long long *)state);
   h5 = vec_rol_elems (h4, 1);
-  h6 = vec_vsx_ld (8 * 6, (unsigned long long *)state);
+  h6 = vec_u64_load (8 * 6, (unsigned long long *)state);
   h7 = vec_rol_elems (h6, 1);
 
   while (nblks >= 2)
@@ -514,10 +562,10 @@ _gcry_sha512_transform_ppc8(u64 state[8],
   h2 = vec_merge_idx0_elems (h2, h3);
   h4 = vec_merge_idx0_elems (h4, h5);
   h6 = vec_merge_idx0_elems (h6, h7);
-  vec_vsx_st (h0, 8 * 0, (unsigned long long *)state);
-  vec_vsx_st (h2, 8 * 2, (unsigned long long *)state);
-  vec_vsx_st (h4, 8 * 4, (unsigned long long *)state);
-  vec_vsx_st (h6, 8 * 6, (unsigned long long *)state);
+  vec_u64_store (h0, 8 * 0, (unsigned long long *)state);
+  vec_u64_store (h2, 8 * 2, (unsigned long long *)state);
+  vec_u64_store (h4, 8 * 4, (unsigned long long *)state);
+  vec_u64_store (h6, 8 * 6, (unsigned long long *)state);
 
   return sizeof(w);
 }
