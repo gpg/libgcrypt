@@ -4513,7 +4513,7 @@ likely want to use @code{GCRYMPI_FMT_USG}.
 Extract parameters from an S-expression using a list of parameter
 names.  The names of these parameters are specified in LIST.  White
 space between the parameter names are ignored. Some special characters
-may be given to control the conversion:
+and character sequences may be given to control the conversion:
 
 @table @samp
 @item +
@@ -4526,6 +4526,25 @@ Switch to opaque MPI format.  The resulting MPIs may not be used for
 computations; see @code{gcry_mpi_get_opaque} for details.
 @item &
 Switch to buffer descriptor mode.  See below for details.
+@item %s
+Switch to string mode.  The expected argument is the address of a
+@code{char *} variable; the caller must release that value.  If the
+parameter was marked optional and is not found, NULL is stored.
+@item %u
+Switch to unsigned integer mode. The expected argument is address of
+a @code{unsigned int} variable.
+@item %lu
+Switch to unsigned long integer mode. The expected argument is address of
+a @code{unsigned long} variable.
+@item %d
+Switch to signed integer mode. The expected argument is address of
+a @code{int} variable.
+@item %ld
+Switch to signed long integer mode. The expected argument is address of
+a @code{long} variable.
+@item %zu
+Switch to size_t mode. The expected argument is address of
+a @code{size_t} variable.
 @item ?
 If immediately following a parameter letter (no white space allowed),
 that parameter is considered optional.

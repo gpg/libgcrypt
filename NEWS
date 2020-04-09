@@ -41,10 +41,18 @@ Noteworthy changes in version 1.9.0 (unreleased)  [C22/A3/R0]
    - Fix fatal out of secure memory status in the s-expression parser
      on heavy loaded systems.  [also in 1.8.2]
 
+ * Extended interfaces:
+
+   - gcry_sexp_extract_param understands new format specifiers to
+     directly store to integers and strings.
+
+
  * Interface changes relative to the 1.8.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    gcry_mpi_get_ui                 NEW function.
    GCRYCTL_AUTO_EXPAND_SECMEM      NEW control code.
+   gcry_sexp_extract_param         EXTENDED.
+
 
  * Release dates of 1.8.x versions:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

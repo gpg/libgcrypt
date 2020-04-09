@@ -2246,11 +2246,17 @@ _gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
  * names of these parameters are given by the string LIST.  Some
  * special characters may be given to control the conversion:
  *
- *    + :: Switch to unsigned integer format (default).
- *    - :: Switch to standard signed format.
- *    / :: Switch to opaque format.
- *    & :: Switch to buffer descriptor mode - see below.
- *    ? :: The previous parameter is optional.
+ *   +   :: Switch to unsigned integer format (default).
+ *   -   :: Switch to standard signed format.
+ *   /   :: Switch to opaque format
+ *   &   :: Switch to buffer descriptor mode - see below.
+ *   %s  :: Switch to allocated string arguments.
+ *   %u  :: Switch to unsigned integer arguments.
+ *   %lu :: Switch to unsigned long integer arguments.
+ *   %zu :: Switch to size_t arguments.
+ *   %d  :: Switch to signed integer arguments.
+ *   %ld :: Switch to signed long integer arguments.
+ *   ?   :: The previous parameter is optional.
  *
  * In general parameter names are single letters.  To use a string for
  * a parameter name, enclose the name in single quotes.
@@ -2293,13 +2299,22 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
 {
   gpg_err_code_t rc;
   const char *s, *s2;
-  gcry_mpi_t *array[20];
+  void **array[20];
   char arrayisdesc[20];
   int idx;
   gcry_sexp_t l1 = NULL;
   int mode = '+'; /* Default to GCRYMPI_FMT_USG.  */
+  int submode = 0;
   gcry_sexp_t freethis = NULL;
+  char *tmpstr = NULL;
 
+  /* Values in ARRAYISDESC describing what the ARRAY holds.
+   *  0  - MPI
+   *  1  - gcry_buffer_t provided by caller.
+   *  2  - gcry_buffer_t allocated by us.
+   * 's' - String allocated by us.
+   * 'x' - Ignore
+   */
   memset (arrayisdesc, 0, sizeof arrayisdesc);
 
   /* First copy all the args into an array.  This is required so that
@@ -2309,6 +2324,15 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
     {
       if (*s == '&' || *s == '+' || *s == '-' || *s == '/' || *s == '?')
         ;
+      else if (*s == '%')
+        {
+          s++;
+          if (*s == 'l' && (s[1] == 'u' || s[1] == 'd'))
+            s++;
+          else if (*s == 'z' && s[1] == 'u')
+            s++;
+          continue;
+        }
       else if (whitespacep (s))
         ;
       else
@@ -2324,7 +2348,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                 }
               s = s2;
             }
-          array[idx] = va_arg (arg_ptr, gcry_mpi_t *);
+          array[idx] = va_arg (arg_ptr, void *);
           if (!array[idx])
             return GPG_ERR_MISSING_VALUE; /* NULL pointer given.  */
           idx++;
@@ -2368,6 +2392,30 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
     {
       if (*s == '&' || *s == '+' || *s == '-' || *s == '/')
         mode = *s;
+      else if (*s == '%')
+        {
+          s++;
+          if (!*s)
+            continue;  /* Ignore at end of format.  */
+          if (*s == 's' || *s == 'd' || *s == 'u')
+            {
+              mode = *s;
+              submode = 0;
+            }
+          else if (*s == 'l' && (s[1] == 'u' || s[1] == 'd'))
+            {
+              mode = s[1];
+              submode = 'l';
+              s++;
+            }
+          else if (*s == 'z' && s[1] == 'u')
+            {
+              mode = s[1];
+              submode = 'z';
+              s++;
+            }
+          continue;
+        }
       else if (whitespacep (s))
         ;
       else if (*s == '?')
@@ -2403,6 +2451,29 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                       spec->off = 0;
                     }
                   spec->len = 0;
+                }
+              else if (mode == 's')
+                {
+                  *array[idx] = NULL;
+                  arrayisdesc[idx] = 's';
+                }
+              else if (mode == 'd')
+                {
+                  if (submode == 'l')
+                    *(long *)array[idx] = 0;
+                  else
+                    *(int *)array[idx] = 0;
+                  arrayisdesc[idx] = 'x';
+                }
+              else if (mode == 'u')
+                {
+                  if (submode == 'l')
+                    *(unsigned long *)array[idx] = 0;
+                  else if (submode == 'z')
+                    *(size_t *)array[idx] = 0;
+                  else
+                    *(unsigned int *)array[idx] = 0;
+                  arrayisdesc[idx] = 'x';
                 }
               else
                 *array[idx] = NULL;
@@ -2451,27 +2522,79 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                       arrayisdesc[idx] = 2;
                     }
                 }
-              else if (mode == '/')
-                *array[idx] = _gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_OPAQUE);
-              else if (mode == '-')
-                *array[idx] = _gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_STD);
-              else
-                *array[idx] = _gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-              sexp_release (l1); l1 = NULL;
-              if (!*array[idx])
+              else if (mode == 's')
                 {
-                  rc = GPG_ERR_INV_OBJ;  /* Conversion failed.  */
-                  goto cleanup;
+                  *array[idx] = _gcry_sexp_nth_string (l1, 1);
+                  if (!*array[idx])
+                    {
+                      rc = gpg_err_code_from_syserror ();
+                      goto cleanup;
+                    }
+                  arrayisdesc[idx] = 's';
                 }
+              else if (mode == 'd')
+                {
+                  long along;
+
+                  xfree (tmpstr);
+                  tmpstr = _gcry_sexp_nth_string (l1, 1);
+                  if (!tmpstr)
+                    {
+                      rc = gpg_err_code_from_syserror ();
+                      goto cleanup;
+                    }
+                  along = strtol (tmpstr, NULL, 10);
+                  if (submode == 'l')
+                    *(long *)array[idx] = along;
+                  else
+                    *(int *)array[idx] = along;
+                  arrayisdesc[idx] = 'x';
+                }
+              else if (mode == 'u')
+                {
+                  long aulong;
+
+                  xfree (tmpstr);
+                  tmpstr = _gcry_sexp_nth_string (l1, 1);
+                  if (!tmpstr)
+                    {
+                      rc = gpg_err_code_from_syserror ();
+                      goto cleanup;
+                    }
+                  aulong = strtoul (tmpstr, NULL, 10);
+                  if (submode == 'l')
+                    *(unsigned long *)array[idx] = aulong;
+                  else if (submode == 'z')
+                    *(size_t *)array[idx] = aulong;
+                  else
+                    *(unsigned int *)array[idx] = aulong;
+                  arrayisdesc[idx] = 'x';
+                }
+              else
+                {
+                  if (mode == '/')
+                    *array[idx] = _gcry_sexp_nth_mpi (l1,1,GCRYMPI_FMT_OPAQUE);                  else if (mode == '-')
+                    *array[idx] = _gcry_sexp_nth_mpi (l1,1,GCRYMPI_FMT_STD);
+                  else
+                    *array[idx] = _gcry_sexp_nth_mpi (l1,1,GCRYMPI_FMT_USG);
+                  if (!*array[idx])
+                    {
+                      rc = GPG_ERR_INV_OBJ;  /* Conversion failed.  */
+                      goto cleanup;
+                    }
+                }
+              sexp_release (l1); l1 = NULL;
             }
           idx++;
         }
     }
 
+  xfree (tmpstr);
   sexp_release (freethis);
   return 0;
 
  cleanup:
+  xfree (tmpstr);
   sexp_release (freethis);
   sexp_release (l1);
   while (idx--)
@@ -2487,13 +2610,19 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
           gcry_buffer_t *spec = (gcry_buffer_t*)array[idx];
           spec->len = 0;
         }
-      else
+      else if (arrayisdesc[idx] == 2)
         {
           /* We might have allocated a buffer.  */
           gcry_buffer_t *spec = (gcry_buffer_t*)array[idx];
           xfree (spec->data);
           spec->data = NULL;
           spec->size = spec->off = spec->len = 0;
+        }
+      else if (arrayisdesc[idx] == 's')
+        {
+          /* We might have allocated a buffer.  */
+          xfree (*array[idx]);
+          *array[idx] = NULL;
         }
      }
   return rc;
