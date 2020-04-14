@@ -133,7 +133,7 @@ _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ec,
       rc = GPG_ERR_INTERNAL;
     }
   else
-    rc = eddsa_encode_x_y (x, y, ec->nbits/8, with_prefix, r_buffer, r_buflen);
+    rc = eddsa_encode_x_y (x, y, (ec->nbits+7)/8, with_prefix, r_buffer, r_buflen);
 
   if (!x_in)
     mpi_free (x);
@@ -330,7 +330,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
 
               if (r_encpk)
                 {
-                  rc = eddsa_encode_x_y (x, y, ctx->nbits/8, 0,
+                  rc = eddsa_encode_x_y (x, y, (ctx->nbits+7)/8, 0,
                                          r_encpk, r_encpklen);
                   if (rc)
                     {
@@ -367,7 +367,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
       /* Note: Without using an opaque MPI it is not reliable possible
          to find out whether the public key has been given in
          uncompressed format.  Thus we expect native EdDSA format.  */
-      rawmpi = _gcry_mpi_get_buffer (pk, ctx->nbits/8, &rawmpilen, NULL);
+      rawmpi = _gcry_mpi_get_buffer (pk, (ctx->nbits+7)/8, &rawmpilen, NULL);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
     }
@@ -723,7 +723,7 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   h = mpi_new (0);
   s = mpi_new (0);
 
-  b = ec->nbits/8;
+  b = (ec->nbits+7)/8;
   if (b != 256/8)
     {
       rc = GPG_ERR_INTERNAL; /* We only support 256 bit. */
