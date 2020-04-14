@@ -4530,6 +4530,14 @@ Switch to buffer descriptor mode.  See below for details.
 Switch to string mode.  The expected argument is the address of a
 @code{char *} variable; the caller must release that value.  If the
 parameter was marked optional and is not found, NULL is stored.
+@item %#s
+Switch to multi string mode.  The expected argument is the address of a
+@code{char *} variable; the caller must release that value.  If the
+parameter was marked optional and is not found, NULL is stored.  A
+multi string takes all values, assumes they are strings and
+concatenates them using a space as delimiter.  In case a value is
+actually another list this is not further parsed but a @code{()} is
+inserted in place of that sublist.
 @item %u
 Switch to unsigned integer mode. The expected argument is address of
 a @code{unsigned int} variable.

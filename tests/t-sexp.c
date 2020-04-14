@@ -628,6 +628,8 @@ check_extract_param (void)
     "  (i +65537)"
     "  (I -65535)"
     "  (i0 1:0)"
+    "  (flaglist foo     bar (sublist x) test 2:42)"
+    "  (noflags)"
     "  (ecc"
     "   (curve Ed25519)"
     "   (p #7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED#)"
@@ -1141,6 +1143,42 @@ check_extract_param (void)
   gcry_free (string1);
   gcry_free (string2);
   gcry_mpi_release (mpis[0]);
+
+
+  info ("checking gcry_sexp_extract_param flag list\n");
+
+  gcry_sexp_release (sxp);
+  err = gcry_sexp_new (&sxp, sample1, 0, 1);
+  if (err)
+    die ("converting string to sexp failed: %s", gpg_strerror (err));
+
+  err = gcry_sexp_extract_param (sxp, "key-data!private-key",
+                                 "%#s'flaglist''noflags'",
+                                 &string1, &string2,
+                                 NULL);
+  if (err)
+    fail ("gcry_sexp_extract_param flag list failed: %s", gpg_strerror (err));
+
+  if (!string1)
+    fail ("gcry_sexp_extract_param flaglist: no flaglist");
+  else if (strcmp (string1, "foo bar () test 42"))
+    {
+      fail ("gcry_sexp_extract_param flag list failed: wrong list");
+      gcry_log_debug ("expected: %s\n", "foo bar ( ) test 42");
+      gcry_log_debug ("     got: %s\n", string1);
+    }
+
+  if (!string2)
+    fail ("gcry_sexp_extract_param flaglist: no second flaglist");
+  else if (strcmp (string2, ""))
+    {
+      fail ("gcry_sexp_extract_param flag list failed: wrong list");
+      gcry_log_debug ("expected: '%s'\n", "");
+      gcry_log_debug ("     got: '%s'\n", string2);
+    }
+
+  gcry_free (string1);
+  gcry_free (string2);
 
 
   gcry_sexp_release (sxp);

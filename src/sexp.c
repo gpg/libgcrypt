@@ -2251,6 +2251,7 @@ _gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
  *   /   :: Switch to opaque format
  *   &   :: Switch to buffer descriptor mode - see below.
  *   %s  :: Switch to allocated string arguments.
+ *   %#s :: Switch to allocated string arguments for a list of string flags.
  *   %u  :: Switch to unsigned integer arguments.
  *   %lu :: Switch to unsigned long integer arguments.
  *   %zu :: Switch to size_t arguments.
@@ -2283,6 +2284,9 @@ _gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
  * is too small, the function immediately returns with an error code
  * (and LEN set to 0).
  *
+ * For a flag list ("%#s") which has other lists as elements these
+ * sub-lists are skipped and a indicated by "()" in the output.
+ *
  * PATH is an optional string used to locate a token.  The exclamation
  * mark separated tokens are used to via gcry_sexp_find_token to find
  * a start point inside SEXP.
@@ -2301,7 +2305,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
   const char *s, *s2;
   void **array[20];
   char arrayisdesc[20];
-  int idx;
+  int idx, i;
   gcry_sexp_t l1 = NULL;
   int mode = '+'; /* Default to GCRYMPI_FMT_USG.  */
   int submode = 0;
@@ -2330,6 +2334,8 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
           if (*s == 'l' && (s[1] == 'u' || s[1] == 'd'))
             s++;
           else if (*s == 'z' && s[1] == 'u')
+            s++;
+          else if (*s == '#' && s[1] == 's')
             s++;
           continue;
         }
@@ -2412,6 +2418,12 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
             {
               mode = s[1];
               submode = 'z';
+              s++;
+            }
+          else if (*s == '#' && s[1] == 's')
+            {
+              mode = s[1];
+              submode = '#';
               s++;
             }
           continue;
@@ -2524,7 +2536,45 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                 }
               else if (mode == 's')
                 {
-                  *array[idx] = _gcry_sexp_nth_string (l1, 1);
+                  if (submode == '#')
+                    {
+                      size_t needed = 0;
+                      size_t n;
+                      int l1len;
+                      char *p;
+
+                      l1len = l1? sexp_length (l1) : 0;
+                      for (i = 1; i < l1len; i++)
+                        {
+                          s2 = sexp_nth_data (l1, i, &n);
+                          if (!s2)
+                            n = 2; /* Not a data element; we use "()". */
+                          needed += n + 1;
+                        }
+                      if (!needed)
+                        {
+                          *array[idx] = p = xtrymalloc (1);
+                          if (p)
+                            *p = 0;
+                        }
+                      else if ((*array[idx] = p = xtrymalloc (needed)))
+                        {
+                          for (i = 1; i < l1len; i++)
+                            {
+                              s2 = sexp_nth_data (l1, i, &n);
+                              if (!s2)
+                                memcpy (p, "()", (n=2));
+                              else
+                                memcpy (p, s2, n);
+                              p[n] = ' ';
+                              p += n + 1;
+                            }
+                          if (p != *array[idx])
+                            p[-1] = 0;
+                        }
+                    }
+                  else
+                    *array[idx] = _gcry_sexp_nth_string (l1, 1);
                   if (!*array[idx])
                     {
                       rc = gpg_err_code_from_syserror ();
