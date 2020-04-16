@@ -634,6 +634,23 @@ _gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 }
 
 
+/****************
+ * Set bit N of A, when SET is 1.
+ * This implementation should be constant-time regardless of SET.
+ */
+void
+_gcry_mpi_set_bit_cond (gcry_mpi_t a, unsigned int n, unsigned long set)
+{
+  unsigned int limbno, bitno;
+  mpi_limb_t set_the_bit = !!set;
+
+  limbno = n / BITS_PER_MPI_LIMB;
+  bitno  = n % BITS_PER_MPI_LIMB;
+
+  a->d[limbno] |= (set_the_bit<<bitno);
+}
+
+
 gcry_mpi_t
 _gcry_mpi_new (unsigned int nbits)
 {
