@@ -254,6 +254,24 @@ mpi_limb_t _gcry_mpih_lshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 mpi_limb_t _gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 							   unsigned cnt);
 
+/*-- mpih-const-time.c --*/
+#define mpih_set_cond(w,u,s,o) _gcry_mpih_set_cond ((w),(u),(s),(o))
+#define mpih_add_n_cond(w,u,v,s,o) _gcry_mpih_add_n_cond ((w),(u),(v),(s),(o))
+#define mpih_sub_n_cond(w,u,v,s,o) _gcry_mpih_sub_n_cond ((w),(u),(v),(s),(o))
+#define mpih_swap_cond(u,v,s,o) _gcry_mpih_swap_cond ((u),(v),(s),(o))
+#define mpih_abs_cond(w,u,s,o) _gcry_mpih_abs_cond ((w),(u),(s),(o))
+
+void _gcry_mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
+                          unsigned long op_enable);
+mpi_limb_t _gcry_mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
+                                  mpi_size_t usize, unsigned long op_enable);
+mpi_limb_t _gcry_mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
+                                  mpi_size_t usize, unsigned long op_enable);
+void _gcry_mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
+                           unsigned long op_enable);
+void _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up,
+                          mpi_size_t usize, unsigned long op_enable);
+
 
 /* Define stuff for longlong.h.  */
 #define W_TYPE_SIZE BITS_PER_MPI_LIMB

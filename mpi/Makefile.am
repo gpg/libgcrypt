@@ -173,6 +173,7 @@ libmpi_la_SOURCES = longlong.h	   \
 	      mpicoder.c     \
 	      mpih-div.c     \
 	      mpih-mul.c     \
-	      mpiutil.c      \
+	      mpih-const-time.c \
+	      mpiutil.c         \
               ec.c ec-internal.h ec-ed25519.c
 EXTRA_libmpi_la_SOURCES = asm-common-aarch64.h

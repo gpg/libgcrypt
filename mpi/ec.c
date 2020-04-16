@@ -354,20 +354,6 @@ ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
     }
 }
 
-static void
-mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned long set)
-{
-  mpi_size_t i;
-  mpi_limb_t mask = ((mpi_limb_t)0) - set;
-  mpi_limb_t x;
-
-  for (i = 0; i < usize; i++)
-    {
-      x = mask & (wp[i] ^ up[i]);
-      wp[i] = wp[i] ^ x;
-    }
-}
-
 /* Routines for 2^255 - 19.  */
 
 #define LIMB_SIZE_25519 ((256+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB)
