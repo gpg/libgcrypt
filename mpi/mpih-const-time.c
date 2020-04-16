@@ -23,6 +23,8 @@
 #include "mpi-internal.h"
 #include "g10lib.h"
 
+#define A_LIMB_1 ((mpi_limb_t)1)
+
 /*
  *  W = U when OP_ENABLED=1
  *  otherwise, W keeps old value
@@ -141,4 +143,40 @@ _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
       cy = (x < ~up[i]);
       wp[i] = up[i] ^ (mask & (x ^ up[i]));
     }
+}
+
+
+/*
+ * Allocating memory for W,
+ * compute W = V % U, then return W
+ */
+mpi_ptr_t
+_gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
+                mpi_ptr_t up, mpi_size_t usize)
+{
+  int secure;
+  mpi_ptr_t rp;
+  mpi_size_t i;
+
+  secure = _gcry_is_secure (vp);
+  rp = mpi_alloc_limb_space (usize, secure);
+  MPN_ZERO (rp, usize);
+
+  for (i = 0; i < vsize * BITS_PER_MPI_LIMB; i++)
+    {
+      unsigned int j = vsize * BITS_PER_MPI_LIMB - 1 - i;
+      unsigned int limbno = j / BITS_PER_MPI_LIMB;
+      unsigned int bitno = j % BITS_PER_MPI_LIMB;
+      mpi_limb_t limb = vp[limbno];
+      unsigned int the_bit = ((limb & (A_LIMB_1 << bitno)) ? 1 : 0);
+      mpi_limb_t underflow;
+
+      _gcry_mpih_lshift (rp, rp, usize, 1);
+      rp[0] |= the_bit;
+
+      underflow = _gcry_mpih_sub_n (rp, rp, up, usize);
+      mpih_add_n_cond (rp, rp, up, usize, underflow);
+    }
+
+  return rp;
 }
