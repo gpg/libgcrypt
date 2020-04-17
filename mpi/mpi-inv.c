@@ -134,7 +134,7 @@ mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
   mpi_resize (b, usize);
   mpi_resize (x, usize);
 
-  tb = mpi_copy (tb);
+  tb = mpi_copy (b);
 
   wp = tb->d;
   up = b->d;
@@ -441,5 +441,12 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
         return 0; /* Inverse does not exists.  */
     }
   else
-    return mpi_invm_generic (x, a, n);
+    {
+      unsigned int count = mpi_trailing_zeros (n);
+
+      if (count == _gcry_mpi_get_nbits (n) - 1)
+        return mpi_invm_pow2 (x, a, count);
+
+      return mpi_invm_generic (x, a, n);
+    }
 }
