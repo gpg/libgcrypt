@@ -274,6 +274,7 @@ void _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up,
                           mpi_size_t usize, unsigned long op_enable);
 mpi_ptr_t _gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
                           mpi_ptr_t up, mpi_size_t usize);
+int _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v);
 
 
 /* Define stuff for longlong.h.  */

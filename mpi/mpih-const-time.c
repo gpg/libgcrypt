@@ -180,3 +180,17 @@ _gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
 
   return rp;
 }
+
+int
+_gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v)
+{
+  int is_all_zero = 1;
+  mpi_size_t i;
+
+  for (i = 1; i < usize; i++)
+    is_all_zero &= (up[i] == 0);
+
+  if (is_all_zero)
+    return up[0] - v;
+  return 1;
+}
