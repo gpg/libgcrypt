@@ -105,6 +105,67 @@ mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
   return is_gcd_one;
 }
 
+
+/*
+ * Calculate the multiplicative inverse X of A mod 2^K
+ * A must be positive.
+ *
+ * See section 7 in "A New Algorithm for Inversion mod p^k" by Çetin
+ * Kaya Koç: https://eprint.iacr.org/2017/411.pdf
+ */
+static int
+mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
+{
+  gcry_mpi_t a, b, tb;
+  unsigned int i, iterations;
+  mpi_ptr_t wp, up, vp;
+  mpi_size_t usize;
+
+  if (!mpi_test_bit (a_orig, 0))
+    return 0;
+
+  a = mpi_copy (a_orig);
+  mpi_clear_highbit (a, k);
+
+  b = mpi_alloc_set_ui (1);
+  mpi_set_ui (x, 0);
+
+  iterations = ((k + BITS_PER_MPI_LIMB) / BITS_PER_MPI_LIMB)
+    * BITS_PER_MPI_LIMB;
+  usize = iterations / BITS_PER_MPI_LIMB;
+
+  mpi_resize (b, usize);
+  mpi_resize (x, usize);
+
+  tb = mpi_copy (tb);
+
+  wp = tb->d;
+  up = b->d;
+  vp = a->d;
+
+  /*
+   * In the loop, B can be negative, but in the MPI
+   * representation, we don't set b->sign.
+   */
+  for (i = 0; i < iterations; i++)
+    {
+      int b0 = mpi_test_bit (b, 0);
+
+      mpi_set_bit_cond (x, i, b0);
+
+      _gcry_mpih_sub_n (wp, up, vp, usize);
+      mpih_set_cond (up, wp, usize, b0);
+    }
+
+  mpi_free (tb);
+  mpi_free (b);
+  mpi_free (a);
+
+  mpi_clear_highbit (x, k);
+  return 1;
+}
+
+
 /****************
  * Calculate the multiplicative inverse X of A mod N
  * That is: Find the solution x for
