@@ -37,41 +37,31 @@
  * Note that in the reference above, at the line 2 of Algorithm 5,
  * initial value of V was described as V:=1 wrongly.  It must be V:=0.
  */
-static int
-mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
+static mpi_ptr_t
+mpih_invm_odd (mpi_ptr_t ap, mpi_ptr_t np, mpi_size_t nsize)
 {
-  mpi_size_t nsize;
-  gcry_mpi_t a, b, n1h;
-  gcry_mpi_t u;
+  int secure;
   unsigned int iterations;
-  mpi_ptr_t ap, bp, n1hp;
+  mpi_ptr_t n1hp;
+  mpi_ptr_t bp;
   mpi_ptr_t up, vp;
-  int is_gcd_one;
 
-  nsize = n->nlimbs;
+  secure = _gcry_is_secure (ap);
+  up = mpi_alloc_limb_space (nsize, secure);
+  MPN_ZERO (up, nsize);
+  up[0] = 1;
 
-  a = mpi_copy (a_orig);
-  mpi_resize (a, nsize);
-  ap = a->d;
+  vp = mpi_alloc_limb_space (nsize, secure);
+  MPN_ZERO (vp, nsize);
 
-  b = mpi_copy (n);
-  bp = b->d;
+  secure = _gcry_is_secure (np);
+  bp = mpi_alloc_limb_space (nsize, secure);
+  MPN_COPY (bp, np, nsize);
 
-  u = mpi_alloc_set_ui (1);
-  mpi_resize (u, nsize);
-  up = u->d;
-
-  mpi_resize (x, nsize);
-  x->nlimbs = nsize;
-  vp = x->d;
-  memset (vp, 0, nsize * BYTES_PER_MPI_LIMB);
-
-  n1h = mpi_copy (n);
-  mpi_rshift (n1h, n1h, 1);
-  mpi_add_ui (n1h, n1h, 1);
-  mpi_resize (n1h, nsize);
-
-  n1hp = n1h->d;
+  n1hp = mpi_alloc_limb_space (nsize, secure);
+  MPN_COPY (n1hp, np, nsize);
+  _gcry_mpih_rshift (n1hp, n1hp, nsize, 1);
+  _gcry_mpih_add_1 (n1hp, n1hp, nsize, 1);
 
   iterations = 2 * nsize * BITS_PER_MPI_LIMB;
 
@@ -89,20 +79,27 @@ mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
       _gcry_mpih_rshift (ap, ap, nsize, 1);
 
       borrow = mpih_sub_n_cond (up, up, vp, nsize, odd_a);
-      mpih_add_n_cond (up, up, n->d, nsize, borrow);
+      mpih_add_n_cond (up, up, np, nsize, borrow);
 
       odd_u = _gcry_mpih_rshift (up, up, nsize, 1) != 0;
       mpih_add_n_cond (up, up, n1hp, nsize, odd_u);
     }
 
-  is_gcd_one = (mpi_cmp_ui (b, 1) == 0);
+  _gcry_mpi_free_limb_space (n1hp, nsize);
+  _gcry_mpi_free_limb_space (up, nsize);
 
-  mpi_free (n1h);
-  mpi_free (u);
-  mpi_free (b);
-  mpi_free (a);
-
-  return is_gcd_one;
+  if (_gcry_mpih_cmp_ui (bp, nsize, 1) == 0)
+    {
+      /* Inverse exists.  */
+      _gcry_mpi_free_limb_space (bp, nsize);
+      return vp;
+    }
+  else
+    {
+      _gcry_mpi_free_limb_space (bp, nsize);
+      _gcry_mpi_free_limb_space (vp, nsize);
+      return NULL;
+    }
 }
 
 
@@ -418,8 +415,31 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
   if (!mpi_cmp_ui (n, 1))
     return 0; /* Inverse does not exists.  */
 
-  if (mpi_test_bit (n, 0) && mpi_cmp (a, n) < 0)
-    return mpi_invm_odd (x, a, n);
+  if (mpi_test_bit (n, 0))
+    {
+      mpi_ptr_t ap, xp;
+
+      if (a->nlimbs <= n->nlimbs)
+        {
+          ap = mpi_alloc_limb_space (n->nlimbs, _gcry_is_secure (a->d));
+          MPN_ZERO (ap, n->nlimbs);
+          MPN_COPY (ap, a->d, a->nlimbs);
+        }
+      else
+        ap = _gcry_mpih_mod (a->d, a->nlimbs, n->d, n->nlimbs);
+
+      xp = mpih_invm_odd (ap, n->d, n->nlimbs);
+      _gcry_mpi_free_limb_space (ap, n->nlimbs);
+
+      if (xp)
+        {
+          _gcry_mpi_assign_limb_space (x, xp, n->nlimbs);
+          x->nlimbs = n->nlimbs;
+          return 1;
+        }
+      else
+        return 0; /* Inverse does not exists.  */
+    }
   else
     return mpi_invm_generic (x, a, n);
 }
