@@ -154,7 +154,7 @@ _gcry_ecc_gost_verify (gcry_mpi_t input, mpi_ec_t ec,
     mpi_set_ui (e, 1);
   mpi_invm (v, e, ec->n); /* v = e^(-1) (mod n) */
   mpi_mulm (z1, s, v, ec->n); /* z1 = s*v (mod n) */
-  mpi_mulm (rv, r, v, ec->n); /* rv = s*v (mod n) */
+  mpi_mulm (rv, r, v, ec->n); /* rv = r*v (mod n) */
   mpi_subm (z2, zero, rv, ec->n); /* z2 = -r*v (mod n) */
 
   _gcry_mpi_ec_mul_point (&Q1, z1, ec->G, ec);
