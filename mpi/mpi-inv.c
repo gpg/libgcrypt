@@ -443,13 +443,80 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
       else
         return 0; /* Inverse does not exists.  */
     }
-  else
+  else if (!a->sign && !n->sign)
     {
-      unsigned int count = mpi_trailing_zeros (n);
+      unsigned int k = mpi_trailing_zeros (n);
+      gcry_mpi_t q, x1, q_inv, h;
+      mpi_ptr_t ap, xp;
 
-      if (count == _gcry_mpi_get_nbits (n) - 1)
-        return mpi_invm_pow2 (x, a, count);
+      if (k == _gcry_mpi_get_nbits (n) - 1)
+        return mpi_invm_pow2 (x, a, k);
 
-      return mpi_invm_generic (x, a, n);
+      /* N can be expressed as P * Q, where P = 2^K.  P and Q are coprime.  */
+      /*
+       * Compute X1 = invm (A, P) and X2 = invm (A, Q), and combine
+       * them by Garner's formula, to get X = invm (A, P*Q).
+       * A special case of Chinese Remainder Theorem.
+       */
+
+      /* X1 = invm (A, P) */
+      x1 = mpi_new (0);
+      if (!mpi_invm_pow2 (x1, a, k))
+        return 0;               /* Inverse does not exists.  */
+
+      /* Q = N / P          */
+      q = mpi_new (0);
+      mpi_rshift (q, n, k);
+
+      /* X2 = invm (A%Q, Q), stored in X */
+      ap = _gcry_mpih_mod (a->d, a->nlimbs, q->d, q->nlimbs);
+      xp = mpih_invm_odd (ap, q->d, q->nlimbs);
+      _gcry_mpi_free_limb_space (ap, q->nlimbs);
+      if (!xp)
+        {
+          mpi_free (x1);
+          mpi_free (q);
+          return 0;             /* Inverse does not exists.  */
+        }
+      _gcry_mpi_assign_limb_space (x, xp, q->nlimbs);
+      x->nlimbs = q->nlimbs;
+
+      /* q_inv = invm (Q, P) */
+      q_inv = mpi_new (0);
+      mpi_invm_pow2 (q_inv, q, k);
+
+      /* H = (X1 - X2) % P */
+      h = mpi_new (0);
+      if (mpi_cmp (x1, x) < 0)
+        {
+          mpi_size_t i;
+
+          mpi_sub (h, x, x1);
+          mpi_mul (h, h, q_inv);
+          mpi_clear_highbit (h, k);
+          for (i = 0; i < h->nlimbs; i++)
+            h->d[i] = ~h->d[i];
+          mpi_add_ui (h, h, 1);
+          mpi_clear_highbit (h, k);
+        }
+      else
+        {
+          mpi_sub (h, x1, x);
+          mpi_mul (h, h, q_inv);
+          mpi_clear_highbit (h, k);
+        }
+
+      mpi_free (x1);
+      mpi_free (q_inv);
+
+      mpi_mul (h, h, q);
+      mpi_add (x, h, x);
+
+      mpi_free (q);
+      mpi_free (h);
+
+      return 1;
     }
+  else
+    return mpi_invm_generic (x, a, n);
 }
