@@ -132,7 +132,9 @@ mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
   usize = iterations / BITS_PER_MPI_LIMB;
 
   mpi_resize (b, usize);
+  b->nlimbs = usize;
   mpi_resize (x, usize);
+  x->nlimbs = usize;
 
   tb = mpi_copy (b);
 
@@ -152,6 +154,7 @@ mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
 
       _gcry_mpih_sub_n (wp, up, vp, usize);
       mpih_set_cond (up, wp, usize, b0);
+      _gcry_mpih_rshift (up, up, usize, 1);
     }
 
   mpi_free (tb);
