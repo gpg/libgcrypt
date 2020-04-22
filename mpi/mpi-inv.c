@@ -127,7 +127,7 @@ mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
   b = mpi_alloc_set_ui (1);
   mpi_set_ui (x, 0);
 
-  iterations = ((k + BITS_PER_MPI_LIMB) / BITS_PER_MPI_LIMB)
+  iterations = ((k + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB)
     * BITS_PER_MPI_LIMB;
   usize = iterations / BITS_PER_MPI_LIMB;
 
