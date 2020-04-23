@@ -481,34 +481,30 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
       _gcry_mpi_assign_limb_space (x, xp, q->nlimbs);
       x->nlimbs = q->nlimbs;
 
-      /* q_inv = invm (Q, P) */
+      /* Q_inv = Q^(-1) = invm (Q, P) */
       q_inv = mpi_new (0);
       mpi_invm_pow2 (q_inv, q, k);
 
-      /* H = (X1 - X2) % P */
+      /* H = (X1 - X2) * Q_inv % P */
       h = mpi_new (0);
-      if (mpi_cmp (x1, x) < 0)
+      mpi_sub (h, x1, x);
+      if (h->sign)
         {
           mpi_size_t i;
 
-          mpi_sub (h, x, x1);
-          mpi_mul (h, h, q_inv);
-          mpi_clear_highbit (h, k);
+          h->sign = 0;
           for (i = 0; i < h->nlimbs; i++)
             h->d[i] = ~h->d[i];
           mpi_add_ui (h, h, 1);
           mpi_clear_highbit (h, k);
         }
-      else
-        {
-          mpi_sub (h, x1, x);
-          mpi_mul (h, h, q_inv);
-          mpi_clear_highbit (h, k);
-        }
+      mpi_mul (h, h, q_inv);
+      mpi_clear_highbit (h, k);
 
       mpi_free (x1);
       mpi_free (q_inv);
 
+      /* X = X2 + (H * Q) */
       mpi_mul (h, h, q);
       mpi_add (x, h, x);
 
