@@ -121,26 +121,27 @@ mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
   if (!mpi_test_bit (a_orig, 0))
     return 0;
 
-  a = mpi_copy (a_orig);
-  mpi_clear_highbit (a, k);
-
-  b = mpi_alloc_set_ui (1);
-  mpi_set_ui (x, 0);
-
   iterations = ((k + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB)
     * BITS_PER_MPI_LIMB;
   usize = iterations / BITS_PER_MPI_LIMB;
 
+  a = mpi_copy (a_orig);
+  mpi_clear_highbit (a, k);
+  mpi_resize (a, usize);
+
+  b = mpi_alloc_set_ui (1);
   mpi_resize (b, usize);
   b->nlimbs = usize;
-  mpi_resize (x, usize);
-  x->nlimbs = usize;
 
   tb = mpi_copy (b);
 
-  wp = tb->d;
+  mpi_set_ui (x, 0);
+  mpi_resize (x, usize);
+  x->nlimbs = usize;
+
   up = b->d;
   vp = a->d;
+  wp = tb->d;
 
   /*
    * In the loop, B can be negative, but in the MPI
