@@ -169,23 +169,6 @@ mpih_invm_pow2 (mpi_ptr_t ap, mpi_size_t asize, unsigned int k)
   return xp;
 }
 
-static int
-mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a, unsigned int k)
-{
-  mpi_ptr_t xp;
-  mpi_size_t xsize = ((k + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB);
-
-  xp = mpih_invm_pow2 (a->d, a->nlimbs, k);
-  if (xp)
-    {
-      _gcry_mpi_assign_limb_space (x, xp, xsize);
-      x->nlimbs = xsize;
-      return 1;
-    }
-  else
-    return 0;
-}
-
 
 /****************
  * Calculate the multiplicative inverse X of A mod N
@@ -434,6 +417,8 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 int
 _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 {
+  mpi_ptr_t ap, xp;
+
   if (!mpi_cmp_ui (a, 0))
     return 0; /* Inverse does not exists.  */
   if (!mpi_cmp_ui (n, 1))
@@ -441,8 +426,6 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 
   if (mpi_test_bit (n, 0))
     {
-      mpi_ptr_t ap, xp;
-
       if (a->nlimbs <= n->nlimbs)
         {
           ap = mpi_alloc_limb_space (n->nlimbs, _gcry_is_secure (a->d));
@@ -467,11 +450,25 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
   else if (!a->sign && !n->sign)
     {
       unsigned int k = mpi_trailing_zeros (n);
-      gcry_mpi_t q, x1, q_inv, h;
-      mpi_ptr_t ap, xp;
+      mpi_size_t x1size = ((k + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB);
+      mpi_size_t hsize;
+      gcry_mpi_t q;
+      mpi_ptr_t x1p, x2p, q_invp, hp, diffp;
+      mpi_size_t i;
 
       if (k == _gcry_mpi_get_nbits (n) - 1)
-        return mpi_invm_pow2 (x, a, k);
+        {
+          x1p = mpih_invm_pow2 (a->d, a->nlimbs, k);
+
+          if (x1p)
+            {
+              _gcry_mpi_assign_limb_space (x, x1p, x1size);
+              x->nlimbs = x1size;
+              return 1;
+            }
+          else
+            return 0; /* Inverse does not exists.  */
+        }
 
       /* N can be expressed as P * Q, where P = 2^K.  P and Q are coprime.  */
       /*
@@ -481,56 +478,64 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
        */
 
       /* X1 = invm (A, P) */
-      x1 = mpi_new (0);
-      if (!mpi_invm_pow2 (x1, a, k))
+      x1p = mpih_invm_pow2 (a->d, a->nlimbs, k);
+      if (!x1p)
         return 0;               /* Inverse does not exists.  */
 
       /* Q = N / P          */
       q = mpi_new (0);
       mpi_rshift (q, n, k);
 
-      /* X2 = invm (A%Q, Q), stored in X */
+      /* X2 = invm (A%Q, Q) */
       ap = _gcry_mpih_mod (a->d, a->nlimbs, q->d, q->nlimbs);
-      xp = mpih_invm_odd (ap, q->d, q->nlimbs);
+      x2p = mpih_invm_odd (ap, q->d, q->nlimbs);
       _gcry_mpi_free_limb_space (ap, q->nlimbs);
-      if (!xp)
+      if (!x2p)
         {
-          mpi_free (x1);
+          _gcry_mpi_free_limb_space (x1p, x1size);
           mpi_free (q);
           return 0;             /* Inverse does not exists.  */
         }
-      _gcry_mpi_assign_limb_space (x, xp, q->nlimbs);
-      x->nlimbs = q->nlimbs;
 
       /* Q_inv = Q^(-1) = invm (Q, P) */
-      q_inv = mpi_new (0);
-      mpi_invm_pow2 (q_inv, q, k);
+      q_invp = mpih_invm_pow2 (q->d, q->nlimbs, k);
 
       /* H = (X1 - X2) * Q_inv % P */
-      h = mpi_new (0);
-      mpi_sub (h, x1, x);
-      if (h->sign)
-        {
-          mpi_size_t i;
+      diffp = mpi_alloc_limb_space (x1size, _gcry_is_secure (a->d));
+      if (x1size >= q->nlimbs)
+        _gcry_mpih_sub (diffp, x1p, x1size, x2p, q->nlimbs);
+      else
+	_gcry_mpih_sub_n (diffp, x1p, x2p, x1size);
+      _gcry_mpi_free_limb_space (x1p, x1size);
+      for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
+	diffp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
 
-          h->sign = 0;
-          for (i = 0; i < h->nlimbs; i++)
-            h->d[i] = ~h->d[i];
-          mpi_add_ui (h, h, 1);
-          mpi_clear_highbit (h, k);
-        }
-      mpi_mul (h, h, q_inv);
-      mpi_clear_highbit (h, k);
+      hsize = x1size * 2;
+      hp = mpi_alloc_limb_space (hsize, _gcry_is_secure (a->d));
+      _gcry_mpih_mul_n (hp, diffp, q_invp, x1size);
+      _gcry_mpi_free_limb_space (diffp, x1size);
+      _gcry_mpi_free_limb_space (q_invp, x1size);
 
-      mpi_free (x1);
-      mpi_free (q_inv);
+      for (i = x1size; i < hsize; i++)
+        hp[i] = 0;
+      for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
+        hp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
 
-      /* X = X2 + (H * Q) */
-      mpi_mul (h, h, q);
-      mpi_add (x, h, x);
+      xp = mpi_alloc_limb_space (x1size + q->nlimbs, _gcry_is_secure (a->d));
+      if (x1size >= q->nlimbs)
+        _gcry_mpih_mul (xp, hp, x1size, q->d, q->nlimbs);
+      else
+        _gcry_mpih_mul (xp, q->d, q->nlimbs, hp, x1size);
+
+      _gcry_mpi_free_limb_space (hp, hsize);
+
+      _gcry_mpih_add (xp, xp, x1size + q->nlimbs, x2p, q->nlimbs);
+      _gcry_mpi_free_limb_space (x2p, q->nlimbs);
+
+      _gcry_mpi_assign_limb_space (x, xp, x1size + q->nlimbs);
+      x->nlimbs = x1size + q->nlimbs;
 
       mpi_free (q);
-      mpi_free (h);
 
       return 1;
     }
