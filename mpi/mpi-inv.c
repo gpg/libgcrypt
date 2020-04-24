@@ -216,7 +216,7 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 {
 #if 0
     gcry_mpi_t u, v, u1, u2, u3, v1, v2, v3, q, t1, t2, t3;
-    gcry_mpi_t ta, tb, tc;
+    int is_gcd_one;
 
     u = mpi_copy(a);
     v = mpi_copy(n);
@@ -246,6 +246,8 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 	log_mpidump("v2=", v2); */
     mpi_set(x, u1);
 
+    is_gcd_one = (mpi_cmp_ui (u3, 1) == 0);
+
     mpi_free(u1);
     mpi_free(u2);
     mpi_free(u3);
@@ -258,6 +260,8 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
     mpi_free(t3);
     mpi_free(u);
     mpi_free(v);
+
+    return is_gcd_one;
 #elif 0
     /* Extended Euclid's algorithm (See TAOCP Vol II, 4.5.2, Alg X)
      * modified according to Michael Penk's solution for Exercise 35 */
