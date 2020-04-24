@@ -110,60 +110,80 @@ mpih_invm_odd (mpi_ptr_t ap, mpi_ptr_t np, mpi_size_t nsize)
  * See section 7 in "A New Algorithm for Inversion mod p^k" by Çetin
  * Kaya Koç: https://eprint.iacr.org/2017/411.pdf
  */
-static int
-mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a_orig, unsigned int k)
+static mpi_ptr_t
+mpih_invm_pow2 (mpi_ptr_t ap, mpi_size_t asize, unsigned int k)
 {
-  gcry_mpi_t a, b, tb;
-  unsigned int i, iterations;
-  mpi_ptr_t wp, up, vp;
+  int secure = _gcry_is_secure (ap);
+  mpi_size_t i;
+  unsigned int iterations;
+  mpi_ptr_t xp, wp, up, vp;
   mpi_size_t usize;
 
-  if (!mpi_test_bit (a_orig, 0))
-    return 0;
+  if (!(ap[0] & 1))
+    return NULL;
 
   iterations = ((k + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB)
     * BITS_PER_MPI_LIMB;
   usize = iterations / BITS_PER_MPI_LIMB;
 
-  a = mpi_copy (a_orig);
-  mpi_clear_highbit (a, k);
-  mpi_resize (a, usize);
+  up = mpi_alloc_limb_space (usize, secure);
+  MPN_ZERO (up, usize);
+  up[0] = 1;
 
-  b = mpi_alloc_set_ui (1);
-  mpi_resize (b, usize);
-  b->nlimbs = usize;
+  vp = mpi_alloc_limb_space (usize, secure);
+  for (i = 0; i < (usize < asize ? usize : asize); i++)
+    vp[i] = ap[i];
+  for (; i < usize; i++)
+    vp[i] = 0;
+  for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
+    vp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
 
-  tb = mpi_copy (b);
+  wp = mpi_alloc_limb_space (usize, secure);
+  MPN_COPY (wp, up, usize);
 
-  mpi_set_ui (x, 0);
-  mpi_resize (x, usize);
-  x->nlimbs = usize;
-
-  up = b->d;
-  vp = a->d;
-  wp = tb->d;
+  xp = mpi_alloc_limb_space (usize, secure);
+  MPN_ZERO (xp, usize);
 
   /*
-   * In the loop, B can be negative, but in the MPI
-   * representation, we don't set b->sign.
+   * It can be considered that overflow at _gcry_mpih_sub_n results
+   * adding 2^(USIZE*BITS_PER_MPI_LIMB), which is no problem in modulo
+   * 2^K computation.
    */
   for (i = 0; i < iterations; i++)
     {
-      int b0 = mpi_test_bit (b, 0);
+      int b0 = (up[0] & 1);
 
-      mpi_set_bit_cond (x, i, b0);
-
+      xp[i/BITS_PER_MPI_LIMB] |= ((mpi_limb_t)b0<<(i%BITS_PER_MPI_LIMB));
       _gcry_mpih_sub_n (wp, up, vp, usize);
       mpih_set_cond (up, wp, usize, b0);
       _gcry_mpih_rshift (up, up, usize, 1);
     }
 
-  mpi_free (tb);
-  mpi_free (b);
-  mpi_free (a);
+  for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
+    xp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
 
-  mpi_clear_highbit (x, k);
-  return 1;
+  _gcry_mpi_free_limb_space (up, usize);
+  _gcry_mpi_free_limb_space (vp, usize);
+  _gcry_mpi_free_limb_space (wp, usize);
+
+  return xp;
+}
+
+static int
+mpi_invm_pow2 (gcry_mpi_t x, gcry_mpi_t a, unsigned int k)
+{
+  mpi_ptr_t xp;
+  mpi_size_t xsize = ((k + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB);
+
+  xp = mpih_invm_pow2 (a->d, a->nlimbs, k);
+  if (xp)
+    {
+      _gcry_mpi_assign_limb_space (x, xp, xsize);
+      x->nlimbs = xsize;
+      return 1;
+    }
+  else
+    return 0;
 }
 
 
