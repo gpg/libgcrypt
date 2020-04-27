@@ -214,9 +214,10 @@ mpi_invm_odd (gcry_mpi_t x, gcry_mpi_t a_orig, gcry_mpi_t n)
 static int
 mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 {
-#if 0
-    gcry_mpi_t u, v, u1, u2, u3, v1, v2, v3, q, t1, t2, t3;
     int is_gcd_one;
+#if 0
+    /* Extended Euclid's algorithm (See TAOCP Vol II, 4.5.2, Alg X) */
+    gcry_mpi_t u, v, u1, u2, u3, v1, v2, v3, q, t1, t2, t3;
 
     u = mpi_copy(a);
     v = mpi_copy(n);
@@ -260,11 +261,13 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
     mpi_free(t3);
     mpi_free(u);
     mpi_free(v);
-
-    return is_gcd_one;
 #elif 0
     /* Extended Euclid's algorithm (See TAOCP Vol II, 4.5.2, Alg X)
-     * modified according to Michael Penk's solution for Exercise 35 */
+     * modified according to Michael Penk's solution for Exercise 35
+     * (in the first edition)
+     * In the third edition, it's Exercise 39, and it is described in
+     * page 646 of ANSWERS TO EXERCISES chapter.
+     */
 
     /* FIXME: we can simplify this in most cases (see Knuth) */
     gcry_mpi_t u, v, u1, u2, u3, v1, v2, v3, t1, t2, t3;
@@ -331,7 +334,8 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 	    mpi_sub(t2, t2, u);
 	}
     } while( mpi_cmp_ui( t3, 0 ) ); /* while t3 != 0 */
-    /* mpi_lshift( u3, k ); */
+    /* mpi_lshift( u3, u3, k ); */
+    is_gcd_one = (k == 0 && mpi_cmp_ui (u3, 1) == 0);
     mpi_set(x, u1);
 
     mpi_free(u1);
@@ -347,6 +351,10 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
     /* Extended Euclid's algorithm (See TAOCP Vol II, 4.5.2, Alg X)
      * modified according to Michael Penk's solution for Exercise 35
      * with further enhancement */
+    /* The reference in the comment above is for the first edition.
+     * In the third edition, it's Exercise 39, and it is described in
+     * page 646 of ANSWERS TO EXERCISES chapter.
+     */
     gcry_mpi_t u, v, u1, u2=NULL, u3, v1, v2=NULL, v3, t1, t2=NULL, t3;
     unsigned k;
     int sign;
@@ -432,7 +440,8 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 		mpi_sub(t2, t2, u);
 	}
     } while( mpi_cmp_ui( t3, 0 ) ); /* while t3 != 0 */
-    /* mpi_lshift( u3, k ); */
+    /* mpi_lshift( u3, u3, k ); */
+    is_gcd_one = (k == 0 && mpi_cmp_ui (u3, 1) == 0);
     mpi_set(x, u1);
 
     mpi_free(u1);
@@ -450,10 +459,14 @@ mpi_invm_generic (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
     mpi_free(u);
     mpi_free(v);
 #endif
-    return 1;
+    return is_gcd_one;
 }
 
 
+/*
+ * Set X to the multiplicative inverse of A mod M.  Return true if the
+ * inverse exists.
+ */
 int
 _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 {
