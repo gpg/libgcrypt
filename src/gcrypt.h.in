@@ -1645,8 +1645,7 @@ void *gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
                          _GCRY_GCC_ATTR_MALLOC;
 
 /* Return NBYTES of allocated random using a random numbers of quality
-   LEVEL.  The random numbers are created returned in "secure"
-   memory. */
+   LEVEL.  The random is returned in "secure" memory.  */
 void *gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
                                 _GCRY_GCC_ATTR_MALLOC;
 

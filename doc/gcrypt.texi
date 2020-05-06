@@ -8,9 +8,9 @@
 @syncodeindex pg fn
 @c %**end of header
 @copying
-This manual is for Libgcrypt
-(version @value{VERSION}, @value{UPDATED}),
-which is GNU's library of cryptographic building blocks.
+This manual is for Libgcrypt version @value{VERSION} and was last
+updated @value{UPDATED}.  Libgcrypt is GNU's library of cryptographic
+building blocks
 
 @noindent
 Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2011, 2012 Free Software Foundation, Inc. @*
@@ -795,7 +795,7 @@ immediately show up in other threads.  This command may even be used
 prior to @code{gcry_check_version}.
 
 @item GCRYCTL_SET_DEBUG_FLAGS; Arguments: unsigned int flags
-Set the debug flag bits as given by the argument.  Be aware that that no
+Set the debug flag bits as given by the argument.  Be aware that no
 memory synchronization is done so the effect of this command might not
 immediately show up in other threads.  The debug flags are not
 considered part of the API and thus may change without notice.  As of
