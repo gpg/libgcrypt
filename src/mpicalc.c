@@ -313,7 +313,7 @@ print_help (void)
   fputs ("+   add           [0] := [1] + [0]          {-1}\n"
          "-   subtract      [0] := [1] - [0]          {-1}\n"
          "*   multiply      [0] := [1] * [0]          {-1}\n"
-         "/   divide        [0] := [1] - [0]          {-1}\n"
+         "/   divide        [0] := [1] / [0]          {-1}\n"
          "%   modulo        [0] := [1] % [0]          {-1}\n"
          "<   left shift    [0] := [0] << 1           {0}\n"
          ">   right shift   [0] := [0] >> 1           {0}\n"
