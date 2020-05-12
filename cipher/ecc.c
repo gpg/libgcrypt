@@ -764,7 +764,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   gcry_mpi_t data = NULL;
   int sigflags;
   mpi_ec_t ec = NULL;
-  int flags;
+  int dummy_flags = 0;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
                                    ecc_get_nbits (s_keyparms));
@@ -800,7 +800,8 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   /*
    * Extract the key.
    */
-  rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecc_verify", s_keyparms, NULL);
+  rc = _gcry_mpi_ec_internal_new (&ec, &dummy_flags, "ecc_verify",
+                                  s_keyparms, NULL);
   if (rc)
     goto leave;
   if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n || !ec->Q)
