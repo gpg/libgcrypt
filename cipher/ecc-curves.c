@@ -45,16 +45,15 @@ static const struct
 
     { "Ed25519",    "1.3.6.1.4.1.11591.15.1" }, /* OpenPGP */
 
-#if 0
     /* FIXME: We have a naming issue here.  RFC-8032 says that its
      * Ed25519 is the pureEdDSA, that is w.o. the SHA512 prehasing we
-     * use in OpenPGP.  */
-    { "Ed25519",    "1.3.101.112" },         /* rfc8410 */
+     * use in OpenPGP.  For now we prefix the name with curve ala
+     * dumpasn1. */
+    { "curveEd25519","1.3.101.112" },         /* rfc8410 */
 
-    { "Ed448",      "1.3.101.113" },         /* rfc8410 */
+    { "curveEd448", "1.3.101.113" },         /* rfc8410 */
 
     { "X22519",     "1.3.101.110" },         /* rfc8410 */
-#endif
 
     { "X448",       "1.3.101.111" },         /* rfc8410 */
 
@@ -151,6 +150,18 @@ static const ecc_domain_parms_t domain_parms[] =
     {
       /* (-x^2 + y^2 = 1 + dx^2y^2) */
       "Ed25519", 256, 0,
+      MPI_EC_EDWARDS, ECC_DIALECT_ED25519,
+      "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
+      "-0x01",
+      "-0x2DFC9311D490018C7338BF8688861767FF8FF5B2BEBE27548A14B235ECA6874A",
+      "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
+      "0x216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A",
+      "0x6666666666666666666666666666666666666666666666666666666666666658",
+      8
+    },
+    { /* Duplicated due to name issues.  FIXME FIXME.  */
+      /* (-x^2 + y^2 = 1 + dx^2y^2) */
+      "curveEd25519", 256, 0,
       MPI_EC_EDWARDS, ECC_DIALECT_ED25519,
       "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
       "-0x01",
