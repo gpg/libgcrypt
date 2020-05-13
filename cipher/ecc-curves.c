@@ -41,13 +41,14 @@ static const struct
   const char *other; /* Other name. */
 } curve_aliases[] =
   {
-    { "Curve25519", "1.3.6.1.4.1.3029.1.5.1" }, /* OpenPGP */
-    { "X22519",     "1.3.101.110" },         /* rfc8410 */
-
     { "Ed25519",    "1.3.6.1.4.1.11591.15.1" }, /* OpenPGP */
     { "Ed25519",    "1.3.101.112" },         /* rfc8410 */
 
-    { "Ed448",      "1.3.101.113" },         /* rfc8410 */
+    { "Curve25519", "1.3.6.1.4.1.3029.1.5.1" }, /* OpenPGP */
+    { "Curve25519", "1.3.101.110" },         /* rfc8410 */
+    { "Curve25519", "X25519" },              /* rfc8410 */
+
+    /* { "Ed448",      "1.3.101.113" },         /\* rfc8410 *\/ */
     { "X448",       "1.3.101.111" },         /* rfc8410 */
 
     { "NIST P-192", "1.2.840.10045.3.1.1" }, /* X9.62 OID  */
@@ -166,7 +167,7 @@ static const ecc_domain_parms_t domain_parms[] =
       /* Note: As per RFC-7748 errata eid4730 the g_y value should be
        * "0x5F51E65E475F794B1FE122D388B72EB36DC2B28192839E4DD6163A5D81312C14"
        * but that breaks the keygrip.  The new value is recovered in
-       * the function _gcry_ecc_fill_in_curve.
+       * the function _gcry_ecc_fill_in_curve.  See bug #4712.
        */
     },
     {
