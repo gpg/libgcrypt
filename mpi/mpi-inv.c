@@ -135,8 +135,9 @@ mpih_invm_pow2 (mpi_ptr_t ap, mpi_size_t asize, unsigned int k)
     vp[i] = ap[i];
   for (; i < usize; i++)
     vp[i] = 0;
-  for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
-    vp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
+  if ((k % BITS_PER_MPI_LIMB))
+    for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
+      vp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
 
   wp = mpi_alloc_limb_space (usize, secure);
   MPN_COPY (wp, up, usize);
@@ -159,8 +160,9 @@ mpih_invm_pow2 (mpi_ptr_t ap, mpi_size_t asize, unsigned int k)
       _gcry_mpih_rshift (up, up, usize, 1);
     }
 
-  for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
-    xp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
+  if ((k % BITS_PER_MPI_LIMB))
+    for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
+      xp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
 
   _gcry_mpi_free_limb_space (up, usize);
   _gcry_mpi_free_limb_space (vp, usize);
