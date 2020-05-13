@@ -810,6 +810,14 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
       goto leave;
     }
 
+  if (ec->model == MPI_EC_MONTGOMERY)
+    {
+      if (DBG_CIPHER)
+        log_debug ("ecc_verify: Can't use a Montgomery curve\n");
+      rc = GPG_ERR_INTERNAL;
+      goto leave;
+    }
+
   /*
    * Verify the signature.
    */
