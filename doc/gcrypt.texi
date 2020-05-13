@@ -2702,9 +2702,12 @@ For the EdDSA algorithm (cf. Ed25515) the required input parameters are:
 @end example
 
 Note that the @var{message} may be of any length; hashing is part of
-the algorithm.  Using a large data block for @var{message} is not
-suggested; in that case the used protocol should better require that a
-hash of the message is used as input to the EdDSA algorithm.
+the algorithm.  Using a large data block for @var{message} is in
+general not suggested; in that case the used protocol should better
+require that a hash of the message is used as input to the EdDSA
+algorithm.  Note that for X.509 certificates @var{message} is the
+@code{tbsCertificate} part and in CMS @var{message} is the
+@code{signedAttrs} part; see RFC-8410 and RFC-8419.
 
 
 @end deftypefun
