@@ -305,6 +305,11 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
         return GPG_ERR_INV_OBJ;
       rawmpilen = (rawmpilen + 7)/8;
 
+      if (!(rawmpilen == (ctx->nbits+7)/8
+            || rawmpilen == (ctx->nbits+7)/8 + 1
+            || rawmpilen == (ctx->nbits+7)/8 * 2 + 1))
+        return GPG_ERR_INV_OBJ;
+
       /* Handle compression prefixes.  The size of the buffer will be
          odd in this case.  */
       if (rawmpilen > 1 && (rawmpilen%2))
@@ -356,7 +361,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
         }
 
       /* EdDSA compressed point.  */
-      rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
+      rawmpi = xtrymalloc (rawmpilen);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
       memcpy (rawmpi, buf, rawmpilen);
