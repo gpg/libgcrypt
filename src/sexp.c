@@ -2623,7 +2623,8 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
               else
                 {
                   if (mode == '/')
-                    *array[idx] = _gcry_sexp_nth_mpi (l1,1,GCRYMPI_FMT_OPAQUE);                  else if (mode == '-')
+                    *array[idx] = _gcry_sexp_nth_mpi (l1,1,GCRYMPI_FMT_OPAQUE);
+                  else if (mode == '-')
                     *array[idx] = _gcry_sexp_nth_mpi (l1,1,GCRYMPI_FMT_STD);
                   else
                     *array[idx] = _gcry_sexp_nth_mpi (l1,1,GCRYMPI_FMT_USG);
