@@ -67,18 +67,19 @@ double_block (u64 b[2])
 /* Copy OCB_BLOCK_LEN from buffer S starting at bit offset BITOFF to
  * buffer D.  */
 static void
-bit_copy (unsigned char *d, const unsigned char *s, unsigned int bitoff)
+bit_copy (unsigned char d[16], const unsigned char s[24], unsigned int bitoff)
 {
   u64 s0l, s1l, s1r, s2r;
   unsigned int shift;
+  unsigned int byteoff;
 
-  s += bitoff / 8;
+  byteoff = bitoff / 8;
   shift = bitoff % 8;
 
-  s0l = buf_get_be64 (s + 0);
-  s1l = buf_get_be64 (s + 8);
+  s0l = buf_get_be64 (s + byteoff + 0);
+  s1l = buf_get_be64 (s + byteoff + 8);
   s1r = shift ? s1l : 0;
-  s2r = shift ? buf_get_be64 (s + 16) : 0;
+  s2r = shift ? buf_get_be64 (s + 16) << (8 * byteoff) : 0;
 
   buf_put_be64 (d + 0, (s0l << shift) | (s1r >> ((64 - shift) & 63)));
   buf_put_be64 (d + 8, (s1l << shift) | (s2r >> ((64 - shift) & 63)));
