@@ -526,8 +526,9 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
       else
 	_gcry_mpih_sub_n (diffp, x1p, x2p, x1size);
       _gcry_mpi_free_limb_space (x1p, x1size);
-      for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
-	diffp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
+      if ((k % BITS_PER_MPI_LIMB))
+        for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
+          diffp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
 
       hsize = x1size * 2;
       hp = mpi_alloc_limb_space (hsize, _gcry_is_secure (a->d));
@@ -537,8 +538,9 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 
       for (i = x1size; i < hsize; i++)
         hp[i] = 0;
-      for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
-        hp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
+      if ((k % BITS_PER_MPI_LIMB))
+        for (i = k % BITS_PER_MPI_LIMB; i < BITS_PER_MPI_LIMB; i++)
+          hp[k/BITS_PER_MPI_LIMB] &= ~(((mpi_limb_t)1) << i);
 
       xp = mpi_alloc_limb_space (x1size + q->nlimbs, _gcry_is_secure (a->d));
       if (x1size >= q->nlimbs)
