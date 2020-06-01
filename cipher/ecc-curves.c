@@ -790,7 +790,7 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   /*
    * Extract the curve parameters..
    */
-  rc = gpg_err_code (sexp_extract_param (keyparms, NULL, "-pabgn",
+  rc = gpg_err_code (sexp_extract_param (keyparms, NULL, "pabgn",
                                          &E.p, &E.a, &E.b, &mpi_g, &E.n,
                                          NULL));
   if (rc == GPG_ERR_NO_OBJ)
