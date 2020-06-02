@@ -1104,7 +1104,7 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
 }
 
 static gpg_err_code_t
-mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
+mpi_ec_setup_elliptic_curve (mpi_ec_t ec, int flags,
                              elliptic_curve_t *E, gcry_sexp_t keyparam)
 {
   gpg_err_code_t errc = 0;
@@ -1125,14 +1125,17 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec,
      surprising if we do it here as well.  */
   if (keyparam)
     {
+      int is_opaque_bytes = ((ec->dialect == ECC_DIALECT_ED25519
+                              && (flags & PUBKEY_FLAG_EDDSA))
+                             || (ec->dialect == ECC_DIALECT_SAFECURVE));
+
       errc = point_from_keyparam (&ec->Q, keyparam, "q", ec);
       if (errc)
         return errc;
-      errc = mpi_from_keyparam (&ec->d, keyparam, "d",
-                                ec->dialect == ECC_DIALECT_SAFECURVE);
+      errc = mpi_from_keyparam (&ec->d, keyparam, "d", is_opaque_bytes);
 
       /* Size of opaque bytes should match size of P.  */
-      if (ec->d && ec->dialect == ECC_DIALECT_SAFECURVE)
+      if (ec->d && is_opaque_bytes)
         {
           unsigned int n = mpi_get_nbits (ec->d);
 
@@ -1170,7 +1173,7 @@ _gcry_mpi_ec_internal_new (mpi_ec_t *r_ec, int *r_flags, const char *name_op,
   if (!ec)
     goto leave;
 
-  errc = mpi_ec_setup_elliptic_curve (ec, &E, keyparam);
+  errc = mpi_ec_setup_elliptic_curve (ec, *r_flags, &E, keyparam);
   if (errc)
     {
       _gcry_mpi_ec_free (ec);
@@ -1256,7 +1259,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
     goto leave;
 
   ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
-  errc = mpi_ec_setup_elliptic_curve (ec, &E, keyparam);
+  errc = mpi_ec_setup_elliptic_curve (ec, flags, &E, keyparam);
   if (errc)
     goto leave;
 
