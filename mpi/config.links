@@ -375,6 +375,7 @@ if test "$try_asm_modules" != "yes" ; then
     path=""
     mpi_sflags=""
     mpi_extra_modules=""
+    mpi_cpu_arch="disabled"
 fi
 
 # Make sure that mpi_cpu_arch is not the empty string.

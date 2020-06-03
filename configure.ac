@@ -535,10 +535,10 @@ AM_CONDITIONAL(USE_RANDOM_DAEMON, test x$use_random_daemon = xyes)
 
 
 # Implementation of --disable-asm.
-AC_MSG_CHECKING([whether MPI assembler modules are requested])
+AC_MSG_CHECKING([whether MPI and cipher assembler modules are requested])
 AC_ARG_ENABLE([asm],
               AC_HELP_STRING([--disable-asm],
-	                     [Disable MPI assembler modules]),
+	                     [Disable MPI and cipher assembler modules]),
               [try_asm_modules=$enableval],
               [try_asm_modules=yes])
 AC_MSG_RESULT($try_asm_modules)
@@ -1140,9 +1140,12 @@ fi
 #
 AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementations],
        [gcry_cv_gcc_arm_platform_as_ok],
-       [gcry_cv_gcc_arm_platform_as_ok=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[__asm__(
+       [if test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_arm_platform_as_ok="n/a"
+        else
+          gcry_cv_gcc_arm_platform_as_ok=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+            [[__asm__(
                 /* Test if assembler supports UAL syntax.  */
                 ".syntax unified\n\t"
                 ".arm\n\t" /* our assembly code is in ARM mode  */
@@ -1153,8 +1156,9 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementat
                 /* Test if '.type' and '.size' are supported.  */
                 ".size asmfunc,.-asmfunc;\n\t"
                 ".type asmfunc,%function;\n\t"
-            );]])],
-          [gcry_cv_gcc_arm_platform_as_ok=yes])])
+              );]])],
+            [gcry_cv_gcc_arm_platform_as_ok=yes])
+        fi])
 if test "$gcry_cv_gcc_arm_platform_as_ok" = "yes" ; then
    AC_DEFINE(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS,1,
      [Defined if underlying assembler is compatible with ARM assembly implementations])
@@ -1168,15 +1172,19 @@ fi
 #
 AC_CACHE_CHECK([whether GCC assembler is compatible for ARMv8/Aarch64 assembly implementations],
        [gcry_cv_gcc_aarch64_platform_as_ok],
-       [gcry_cv_gcc_aarch64_platform_as_ok=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[__asm__(
+       [if test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_aarch64_platform_as_ok="n/a"
+        else
+          gcry_cv_gcc_aarch64_platform_as_ok=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+            [[__asm__(
                 "asmfunc:\n\t"
                 "eor x0, x0, x30, ror #12;\n\t"
                 "add x0, x0, x30, asr #12;\n\t"
                 "eor v0.16b, v0.16b, v31.16b;\n\t"
-            );]])],
-          [gcry_cv_gcc_aarch64_platform_as_ok=yes])])
+              );]])],
+            [gcry_cv_gcc_aarch64_platform_as_ok=yes])
+        fi])
 if test "$gcry_cv_gcc_aarch64_platform_as_ok" = "yes" ; then
    AC_DEFINE(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS,1,
      [Defined if underlying assembler is compatible with ARMv8/Aarch64 assembly implementations])
@@ -1383,7 +1391,8 @@ CFLAGS=$_gcc_cflags_save;
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports SSSE3 instructions],
        [gcry_cv_gcc_inline_asm_ssse3],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_ssse3="n/a"
         else
           gcry_cv_gcc_inline_asm_ssse3=no
@@ -1406,7 +1415,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports PCLMUL instructions],
        [gcry_cv_gcc_inline_asm_pclmul],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_pclmul="n/a"
         else
           gcry_cv_gcc_inline_asm_pclmul=no
@@ -1427,7 +1437,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports SHA Extensions instructions],
        [gcry_cv_gcc_inline_asm_shaext],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_shaext="n/a"
         else
           gcry_cv_gcc_inline_asm_shaext=no
@@ -1454,7 +1465,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports SSE4.1 instructions],
        [gcry_cv_gcc_inline_asm_sse41],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_sse41="n/a"
         else
           gcry_cv_gcc_inline_asm_sse41=no
@@ -1476,7 +1488,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports AVX instructions],
        [gcry_cv_gcc_inline_asm_avx],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_avx="n/a"
         else
           gcry_cv_gcc_inline_asm_avx=no
@@ -1497,7 +1510,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports AVX2 instructions],
        [gcry_cv_gcc_inline_asm_avx2],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_avx2="n/a"
         else
           gcry_cv_gcc_inline_asm_avx2=no
@@ -1518,7 +1532,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports BMI2 instructions],
        [gcry_cv_gcc_inline_asm_bmi2],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_bmi2="n/a"
         else
           gcry_cv_gcc_inline_asm_bmi2=no
@@ -1579,7 +1594,8 @@ fi
 if test $amd64_as_feature_detection = yes; then
   AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
        [gcry_cv_gcc_amd64_platform_as_ok],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_amd64_platform_as_ok="n/a"
         else
           gcry_cv_gcc_amd64_platform_as_ok=no
@@ -1629,7 +1645,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC assembler is compatible for Intel syntax assembly implementations],
        [gcry_cv_gcc_platform_as_ok_for_intel_syntax],
-       [if test "$mpi_cpu_arch" != "x86" ; then
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_platform_as_ok_for_intel_syntax="n/a"
         else
           gcry_cv_gcc_platform_as_ok_for_intel_syntax=no
@@ -1666,7 +1683,8 @@ fi
 #
 AC_CACHE_CHECK([whether compiler is configured for ARMv6 or newer architecture],
        [gcry_cv_cc_arm_arch_is_v6],
-       [if test "$mpi_cpu_arch" != "arm" ; then
+       [if test "$mpi_cpu_arch" != "arm" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_cc_arm_arch_is_v6="n/a"
         else
           gcry_cv_cc_arm_arch_is_v6=no
@@ -1699,7 +1717,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports NEON instructions],
        [gcry_cv_gcc_inline_asm_neon],
-       [if test "$mpi_cpu_arch" != "arm" ; then
+       [if test "$mpi_cpu_arch" != "arm" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_neon="n/a"
         else
           gcry_cv_gcc_inline_asm_neon=no
@@ -1727,7 +1746,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports AArch32 Crypto Extension instructions],
        [gcry_cv_gcc_inline_asm_aarch32_crypto],
-       [if test "$mpi_cpu_arch" != "arm" ; then
+       [if test "$mpi_cpu_arch" != "arm" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_aarch32_crypto="n/a"
         else
           gcry_cv_gcc_inline_asm_aarch32_crypto=no
@@ -1771,7 +1791,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 NEON instructions],
        [gcry_cv_gcc_inline_asm_aarch64_neon],
-       [if test "$mpi_cpu_arch" != "aarch64" ; then
+       [if test "$mpi_cpu_arch" != "aarch64" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_aarch64_neon="n/a"
         else
           gcry_cv_gcc_inline_asm_aarch64_neon=no
@@ -1796,7 +1817,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 Crypto Extension instructions],
        [gcry_cv_gcc_inline_asm_aarch64_crypto],
-       [if test "$mpi_cpu_arch" != "aarch64" ; then
+       [if test "$mpi_cpu_arch" != "aarch64" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_aarch64_crypto="n/a"
         else
           gcry_cv_gcc_inline_asm_aarch64_crypto=no
@@ -1842,7 +1864,8 @@ fi
 #
 AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX intrinsics],
       [gcry_cv_cc_ppc_altivec],
-      [if test "$mpi_cpu_arch" != "ppc" ; then
+      [if test "$mpi_cpu_arch" != "ppc" ||
+	  test "$try_asm_modules" != "yes" ; then
 	gcry_cv_cc_ppc_altivec="n/a"
       else
 	gcry_cv_cc_ppc_altivec=no
@@ -1868,7 +1891,8 @@ _gcc_cflags_save=$CFLAGS
 CFLAGS="$CFLAGS -maltivec -mvsx -mcrypto"
 
 if test "$gcry_cv_cc_ppc_altivec" = "no" &&
-    test "$mpi_cpu_arch" = "ppc" ; then
+    test "$mpi_cpu_arch" = "ppc" &&
+    test "$try_asm_modules" == "yes" ; then
   AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics with extra GCC flags],
     [gcry_cv_cc_ppc_altivec_cflags],
     [gcry_cv_cc_ppc_altivec_cflags=no
@@ -1903,7 +1927,8 @@ CFLAGS=$_gcc_cflags_save;
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto instructions],
        [gcry_cv_gcc_inline_asm_ppc_altivec],
-       [if test "$mpi_cpu_arch" != "ppc" ; then
+       [if test "$mpi_cpu_arch" != "ppc" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_ppc_altivec="n/a"
         else
           gcry_cv_gcc_inline_asm_ppc_altivec=no
@@ -1933,7 +1958,8 @@ fi
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports PowerISA 3.00 instructions],
        [gcry_cv_gcc_inline_asm_ppc_arch_3_00],
-       [if test "$mpi_cpu_arch" != "ppc" ; then
+       [if test "$mpi_cpu_arch" != "ppc" ||
+           test "$try_asm_modules" != "yes" ; then
           gcry_cv_gcc_inline_asm_ppc_arch_3_00="n/a"
         else
           gcry_cv_gcc_inline_asm_ppc_arch_3_00=no
