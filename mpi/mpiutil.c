@@ -346,11 +346,12 @@ _gcry_mpi_copy (gcry_mpi_t a)
     gcry_mpi_t b;
 
     if( a && (a->flags & 4) ) {
-	void *p = _gcry_is_secure(a->d)? xmalloc_secure ((a->sign+7)/8)
+        void *p = _gcry_is_secure(a->d)? xmalloc_secure ((a->sign+7)/8)
                                        : xmalloc ((a->sign+7)/8);
         if (a->d)
           memcpy( p, a->d, (a->sign+7)/8 );
-	b = mpi_set_opaque( NULL, p, a->sign );
+        b = mpi_set_opaque( NULL, p, a->sign );
+        b->flags = a->flags;
         b->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
     }
     else if( a ) {
