@@ -10,7 +10,7 @@
 @copying
 This manual is for Libgcrypt version @value{VERSION} and was last
 updated @value{UPDATED}.  Libgcrypt is GNU's library of cryptographic
-building blocks
+building blocks.
 
 @noindent
 Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2011, 2012 Free Software Foundation, Inc. @*
