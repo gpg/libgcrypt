@@ -48,7 +48,7 @@ static const struct
     { "Curve25519", "1.3.101.110" },         /* rfc8410 */
     { "Curve25519", "X25519" },              /* rfc8410 */
 
-    /* { "Ed448",      "1.3.101.113" },         /\* rfc8410 *\/ */
+    { "Ed448",      "1.3.101.113" },         /* rfc8410 */
     { "X448",       "1.3.101.111" },         /* rfc8410 */
 
     { "NIST P-192", "1.2.840.10045.3.1.1" }, /* X9.62 OID  */
@@ -169,6 +169,23 @@ static const ecc_domain_parms_t domain_parms[] =
        * but that breaks the keygrip.  The new value is recovered in
        * the function _gcry_ecc_fill_in_curve.  See bug #4712.
        */
+    },
+    {
+      /* (x^2 + y^2 = 1 + dx^2y^2) */
+      "Ed448", 448, 0,
+      MPI_EC_EDWARDS, ECC_DIALECT_SAFECURVE,
+      "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"
+      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      "0x01",
+      "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"
+      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6756",
+      "0x3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+      "7CCA23E9C44EDB49AED63690216CC2728DC58F552378C292AB5844F3",
+      "0x4F1970C66BED0DED221D15A622BF36DA9E146570470F1767EA6DE324"
+      "A3D3A46412AE1AF72AB66511433B80E18B00938E2626A82BC70CC05E",
+      "0x693F46716EB6BC248876203756C9C7624BEA73736CA3984087789C1E"
+      "05A0C2D73AD3FF1CE67C39C4FDBD132C4ED7C8AD9808795BF230FA14",
+      4,
     },
     {
       /* (y^2 = x^3 + 156326*x^2 + x) */
