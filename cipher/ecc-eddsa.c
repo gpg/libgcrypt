@@ -204,6 +204,76 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
 }
 
 
+static gpg_err_code_t
+ecc_ed448_recover_x (gcry_mpi_t x, gcry_mpi_t y, int x_0, mpi_ec_t ec)
+{
+  gpg_err_code_t rc = 0;
+  gcry_mpi_t u, v, u3, v3, t;
+  static gcry_mpi_t p34; /* Hard coded (P-3)/4 */
+
+  if (mpi_cmp (y, ec->p) >= 0)
+    rc = GPG_ERR_INV_OBJ;
+
+  if (!p34)
+    p34 = scanval ("3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                   "BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+
+  u   = mpi_new (0);
+  v   = mpi_new (0);
+  u3  = mpi_new (0);
+  v3  = mpi_new (0);
+  t   = mpi_new (0);
+
+  /* Compute u and v */
+  /* u = y^2    */
+  mpi_mulm (u, y, y, ec->p);
+  /* v = b*y^2   */
+  mpi_mulm (v, ec->b, u, ec->p);
+  /* u = y^2-1  */
+  mpi_sub_ui (u, u, 1);
+  /* v = b*y^2-1 */
+  mpi_sub_ui (v, v, 1);
+
+  /* Compute sqrt(u/v) */
+  /* u3 = u^3 */
+  mpi_powm (u3, u, mpi_const (MPI_C_THREE), ec->p);
+  mpi_powm (v3, v, mpi_const (MPI_C_THREE), ec->p);
+  /* t = u^4 * u * v3 = u^5 * v^3 */
+  mpi_powm (t, u, mpi_const (MPI_C_FOUR), ec->p);
+  mpi_mulm (t, t, u, ec->p);
+  mpi_mulm (t, t, v3, ec->p);
+  /* t = t^((p-3)/4) = (u^5 * v^3)^((p-3)/4)  */
+  mpi_powm (t, t, p34, ec->p);
+  /* x = t * u^3 * v = (u^3 * v) * (u^5 * v^3)^((p-3)/4) */
+  mpi_mulm (t, t, u3, ec->p);
+  mpi_mulm (x, t, v, ec->p);
+
+  /* t = v * x^2  */
+  mpi_mulm (t, x, x, ec->p);
+  mpi_mulm (t, t, v, ec->p);
+
+  if (mpi_cmp (t, u) != 0)
+    rc = GPG_ERR_INV_OBJ;
+  else
+    {
+      if (!mpi_cmp_ui (x, 0) && x_0)
+        rc = GPG_ERR_INV_OBJ;
+
+      /* Choose the desired square root according to parity */
+      if (mpi_test_bit (x, 0) != !!x_0)
+        mpi_sub (x, ec->p, x);
+    }
+
+  mpi_free (t);
+  mpi_free (u3);
+  mpi_free (v3);
+  mpi_free (v);
+  mpi_free (u);
+
+  return rc;
+}
+
+
 /* Recover X from Y and SIGN (which actually is a parity bit).  */
 gpg_err_code_t
 _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
@@ -212,8 +282,16 @@ _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
   gcry_mpi_t u, v, v3, t;
   static gcry_mpi_t p58, seven;
 
+  /*
+   * This routine is actually curve specific.  Now, only supports
+   * Ed25519 and Ed448.
+   */
+
   if (ec->dialect != ECC_DIALECT_ED25519)
-    return GPG_ERR_NOT_IMPLEMENTED;
+    /* For now, it's only Ed448.  */
+    return ecc_ed448_recover_x (x, y, sign, ec);
+
+  /* It's Ed25519.  */
 
   if (!p58)
     p58 = scanval ("0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
@@ -301,20 +379,23 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
   if (mpi_is_opaque (pk))
     {
       const unsigned char *buf;
+      unsigned int len;
+
+      len = (ctx->nbits%8) == 0 ? (ctx->nbits/8 + 1): (ctx->nbits+7)/8;
 
       buf = mpi_get_opaque (pk, &rawmpilen);
       if (!buf)
         return GPG_ERR_INV_OBJ;
       rawmpilen = (rawmpilen + 7)/8;
 
-      if (!(rawmpilen == (ctx->nbits+7)/8
-            || rawmpilen == (ctx->nbits+7)/8 + 1
-            || rawmpilen == (ctx->nbits+7)/8 * 2 + 1))
+      if (!(rawmpilen == len
+            || rawmpilen == len + 1
+            || rawmpilen == len * 2 + 1))
         return GPG_ERR_INV_OBJ;
 
       /* Handle compression prefixes.  The size of the buffer will be
          odd in this case.  */
-      if (rawmpilen > 1 && (rawmpilen%2))
+      if (rawmpilen > 1 && (rawmpilen == len + 1 || rawmpilen == len * 2 + 1))
         {
           /* First check whether the public key has been given in
              standard uncompressed format (SEC1).  No need to recover

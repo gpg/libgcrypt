@@ -1015,7 +1015,10 @@ _gcry_mpi_ec_decode_point (mpi_point_t result, gcry_mpi_t value, mpi_ec_t ec)
 {
   gcry_err_code_t rc;
 
-  if (ec && ec->dialect == ECC_DIALECT_ED25519)
+  if (ec
+      && (ec->dialect == ECC_DIALECT_ED25519
+          || (ec->model == MPI_EC_EDWARDS
+              && ec->dialect == ECC_DIALECT_SAFECURVE)))
     rc = _gcry_ecc_eddsa_decodepoint (value, ec, result, NULL, NULL);
   else if (ec && ec->model == MPI_EC_MONTGOMERY)
     rc = _gcry_ecc_mont_decodepoint (value, ec, result);
