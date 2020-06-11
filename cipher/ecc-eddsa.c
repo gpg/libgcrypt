@@ -500,7 +500,6 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest, mpi_ec_t ec)
   unsigned char *rawmpi = NULL;
   unsigned int rawmpilen;
   unsigned char *digest;
-  gcry_buffer_t hvec[2];
   int hashalgo, b;
 
   *r_digest = NULL;
@@ -527,8 +526,6 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest, mpi_ec_t ec)
   if (!digest)
     return gpg_err_code_from_syserror ();
 
-  memset (hvec, 0, sizeof hvec);
-
   rawmpi = _gcry_mpi_get_buffer (ec->d, 0, &rawmpilen, NULL);
   if (!rawmpi)
     {
@@ -536,13 +533,38 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest, mpi_ec_t ec)
       return gpg_err_code_from_syserror ();
     }
 
-  hvec[0].data = digest;
-  hvec[0].off = 0;
-  hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
-  hvec[1].data = rawmpi;
-  hvec[1].off = 0;
-  hvec[1].len = rawmpilen;
-  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
+  if (hashalgo == GCRY_MD_SHAKE256)
+    {
+      gcry_error_t err;
+      gcry_md_hd_t hd;
+
+      err = _gcry_md_open (&hd, hashalgo, 0);
+      if (err)
+        rc = gcry_err_code (err);
+      else
+        {
+          _gcry_md_write (hd, rawmpi, rawmpilen);
+          _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
+          _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
+          _gcry_md_close (hd);
+          rc = 0;
+        }
+    }
+  else
+    {
+      gcry_buffer_t hvec[2];
+
+      memset (hvec, 0, sizeof hvec);
+
+      hvec[0].data = digest;
+      hvec[0].off = 0;
+      hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
+      hvec[1].data = rawmpi;
+      hvec[1].off = 0;
+      hvec[1].len = rawmpilen;
+      rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
+    }
+
   xfree (rawmpi);
   if (rc)
     {
