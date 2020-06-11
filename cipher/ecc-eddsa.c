@@ -66,11 +66,12 @@ scanval (const char *string)
    malloced buffer with the encoded point is stored at R_BUFFER; the
    length of this buffer is stored at R_BUFLEN.  */
 static gpg_err_code_t
-eddsa_encodempi (gcry_mpi_t mpi, unsigned int minlen,
+eddsa_encodempi (gcry_mpi_t mpi, unsigned int nbits,
                  unsigned char **r_buffer, unsigned int *r_buflen)
 {
   unsigned char *rawmpi;
   unsigned int rawmpilen;
+  unsigned int minlen = (nbits%8) == 0 ? (nbits/8 + 1): (nbits+7)/8;
 
   rawmpi = _gcry_mpi_get_buffer (mpi, minlen, &rawmpilen, NULL);
   if (!rawmpi)
@@ -82,19 +83,20 @@ eddsa_encodempi (gcry_mpi_t mpi, unsigned int minlen,
 }
 
 
-/* Encode (X,Y) using the EdDSA scheme.  MINLEN is the required length
-   in bytes for the result.  If WITH_PREFIX is set the returned buffer
-   is prefixed with a 0x40 byte.  On success 0 is returned and a
-   malloced buffer with the encoded point is stored at R_BUFFER; the
+/* Encode (X,Y) using the EdDSA scheme.  NBITS is the number of bits
+   of the field of the curve.  If WITH_PREFIX is set the returned
+   buffer is prefixed with a 0x40 byte.  On success 0 is returned and
+   a malloced buffer with the encoded point is stored at R_BUFFER; the
    length of this buffer is stored at R_BUFLEN.  */
 static gpg_err_code_t
-eddsa_encode_x_y (gcry_mpi_t x, gcry_mpi_t y, unsigned int minlen,
+eddsa_encode_x_y (gcry_mpi_t x, gcry_mpi_t y, unsigned int nbits,
                   int with_prefix,
                   unsigned char **r_buffer, unsigned int *r_buflen)
 {
   unsigned char *rawmpi;
   unsigned int rawmpilen;
   int off = with_prefix? 1:0;
+  unsigned int minlen = (nbits%8) == 0 ? (nbits/8 + 1): (nbits+7)/8;
 
   rawmpi = _gcry_mpi_get_buffer_extra (y, minlen, off?-1:0, &rawmpilen, NULL);
   if (!rawmpi)
@@ -133,7 +135,7 @@ _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ec,
       rc = GPG_ERR_INTERNAL;
     }
   else
-    rc = eddsa_encode_x_y (x, y, (ec->nbits+7)/8, with_prefix, r_buffer, r_buflen);
+    rc = eddsa_encode_x_y (x, y, ec->nbits, with_prefix, r_buffer, r_buflen);
 
   if (!x_in)
     mpi_free (x);
@@ -180,7 +182,7 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
               return rc;
             }
 
-          rc = eddsa_encode_x_y (x, y, (nbits+7)/8, 0, &enc, &enclen);
+          rc = eddsa_encode_x_y (x, y, nbits, 0, &enc, &enclen);
           mpi_free (x);
           mpi_free (y);
           if (rc)
@@ -335,7 +337,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
 
               if (r_encpk)
                 {
-                  rc = eddsa_encode_x_y (x, y, (ctx->nbits+7)/8, 0,
+                  rc = eddsa_encode_x_y (x, y, ctx->nbits, 0,
                                          r_encpk, r_encpklen);
                   if (rc)
                     {
@@ -569,7 +571,6 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
                       gcry_mpi_t r_r, gcry_mpi_t s, int hashalgo)
 {
   int rc;
-  int b;
   unsigned int tmp;
   unsigned char *digest = NULL;
   gcry_buffer_t hvec[3];
@@ -593,13 +594,6 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   x = mpi_new (0);
   y = mpi_new (0);
   r = mpi_snew (0);
-
-  b = (ec->nbits+7)/8;
-  if (b != 256/8)
-    {
-      rc = GPG_ERR_INTERNAL; /* We only support 256 bit. */
-      goto leave;
-    }
 
   rc = _gcry_ecc_eddsa_compute_h_d (&digest, ec);
   if (rc)
@@ -674,7 +668,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   _gcry_mpi_set_buffer (s, digest, 64, 0);
   mpi_mulm (s, s, a, ec->n);
   mpi_addm (s, s, r, ec->n);
-  rc = eddsa_encodempi (s, b, &rawmpi, &rawmpilen);
+  rc = eddsa_encodempi (s, ec->nbits, &rawmpi, &rawmpilen);
   if (rc)
     goto leave;
   if (DBG_CIPHER)

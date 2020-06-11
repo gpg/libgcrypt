@@ -1138,12 +1138,15 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec, int flags,
       if (ec->d && is_opaque_bytes)
         {
           unsigned int n = mpi_get_nbits (ec->d);
+          unsigned int len;
 
-          if ((n+7)/8 != (ec->nbits+7)/8)
+          len = (ec->nbits%8) == 0 ? (ec->nbits/8 + 1) : (ec->nbits+7)/8;
+
+          if ((n+7)/8 != len)
             {
               if (DBG_CIPHER)
                 log_debug ("scalar size (%d) != prime size (%d)",
-                           (n+7)/8, (ec->nbits+7)/8);
+                           (n+7)/8, len);
 
               errc = GPG_ERR_INV_OBJ;
             }
