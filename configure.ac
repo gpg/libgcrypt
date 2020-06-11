@@ -2564,6 +2564,13 @@ LIST_MEMBER(sm4, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS sm4.lo"
    AC_DEFINE(USE_SM4, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sm4-aesni-avx-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
