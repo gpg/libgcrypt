@@ -227,6 +227,8 @@ get_hash_algo (const char *s, size_t n)
     { "sha3-384", GCRY_MD_SHA3_384 },
     { "sha3-512", GCRY_MD_SHA3_512 },
     { "sm3", GCRY_MD_SM3 },
+    { "shake128", GCRY_MD_SHAKE128 },
+    { "shake256", GCRY_MD_SHAKE256 },
     { NULL, 0 }
   };
   int algo;
