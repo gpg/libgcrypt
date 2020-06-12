@@ -890,15 +890,12 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   unsigned char *tbuf = NULL;
   size_t mlen, rlen;
   unsigned int tlen;
-  unsigned char digest[64];
-  gcry_buffer_t hvec[3];
+  unsigned char digest[114];
   gcry_mpi_t h, s;
   mpi_point_struct Ia, Ib;
 
   if (!mpi_is_opaque (input) || !mpi_is_opaque (r_in) || !mpi_is_opaque (s_in))
     return GPG_ERR_INV_DATA;
-  if (hashalgo != GCRY_MD_SHA512)
-    return GPG_ERR_DIGEST_ALGO;
 
   point_init (&Ia);
   point_init (&Ib);
@@ -906,11 +903,13 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   s = mpi_new (0);
 
   b = (ec->nbits+7)/8;
-  if (b != 256/8)
-    {
-      rc = GPG_ERR_INTERNAL; /* We only support 256 bit. */
-      goto leave;
-    }
+
+  if (ec->nbits == 255)
+    ;
+  else if (ec->nbits == 448)
+    b++;
+  else
+    return GPG_ERR_NOT_IMPLEMENTED;
 
   /* Encode and check the public key.  */
   rc = _gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL, 0,
@@ -945,23 +944,51 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
       goto leave;
     }
 
-  /* h = H(encodepoint(R) + encodepoint(pk) + m)  */
-  hvec[0].data = (char*)rbuf;
-  hvec[0].off  = 0;
-  hvec[0].len  = rlen;
-  hvec[1].data = encpk;
-  hvec[1].off  = 0;
-  hvec[1].len  = encpklen;
-  hvec[2].data = (char*)mbuf;
-  hvec[2].off  = 0;
-  hvec[2].len  = mlen;
-  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 3);
+  if (hashalgo == GCRY_MD_SHAKE256)
+    {
+      gcry_error_t err;
+      gcry_md_hd_t hd;
+
+      err = _gcry_md_open (&hd, hashalgo, 0);
+      if (err)
+        rc = gcry_err_code (err);
+      else
+        {
+          _gcry_md_write (hd, DOM4_0_NONE, DOM4_0_NONE_LEN);
+          _gcry_md_write (hd, rbuf, rlen);
+          _gcry_md_write (hd, encpk, encpklen);
+          _gcry_md_write (hd, mbuf, mlen);
+          _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
+          _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
+          _gcry_md_close (hd);
+          rc = 0;
+        }
+    }
+  else
+    {
+      gcry_buffer_t hvec[3];
+
+      memset (hvec, 0, sizeof hvec);
+
+      /* h = H(encodepoint(R) + encodepoint(pk) + m)  */
+      hvec[0].data = (char*)rbuf;
+      hvec[0].off  = 0;
+      hvec[0].len  = rlen;
+      hvec[1].data = encpk;
+      hvec[1].off  = 0;
+      hvec[1].len  = encpklen;
+      hvec[2].data = (char*)mbuf;
+      hvec[2].off  = 0;
+      hvec[2].len  = mlen;
+      rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 3);
+    }
+
   if (rc)
     goto leave;
-  reverse_buffer (digest, 64);
+  reverse_buffer (digest, 2*b);
   if (DBG_CIPHER)
-    log_printhex (" H(R+)", digest, 64);
-  _gcry_mpi_set_buffer (h, digest, 64, 0);
+    log_printhex (" H(R+)", digest, 2*b);
+  _gcry_mpi_set_buffer (h, digest, 2*b, 0);
 
   /* According to the paper the best way for verification is:
          encodepoint(sG - h·Q) = encodepoint(r)
