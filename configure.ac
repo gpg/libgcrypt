@@ -2569,6 +2569,7 @@ if test "$found" = "1" ; then
       x86_64-*-*)
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS sm4-aesni-avx-amd64.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sm4-aesni-avx2-amd64.lo"
       ;;
    esac
 fi
