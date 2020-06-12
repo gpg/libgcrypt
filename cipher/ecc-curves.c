@@ -143,7 +143,7 @@ static const ecc_domain_parms_t domain_parms[] =
   {
     {
       /* (-x^2 + y^2 = 1 + dx^2y^2) */
-      "Ed25519", 256, 0,
+      "Ed25519", 255, 0,
       MPI_EC_EDWARDS, ECC_DIALECT_ED25519,
       "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
       "-0x01",
@@ -155,7 +155,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
     {
       /* (y^2 = x^3 + 486662*x^2 + x) */
-      "Curve25519", 256, 0,
+      "Curve25519", 255, 0,
       MPI_EC_MONTGOMERY, ECC_DIALECT_STANDARD,
       "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
       "0x01DB41",
