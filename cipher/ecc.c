@@ -531,7 +531,8 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
       base = _gcry_ecc_ec2os (Gx, Gy, ec->p);
     }
-  if ((ec->dialect == ECC_DIALECT_ED25519 || ec->model == MPI_EC_MONTGOMERY)
+  if (((ec->dialect == ECC_DIALECT_SAFECURVE && ec->model == MPI_EC_EDWARDS)
+       || ec->dialect == ECC_DIALECT_ED25519 || ec->model == MPI_EC_MONTGOMERY)
       && !(flags & PUBKEY_FLAG_NOCOMP))
     {
       unsigned char *encpk;
@@ -544,7 +545,8 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       else
         /* (Gx and Gy are used as scratch variables)  */
         rc = _gcry_ecc_eddsa_encodepoint (ec->Q, ec, Gx, Gy,
-                                          !!(flags & PUBKEY_FLAG_COMP),
+                                          (ec->dialect != ECC_DIALECT_SAFECURVE
+                                           && !!(flags & PUBKEY_FLAG_COMP)),
                                           &encpk, &encpklen);
       if (rc)
         goto leave;
