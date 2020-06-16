@@ -707,6 +707,15 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
               h->bulk.ocb_auth  = _gcry_serpent_ocb_auth;
               break;
 #endif /*USE_SERPENT*/
+#ifdef USE_SM4
+	    case GCRY_CIPHER_SM4:
+              h->bulk.cbc_dec = _gcry_sm4_cbc_dec;
+              h->bulk.cfb_dec = _gcry_sm4_cfb_dec;
+              h->bulk.ctr_enc = _gcry_sm4_ctr_enc;
+              h->bulk.ocb_crypt = _gcry_sm4_ocb_crypt;
+              h->bulk.ocb_auth  = _gcry_sm4_ocb_auth;
+              break;
+#endif /*USE_SM4*/
 #ifdef USE_TWOFISH
 	    case GCRY_CIPHER_TWOFISH:
 	    case GCRY_CIPHER_TWOFISH128:

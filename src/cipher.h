@@ -242,6 +242,22 @@ size_t _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 size_t _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 			       size_t nblocks);
 
+/*-- sm4.c --*/
+void _gcry_sm4_ctr_enc (void *context, unsigned char *ctr,
+			void *outbuf_arg, const void *inbuf_arg,
+			size_t nblocks);
+void _gcry_sm4_cbc_dec (void *context, unsigned char *iv,
+                        void *outbuf_arg, const void *inbuf_arg,
+			size_t nblocks);
+void _gcry_sm4_cfb_dec (void *context, unsigned char *iv,
+			void *outbuf_arg, const void *inbuf_arg,
+			size_t nblocks);
+size_t _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+			    const void *inbuf_arg, size_t nblocks,
+			    int encrypt);
+size_t _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+			   size_t nblocks);
+
 /*-- twofish.c --*/
 void _gcry_twofish_ctr_enc (void *context, unsigned char *ctr,
                             void *outbuf_arg, const void *inbuf_arg,
