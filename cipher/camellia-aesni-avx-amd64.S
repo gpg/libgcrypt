@@ -1,6 +1,6 @@
 /* camellia-avx-aesni-amd64.S  -  AES-NI/AVX implementation of Camellia cipher
  *
- * Copyright (C) 2013-2015 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2015,2020 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -35,7 +35,6 @@
 
 /* register macros */
 #define CTX %rdi
-#define RIO %r8
 
 /**********************************************************************
   helper macros
@@ -772,6 +771,7 @@ __camellia_enc_blk16:
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rax: temporary storage, 256 bytes
+	 *	%r8d: 24 for 16 byte key, 32 for larger
 	 *	%xmm0..%xmm15: 16 plaintext blocks
 	 * output:
 	 *	%xmm0..%xmm15: 16 encrypted blocks, order swapped:
@@ -781,42 +781,32 @@ __camellia_enc_blk16:
 
 	leaq 8 * 16(%rax), %rcx;
 
+	leaq (-8 * 8)(CTX, %r8, 8), %r8;
+
 	inpack16_post(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 		      %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 		      %xmm15, %rax, %rcx);
 
+.align 8
+.Lenc_loop:
 	enc_rounds16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 		     %xmm15, %rax, %rcx, 0);
 
-	fls16(%rax, %xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-	      %rcx, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-	      %xmm15,
-	      ((key_table + (8) * 8) + 0)(CTX),
-	      ((key_table + (8) * 8) + 4)(CTX),
-	      ((key_table + (8) * 8) + 8)(CTX),
-	      ((key_table + (8) * 8) + 12)(CTX));
-
-	enc_rounds16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-		     %xmm15, %rax, %rcx, 8);
+	cmpq %r8, CTX;
+	je .Lenc_done;
+	leaq (8 * 8)(CTX), CTX;
 
 	fls16(%rax, %xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 	      %rcx, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 	      %xmm15,
-	      ((key_table + (16) * 8) + 0)(CTX),
-	      ((key_table + (16) * 8) + 4)(CTX),
-	      ((key_table + (16) * 8) + 8)(CTX),
-	      ((key_table + (16) * 8) + 12)(CTX));
+	      ((key_table) + 0)(CTX),
+	      ((key_table) + 4)(CTX),
+	      ((key_table) + 8)(CTX),
+	      ((key_table) + 12)(CTX));
+	jmp .Lenc_loop;
 
-	enc_rounds16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-		     %xmm15, %rax, %rcx, 16);
-
-	movl $24, %r8d;
-	cmpl $128, key_bitlength(CTX);
-	jne .Lenc_max32;
-
+.align 8
 .Lenc_done:
 	/* load CD for output */
 	vmovdqu 0 * 16(%rcx), %xmm8;
@@ -830,27 +820,9 @@ __camellia_enc_blk16:
 
 	outunpack16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 		    %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-		    %xmm15, (key_table)(CTX, %r8, 8), (%rax), 1 * 16(%rax));
+		    %xmm15, ((key_table) + 8 * 8)(%r8), (%rax), 1 * 16(%rax));
 
 	ret;
-
-.align 8
-.Lenc_max32:
-	movl $32, %r8d;
-
-	fls16(%rax, %xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-	      %rcx, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-	      %xmm15,
-	      ((key_table + (24) * 8) + 0)(CTX),
-	      ((key_table + (24) * 8) + 4)(CTX),
-	      ((key_table + (24) * 8) + 8)(CTX),
-	      ((key_table + (24) * 8) + 12)(CTX));
-
-	enc_rounds16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-		     %xmm15, %rax, %rcx, 24);
-
-	jmp .Lenc_done;
 	CFI_ENDPROC();
 ELF(.size __camellia_enc_blk16,.-__camellia_enc_blk16;)
 
@@ -869,44 +841,38 @@ __camellia_dec_blk16:
 	 */
 	CFI_STARTPROC();
 
+	movq %r8, %rcx;
+	movq CTX, %r8
+	leaq (-8 * 8)(CTX, %rcx, 8), CTX;
+
 	leaq 8 * 16(%rax), %rcx;
 
 	inpack16_post(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 		      %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 		      %xmm15, %rax, %rcx);
 
-	cmpl $32, %r8d;
-	je .Ldec_max32;
-
-.Ldec_max24:
-	dec_rounds16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-		     %xmm15, %rax, %rcx, 16);
-
-	fls16(%rax, %xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-	      %rcx, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-	      %xmm15,
-	      ((key_table + (16) * 8) + 8)(CTX),
-	      ((key_table + (16) * 8) + 12)(CTX),
-	      ((key_table + (16) * 8) + 0)(CTX),
-	      ((key_table + (16) * 8) + 4)(CTX));
-
-	dec_rounds16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-		     %xmm15, %rax, %rcx, 8);
-
-	fls16(%rax, %xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-	      %rcx, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-	      %xmm15,
-	      ((key_table + (8) * 8) + 8)(CTX),
-	      ((key_table + (8) * 8) + 12)(CTX),
-	      ((key_table + (8) * 8) + 0)(CTX),
-	      ((key_table + (8) * 8) + 4)(CTX));
-
+.align 8
+.Ldec_loop:
 	dec_rounds16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 		     %xmm15, %rax, %rcx, 0);
 
+	cmpq %r8, CTX;
+	je .Ldec_done;
+
+	fls16(%rax, %xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
+	      %rcx, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
+	      %xmm15,
+	      ((key_table) + 8)(CTX),
+	      ((key_table) + 12)(CTX),
+	      ((key_table) + 0)(CTX),
+	      ((key_table) + 4)(CTX));
+
+	leaq (-8 * 8)(CTX), CTX;
+	jmp .Ldec_loop;
+
+.align 8
+.Ldec_done:
 	/* load CD for output */
 	vmovdqu 0 * 16(%rcx), %xmm8;
 	vmovdqu 1 * 16(%rcx), %xmm9;
@@ -922,22 +888,6 @@ __camellia_dec_blk16:
 		    %xmm15, (key_table)(CTX), (%rax), 1 * 16(%rax));
 
 	ret;
-
-.align 8
-.Ldec_max32:
-	dec_rounds16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-		     %xmm15, %rax, %rcx, 24);
-
-	fls16(%rax, %xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
-	      %rcx, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
-	      %xmm15,
-	      ((key_table + (24) * 8) + 8)(CTX),
-	      ((key_table + (24) * 8) + 12)(CTX),
-	      ((key_table + (24) * 8) + 0)(CTX),
-	      ((key_table + (24) * 8) + 4)(CTX));
-
-	jmp .Ldec_max24;
 	CFI_ENDPROC();
 ELF(.size __camellia_dec_blk16,.-__camellia_dec_blk16;)
 
@@ -966,6 +916,11 @@ _gcry_camellia_aesni_avx_ctr_enc:
 	CFI_DEF_CFA_REGISTER(%rbp);
 
 	vzeroupper;
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
 
 	subq $(16 * 16), %rsp;
 	andq $~31, %rsp;
@@ -1163,6 +1118,11 @@ _gcry_camellia_aesni_avx_cfb_dec:
 
 	vzeroupper;
 
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
+
 	subq $(16 * 16), %rsp;
 	andq $~31, %rsp;
 	movq %rsp, %rax;
@@ -1306,6 +1266,11 @@ _gcry_camellia_aesni_avx_ocb_enc:
 
 	vmovdqu %xmm14, (%rcx);
 	vmovdqu %xmm15, (%r8);
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %r10d;
+	cmovel %r10d, %r8d; /* max */
 
 	/* inpack16_pre: */
 	vmovq (key_table)(CTX), %xmm15;
@@ -1616,6 +1581,11 @@ _gcry_camellia_aesni_avx_ocb_auth:
 	OCB_INPUT(14, %r12, %xmm1);
 	OCB_INPUT(15, %r13, %xmm0);
 #undef OCB_INPUT
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %r10d;
+	cmovel %r10d, %r8d; /* max */
 
 	vmovdqu %xmm15, (%rdx);
 
