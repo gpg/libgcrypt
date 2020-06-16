@@ -1641,6 +1641,12 @@ if it has to be used for the selected parameter set.
 @cindex ChaCha20
 This is the ChaCha20 stream cipher.
 
+@item GCRY_CIPHER_SM4
+@cindex SM4 (cipher)
+A 128 bit cipher by the State Cryptography Administration
+of China (SCA).  See
+@uref{https://tools.ietf.org/html/draft-ribose-cfrg-sm4-10}.
+
 @end table
 
 @node Available cipher modes
@@ -3867,6 +3873,10 @@ block cipher algorithm.
 
 @item GCRY_MAC_CMAC_GOST28147
 This is CMAC message authentication algorithm based on the GOST 28147-89
+block cipher algorithm.
+
+@item GCRY_MAC_CMAC_SM4
+This is CMAC message authentication algorithm based on the SM4
 block cipher algorithm.
 
 @item GCRY_MAC_GMAC_AES

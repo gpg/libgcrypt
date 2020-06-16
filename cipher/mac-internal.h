@@ -229,6 +229,9 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_gost28147;
 #if USE_GOST28147
 extern gcry_mac_spec_t _gcry_mac_type_spec_gost28147_imit;
 #endif
+#if USE_SM4
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_sm4;
+#endif
 
 /*
  * The GMAC algorithm specifications (mac-gmac.c).

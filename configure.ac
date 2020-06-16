@@ -212,6 +212,7 @@ LIBGCRYPT_CONFIG_HOST="$host"
 # Definitions for symmetric ciphers.
 available_ciphers="arcfour blowfish cast5 des aes twofish serpent rfc2268 seed"
 available_ciphers="$available_ciphers camellia idea salsa20 gost28147 chacha20"
+available_ciphers="$available_ciphers sm4"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
@@ -2557,6 +2558,12 @@ if test "$found" = "1" ; then
      # Build with the NEON implementation
      GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-armv7-neon.lo"
    fi
+fi
+
+LIST_MEMBER(sm4, $enabled_ciphers)
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS sm4.lo"
+   AC_DEFINE(USE_SM4, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)

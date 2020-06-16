@@ -946,7 +946,8 @@ enum gcry_cipher_algos
     GCRY_CIPHER_SALSA20R12  = 314,
     GCRY_CIPHER_GOST28147   = 315,
     GCRY_CIPHER_CHACHA20    = 316,
-    GCRY_CIPHER_GOST28147_MESH   = 317 /* GOST 28247 with optional CryptoPro keymeshing */
+    GCRY_CIPHER_GOST28147_MESH   = 317, /* GOST 28247 with optional CryptoPro keymeshing */
+    GCRY_CIPHER_SM4         = 318
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */
@@ -1484,6 +1485,7 @@ enum gcry_mac_algos
     GCRY_MAC_CMAC_RFC2268       = 209,
     GCRY_MAC_CMAC_IDEA          = 210,
     GCRY_MAC_CMAC_GOST28147     = 211,
+    GCRY_MAC_CMAC_SM4           = 212,
 
     GCRY_MAC_GMAC_AES           = 401,
     GCRY_MAC_GMAC_CAMELLIA      = 402,

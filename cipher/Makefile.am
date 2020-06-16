@@ -107,6 +107,7 @@ EXTRA_libcipher_la_SOURCES = \
 	scrypt.c \
 	seed.c \
 	serpent.c serpent-sse2-amd64.S \
+	sm4.c \
 	serpent-avx2-amd64.S serpent-armv7-neon.S \
 	sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
 	sha1-avx2-bmi2-amd64.S sha1-armv7-neon.S sha1-armv8-aarch32-ce.S \
