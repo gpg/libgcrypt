@@ -676,12 +676,16 @@ _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags)
  *
  * Despite that this function requires the specification of a hash
  * algorithm, we only support what has been specified by the paper.
- * This may change in the future.  Note that we don't check the used
- * curve; the user is responsible to use Ed25519.
+ * This may change in the future.
  *
  * Return the signature struct (r,s) from the message hash.  The caller
  * must have allocated R_R and S.
  */
+
+/* String to be used with Ed448 */
+#define DOM4_0_NONE     "SigEd448\0\0"
+#define DOM4_0_NONE_LEN 10
+
 gpg_err_code_t
 _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
                       gcry_mpi_t r_r, gcry_mpi_t s, int hashalgo)
@@ -689,7 +693,6 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   int rc;
   unsigned int tmp;
   unsigned char *digest = NULL;
-  gcry_buffer_t hvec[3];
   const void *mbuf;
   size_t mlen;
   unsigned char *rawmpi = NULL;
@@ -698,8 +701,16 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   unsigned int encpklen;
   mpi_point_struct I;          /* Intermediate value.  */
   gcry_mpi_t a, x, y, r;
+  int b;
 
-  memset (hvec, 0, sizeof hvec);
+  b = (ec->nbits+7)/8;
+
+  if (ec->nbits == 255)
+    ;
+  else if (ec->nbits == 448)
+    b++;
+  else
+    return GPG_ERR_NOT_IMPLEMENTED;
 
   if (!mpi_is_opaque (input))
     return GPG_ERR_INV_DATA;
@@ -714,7 +725,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   rc = _gcry_ecc_eddsa_compute_h_d (&digest, ec);
   if (rc)
     goto leave;
-  _gcry_mpi_set_buffer (a, digest, 32, 0);
+  _gcry_mpi_set_buffer (a, digest, b, 0);
 
   /* Compute the public key if it's not available (only secret part).  */
   if (ec->Q == NULL)
@@ -737,18 +748,46 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   if (DBG_CIPHER)
     log_printhex ("     m", mbuf, mlen);
 
-  hvec[0].data = digest;
-  hvec[0].off  = 32;
-  hvec[0].len  = 32;
-  hvec[1].data = (char*)mbuf;
-  hvec[1].len  = mlen;
-  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
+  if (hashalgo == GCRY_MD_SHAKE256)
+    {
+      gcry_error_t err;
+      gcry_md_hd_t hd;
+
+      err = _gcry_md_open (&hd, hashalgo, 0);
+      if (err)
+        rc = gcry_err_code (err);
+      else
+        {
+          _gcry_md_write (hd, DOM4_0_NONE, DOM4_0_NONE_LEN);
+          _gcry_md_write (hd, digest+b, b);
+          _gcry_md_write (hd, mbuf, mlen);
+          _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
+          _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
+          _gcry_md_close (hd);
+          rc = 0;
+        }
+    }
+  else
+    {
+      gcry_buffer_t hvec[3];
+
+      memset (hvec, 0, sizeof hvec);
+
+      hvec[0].data = digest;
+      hvec[0].off  = b;
+      hvec[0].len  = b;
+      hvec[1].data = (char*)mbuf;
+      hvec[1].len  = mlen;
+      rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
+    }
+
   if (rc)
     goto leave;
-  reverse_buffer (digest, 64);
+  reverse_buffer (digest, 2*b);
   if (DBG_CIPHER)
-    log_printhex ("     r", digest, 64);
-  _gcry_mpi_set_buffer (r, digest, 64, 0);
+    log_printhex ("     r", digest, 2*b);
+  _gcry_mpi_set_buffer (r, digest, 2*b, 0);
+  mpi_mod (r, r, ec->n);
   _gcry_mpi_ec_mul_point (&I, r, ec->G, ec);
   if (DBG_CIPHER)
     log_printpnt ("   r", &I, ec);
@@ -760,17 +799,45 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   if (DBG_CIPHER)
     log_printhex ("   e_r", rawmpi, rawmpilen);
 
-  /* S = r + a * H(encodepoint(R) + encodepoint(pk) + m) mod n  */
-  hvec[0].data = rawmpi;  /* (this is R) */
-  hvec[0].off  = 0;
-  hvec[0].len  = rawmpilen;
-  hvec[1].data = encpk;
-  hvec[1].off  = 0;
-  hvec[1].len  = encpklen;
-  hvec[2].data = (char*)mbuf;
-  hvec[2].off  = 0;
-  hvec[2].len  = mlen;
-  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 3);
+  if (hashalgo == GCRY_MD_SHAKE256)
+    {
+      gcry_error_t err;
+      gcry_md_hd_t hd;
+
+      err = _gcry_md_open (&hd, hashalgo, 0);
+      if (err)
+        rc = gcry_err_code (err);
+      else
+        {
+          _gcry_md_write (hd, DOM4_0_NONE, DOM4_0_NONE_LEN);
+          _gcry_md_write (hd, rawmpi, rawmpilen);
+          _gcry_md_write (hd, encpk, encpklen);
+          _gcry_md_write (hd, mbuf, mlen);
+          _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
+          _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
+          _gcry_md_close (hd);
+          rc = 0;
+        }
+    }
+  else
+    {
+      gcry_buffer_t hvec[3];
+
+      memset (hvec, 0, sizeof hvec);
+
+      /* S = r + a * H(encodepoint(R) + encodepoint(pk) + m) mod n  */
+      hvec[0].data = rawmpi;  /* (this is R) */
+      hvec[0].off  = 0;
+      hvec[0].len  = rawmpilen;
+      hvec[1].data = encpk;
+      hvec[1].off  = 0;
+      hvec[1].len  = encpklen;
+      hvec[2].data = (char*)mbuf;
+      hvec[2].off  = 0;
+      hvec[2].len  = mlen;
+      rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 3);
+    }
+
   if (rc)
     goto leave;
 
@@ -778,10 +845,10 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   mpi_set_opaque (r_r, rawmpi, rawmpilen*8);
   rawmpi = NULL;
 
-  reverse_buffer (digest, 64);
+  reverse_buffer (digest, 2*b);
   if (DBG_CIPHER)
-    log_printhex (" H(R+)", digest, 64);
-  _gcry_mpi_set_buffer (s, digest, 64, 0);
+    log_printhex (" H(R+)", digest, 2*b);
+  _gcry_mpi_set_buffer (s, digest, 2*b, 0);
   mpi_mulm (s, s, a, ec->n);
   mpi_addm (s, s, r, ec->n);
   rc = eddsa_encodempi (s, ec->nbits, &rawmpi, &rawmpilen);
