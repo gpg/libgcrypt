@@ -137,6 +137,8 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
             flags |= PUBKEY_FLAG_RFC6979;
           else if (!memcmp (s, "noparam", 7))
             ; /* Ignore - it is the default.  */
+          else if (!memcmp (s, "prehash", 7))
+            flags |= PUBKEY_FLAG_PREHASH;
           else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
@@ -659,7 +661,8 @@ _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx)
    (<mpi>)
    or
    (data
-    [(flags [raw, direct, pkcs1, oaep, pss, no-blinding, rfc6979, eddsa])]
+    [(flags [raw, direct, pkcs1, oaep, pss,
+             no-blinding, rfc6979, eddsa, prehash])]
     [(hash <algo> <value>)]
     [(value <text>)]
     [(hash-algo <algo>)]
