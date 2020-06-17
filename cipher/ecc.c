@@ -686,18 +686,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_mpi_t sig_r = NULL;
   gcry_mpi_t sig_s = NULL;
   mpi_ec_t ec = NULL;
-  int flags;
-
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, 0);
-
-  /* Extract the data.  */
-  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
-  if (rc)
-    goto leave;
-  if (DBG_CIPHER)
-    log_mpidump ("ecc_sign   data", data);
-
-  flags = ctx.flags;
+  int flags = 0;
 
   /*
    * Extract the key.
@@ -710,6 +699,16 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       rc = GPG_ERR_NO_OBJ;
       goto leave;
     }
+
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, 0);
+  ctx.flags |= flags;
+
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("ecc_sign   data", data);
 
   sig_r = mpi_new (0);
   sig_s = mpi_new (0);
@@ -768,10 +767,32 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   gcry_mpi_t data = NULL;
   int sigflags;
   mpi_ec_t ec = NULL;
-  int dummy_flags = 0;
+  int flags = 0;
+
+  /*
+   * Extract the key.
+   */
+  rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecc_verify",
+                                  s_keyparms, NULL);
+  if (rc)
+    goto leave;
+  if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n || !ec->Q)
+    {
+      rc = GPG_ERR_NO_OBJ;
+      goto leave;
+    }
+
+  if (ec->model == MPI_EC_MONTGOMERY)
+    {
+      if (DBG_CIPHER)
+        log_debug ("ecc_verify: Can't use a Montgomery curve\n");
+      rc = GPG_ERR_INTERNAL;
+      goto leave;
+    }
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
                                    ecc_get_nbits (s_keyparms));
+  ctx.flags |= flags;
 
   /* Extract the data.  */
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
@@ -798,27 +819,6 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   if ((ctx.flags & PUBKEY_FLAG_EDDSA) ^ (sigflags & PUBKEY_FLAG_EDDSA))
     {
       rc = GPG_ERR_CONFLICT; /* Inconsistent use of flag/algoname.  */
-      goto leave;
-    }
-
-  /*
-   * Extract the key.
-   */
-  rc = _gcry_mpi_ec_internal_new (&ec, &dummy_flags, "ecc_verify",
-                                  s_keyparms, NULL);
-  if (rc)
-    goto leave;
-  if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n || !ec->Q)
-    {
-      rc = GPG_ERR_NO_OBJ;
-      goto leave;
-    }
-
-  if (ec->model == MPI_EC_MONTGOMERY)
-    {
-      if (DBG_CIPHER)
-        log_debug ("ecc_verify: Can't use a Montgomery curve\n");
-      rc = GPG_ERR_INTERNAL;
       goto leave;
     }
 
