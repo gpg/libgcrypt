@@ -445,7 +445,8 @@ check_secret_key (mpi_ec_t ec, int flags)
       goto leave;
     }
 
-  if ((flags & PUBKEY_FLAG_EDDSA))
+  if ((flags & PUBKEY_FLAG_EDDSA)
+      || (ec->model == MPI_EC_EDWARDS && ec->dialect == ECC_DIALECT_SAFECURVE))
     ; /* Fixme: EdDSA is special.  */
   else if (!mpi_cmp_ui (ec->Q->z, 1))
     {
@@ -513,10 +514,11 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   if (rc)
     goto leave;
 
-  if (ec->model == MPI_EC_MONTGOMERY)
-    rc = nist_generate_key (ec, flags, &Qx, NULL);
-  else if ((flags & PUBKEY_FLAG_EDDSA))
+  if ((flags & PUBKEY_FLAG_EDDSA)
+      || (ec->model == MPI_EC_EDWARDS && ec->dialect == ECC_DIALECT_SAFECURVE))
     rc = _gcry_ecc_eddsa_genkey (ec, flags);
+  else if (ec->model == MPI_EC_MONTGOMERY)
+    rc = nist_generate_key (ec, flags, &Qx, NULL);
   else
     rc = nist_generate_key (ec, flags, &Qx, &Qy);
   if (rc)

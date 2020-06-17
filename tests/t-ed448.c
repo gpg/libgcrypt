@@ -221,7 +221,6 @@ one_test (int testno, const char *sk, const char *pk,
                            "(private-key"
                            " (ecc"
                            "  (curve \"Ed448\")"
-                           "  (flags eddsa)"
                            "  (q %b)"
                            "  (d %b)))",
                            (int)buflen2, buffer2,
@@ -231,7 +230,6 @@ one_test (int testno, const char *sk, const char *pk,
                            "(private-key"
                            " (ecc"
                            "  (curve \"Ed448\")"
-                           "  (flags eddsa)"
                            "  (d %b)))",
                            (int)buflen, buffer);
   if (err)
@@ -245,7 +243,6 @@ one_test (int testno, const char *sk, const char *pk,
                               "(public-key"
                               " (ecc"
                               "  (curve \"Ed448\")"
-                              "  (flags eddsa)"
                               "  (q %b)))",  (int)buflen2, buffer2)))
     {
       fail ("error building s-exp for test %d, %s: %s",
