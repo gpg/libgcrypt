@@ -31,7 +31,7 @@
 
 #define PGM "t-ed448"
 #include "t-common.h"
-#define N_TESTS 8
+#define N_TESTS 11
 
 static int sign_with_pk;
 static int no_verify;
@@ -182,8 +182,8 @@ hexdowncase (char *string)
 
 
 static void
-one_test (int testno, const char *sk, const char *pk,
-          const char *msg, const char *sig)
+one_test (int testno, int ph, const char *sk, const char *pk,
+          const char *msg, const char *ctx, const char *sig)
 {
   gpg_error_t err;
   int i;
@@ -202,7 +202,7 @@ one_test (int testno, const char *sk, const char *pk,
   size_t sig_r_len, sig_s_len;
 
   if (verbose > 1)
-    info ("Running test %d\n", testno);
+    info ("Running test %d %d\n", testno, ph);
 
   if (!(buffer = hex2buffer (sk, &buflen)))
     {
@@ -257,15 +257,55 @@ one_test (int testno, const char *sk, const char *pk,
             testno, "msg", "invalid hex string");
       goto leave;
     }
-  if ((err = gcry_sexp_build (&s_msg, NULL,
-                              "(data"
-                              " (flags eddsa)"
-                              " (hash-algo shake256)"
-                              " (value %b))",  (int)buflen, buffer)))
+  if (ctx)
     {
-      fail ("error building s-exp for test %d, %s: %s",
-            testno, "msg", gpg_strerror (err));
-      goto leave;
+      xfree (buffer2);
+      if (!(buffer2 = hex2buffer (ctx, &buflen2)))
+        {
+          fail ("error building s-exp for test %d, %s: %s",
+                testno, "ctx", "invalid hex string");
+          goto leave;
+        }
+
+      if ((err = gcry_sexp_build (&s_msg, NULL,
+                                  ph ?
+                                  "(data"
+                                  " (flags prehash eddsa)"
+                                  " (hash-algo shake256)"
+                                  " (label %b)"
+                                  " (value %b))"
+                                  :
+                                  "(data"
+                                  " (flags eddsa)"
+                                  " (hash-algo shake256)"
+                                  " (label %b)"
+                                  " (value %b))",
+                                  (int)buflen2, buffer2,
+                                  (int)buflen, buffer)))
+        {
+          fail ("error building s-exp for test %d, %s: %s",
+                testno, "msg", gpg_strerror (err));
+          goto leave;
+        }
+    }
+  else
+    {
+      if ((err = gcry_sexp_build (&s_msg, NULL,
+                                  ph ?
+                                  "(data"
+                                  " (flags prehash eddsa)"
+                                  " (hash-algo shake256)"
+                                  " (value %b))"
+                                  :
+                                  "(data"
+                                  " (flags eddsa)"
+                                  " (hash-algo shake256)"
+                                  " (value %b))",  (int)buflen, buffer)))
+        {
+          fail ("error building s-exp for test %d, %s: %s",
+                testno, "msg", gpg_strerror (err));
+          goto leave;
+        }
     }
 
   if ((err = gcry_pk_sign (&s_sig, s_msg, s_sk)))
@@ -345,7 +385,8 @@ check_ed448 (const char *fname)
   int lineno, ntests;
   char *line;
   int testno;
-  char *sk, *pk, *msg, *sig;
+  int ph;
+  char *sk, *pk, *msg, *ctx, *sig;
 
   info ("Checking Ed448.\n");
 
@@ -354,18 +395,23 @@ check_ed448 (const char *fname)
     die ("error opening '%s': %s\n", fname, strerror (errno));
 
   testno = 0;
-  sk = pk = msg = sig = NULL;
+  ph = 0;
+  sk = pk = msg = ctx = sig = NULL;
   lineno = ntests = 0;
   while ((line = read_textline (fp, &lineno)))
     {
       if (!strncmp (line, "TST:", 4))
         testno = atoi (line+4);
+      else if (!strncmp (line, "PH:", 3))
+        ph = atoi (line+3);
       else if (!strncmp (line, "SK:", 3))
         copy_data (&sk, line, lineno);
       else if (!strncmp (line, "PK:", 3))
         copy_data (&pk, line, lineno);
       else if (!strncmp (line, "MSG:", 4))
         copy_data (&msg, line, lineno);
+      else if (!strncmp (line, "CTX:", 4))
+        copy_data (&ctx, line, lineno);
       else if (!strncmp (line, "SIG:", 4))
         copy_data (&sig, line, lineno);
       else
@@ -375,13 +421,15 @@ check_ed448 (const char *fname)
       if (testno && sk && pk && msg && sig)
         {
           hexdowncase (sig);
-          one_test (testno, sk, pk, msg, sig);
+          one_test (testno, ph, sk, pk, msg, ctx, sig);
           ntests++;
           if (!(ntests % 256))
             show_note ("%d of %d tests done\n", ntests, N_TESTS);
+          ph = 0;
           xfree (pk);  pk = NULL;
           xfree (sk);  sk = NULL;
           xfree (msg); msg = NULL;
+          xfree (ctx); ctx = NULL;
           xfree (sig); sig = NULL;
         }
 
@@ -389,6 +437,7 @@ check_ed448 (const char *fname)
   xfree (pk);
   xfree (sk);
   xfree (msg);
+  xfree (ctx);
   xfree (sig);
 
   if (ntests != N_TESTS && !custom_data_file)

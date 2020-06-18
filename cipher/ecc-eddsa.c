@@ -557,10 +557,8 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest, mpi_ec_t ec)
       memset (hvec, 0, sizeof hvec);
 
       hvec[0].data = digest;
-      hvec[0].off = 0;
       hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
       hvec[1].data = rawmpi;
-      hvec[1].off = 0;
       hvec[1].len = rawmpilen;
       rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
     }
@@ -683,8 +681,10 @@ _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags)
  */
 
 /* String to be used with Ed448 */
-#define DOM4_0_NONE     "SigEd448\0\0"
-#define DOM4_0_NONE_LEN 10
+#define DOM25519     "SigEd25519 no Ed25519 collisions"
+#define DOM25519_LEN 32
+#define DOM448       "SigEd448"
+#define DOM448_LEN   8
 
 gpg_err_code_t
 _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
@@ -703,6 +703,8 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   mpi_point_struct I;          /* Intermediate value.  */
   gcry_mpi_t a, x, y, r;
   int b;
+  unsigned char x_olen[2];
+  unsigned char prehashed_msg[64];
 
   b = (ec->nbits+7)/8;
 
@@ -759,9 +761,32 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
         rc = gcry_err_code (err);
       else
         {
-          _gcry_md_write (hd, DOM4_0_NONE, DOM4_0_NONE_LEN);
+          _gcry_md_write (hd, DOM448, DOM448_LEN);
+          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+          x_olen[1] = ctx->labellen;
+          _gcry_md_write (hd, x_olen, 2);
+          if (ctx->labellen)
+            _gcry_md_write (hd, ctx->label, ctx->labellen);
           _gcry_md_write (hd, digest+b, b);
-          _gcry_md_write (hd, mbuf, mlen);
+          if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+            {
+              gcry_md_hd_t hd2;
+
+              err = _gcry_md_open (&hd2, ctx->hash_algo, 0);
+              if (err)
+                {
+                  rc = gcry_err_code (err);
+                  _gcry_md_close (hd);
+                  goto leave;
+                }
+              _gcry_md_write (hd2, mbuf, mlen);
+              _gcry_md_ctl (hd2, GCRYCTL_FINALIZE, NULL, 0);
+              _gcry_md_extract (hd2, GCRY_MD_SHAKE256, prehashed_msg, 64);
+              _gcry_md_close (hd2);
+              _gcry_md_write (hd, prehashed_msg, 64);
+            }
+          else
+            _gcry_md_write (hd, mbuf, mlen);
           _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
           _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
           _gcry_md_close (hd);
@@ -770,16 +795,46 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
     }
   else
     {
-      gcry_buffer_t hvec[3];
+      gcry_buffer_t hvec[6];
+      int i = 0;
 
       memset (hvec, 0, sizeof hvec);
 
-      hvec[0].data = digest;
-      hvec[0].off  = b;
-      hvec[0].len  = b;
-      hvec[1].data = (char*)mbuf;
-      hvec[1].len  = mlen;
-      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, 2);
+      if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen)
+        {
+          hvec[i].data = (void *)DOM25519;
+          hvec[i].len  = DOM25519_LEN;
+          i++;
+          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+          x_olen[1] = ctx->labellen;
+          hvec[i].data = x_olen;
+          hvec[i].len  = 2;
+          i++;
+          if (ctx->labellen)
+            {
+              hvec[i].data = ctx->label;
+              hvec[i].len  = ctx->labellen;
+              i++;
+            }
+        }
+
+      hvec[i].data = digest;
+      hvec[i].off  = b;
+      hvec[i].len  = b;
+      i++;
+      if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+        {
+          _gcry_md_hash_buffer (ctx->hash_algo, prehashed_msg, mbuf, mlen);
+          hvec[i].data = (char*)prehashed_msg;
+          hvec[i].len  = 64;
+        }
+      else
+        {
+          hvec[i].data = (char*)mbuf;
+          hvec[i].len  = mlen;
+        }
+      i++;
+      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, i);
     }
 
   if (rc)
@@ -810,10 +865,18 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
         rc = gcry_err_code (err);
       else
         {
-          _gcry_md_write (hd, DOM4_0_NONE, DOM4_0_NONE_LEN);
+          _gcry_md_write (hd, DOM448, DOM448_LEN);
+          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+          x_olen[1] = ctx->labellen;
+          _gcry_md_write (hd, x_olen, 2);
+          if (ctx->labellen)
+            _gcry_md_write (hd, ctx->label, ctx->labellen);
           _gcry_md_write (hd, rawmpi, rawmpilen);
           _gcry_md_write (hd, encpk, encpklen);
-          _gcry_md_write (hd, mbuf, mlen);
+          if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+            _gcry_md_write (hd, prehashed_msg, 64);
+          else
+            _gcry_md_write (hd, mbuf, mlen);
           _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
           _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
           _gcry_md_close (hd);
@@ -822,21 +885,48 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
     }
   else
     {
-      gcry_buffer_t hvec[3];
+      gcry_buffer_t hvec[6];
+      int i = 0;
 
       memset (hvec, 0, sizeof hvec);
 
-      /* S = r + a * H(encodepoint(R) + encodepoint(pk) + m) mod n  */
-      hvec[0].data = rawmpi;  /* (this is R) */
-      hvec[0].off  = 0;
-      hvec[0].len  = rawmpilen;
-      hvec[1].data = encpk;
-      hvec[1].off  = 0;
-      hvec[1].len  = encpklen;
-      hvec[2].data = (char*)mbuf;
-      hvec[2].off  = 0;
-      hvec[2].len  = mlen;
-      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, 3);
+      if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen)
+        {
+          hvec[i].data = (void *)DOM25519;
+          hvec[i].len  = DOM25519_LEN;
+          i++;
+          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+          x_olen[1] = ctx->labellen;
+          hvec[i].data = x_olen;
+          hvec[i].len  = 2;
+          i++;
+          if (ctx->labellen)
+            {
+              hvec[i].data = ctx->label;
+              hvec[i].len  = ctx->labellen;
+              i++;
+            }
+        }
+
+      /* S = r + a * H(dom2(F,C)+encodepoint(R)+encodepoint(pk)+m) mod n  */
+      hvec[i].data = rawmpi;  /* (this is R) */
+      hvec[i].len  = rawmpilen;
+      i++;
+      hvec[i].data = encpk;
+      hvec[i].len  = encpklen;
+      i++;
+      if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+        {
+          hvec[i].data = (char*)prehashed_msg;
+          hvec[i].len  = 64;
+        }
+      else
+        {
+          hvec[i].data = (char*)mbuf;
+          hvec[i].len  = mlen;
+        }
+      i++;
+      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, i);
     }
 
   if (rc)
@@ -895,6 +985,8 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   unsigned char digest[114];
   gcry_mpi_t h, s;
   mpi_point_struct Ia, Ib;
+  unsigned char x_olen[2];
+  unsigned char prehashed_msg[64];
 
   if (!mpi_is_opaque (input) || !mpi_is_opaque (r_in) || !mpi_is_opaque (s_in))
     return GPG_ERR_INV_DATA;
@@ -956,10 +1048,33 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
         rc = gcry_err_code (err);
       else
         {
-          _gcry_md_write (hd, DOM4_0_NONE, DOM4_0_NONE_LEN);
+          _gcry_md_write (hd, DOM448, DOM448_LEN);
+          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+          x_olen[1] = ctx->labellen;
+          _gcry_md_write (hd, x_olen, 2);
+          if (ctx->labellen)
+            _gcry_md_write (hd, ctx->label, ctx->labellen);
           _gcry_md_write (hd, rbuf, rlen);
           _gcry_md_write (hd, encpk, encpklen);
-          _gcry_md_write (hd, mbuf, mlen);
+          if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+            {
+              gcry_md_hd_t hd2;
+
+              err = _gcry_md_open (&hd2, ctx->hash_algo, 0);
+              if (err)
+                {
+                  rc = gcry_err_code (err);
+                  _gcry_md_close (hd);
+                  goto leave;
+                }
+              _gcry_md_write (hd2, mbuf, mlen);
+              _gcry_md_ctl (hd2, GCRYCTL_FINALIZE, NULL, 0);
+              _gcry_md_extract (hd2, GCRY_MD_SHAKE256, prehashed_msg, 64);
+              _gcry_md_close (hd2);
+              _gcry_md_write (hd, prehashed_msg, 64);
+            }
+          else
+            _gcry_md_write (hd, mbuf, mlen);
           _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
           _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
           _gcry_md_close (hd);
@@ -968,21 +1083,49 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
     }
   else
     {
-      gcry_buffer_t hvec[3];
+      gcry_buffer_t hvec[6];
+      int i = 0;
 
       memset (hvec, 0, sizeof hvec);
 
-      /* h = H(encodepoint(R) + encodepoint(pk) + m)  */
-      hvec[0].data = (char*)rbuf;
-      hvec[0].off  = 0;
-      hvec[0].len  = rlen;
-      hvec[1].data = encpk;
-      hvec[1].off  = 0;
-      hvec[1].len  = encpklen;
-      hvec[2].data = (char*)mbuf;
-      hvec[2].off  = 0;
-      hvec[2].len  = mlen;
-      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, 3);
+      /* h = H(dom2(F,C)+encodepoint(R)+encodepoint(pk)+m)  */
+      if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen)
+        {
+          hvec[i].data = (void *)DOM25519;
+          hvec[i].len  = DOM25519_LEN;
+          i++;
+          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+          x_olen[1] = ctx->labellen;
+          hvec[i].data = x_olen;
+          hvec[i].len  = 2;
+          i++;
+          if (ctx->labellen)
+            {
+              hvec[i].data = ctx->label;
+              hvec[i].len  = ctx->labellen;
+              i++;
+            }
+        }
+
+      hvec[i].data = (char*)rbuf;
+      hvec[i].len  = rlen;
+      i++;
+      hvec[i].data = encpk;
+      hvec[i].len  = encpklen;
+      i++;
+      if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+        {
+          _gcry_md_hash_buffer (ctx->hash_algo, prehashed_msg, mbuf, mlen);
+          hvec[i].data = (char*)prehashed_msg;
+          hvec[i].len  = 64;
+        }
+      else
+        {
+          hvec[i].data = (char*)mbuf;
+          hvec[i].len  = mlen;
+        }
+      i++;
+      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, i);
     }
 
   if (rc)
