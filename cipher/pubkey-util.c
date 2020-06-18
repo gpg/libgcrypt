@@ -728,7 +728,8 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
   else if (unknown_flag)
     rc = GPG_ERR_INV_FLAG;
   else if (ctx->encoding == PUBKEY_ENC_RAW
-           && (parsed_flags & PUBKEY_FLAG_EDDSA))
+           && ((parsed_flags & PUBKEY_FLAG_EDDSA)
+               || (ctx->flags & PUBKEY_FLAG_EDDSA)))
     {
       /* Prepare for EdDSA.  */
       gcry_sexp_t list;
@@ -740,6 +741,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
           rc = GPG_ERR_INV_OBJ;
           goto leave;
         }
+      /* Hash algo is determined by curve.  No hash-algo is OK.  */
       /* Get HASH-ALGO. */
       list = sexp_find_token (ldata, "hash-algo", 0);
       if (list)
@@ -755,8 +757,6 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
             }
           sexp_release (list);
         }
-      else
-        rc = GPG_ERR_INV_OBJ;
       if (rc)
         goto leave;
 
@@ -1149,7 +1149,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
   sexp_release (lvalue);
 
   if (!rc)
-    ctx->flags = parsed_flags;
+    ctx->flags |= parsed_flags;
   else
     {
       xfree (ctx->label);
