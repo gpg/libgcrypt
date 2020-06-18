@@ -270,14 +270,11 @@ one_test (int testno, int ph, const char *sk, const char *pk,
       if ((err = gcry_sexp_build (&s_msg, NULL,
                                   ph ?
                                   "(data"
-                                  " (flags prehash eddsa)"
-                                  " (hash-algo shake256)"
+                                  " (flags prehash)"
                                   " (label %b)"
                                   " (value %b))"
                                   :
                                   "(data"
-                                  " (flags eddsa)"
-                                  " (hash-algo shake256)"
                                   " (label %b)"
                                   " (value %b))",
                                   (int)buflen2, buffer2,
@@ -293,13 +290,10 @@ one_test (int testno, int ph, const char *sk, const char *pk,
       if ((err = gcry_sexp_build (&s_msg, NULL,
                                   ph ?
                                   "(data"
-                                  " (flags prehash eddsa)"
-                                  " (hash-algo shake256)"
+                                  " (flags prehash)"
                                   " (value %b))"
                                   :
                                   "(data"
-                                  " (flags eddsa)"
-                                  " (hash-algo shake256)"
                                   " (value %b))",  (int)buflen, buffer)))
         {
           fail ("error building s-exp for test %d, %s: %s",

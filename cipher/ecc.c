@@ -702,6 +702,11 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, 0);
   ctx.flags |= flags;
+  if (ec->model == MPI_EC_EDWARDS && ec->dialect == ECC_DIALECT_SAFECURVE)
+    ctx.flags |= PUBKEY_FLAG_EDDSA;
+  /* Clear hash algo for EdDSA.  */
+  if ((ctx.flags & PUBKEY_FLAG_EDDSA))
+    ctx.hash_algo = GCRY_MD_NONE;
 
   /* Extract the data.  */
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
@@ -709,6 +714,15 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     goto leave;
   if (DBG_CIPHER)
     log_mpidump ("ecc_sign   data", data);
+
+  /* Hash algo is determined by curve in EdDSA.  Fill it if not specified.  */
+  if ((ctx.flags & PUBKEY_FLAG_EDDSA) && !ctx.hash_algo)
+    {
+      if (ec->dialect == ECC_DIALECT_ED25519)
+        ctx.hash_algo = GCRY_MD_SHA512;
+      else if (ec->dialect == ECC_DIALECT_SAFECURVE)
+        ctx.hash_algo = GCRY_MD_SHAKE256;
+    }
 
   sig_r = mpi_new (0);
   sig_s = mpi_new (0);
@@ -793,6 +807,11 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
                                    ecc_get_nbits (s_keyparms));
   ctx.flags |= flags;
+  if (ec->model == MPI_EC_EDWARDS && ec->dialect == ECC_DIALECT_SAFECURVE)
+    ctx.flags |= PUBKEY_FLAG_EDDSA;
+  /* Clear hash algo for EdDSA.  */
+  if ((ctx.flags & PUBKEY_FLAG_EDDSA))
+    ctx.hash_algo = GCRY_MD_NONE;
 
   /* Extract the data.  */
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
@@ -800,6 +819,15 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     goto leave;
   if (DBG_CIPHER)
     log_mpidump ("ecc_verify data", data);
+
+  /* Hash algo is determined by curve in EdDSA.  Fill it if not specified.  */
+  if ((ctx.flags & PUBKEY_FLAG_EDDSA) && !ctx.hash_algo)
+    {
+      if (ec->dialect == ECC_DIALECT_ED25519)
+        ctx.hash_algo = GCRY_MD_SHA512;
+      else if (ec->dialect == ECC_DIALECT_SAFECURVE)
+        ctx.hash_algo = GCRY_MD_SHAKE256;
+    }
 
   /*
    * Extract the signature value.
