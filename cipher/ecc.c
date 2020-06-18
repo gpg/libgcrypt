@@ -715,7 +715,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if ((ctx.flags & PUBKEY_FLAG_EDDSA))
     {
       /* EdDSA requires the public key.  */
-      rc = _gcry_ecc_eddsa_sign (data, ec, sig_r, sig_s, ctx.hash_algo);
+      rc = _gcry_ecc_eddsa_sign (data, ec, sig_r, sig_s, &ctx);
       if (!rc)
         rc = sexp_build (r_sig, NULL,
                          "(sig-val(eddsa(r%M)(s%M)))", sig_r, sig_s);
@@ -827,7 +827,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
    */
   if ((sigflags & PUBKEY_FLAG_EDDSA))
     {
-      rc = _gcry_ecc_eddsa_verify (data, ec, sig_r, sig_s, ctx.hash_algo);
+      rc = _gcry_ecc_eddsa_verify (data, ec, sig_r, sig_s, &ctx);
     }
   else if ((sigflags & PUBKEY_FLAG_GOST))
     {

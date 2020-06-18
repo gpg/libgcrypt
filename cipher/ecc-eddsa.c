@@ -688,7 +688,8 @@ _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags)
 
 gpg_err_code_t
 _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
-                      gcry_mpi_t r_r, gcry_mpi_t s, int hashalgo)
+                      gcry_mpi_t r_r, gcry_mpi_t s,
+                      struct pk_encoding_ctx *ctx)
 {
   int rc;
   unsigned int tmp;
@@ -748,12 +749,12 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   if (DBG_CIPHER)
     log_printhex ("     m", mbuf, mlen);
 
-  if (hashalgo == GCRY_MD_SHAKE256)
+  if (ctx->hash_algo == GCRY_MD_SHAKE256)
     {
       gcry_error_t err;
       gcry_md_hd_t hd;
 
-      err = _gcry_md_open (&hd, hashalgo, 0);
+      err = _gcry_md_open (&hd, ctx->hash_algo, 0);
       if (err)
         rc = gcry_err_code (err);
       else
@@ -778,7 +779,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
       hvec[0].len  = b;
       hvec[1].data = (char*)mbuf;
       hvec[1].len  = mlen;
-      rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
+      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, 2);
     }
 
   if (rc)
@@ -799,12 +800,12 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   if (DBG_CIPHER)
     log_printhex ("   e_r", rawmpi, rawmpilen);
 
-  if (hashalgo == GCRY_MD_SHAKE256)
+  if (ctx->hash_algo == GCRY_MD_SHAKE256)
     {
       gcry_error_t err;
       gcry_md_hd_t hd;
 
-      err = _gcry_md_open (&hd, hashalgo, 0);
+      err = _gcry_md_open (&hd, ctx->hash_algo, 0);
       if (err)
         rc = gcry_err_code (err);
       else
@@ -835,7 +836,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
       hvec[2].data = (char*)mbuf;
       hvec[2].off  = 0;
       hvec[2].len  = mlen;
-      rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 3);
+      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, 3);
     }
 
   if (rc)
@@ -879,7 +880,8 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
  */
 gpg_err_code_t
 _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
-                        gcry_mpi_t r_in, gcry_mpi_t s_in, int hashalgo)
+                        gcry_mpi_t r_in, gcry_mpi_t s_in,
+                        struct pk_encoding_ctx *ctx)
 {
   int rc;
   int b;
@@ -944,12 +946,12 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
       goto leave;
     }
 
-  if (hashalgo == GCRY_MD_SHAKE256)
+  if (ctx->hash_algo == GCRY_MD_SHAKE256)
     {
       gcry_error_t err;
       gcry_md_hd_t hd;
 
-      err = _gcry_md_open (&hd, hashalgo, 0);
+      err = _gcry_md_open (&hd, ctx->hash_algo, 0);
       if (err)
         rc = gcry_err_code (err);
       else
@@ -980,7 +982,7 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
       hvec[2].data = (char*)mbuf;
       hvec[2].off  = 0;
       hvec[2].len  = mlen;
-      rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 3);
+      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, 3);
     }
 
   if (rc)

@@ -110,11 +110,11 @@ gpg_err_code_t _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags);
 gpg_err_code_t _gcry_ecc_eddsa_sign (gcry_mpi_t input,
                                      mpi_ec_t ec,
                                      gcry_mpi_t r_r, gcry_mpi_t s,
-                                     int hashalgo);
+                                     struct pk_encoding_ctx *ctx);
 gpg_err_code_t _gcry_ecc_eddsa_verify (gcry_mpi_t input,
                                        mpi_ec_t ec,
                                        gcry_mpi_t r, gcry_mpi_t s,
-                                       int hashalgo);
+                                       struct pk_encoding_ctx *ctx);
 void reverse_buffer (unsigned char *buffer, unsigned int length);
 
 
