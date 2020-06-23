@@ -1157,7 +1157,10 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec, int flags,
           unsigned int n = mpi_get_nbits (ec->d);
           unsigned int len;
 
-          len = (ec->nbits%8) == 0 ? (ec->nbits/8 + 1) : (ec->nbits+7)/8;
+          len = (ec->nbits+7)/8;
+          /* EdDSA requires additional bit for sign.  */
+          if ((ec->nbits%8) == 0 && ec->model == MPI_EC_EDWARDS)
+            len++;
 
           if ((n+7)/8 != len)
             {
