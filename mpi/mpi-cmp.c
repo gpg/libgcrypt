@@ -89,8 +89,11 @@ do_mpi_cmp (gcry_mpi_t u, gcry_mpi_t v, int absmode)
       usign = absmode? 0 : u->sign;
       vsign = absmode? 0 : v->sign;
 
-      /* Compare sign bits.  */
+      /* Special treatment for +0 == -0 */
+      if (!usize && !vsize)
+        return 0;
 
+      /* Compare sign bits.  */
       if (!usign && vsign)
         return 1;
       if (usign && !vsign)

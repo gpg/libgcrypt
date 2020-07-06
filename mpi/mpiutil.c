@@ -561,7 +561,7 @@ _gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u)
  * int so that the value can be used with the bit test functions; in
  * contrast the other _ui functions take an unsigned long so that on
  * some platforms they may accept a larger value.  On error the value
- * at U is not changed. */
+ * at W is not changed. */
 gcry_err_code_t
 _gcry_mpi_get_ui (unsigned int *w, gcry_mpi_t u)
 {
