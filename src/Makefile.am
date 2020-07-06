@@ -148,6 +148,10 @@ gcryptrnd_LDADD = libgcrypt.la $(GPG_ERROR_LIBS) $(PTH_LIBS)
 getrandom_SOURCES = getrandom.c
 endif USE_RANDOM_DAEMON
 
+# For unkown reasons that file does no get deleted during make
+# distcheck but it is not distributed either.  Maybe a regression
+# since automake 1.16.
+DISTCLEANFILES = $(DEPDIR)/hwf-x86.Plo
 
 install-data-local: install-def-file
 

@@ -1,5 +1,29 @@
-Noteworthy changes in version 1.8.6 (unreleased)  [C22/A2/R6]
+Noteworthy changes in version 1.8.6 (2020-07-06)  [C22/A2/R6]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix build problems on OpenIndiana et al. [#4818]
+
+   - Fix GCM bug on arm64 which troubles for example OMEMO.  [#4986]
+
+   - Fix wrong code execution in Poly1305 ARM/NEON implementation.
+     [#4833]
+
+   - Detect a div-by-zero in a debug helper tool.  [#4868]
+
+   - Use a constant time mpi_inv in some cases and change the order
+     mpi_invm is called.  [#4869]
+
+   - Fix mpi_copy to correctly handle flags of opaque MPIs.
+
+   - Fix mpi_cmp to consider +0 and -0 the same.
+
+ * Other features:
+
+   - Add OIDs from RFC-8410 as aliases for Ed25519 and Curve25519.
+
+ Release-info: https://dev.gnupg.org/T4985
 
 
 Noteworthy changes in version 1.8.5 (2019-08-29)  [C22/A2/R5]
