@@ -34,6 +34,10 @@
 #include "ecc-common.h"
 
 
+static gpg_err_code_t
+point_from_keyparam (gcry_mpi_point_t *r_a,
+                     gcry_sexp_t keyparam, const char *name, mpi_ec_t ec);
+
 /* This tables defines aliases for curve names.  */
 static const struct
 {
@@ -782,7 +786,7 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   gpg_err_code_t rc;
   const char *result = NULL;
   elliptic_curve_t E;
-  gcry_mpi_t mpi_g = NULL;
+  gcry_mpi_point_t G = NULL;
   gcry_mpi_t tmp = NULL;
   int idx;
 
@@ -807,9 +811,8 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   /*
    * Extract the curve parameters..
    */
-  rc = gpg_err_code (sexp_extract_param (keyparms, NULL, "pabgn",
-                                         &E.p, &E.a, &E.b, &mpi_g, &E.n,
-                                         NULL));
+  rc = gpg_err_code (sexp_extract_param (keyparms, NULL, "pabn",
+                                         &E.p, &E.a, &E.b, &E.n, NULL));
   if (rc == GPG_ERR_NO_OBJ)
     {
       /* This might be the second use case of checking whether a
@@ -840,12 +843,12 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   if (rc)
     goto leave;
 
-  if (mpi_g)
-    {
-      _gcry_mpi_point_init (&E.G);
-      if (_gcry_ecc_os2ec (&E.G, mpi_g))
-        goto leave;
-    }
+  rc = point_from_keyparam (&G, keyparms, "g", NULL);
+  if (rc)
+    goto leave;
+
+  _gcry_mpi_point_init (&E.G);
+  _gcry_mpi_point_set (&E.G, G->x, G->y, G->z);
 
   for (idx = 0; domain_parms[idx].desc; idx++)
     {
@@ -886,11 +889,11 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
     }
 
  leave:
+  _gcry_mpi_point_release (G);
   _gcry_mpi_release (tmp);
   _gcry_mpi_release (E.p);
   _gcry_mpi_release (E.a);
   _gcry_mpi_release (E.b);
-  _gcry_mpi_release (mpi_g);
   _gcry_mpi_point_free_parts (&E.G);
   _gcry_mpi_release (E.n);
   return result;

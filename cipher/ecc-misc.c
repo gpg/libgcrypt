@@ -157,12 +157,13 @@ _gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ec)
 }
 
 
-/* RESULT must have been initialized and is set on success to the
+/* Decode octet string in VALUE into RESULT, in the format defined by SEC 1.
+   RESULT must have been initialized and is set on success to the
    point given by VALUE.  */
-gcry_err_code_t
-_gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
+gpg_err_code_t
+_gcry_ecc_sec_decodepoint  (gcry_mpi_t value, mpi_ec_t ec, mpi_point_t result)
 {
-  gcry_err_code_t rc;
+  gpg_err_code_t rc;
   size_t n;
   const unsigned char *buf;
   unsigned char *buf_memory;
@@ -196,29 +197,88 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
       xfree (buf_memory);
       return GPG_ERR_INV_OBJ;
     }
-  if (*buf != 4)
+
+  if (*buf == 2 || *buf == 3)
     {
+      gcry_mpi_t x3;
+      gcry_mpi_t t;
+      gcry_mpi_t p1_4;
+      int y_bit = (*buf == 3);
+
+      if (!mpi_test_bit (ec->p, 1))
+        {
+          xfree (buf_memory);
+          return GPG_ERR_NOT_IMPLEMENTED; /* No support for point compression.  */
+        }
+
+      n = n - 1;
+      rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG, buf+1, n, NULL);
       xfree (buf_memory);
-      return GPG_ERR_NOT_IMPLEMENTED; /* No support for point compression.  */
+      if (rc)
+        return rc;
+
+      /*
+       * Recover Y.  The Weierstrass curve: y^2 = x^3 + a*x + b
+       */
+
+      x3 = mpi_new (0);
+      t = mpi_new (0);
+      p1_4 = mpi_new (0);
+      y = mpi_new (0);
+
+      /* Compute right hand side.  */
+      mpi_powm (x3, x, mpi_const (MPI_C_THREE), ec->p);
+      mpi_mul (t, ec->a, x);
+      mpi_mod (t, t, ec->p);
+      mpi_add (t, t, ec->b);
+      mpi_mod (t, t, ec->p);
+      mpi_add (t, t, x3);
+      mpi_mod (t, t, ec->p);
+
+      /*
+       * When p mod 4 = 3, modular square root of A can be computed by
+       * A^((p+1)/4) mod p
+       */
+
+      /* Compute (p+1)/4 into p1_4 */
+      mpi_rshift (p1_4, ec->p, 2);
+      _gcry_mpi_add_ui (p1_4, p1_4, 1);
+
+      mpi_powm (y, t, p1_4, ec->p);
+
+      if (y_bit != mpi_test_bit (y, 0))
+        mpi_sub (y, ec->p, y);
+
+      mpi_free (p1_4);
+      mpi_free (t);
+      mpi_free (x3);
     }
-  if ( ((n-1)%2) )
+  else if (*buf == 4)
+    {
+      if ( ((n-1)%2) )
+        {
+          xfree (buf_memory);
+          return GPG_ERR_INV_OBJ;
+        }
+      n = (n-1)/2;
+      rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG, buf+1, n, NULL);
+      if (rc)
+        {
+          xfree (buf_memory);
+          return rc;
+        }
+      rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_USG, buf+1+n, n, NULL);
+      xfree (buf_memory);
+      if (rc)
+        {
+          mpi_free (x);
+          return rc;
+        }
+    }
+  else
     {
       xfree (buf_memory);
       return GPG_ERR_INV_OBJ;
-    }
-  n = (n-1)/2;
-  rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG, buf+1, n, NULL);
-  if (rc)
-    {
-      xfree (buf_memory);
-      return rc;
-    }
-  rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_USG, buf+1+n, n, NULL);
-  xfree (buf_memory);
-  if (rc)
-    {
-      mpi_free (x);
-      return rc;
     }
 
   mpi_set (result->x, x);

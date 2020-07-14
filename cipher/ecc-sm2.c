@@ -282,7 +282,7 @@ _gcry_ecc_sm2_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t data_list, mpi_ec_t ec)
         goto leave_main;
       }
 
-    rc = _gcry_ecc_os2ec (&c1, data_c1);
+    rc = _gcry_ecc_sec_decodepoint (data_c1, ec, &c1);
     if (rc)
       goto leave_main;
 

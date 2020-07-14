@@ -1147,7 +1147,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (ec->model == MPI_EC_MONTGOMERY)
     rc = _gcry_ecc_mont_decodepoint (data_e, ec, &kG);
   else
-    rc = _gcry_ecc_os2ec (&kG, data_e);
+    rc = _gcry_ecc_sec_decodepoint (data_e, ec, &kG);
   if (rc)
     goto leave;
 

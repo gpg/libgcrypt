@@ -13749,8 +13749,7 @@ check_pubkey (void)
       "(public-key\n"
       " (ecdsa\n"
       "  (curve nistp192)\n"
-      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
-      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)))\n",
+      "  (q #028532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE#)))\n",
 
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
@@ -13827,9 +13826,8 @@ check_pubkey (void)
       "(public-key\n"
       " (ecc\n"
       "  (curve nistp256)\n"
-      "  (q #04D4F6A6738D9B8D3A7075C1E4EE95015FC0C9B7E4272D2B"
-      "      EB6644D3609FC781B71F9A8072F58CB66AE2F89BB1245187"
-      "      3ABF7D91F9E1FBF96BF2F70E73AAC9A283#)))\n",
+      "  (q #03D4F6A6738D9B8D3A7075C1E4EE95015FC0C9B7E4272D2B"
+      "      EB6644D3609FC781B7#)))\n",
 
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
