@@ -86,9 +86,9 @@ jent_get_nstime(u64 *out)
    * not rely on that extra little entropy.  */
   if (!clock_gettime (CLOCK_REALTIME, &tv))
     {
-      tmp = time.tv_sec;
+      tmp = tv.tv_sec;
       tmp = tmp << 32;
-      tmp = tmp | time.tv_nsec;
+      tmp = tmp | tv.tv_nsec;
     }
   else
     tmp = 0;
