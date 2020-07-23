@@ -116,41 +116,69 @@
   4-way chacha20
  **********************************************************************/
 
-#define ROTATE2(dst1,dst2,c,src1,src2,iop1)	\
-	shl dst1.4s, src1.4s, #(c);		\
-	shl dst2.4s, src2.4s, #(c);		\
-	iop1;					\
-	sri dst1.4s, src1.4s, #(32 - (c));	\
-	sri dst2.4s, src2.4s, #(32 - (c));
-
-#define ROTATE2_8(dst1,dst2,src1,src2,iop1)	\
-	tbl dst1.16b, {src1.16b}, ROT8.16b;     \
-	iop1;					\
-	tbl dst2.16b, {src2.16b}, ROT8.16b;
-
-#define ROTATE2_16(dst1,dst2,src1,src2)		\
-	rev32 dst1.8h, src1.8h;			\
-	rev32 dst2.8h, src2.8h;
-
 #define XOR(d,s1,s2) \
 	eor d.16b, s2.16b, s1.16b;
 
 #define PLUS(ds,s) \
 	add ds.4s, ds.4s, s.4s;
 
-#define QUARTERROUND2(a1,b1,c1,d1,a2,b2,c2,d2,ign,tmp1,tmp2,iop1,iop2,iop3,iop4,iop5,iop6,iop7,iop8,iop9,iop10,iop11,iop12,iop13,iop14) \
-	PLUS(a1,b1); PLUS(a2,b2); iop1;					\
-	    XOR(tmp1,d1,a1); XOR(tmp2,d2,a2); iop2;			\
-		ROTATE2_16(d1, d2, tmp1, tmp2); iop3;			\
-	PLUS(c1,d1); PLUS(c2,d2); iop4;					\
-	    XOR(tmp1,b1,c1); XOR(tmp2,b2,c2); iop5;			\
-		ROTATE2(b1, b2, 12, tmp1, tmp2, _(iop6)); iop7;		\
-	PLUS(a1,b1); PLUS(a2,b2); iop8;					\
-	    XOR(tmp1,d1,a1); XOR(tmp2,d2,a2); iop9;			\
-		ROTATE2_8(d1, d2, tmp1, tmp2, _(iop10)); iop11;		\
-	PLUS(c1,d1); PLUS(c2,d2); iop12;				\
-	    XOR(tmp1,b1,c1); XOR(tmp2,b2,c2); iop13;			\
-		ROTATE2(b1, b2,  7, tmp1, tmp2, _(iop14));
+#define ROTATE4(dst1,dst2,dst3,dst4,c,src1,src2,src3,src4,iop1,iop2,iop3) \
+	shl dst1.4s, src1.4s, #(c);		\
+	shl dst2.4s, src2.4s, #(c);		\
+	iop1;					\
+	shl dst3.4s, src3.4s, #(c);		\
+	shl dst4.4s, src4.4s, #(c);		\
+	iop2;					\
+	sri dst1.4s, src1.4s, #(32 - (c));	\
+	sri dst2.4s, src2.4s, #(32 - (c));	\
+	iop3;					\
+	sri dst3.4s, src3.4s, #(32 - (c));	\
+	sri dst4.4s, src4.4s, #(32 - (c));
+
+#define ROTATE4_8(dst1,dst2,dst3,dst4,src1,src2,src3,src4,iop1,iop2,iop3) \
+	tbl dst1.16b, {src1.16b}, ROT8.16b;     \
+	iop1;					\
+	tbl dst2.16b, {src2.16b}, ROT8.16b;	\
+	iop2;					\
+	tbl dst3.16b, {src3.16b}, ROT8.16b;	\
+	iop3;					\
+	tbl dst4.16b, {src4.16b}, ROT8.16b;
+
+#define ROTATE4_16(dst1,dst2,dst3,dst4,src1,src2,src3,src4,iop1) \
+	rev32 dst1.8h, src1.8h;			\
+	rev32 dst2.8h, src2.8h;			\
+	iop1;					\
+	rev32 dst3.8h, src3.8h;			\
+	rev32 dst4.8h, src4.8h;
+
+#define QUARTERROUND4(a1,b1,c1,d1,a2,b2,c2,d2,a3,b3,c3,d3,a4,b4,c4,d4,ign,tmp1,tmp2,tmp3,tmp4,\
+		      iop1,iop2,iop3,iop4,iop5,iop6,iop7,iop8,iop9,iop10,iop11,iop12,iop13,iop14,\
+		      iop15,iop16,iop17,iop18,iop19,iop20,iop21,iop22,iop23,iop24,iop25,iop26,\
+		      iop27,iop28,iop29) \
+	PLUS(a1,b1); PLUS(a2,b2); iop1;						\
+	PLUS(a3,b3); PLUS(a4,b4); iop2;						\
+	    XOR(tmp1,d1,a1); XOR(tmp2,d2,a2); iop3;				\
+	    XOR(tmp3,d3,a3); XOR(tmp4,d4,a4); iop4;				\
+		ROTATE4_16(d1, d2, d3, d4, tmp1, tmp2, tmp3, tmp4, _(iop5));	\
+		iop6;								\
+	PLUS(c1,d1); PLUS(c2,d2); iop7;						\
+	PLUS(c3,d3); PLUS(c4,d4); iop8;						\
+	    XOR(tmp1,b1,c1); XOR(tmp2,b2,c2); iop9;				\
+	    XOR(tmp3,b3,c3); XOR(tmp4,b4,c4); iop10;				\
+		ROTATE4(b1, b2, b3, b4, 12, tmp1, tmp2, tmp3, tmp4,		\
+			_(iop11), _(iop12), _(iop13)); iop14;			\
+	PLUS(a1,b1); PLUS(a2,b2); iop15;					\
+	PLUS(a3,b3); PLUS(a4,b4); iop16;					\
+	    XOR(tmp1,d1,a1); XOR(tmp2,d2,a2); iop17;				\
+	    XOR(tmp3,d3,a3); XOR(tmp4,d4,a4); iop18;				\
+		ROTATE4_8(d1, d2, d3, d4, tmp1, tmp2, tmp3, tmp4,		\
+			  _(iop19), _(iop20), _(iop21)); iop22;			\
+	PLUS(c1,d1); PLUS(c2,d2); iop23;					\
+	PLUS(c3,d3); PLUS(c4,d4); iop24;					\
+	    XOR(tmp1,b1,c1); XOR(tmp2,b2,c2); iop25;				\
+	    XOR(tmp3,b3,c3); XOR(tmp4,b4,c4); iop26;				\
+		ROTATE4(b1, b2, b3, b4, 7, tmp1, tmp2, tmp3, tmp4,		\
+			_(iop27), _(iop28), _(iop29));
 
 .align 4
 .globl _gcry_chacha20_aarch64_blocks4_data_inc_counter
@@ -219,14 +247,14 @@ _gcry_chacha20_aarch64_blocks4:
 
 .Lround2:
 	subs ROUND, ROUND, #2
-	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,VTMP0,VTMP1,
-		      ,,,,,,,,,,,,,)
-	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,VTMP0,VTMP1,
-		      ,,,,,,,,,,,,,)
-	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,VTMP0,VTMP1,
-		      ,,,,,,,,,,,,,)
-	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,VTMP0,VTMP1,
-		      ,,,,,,,,,,,,,)
+	QUARTERROUND4(X0, X4,  X8, X12,   X1, X5,  X9, X13,
+		      X2, X6, X10, X14,   X3, X7, X11, X15,
+		      tmp:=,VTMP0,VTMP1,VTMP2,VTMP3,
+		      ,,,,,,,,,,,,,,,,,,,,,,,,,,,,)
+	QUARTERROUND4(X0, X5, X10, X15,   X1, X6, X11, X12,
+		      X2, X7,  X8, X13,   X3, X4,  X9, X14,
+		      tmp:=,VTMP0,VTMP1,VTMP2,VTMP3,
+		      ,,,,,,,,,,,,,,,,,,,,,,,,,,,,)
 	b.ne .Lround2;
 
 	ld1 {VTMP0.16b, VTMP1.16b}, [INPUT_POS], #32;
@@ -400,7 +428,9 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 	mov POLY_CHACHA_ROUND, #6;
 .Lround4_with_poly1305_inner1:
 		      POLY1305_BLOCK_PART1(0 * 16)
-	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,VTMP0,VTMP1,
+	QUARTERROUND4(X0, X4,  X8, X12,   X1, X5,  X9, X13,
+		      X2, X6, X10, X14,   X3, X7, X11, X15,
+		      tmp:=,VTMP0,VTMP1,VTMP2,VTMP3,
 		      POLY1305_BLOCK_PART2(0 * 16),
 		      POLY1305_BLOCK_PART3(),
 		      POLY1305_BLOCK_PART4(),
@@ -414,9 +444,8 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 		      POLY1305_BLOCK_PART12(),
 		      POLY1305_BLOCK_PART13(),
 		      POLY1305_BLOCK_PART14(),
-		      POLY1305_BLOCK_PART15())
-		      POLY1305_BLOCK_PART16()
-	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,VTMP0,VTMP1,
+		      POLY1305_BLOCK_PART15(),
+		      POLY1305_BLOCK_PART16(),
 		      POLY1305_BLOCK_PART17(),
 		      POLY1305_BLOCK_PART18(),
 		      POLY1305_BLOCK_PART19(),
@@ -432,7 +461,9 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 		      POLY1305_BLOCK_PART29(),
 		      POLY1305_BLOCK_PART1(1 * 16))
 		      POLY1305_BLOCK_PART2(1 * 16)
-	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,VTMP0,VTMP1,
+	QUARTERROUND4(X0, X5, X10, X15,   X1, X6, X11, X12,
+		      X2, X7,  X8, X13,   X3, X4,  X9, X14,
+		      tmp:=,VTMP0,VTMP1,VTMP2,VTMP3,
 		      _(add POLY_RSRC, POLY_RSRC, #(2*16)),
 		      POLY1305_BLOCK_PART3(),
 		      POLY1305_BLOCK_PART4(),
@@ -446,9 +477,8 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 		      POLY1305_BLOCK_PART12(),
 		      POLY1305_BLOCK_PART13(),
 		      POLY1305_BLOCK_PART14(),
-		      POLY1305_BLOCK_PART15())
-		      POLY1305_BLOCK_PART16()
-	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,VTMP0,VTMP1,
+		      POLY1305_BLOCK_PART15(),
+		      POLY1305_BLOCK_PART16(),
 		      POLY1305_BLOCK_PART17(),
 		      POLY1305_BLOCK_PART18(),
 		      POLY1305_BLOCK_PART19(),
@@ -468,15 +498,16 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 	mov POLY_CHACHA_ROUND, #4;
 .Lround4_with_poly1305_inner2:
 		      POLY1305_BLOCK_PART1(0 * 16)
-	QUARTERROUND2(X0, X4,  X8, X12,   X1, X5,  X9, X13, tmp:=,VTMP0,VTMP1,,
+	QUARTERROUND4(X0, X4,  X8, X12,   X1, X5,  X9, X13,
+		      X2, X6, X10, X14,   X3, X7, X11, X15,
+		      tmp:=,VTMP0,VTMP1,VTMP2,VTMP3,,
 		      POLY1305_BLOCK_PART2(0 * 16),,
 		      _(add POLY_RSRC, POLY_RSRC, #(1*16)),,
 		      POLY1305_BLOCK_PART3(),,
 		      POLY1305_BLOCK_PART4(),,
 		      POLY1305_BLOCK_PART5(),,
 		      POLY1305_BLOCK_PART6(),,
-		      POLY1305_BLOCK_PART7())
-	QUARTERROUND2(X2, X6, X10, X14,   X3, X7, X11, X15, tmp:=,VTMP0,VTMP1,
+		      POLY1305_BLOCK_PART7(),,
 		      POLY1305_BLOCK_PART8(),,
 		      POLY1305_BLOCK_PART9(),,
 		      POLY1305_BLOCK_PART10(),,
@@ -485,15 +516,16 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 		      POLY1305_BLOCK_PART13(),,
 		      POLY1305_BLOCK_PART14(),)
 		      POLY1305_BLOCK_PART15()
-	QUARTERROUND2(X0, X5, X10, X15,   X1, X6, X11, X12, tmp:=,VTMP0,VTMP1,,
+	QUARTERROUND4(X0, X5, X10, X15,   X1, X6, X11, X12,
+		      X2, X7,  X8, X13,   X3, X4,  X9, X14,
+		      tmp:=,VTMP0,VTMP1,VTMP2,VTMP3,
 		      POLY1305_BLOCK_PART16(),,
 		      POLY1305_BLOCK_PART17(),,
 		      POLY1305_BLOCK_PART18(),,
 		      POLY1305_BLOCK_PART19(),,
 		      POLY1305_BLOCK_PART20(),,
 		      POLY1305_BLOCK_PART21(),,
-		      POLY1305_BLOCK_PART22())
-	QUARTERROUND2(X2, X7,  X8, X13,   X3, X4,  X9, X14, tmp:=,VTMP0,VTMP1,
+		      POLY1305_BLOCK_PART22(),,
 		      POLY1305_BLOCK_PART23(),,
 		      POLY1305_BLOCK_PART24(),,
 		      POLY1305_BLOCK_PART25(),,
@@ -501,7 +533,7 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 		      POLY1305_BLOCK_PART27(),,
 		      POLY1305_BLOCK_PART28(),,
 		      POLY1305_BLOCK_PART29(),
-		      _(subs POLY_CHACHA_ROUND, POLY_CHACHA_ROUND, #2))
+		      _(subs POLY_CHACHA_ROUND, POLY_CHACHA_ROUND, #2),)
 	b.ne .Lround4_with_poly1305_inner2;
 
 	subs ROUND, ROUND, #10
