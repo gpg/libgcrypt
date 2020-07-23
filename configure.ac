@@ -1278,7 +1278,6 @@ if test "$mpi_cpu_arch" != "x86" ; then
    avxsupport="n/a"
    avx2support="n/a"
    padlocksupport="n/a"
-   jentsupport="n/a"
    drngsupport="n/a"
 fi
 
