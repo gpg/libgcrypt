@@ -1117,7 +1117,11 @@ if test "$gcry_cv_have_asm" = "no" ; then
           [gcry_cv_have_asm_volatile_memory],
           [gcry_cv_have_asm_volatile_memory=no
            AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-             [[void a(void) { __asm__ volatile("":::"memory"); }]])],
+             [[void a(int x)
+               {
+                 __asm__ volatile("":::"memory");
+                 __asm__ volatile("":"+r"(x)::"memory");
+               }]])],
              [gcry_cv_have_asm_volatile_memory=yes])])
    fi
 else
@@ -1125,7 +1129,10 @@ else
        [gcry_cv_have_asm_volatile_memory],
        [gcry_cv_have_asm_volatile_memory=no
         AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[void a(void) { asm volatile("":::"memory"); }]])],
+          [[void a(int x)
+            {
+              asm volatile("":::"memory");
+              asm volatile("":"+r"(x)::"memory"); }]])],
           [gcry_cv_have_asm_volatile_memory=yes])])
 fi
 if test "$gcry_cv_have_asm_volatile_memory" = "yes" ; then

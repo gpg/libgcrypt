@@ -509,18 +509,59 @@ auto_ghz_bench (struct bench_obj *obj, void *buf, size_t buflen)
    * function will give cycles/iteration result 1024.0 on high-end CPUs.
    * With turbo, result will be less and can be used detect turbo-clock. */
 
+#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
+  /* Auto-ghz operation takes two CPU cycles to perform. Memory barriers
+   * are used to prevent compiler from optimizing this loop away. */
+  #define AUTO_GHZ_OPERATION \
+	asm volatile ("":"+r"(buflen)::"memory"); \
+	buflen ^= 1; \
+	asm volatile ("":"+r"(buflen)::"memory"); \
+	buflen -= 2
+#else
+  /* TODO: Needs alternative way of preventing compiler optimizations.
+   *       Mix of XOR and subtraction appears to do the trick for now. */
+  #define AUTO_GHZ_OPERATION \
+	buflen ^= 1; \
+	buflen -= 2
+#endif
+
+#define AUTO_GHZ_OPERATION_2 \
+	AUTO_GHZ_OPERATION; \
+	AUTO_GHZ_OPERATION
+
+#define AUTO_GHZ_OPERATION_4 \
+	AUTO_GHZ_OPERATION_2; \
+	AUTO_GHZ_OPERATION_2
+
+#define AUTO_GHZ_OPERATION_8 \
+	AUTO_GHZ_OPERATION_4; \
+	AUTO_GHZ_OPERATION_4
+
+#define AUTO_GHZ_OPERATION_16 \
+	AUTO_GHZ_OPERATION_8; \
+	AUTO_GHZ_OPERATION_8
+
+#define AUTO_GHZ_OPERATION_32 \
+	AUTO_GHZ_OPERATION_16; \
+	AUTO_GHZ_OPERATION_16
+
+#define AUTO_GHZ_OPERATION_64 \
+	AUTO_GHZ_OPERATION_32; \
+	AUTO_GHZ_OPERATION_32
+
+#define AUTO_GHZ_OPERATION_128 \
+	AUTO_GHZ_OPERATION_64; \
+	AUTO_GHZ_OPERATION_64
+
   do
     {
-#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
-      /* Use memory barrier to prevent compiler from optimizing this loop
-       * away. */
-
-      asm volatile ("":::"memory");
-#else
-      /* TODO: Needs alternative way. */
-#endif
+      /* 1024 auto-ghz operations per loop, total 2048 instructions. */
+      AUTO_GHZ_OPERATION_128; AUTO_GHZ_OPERATION_128;
+      AUTO_GHZ_OPERATION_128; AUTO_GHZ_OPERATION_128;
+      AUTO_GHZ_OPERATION_128; AUTO_GHZ_OPERATION_128;
+      AUTO_GHZ_OPERATION_128; AUTO_GHZ_OPERATION_128;
     }
-  while (--buflen);
+  while (buflen);
 }
 
 static struct bench_ops auto_ghz_detect_ops = {
