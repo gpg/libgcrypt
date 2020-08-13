@@ -137,9 +137,11 @@ _gcry_initialize_fips_mode (int force)
   {
     static const char procfname[] = "/proc/sys/crypto/fips_enabled";
     FILE *fp;
-    int saved_errno;
-
+    int saved_errno = errno;
+    /* since procfname may not exist and that's okay, we should ignore
+       any changes that fopen does to errno. */
     fp = fopen (procfname, "r");
+    errno = saved_errno;
     if (fp)
       {
         char line[256];
@@ -197,9 +199,11 @@ _gcry_initialize_fips_mode (int force)
         }
 
 
+      int saved_errno = errno; /* since FIPS_FORCE_FILE may not exist, we ignore any error set by fopen */
       /* If the FIPS force files exists, is readable and has a number
          != 0 on its first line, we enable the enforced fips mode.  */
       fp = fopen (FIPS_FORCE_FILE, "r");
+      errno = saved_errno;
       if (fp)
         {
           char line[256];
