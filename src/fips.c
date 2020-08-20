@@ -137,11 +137,18 @@ _gcry_initialize_fips_mode (int force)
   {
     static const char procfname[] = "/proc/sys/crypto/fips_enabled";
     FILE *fp;
-    int saved_errno = errno;
+    int saved_errno;
+    saved_errno = errno;
     /* since procfname may not exist and that's okay, we should ignore
-       any changes that fopen does to errno. */
+       if fopen sets errno to ENOENT (no such file) */
     fp = fopen (procfname, "r");
-    errno = saved_errno;
+    /* if file doesn't exist, which is a condition described here:
+     https://www.gnupg.org/documentation/manuals/gcrypt/Enabling-FIPS-mode.html */
+    if (errno == ENOENT)
+      {
+	/* restore errno's value before fopen call */
+        errno = saved_errno;
+    }
     if (fp)
       {
         char line[256];
@@ -180,6 +187,7 @@ _gcry_initialize_fips_mode (int force)
     {
       /* Yes, we are in FIPS mode.  */
       FILE *fp;
+      int saved_errno;
 
       /* Intitialize the lock to protect the FSM.  */
       err = gpgrt_lock_init (&fsm_lock);
@@ -199,11 +207,16 @@ _gcry_initialize_fips_mode (int force)
         }
 
 
-      int saved_errno = errno; /* since FIPS_FORCE_FILE may not exist, we ignore any error set by fopen */
+      saved_errno = errno;
       /* If the FIPS force files exists, is readable and has a number
          != 0 on its first line, we enable the enforced fips mode.  */
       fp = fopen (FIPS_FORCE_FILE, "r");
-      errno = saved_errno;
+      if (errno == ENOENT)
+        {
+          /* since FIPS_FORCE_FILE may not exist, we ignore if fopen
+	     returns ENOENT (file not found) */
+          errno = saved_errno;
+        }
       if (fp)
         {
           char line[256];
