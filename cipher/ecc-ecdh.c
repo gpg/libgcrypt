@@ -112,8 +112,11 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   buf = _gcry_mpi_get_buffer (x, nbytes, &len, NULL);
   if (!buf)
     err = gpg_error_from_syserror ();
-  memcpy (result, buf, nbytes);
-  xfree (buf);
+  else
+    {
+      memcpy (result, buf, nbytes);
+      xfree (buf);
+    }
 
  leave:
   _gcry_mpi_release (x);
