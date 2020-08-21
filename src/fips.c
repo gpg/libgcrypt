@@ -101,6 +101,7 @@ _gcry_initialize_fips_mode (int force)
 {
   static int done;
   gpg_error_t err;
+  int saved_errno;
 
   /* Make sure we are not accidentally called twice.  */
   if (done)
@@ -127,8 +128,14 @@ _gcry_initialize_fips_mode (int force)
      file.  The filename is hardwired so that there won't be any
      confusion on whether /etc/gcrypt/ or /usr/local/etc/gcrypt/ is
      actually used.  The file itself may be empty.  */
+  saved_errno = errno;
   if ( !access (FIPS_FORCE_FILE, F_OK) )
     {
+      /* don't set errno for access if FIPS_FORCE_FILE doesn't exist */
+      if (errno == ENOENT)
+        {
+          errno = saved_errno;
+        }
       gcry_assert (!_gcry_no_fips_mode_required);
       goto leave;
     }
@@ -137,7 +144,6 @@ _gcry_initialize_fips_mode (int force)
   {
     static const char procfname[] = "/proc/sys/crypto/fips_enabled";
     FILE *fp;
-    int saved_errno;
     saved_errno = errno;
     /* since procfname may not exist and that's okay, we should ignore
        if fopen sets errno to ENOENT (no such file) */
@@ -187,7 +193,6 @@ _gcry_initialize_fips_mode (int force)
     {
       /* Yes, we are in FIPS mode.  */
       FILE *fp;
-      int saved_errno;
 
       /* Intitialize the lock to protect the FSM.  */
       err = gpgrt_lock_init (&fsm_lock);
