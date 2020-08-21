@@ -11550,18 +11550,19 @@ check_one_hmac (int algo, const char *data, int datalen,
   gcry_md_write (hd, data, datalen);
 
   err = gcry_md_copy (&hd2, hd);
+
+  gcry_md_close (hd);
+
   if (err)
     {
       fail ("algo %d, gcry_md_copy failed: %s\n", algo, gpg_strerror (err));
+      return;
     }
-
-  gcry_md_close (hd);
 
   p = gcry_md_read (hd2, algo);
   if (!p)
     fail("algo %d, hmac gcry_md_read failed\n", algo);
-
-  if (memcmp (p, expect, mdlen))
+  else if (memcmp (p, expect, mdlen))
     {
       printf ("computed: ");
       for (i = 0; i < mdlen; i++)
@@ -13420,8 +13421,8 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	      gcry_sexp_t list;
 
 	      /* Convert decoding hint into canonical sexp. */
-	      hint_len = gcry_sexp_new (&list, datas[dataidx].hint,
-					strlen (datas[dataidx].hint), 1);
+	      gcry_sexp_new (&list, datas[dataidx].hint,
+                             strlen (datas[dataidx].hint), 1);
 	      hint_len = gcry_sexp_sprint (list, GCRYSEXP_FMT_CANON, NULL, 0);
 	      hint = gcry_malloc (hint_len);
 	      if (!hint)
