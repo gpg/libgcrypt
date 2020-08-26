@@ -17,13 +17,13 @@
 # License along with this program; if not, see <http://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-# Location of the released tarball archives.  Note that this is an
-# internal archive and before uploading this to the public server,
-# manual tests should be run and the git release tagged and pushed.
-# Adjust as needed.
-RELEASE_ARCHIVE_DIR  = wk@vigenere:tarballs/libgcrypt/v1.8/
-# The key used to sign the released sources.  Adjust as needed.
-RELEASE_SIGNING_KEY  = D8692123C4065DEA5E0F3AB5249B39D24F25E3B6
+# Location of the released tarball archives.  This is prefixed by
+# the variable RELEASE_ARCHIVE in ~/.gnupg-autogen.rc.  For example:
+# RELEASE_ARCHIVE=wk@somehost:archive/tarballs
+RELEASE_ARCHIVE_SUFFIX  = libgcrypt/v1.8
+# The variable RELEASE_SIGNING_KEY in ~/.gnupg-autogen.rc is used
+# to specify the key for signing.  For example:
+# RELEASE_SIGNKEY=D8692123C4065DEA5E0F3AB5249B39D24F25E3B6
 
 
 ACLOCAL_AMFLAGS = -I m4
@@ -128,6 +128,18 @@ release:
 sign-release:
 	 +(set -e; \
 	  cd dist; \
+	  x=$$(grep '^RELEASE_ARCHIVE=' $$HOME/.gnupg-autogen.rc|cut -d= -f2);\
+          if [ -z "$$x" ]; then \
+             echo "error: RELEASE_ARCHIVE missing in ~/.gnupg-autogen.rc">&2; \
+             exit 2;\
+          fi;\
+          myarchive="$$x/$(RELEASE_ARCHIVE_SUFFIX)";\
+	  x=$$(grep '^RELEASE_SIGNKEY=' $$HOME/.gnupg-autogen.rc|cut -d= -f2);\
+          if [ -z "$$x" ]; then \
+             echo "error: RELEASE_SIGNKEY missing in ~/.gnupg-autogen.rc">&2; \
+             exit 2;\
+          fi;\
+	  mysignkey="$$x";\
 	  files1="$(RELEASE_NAME).tar.bz2 \
 	          $(RELEASE_NAME).tar.gz" ; \
 	  files2="$(RELEASE_NAME).tar.bz2.sig \
@@ -135,15 +147,15 @@ sign-release:
 		  $(RELEASE_NAME).swdb \
 		  $(RELEASE_NAME).buildlog" ;\
 	  echo "/* Signing the source tarball ..." ;\
-	  gpg -sbu $(RELEASE_SIGNING_KEY) $(RELEASE_NAME).tar.bz2 ;\
-	  gpg -sbu $(RELEASE_SIGNING_KEY) $(RELEASE_NAME).tar.gz  ;\
+	  gpg -sbu $$mysignkey $(RELEASE_NAME).tar.bz2 ;\
+	  gpg -sbu $$mysignkey $(RELEASE_NAME).tar.gz  ;\
 	  cat $(RELEASE_NAME).swdb >swdb.snippet;\
 	  echo >>swdb.snippet ;\
 	  sha1sum $${files1} >>swdb.snippet ;\
           cat "../$(RELEASE_NAME).buildlog" swdb.snippet \
                | gzip >$(RELEASE_NAME).buildlog ;\
-          echo "Copying to local archive ..." ;\
-	  scp -p $${files1} $${files2} $(RELEASE_ARCHIVE_DIR)/ || true;\
+          echo "Copying to archive $$myarchive ..." ;\
+	  scp -vp $${files1} $${files2} $${myarchive}/ || true;\
 	  echo '/*' ;\
 	  echo ' * All done; for checksums see dist/swdb.snippet' ;\
 	  echo ' */' ;\
