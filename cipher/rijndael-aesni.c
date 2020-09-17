@@ -788,17 +788,7 @@ do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
 static ASM_FUNC_ATTR_INLINE void
 do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
 {
-  asm volatile ("movdqa (%[key]), %%xmm0\n\t"
-                "pxor   %%xmm0, %%xmm1\n\t"     /* xmm1 ^= key[0] */
-                "pxor   %%xmm0, %%xmm2\n\t"     /* xmm2 ^= key[0] */
-                "pxor   %%xmm0, %%xmm3\n\t"     /* xmm3 ^= key[0] */
-                "pxor   %%xmm0, %%xmm4\n\t"     /* xmm4 ^= key[0] */
-                "pxor   %%xmm0, %%xmm8\n\t"     /* xmm8 ^= key[0] */
-                "pxor   %%xmm0, %%xmm9\n\t"     /* xmm9 ^= key[0] */
-                "pxor   %%xmm0, %%xmm10\n\t"     /* xmm10 ^= key[0] */
-                "pxor   %%xmm0, %%xmm11\n\t"     /* xmm11 ^= key[0] */
-                "movdqa 0x10(%[key]), %%xmm0\n\t"
-                "cmpl $12, %[rounds]\n\t"
+  asm volatile ("movdqa 0x10(%[key]), %%xmm0\n\t"
                 "aesenc %%xmm0, %%xmm1\n\t"
                 "aesenc %%xmm0, %%xmm2\n\t"
                 "aesenc %%xmm0, %%xmm3\n\t"
@@ -808,6 +798,7 @@ do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
                 "aesenc %%xmm0, %%xmm10\n\t"
                 "aesenc %%xmm0, %%xmm11\n\t"
                 "movdqa 0x20(%[key]), %%xmm0\n\t"
+                "cmpl $12, %[rounds]\n\t"
                 "aesenc %%xmm0, %%xmm1\n\t"
                 "aesenc %%xmm0, %%xmm2\n\t"
                 "aesenc %%xmm0, %%xmm3\n\t"
@@ -920,14 +911,6 @@ do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
                 "movdqa 0xe0(%[key]), %%xmm0\n"
 
                 ".Ldeclast%=:\n\t"
-                "aesenclast %%xmm0, %%xmm1\n\t"
-                "aesenclast %%xmm0, %%xmm2\n\t"
-                "aesenclast %%xmm0, %%xmm3\n\t"
-                "aesenclast %%xmm0, %%xmm4\n\t"
-                "aesenclast %%xmm0, %%xmm8\n\t"
-                "aesenclast %%xmm0, %%xmm9\n\t"
-                "aesenclast %%xmm0, %%xmm10\n\t"
-                "aesenclast %%xmm0, %%xmm11\n\t"
                 : /* no output */
                 : [key] "r" (ctx->keyschenc),
                   [rounds] "r" (ctx->rounds)
@@ -940,16 +923,7 @@ do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
 static ASM_FUNC_ATTR_INLINE void
 do_aesni_dec_vec8 (const RIJNDAEL_context *ctx)
 {
-  asm volatile ("movdqa (%[key]), %%xmm0\n\t"
-                "pxor   %%xmm0, %%xmm1\n\t"     /* xmm1 ^= key[0] */
-                "pxor   %%xmm0, %%xmm2\n\t"     /* xmm2 ^= key[0] */
-                "pxor   %%xmm0, %%xmm3\n\t"     /* xmm3 ^= key[0] */
-                "pxor   %%xmm0, %%xmm4\n\t"     /* xmm4 ^= key[0] */
-                "pxor   %%xmm0, %%xmm8\n\t"     /* xmm8 ^= key[0] */
-                "pxor   %%xmm0, %%xmm9\n\t"     /* xmm9 ^= key[0] */
-                "pxor   %%xmm0, %%xmm10\n\t"    /* xmm10 ^= key[0] */
-                "pxor   %%xmm0, %%xmm11\n\t"    /* xmm11 ^= key[0] */
-                "movdqa 0x10(%[key]), %%xmm0\n\t"
+  asm volatile ("movdqa 0x10(%[key]), %%xmm0\n\t"
                 "cmpl $12, %[rounds]\n\t"
                 "aesdec %%xmm0, %%xmm1\n\t"
                 "aesdec %%xmm0, %%xmm2\n\t"
@@ -1072,14 +1046,6 @@ do_aesni_dec_vec8 (const RIJNDAEL_context *ctx)
                 "movdqa 0xe0(%[key]), %%xmm0\n"
 
                 ".Ldeclast%=:\n\t"
-                "aesdeclast %%xmm0, %%xmm1\n\t"
-                "aesdeclast %%xmm0, %%xmm2\n\t"
-                "aesdeclast %%xmm0, %%xmm3\n\t"
-                "aesdeclast %%xmm0, %%xmm4\n\t"
-                "aesdeclast %%xmm0, %%xmm8\n\t"
-                "aesdeclast %%xmm0, %%xmm9\n\t"
-                "aesdeclast %%xmm0, %%xmm10\n\t"
-                "aesdeclast %%xmm0, %%xmm11\n\t"
                 : /* no output */
                 : [key] "r" (ctx->keyschdec),
                   [rounds] "r" (ctx->rounds)
@@ -1204,8 +1170,8 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
    */
 
   asm volatile (/* detect if 8-bit carry handling is needed */
-                "cmpb   $0xfb, 15(%[ctr])\n\t"
-                "ja     .Ladd32bit%=\n\t"
+                "addb   $4, 15(%[ctr])\n\t"
+                "jc     .Ladd32bit%=\n\t"
 
                 "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0 := CTR (xmm5) */
                 "movdqa 0*16(%[addb]), %%xmm2\n\t"  /* xmm2 := be(1) */
@@ -1217,9 +1183,10 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 "paddb  %%xmm0, %%xmm4\n\t"     /* xmm4 := be(3) + CTR (xmm0) */
                 "paddb  %%xmm0, %%xmm5\n\t"     /* xmm5 := be(4) + CTR (xmm0) */
                 "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
-                "jmp    .Lstore_ctr%=\n\t"
+                "jmp    .Ldone_ctr%=\n\t"
 
                 ".Ladd32bit%=:\n\t"
+                "movdqa %%xmm5, (%[ctr])\n\t"   /* Restore CTR.  */
                 "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0, xmm2 := CTR (xmm5) */
                 "movdqa %%xmm0, %%xmm2\n\t"
                 "pcmpeqd %%xmm1, %%xmm1\n\t"
@@ -1265,8 +1232,9 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 "pshufb %%xmm6, %%xmm4\n\t"     /* xmm4 := be(xmm4) */
                 "pshufb %%xmm6, %%xmm5\n\t"     /* xmm5 := be(xmm5) */
 
-                ".Lstore_ctr%=:\n\t"
                 "movdqa %%xmm5, (%[ctr])\n\t"   /* Update CTR (mem).  */
+
+                ".Ldone_ctr%=:\n\t"
                 :
                 : [ctr] "r" (ctr),
                   [key] "r" (ctx->keyschenc),
@@ -1428,30 +1396,50 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
    */
 
   asm volatile (/* detect if 8-bit carry handling is needed */
-                "cmpb   $0xf7, 15(%[ctr])\n\t"
-                "ja     .Ladd32bit%=\n\t"
+                "addb   $8, 15(%[ctr])\n\t"
+                "jc     .Ladd32bit%=\n\t"
+
+                "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
+                "movdqa 16(%[key]), %%xmm7\n\t" /* xmm7 := key[1] */
 
                 "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0 := CTR (xmm5) */
-                "movdqa 0*16(%[addb]), %%xmm2\n\t"  /* xmm2 := be(1) */
-                "movdqa 1*16(%[addb]), %%xmm3\n\t"  /* xmm3 := be(2) */
-                "movdqa 2*16(%[addb]), %%xmm4\n\t"  /* xmm4 := be(3) */
-                "movdqa 3*16(%[addb]), %%xmm8\n\t"  /* xmm8 := be(4) */
-                "movdqa 4*16(%[addb]), %%xmm9\n\t"  /* xmm9 := be(5) */
-                "movdqa 5*16(%[addb]), %%xmm10\n\t" /* xmm10 := be(6) */
-                "movdqa 6*16(%[addb]), %%xmm11\n\t" /* xmm11 := be(7) */
-                "movdqa 7*16(%[addb]), %%xmm5\n\t"  /* xmm5 := be(8) */
-                "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
-                "paddb  %%xmm0, %%xmm2\n\t"     /* xmm2 := be(1) + CTR (xmm0) */
-                "paddb  %%xmm0, %%xmm3\n\t"     /* xmm3 := be(2) + CTR (xmm0) */
-                "paddb  %%xmm0, %%xmm4\n\t"     /* xmm4 := be(3) + CTR (xmm0) */
-                "paddb  %%xmm0, %%xmm8\n\t"     /* xmm8 := be(4) + CTR (xmm0) */
-                "paddb  %%xmm0, %%xmm9\n\t"     /* xmm9 := be(5) + CTR (xmm0) */
-                "paddb  %%xmm0, %%xmm10\n\t"    /* xmm10 := be(6) + CTR (xmm0) */
-                "paddb  %%xmm0, %%xmm11\n\t"    /* xmm11 := be(7) + CTR (xmm0) */
-                "paddb  %%xmm0, %%xmm5\n\t"     /* xmm5 := be(8) + CTR (xmm0) */
-                "jmp    .Lstore_ctr%=\n\t"
+                "movdqa %%xmm5, %%xmm2\n\t"     /* xmm2 := CTR (xmm5) */
+                "movdqa %%xmm5, %%xmm3\n\t"     /* xmm3 := CTR (xmm5) */
+                "movdqa %%xmm5, %%xmm4\n\t"     /* xmm4 := CTR (xmm5) */
+                "paddb  0*16(%[addb]), %%xmm2\n\t" /* xmm2 := be(1) + CTR */
+                "paddb  1*16(%[addb]), %%xmm3\n\t" /* xmm3 := be(2) + CTR */
+                "paddb  2*16(%[addb]), %%xmm4\n\t" /* xmm4 := be(3) + CTR */
+                "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm3\n\t"     /* xmm3 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm4\n\t"     /* xmm4 ^= key[0]    */
+                "aesenc %%xmm7, %%xmm0\n\t"
+                "aesenc %%xmm7, %%xmm2\n\t"
+                "aesenc %%xmm7, %%xmm3\n\t"
+                "aesenc %%xmm7, %%xmm4\n\t"
+                "movdqa %%xmm5, %%xmm8\n\t"     /* xmm8 := CTR (xmm5) */
+                "movdqa %%xmm5, %%xmm9\n\t"     /* xmm9 := CTR (xmm5) */
+                "movdqa %%xmm5, %%xmm10\n\t"    /* xmm10 := CTR (xmm5) */
+                "movdqa %%xmm5, %%xmm11\n\t"    /* xmm11 := CTR (xmm5) */
+                "paddb  3*16(%[addb]), %%xmm8\n\t"  /* xmm8 := be(4) + CTR */
+                "paddb  4*16(%[addb]), %%xmm9\n\t"  /* xmm9 := be(5) + CTR */
+                "paddb  5*16(%[addb]), %%xmm10\n\t" /* xmm10 := be(6) + CTR */
+                "paddb  6*16(%[addb]), %%xmm11\n\t" /* xmm11 := be(7) + CTR */
+                "pxor   %%xmm1, %%xmm8\n\t"     /* xmm8 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm9\n\t"     /* xmm9 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm10\n\t"    /* xmm10 ^= key[0]   */
+                "pxor   %%xmm1, %%xmm11\n\t"    /* xmm11 ^= key[0]   */
+                "aesenc %%xmm7, %%xmm8\n\t"
+                "aesenc %%xmm7, %%xmm9\n\t"
+                "aesenc %%xmm7, %%xmm10\n\t"
+                "aesenc %%xmm7, %%xmm11\n\t"
+
+                "paddb  7*16(%[addb]), %%xmm5\n\t" /* xmm5 := be(8) + CTR */
+
+                "jmp    .Ldone_ctr%=\n\t"
 
                 ".Ladd32bit%=:\n\t"
+                "movdqa %%xmm5, (%[ctr])\n\t"   /* Restore CTR. */
                 "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0, xmm2 := CTR (xmm5) */
                 "movdqa %%xmm0, %%xmm2\n\t"
                 "pcmpeqd %%xmm1, %%xmm1\n\t"
@@ -1512,52 +1500,59 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 "psubq   %%xmm1, %%xmm5\n\t"
 
                 ".Lno_carry%=:\n\t"
-                "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0]    */
+                "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
+                "movdqa 16(%[key]), %%xmm7\n\t" /* xmm7 := key[1] */
 
                 "pshufb %%xmm6, %%xmm2\n\t"     /* xmm2 := be(xmm2) */
                 "pshufb %%xmm6, %%xmm3\n\t"     /* xmm3 := be(xmm3) */
                 "pshufb %%xmm6, %%xmm4\n\t"     /* xmm4 := be(xmm4) */
-                "pshufb %%xmm6, %%xmm5\n\t"     /* xmm5 := be(xmm5) */
+                "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm3\n\t"     /* xmm3 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm4\n\t"     /* xmm4 ^= key[0]    */
+                "aesenc %%xmm7, %%xmm0\n\t"
+                "aesenc %%xmm7, %%xmm2\n\t"
+                "aesenc %%xmm7, %%xmm3\n\t"
+                "aesenc %%xmm7, %%xmm4\n\t"
                 "pshufb %%xmm6, %%xmm8\n\t"     /* xmm8 := be(xmm8) */
                 "pshufb %%xmm6, %%xmm9\n\t"     /* xmm9 := be(xmm9) */
                 "pshufb %%xmm6, %%xmm10\n\t"    /* xmm10 := be(xmm10) */
                 "pshufb %%xmm6, %%xmm11\n\t"    /* xmm11 := be(xmm11) */
+                "pxor   %%xmm1, %%xmm8\n\t"     /* xmm8 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm9\n\t"     /* xmm9 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm10\n\t"    /* xmm10 ^= key[0]   */
+                "pxor   %%xmm1, %%xmm11\n\t"    /* xmm11 ^= key[0]   */
+                "aesenc %%xmm7, %%xmm8\n\t"
+                "aesenc %%xmm7, %%xmm9\n\t"
+                "aesenc %%xmm7, %%xmm10\n\t"
+                "aesenc %%xmm7, %%xmm11\n\t"
 
-                ".Lstore_ctr%=:\n\t"
+                "pshufb %%xmm6, %%xmm5\n\t"     /* xmm5 := be(xmm5) */
                 "movdqa %%xmm5, (%[ctr])\n\t"   /* Update CTR (mem).  */
+
+                ".align 16\n\t"
+                ".Ldone_ctr%=:\n\t"
                 :
                 : [ctr] "r" (ctr),
                   [key] "r" (ctx->keyschenc),
                   [addb] "r" (bige_addb)
                 : "%esi", "cc", "memory");
 
-  asm volatile ("pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
-                "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
-                "pxor   %%xmm1, %%xmm3\n\t"     /* xmm3 ^= key[0]    */
-                "pxor   %%xmm1, %%xmm4\n\t"     /* xmm4 ^= key[0]    */
-                "pxor   %%xmm1, %%xmm8\n\t"     /* xmm8 ^= key[0]    */
-                "pxor   %%xmm1, %%xmm9\n\t"     /* xmm9 ^= key[0]    */
-                "pxor   %%xmm1, %%xmm10\n\t"    /* xmm10 ^= key[0]   */
-                "pxor   %%xmm1, %%xmm11\n\t"    /* xmm11 ^= key[0]   */
-                "movdqa 0x10(%[key]), %%xmm1\n\t"
+  asm volatile ("movdqa 0x20(%[key]), %%xmm1\n\t"
+                "movdqu 0*16(%[src]), %%xmm12\n\t" /* Get block 1.      */
+                "movdqu 1*16(%[src]), %%xmm13\n\t" /* Get block 2.      */
+                "movdqu 2*16(%[src]), %%xmm14\n\t" /* Get block 3.      */
+                "movdqu 3*16(%[src]), %%xmm15\n\t" /* Get block 4.      */
+                "movdqu 4*16(%[src]), %%xmm7\n\t"  /* Get block 5.      */
+                "aesenc %%xmm1, %%xmm0\n\t"
+                "aesenc %%xmm1, %%xmm2\n\t"
+                "aesenc %%xmm1, %%xmm3\n\t"
+                "aesenc %%xmm1, %%xmm4\n\t"
+                "aesenc %%xmm1, %%xmm8\n\t"
+                "aesenc %%xmm1, %%xmm9\n\t"
+                "aesenc %%xmm1, %%xmm10\n\t"
+                "aesenc %%xmm1, %%xmm11\n\t"
                 "cmpl $12, %[rounds]\n\t"
-                "aesenc %%xmm1, %%xmm0\n\t"
-                "aesenc %%xmm1, %%xmm2\n\t"
-                "aesenc %%xmm1, %%xmm3\n\t"
-                "aesenc %%xmm1, %%xmm4\n\t"
-                "aesenc %%xmm1, %%xmm8\n\t"
-                "aesenc %%xmm1, %%xmm9\n\t"
-                "aesenc %%xmm1, %%xmm10\n\t"
-                "aesenc %%xmm1, %%xmm11\n\t"
-                "movdqa 0x20(%[key]), %%xmm1\n\t"
-                "aesenc %%xmm1, %%xmm0\n\t"
-                "aesenc %%xmm1, %%xmm2\n\t"
-                "aesenc %%xmm1, %%xmm3\n\t"
-                "aesenc %%xmm1, %%xmm4\n\t"
-                "aesenc %%xmm1, %%xmm8\n\t"
-                "aesenc %%xmm1, %%xmm9\n\t"
-                "aesenc %%xmm1, %%xmm10\n\t"
-                "aesenc %%xmm1, %%xmm11\n\t"
                 "movdqa 0x30(%[key]), %%xmm1\n\t"
                 "aesenc %%xmm1, %%xmm0\n\t"
                 "aesenc %%xmm1, %%xmm2\n\t"
@@ -1664,38 +1659,33 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 ".Lenclast%=:\n\t"
                 :
                 : [key] "r" (ctx->keyschenc),
-                  [rounds] "r" (ctx->rounds)
+                  [rounds] "r" (ctx->rounds),
+                  [src] "r" (a)
                 : "cc", "memory");
 
-  asm volatile ("movdqu 0*16(%[src]), %%xmm12\n\t" /* Get block 1.      */
-                "movdqu 1*16(%[src]), %%xmm13\n\t" /* Get block 2.      */
-                "movdqu 2*16(%[src]), %%xmm14\n\t" /* Get block 3.      */
-                "movdqu 3*16(%[src]), %%xmm15\n\t" /* Get block 4.      */
-                "movdqu 4*16(%[src]), %%xmm7\n\t"  /* Get block 5.      */
-                "pxor %%xmm1, %%xmm12\n\t"         /* block1 ^= lastkey */
-                "aesenclast %%xmm12, %%xmm0\n\t"
-                "movdqu 5*16(%[src]), %%xmm12\n\t" /* Get block 6.      */
+  asm volatile ("pxor %%xmm1, %%xmm12\n\t"         /* block1 ^= lastkey */
                 "pxor %%xmm1, %%xmm13\n\t"         /* block2 ^= lastkey */
-                "aesenclast %%xmm13, %%xmm2\n\t"
-                "movdqu 6*16(%[src]), %%xmm13\n\t" /* Get block 7.      */
                 "pxor %%xmm1, %%xmm14\n\t"         /* block3 ^= lastkey */
-                "aesenclast %%xmm14, %%xmm3\n\t"
-                "movdqu 7*16(%[src]), %%xmm14\n\t" /* Get block 8.      */
                 "pxor %%xmm1, %%xmm15\n\t"         /* block4 ^= lastkey */
+                "aesenclast %%xmm12, %%xmm0\n\t"
+                "aesenclast %%xmm13, %%xmm2\n\t"
+                "aesenclast %%xmm14, %%xmm3\n\t"
                 "aesenclast %%xmm15, %%xmm4\n\t"
-                "movdqu %%xmm0, 0*16(%[dst])\n\t"  /* Store block 1     */
-                "pxor %%xmm1,  %%xmm7\n\t"         /* block5 ^= lastkey */
-                "aesenclast %%xmm7, %%xmm8\n\t"
-                "movdqu %%xmm0, 0*16(%[dst])\n\t"  /* Store block 1     */
-                "pxor %%xmm1, %%xmm12\n\t"         /* block6 ^= lastkey */
-                "aesenclast %%xmm12, %%xmm9\n\t"
+                "movdqu 5*16(%[src]), %%xmm12\n\t" /* Get block 6.      */
+                "movdqu 6*16(%[src]), %%xmm13\n\t" /* Get block 7.      */
+                "movdqu 7*16(%[src]), %%xmm14\n\t" /* Get block 8.      */
+                "movdqu %%xmm0, 0*16(%[dst])\n\t"  /* Store block 1.    */
                 "movdqu %%xmm2, 1*16(%[dst])\n\t"  /* Store block 2.    */
-                "pxor %%xmm1, %%xmm13\n\t"         /* block7 ^= lastkey */
-                "aesenclast %%xmm13, %%xmm10\n\t"
                 "movdqu %%xmm3, 2*16(%[dst])\n\t"  /* Store block 3.    */
-                "pxor %%xmm1, %%xmm14\n\t"         /* block8 ^= lastkey */
-                "aesenclast %%xmm14, %%xmm11\n\t"
                 "movdqu %%xmm4, 3*16(%[dst])\n\t"  /* Store block 4.    */
+                "pxor %%xmm1, %%xmm7\n\t"          /* block5 ^= lastkey */
+                "pxor %%xmm1, %%xmm12\n\t"         /* block6 ^= lastkey */
+                "pxor %%xmm1, %%xmm13\n\t"         /* block7 ^= lastkey */
+                "pxor %%xmm1, %%xmm14\n\t"         /* block8 ^= lastkey */
+                "aesenclast %%xmm7, %%xmm8\n\t"
+                "aesenclast %%xmm12, %%xmm9\n\t"
+                "aesenclast %%xmm13, %%xmm10\n\t"
+                "aesenclast %%xmm14, %%xmm11\n\t"
                 "movdqu %%xmm8, 4*16(%[dst])\n\t"  /* Store block 8.    */
                 "movdqu %%xmm9, 5*16(%[dst])\n\t"  /* Store block 9.    */
                 "movdqu %%xmm10, 6*16(%[dst])\n\t" /* Store block 10.   */
@@ -1910,7 +1900,9 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
       for ( ;nblocks >= 8; nblocks -= 8)
 	{
 	  asm volatile
-	    ("movdqu %%xmm6,         %%xmm1\n\t" /* load input blocks */
+	    ("movdqa (%[key]), %%xmm0\n\t"
+
+	     "movdqu %%xmm6,         %%xmm1\n\t" /* load input blocks */
 	     "movdqu 0*16(%[inbuf]), %%xmm2\n\t"
 	     "movdqu 1*16(%[inbuf]), %%xmm3\n\t"
 	     "movdqu 2*16(%[inbuf]), %%xmm4\n\t"
@@ -1925,30 +1917,50 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 	     "movdqa %%xmm3, %%xmm13\n\t"
 	     "movdqa %%xmm4, %%xmm14\n\t"
 	     "movdqa %%xmm8, %%xmm15\n\t"
+
+             "pxor   %%xmm0, %%xmm1\n\t"     /* xmm1 ^= key[0] */
+             "pxor   %%xmm0, %%xmm2\n\t"     /* xmm2 ^= key[0] */
+             "pxor   %%xmm0, %%xmm3\n\t"     /* xmm3 ^= key[0] */
+             "pxor   %%xmm0, %%xmm4\n\t"     /* xmm4 ^= key[0] */
+             "pxor   %%xmm0, %%xmm8\n\t"     /* xmm8 ^= key[0] */
+             "pxor   %%xmm0, %%xmm9\n\t"     /* xmm9 ^= key[0] */
+             "pxor   %%xmm0, %%xmm10\n\t"     /* xmm10 ^= key[0] */
+             "pxor   %%xmm0, %%xmm11\n\t"     /* xmm11 ^= key[0] */
 	     : /* No output */
-	     : [inbuf] "r" (inbuf)
+	     : [inbuf] "r" (inbuf),
+	       [key] "r" (ctx->keyschenc)
 	     : "memory");
 
 	  do_aesni_enc_vec8 (ctx);
 
 	  asm volatile
 	    (
-	     "pxor %%xmm12, %%xmm1\n\t"
-	     "movdqu 4*16(%[inbuf]), %%xmm12\n\t"
-	     "pxor %%xmm13, %%xmm2\n\t"
-	     "movdqu 5*16(%[inbuf]), %%xmm13\n\t"
-	     "pxor %%xmm14, %%xmm3\n\t"
-	     "movdqu 6*16(%[inbuf]), %%xmm14\n\t"
-	     "pxor %%xmm15, %%xmm4\n\t"
-	     "movdqu 7*16(%[inbuf]), %%xmm15\n\t"
+	     "pxor %%xmm0, %%xmm12\n\t"
+	     "pxor %%xmm0, %%xmm13\n\t"
+	     "pxor %%xmm0, %%xmm14\n\t"
+	     "pxor %%xmm0, %%xmm15\n\t"
+	     "aesenclast %%xmm12, %%xmm1\n\t"
+	     "aesenclast %%xmm13, %%xmm2\n\t"
+	     "aesenclast %%xmm14, %%xmm3\n\t"
+	     "aesenclast %%xmm15, %%xmm4\n\t"
 
-	     "pxor %%xmm12, %%xmm8\n\t"
+	     "movdqu 4*16(%[inbuf]), %%xmm12\n\t"
+	     "movdqu 5*16(%[inbuf]), %%xmm13\n\t"
+	     "movdqu 6*16(%[inbuf]), %%xmm14\n\t"
+	     "movdqu 7*16(%[inbuf]), %%xmm15\n\t"
+	     "pxor %%xmm0, %%xmm12\n\t"
+	     "pxor %%xmm0, %%xmm13\n\t"
+	     "pxor %%xmm0, %%xmm14\n\t"
+	     "pxor %%xmm0, %%xmm15\n\t"
+
+	     "aesenclast %%xmm12, %%xmm8\n\t"
+	     "aesenclast %%xmm13, %%xmm9\n\t"
+	     "aesenclast %%xmm14, %%xmm10\n\t"
+	     "aesenclast %%xmm15, %%xmm11\n\t"
+
 	     "movdqu %%xmm1, 0*16(%[outbuf])\n\t"
-	     "pxor %%xmm13, %%xmm9\n\t"
 	     "movdqu %%xmm2, 1*16(%[outbuf])\n\t"
-	     "pxor %%xmm14, %%xmm10\n\t"
 	     "movdqu %%xmm3, 2*16(%[outbuf])\n\t"
-	     "pxor %%xmm15, %%xmm11\n\t"
 	     "movdqu %%xmm4, 3*16(%[outbuf])\n\t"
 
 	     "movdqu %%xmm8, 4*16(%[outbuf])\n\t"
@@ -2070,7 +2082,9 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
       for ( ;nblocks >= 8 ; nblocks -= 8 )
 	{
 	  asm volatile
-	    ("movdqu 0*16(%[inbuf]), %%xmm1\n\t"	/* load input blocks */
+	    ("movdqa (%[key]), %%xmm0\n\t"
+
+	     "movdqu 0*16(%[inbuf]), %%xmm1\n\t"	/* load input blocks */
 	     "movdqu 1*16(%[inbuf]), %%xmm2\n\t"
 	     "movdqu 2*16(%[inbuf]), %%xmm3\n\t"
 	     "movdqu 3*16(%[inbuf]), %%xmm4\n\t"
@@ -2084,31 +2098,50 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 	     "movdqa %%xmm3, %%xmm14\n\t"
 	     "movdqa %%xmm4, %%xmm15\n\t"
 
+	     "pxor   %%xmm0, %%xmm1\n\t"     /* xmm1 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm2\n\t"     /* xmm2 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm3\n\t"     /* xmm3 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm4\n\t"     /* xmm4 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm8\n\t"     /* xmm8 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm9\n\t"     /* xmm9 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm10\n\t"    /* xmm10 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm11\n\t"    /* xmm11 ^= key[0] */
+
 	     : /* No output */
-	     : [inbuf] "r" (inbuf)
+	     : [inbuf] "r" (inbuf),
+	       [key] "r" (ctx->keyschdec)
 	     : "memory");
 
 	  do_aesni_dec_vec8 (ctx);
 
 	  asm volatile
-	    ("pxor %%xmm5, %%xmm1\n\t"		/* xor IV with output */
+	    (
+	     "pxor %%xmm0, %%xmm5\n\t"			/* xor IV with key */
+	     "pxor %%xmm0, %%xmm12\n\t"			/* xor IV with key */
+	     "pxor %%xmm0, %%xmm13\n\t"			/* xor IV with key */
+	     "pxor %%xmm0, %%xmm14\n\t"			/* xor IV with key */
+	     "pxor %%xmm0, %%xmm15\n\t"			/* xor IV with key */
 
-	     "pxor %%xmm12, %%xmm2\n\t"		/* xor IV with output */
+	     "aesdeclast %%xmm5, %%xmm1\n\t"
+	     "aesdeclast %%xmm12, %%xmm2\n\t"
+	     "aesdeclast %%xmm13, %%xmm3\n\t"
+	     "aesdeclast %%xmm14, %%xmm4\n\t"
+
 	     "movdqu 4*16(%[inbuf]), %%xmm12\n\t"
-
-	     "pxor %%xmm13, %%xmm3\n\t"		/* xor IV with output */
 	     "movdqu 5*16(%[inbuf]), %%xmm13\n\t"
-
-	     "pxor %%xmm14, %%xmm4\n\t"		/* xor IV with output */
 	     "movdqu 6*16(%[inbuf]), %%xmm14\n\t"
-
-	     "pxor %%xmm15, %%xmm8\n\t"		/* xor IV with output */
 	     "movdqu 7*16(%[inbuf]), %%xmm5\n\t"
-	     "pxor %%xmm12, %%xmm9\n\t"		/* xor IV with output */
+	     "pxor %%xmm0, %%xmm12\n\t"			/* xor IV with key */
+	     "pxor %%xmm0, %%xmm13\n\t"			/* xor IV with key */
+	     "pxor %%xmm0, %%xmm14\n\t"			/* xor IV with key */
+
+	     "aesdeclast %%xmm15, %%xmm8\n\t"
+	     "aesdeclast %%xmm12, %%xmm9\n\t"
+	     "aesdeclast %%xmm13, %%xmm10\n\t"
+	     "aesdeclast %%xmm14, %%xmm11\n\t"
+
 	     "movdqu %%xmm1, 0*16(%[outbuf])\n\t"
-	     "pxor %%xmm13, %%xmm10\n\t"		/* xor IV with output */
 	     "movdqu %%xmm2, 1*16(%[outbuf])\n\t"
-	     "pxor %%xmm14, %%xmm11\n\t"		/* xor IV with output */
 	     "movdqu %%xmm3, 2*16(%[outbuf])\n\t"
 	     "movdqu %%xmm4, 3*16(%[outbuf])\n\t"
 	     "movdqu %%xmm8, 4*16(%[outbuf])\n\t"
@@ -3452,7 +3485,13 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 			"pxor   %%xmm5,    %%xmm3\n\t"
 
 			"pxor   %%xmm0,    %%xmm5\n\t"
+			"movdqa (%[key]),  %%xmm0\n\t"
 			"pxor   %%xmm5,    %%xmm4\n\t"
+
+			"pxor   %%xmm0, %%xmm1\n\t"     /* xmm1 ^= key[0] */
+			"pxor   %%xmm0, %%xmm2\n\t"     /* xmm2 ^= key[0] */
+			"pxor   %%xmm0, %%xmm3\n\t"     /* xmm3 ^= key[0] */
+			"pxor   %%xmm0, %%xmm4\n\t"     /* xmm4 ^= key[0] */
 
 			"pxor   %%xmm7,    %%xmm8\n\t"
 			"pxor   %%xmm5,    %%xmm8\n\t"
@@ -3465,13 +3504,27 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
 			"pxor   %%xmm14,   %%xmm5\n\t"
 			"pxor   %%xmm5,    %%xmm11\n\t"
+
+			"pxor   %%xmm0, %%xmm8\n\t"     /* xmm8 ^= key[0] */
+			"pxor   %%xmm0, %%xmm9\n\t"     /* xmm9 ^= key[0] */
+			"pxor   %%xmm0, %%xmm10\n\t"    /* xmm10 ^= key[0] */
+			"pxor   %%xmm0, %%xmm11\n\t"    /* xmm11 ^= key[0] */
 			:
-			:
+			: [key] "r" (ctx->keyschenc)
 			: "memory" );
 
 	  do_aesni_enc_vec8 (ctx);
 
-	  asm volatile ("pxor   %%xmm2,   %%xmm1\n\t"
+	  asm volatile (
+			"aesenclast %%xmm0, %%xmm1\n\t"
+			"aesenclast %%xmm0, %%xmm2\n\t"
+			"aesenclast %%xmm0, %%xmm3\n\t"
+			"aesenclast %%xmm0, %%xmm4\n\t"
+			"aesenclast %%xmm0, %%xmm8\n\t"
+			"aesenclast %%xmm0, %%xmm9\n\t"
+			"aesenclast %%xmm0, %%xmm10\n\t"
+			"aesenclast %%xmm0, %%xmm11\n\t"
+			"pxor   %%xmm2,   %%xmm1\n\t"
 			"pxor   %%xmm3,   %%xmm1\n\t"
 			"pxor   %%xmm4,   %%xmm1\n\t"
 			"pxor   %%xmm8,   %%xmm1\n\t"
