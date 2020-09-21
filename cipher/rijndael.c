@@ -974,60 +974,19 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
+  rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      _gcry_aes_aesni_cfb_enc (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    {
-      _gcry_aes_ssse3_cfb_enc (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      _gcry_aes_armv8_ce_cfb_enc (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  else if (ctx->use_ppc9le_crypto)
-    {
-      _gcry_aes_ppc9le_cfb_enc (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      _gcry_aes_ppc8_cfb_enc (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO*/
-  else
-    {
-      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
 
-      if (ctx->prefetch_enc_fn)
-        ctx->prefetch_enc_fn();
-
-      for ( ;nblocks; nblocks-- )
-        {
-          /* Encrypt the IV. */
-          burn_depth = encrypt_fn (ctx, iv, iv);
-          /* XOR the input with the IV and store input into IV.  */
-          cipher_block_xor_2dst(outbuf, iv, inbuf, BLOCKSIZE);
-          outbuf += BLOCKSIZE;
-          inbuf  += BLOCKSIZE;
-        }
+  for ( ;nblocks; nblocks-- )
+    {
+      /* Encrypt the IV. */
+      burn_depth = encrypt_fn (ctx, iv, iv);
+      /* XOR the input with the IV and store input into IV.  */
+      cipher_block_xor_2dst(outbuf, iv, inbuf, BLOCKSIZE);
+      outbuf += BLOCKSIZE;
+      inbuf  += BLOCKSIZE;
     }
 
   if (burn_depth)
@@ -1049,68 +1008,27 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
   const unsigned char *inbuf = inbuf_arg;
   unsigned char *last_iv;
   unsigned int burn_depth = 0;
+  rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
+
+  last_iv = iv;
+
+  for ( ;nblocks; nblocks-- )
     {
-      _gcry_aes_aesni_cbc_enc (ctx, iv, outbuf, inbuf, nblocks, cbc_mac);
-      return;
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    {
-      _gcry_aes_ssse3_cbc_enc (ctx, iv, outbuf, inbuf, nblocks, cbc_mac);
-      return;
-    }
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      _gcry_aes_armv8_ce_cbc_enc (ctx, iv, outbuf, inbuf, nblocks, cbc_mac);
-      return;
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  else if (ctx->use_ppc9le_crypto)
-    {
-      _gcry_aes_ppc9le_cbc_enc (ctx, iv, outbuf, inbuf, nblocks, cbc_mac);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      _gcry_aes_ppc8_cbc_enc (ctx, iv, outbuf, inbuf, nblocks, cbc_mac);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO*/
-  else
-    {
-      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+      cipher_block_xor(outbuf, inbuf, last_iv, BLOCKSIZE);
 
-      if (ctx->prefetch_enc_fn)
-        ctx->prefetch_enc_fn();
+      burn_depth = encrypt_fn (ctx, outbuf, outbuf);
 
-      last_iv = iv;
-
-      for ( ;nblocks; nblocks-- )
-        {
-          cipher_block_xor(outbuf, inbuf, last_iv, BLOCKSIZE);
-
-          burn_depth = encrypt_fn (ctx, outbuf, outbuf);
-
-          last_iv = outbuf;
-          inbuf += BLOCKSIZE;
-          if (!cbc_mac)
-            outbuf += BLOCKSIZE;
-        }
-
-      if (last_iv != iv)
-        cipher_block_cpy (iv, last_iv, BLOCKSIZE);
+      last_iv = outbuf;
+      inbuf += BLOCKSIZE;
+      if (!cbc_mac)
+	outbuf += BLOCKSIZE;
     }
+
+  if (last_iv != iv)
+    cipher_block_cpy (iv, last_iv, BLOCKSIZE);
 
   if (burn_depth)
     _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
@@ -1131,66 +1049,25 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
+  union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } tmp;
+  rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      _gcry_aes_aesni_ctr_enc (ctx, ctr, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    {
-      _gcry_aes_ssse3_ctr_enc (ctx, ctr, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      _gcry_aes_armv8_ce_ctr_enc (ctx, ctr, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  else if (ctx->use_ppc9le_crypto)
-    {
-      _gcry_aes_ppc9le_ctr_enc (ctx, ctr, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      _gcry_aes_ppc8_ctr_enc (ctx, ctr, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO*/
-  else
-    {
-      union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } tmp;
-      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
 
-      if (ctx->prefetch_enc_fn)
-        ctx->prefetch_enc_fn();
-
-      for ( ;nblocks; nblocks-- )
-        {
-          /* Encrypt the counter. */
-          burn_depth = encrypt_fn (ctx, tmp.x1, ctr);
-          /* XOR the input with the encrypted counter and store in output.  */
-          cipher_block_xor(outbuf, tmp.x1, inbuf, BLOCKSIZE);
-          outbuf += BLOCKSIZE;
-          inbuf  += BLOCKSIZE;
-          /* Increment the counter.  */
-	  cipher_block_add(ctr, 1, BLOCKSIZE);
-        }
-
-      wipememory(&tmp, sizeof(tmp));
+  for ( ;nblocks; nblocks-- )
+    {
+      /* Encrypt the counter. */
+      burn_depth = encrypt_fn (ctx, tmp.x1, ctr);
+      /* XOR the input with the encrypted counter and store in output.  */
+      cipher_block_xor(outbuf, tmp.x1, inbuf, BLOCKSIZE);
+      outbuf += BLOCKSIZE;
+      inbuf  += BLOCKSIZE;
+      /* Increment the counter.  */
+      cipher_block_add(ctr, 1, BLOCKSIZE);
     }
+
+  wipememory(&tmp, sizeof(tmp));
 
   if (burn_depth)
     _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
@@ -1388,58 +1265,17 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
+  rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      _gcry_aes_aesni_cfb_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    {
-      _gcry_aes_ssse3_cfb_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      _gcry_aes_armv8_ce_cfb_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  else if (ctx->use_ppc9le_crypto)
-    {
-      _gcry_aes_ppc9le_cfb_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      _gcry_aes_ppc8_cfb_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO*/
-  else
-    {
-      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
 
-      if (ctx->prefetch_enc_fn)
-        ctx->prefetch_enc_fn();
-
-      for ( ;nblocks; nblocks-- )
-        {
-          burn_depth = encrypt_fn (ctx, iv, iv);
-          cipher_block_xor_n_copy(outbuf, iv, inbuf, BLOCKSIZE);
-          outbuf += BLOCKSIZE;
-          inbuf  += BLOCKSIZE;
-        }
+  for ( ;nblocks; nblocks-- )
+    {
+      burn_depth = encrypt_fn (ctx, iv, iv);
+      cipher_block_xor_n_copy(outbuf, iv, inbuf, BLOCKSIZE);
+      outbuf += BLOCKSIZE;
+      inbuf  += BLOCKSIZE;
     }
 
   if (burn_depth)
@@ -1460,68 +1296,27 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
+  unsigned char savebuf[BLOCKSIZE] ATTR_ALIGNED_16;
+  rijndael_cryptfn_t decrypt_fn = ctx->decrypt_fn;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
+  check_decryption_preparation (ctx);
+
+  if (ctx->prefetch_dec_fn)
+    ctx->prefetch_dec_fn();
+
+  for ( ;nblocks; nblocks-- )
     {
-      _gcry_aes_aesni_cbc_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    {
-      _gcry_aes_ssse3_cbc_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      _gcry_aes_armv8_ce_cbc_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  else if (ctx->use_ppc9le_crypto)
-    {
-      _gcry_aes_ppc9le_cbc_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      _gcry_aes_ppc8_cbc_dec (ctx, iv, outbuf, inbuf, nblocks);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO*/
-  else
-    {
-      unsigned char savebuf[BLOCKSIZE] ATTR_ALIGNED_16;
-      rijndael_cryptfn_t decrypt_fn = ctx->decrypt_fn;
+      /* INBUF is needed later and it may be identical to OUTBUF, so store
+	  the intermediate result to SAVEBUF.  */
 
-      check_decryption_preparation (ctx);
+      burn_depth = decrypt_fn (ctx, savebuf, inbuf);
 
-      if (ctx->prefetch_dec_fn)
-        ctx->prefetch_dec_fn();
-
-      for ( ;nblocks; nblocks-- )
-        {
-          /* INBUF is needed later and it may be identical to OUTBUF, so store
-             the intermediate result to SAVEBUF.  */
-
-          burn_depth = decrypt_fn (ctx, savebuf, inbuf);
-
-          cipher_block_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOCKSIZE);
-          inbuf += BLOCKSIZE;
-          outbuf += BLOCKSIZE;
-        }
-
-      wipememory(savebuf, sizeof(savebuf));
+      cipher_block_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOCKSIZE);
+      inbuf += BLOCKSIZE;
+      outbuf += BLOCKSIZE;
     }
+
+  wipememory(savebuf, sizeof(savebuf));
 
   if (burn_depth)
     _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
@@ -1539,39 +1334,7 @@ _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      return _gcry_aes_aesni_ocb_crypt (c, outbuf, inbuf, nblocks, encrypt);
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    {
-      return _gcry_aes_ssse3_ocb_crypt (c, outbuf, inbuf, nblocks, encrypt);
-    }
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      return _gcry_aes_armv8_ce_ocb_crypt (c, outbuf, inbuf, nblocks, encrypt);
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  else if (ctx->use_ppc9le_crypto)
-    {
-      return _gcry_aes_ppc9le_ocb_crypt (c, outbuf, inbuf, nblocks, encrypt);
-    }
-#endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      return _gcry_aes_ppc8_ocb_crypt (c, outbuf, inbuf, nblocks, encrypt);
-    }
-#endif /*USE_PPC_CRYPTO*/
-  else if (encrypt)
+  if (encrypt)
     {
       union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
       rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
@@ -1644,65 +1407,29 @@ _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   const unsigned char *abuf = abuf_arg;
   unsigned int burn_depth = 0;
+  union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
+  rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      return _gcry_aes_aesni_ocb_auth (c, abuf, nblocks);
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    {
-      return _gcry_aes_ssse3_ocb_auth (c, abuf, nblocks);
-    }
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      return _gcry_aes_armv8_ce_ocb_auth (c, abuf, nblocks);
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  else if (ctx->use_ppc9le_crypto)
-    {
-      return _gcry_aes_ppc9le_ocb_auth (c, abuf, nblocks);
-    }
-#endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      return _gcry_aes_ppc8_ocb_auth (c, abuf, nblocks);
-    }
-#endif /*USE_PPC_CRYPTO*/
-  else
-    {
-      union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
-      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
 
-      if (ctx->prefetch_enc_fn)
-        ctx->prefetch_enc_fn();
+  for ( ;nblocks; nblocks-- )
+    {
+      u64 i = ++c->u_mode.ocb.aad_nblocks;
+      const unsigned char *l = ocb_get_l(c, i);
 
-      for ( ;nblocks; nblocks-- )
-        {
-          u64 i = ++c->u_mode.ocb.aad_nblocks;
-          const unsigned char *l = ocb_get_l(c, i);
+      /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+      cipher_block_xor_1 (c->u_mode.ocb.aad_offset, l, BLOCKSIZE);
+      /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+      cipher_block_xor (l_tmp.x1, c->u_mode.ocb.aad_offset, abuf,
+			BLOCKSIZE);
+      burn_depth = encrypt_fn (ctx, l_tmp.x1, l_tmp.x1);
+      cipher_block_xor_1 (c->u_mode.ocb.aad_sum, l_tmp.x1, BLOCKSIZE);
 
-          /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-          cipher_block_xor_1 (c->u_mode.ocb.aad_offset, l, BLOCKSIZE);
-          /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
-          cipher_block_xor (l_tmp.x1, c->u_mode.ocb.aad_offset, abuf,
-                            BLOCKSIZE);
-          burn_depth = encrypt_fn (ctx, l_tmp.x1, l_tmp.x1);
-          cipher_block_xor_1 (c->u_mode.ocb.aad_sum, l_tmp.x1, BLOCKSIZE);
-
-          abuf += BLOCKSIZE;
-        }
-
-      wipememory(&l_tmp, sizeof(l_tmp));
+      abuf += BLOCKSIZE;
     }
+
+  wipememory(&l_tmp, sizeof(l_tmp));
 
   if (burn_depth)
     _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
@@ -1724,88 +1451,55 @@ _gcry_aes_xts_crypt (void *context, unsigned char *tweak,
   rijndael_cryptfn_t crypt_fn;
   u64 tweak_lo, tweak_hi, tweak_next_lo, tweak_next_hi, tmp_lo, tmp_hi, carry;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
+  if (encrypt)
     {
-      _gcry_aes_aesni_xts_crypt (ctx, tweak, outbuf, inbuf, nblocks, encrypt);
-      return;
+      if (ctx->prefetch_enc_fn)
+	ctx->prefetch_enc_fn();
+
+      crypt_fn = ctx->encrypt_fn;
     }
-#endif /*USE_AESNI*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      _gcry_aes_armv8_ce_xts_crypt (ctx, tweak, outbuf, inbuf, nblocks, encrypt);
-      return;
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  else if (ctx->use_ppc9le_crypto)
-    {
-      _gcry_aes_ppc9le_xts_crypt (ctx, tweak, outbuf, inbuf, nblocks, encrypt);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      _gcry_aes_ppc8_xts_crypt (ctx, tweak, outbuf, inbuf, nblocks, encrypt);
-      return;
-    }
-#endif /*USE_PPC_CRYPTO*/
   else
     {
-      if (encrypt)
-        {
-          if (ctx->prefetch_enc_fn)
-            ctx->prefetch_enc_fn();
+      check_decryption_preparation (ctx);
 
-          crypt_fn = ctx->encrypt_fn;
-        }
-      else
-        {
-          check_decryption_preparation (ctx);
+      if (ctx->prefetch_dec_fn)
+	ctx->prefetch_dec_fn();
 
-          if (ctx->prefetch_dec_fn)
-            ctx->prefetch_dec_fn();
-
-          crypt_fn = ctx->decrypt_fn;
-        }
-
-      tweak_next_lo = buf_get_le64 (tweak + 0);
-      tweak_next_hi = buf_get_le64 (tweak + 8);
-
-      while (nblocks)
-	{
-	  tweak_lo = tweak_next_lo;
-	  tweak_hi = tweak_next_hi;
-
-	  /* Xor-Encrypt/Decrypt-Xor block. */
-	  tmp_lo = buf_get_le64 (inbuf + 0) ^ tweak_lo;
-	  tmp_hi = buf_get_le64 (inbuf + 8) ^ tweak_hi;
-
-	  buf_put_le64 (outbuf + 0, tmp_lo);
-	  buf_put_le64 (outbuf + 8, tmp_hi);
-
-	  /* Generate next tweak. */
-	  carry = -(tweak_next_hi >> 63) & 0x87;
-	  tweak_next_hi = (tweak_next_hi << 1) + (tweak_next_lo >> 63);
-	  tweak_next_lo = (tweak_next_lo << 1) ^ carry;
-
-	  burn_depth = crypt_fn (ctx, outbuf, outbuf);
-
-	  buf_put_le64 (outbuf + 0, buf_get_le64 (outbuf + 0) ^ tweak_lo);
-	  buf_put_le64 (outbuf + 8, buf_get_le64 (outbuf + 8) ^ tweak_hi);
-
-	  outbuf += GCRY_XTS_BLOCK_LEN;
-	  inbuf += GCRY_XTS_BLOCK_LEN;
-	  nblocks--;
-	}
-
-      buf_put_le64 (tweak + 0, tweak_next_lo);
-      buf_put_le64 (tweak + 8, tweak_next_hi);
+      crypt_fn = ctx->decrypt_fn;
     }
+
+  tweak_next_lo = buf_get_le64 (tweak + 0);
+  tweak_next_hi = buf_get_le64 (tweak + 8);
+
+  while (nblocks)
+    {
+      tweak_lo = tweak_next_lo;
+      tweak_hi = tweak_next_hi;
+
+      /* Xor-Encrypt/Decrypt-Xor block. */
+      tmp_lo = buf_get_le64 (inbuf + 0) ^ tweak_lo;
+      tmp_hi = buf_get_le64 (inbuf + 8) ^ tweak_hi;
+
+      buf_put_le64 (outbuf + 0, tmp_lo);
+      buf_put_le64 (outbuf + 8, tmp_hi);
+
+      /* Generate next tweak. */
+      carry = -(tweak_next_hi >> 63) & 0x87;
+      tweak_next_hi = (tweak_next_hi << 1) + (tweak_next_lo >> 63);
+      tweak_next_lo = (tweak_next_lo << 1) ^ carry;
+
+      burn_depth = crypt_fn (ctx, outbuf, outbuf);
+
+      buf_put_le64 (outbuf + 0, buf_get_le64 (outbuf + 0) ^ tweak_lo);
+      buf_put_le64 (outbuf + 8, buf_get_le64 (outbuf + 8) ^ tweak_hi);
+
+      outbuf += GCRY_XTS_BLOCK_LEN;
+      inbuf += GCRY_XTS_BLOCK_LEN;
+      nblocks--;
+    }
+
+  buf_put_le64 (tweak + 0, tweak_next_lo);
+  buf_put_le64 (tweak + 8, tweak_next_hi);
 
   if (burn_depth)
     _gcry_burn_stack (burn_depth + 5 * sizeof(void *));
