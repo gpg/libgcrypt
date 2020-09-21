@@ -13036,7 +13036,7 @@ verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
 }
 
 
-/* Test the public key sign function using the private ket SKEY. PKEY
+/* Test the public key sign function using the private key SKEY. PKEY
    is used for verification. */
 static void
 check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
@@ -13149,7 +13149,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 }
 
 
-/* Test the public key sign function using the private ket SKEY. PKEY
+/* Test the public key sign function using the private key SKEY. PKEY
    is used for verification.  This variant is only used for ECDSA.  */
 static void
 check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
