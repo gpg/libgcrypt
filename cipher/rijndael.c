@@ -353,6 +353,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 {
   static int initialized = 0;
   static const char *selftest_failed = 0;
+  void (*hw_setkey)(RIJNDAEL_context *ctx, const byte *key) = NULL;
   int rounds;
   int i,j, r, t, rconpointer = 0;
   int KC;
@@ -432,6 +433,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 #ifdef USE_AESNI
   else if (hwfeatures & HWF_INTEL_AESNI)
     {
+      hw_setkey = _gcry_aes_aesni_do_setkey;
       ctx->encrypt_fn = _gcry_aes_aesni_encrypt;
       ctx->decrypt_fn = _gcry_aes_aesni_decrypt;
       ctx->prefetch_enc_fn = NULL;
@@ -466,6 +468,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 #ifdef USE_SSSE3
   else if (hwfeatures & HWF_INTEL_SSSE3)
     {
+      hw_setkey = _gcry_aes_ssse3_do_setkey;
       ctx->encrypt_fn = _gcry_aes_ssse3_encrypt;
       ctx->decrypt_fn = _gcry_aes_ssse3_decrypt;
       ctx->prefetch_enc_fn = NULL;
@@ -486,6 +489,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 #ifdef USE_ARM_CE
   else if (hwfeatures & HWF_ARM_AES)
     {
+      hw_setkey = _gcry_aes_armv8_ce_setkey;
       ctx->encrypt_fn = _gcry_aes_armv8_ce_encrypt;
       ctx->decrypt_fn = _gcry_aes_armv8_ce_decrypt;
       ctx->prefetch_enc_fn = NULL;
@@ -507,6 +511,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 #ifdef USE_PPC_CRYPTO_WITH_PPC9LE
   else if ((hwfeatures & HWF_PPC_VCRYPTO) && (hwfeatures & HWF_PPC_ARCH_3_00))
     {
+      hw_setkey = _gcry_aes_ppc8_setkey;
       ctx->encrypt_fn = _gcry_aes_ppc9le_encrypt;
       ctx->decrypt_fn = _gcry_aes_ppc9le_decrypt;
       ctx->prefetch_enc_fn = NULL;
@@ -529,6 +534,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 #ifdef USE_PPC_CRYPTO
   else if (hwfeatures & HWF_PPC_VCRYPTO)
     {
+      hw_setkey = _gcry_aes_ppc8_setkey;
       ctx->encrypt_fn = _gcry_aes_ppc8_encrypt;
       ctx->decrypt_fn = _gcry_aes_ppc8_decrypt;
       ctx->prefetch_enc_fn = NULL;
@@ -557,26 +563,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 
   /* NB: We don't yet support Padlock hardware key generation.  */
 
-  if (0)
+  if (hw_setkey)
     {
-      ;
+      hw_setkey (ctx, key);
     }
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    _gcry_aes_aesni_do_setkey (ctx, key);
-#endif
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    _gcry_aes_ssse3_do_setkey (ctx, key);
-#endif
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    _gcry_aes_armv8_ce_setkey (ctx, key);
-#endif
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    _gcry_aes_ppc8_setkey (ctx, key);
-#endif
   else
     {
       const byte *sbox = ((const byte *)encT) + 1;
