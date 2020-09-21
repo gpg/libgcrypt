@@ -452,11 +452,11 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 
 static gcry_err_code_t
 chacha20_setkey (void *context, const byte *key, unsigned int keylen,
-                 gcry_cipher_hd_t hd)
+                 cipher_bulk_ops_t *bulk_ops)
 {
   CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
   gcry_err_code_t rc = chacha20_do_setkey (ctx, key, keylen);
-  (void)hd;
+  (void)bulk_ops;
   _gcry_burn_stack (4 + sizeof (void *) + 4 * sizeof (void *));
   return rc;
 }

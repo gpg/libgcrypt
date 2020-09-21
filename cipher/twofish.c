@@ -85,6 +85,24 @@
 /* Prototype for the self-test function. */
 static const char *selftest(void);
 
+
+/* Prototypes for the bulk functions. */
+static void _gcry_twofish_ctr_enc (void *context, unsigned char *ctr,
+				   void *outbuf_arg, const void *inbuf_arg,
+				   size_t nblocks);
+static void _gcry_twofish_cbc_dec (void *context, unsigned char *iv,
+				   void *outbuf_arg, const void *inbuf_arg,
+				   size_t nblocks);
+static void _gcry_twofish_cfb_dec (void *context, unsigned char *iv,
+				   void *outbuf_arg, const void *inbuf_arg,
+				   size_t nblocks);
+static size_t _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+				       const void *inbuf_arg, size_t nblocks,
+				       int encrypt);
+static size_t _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+				      size_t nblocks);
+
+
 /* Structure for an expanded Twofish key.  s contains the key-dependent
  * S-boxes composed with the MDS matrix; w contains the eight "whitening"
  * subkeys, K[0] through K[7].	k holds the remaining, "round" subkeys.  Note
@@ -735,13 +753,11 @@ do_twofish_setkey (TWOFISH_context *ctx, const byte *key, const unsigned keylen)
 
 static gcry_err_code_t
 twofish_setkey (void *context, const byte *key, unsigned int keylen,
-                gcry_cipher_hd_t hd)
+                cipher_bulk_ops_t *bulk_ops)
 {
   TWOFISH_context *ctx = context;
   unsigned int hwfeatures = _gcry_get_hw_features ();
   int rc;
-
-  (void)hd;
 
   rc = do_twofish_setkey (ctx, key, keylen);
 
@@ -752,6 +768,14 @@ twofish_setkey (void *context, const byte *key, unsigned int keylen,
       ctx->use_avx2 = 1;
     }
 #endif
+
+  /* Setup bulk encryption routines.  */
+  memset (bulk_ops, 0, sizeof(*bulk_ops));
+  bulk_ops->cbc_dec = _gcry_twofish_cbc_dec;
+  bulk_ops->cfb_dec = _gcry_twofish_cfb_dec;
+  bulk_ops->ctr_enc = _gcry_twofish_ctr_enc;
+  bulk_ops->ocb_crypt = _gcry_twofish_ocb_crypt;
+  bulk_ops->ocb_auth  = _gcry_twofish_ocb_auth;
 
   (void)hwfeatures;
 
@@ -1096,7 +1120,7 @@ twofish_decrypt (void *context, byte *out, const byte *in)
 /* Bulk encryption of complete blocks in CTR mode.  This function is only
    intended for the bulk encryption feature of cipher.c.  CTR is expected to be
    of size TWOFISH_BLOCKSIZE. */
-void
+static void
 _gcry_twofish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
 		      const void *inbuf_arg, size_t nblocks)
 {
@@ -1174,7 +1198,7 @@ _gcry_twofish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
 
 /* Bulk decryption of complete blocks in CBC mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_twofish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 		      const void *inbuf_arg, size_t nblocks)
 {
@@ -1249,7 +1273,7 @@ _gcry_twofish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 
 /* Bulk decryption of complete blocks in CFB mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_twofish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
 		    const void *inbuf_arg, size_t nblocks)
 {
@@ -1318,7 +1342,7 @@ _gcry_twofish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
 }
 
 /* Bulk encryption/decryption of complete blocks in OCB mode. */
-size_t
+static size_t
 _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 			const void *inbuf_arg, size_t nblocks, int encrypt)
 {
@@ -1432,7 +1456,7 @@ _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 /* Bulk authentication of complete blocks in OCB mode. */
-size_t
+static size_t
 _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 			size_t nblocks)
 {
@@ -1546,8 +1570,7 @@ selftest_ctr (void)
   const int context_size = sizeof(TWOFISH_context);
 
   return _gcry_selftest_helper_ctr("TWOFISH", &twofish_setkey,
-           &twofish_encrypt, &_gcry_twofish_ctr_enc, nblocks, blocksize,
-	   context_size);
+           &twofish_encrypt, nblocks, blocksize, context_size);
 }
 
 /* Run the self-tests for TWOFISH-CBC, tests bulk CBC decryption.
@@ -1560,8 +1583,7 @@ selftest_cbc (void)
   const int context_size = sizeof(TWOFISH_context);
 
   return _gcry_selftest_helper_cbc("TWOFISH", &twofish_setkey,
-           &twofish_encrypt, &_gcry_twofish_cbc_dec, nblocks, blocksize,
-	   context_size);
+           &twofish_encrypt, nblocks, blocksize, context_size);
 }
 
 /* Run the self-tests for TWOFISH-CFB, tests bulk CBC decryption.
@@ -1574,8 +1596,7 @@ selftest_cfb (void)
   const int context_size = sizeof(TWOFISH_context);
 
   return _gcry_selftest_helper_cfb("TWOFISH", &twofish_setkey,
-           &twofish_encrypt, &_gcry_twofish_cfb_dec, nblocks, blocksize,
-	   context_size);
+           &twofish_encrypt, nblocks, blocksize, context_size);
 }
 
 
@@ -1585,7 +1606,8 @@ static const char*
 selftest (void)
 {
   TWOFISH_context ctx; /* Expanded key. */
-  byte scratch[16];	/* Encryption/decryption result buffer. */
+  byte scratch[16];    /* Encryption/decryption result buffer. */
+  cipher_bulk_ops_t bulk_ops;
   const char *r;
 
   /* Test vectors for single encryption/decryption.  Note that I am using
@@ -1620,7 +1642,7 @@ selftest (void)
     0x05, 0x93, 0x1C, 0xB6, 0xD4, 0x08, 0xE7, 0xFA
   };
 
-  twofish_setkey (&ctx, key, sizeof(key), NULL);
+  twofish_setkey (&ctx, key, sizeof(key), &bulk_ops);
   twofish_encrypt (&ctx, scratch, plaintext);
   if (memcmp (scratch, ciphertext, sizeof (ciphertext)))
     return "Twofish-128 test encryption failed.";
@@ -1628,7 +1650,7 @@ selftest (void)
   if (memcmp (scratch, plaintext, sizeof (plaintext)))
     return "Twofish-128 test decryption failed.";
 
-  twofish_setkey (&ctx, key_256, sizeof(key_256), NULL);
+  twofish_setkey (&ctx, key_256, sizeof(key_256), &bulk_ops);
   twofish_encrypt (&ctx, scratch, plaintext_256);
   if (memcmp (scratch, ciphertext_256, sizeof (ciphertext_256)))
     return "Twofish-256 test encryption failed.";
@@ -1663,7 +1685,8 @@ int
 main()
 {
   TWOFISH_context ctx;     /* Expanded key. */
-  int i, j;		    /* Loop counters. */
+  int i, j;                /* Loop counters. */
+  cipher_bulk_ops_t bulk_ops;
 
   const char *encrypt_msg; /* Message to print regarding encryption test;
                             * the printf is done outside the loop to avoid
@@ -1710,13 +1733,13 @@ main()
   /* Encryption test. */
   for (i = 0; i < 125; i++)
     {
-      twofish_setkey (&ctx, buffer[0], sizeof (buffer[0]), NULL);
+      twofish_setkey (&ctx, buffer[0], sizeof (buffer[0]), &bulk_ops);
       for (j = 0; j < 1000; j++)
         twofish_encrypt (&ctx, buffer[2], buffer[2]);
-      twofish_setkey (&ctx, buffer[1], sizeof (buffer[1]), NULL);
+      twofish_setkey (&ctx, buffer[1], sizeof (buffer[1]), &bulk_ops);
       for (j = 0; j < 1000; j++)
         twofish_encrypt (&ctx, buffer[3], buffer[3]);
-      twofish_setkey (&ctx, buffer[2], sizeof (buffer[2])*2, NULL);
+      twofish_setkey (&ctx, buffer[2], sizeof (buffer[2])*2, &bulk_ops);
       for (j = 0; j < 1000; j++) {
         twofish_encrypt (&ctx, buffer[0], buffer[0]);
         twofish_encrypt (&ctx, buffer[1], buffer[1]);
@@ -1728,15 +1751,15 @@ main()
   /* Decryption test. */
   for (i = 0; i < 125; i++)
     {
-      twofish_setkey (&ctx, buffer[2], sizeof (buffer[2])*2, NULL);
+      twofish_setkey (&ctx, buffer[2], sizeof (buffer[2])*2, &bulk_ops);
       for (j = 0; j < 1000; j++) {
         twofish_decrypt (&ctx, buffer[0], buffer[0]);
         twofish_decrypt (&ctx, buffer[1], buffer[1]);
       }
-      twofish_setkey (&ctx, buffer[1], sizeof (buffer[1]), NULL);
+      twofish_setkey (&ctx, buffer[1], sizeof (buffer[1]), &bulk_ops);
       for (j = 0; j < 1000; j++)
         twofish_decrypt (&ctx, buffer[3], buffer[3]);
-      twofish_setkey (&ctx, buffer[0], sizeof (buffer[0]), NULL);
+      twofish_setkey (&ctx, buffer[0], sizeof (buffer[0]), &bulk_ops);
       for (j = 0; j < 1000; j++)
         twofish_decrypt (&ctx, buffer[2], buffer[2]);
     }

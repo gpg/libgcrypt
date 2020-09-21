@@ -100,6 +100,51 @@ typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);
 
 
+/* A structure with function pointers for mode operations. */
+typedef struct cipher_mode_ops
+{
+  gcry_err_code_t (*encrypt)(gcry_cipher_hd_t c, unsigned char *outbuf,
+			     size_t outbuflen, const unsigned char *inbuf,
+			     size_t inbuflen);
+  gcry_err_code_t (*decrypt)(gcry_cipher_hd_t c, unsigned char *outbuf,
+			     size_t outbuflen, const unsigned char *inbuf,
+			     size_t inbuflen);
+  gcry_err_code_t (*setiv)(gcry_cipher_hd_t c, const unsigned char *iv,
+			   size_t ivlen);
+
+  gcry_err_code_t (*authenticate)(gcry_cipher_hd_t c,
+				  const unsigned char *abuf, size_t abuflen);
+  gcry_err_code_t (*get_tag)(gcry_cipher_hd_t c, unsigned char *outtag,
+			     size_t taglen);
+  gcry_err_code_t (*check_tag)(gcry_cipher_hd_t c, const unsigned char *intag,
+			       size_t taglen);
+} cipher_mode_ops_t;
+
+
+/* A structure with function pointers for bulk operations.  The cipher
+   algorithm setkey function initializes them when bulk operations are
+   available and the actual encryption routines use them if they are
+   not NULL.  */
+typedef struct cipher_bulk_ops
+{
+  void (*cfb_enc)(void *context, unsigned char *iv, void *outbuf_arg,
+		  const void *inbuf_arg, size_t nblocks);
+  void (*cfb_dec)(void *context, unsigned char *iv, void *outbuf_arg,
+		  const void *inbuf_arg, size_t nblocks);
+  void (*cbc_enc)(void *context, unsigned char *iv, void *outbuf_arg,
+		  const void *inbuf_arg, size_t nblocks, int cbc_mac);
+  void (*cbc_dec)(void *context, unsigned char *iv, void *outbuf_arg,
+		  const void *inbuf_arg, size_t nblocks);
+  void (*ctr_enc)(void *context, unsigned char *iv, void *outbuf_arg,
+		  const void *inbuf_arg, size_t nblocks);
+  size_t (*ocb_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
+		      const void *inbuf_arg, size_t nblocks, int encrypt);
+  size_t (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks);
+  void (*xts_crypt)(void *context, unsigned char *tweak, void *outbuf_arg,
+		    const void *inbuf_arg, size_t nblocks, int encrypt);
+} cipher_bulk_ops_t;
+
+
 /* A VIA processor with the Padlock engine as well as the Intel AES_NI
    instructions require an alignment of most data on a 16 byte
    boundary.  Because we trick out the compiler while allocating the
@@ -150,54 +195,12 @@ struct gcry_cipher_handle
   int algo;
 
   /* A structure with function pointers for mode operations. */
-  struct {
-    gcry_err_code_t (*encrypt)(gcry_cipher_hd_t c,
-                               unsigned char *outbuf, size_t outbuflen,
-                               const unsigned char *inbuf, size_t inbuflen);
-    gcry_err_code_t (*decrypt)(gcry_cipher_hd_t c,
-                               unsigned char *outbuf, size_t outbuflen,
-                               const unsigned char *inbuf, size_t inbuflen);
-    gcry_err_code_t (*setiv)(gcry_cipher_hd_t c, const unsigned char *iv,
-                             size_t ivlen);
-
-    gcry_err_code_t (*authenticate)(gcry_cipher_hd_t c,
-                                    const unsigned char *abuf, size_t abuflen);
-    gcry_err_code_t (*get_tag)(gcry_cipher_hd_t c, unsigned char *outtag,
-                               size_t taglen);
-    gcry_err_code_t (*check_tag)(gcry_cipher_hd_t c, const unsigned char *intag,
-                                 size_t taglen);
-  } mode_ops;
+  cipher_mode_ops_t mode_ops;
 
   /* A structure with function pointers for bulk operations.  Due to
      limitations of the module system (we don't want to change the
-     API) we need to keep these function pointers here.  The cipher
-     open function initializes them and the actual encryption routines
-     use them if they are not NULL.  */
-  struct {
-    void (*cfb_enc)(void *context, unsigned char *iv,
-                    void *outbuf_arg, const void *inbuf_arg,
-                    size_t nblocks);
-    void (*cfb_dec)(void *context, unsigned char *iv,
-                    void *outbuf_arg, const void *inbuf_arg,
-                    size_t nblocks);
-    void (*cbc_enc)(void *context, unsigned char *iv,
-                    void *outbuf_arg, const void *inbuf_arg,
-                    size_t nblocks, int cbc_mac);
-    void (*cbc_dec)(void *context, unsigned char *iv,
-                    void *outbuf_arg, const void *inbuf_arg,
-                    size_t nblocks);
-    void (*ctr_enc)(void *context, unsigned char *iv,
-                    void *outbuf_arg, const void *inbuf_arg,
-                    size_t nblocks);
-    size_t (*ocb_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
-			const void *inbuf_arg, size_t nblocks, int encrypt);
-    size_t (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg,
-		       size_t nblocks);
-    void (*xts_crypt)(void *context, unsigned char *tweak,
-		      void *outbuf_arg, const void *inbuf_arg,
-		      size_t nblocks, int encrypt);
-  } bulk;
-
+     API) we need to keep these function pointers here.  */
+  cipher_bulk_ops_t bulk;
 
   int mode;
   unsigned int flags;

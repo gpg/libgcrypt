@@ -48,12 +48,12 @@ gost_do_set_sbox (GOST28147_context *ctx, unsigned int index)
 
 static gcry_err_code_t
 gost_setkey (void *c, const byte *key, unsigned keylen,
-             gcry_cipher_hd_t hd)
+             cipher_bulk_ops_t *bulk_ops)
 {
   int i;
   GOST28147_context *ctx = c;
 
-  (void)hd;
+  (void)bulk_ops;
 
   if (keylen != 256 / 8)
     return GPG_ERR_INV_KEYLEN;

@@ -74,7 +74,7 @@ typedef struct {
 } CAST5_context;
 
 static gcry_err_code_t cast_setkey (void *c, const byte *key, unsigned keylen,
-                                    gcry_cipher_hd_t hd);
+                                    cipher_bulk_ops_t *bulk_ops);
 static unsigned int encrypt_block (void *c, byte *outbuf, const byte *inbuf);
 static unsigned int decrypt_block (void *c, byte *outbuf, const byte *inbuf);
 
@@ -765,7 +765,7 @@ do_decrypt_block_3 (CAST5_context *c, byte *outbuf, const byte *inbuf )
 /* Bulk encryption of complete blocks in CTR mode.  This function is only
    intended for the bulk encryption feature of cipher.c.  CTR is expected to be
    of size CAST5_BLOCKSIZE. */
-void
+static void
 _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
 		    const void *inbuf_arg, size_t nblocks)
 {
@@ -846,7 +846,7 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
 
 /* Bulk decryption of complete blocks in CBC mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 		    const void *inbuf_arg, size_t nblocks)
 {
@@ -922,7 +922,7 @@ _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 
 /* Bulk decryption of complete blocks in CFB mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
 		    const void *inbuf_arg, size_t nblocks)
 {
@@ -1001,8 +1001,7 @@ selftest_ctr (void)
   const int context_size = sizeof(CAST5_context);
 
   return _gcry_selftest_helper_ctr("CAST5", &cast_setkey,
-           &encrypt_block, &_gcry_cast5_ctr_enc, nblocks, blocksize,
-	   context_size);
+           &encrypt_block, nblocks, blocksize, context_size);
 }
 
 
@@ -1016,8 +1015,7 @@ selftest_cbc (void)
   const int context_size = sizeof(CAST5_context);
 
   return _gcry_selftest_helper_cbc("CAST5", &cast_setkey,
-           &encrypt_block, &_gcry_cast5_cbc_dec, nblocks, blocksize,
-	   context_size);
+           &encrypt_block, nblocks, blocksize, context_size);
 }
 
 
@@ -1031,8 +1029,7 @@ selftest_cfb (void)
   const int context_size = sizeof(CAST5_context);
 
   return _gcry_selftest_helper_cfb("CAST5", &cast_setkey,
-           &encrypt_block, &_gcry_cast5_cfb_dec, nblocks, blocksize,
-	   context_size);
+           &encrypt_block, nblocks, blocksize, context_size);
 }
 
 
@@ -1040,6 +1037,7 @@ static const char*
 selftest(void)
 {
     CAST5_context c;
+    cipher_bulk_ops_t bulk_ops;
     static const byte key[16] =
                     { 0x01, 0x23, 0x45, 0x67, 0x12, 0x34, 0x56, 0x78,
 		      0x23, 0x45, 0x67, 0x89, 0x34, 0x56, 0x78, 0x9A  };
@@ -1050,7 +1048,7 @@ selftest(void)
     byte buffer[8];
     const char *r;
 
-    cast_setkey( &c, key, 16, NULL );
+    cast_setkey( &c, key, 16, &bulk_ops );
     encrypt_block( &c, buffer, plain );
     if( memcmp( buffer, cipher, 8 ) )
 	return "1";
@@ -1071,10 +1069,10 @@ selftest(void)
 			0x80,0xAC,0x05,0xB8,0xE8,0x3D,0x69,0x6E };
 
 	for(i=0; i < 1000000; i++ ) {
-	    cast_setkey( &c, b0, 16, NULL );
+	    cast_setkey( &c, b0, 16, &bulk_ops );
 	    encrypt_block( &c, a0, a0 );
 	    encrypt_block( &c, a0+8, a0+8 );
-	    cast_setkey( &c, a0, 16, NULL );
+	    cast_setkey( &c, a0, 16, &bulk_ops );
 	    encrypt_block( &c, b0, b0 );
 	    encrypt_block( &c, b0+8, b0+8 );
 	}
@@ -1217,11 +1215,17 @@ do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
 
 static gcry_err_code_t
 cast_setkey (void *context, const byte *key, unsigned keylen,
-             gcry_cipher_hd_t hd )
+             cipher_bulk_ops_t *bulk_ops)
 {
   CAST5_context *c = (CAST5_context *) context;
   gcry_err_code_t rc = do_cast_setkey (c, key, keylen);
-  (void)hd;
+
+  /* Setup bulk encryption routines.  */
+  memset (bulk_ops, 0, sizeof(*bulk_ops));
+  bulk_ops->cfb_dec = _gcry_cast5_cfb_dec;
+  bulk_ops->cbc_dec = _gcry_cast5_cbc_dec;
+  bulk_ops->ctr_enc = _gcry_cast5_ctr_enc;
+
   return rc;
 }
 

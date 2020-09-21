@@ -310,11 +310,11 @@ do_setkey (SEED_context *ctx, const byte *key, const unsigned keylen)
 
 static gcry_err_code_t
 seed_setkey (void *context, const byte *key, const unsigned keylen,
-             gcry_cipher_hd_t hd)
+             cipher_bulk_ops_t *bulk_ops)
 {
   SEED_context *ctx = context;
   int rc = do_setkey (ctx, key, keylen);
-  (void)hd;
+  (void)bulk_ops;
   _gcry_burn_stack (4*6 + sizeof(void*)*2 + sizeof(int)*2);
   return rc;
 }

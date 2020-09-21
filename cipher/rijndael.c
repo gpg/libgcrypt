@@ -281,6 +281,29 @@ static unsigned int do_encrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
 static unsigned int do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
                                 const unsigned char *ax);
 
+static void _gcry_aes_cfb_enc (void *context, unsigned char *iv,
+			       void *outbuf, const void *inbuf,
+			       size_t nblocks);
+static void _gcry_aes_cfb_dec (void *context, unsigned char *iv,
+			       void *outbuf_arg, const void *inbuf_arg,
+			       size_t nblocks);
+static void _gcry_aes_cbc_enc (void *context, unsigned char *iv,
+			       void *outbuf_arg, const void *inbuf_arg,
+			       size_t nblocks, int cbc_mac);
+static void _gcry_aes_cbc_dec (void *context, unsigned char *iv,
+			       void *outbuf_arg, const void *inbuf_arg,
+			       size_t nblocks);
+static void _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
+			       void *outbuf_arg, const void *inbuf_arg,
+			       size_t nblocks);
+static size_t _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+				   const void *inbuf_arg, size_t nblocks,
+				   int encrypt);
+static size_t _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+				  size_t nblocks);
+static void _gcry_aes_xts_crypt (void *context, unsigned char *tweak,
+				 void *outbuf_arg, const void *inbuf_arg,
+				 size_t nblocks, int encrypt);
 
 
 /* All the numbers.  */
@@ -349,7 +372,7 @@ static void prefetch_dec(void)
 /* Perform the key setup.  */
 static gcry_err_code_t
 do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
-           gcry_cipher_hd_t hd)
+           cipher_bulk_ops_t *bulk_ops)
 {
   static int initialized = 0;
   static const char *selftest_failed = 0;
@@ -357,12 +380,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
   int rounds;
   int i,j, r, t, rconpointer = 0;
   int KC;
-#if defined(USE_AESNI) || defined(USE_PADLOCK) || defined(USE_SSSE3) \
-    || defined(USE_ARM_CE) || defined(USE_PPC_CRYPTO)
   unsigned int hwfeatures;
-#endif
-
-  (void)hd;
 
   /* The on-the-fly self tests are only run in non-fips mode. In fips
      mode explicit self-tests are required.  Actually the on-the-fly
@@ -400,11 +418,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
     return GPG_ERR_INV_KEYLEN;
 
   ctx->rounds = rounds;
-
-#if defined(USE_AESNI) || defined(USE_PADLOCK) || defined(USE_SSSE3) \
-    || defined(USE_ARM_CE) || defined(USE_PPC_CRYPTO)
   hwfeatures = _gcry_get_hw_features ();
-#endif
 
   ctx->decryption_prepared = 0;
 #ifdef USE_PADLOCK
@@ -426,6 +440,19 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
   ctx->use_ppc9le_crypto = 0;
 #endif
 
+  /* Setup default bulk encryption routines.  */
+  memset (bulk_ops, 0, sizeof(*bulk_ops));
+  bulk_ops->cfb_enc = _gcry_aes_cfb_enc;
+  bulk_ops->cfb_dec = _gcry_aes_cfb_dec;
+  bulk_ops->cbc_enc = _gcry_aes_cbc_enc;
+  bulk_ops->cbc_dec = _gcry_aes_cbc_dec;
+  bulk_ops->ctr_enc = _gcry_aes_ctr_enc;
+  bulk_ops->ocb_crypt = _gcry_aes_ocb_crypt;
+  bulk_ops->ocb_auth  = _gcry_aes_ocb_auth;
+  bulk_ops->xts_crypt = _gcry_aes_xts_crypt;
+
+  (void)hwfeatures;
+
   if (0)
     {
       ;
@@ -441,17 +468,16 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->use_aesni = 1;
       ctx->use_avx = !!(hwfeatures & HWF_INTEL_AVX);
       ctx->use_avx2 = !!(hwfeatures & HWF_INTEL_AVX2);
-      if (hd)
-        {
-          hd->bulk.cfb_enc = _gcry_aes_aesni_cfb_enc;
-          hd->bulk.cfb_dec = _gcry_aes_aesni_cfb_dec;
-          hd->bulk.cbc_enc = _gcry_aes_aesni_cbc_enc;
-          hd->bulk.cbc_dec = _gcry_aes_aesni_cbc_dec;
-          hd->bulk.ctr_enc = _gcry_aes_aesni_ctr_enc;
-          hd->bulk.ocb_crypt = _gcry_aes_aesni_ocb_crypt;
-          hd->bulk.ocb_auth = _gcry_aes_aesni_ocb_auth;
-          hd->bulk.xts_crypt = _gcry_aes_aesni_xts_crypt;
-        }
+
+      /* Setup AES-NI bulk encryption routines.  */
+      bulk_ops->cfb_enc = _gcry_aes_aesni_cfb_enc;
+      bulk_ops->cfb_dec = _gcry_aes_aesni_cfb_dec;
+      bulk_ops->cbc_enc = _gcry_aes_aesni_cbc_enc;
+      bulk_ops->cbc_dec = _gcry_aes_aesni_cbc_dec;
+      bulk_ops->ctr_enc = _gcry_aes_aesni_ctr_enc;
+      bulk_ops->ocb_crypt = _gcry_aes_aesni_ocb_crypt;
+      bulk_ops->ocb_auth = _gcry_aes_aesni_ocb_auth;
+      bulk_ops->xts_crypt = _gcry_aes_aesni_xts_crypt;
     }
 #endif
 #ifdef USE_PADLOCK
@@ -474,16 +500,15 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->use_ssse3 = 1;
-      if (hd)
-        {
-          hd->bulk.cfb_enc = _gcry_aes_ssse3_cfb_enc;
-          hd->bulk.cfb_dec = _gcry_aes_ssse3_cfb_dec;
-          hd->bulk.cbc_enc = _gcry_aes_ssse3_cbc_enc;
-          hd->bulk.cbc_dec = _gcry_aes_ssse3_cbc_dec;
-          hd->bulk.ctr_enc = _gcry_aes_ssse3_ctr_enc;
-          hd->bulk.ocb_crypt = _gcry_aes_ssse3_ocb_crypt;
-          hd->bulk.ocb_auth = _gcry_aes_ssse3_ocb_auth;
-        }
+
+      /* Setup SSSE3 bulk encryption routines.  */
+      bulk_ops->cfb_enc = _gcry_aes_ssse3_cfb_enc;
+      bulk_ops->cfb_dec = _gcry_aes_ssse3_cfb_dec;
+      bulk_ops->cbc_enc = _gcry_aes_ssse3_cbc_enc;
+      bulk_ops->cbc_dec = _gcry_aes_ssse3_cbc_dec;
+      bulk_ops->ctr_enc = _gcry_aes_ssse3_ctr_enc;
+      bulk_ops->ocb_crypt = _gcry_aes_ssse3_ocb_crypt;
+      bulk_ops->ocb_auth = _gcry_aes_ssse3_ocb_auth;
     }
 #endif
 #ifdef USE_ARM_CE
@@ -495,17 +520,16 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->use_arm_ce = 1;
-      if (hd)
-        {
-          hd->bulk.cfb_enc = _gcry_aes_armv8_ce_cfb_enc;
-          hd->bulk.cfb_dec = _gcry_aes_armv8_ce_cfb_dec;
-          hd->bulk.cbc_enc = _gcry_aes_armv8_ce_cbc_enc;
-          hd->bulk.cbc_dec = _gcry_aes_armv8_ce_cbc_dec;
-          hd->bulk.ctr_enc = _gcry_aes_armv8_ce_ctr_enc;
-          hd->bulk.ocb_crypt = _gcry_aes_armv8_ce_ocb_crypt;
-          hd->bulk.ocb_auth = _gcry_aes_armv8_ce_ocb_auth;
-          hd->bulk.xts_crypt = _gcry_aes_armv8_ce_xts_crypt;
-        }
+
+      /* Setup ARM-CE bulk encryption routines.  */
+      bulk_ops->cfb_enc = _gcry_aes_armv8_ce_cfb_enc;
+      bulk_ops->cfb_dec = _gcry_aes_armv8_ce_cfb_dec;
+      bulk_ops->cbc_enc = _gcry_aes_armv8_ce_cbc_enc;
+      bulk_ops->cbc_dec = _gcry_aes_armv8_ce_cbc_dec;
+      bulk_ops->ctr_enc = _gcry_aes_armv8_ce_ctr_enc;
+      bulk_ops->ocb_crypt = _gcry_aes_armv8_ce_ocb_crypt;
+      bulk_ops->ocb_auth = _gcry_aes_armv8_ce_ocb_auth;
+      bulk_ops->xts_crypt = _gcry_aes_armv8_ce_xts_crypt;
     }
 #endif
 #ifdef USE_PPC_CRYPTO_WITH_PPC9LE
@@ -518,17 +542,16 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_dec_fn = NULL;
       ctx->use_ppc_crypto = 1; /* same key-setup as USE_PPC_CRYPTO */
       ctx->use_ppc9le_crypto = 1;
-      if (hd)
-        {
-          hd->bulk.cfb_enc = _gcry_aes_ppc9le_cfb_enc;
-          hd->bulk.cfb_dec = _gcry_aes_ppc9le_cfb_dec;
-          hd->bulk.cbc_enc = _gcry_aes_ppc9le_cbc_enc;
-          hd->bulk.cbc_dec = _gcry_aes_ppc9le_cbc_dec;
-          hd->bulk.ctr_enc = _gcry_aes_ppc9le_ctr_enc;
-          hd->bulk.ocb_crypt = _gcry_aes_ppc9le_ocb_crypt;
-          hd->bulk.ocb_auth = _gcry_aes_ppc9le_ocb_auth;
-          hd->bulk.xts_crypt = _gcry_aes_ppc9le_xts_crypt;
-        }
+
+      /* Setup PPC9LE bulk encryption routines.  */
+      bulk_ops->cfb_enc = _gcry_aes_ppc9le_cfb_enc;
+      bulk_ops->cfb_dec = _gcry_aes_ppc9le_cfb_dec;
+      bulk_ops->cbc_enc = _gcry_aes_ppc9le_cbc_enc;
+      bulk_ops->cbc_dec = _gcry_aes_ppc9le_cbc_dec;
+      bulk_ops->ctr_enc = _gcry_aes_ppc9le_ctr_enc;
+      bulk_ops->ocb_crypt = _gcry_aes_ppc9le_ocb_crypt;
+      bulk_ops->ocb_auth = _gcry_aes_ppc9le_ocb_auth;
+      bulk_ops->xts_crypt = _gcry_aes_ppc9le_xts_crypt;
     }
 #endif
 #ifdef USE_PPC_CRYPTO
@@ -540,17 +563,16 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->use_ppc_crypto = 1;
-      if (hd)
-        {
-          hd->bulk.cfb_enc = _gcry_aes_ppc8_cfb_enc;
-          hd->bulk.cfb_dec = _gcry_aes_ppc8_cfb_dec;
-          hd->bulk.cbc_enc = _gcry_aes_ppc8_cbc_enc;
-          hd->bulk.cbc_dec = _gcry_aes_ppc8_cbc_dec;
-          hd->bulk.ctr_enc = _gcry_aes_ppc8_ctr_enc;
-          hd->bulk.ocb_crypt = _gcry_aes_ppc8_ocb_crypt;
-          hd->bulk.ocb_auth = _gcry_aes_ppc8_ocb_auth;
-          hd->bulk.xts_crypt = _gcry_aes_ppc8_xts_crypt;
-        }
+
+      /* Setup PPC8 bulk encryption routines.  */
+      bulk_ops->cfb_enc = _gcry_aes_ppc8_cfb_enc;
+      bulk_ops->cfb_dec = _gcry_aes_ppc8_cfb_dec;
+      bulk_ops->cbc_enc = _gcry_aes_ppc8_cbc_enc;
+      bulk_ops->cbc_dec = _gcry_aes_ppc8_cbc_dec;
+      bulk_ops->ctr_enc = _gcry_aes_ppc8_ctr_enc;
+      bulk_ops->ocb_crypt = _gcry_aes_ppc8_ocb_crypt;
+      bulk_ops->ocb_auth = _gcry_aes_ppc8_ocb_auth;
+      bulk_ops->xts_crypt = _gcry_aes_ppc8_xts_crypt;
     }
 #endif
   else
@@ -672,10 +694,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 
 static gcry_err_code_t
 rijndael_setkey (void *context, const byte *key, const unsigned keylen,
-                 gcry_cipher_hd_t hd)
+                 cipher_bulk_ops_t *bulk_ops)
 {
   RIJNDAEL_context *ctx = context;
-  return do_setkey (ctx, key, keylen, hd);
+  return do_setkey (ctx, key, keylen, bulk_ops);
 }
 
 
@@ -943,7 +965,7 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
    make sure that IV is aligned on an unsigned long boundary.  This
    function is only intended for the bulk encryption feature of
    cipher.c. */
-void
+static void
 _gcry_aes_cfb_enc (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
                    size_t nblocks)
@@ -1017,7 +1039,7 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
    make sure that IV is aligned on an unsigned long boundary.  This
    function is only intended for the bulk encryption feature of
    cipher.c. */
-void
+static void
 _gcry_aes_cbc_enc (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
                    size_t nblocks, int cbc_mac)
@@ -1100,7 +1122,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
    minimum alignment is for an u32.  This function is only intended
    for the bulk encryption feature of cipher.c.  CTR is expected to be
    of size BLOCKSIZE. */
-void
+static void
 _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
                    void *outbuf_arg, const void *inbuf_arg,
                    size_t nblocks)
@@ -1357,7 +1379,7 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
    make sure that IV is aligned on an unsigned long boundary.  This
    function is only intended for the bulk encryption feature of
    cipher.c. */
-void
+static void
 _gcry_aes_cfb_dec (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
                    size_t nblocks)
@@ -1429,7 +1451,7 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
    make sure that IV is aligned on an unsigned long boundary.  This
    function is only intended for the bulk encryption feature of
    cipher.c. */
-void
+static void
 _gcry_aes_cbc_dec (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
                    size_t nblocks)
@@ -1508,7 +1530,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 
 
 /* Bulk encryption/decryption of complete blocks in OCB mode. */
-size_t
+static size_t
 _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
                      const void *inbuf_arg, size_t nblocks, int encrypt)
 {
@@ -1616,7 +1638,7 @@ _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
 
 /* Bulk authentication of complete blocks in OCB mode. */
-size_t
+static size_t
 _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
 {
   RIJNDAEL_context *ctx = (void *)&c->context.c;
@@ -1690,7 +1712,7 @@ _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
 
 
 /* Bulk encryption/decryption of complete blocks in XTS mode. */
-void
+static void
 _gcry_aes_xts_crypt (void *context, unsigned char *tweak,
 		     void *outbuf_arg, const void *inbuf_arg,
 		     size_t nblocks, int encrypt)
@@ -1797,6 +1819,7 @@ selftest_basic_128 (void)
   RIJNDAEL_context *ctx;
   unsigned char *ctxmem;
   unsigned char scratch[16];
+  cipher_bulk_ops_t bulk_ops;
 
   /* The test vectors are from the AES supplied ones; more or less
      randomly taken from ecb_tbl.txt (I=42,81,14) */
@@ -1844,7 +1867,7 @@ selftest_basic_128 (void)
   if (!ctx)
     return "failed to allocate memory";
 
-  rijndael_setkey (ctx, key_128, sizeof (key_128), NULL);
+  rijndael_setkey (ctx, key_128, sizeof (key_128), &bulk_ops);
   rijndael_encrypt (ctx, scratch, plaintext_128);
   if (memcmp (scratch, ciphertext_128, sizeof (ciphertext_128)))
     {
@@ -1866,6 +1889,7 @@ selftest_basic_192 (void)
   RIJNDAEL_context *ctx;
   unsigned char *ctxmem;
   unsigned char scratch[16];
+  cipher_bulk_ops_t bulk_ops;
 
   static unsigned char plaintext_192[16] =
     {
@@ -1887,7 +1911,7 @@ selftest_basic_192 (void)
   ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
   if (!ctx)
     return "failed to allocate memory";
-  rijndael_setkey (ctx, key_192, sizeof(key_192), NULL);
+  rijndael_setkey (ctx, key_192, sizeof(key_192), &bulk_ops);
   rijndael_encrypt (ctx, scratch, plaintext_192);
   if (memcmp (scratch, ciphertext_192, sizeof (ciphertext_192)))
     {
@@ -1910,6 +1934,7 @@ selftest_basic_256 (void)
   RIJNDAEL_context *ctx;
   unsigned char *ctxmem;
   unsigned char scratch[16];
+  cipher_bulk_ops_t bulk_ops;
 
   static unsigned char plaintext_256[16] =
     {
@@ -1932,7 +1957,7 @@ selftest_basic_256 (void)
   ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
   if (!ctx)
     return "failed to allocate memory";
-  rijndael_setkey (ctx, key_256, sizeof(key_256), NULL);
+  rijndael_setkey (ctx, key_256, sizeof(key_256), &bulk_ops);
   rijndael_encrypt (ctx, scratch, plaintext_256);
   if (memcmp (scratch, ciphertext_256, sizeof (ciphertext_256)))
     {
@@ -1958,8 +1983,7 @@ selftest_ctr_128 (void)
   const int context_size = sizeof(RIJNDAEL_context);
 
   return _gcry_selftest_helper_ctr("AES", &rijndael_setkey,
-           &rijndael_encrypt, &_gcry_aes_ctr_enc, nblocks, blocksize,
-	   context_size);
+           &rijndael_encrypt, nblocks, blocksize, context_size);
 }
 
 
@@ -1973,8 +1997,7 @@ selftest_cbc_128 (void)
   const int context_size = sizeof(RIJNDAEL_context);
 
   return _gcry_selftest_helper_cbc("AES", &rijndael_setkey,
-           &rijndael_encrypt, &_gcry_aes_cbc_dec, nblocks, blocksize,
-	   context_size);
+           &rijndael_encrypt, nblocks, blocksize, context_size);
 }
 
 
@@ -1988,8 +2011,7 @@ selftest_cfb_128 (void)
   const int context_size = sizeof(RIJNDAEL_context);
 
   return _gcry_selftest_helper_cfb("AES", &rijndael_setkey,
-           &rijndael_encrypt, &_gcry_aes_cfb_dec, nblocks, blocksize,
-	   context_size);
+           &rijndael_encrypt, nblocks, blocksize, context_size);
 }
 
 

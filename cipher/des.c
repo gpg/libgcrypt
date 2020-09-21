@@ -199,7 +199,7 @@ static unsigned int do_tripledes_decrypt(void *context, byte *outbuf,
 					 const byte *inbuf );
 static gcry_err_code_t do_tripledes_setkey(void *context, const byte *key,
                                            unsigned keylen,
-                                           gcry_cipher_hd_t hd);
+                                           cipher_bulk_ops_t *bulk_ops);
 
 static int initialized;
 
@@ -872,7 +872,7 @@ tripledes_ecb_crypt (struct _tripledes_ctx *ctx, const byte * from,
 /* Bulk encryption of complete blocks in CTR mode.  This function is only
    intended for the bulk encryption feature of cipher.c.  CTR is expected to be
    of size DES_BLOCKSIZE. */
-void
+static void
 _gcry_3des_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
                    const void *inbuf_arg, size_t nblocks)
 {
@@ -922,7 +922,7 @@ _gcry_3des_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
 
 /* Bulk decryption of complete blocks in CBC mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_3des_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
                    const void *inbuf_arg, size_t nblocks)
 {
@@ -971,7 +971,7 @@ _gcry_3des_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 
 /* Bulk decryption of complete blocks in CFB mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_3des_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
 		   const void *inbuf_arg, size_t nblocks)
 {
@@ -1050,7 +1050,7 @@ is_weak_key ( const byte *key )
 /* Alternative setkey for selftests; need larger key than default. */
 static gcry_err_code_t
 bulk_selftest_setkey (void *context, const byte *__key, unsigned __keylen,
-                      gcry_cipher_hd_t hd)
+                      cipher_bulk_ops_t *bulk_ops)
 {
   static const unsigned char key[24] ATTR_ALIGNED_16 = {
       0x66,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
@@ -1058,11 +1058,10 @@ bulk_selftest_setkey (void *context, const byte *__key, unsigned __keylen,
       0x18,0x2A,0x39,0x47,0x5E,0x6F,0x75,0x82
     };
 
-  (void)hd;
   (void)__key;
   (void)__keylen;
 
-  return do_tripledes_setkey(context, key, sizeof(key), NULL);
+  return do_tripledes_setkey(context, key, sizeof(key), bulk_ops);
 }
 
 
@@ -1076,8 +1075,7 @@ selftest_ctr (void)
   const int context_size = sizeof(struct _tripledes_ctx);
 
   return _gcry_selftest_helper_ctr("3DES", &bulk_selftest_setkey,
-           &do_tripledes_encrypt, &_gcry_3des_ctr_enc, nblocks, blocksize,
-           context_size);
+           &do_tripledes_encrypt, nblocks, blocksize, context_size);
 }
 
 
@@ -1091,8 +1089,7 @@ selftest_cbc (void)
   const int context_size = sizeof(struct _tripledes_ctx);
 
   return _gcry_selftest_helper_cbc("3DES", &bulk_selftest_setkey,
-           &do_tripledes_encrypt, &_gcry_3des_cbc_dec, nblocks, blocksize,
-           context_size);
+           &do_tripledes_encrypt, nblocks, blocksize, context_size);
 }
 
 
@@ -1106,8 +1103,7 @@ selftest_cfb (void)
   const int context_size = sizeof(struct _tripledes_ctx);
 
   return _gcry_selftest_helper_cfb("3DES", &bulk_selftest_setkey,
-           &do_tripledes_encrypt, &_gcry_3des_cfb_dec, nblocks, blocksize,
-           context_size);
+           &do_tripledes_encrypt, nblocks, blocksize, context_size);
 }
 
 
@@ -1315,14 +1311,18 @@ selftest (void)
 
 static gcry_err_code_t
 do_tripledes_setkey ( void *context, const byte *key, unsigned keylen,
-                      gcry_cipher_hd_t hd )
+                      cipher_bulk_ops_t *bulk_ops )
 {
   struct _tripledes_ctx *ctx = (struct _tripledes_ctx *) context;
 
-  (void)hd;
-
   if( keylen != 24 )
     return GPG_ERR_INV_KEYLEN;
+
+  /* Setup bulk encryption routines.  */
+  memset (bulk_ops, 0, sizeof(*bulk_ops));
+  bulk_ops->cbc_dec =  _gcry_3des_cbc_dec;
+  bulk_ops->cfb_dec =  _gcry_3des_cfb_dec;
+  bulk_ops->ctr_enc =  _gcry_3des_ctr_enc;
 
   tripledes_set3keys ( ctx, key, key+8, key+16);
 
@@ -1382,11 +1382,11 @@ do_tripledes_decrypt( void *context, byte *outbuf, const byte *inbuf )
 
 static gcry_err_code_t
 do_des_setkey (void *context, const byte *key, unsigned keylen,
-               gcry_cipher_hd_t hd)
+               cipher_bulk_ops_t *bulk_ops)
 {
   struct _des_ctx *ctx = (struct _des_ctx *) context;
 
-  (void)hd;
+  (void)bulk_ops;
 
   if (keylen != 8)
     return GPG_ERR_INV_KEYLEN;

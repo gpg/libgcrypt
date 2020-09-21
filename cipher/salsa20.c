@@ -367,11 +367,11 @@ salsa20_do_setkey (SALSA20_context_t *ctx,
 
 static gcry_err_code_t
 salsa20_setkey (void *context, const byte *key, unsigned int keylen,
-                gcry_cipher_hd_t hd)
+                cipher_bulk_ops_t *bulk_ops)
 {
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
   gcry_err_code_t rc = salsa20_do_setkey (ctx, key, keylen);
-  (void)hd;
+  (void)bulk_ops;
   _gcry_burn_stack (4 + sizeof (void *) + 4 * sizeof (void *));
   return rc;
 }

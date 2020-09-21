@@ -1,5 +1,5 @@
 /* cipher-selftest.h - Helper functions for bulk encryption selftests.
- * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013,2020 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -49,7 +49,6 @@ void *_gcry_cipher_selftest_alloc_ctx (const int context_size,
 const char *
 _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey,
 			   gcry_cipher_encrypt_t encrypt_one,
-			   gcry_cipher_bulk_cbc_dec_t bulk_cbc_dec,
 			   const int nblocks, const int blocksize,
 			   const int context_size);
 
@@ -57,7 +56,6 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey,
 const char *
 _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey,
 			   gcry_cipher_encrypt_t encrypt_one,
-			   gcry_cipher_bulk_cfb_dec_t bulk_cfb_dec,
 			   const int nblocks, const int blocksize,
 			   const int context_size);
 
@@ -65,7 +63,6 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey,
 const char *
 _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey,
 			   gcry_cipher_encrypt_t encrypt_one,
-			   gcry_cipher_bulk_ctr_enc_t bulk_ctr_enc,
 			   const int nblocks, const int blocksize,
 			   const int context_size);
 

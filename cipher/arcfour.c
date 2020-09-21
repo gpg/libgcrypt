@@ -171,11 +171,11 @@ do_arcfour_setkey (void *context, const byte *key, unsigned int keylen)
 
 static gcry_err_code_t
 arcfour_setkey ( void *context, const byte *key, unsigned int keylen,
-                 gcry_cipher_hd_t hd )
+                 cipher_bulk_ops_t *bulk_ops )
 {
   ARCFOUR_context *ctx = (ARCFOUR_context *) context;
   gcry_err_code_t rc = do_arcfour_setkey (ctx, key, keylen );
-  (void)hd;
+  (void)bulk_ops;
   return rc;
 }
 

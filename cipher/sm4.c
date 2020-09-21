@@ -69,6 +69,21 @@
 
 static const char *sm4_selftest (void);
 
+static void _gcry_sm4_ctr_enc (void *context, unsigned char *ctr,
+			       void *outbuf_arg, const void *inbuf_arg,
+			       size_t nblocks);
+static void _gcry_sm4_cbc_dec (void *context, unsigned char *iv,
+			       void *outbuf_arg, const void *inbuf_arg,
+			       size_t nblocks);
+static void _gcry_sm4_cfb_dec (void *context, unsigned char *iv,
+			       void *outbuf_arg, const void *inbuf_arg,
+			       size_t nblocks);
+static size_t _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+				   const void *inbuf_arg, size_t nblocks,
+				   int encrypt);
+static size_t _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+				  size_t nblocks);
+
 typedef struct
 {
   u32 rkey_enc[32];
@@ -329,14 +344,13 @@ sm4_expand_key (SM4_context *ctx, const byte *key)
 
 static gcry_err_code_t
 sm4_setkey (void *context, const byte *key, const unsigned keylen,
-            gcry_cipher_hd_t hd)
+            cipher_bulk_ops_t *bulk_ops)
 {
   SM4_context *ctx = context;
   static int init = 0;
   static const char *selftest_failed = NULL;
   unsigned int hwf = _gcry_get_hw_features ();
 
-  (void)hd;
   (void)hwf;
 
   if (!init)
@@ -358,6 +372,14 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
 #ifdef USE_AESNI_AVX2
   ctx->use_aesni_avx2 = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX2);
 #endif
+
+  /* Setup bulk encryption routines.  */
+  memset (bulk_ops, 0, sizeof(*bulk_ops));
+  bulk_ops->cbc_dec = _gcry_sm4_cbc_dec;
+  bulk_ops->cfb_dec = _gcry_sm4_cfb_dec;
+  bulk_ops->ctr_enc = _gcry_sm4_ctr_enc;
+  bulk_ops->ocb_crypt = _gcry_sm4_ocb_crypt;
+  bulk_ops->ocb_auth  = _gcry_sm4_ocb_auth;
 
   sm4_expand_key (ctx, key);
   return 0;
@@ -491,7 +513,7 @@ sm4_crypt_blocks (const u32 *rk, byte *out, const byte *in,
 /* Bulk encryption of complete blocks in CTR mode.  This function is only
    intended for the bulk encryption feature of cipher.c.  CTR is expected to be
    of size 16. */
-void
+static void
 _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
                   void *outbuf_arg, const void *inbuf_arg,
                   size_t nblocks)
@@ -592,7 +614,7 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
 
 /* Bulk decryption of complete blocks in CBC mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
                   void *outbuf_arg, const void *inbuf_arg,
                   size_t nblocks)
@@ -686,7 +708,7 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
 
 /* Bulk decryption of complete blocks in CFB mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
                   void *outbuf_arg, const void *inbuf_arg,
                   size_t nblocks)
@@ -783,7 +805,7 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
 }
 
 /* Bulk encryption/decryption of complete blocks in OCB mode. */
-size_t
+static size_t
 _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 		     const void *inbuf_arg, size_t nblocks, int encrypt)
 {
@@ -955,7 +977,7 @@ _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 /* Bulk authentication of complete blocks in OCB mode. */
-size_t
+static size_t
 _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
 {
   SM4_context *ctx = (void *)&c->context.c;
@@ -1112,8 +1134,7 @@ selftest_ctr_128 (void)
   const int context_size = sizeof(SM4_context);
 
   return _gcry_selftest_helper_ctr("SM4", &sm4_setkey,
-           &sm4_encrypt, &_gcry_sm4_ctr_enc, nblocks, blocksize,
-	   context_size);
+           &sm4_encrypt, nblocks, blocksize, context_size);
 }
 
 /* Run the self-tests for SM4-CBC, tests bulk CBC decryption.
@@ -1126,8 +1147,7 @@ selftest_cbc_128 (void)
   const int context_size = sizeof(SM4_context);
 
   return _gcry_selftest_helper_cbc("SM4", &sm4_setkey,
-           &sm4_encrypt, &_gcry_sm4_cbc_dec, nblocks, blocksize,
-	   context_size);
+           &sm4_encrypt, nblocks, blocksize, context_size);
 }
 
 /* Run the self-tests for SM4-CFB, tests bulk CFB decryption.
@@ -1140,8 +1160,7 @@ selftest_cfb_128 (void)
   const int context_size = sizeof(SM4_context);
 
   return _gcry_selftest_helper_cfb("SM4", &sm4_setkey,
-           &sm4_encrypt, &_gcry_sm4_cfb_dec, nblocks, blocksize,
-	   context_size);
+           &sm4_encrypt, nblocks, blocksize, context_size);
 }
 
 static const char *

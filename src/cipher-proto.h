@@ -129,11 +129,13 @@ typedef struct gcry_pk_spec
  *
  */
 
+typedef struct cipher_bulk_ops cipher_bulk_ops_t;
+
 /* Type for the cipher_setkey function.  */
 typedef gcry_err_code_t (*gcry_cipher_setkey_t) (void *c,
 						 const unsigned char *key,
 						 unsigned keylen,
-						 gcry_cipher_hd_t hd);
+						 cipher_bulk_ops_t *bulk_ops);
 
 /* Type for the cipher_encrypt function.  */
 typedef unsigned int (*gcry_cipher_encrypt_t) (void *c,

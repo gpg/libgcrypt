@@ -647,90 +647,6 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 	  h->mode = mode;
 	  h->flags = flags;
 
-          /* Setup bulk encryption routines.  */
-          switch (algo)
-            {
-#ifdef USE_AES
-            case GCRY_CIPHER_AES128:
-            case GCRY_CIPHER_AES192:
-            case GCRY_CIPHER_AES256:
-              h->bulk.cfb_enc = _gcry_aes_cfb_enc;
-              h->bulk.cfb_dec = _gcry_aes_cfb_dec;
-              h->bulk.cbc_enc = _gcry_aes_cbc_enc;
-              h->bulk.cbc_dec = _gcry_aes_cbc_dec;
-              h->bulk.ctr_enc = _gcry_aes_ctr_enc;
-              h->bulk.ocb_crypt = _gcry_aes_ocb_crypt;
-              h->bulk.ocb_auth  = _gcry_aes_ocb_auth;
-              h->bulk.xts_crypt = _gcry_aes_xts_crypt;
-              break;
-#endif /*USE_AES*/
-#ifdef USE_BLOWFISH
-	    case GCRY_CIPHER_BLOWFISH:
-              h->bulk.cfb_dec = _gcry_blowfish_cfb_dec;
-              h->bulk.cbc_dec = _gcry_blowfish_cbc_dec;
-              h->bulk.ctr_enc = _gcry_blowfish_ctr_enc;
-              break;
-#endif /*USE_BLOWFISH*/
-#ifdef USE_CAST5
-	    case GCRY_CIPHER_CAST5:
-              h->bulk.cfb_dec = _gcry_cast5_cfb_dec;
-              h->bulk.cbc_dec = _gcry_cast5_cbc_dec;
-              h->bulk.ctr_enc = _gcry_cast5_ctr_enc;
-              break;
-#endif /*USE_CAMELLIA*/
-#ifdef USE_CAMELLIA
-	    case GCRY_CIPHER_CAMELLIA128:
-	    case GCRY_CIPHER_CAMELLIA192:
-	    case GCRY_CIPHER_CAMELLIA256:
-              h->bulk.cbc_dec = _gcry_camellia_cbc_dec;
-              h->bulk.cfb_dec = _gcry_camellia_cfb_dec;
-              h->bulk.ctr_enc = _gcry_camellia_ctr_enc;
-              h->bulk.ocb_crypt = _gcry_camellia_ocb_crypt;
-              h->bulk.ocb_auth  = _gcry_camellia_ocb_auth;
-              break;
-#endif /*USE_CAMELLIA*/
-#ifdef USE_DES
-            case GCRY_CIPHER_3DES:
-              h->bulk.cbc_dec =  _gcry_3des_cbc_dec;
-              h->bulk.cfb_dec =  _gcry_3des_cfb_dec;
-              h->bulk.ctr_enc =  _gcry_3des_ctr_enc;
-              break;
-#endif /*USE_DES*/
-#ifdef USE_SERPENT
-	    case GCRY_CIPHER_SERPENT128:
-	    case GCRY_CIPHER_SERPENT192:
-	    case GCRY_CIPHER_SERPENT256:
-              h->bulk.cbc_dec = _gcry_serpent_cbc_dec;
-              h->bulk.cfb_dec = _gcry_serpent_cfb_dec;
-              h->bulk.ctr_enc = _gcry_serpent_ctr_enc;
-              h->bulk.ocb_crypt = _gcry_serpent_ocb_crypt;
-              h->bulk.ocb_auth  = _gcry_serpent_ocb_auth;
-              break;
-#endif /*USE_SERPENT*/
-#ifdef USE_SM4
-	    case GCRY_CIPHER_SM4:
-              h->bulk.cbc_dec = _gcry_sm4_cbc_dec;
-              h->bulk.cfb_dec = _gcry_sm4_cfb_dec;
-              h->bulk.ctr_enc = _gcry_sm4_ctr_enc;
-              h->bulk.ocb_crypt = _gcry_sm4_ocb_crypt;
-              h->bulk.ocb_auth  = _gcry_sm4_ocb_auth;
-              break;
-#endif /*USE_SM4*/
-#ifdef USE_TWOFISH
-	    case GCRY_CIPHER_TWOFISH:
-	    case GCRY_CIPHER_TWOFISH128:
-              h->bulk.cbc_dec = _gcry_twofish_cbc_dec;
-              h->bulk.cfb_dec = _gcry_twofish_cfb_dec;
-              h->bulk.ctr_enc = _gcry_twofish_ctr_enc;
-              h->bulk.ocb_crypt = _gcry_twofish_ocb_crypt;
-              h->bulk.ocb_auth  = _gcry_twofish_ocb_auth;
-              break;
-#endif /*USE_TWOFISH*/
-
-            default:
-              break;
-            }
-
           /* Setup mode routines. */
           _gcry_cipher_setup_mode_ops(h, mode);
 
@@ -816,7 +732,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	}
     }
 
-  rc = c->spec->setkey (&c->context.c, key, keylen, c);
+  rc = c->spec->setkey (&c->context.c, key, keylen, &c->bulk);
   if (!rc || (c->marks.allow_weak_key && rc == GPG_ERR_WEAK_KEY))
     {
       /* Duplicate initial context.  */
@@ -850,7 +766,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	case GCRY_CIPHER_MODE_XTS:
 	  /* Setup tweak cipher with second part of XTS key. */
 	  rc = c->spec->setkey (c->u_mode.xts.tweak_context, key + keylen,
-				keylen, c);
+				keylen, &c->bulk);
 	  if (!rc || (c->marks.allow_weak_key && rc == GPG_ERR_WEAK_KEY))
 	    {
 	      /* Duplicate initial tweak context.  */

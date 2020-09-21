@@ -69,7 +69,7 @@ typedef struct {
 } BLOWFISH_context;
 
 static gcry_err_code_t bf_setkey (void *c, const byte *key, unsigned keylen,
-                                  gcry_cipher_hd_t hd);
+                                  cipher_bulk_ops_t *bulk_ops);
 static unsigned int encrypt_block (void *bc, byte *outbuf, const byte *inbuf);
 static unsigned int decrypt_block (void *bc, byte *outbuf, const byte *inbuf);
 
@@ -629,7 +629,7 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 /* Bulk encryption of complete blocks in CTR mode.  This function is only
    intended for the bulk encryption feature of cipher.c.  CTR is expected to be
    of size BLOWFISH_BLOCKSIZE. */
-void
+static void
 _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
 		       const void *inbuf_arg, size_t nblocks)
 {
@@ -710,7 +710,7 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
 
 /* Bulk decryption of complete blocks in CBC mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_blowfish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 		       const void *inbuf_arg, size_t nblocks)
 {
@@ -787,7 +787,7 @@ _gcry_blowfish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 
 /* Bulk decryption of complete blocks in CFB mode.  This function is only
    intended for the bulk encryption feature of cipher.c. */
-void
+static void
 _gcry_blowfish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
 		       const void *inbuf_arg, size_t nblocks)
 {
@@ -866,8 +866,7 @@ selftest_ctr (void)
   const int context_size = sizeof(BLOWFISH_context);
 
   return _gcry_selftest_helper_ctr("BLOWFISH", &bf_setkey,
-           &encrypt_block, &_gcry_blowfish_ctr_enc, nblocks, blocksize,
-	   context_size);
+           &encrypt_block, nblocks, blocksize, context_size);
 }
 
 
@@ -881,8 +880,7 @@ selftest_cbc (void)
   const int context_size = sizeof(BLOWFISH_context);
 
   return _gcry_selftest_helper_cbc("BLOWFISH", &bf_setkey,
-           &encrypt_block, &_gcry_blowfish_cbc_dec, nblocks, blocksize,
-	   context_size);
+           &encrypt_block, nblocks, blocksize, context_size);
 }
 
 
@@ -896,8 +894,7 @@ selftest_cfb (void)
   const int context_size = sizeof(BLOWFISH_context);
 
   return _gcry_selftest_helper_cfb("BLOWFISH", &bf_setkey,
-           &encrypt_block, &_gcry_blowfish_cfb_dec, nblocks, blocksize,
-	   context_size);
+           &encrypt_block, nblocks, blocksize, context_size);
 }
 
 
@@ -905,6 +902,7 @@ static const char*
 selftest(void)
 {
   BLOWFISH_context c;
+  cipher_bulk_ops_t bulk_ops;
   byte plain[] = "BLOWFISH";
   byte buffer[8];
   static const byte plain3[] =
@@ -916,7 +914,8 @@ selftest(void)
   const char *r;
 
   bf_setkey( (void *) &c,
-             (const unsigned char*)"abcdefghijklmnopqrstuvwxyz", 26, NULL );
+             (const unsigned char*)"abcdefghijklmnopqrstuvwxyz", 26,
+             &bulk_ops );
   encrypt_block( (void *) &c, buffer, plain );
   if( memcmp( buffer, "\x32\x4E\xD0\xFE\xF4\x13\xA2\x03", 8 ) )
     return "Blowfish selftest failed (1).";
@@ -924,7 +923,7 @@ selftest(void)
   if( memcmp( buffer, plain, 8 ) )
     return "Blowfish selftest failed (2).";
 
-  bf_setkey( (void *) &c, key3, 8, NULL );
+  bf_setkey( (void *) &c, key3, 8, &bulk_ops );
   encrypt_block( (void *) &c, buffer, plain3 );
   if( memcmp( buffer, cipher3, 8 ) )
     return "Blowfish selftest failed (3).";
@@ -1119,11 +1118,17 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
 
 static gcry_err_code_t
 bf_setkey (void *context, const byte *key, unsigned keylen,
-           gcry_cipher_hd_t hd)
+           cipher_bulk_ops_t *bulk_ops)
 {
   BLOWFISH_context *c = (BLOWFISH_context *) context;
   gcry_err_code_t rc = do_bf_setkey (c, key, keylen);
-  (void)hd;
+
+  /* Setup bulk encryption routines.  */
+  memset (bulk_ops, 0, sizeof(*bulk_ops));
+  bulk_ops->cfb_dec = _gcry_blowfish_cfb_dec;
+  bulk_ops->cbc_dec = _gcry_blowfish_cbc_dec;
+  bulk_ops->ctr_enc = _gcry_blowfish_ctr_enc;
+
   return rc;
 }
 

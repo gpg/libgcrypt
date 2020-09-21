@@ -1,5 +1,5 @@
 /* cipher-selftest.c - Helper functions for bulk encryption selftests.
- * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013,2020 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -27,6 +27,7 @@
 #include "cipher.h"
 #include "bufhelp.h"
 #include "cipher-selftest.h"
+#include "cipher-internal.h"
 
 #ifdef HAVE_STDINT_H
 # include <stdint.h> /* uintptr_t */
@@ -72,10 +73,10 @@ _gcry_cipher_selftest_alloc_ctx (const int context_size, unsigned char **r_mem)
 const char *
 _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
 			   gcry_cipher_encrypt_t encrypt_one,
-			   gcry_cipher_bulk_cbc_dec_t bulk_cbc_dec,
 			   const int nblocks, const int blocksize,
 			   const int context_size)
 {
+  cipher_bulk_ops_t bulk_ops = { 0, };
   int i, offs;
   unsigned char *ctx, *plaintext, *plaintext2, *ciphertext, *iv, *iv2, *mem;
   unsigned int ctx_aligned_size, memsize;
@@ -105,7 +106,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
   ciphertext = plaintext2 + nblocks * blocksize;
 
   /* Initialize ctx */
-  if (setkey_func (ctx, key, sizeof(key), NULL) != GPG_ERR_NO_ERROR)
+  if (setkey_func (ctx, key, sizeof(key), &bulk_ops) != GPG_ERR_NO_ERROR)
    {
      xfree(mem);
      return "setkey failed";
@@ -123,7 +124,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
   memcpy (iv, ciphertext, blocksize);
 
   /* CBC decrypt.  */
-  bulk_cbc_dec (ctx, iv2, plaintext2, ciphertext, 1);
+  bulk_ops.cbc_dec (ctx, iv2, plaintext2, ciphertext, 1);
   if (memcmp (plaintext2, plaintext, blocksize))
     {
       xfree (mem);
@@ -163,7 +164,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
     }
 
   /* Decrypt using bulk CBC and compare result.  */
-  bulk_cbc_dec (ctx, iv2, plaintext2, ciphertext, nblocks);
+  bulk_ops.cbc_dec (ctx, iv2, plaintext2, ciphertext, nblocks);
 
   if (memcmp (plaintext2, plaintext, nblocks * blocksize))
     {
@@ -195,10 +196,10 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
 const char *
 _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
 			   gcry_cipher_encrypt_t encrypt_one,
-			   gcry_cipher_bulk_cfb_dec_t bulk_cfb_dec,
 			   const int nblocks, const int blocksize,
 			   const int context_size)
 {
+  cipher_bulk_ops_t bulk_ops = { 0, };
   int i, offs;
   unsigned char *ctx, *plaintext, *plaintext2, *ciphertext, *iv, *iv2, *mem;
   unsigned int ctx_aligned_size, memsize;
@@ -228,7 +229,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
   ciphertext = plaintext2 + nblocks * blocksize;
 
   /* Initialize ctx */
-  if (setkey_func (ctx, key, sizeof(key), NULL) != GPG_ERR_NO_ERROR)
+  if (setkey_func (ctx, key, sizeof(key), &bulk_ops) != GPG_ERR_NO_ERROR)
    {
      xfree(mem);
      return "setkey failed";
@@ -245,7 +246,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
   buf_xor_2dst (iv, ciphertext, plaintext, blocksize);
 
   /* CFB decrypt.  */
-  bulk_cfb_dec (ctx, iv2, plaintext2, ciphertext, 1);
+  bulk_ops.cfb_dec (ctx, iv2, plaintext2, ciphertext, 1);
   if (memcmp(plaintext2, plaintext, blocksize))
     {
       xfree(mem);
@@ -284,7 +285,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
     }
 
   /* Decrypt using bulk CBC and compare result.  */
-  bulk_cfb_dec (ctx, iv2, plaintext2, ciphertext, nblocks);
+  bulk_ops.cfb_dec (ctx, iv2, plaintext2, ciphertext, nblocks);
 
   if (memcmp(plaintext2, plaintext, nblocks * blocksize))
     {
@@ -316,10 +317,10 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
 const char *
 _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
 			   gcry_cipher_encrypt_t encrypt_one,
-			   gcry_cipher_bulk_ctr_enc_t bulk_ctr_enc,
 			   const int nblocks, const int blocksize,
 			   const int context_size)
 {
+  cipher_bulk_ops_t bulk_ops = { 0, };
   int i, j, offs, diff;
   unsigned char *ctx, *plaintext, *plaintext2, *ciphertext, *ciphertext2,
                 *iv, *iv2, *mem;
@@ -351,7 +352,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
   ciphertext2 = ciphertext + nblocks * blocksize;
 
   /* Initialize ctx */
-  if (setkey_func (ctx, key, sizeof(key), NULL) != GPG_ERR_NO_ERROR)
+  if (setkey_func (ctx, key, sizeof(key), &bulk_ops) != GPG_ERR_NO_ERROR)
    {
      xfree(mem);
      return "setkey failed";
@@ -374,7 +375,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
     }
 
   memset (iv2, 0xff, blocksize);
-  bulk_ctr_enc (ctx, iv2, plaintext2, ciphertext, 1);
+  bulk_ops.ctr_enc (ctx, iv2, plaintext2, ciphertext, 1);
 
   if (memcmp (plaintext2, plaintext, blocksize))
     {
@@ -429,7 +430,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
         }
     }
 
-  bulk_ctr_enc (ctx, iv2, ciphertext2, plaintext2, nblocks);
+  bulk_ops.ctr_enc (ctx, iv2, ciphertext2, plaintext2, nblocks);
 
   if (memcmp (ciphertext2, ciphertext, blocksize * nblocks))
     {
@@ -482,7 +483,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
     iv2[0] = iv2[1] = 0;
     iv2[2] = 0x07;
 
-    bulk_ctr_enc (ctx, iv2, plaintext2, ciphertext, nblocks);
+    bulk_ops.ctr_enc (ctx, iv2, plaintext2, ciphertext, nblocks);
 
     if (memcmp (plaintext2, plaintext, blocksize * nblocks))
       {
