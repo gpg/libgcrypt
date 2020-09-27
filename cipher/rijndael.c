@@ -143,6 +143,7 @@ extern unsigned int _gcry_aes_padlock_encrypt (const RIJNDAEL_context *ctx,
 extern unsigned int _gcry_aes_padlock_decrypt (const RIJNDAEL_context *ctx,
                                                unsigned char *bx,
                                                const unsigned char *ax);
+extern void _gcry_aes_padlock_prepare_decryption (RIJNDAEL_context *ctx);
 #endif
 
 #ifdef USE_ARM_ASM
@@ -314,6 +315,7 @@ static void _gcry_aes_xts_crypt (void *context, unsigned char *tweak,
 
 /* Function prototypes.  */
 static const char *selftest(void);
+static void prepare_decryption(RIJNDAEL_context *ctx);
 
 
 
@@ -465,6 +467,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->decrypt_fn = _gcry_aes_aesni_decrypt;
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
+      ctx->prepare_decryption = _gcry_aes_aesni_prepare_decryption;
       ctx->use_aesni = 1;
       ctx->use_avx = !!(hwfeatures & HWF_INTEL_AVX);
       ctx->use_avx2 = !!(hwfeatures & HWF_INTEL_AVX2);
@@ -487,6 +490,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->decrypt_fn = _gcry_aes_padlock_decrypt;
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
+      ctx->prepare_decryption = _gcry_aes_padlock_prepare_decryption;
       ctx->use_padlock = 1;
       memcpy (ctx->padlockkey, key, keylen);
     }
@@ -499,6 +503,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->decrypt_fn = _gcry_aes_ssse3_decrypt;
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
+      ctx->prepare_decryption = _gcry_aes_ssse3_prepare_decryption;
       ctx->use_ssse3 = 1;
 
       /* Setup SSSE3 bulk encryption routines.  */
@@ -519,6 +524,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->decrypt_fn = _gcry_aes_armv8_ce_decrypt;
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
+      ctx->prepare_decryption = _gcry_aes_armv8_ce_prepare_decryption;
       ctx->use_arm_ce = 1;
 
       /* Setup ARM-CE bulk encryption routines.  */
@@ -540,6 +546,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->decrypt_fn = _gcry_aes_ppc9le_decrypt;
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
+      ctx->prepare_decryption = _gcry_aes_ppc8_prepare_decryption;
       ctx->use_ppc_crypto = 1; /* same key-setup as USE_PPC_CRYPTO */
       ctx->use_ppc9le_crypto = 1;
 
@@ -562,6 +569,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->decrypt_fn = _gcry_aes_ppc8_decrypt;
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
+      ctx->prepare_decryption = _gcry_aes_ppc8_prepare_decryption;
       ctx->use_ppc_crypto = 1;
 
       /* Setup PPC8 bulk encryption routines.  */
@@ -581,6 +589,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->decrypt_fn = do_decrypt;
       ctx->prefetch_enc_fn = prefetch_enc;
       ctx->prefetch_dec_fn = prefetch_dec;
+      ctx->prepare_decryption = prepare_decryption;
     }
 
   /* NB: We don't yet support Padlock hardware key generation.  */
@@ -705,94 +714,52 @@ rijndael_setkey (void *context, const byte *key, const unsigned keylen,
 static void
 prepare_decryption( RIJNDAEL_context *ctx )
 {
+  const byte *sbox = ((const byte *)encT) + 1;
   int r;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
+  prefetch_enc();
+  prefetch_dec();
+
+  ctx->keyschdec32[0][0] = ctx->keyschenc32[0][0];
+  ctx->keyschdec32[0][1] = ctx->keyschenc32[0][1];
+  ctx->keyschdec32[0][2] = ctx->keyschenc32[0][2];
+  ctx->keyschdec32[0][3] = ctx->keyschenc32[0][3];
+
+  for (r = 1; r < ctx->rounds; r++)
     {
-      _gcry_aes_aesni_prepare_decryption (ctx);
+      u32 *wi = ctx->keyschenc32[r];
+      u32 *wo = ctx->keyschdec32[r];
+      u32 wt;
+
+      wt = wi[0];
+      wo[0] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
+	      ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
+	      ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
+	      ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
+
+      wt = wi[1];
+      wo[1] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
+	      ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
+	      ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
+	      ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
+
+      wt = wi[2];
+      wo[2] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
+	      ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
+	      ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
+	      ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
+
+      wt = wi[3];
+      wo[3] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
+	      ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
+	      ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
+	      ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
     }
-#endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  else if (ctx->use_ssse3)
-    {
-      _gcry_aes_ssse3_prepare_decryption (ctx);
-    }
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      _gcry_aes_armv8_ce_prepare_decryption (ctx);
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_ARM_CE
-  else if (ctx->use_arm_ce)
-    {
-      _gcry_aes_armv8_ce_prepare_decryption (ctx);
-    }
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO
-  else if (ctx->use_ppc_crypto)
-    {
-      _gcry_aes_ppc8_prepare_decryption (ctx);
-    }
-#endif
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    {
-      /* Padlock does not need decryption subkeys. */
-    }
-#endif /*USE_PADLOCK*/
-  else
-    {
-      const byte *sbox = ((const byte *)encT) + 1;
 
-      prefetch_enc();
-      prefetch_dec();
-
-      ctx->keyschdec32[0][0] = ctx->keyschenc32[0][0];
-      ctx->keyschdec32[0][1] = ctx->keyschenc32[0][1];
-      ctx->keyschdec32[0][2] = ctx->keyschenc32[0][2];
-      ctx->keyschdec32[0][3] = ctx->keyschenc32[0][3];
-
-      for (r = 1; r < ctx->rounds; r++)
-        {
-          u32 *wi = ctx->keyschenc32[r];
-          u32 *wo = ctx->keyschdec32[r];
-          u32 wt;
-
-          wt = wi[0];
-          wo[0] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
-                 ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
-                 ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
-                 ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
-
-          wt = wi[1];
-          wo[1] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
-                 ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
-                 ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
-                 ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
-
-          wt = wi[2];
-          wo[2] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
-                 ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
-                 ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
-                 ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
-
-          wt = wi[3];
-          wo[3] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
-                 ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
-                 ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
-                 ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
-        }
-
-      ctx->keyschdec32[r][0] = ctx->keyschenc32[r][0];
-      ctx->keyschdec32[r][1] = ctx->keyschenc32[r][1];
-      ctx->keyschdec32[r][2] = ctx->keyschenc32[r][2];
-      ctx->keyschdec32[r][3] = ctx->keyschenc32[r][3];
-    }
+  ctx->keyschdec32[r][0] = ctx->keyschenc32[r][0];
+  ctx->keyschdec32[r][1] = ctx->keyschenc32[r][1];
+  ctx->keyschdec32[r][2] = ctx->keyschenc32[r][2];
+  ctx->keyschdec32[r][3] = ctx->keyschenc32[r][3];
 }
 
 
@@ -1232,7 +1199,7 @@ check_decryption_preparation (RIJNDAEL_context *ctx)
 {
   if ( !ctx->decryption_prepared )
     {
-      prepare_decryption ( ctx );
+      ctx->prepare_decryption ( ctx );
       ctx->decryption_prepared = 1;
     }
 }

@@ -101,4 +101,10 @@ _gcry_aes_padlock_decrypt (const RIJNDAEL_context *ctx,
   return do_padlock(ctx, bx, ax, 1);
 }
 
+void
+_gcry_aes_padlock_prepare_decryption (RIJNDAEL_context *ctx)
+{
+  /* Padlock does not need decryption subkeys. */
+  (void)ctx;
+}
 #endif /* USE_PADLOCK */
