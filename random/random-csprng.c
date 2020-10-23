@@ -140,7 +140,7 @@ static int pool_balance;
 static int just_mixed;
 
 /* The name of the seed file or NULL if no seed file has been defined.
-   The seed file needs to be regsitered at initialiation time.  We
+   The seed file needs to be registered at initialiation time.  We
    keep a malloced copy here.  */
 static char *seed_file_name;
 
@@ -667,6 +667,88 @@ _gcry_rngcsprng_set_seed_file (const char *name)
 }
 
 
+
+/* Helper for my_open.
+ * Return a malloced wide char string from an UTF-8 encoded input
+ * string STRING.  Caller must free this value.  Returns NULL and sets
+ * ERRNO on failure.  Calling this function with STRING set to NULL is
+ * not defined.  */
+#ifdef HAVE_W32_SYSTEM
+static wchar_t *
+utf8_to_wchar (const char *string)
+{
+  int n;
+  size_t nbytes;
+  wchar_t *result;
+
+  n = MultiByteToWideChar (CP_UTF8, 0, string, -1, NULL, 0);
+  if (n < 0)
+    {
+      gpg_err_set_errno (EINVAL);
+      return NULL;
+    }
+
+  nbytes = (size_t)(n+1) * sizeof(*result);
+  if (nbytes / sizeof(*result) != (n+1))
+    {
+      gpg_err_set_errno (ENOMEM);
+      return NULL;
+    }
+  result = xtrymalloc (nbytes);
+  if (!result)
+    return NULL;
+
+  n = MultiByteToWideChar (CP_UTF8, 0, string, -1, result, n);
+  if (n < 0)
+    {
+      xfree (result);
+      gpg_err_set_errno (EINVAL);
+      result = NULL;
+    }
+  return result;
+}
+#endif /*HAVE_W32_SYSTEM*/
+
+
+/* Helper for my_open.  */
+#ifdef HAVE_W32_SYSTEM
+static int
+any8bitchar (const char *string)
+{
+  if (string)
+    for ( ; *string; string++)
+      if ((*string & 0x80))
+        return 1;
+  return 0;
+}
+#endif /*HAVE_W32_SYSTEM*/
+
+
+/* A wrapper around open to handle Unicode file names under Windows.  */
+static int
+my_open (const char *name, int flags, unsigned int mode)
+{
+#ifdef HAVE_W32_SYSTEM
+  if (any8bitchar (name))
+    {
+      wchar_t *wname;
+      int ret;
+
+      wname = utf8_to_wchar (name);
+      if (!wname)
+        return -1;
+      ret = _wopen (wname, flags, mode);
+      xfree (wname);
+      return ret;
+    }
+  else
+    return open (name, flags, mode);
+#else
+  return open (name, flags, mode);
+#endif
+}
+
+
 /* Lock an open file identified by file descriptor FD and wait a
    reasonable time to succeed.  With FOR_WRITE set to true a write
    lock will be taken.  FNAME is used only for diagnostics. Returns 0
@@ -738,9 +820,9 @@ read_seed_file (void)
     return 0;
 
 #ifdef HAVE_DOSISH_SYSTEM
-  fd = open( seed_file_name, O_RDONLY | O_BINARY );
+  fd = my_open (seed_file_name, O_RDONLY | O_BINARY, 0);
 #else
-  fd = open( seed_file_name, O_RDONLY );
+  fd = my_open (seed_file_name, O_RDONLY, 0);
 #endif
   if( fd == -1 && errno == ENOENT)
     {
@@ -869,13 +951,13 @@ _gcry_rngcsprng_update_seed_file (void)
   mix_pool(keypool); rndstats.mixkey++;
 
 #if defined(HAVE_DOSISH_SYSTEM) || defined(__CYGWIN__)
-  fd = open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
-             S_IRUSR|S_IWUSR );
+  fd = my_open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
+                S_IRUSR|S_IWUSR );
 #else
 # if LOCK_SEED_FILE
-    fd = open (seed_file_name, O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR );
+    fd = my_open (seed_file_name, O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR );
 # else
-    fd = open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR );
+    fd = my_open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR );
 # endif
 #endif
 
