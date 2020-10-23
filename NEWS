@@ -1,10 +1,16 @@
-Noteworthy changes in version 1.8.7 (unreleased)  [C22/A2/R7]
+Noteworthy changes in version 1.8.7 (2020-10-23)  [C22/A2/R8]
 ------------------------------------------------
 
  * Bug fixes:
 
+   - Support opaque MPI with gcry_mpi_print.  [#4872]
 
- Release-info: https://dev.gnupg.org/T
+   - Fix extra entropy collection via clock_gettime.  Note that this
+     fallback code path is not used on any decent hardware.  [#4966]
+
+   - Allow for a Unicode random seed file on Windows.  [#5098]
+
+ Release-info: https://dev.gnupg.org/T5113
 
 
 Noteworthy changes in version 1.8.6 (2020-07-06)  [C22/A2/R6]
