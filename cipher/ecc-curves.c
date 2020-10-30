@@ -1155,7 +1155,7 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec, int flags,
       errc = mpi_from_keyparam (&ec->d, keyparam, "d", is_opaque_bytes);
 
       /* Size of opaque bytes should match size of P.  */
-      if (ec->d && is_opaque_bytes)
+      if (!errc && ec->d && is_opaque_bytes)
         {
           unsigned int n = mpi_get_nbits (ec->d);
           unsigned int len;
@@ -1167,11 +1167,36 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec, int flags,
 
           if ((n+7)/8 != len)
             {
-              if (DBG_CIPHER)
-                log_debug ("scalar size (%d) != prime size (%d)",
-                           (n+7)/8, len);
+              if ((n+7)/8 < len && ec->dialect == ECC_DIALECT_ED25519)
+                {
+                  /*
+                   * GnuPG (<= 2.2) or OpenPGP implementations with no
+                   * SOS support may remove zeros at the beginning.
+                   * Recover those zeros.
+                   */
+                  const unsigned char *buf;
+                  unsigned char *value;
 
-              errc = GPG_ERR_INV_OBJ;
+                  buf = mpi_get_opaque (ec->d, &n);
+                  if (!buf)
+                    return GPG_ERR_INV_OBJ;
+
+                  value = xtrycalloc_secure (1, len);
+                  if (!value)
+                    return gpg_err_code_from_syserror ();
+
+                  memset (value, 0, len - (n+7)/8);
+                  memcpy (value + len - (n+7)/8, buf, (n+7)/8);
+                  mpi_set_opaque (ec->d, value, len);
+                }
+              else
+                {
+                  if (DBG_CIPHER)
+                    log_debug ("scalar size (%d) != prime size (%d)",
+                               (n+7)/8, len);
+
+                  errc = GPG_ERR_INV_OBJ;
+                }
             }
         }
     }
