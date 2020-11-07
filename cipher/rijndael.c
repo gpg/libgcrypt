@@ -277,6 +277,24 @@ extern void _gcry_aes_ppc9le_xts_crypt (void *context, unsigned char *tweak,
 					size_t nblocks, int encrypt);
 #endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
 
+#ifdef USE_S390X_CRYPTO
+/* zSeries crypto implementations of AES */
+extern int _gcry_aes_s390x_setup_acceleration(RIJNDAEL_context *ctx,
+					      unsigned int keylen,
+					      unsigned int hwfeatures,
+					      cipher_bulk_ops_t *bulk_ops);
+extern void _gcry_aes_s390x_setkey(RIJNDAEL_context *ctx, const byte *key);
+extern void _gcry_aes_s390x_prepare_decryption(RIJNDAEL_context *ctx);
+
+extern unsigned int _gcry_aes_s390x_encrypt(const RIJNDAEL_context *ctx,
+					    unsigned char *dst,
+					    const unsigned char *src);
+extern unsigned int _gcry_aes_s390x_decrypt(const RIJNDAEL_context *ctx,
+					    unsigned char *dst,
+					    const unsigned char *src);
+
+#endif /*USE_S390X_CRYPTO*/
+
 static unsigned int do_encrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
                                 const unsigned char *ax);
 static unsigned int do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
@@ -581,6 +599,18 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->ocb_crypt = _gcry_aes_ppc8_ocb_crypt;
       bulk_ops->ocb_auth = _gcry_aes_ppc8_ocb_auth;
       bulk_ops->xts_crypt = _gcry_aes_ppc8_xts_crypt;
+    }
+#endif
+#ifdef USE_S390X_CRYPTO
+  else if (_gcry_aes_s390x_setup_acceleration (ctx, keylen, hwfeatures,
+					       bulk_ops))
+  {
+      hw_setkey = _gcry_aes_s390x_setkey;
+      ctx->encrypt_fn = _gcry_aes_s390x_encrypt;
+      ctx->decrypt_fn = _gcry_aes_s390x_decrypt;
+      ctx->prefetch_enc_fn = NULL;
+      ctx->prefetch_dec_fn = NULL;
+      ctx->prepare_decryption = _gcry_aes_s390x_prepare_decryption;
     }
 #endif
   else

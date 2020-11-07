@@ -100,6 +100,7 @@ EXTRA_libcipher_la_SOURCES = \
 	rijndael-armv8-aarch64-ce.S rijndael-aarch64.S     \
 	rijndael-ppc.c rijndael-ppc9le.c                   \
 	rijndael-ppc-common.h rijndael-ppc-functions.h     \
+	rijndael-s390x.c                                   \
 	rmd160.c \
 	rsa.c \
 	salsa20.c salsa20-amd64.S salsa20-armv7-neon.S \

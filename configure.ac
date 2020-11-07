@@ -2465,6 +2465,11 @@ if test "$found" = "1" ; then
          # Build with the crypto extension implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ppc.lo"
       ;;
+      s390x-*-*)
+         # Big-Endian.
+         # Build with the crypto extension implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-s390x.lo"
+      ;;
    esac
 
    case "$mpi_cpu_arch" in

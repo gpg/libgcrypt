@@ -121,6 +121,12 @@
 # endif
 #endif /* ENABLE_PPC_CRYPTO_SUPPORT */
 
+/* USE_S390X_CRYPTO indicates whether to enable zSeries code. */
+#undef USE_S390X_CRYPTO
+#if defined(HAVE_GCC_INLINE_ASM_S390X)
+# define USE_S390X_CRYPTO 1
+#endif /* USE_S390X_CRYPTO */
+
 struct RIJNDAEL_context_s;
 
 typedef unsigned int (*rijndael_cryptfn_t)(const struct RIJNDAEL_context_s *ctx,
@@ -178,6 +184,15 @@ typedef struct RIJNDAEL_context_s
 #ifdef USE_PPC_CRYPTO_WITH_PPC9LE
   unsigned int use_ppc9le_crypto:1;   /* POWER9 LE crypto shall be used.  */
 #endif
+#ifdef USE_S390X_CRYPTO
+  byte km_func;
+  byte km_func_xts;
+  byte kmc_func;
+  byte kmac_func;
+  byte kmf_func;
+  byte kmo_func;
+  byte kma_func;
+#endif /*USE_S390X_CRYPTO*/
   rijndael_cryptfn_t encrypt_fn;
   rijndael_cryptfn_t decrypt_fn;
   rijndael_prefetchfn_t prefetch_enc_fn;
