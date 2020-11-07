@@ -246,6 +246,11 @@ case "${host}" in
        path="mips2"
        mpi_cpu_arch="mips"
        ;;
+    s390x*-*-*)
+       echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
+       path=""
+       mpi_cpu_arch="s390x"
+       ;;
 
     # Motorola 68k configurations.  Let m68k mean 68020-68040.
     # mc68000 or mc68060 configurations need to be specified explicitly

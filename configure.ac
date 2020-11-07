@@ -2001,6 +2001,58 @@ if test "$gcry_cv_gcc_inline_asm_ppc_arch_3_00" = "yes" ; then
 fi
 
 
+#
+# Check whether GCC inline assembler supports zSeries instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports zSeries instructions],
+      [gcry_cv_gcc_inline_asm_s390x],
+      [if test "$mpi_cpu_arch" != "s390x" ||
+	  test "$try_asm_modules" != "yes" ; then
+	  gcry_cv_gcc_inline_asm_s390x="n/a"
+	else
+	  gcry_cv_gcc_inline_asm_s390x=no
+	  AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	  [[typedef unsigned int u128_t __attribute__ ((mode (TI)));
+	    unsigned int testfunc(unsigned int x, void *y, unsigned int z)
+	    {
+	      unsigned long fac[8];
+	      register unsigned long reg0 asm("0") = 0;
+	      register unsigned long reg1 asm("1") = x;
+	      u128_t r1 = ((u128_t)(unsigned long)y << 64) | (unsigned long)z;
+	      u128_t r2 = 0;
+	      u128_t r3 = 0;
+	      asm volatile (".insn rre,0xb92e << 16, %[r1], %[r2]\n\t"
+			    : [r1] "+a" (r1), [r2] "+a" (r2)
+			    : "r" (reg0), "r" (reg1)
+			    : "cc", "memory");
+	      asm volatile (".insn rrf,0xb929 << 16, %[r1], %[r2], %[r3], 0\n\t"
+			    : [r1] "+a" (r1), [r2] "+a" (r2), [r3] "+a" (r3)
+			    : "r" (reg0), "r" (reg1)
+			    : "cc", "memory");
+	      reg0 = 8 - 1;
+	      asm ("stfle %1\n\t"
+	           : "+d" (reg0), "=Q" (fac[0])
+	           :
+	           : "cc", "memory");
+	      asm volatile ("mvc 0(16, %0), 0(%1)\n\t"
+			    :
+			    : "a" (y), "a" (fac)
+			    : "memory");
+	      asm volatile ("xc 0(16, %0), 0(%0)\n\t"
+			    :
+			    : "a" (fac)
+			    : "memory");
+	      return (unsigned int)r1 ^ reg0;
+	    }
+	    ]])],
+	  [gcry_cv_gcc_inline_asm_s390x=yes])
+	fi])
+if test "$gcry_cv_gcc_inline_asm_s390x" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_S390X,1,
+     [Defined if inline assembler supports zSeries instructions])
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
@@ -2961,6 +3013,10 @@ case "$mpi_cpu_arch" in
      aarch64)
         AC_DEFINE(HAVE_CPU_ARCH_ARM, 1,   [Defined for ARM AArch64 platforms])
         GCRYPT_HWF_MODULES="libgcrypt_la-hwf-arm.lo"
+        ;;
+     s390x)
+        AC_DEFINE(HAVE_CPU_ARCH_S390X, 1, [Defined for s390x/zSeries platforms])
+        GCRYPT_HWF_MODULES="libgcrypt_la-hwf-s390x.lo"
         ;;
 esac
 AC_SUBST([GCRYPT_HWF_MODULES])

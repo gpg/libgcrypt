@@ -246,6 +246,10 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_PPC_ARCH_3_00       (1 << 23)
 #define HWF_PPC_ARCH_2_07       (1 << 24)
 
+#define HWF_S390X_MSA           (1 << 25)
+#define HWF_S390X_MSA_4         (1 << 26)
+#define HWF_S390X_MSA_8         (1 << 27)
+
 gpg_err_code_t _gcry_disable_hw_feature (const char *name);
 void _gcry_detect_hw_features (void);
 unsigned int _gcry_get_hw_features (void);
