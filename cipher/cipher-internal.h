@@ -96,6 +96,12 @@
 #endif
 #endif /* GCM_USE_ARM_NEON */
 
+/* GCM_USE_S390X_CRYPTO indicates whether to enable zSeries code. */
+#undef GCM_USE_S390X_CRYPTO
+#if defined(HAVE_GCC_INLINE_ASM_S390X)
+# define GCM_USE_S390X_CRYPTO 1
+#endif /* GCM_USE_S390X_CRYPTO */
+
 typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);
 

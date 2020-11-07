@@ -25,25 +25,7 @@
 
 #ifdef USE_S390X_CRYPTO
 
-typedef unsigned int u128_t __attribute__ ((mode (TI)));
-
-enum km_functions_e
-{
-  KM_FUNCTION_AES_128 = 18,
-  KM_FUNCTION_AES_192 = 19,
-  KM_FUNCTION_AES_256 = 20,
-  KM_FUNCTION_XTS_AES_128 = 50,
-  KM_FUNCTION_XTS_AES_256 = 52,
-
-  KM_ENCRYPT = 0x00,
-  KM_DECRYPT = 0x80,
-
-  KMF_LCFB_16 = 16 << 24,
-
-  KMA_LPC  = 1 << 8,
-  KMA_LAAD = 1 << 9,
-  KMA_HS   = 1 << 10,
-};
+#include "asm-inline-s390x.h"
 
 #define ALWAYS_INLINE inline __attribute__((always_inline))
 #define NO_INLINE __attribute__((noinline))
@@ -451,6 +433,45 @@ static void aes_s390x_ctr128_enc(void *context, unsigned char *ctr,
     }
 
   wipememory (&params, sizeof(params));
+}
+
+static size_t aes_s390x_gcm_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
+				  const void *inbuf_arg, size_t nblocks,
+				  int encrypt)
+{
+  RIJNDAEL_context *ctx = (void *)&c->context.c;
+  byte *out = outbuf_arg;
+  const byte *in = inbuf_arg;
+  byte *ctr = c->u_ctr.ctr;
+  unsigned int function;
+  struct aes_s390x_gcm_params_s params;
+
+  function = ctx->kma_func | (encrypt ? KM_ENCRYPT : KM_DECRYPT)
+	      | KMA_HS | KMA_LAAD;
+
+  /* Prepare parameter block. */
+  memset (&params.reserved, 0, sizeof(params.reserved));
+  buf_put_be32 (&params.counter_value, buf_get_be32(ctr + 12) - 1);
+  memcpy (&params.tag, c->u_mode.gcm.u_tag.tag, 16);
+  memcpy (&params.hash_subkey, c->u_mode.gcm.u_ghash_key.key, 16);
+  params.total_aad_length = 0;
+  params.total_cipher_length = 0;
+  memcpy (&params.initial_counter_value, ctr, 12);
+  params.initial_counter_value[3] = params.counter_value;
+  memcpy (&params.key, ctx->keyschenc, 32);
+
+  /* Update counter (CTR32). */
+  buf_put_be32(ctr + 12, buf_get_be32(ctr + 12) + nblocks);
+
+  /* Perform KMA-GCM. */
+  kma_execute (function, &params, out, in, nblocks * BLOCKSIZE, NULL, 0);
+
+  /* Update tag. */
+  memcpy (c->u_mode.gcm.u_tag.tag, &params.tag, 16);
+
+  wipememory (&params, sizeof(params));
+
+  return 0;
 }
 
 static void aes_s390x_xts_crypt(void *context, unsigned char *tweak,
@@ -1014,20 +1035,20 @@ int _gcry_aes_s390x_setup_acceleration(RIJNDAEL_context *ctx,
     case 16:
       func = KM_FUNCTION_AES_128;
       func_xts = KM_FUNCTION_XTS_AES_128;
-      func_mask = (u128_t)1 << (127 - KM_FUNCTION_AES_128);
-      func_xts_mask = (u128_t)1 << (127 - KM_FUNCTION_XTS_AES_128);
+      func_mask = km_function_to_mask(KM_FUNCTION_AES_128);
+      func_xts_mask = km_function_to_mask(KM_FUNCTION_XTS_AES_128);
       break;
     case 24:
       func = KM_FUNCTION_AES_192;
       func_xts = 0;
-      func_mask = (u128_t)1 << (127 - KM_FUNCTION_AES_192);
-      func_xts_mask = 0;
+      func_mask = km_function_to_mask(KM_FUNCTION_AES_192);
+      func_xts_mask = 0; /* XTS-AES192 not available. */
       break;
     case 32:
       func = KM_FUNCTION_AES_256;
       func_xts = KM_FUNCTION_XTS_AES_256;
-      func_mask = (u128_t)1 << (127 - KM_FUNCTION_AES_256);
-      func_xts_mask = (u128_t)1 << (127 - KM_FUNCTION_AES_256);
+      func_mask = km_function_to_mask(KM_FUNCTION_AES_256);
+      func_xts_mask = km_function_to_mask(KM_FUNCTION_AES_256);
       break;
     }
 
@@ -1079,6 +1100,11 @@ int _gcry_aes_s390x_setup_acceleration(RIJNDAEL_context *ctx,
       bulk_ops->cfb_dec = aes_s390x_cfb128_dec;
     }
 
+  if (ctx->km_func_xts)
+    {
+      bulk_ops->xts_crypt = aes_s390x_xts_crypt;
+    }
+
   if (ctx->kmc_func)
     {
       if(ctx->kmac_func)
@@ -1103,11 +1129,13 @@ int _gcry_aes_s390x_setup_acceleration(RIJNDAEL_context *ctx,
   if (ctx->kma_func)
     {
       bulk_ops->ctr_enc = aes_s390x_ctr128_enc;
-    }
 
-  if (ctx->km_func_xts)
-    {
-      bulk_ops->xts_crypt = aes_s390x_xts_crypt;
+      if (kimd_query () & km_function_to_mask (KMID_FUNCTION_GHASH))
+	{
+	  /* KIMD based GHASH implementation is required with AES-GCM
+	   * acceleration. */
+	  bulk_ops->gcm_crypt = aes_s390x_gcm_crypt;
+	}
     }
 
   return 1;

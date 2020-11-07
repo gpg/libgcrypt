@@ -89,6 +89,26 @@ ghash_armv7_neon (gcry_cipher_hd_t c, byte *result, const byte *buf,
 }
 #endif /* GCM_USE_ARM_NEON */
 
+#ifdef GCM_USE_S390X_CRYPTO
+#include "asm-inline-s390x.h"
+
+static unsigned int
+ghash_s390x_kimd (gcry_cipher_hd_t c, byte *result, const byte *buf,
+		  size_t nblocks)
+{
+  u128_t params[2];
+
+  memcpy (&params[0], result, 16);
+  memcpy (&params[1], c->u_mode.gcm.u_ghash_key.key, 16);
+
+  kimd_execute (KMID_FUNCTION_GHASH, &params, buf, nblocks * 16);
+
+  memcpy (result, &params[0], 16);
+  wipememory (params, sizeof(params));
+  return 0;
+}
+#endif /* GCM_USE_S390X_CRYPTO*/
+
 
 #ifdef GCM_USE_TABLES
 static struct
@@ -522,9 +542,12 @@ ghash_internal (gcry_cipher_hd_t c, byte *result, const byte *buf,
 static void
 setupM (gcry_cipher_hd_t c)
 {
-#if defined(GCM_USE_INTEL_PCLMUL) || defined(GCM_USE_ARM_PMULL)
+#if defined(GCM_USE_INTEL_PCLMUL) || defined(GCM_USE_ARM_PMULL) || \
+    defined(GCM_USE_S390X_CRYPTO)
   unsigned int features = _gcry_get_hw_features ();
 #endif
+
+  c->u_mode.gcm.ghash_fn = NULL;
 
   if (0)
     ;
@@ -549,7 +572,17 @@ setupM (gcry_cipher_hd_t c)
       ghash_setup_armv7_neon (c);
     }
 #endif
-  else
+#ifdef GCM_USE_S390X_CRYPTO
+  else if (features & HWF_S390X_MSA)
+    {
+      if (kimd_query () & km_function_to_mask (KMID_FUNCTION_GHASH))
+	{
+	  c->u_mode.gcm.ghash_fn = ghash_s390x_kimd;
+	}
+    }
+#endif
+
+  if (c->u_mode.gcm.ghash_fn == NULL)
     {
       c->u_mode.gcm.ghash_fn = ghash_internal;
       fillM (c);
