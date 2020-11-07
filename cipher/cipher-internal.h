@@ -135,6 +135,8 @@ typedef struct cipher_bulk_ops
 		  const void *inbuf_arg, size_t nblocks, int cbc_mac);
   void (*cbc_dec)(void *context, unsigned char *iv, void *outbuf_arg,
 		  const void *inbuf_arg, size_t nblocks);
+  void (*ofb_enc)(void *context, unsigned char *iv, void *outbuf_arg,
+		  const void *inbuf_arg, size_t nblocks);
   void (*ctr_enc)(void *context, unsigned char *iv, void *outbuf_arg,
 		  const void *inbuf_arg, size_t nblocks);
   size_t (*ocb_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,

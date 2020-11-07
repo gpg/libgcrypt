@@ -67,16 +67,28 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
     }
 
   /* Now we can process complete blocks. */
-  while ( inbuflen >= blocksize )
+  if (c->bulk.ofb_enc)
     {
-      /* Encrypt the IV (and save the current one). */
-      nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
-      burn = nburn > burn ? nburn : burn;
-      cipher_block_xor(outbuf, c->u_iv.iv, inbuf, blocksize);
-      outbuf += blocksize;
-      inbuf += blocksize;
-      inbuflen -= blocksize;
+      size_t nblocks = inbuflen >> blocksize_shift;
+      c->bulk.ofb_enc (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks);
+      outbuf += nblocks << blocksize_shift;
+      inbuf  += nblocks << blocksize_shift;
+      inbuflen -= nblocks << blocksize_shift;
     }
+  else
+    {
+      while ( inbuflen >= blocksize )
+	{
+	  /* Encrypt the IV (and save the current one). */
+	  nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+	  burn = nburn > burn ? nburn : burn;
+	  cipher_block_xor(outbuf, c->u_iv.iv, inbuf, blocksize);
+	  outbuf += blocksize;
+	  inbuf += blocksize;
+	  inbuflen -= blocksize;
+	}
+    }
+
   if ( inbuflen )
     { /* process the remaining bytes */
       nburn = enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
