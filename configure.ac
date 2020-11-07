@@ -904,6 +904,51 @@ fi
 
 
 #
+# Check for __builtin_ctzl intrinsic.
+#
+AC_CACHE_CHECK(for __builtin_ctzl,
+       [gcry_cv_have_builtin_ctzl],
+       [gcry_cv_have_builtin_ctzl=no
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+          [unsigned long x = 0; long y = __builtin_ctzl(x); return y;])],
+          [gcry_cv_have_builtin_ctzl=yes])])
+if test "$gcry_cv_have_builtin_ctzl" = "yes" ; then
+   AC_DEFINE(HAVE_BUILTIN_CTZL, 1,
+             [Defined if compiler has '__builtin_ctzl' intrinsic])
+fi
+
+
+#
+# Check for __builtin_clz intrinsic.
+#
+AC_CACHE_CHECK(for __builtin_clz,
+       [gcry_cv_have_builtin_clz],
+       [gcry_cv_have_builtin_clz=no
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+          [unsigned int x = 0; int y = __builtin_clz(x); return y;])],
+          [gcry_cv_have_builtin_clz=yes])])
+if test "$gcry_cv_have_builtin_clz" = "yes" ; then
+   AC_DEFINE(HAVE_BUILTIN_CLZ, 1,
+             [Defined if compiler has '__builtin_clz' intrinsic])
+fi
+
+
+#
+# Check for __builtin_clzl intrinsic.
+#
+AC_CACHE_CHECK(for __builtin_clzl,
+       [gcry_cv_have_builtin_clzl],
+       [gcry_cv_have_builtin_clzl=no
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+          [unsigned long x = 0; long y = __builtin_clzl(x); return y;])],
+          [gcry_cv_have_builtin_clzl=yes])])
+if test "$gcry_cv_have_builtin_clzl" = "yes" ; then
+   AC_DEFINE(HAVE_BUILTIN_CLZL, 1,
+             [Defined if compiler has '__builtin_clzl' intrinsic])
+fi
+
+
+#
 # Check for __sync_synchronize intrinsic.
 #
 AC_CACHE_CHECK(for __sync_synchronize,

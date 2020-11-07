@@ -1730,6 +1730,26 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 #endif
 
 #if !defined (count_leading_zeros)
+#  if defined (HAVE_BUILTIN_CLZL) && SIZEOF_UNSIGNED_LONG * 8 == W_TYPE_SIZE
+#    define count_leading_zeros(count, x) (count = __builtin_clzl(x))
+#    undef COUNT_LEADING_ZEROS_0 /* Input X=0 is undefined for the builtin. */
+#  elif defined (HAVE_BUILTIN_CLZ) && SIZEOF_UNSIGNED_INT * 8 == W_TYPE_SIZE
+#    define count_leading_zeros(count, x) (count = __builtin_clz(x))
+#    undef COUNT_LEADING_ZEROS_0 /* Input X=0 is undefined for the builtin. */
+#  endif
+#endif
+
+#if !defined (count_trailing_zeros)
+#  if defined (HAVE_BUILTIN_CTZL) && SIZEOF_UNSIGNED_LONG * 8 == W_TYPE_SIZE
+#    define count_trailing_zeros(count, x) (count = __builtin_ctzl(x))
+#    undef COUNT_LEADING_ZEROS_0 /* Input X=0 is undefined for the builtin. */
+#  elif defined (HAVE_BUILTIN_CTZ) && SIZEOF_UNSIGNED_INT * 8 == W_TYPE_SIZE
+#    define count_trailing_zeros(count, x) (count = __builtin_ctz(x))
+#    undef COUNT_LEADING_ZEROS_0 /* Input X=0 is undefined for the builtin. */
+#  endif
+#endif
+
+#if !defined (count_leading_zeros)
 extern
 #  ifdef __STDC__
 const
