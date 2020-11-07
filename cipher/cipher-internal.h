@@ -144,6 +144,8 @@ typedef struct cipher_bulk_ops
   size_t (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks);
   void (*xts_crypt)(void *context, unsigned char *tweak, void *outbuf_arg,
 		    const void *inbuf_arg, size_t nblocks, int encrypt);
+  size_t (*gcm_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
+		      const void *inbuf_arg, size_t nblocks, int encrypt);
 } cipher_bulk_ops_t;
 
 
