@@ -110,10 +110,20 @@
 # endif
 #endif
 
+/* USE_S390X_CRYPTO indicates whether to enable zSeries code. */
+#undef USE_S390X_CRYPTO
+#if defined(HAVE_GCC_INLINE_ASM_S390X)
+# define USE_S390X_CRYPTO 1
+#endif /* USE_S390X_CRYPTO */
+
 
 typedef struct {
   gcry_md_block_ctx_t bctx;
   u32  h0,h1,h2,h3,h4,h5,h6,h7;
+#ifdef USE_S390X_CRYPTO
+  u32  final_len_msb, final_len_lsb; /* needs to be right after h7. */
+  int  use_s390x_crypto;
+#endif
 } SHA256_CONTEXT;
 
 
@@ -232,6 +242,40 @@ do_sha256_transform_ppc9(void *ctx, const unsigned char *data, size_t nblks)
 }
 #endif
 
+#ifdef USE_S390X_CRYPTO
+#include "asm-inline-s390x.h"
+
+static unsigned int
+do_sha256_transform_s390x (void *ctx, const unsigned char *data, size_t nblks)
+{
+  SHA256_CONTEXT *hd = ctx;
+
+  kimd_execute (KMID_FUNCTION_SHA256, &hd->h0, data, nblks * 64);
+  return 0;
+}
+
+static unsigned int
+do_sha256_final_s390x (void *ctx, const unsigned char *data, size_t datalen,
+		       u32 len_msb, u32 len_lsb)
+{
+  SHA256_CONTEXT *hd = ctx;
+
+  /* Make sure that 'final_len' is positioned at correct offset relative
+   * to 'h0'. This is because we are passing 'h0' pointer as start of
+   * parameter block to 'klmd' instruction. */
+
+  gcry_assert (offsetof (SHA256_CONTEXT, final_len_msb)
+	       - offsetof (SHA256_CONTEXT, h0) == 8 * sizeof(u32));
+  gcry_assert (offsetof (SHA256_CONTEXT, final_len_lsb)
+	       - offsetof (SHA256_CONTEXT, final_len_msb) == 1 * sizeof(u32));
+
+  hd->final_len_msb = len_msb;
+  hd->final_len_lsb = len_lsb;
+
+  klmd_execute (KMID_FUNCTION_SHA256, &hd->h0, data, datalen);
+  return 0;
+}
+#endif
 
 
 static unsigned int
@@ -279,6 +323,18 @@ sha256_common_init (SHA256_CONTEXT *hd)
     hd->bctx.bwrite = do_sha256_transform_ppc8;
   if ((features & HWF_PPC_VCRYPTO) != 0 && (features & HWF_PPC_ARCH_3_00) != 0)
     hd->bctx.bwrite = do_sha256_transform_ppc9;
+#endif
+#ifdef USE_S390X_CRYPTO
+  hd->use_s390x_crypto = 0;
+  if ((features & HWF_S390X_MSA) != 0)
+    {
+      if ((kimd_query () & km_function_to_mask (KMID_FUNCTION_SHA256)) &&
+	  (klmd_query () & km_function_to_mask (KMID_FUNCTION_SHA256)))
+	{
+	  hd->bctx.bwrite = do_sha256_transform_s390x;
+	  hd->use_s390x_crypto = 1;
+	}
+    }
 #endif
   (void)features;
 }
@@ -515,7 +571,15 @@ sha256_final(void *context)
   msb <<= 3;
   msb |= t >> 29;
 
-  if (hd->bctx.count < 56)  /* enough room */
+  if (0)
+    { }
+#ifdef USE_S390X_CRYPTO
+  else if (hd->use_s390x_crypto)
+    {
+      burn = do_sha256_final_s390x (hd, hd->bctx.buf, hd->bctx.count, msb, lsb);
+    }
+#endif
+  else if (hd->bctx.count < 56)  /* enough room */
     {
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
       if (hd->bctx.count < 56)
