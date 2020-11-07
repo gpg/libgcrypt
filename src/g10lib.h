@@ -75,6 +75,12 @@
 #define GCC_ATTR_UNUSED
 #endif
 
+#if __GNUC__ > 3
+#define NOINLINE_FUNC     __attribute__((noinline))
+#else
+#define NOINLINE_FUNC
+#endif
+
 #if __GNUC__ >= 3
 #define LIKELY(expr)      __builtin_expect( !!(expr), 1 )
 #define UNLIKELY(expr)    __builtin_expect( !!(expr), 0 )

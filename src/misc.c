@@ -545,7 +545,7 @@ _gcry_fast_wipememory2 (void *ptr, int set, size_t len)
 }
 
 
-void
+void NOINLINE_FUNC
 __gcry_burn_stack (unsigned int bytes)
 {
 #ifdef HAVE_VLA
