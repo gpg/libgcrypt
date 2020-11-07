@@ -83,7 +83,7 @@ static inline int
 _gcry_ctz (unsigned int x)
 {
 #if defined (HAVE_BUILTIN_CTZ)
-  return x? __builtin_ctz (x) : 8 * sizeof (x);
+  return x ? __builtin_ctz (x) : 8 * sizeof (x);
 #else
   /* See
    * http://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
@@ -106,9 +106,11 @@ _gcry_ctz (unsigned int x)
 static inline int
 _gcry_ctz64(u64 x)
 {
-#if defined (HAVE_BUILTIN_CTZ) && SIZEOF_UNSIGNED_INT >= 8
+#if defined (HAVE_BUILTIN_CTZL) && SIZEOF_UNSIGNED_LONG >= 8
+  return x ? __builtin_ctzl (x) : 8 * sizeof (x);
+#elif defined (HAVE_BUILTIN_CTZ) && SIZEOF_UNSIGNED_INT >= 8
 #warning hello
-  return x? __builtin_ctz (x) : 8 * sizeof (x);
+  return x ? __builtin_ctz (x) : 8 * sizeof (x);
 #else
   if ((x & 0xffffffff))
     return _gcry_ctz (x);
