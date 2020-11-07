@@ -989,10 +989,9 @@ bench_xts_encrypt_init (struct bench_obj *obj)
   gcry_cipher_hd_t hd;
   int err, keylen;
 
-  /* For XTS, benchmark with typical data-unit size (512 byte sectors). */
-  obj->min_bufsize = 512;
-  obj->max_bufsize = 16 * obj->min_bufsize;
-  obj->step_size = obj->min_bufsize;
+  obj->min_bufsize = BUF_START_SIZE;
+  obj->max_bufsize = BUF_END_SIZE;
+  obj->step_size = BUF_STEP_SIZE;
   obj->num_measure_repetitions = num_measurement_repetitions;
 
   err = gcry_cipher_open (&hd, mode->algo, mode->mode, 0);
@@ -1035,70 +1034,16 @@ bench_xts_encrypt_init (struct bench_obj *obj)
   return 0;
 }
 
-static void
-bench_xts_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
-{
-  gcry_cipher_hd_t hd = obj->hd;
-  unsigned int pos;
-  static const char tweak[16] = { 0xff, 0xff, 0xfe, };
-  size_t sectorlen = obj->step_size;
-  char *cbuf = buf;
-  int err;
-
-  gcry_cipher_setiv (hd, tweak, sizeof (tweak));
-
-  /* Process each sector separately. */
-
-  for (pos = 0; pos < buflen; pos += sectorlen, cbuf += sectorlen)
-    {
-      err = gcry_cipher_encrypt (hd, cbuf, sectorlen, cbuf, sectorlen);
-      if (err)
-	{
-	  fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
-		  gpg_strerror (err));
-	  gcry_cipher_close (hd);
-	  exit (1);
-	}
-    }
-}
-
-static void
-bench_xts_decrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
-{
-  gcry_cipher_hd_t hd = obj->hd;
-  unsigned int pos;
-  static const char tweak[16] = { 0xff, 0xff, 0xfe, };
-  size_t sectorlen = obj->step_size;
-  char *cbuf = buf;
-  int err;
-
-  gcry_cipher_setiv (hd, tweak, sizeof (tweak));
-
-  /* Process each sector separately. */
-
-  for (pos = 0; pos < buflen; pos += sectorlen, cbuf += sectorlen)
-    {
-      err = gcry_cipher_decrypt (hd, cbuf, sectorlen, cbuf, sectorlen);
-      if (err)
-	{
-	  fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
-		  gpg_strerror (err));
-	  gcry_cipher_close (hd);
-	  exit (1);
-	}
-    }
-}
-
 static struct bench_ops xts_encrypt_ops = {
   &bench_xts_encrypt_init,
   &bench_encrypt_free,
-  &bench_xts_encrypt_do_bench
+  &bench_encrypt_do_bench
 };
 
 static struct bench_ops xts_decrypt_ops = {
   &bench_xts_encrypt_init,
   &bench_encrypt_free,
-  &bench_xts_decrypt_do_bench
+  &bench_decrypt_do_bench
 };
 
 
