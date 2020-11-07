@@ -27,7 +27,6 @@
 
 #include "asm-inline-s390x.h"
 
-#define ALWAYS_INLINE inline __attribute__((always_inline))
 #define NO_INLINE __attribute__((noinline))
 
 struct aes_s390x_gcm_params_s

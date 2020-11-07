@@ -23,6 +23,8 @@
 
 #include <config.h>
 
+#define ALWAYS_INLINE inline __attribute__((always_inline))
+
 typedef unsigned int u128_t __attribute__ ((mode (TI)));
 
 enum kmxx_functions_e
@@ -57,7 +59,7 @@ enum kmxx_function_flags_e
   KMA_HS      = 1 << 10,
 };
 
-static inline u128_t km_function_to_mask(enum kmxx_functions_e func)
+static ALWAYS_INLINE u128_t km_function_to_mask(enum kmxx_functions_e func)
 {
   return (u128_t)1 << (127 - func);
 }
@@ -83,8 +85,30 @@ static inline u128_t kimd_query(void)
   return function_codes;
 }
 
-static inline void kimd_execute(unsigned int func, void *param_block,
-				const void *src, size_t src_len)
+static inline u128_t klmd_query(void)
+{
+  static u128_t function_codes = 0;
+  static int initialized = 0;
+  register unsigned long reg0 asm("0") = 0;
+  register void *reg1 asm("1") = &function_codes;
+  u128_t r1;
+
+  if (initialized)
+    return function_codes;
+
+  asm volatile ("0: .insn rre,0xb93f << 16, 0, %[r1]\n\t"
+		"   brc 1,0b\n\t"
+		: [r1] "=a" (r1)
+		: [reg0] "r" (reg0), [reg1] "r" (reg1)
+		: "cc", "memory");
+
+  initialized = 1;
+  return function_codes;
+}
+
+static ALWAYS_INLINE void
+kimd_execute(unsigned int func, void *param_block, const void *src,
+	     size_t src_len)
 {
   register unsigned long reg0 asm("0") = func;
   register byte *reg1 asm("1") = param_block;
@@ -97,8 +121,9 @@ static inline void kimd_execute(unsigned int func, void *param_block,
 		: "cc", "memory");
 }
 
-static inline void klmd_execute(unsigned int func, void *param_block,
-				const void *src, size_t src_len)
+static ALWAYS_INLINE void
+klmd_execute(unsigned int func, void *param_block, const void *src,
+	     size_t src_len)
 {
   register unsigned long reg0 asm("0") = func;
   register byte *reg1 asm("1") = param_block;
