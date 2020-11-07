@@ -71,6 +71,13 @@
 #endif /*ENABLE_NEON_SUPPORT*/
 
 
+/* USE_S390X_CRYPTO indicates whether to enable zSeries code. */
+#undef USE_S390X_CRYPTO
+#if defined(HAVE_GCC_INLINE_ASM_S390X)
+# define USE_S390X_CRYPTO 1
+#endif /* USE_S390X_CRYPTO */
+
+
 #if defined(USE_64BIT) || defined(USE_64BIT_ARM_NEON)
 # define NEED_COMMON64 1
 #endif
@@ -115,6 +122,11 @@ typedef struct KECCAK_CONTEXT_S
   unsigned int count;
   unsigned int suffix;
   const keccak_ops_t *ops;
+#ifdef USE_S390X_CRYPTO
+  unsigned int kimd_func;
+  unsigned int buf_pos;
+  byte buf[1344 / 8]; /* SHAKE128 requires biggest buffer, 1344 bits. */
+#endif
 } KECCAK_CONTEXT;
 
 
@@ -619,7 +631,155 @@ static const keccak_ops_t keccak_bmi2_32bi_ops =
   .extract = keccak_extract32bi_bmi2,
 };
 
-#endif /* USE_32BIT */
+#endif /* USE_32BIT_BMI2 */
+
+
+#ifdef USE_S390X_CRYPTO
+#include "asm-inline-s390x.h"
+
+static inline void
+keccak_bwrite_s390x (void *context, const byte *in, size_t inlen)
+{
+  KECCAK_CONTEXT *ctx = context;
+
+  /* Write full-blocks. */
+  kimd_execute (ctx->kimd_func, &ctx->state, in, inlen);
+  return;
+}
+
+static inline void
+keccak_final_s390x (void *context)
+{
+  KECCAK_CONTEXT *ctx = context;
+
+  if (ctx->suffix == SHA3_DELIMITED_SUFFIX)
+    {
+      klmd_execute (ctx->kimd_func, &ctx->state, ctx->buf, ctx->count);
+    }
+  else
+    {
+      klmd_shake_execute (ctx->kimd_func, &ctx->state, NULL, 0, ctx->buf,
+			  ctx->count);
+      ctx->count = 0;
+      ctx->buf_pos = 0;
+    }
+
+  return;
+}
+
+static inline void
+keccak_bextract_s390x (void *context, byte *out, size_t outlen)
+{
+  KECCAK_CONTEXT *ctx = context;
+
+  /* Extract full-blocks. */
+  klmd_shake_execute (ctx->kimd_func | KLMD_PADDING_STATE, &ctx->state,
+		      out, outlen, NULL, 0);
+  return;
+}
+
+static void
+keccak_write_s390x (void *context, const byte *inbuf, size_t inlen)
+{
+  KECCAK_CONTEXT *hd = context;
+  const size_t blocksize = hd->blocksize;
+  size_t inblocks;
+  size_t copylen;
+
+  while (hd->count)
+    {
+      if (hd->count == blocksize)  /* Flush the buffer. */
+	{
+	  keccak_bwrite_s390x (hd, hd->buf, blocksize);
+	  hd->count = 0;
+	}
+      else
+	{
+	  copylen = inlen;
+	  if (copylen > blocksize - hd->count)
+	    copylen = blocksize - hd->count;
+
+	  if (copylen == 0)
+	    break;
+
+	  buf_cpy (&hd->buf[hd->count], inbuf, copylen);
+	  hd->count += copylen;
+	  inbuf += copylen;
+	  inlen -= copylen;
+	}
+    }
+
+  if (inlen == 0)
+    return;
+
+  if (inlen >= blocksize)
+    {
+      inblocks = inlen / blocksize;
+      keccak_bwrite_s390x (hd, inbuf, inblocks * blocksize);
+      hd->count = 0;
+      inlen -= inblocks * blocksize;
+      inbuf += inblocks * blocksize;
+    }
+
+  if (inlen)
+    {
+      buf_cpy (hd->buf, inbuf, inlen);
+      hd->count = inlen;
+    }
+}
+
+static void
+keccak_extract_s390x (void *context, void *outbuf_arg, size_t outlen)
+{
+  KECCAK_CONTEXT *hd = context;
+  const size_t blocksize = hd->blocksize;
+  byte *outbuf = outbuf_arg;
+
+  while (outlen)
+    {
+      gcry_assert(hd->count == 0 || hd->buf_pos < hd->count);
+
+      if (hd->buf_pos < hd->count && outlen)
+	{
+	  size_t copylen = hd->count - hd->buf_pos;
+
+	  if (copylen > outlen)
+	    copylen = outlen;
+
+	  buf_cpy (outbuf, &hd->buf[hd->buf_pos], copylen);
+
+	  outbuf += copylen;
+	  outlen -= copylen;
+	  hd->buf_pos += copylen;
+	}
+
+      if (hd->buf_pos == hd->count)
+	{
+	  hd->buf_pos = 0;
+	  hd->count = 0;
+	}
+
+      if (outlen == 0)
+	return;
+
+      if (outlen >= blocksize)
+	{
+	  size_t outblocks = outlen / blocksize;
+
+	  keccak_bextract_s390x (context, outbuf, outblocks * blocksize);
+
+	  outlen -= outblocks * blocksize;
+	  outbuf += outblocks * blocksize;
+
+	  if (outlen == 0)
+	    return;
+	}
+
+      keccak_bextract_s390x (context, hd->buf, blocksize);
+      hd->count = blocksize;
+    }
+}
+#endif /* USE_S390X_CRYPTO */
 
 
 static void
@@ -632,6 +792,14 @@ keccak_write (void *context, const void *inbuf_arg, size_t inlen)
   unsigned int nburn, burn = 0;
   unsigned int count, i;
   unsigned int pos, nlanes;
+
+#ifdef USE_S390X_CRYPTO
+  if (ctx->kimd_func)
+    {
+      keccak_write_s390x (context, inbuf, inlen);
+      return;
+    }
+#endif
 
   count = ctx->count;
 
@@ -777,6 +945,42 @@ keccak_init (int algo, void *context, unsigned int flags)
     default:
       BUG();
     }
+
+#ifdef USE_S390X_CRYPTO
+  ctx->kimd_func = 0;
+  if ((features & HWF_S390X_MSA) != 0)
+    {
+      unsigned int kimd_func = 0;
+
+      switch (algo)
+	{
+	case GCRY_MD_SHA3_224:
+	  kimd_func = KMID_FUNCTION_SHA3_224;
+	  break;
+	case GCRY_MD_SHA3_256:
+	  kimd_func = KMID_FUNCTION_SHA3_256;
+	  break;
+	case GCRY_MD_SHA3_384:
+	  kimd_func = KMID_FUNCTION_SHA3_384;
+	  break;
+	case GCRY_MD_SHA3_512:
+	  kimd_func = KMID_FUNCTION_SHA3_512;
+	  break;
+	case GCRY_MD_SHAKE128:
+	  kimd_func = KMID_FUNCTION_SHAKE128;
+	  break;
+	case GCRY_MD_SHAKE256:
+	  kimd_func = KMID_FUNCTION_SHAKE256;
+	  break;
+	}
+
+      if ((kimd_query () & km_function_to_mask (kimd_func)) &&
+	  (klmd_query () & km_function_to_mask (kimd_func)))
+	{
+	  ctx->kimd_func = kimd_func;
+	}
+    }
+#endif
 }
 
 static void
@@ -832,6 +1036,14 @@ keccak_final (void *context)
   unsigned int nburn, burn = 0;
   unsigned int lastbytes;
   byte lane[8];
+
+#ifdef USE_S390X_CRYPTO
+  if (ctx->kimd_func)
+    {
+      keccak_final_s390x (context);
+      return;
+    }
+#endif
 
   lastbytes = ctx->count;
 
@@ -893,6 +1105,14 @@ keccak_extract (void *context, void *out, size_t outlen)
   unsigned int count;
   unsigned int i;
   byte lane[8];
+
+#ifdef USE_S390X_CRYPTO
+  if (ctx->kimd_func)
+    {
+      keccak_extract_s390x (context, out, outlen);
+      return;
+    }
+#endif
 
   count = ctx->count;
 

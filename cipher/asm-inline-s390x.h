@@ -57,6 +57,8 @@ enum kmxx_function_flags_e
   KMA_LPC     = 1 << 8,
   KMA_LAAD    = 1 << 9,
   KMA_HS      = 1 << 10,
+
+  KLMD_PADDING_STATE = 1 << 8,
 };
 
 static ALWAYS_INLINE u128_t km_function_to_mask(enum kmxx_functions_e func)
@@ -131,8 +133,24 @@ klmd_execute(unsigned int func, void *param_block, const void *src,
 
   asm volatile ("0: .insn rre,0xb93f << 16, 0, %[r1]\n\t"
 		"   brc 1,0b\n\t"
-		: [r1] "+a" (r1)
-		: [func] "r" (reg0), [param_ptr] "r" (reg1)
+		: [func] "+r" (reg0), [r1] "+a" (r1)
+		: [param_ptr] "r" (reg1)
+		: "cc", "memory");
+}
+
+static ALWAYS_INLINE void
+klmd_shake_execute(unsigned int func, void *param_block, void *dst,
+		   size_t dst_len, const void *src, size_t src_len)
+{
+  register unsigned long reg0 asm("0") = func;
+  register byte *reg1 asm("1") = param_block;
+  u128_t r1 = ((u128_t)(uintptr_t)dst << 64) | (u64)dst_len;
+  u128_t r2 = ((u128_t)(uintptr_t)src << 64) | (u64)src_len;
+
+  asm volatile ("0: .insn rre,0xb93f << 16, %[r1], %[r2]\n\t"
+		"   brc 1,0b\n\t"
+		: [func] "+r" (reg0), [r1] "+a" (r1), [r2] "+a" (r2)
+		: [param_ptr] "r" (reg1)
 		: "cc", "memory");
 }
 
