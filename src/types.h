@@ -54,23 +54,23 @@
 
 
 
-#ifndef HAVE_BYTE_TYPEDEF
+#ifndef HAVE_TYPE_BYTE
 # undef byte	/* In case there is a macro with that name.  */
 # if !(defined(_WIN32) && defined(cbNDRContext))
    /* Windows typedefs byte in the rpc headers.  Avoid warning about
       double definition.  */
    typedef unsigned char byte;
 # endif
-# define HAVE_BYTE_TYPEDEF
+# define HAVE_TYPE_BYTE
 #endif
 
-#ifndef HAVE_USHORT_TYPEDEF
+#ifndef HAVE_TYPE_USHORT
 # undef ushort  /* In case there is a macro with that name.  */
   typedef unsigned short ushort;
-# define HAVE_USHORT_TYPEDEF
+# define HAVE_TYPE_USHORT
 #endif
 
-#ifndef HAVE_U16_TYPEDEF
+#ifndef HAVE_TYPE_U16
 # undef u16	/* In case there is a macro with that name.  */
 # if SIZEOF_UNSIGNED_INT == 2
    typedef unsigned int   u16;
@@ -79,10 +79,10 @@
 # else
 #  error no typedef for u16
 # endif
-# define HAVE_U16_TYPEDEF
+# define HAVE_TYPE_U16
 #endif
 
-#ifndef HAVE_U32_TYPEDEF
+#ifndef HAVE_TYPE_U32
 # undef u32	/* In case there is a macro with that name.  */
 # if SIZEOF_UNSIGNED_INT == 4
    typedef unsigned int  u32;
@@ -91,7 +91,7 @@
 # else
 #  error no typedef for u32
 # endif
-# define HAVE_U32_TYPEDEF
+# define HAVE_TYPE_U32
 #endif
 
 /*
@@ -99,24 +99,24 @@
  * the dummy code in cipher/md.c is not available.  Examples are
  * Solaris and IRIX.
  */
-#ifndef HAVE_U64_TYPEDEF
+#ifndef HAVE_TYPE_U64
 # undef u64	/* In case there is a macro with that name.  */
 # if SIZEOF_UNSIGNED_INT == 8
    typedef unsigned int u64;
 #  define U64_C(c) (c ## U)
-#  define HAVE_U64_TYPEDEF
+#  define HAVE_TYPE_U64
 # elif SIZEOF_UNSIGNED_LONG == 8
    typedef unsigned long u64;
 #  define U64_C(c) (c ## UL)
-#  define HAVE_U64_TYPEDEF
+#  define HAVE_TYPE_U64
 # elif SIZEOF_UNSIGNED_LONG_LONG == 8
    typedef unsigned long long u64;
 #  define U64_C(c) (c ## ULL)
-#  define HAVE_U64_TYPEDEF
+#  define HAVE_TYPE_U64
 # elif SIZEOF_UINT64_T == 8
    typedef uint64_t u64;
 #  define U64_C(c) (UINT64_C(c))
-#  define HAVE_U64_TYPEDEF
+#  define HAVE_TYPE_U64
 # else
 #  error No way to declare a 64 bit integer type
 # endif

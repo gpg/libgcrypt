@@ -37,7 +37,7 @@ static const char *selftest (void);
 
 #undef USE_MPI_64BIT
 #undef USE_MPI_32BIT
-#if BYTES_PER_MPI_LIMB == 8 && defined(HAVE_U64_TYPEDEF)
+#if BYTES_PER_MPI_LIMB == 8 && defined(HAVE_TYPE_U64)
 # define USE_MPI_64BIT 1
 #elif BYTES_PER_MPI_LIMB == 4
 # define USE_MPI_32BIT 1
