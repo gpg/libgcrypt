@@ -20,7 +20,7 @@
 
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
-AC_PREREQ(2.60)
+AC_PREREQ([2.60])
 min_automake_version="1.14"
 
 # To build a release you need to create a tag with the version number
@@ -44,7 +44,7 @@ m4_define([mym4_version],      m4_argn(4, mym4_verslist))
 m4_define([mym4_revision],     m4_argn(7, mym4_verslist))
 m4_define([mym4_revision_dec], m4_argn(8, mym4_verslist))
 m4_esyscmd([echo ]mym4_version[>VERSION])
-AC_INIT([mym4_package],[mym4_version], [https://bugs.gnupg.org])
+AC_INIT([mym4_package],[mym4_version],[https://bugs.gnupg.org])
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Code changed:			REVISION++)
@@ -146,11 +146,11 @@ AC_PROG_CC
 AC_PROG_CPP
 AM_PROG_CC_C_O
 AM_PROG_AS
-AC_ISC_POSIX
+AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_INSTALL
 AC_PROG_AWK
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 
 # Taken from mpfr-4.0.1, then modified for LDADD_FOR_TESTS_KLUDGE
 dnl Under Linux, make sure that the old dtags are used if LD_LIBRARY_PATH
@@ -344,8 +344,8 @@ NAME_OF_DEV_RANDOM="/dev/random"
 NAME_OF_DEV_URANDOM="/dev/urandom"
 
 AC_ARG_ENABLE(endian-check,
-              AC_HELP_STRING([--disable-endian-check],
-	      [disable the endian check and trust the OS provided macros]),
+              AS_HELP_STRING([--disable-endian-check],
+              [disable the endian check and trust the OS provided macros]),
 	      endiancheck=$enableval,endiancheck=yes)
 if test x"$endiancheck" = xyes ; then
   AC_C_BIGENDIAN
@@ -409,8 +409,8 @@ AC_SUBST(emacs_local_vars_end, ['End:'])
 
 # Implementation of the --enable-ciphers switch.
 AC_ARG_ENABLE(ciphers,
-	      AC_HELP_STRING([--enable-ciphers=ciphers],
-			     [select the symmetric ciphers to include]),
+	      AS_HELP_STRING([--enable-ciphers=ciphers],
+                             [select the symmetric ciphers to include]),
 	      [enabled_ciphers=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_ciphers=""])
 if test "x$enabled_ciphers" = "x" \
@@ -429,8 +429,8 @@ AC_MSG_RESULT([$enabled_ciphers])
 
 # Implementation of the --enable-pubkey-ciphers switch.
 AC_ARG_ENABLE(pubkey-ciphers,
-	      AC_HELP_STRING([--enable-pubkey-ciphers=ciphers],
-			     [select the public-key ciphers to include]),
+	      AS_HELP_STRING([--enable-pubkey-ciphers=ciphers],
+                             [select the public-key ciphers to include]),
 	      [enabled_pubkey_ciphers=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_pubkey_ciphers=""])
 if test "x$enabled_pubkey_ciphers" = "x" \
@@ -449,8 +449,8 @@ AC_MSG_RESULT([$enabled_pubkey_ciphers])
 
 # Implementation of the --enable-digests switch.
 AC_ARG_ENABLE(digests,
-	      AC_HELP_STRING([--enable-digests=digests],
-			     [select the message digests to include]),
+	      AS_HELP_STRING([--enable-digests=digests],
+                             [select the message digests to include]),
 	      [enabled_digests=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_digests=""])
 if test "x$enabled_digests" = "x" \
@@ -469,8 +469,8 @@ AC_MSG_RESULT([$enabled_digests])
 
 # Implementation of the --enable-kdfs switch.
 AC_ARG_ENABLE(kdfs,
-      AC_HELP_STRING([--enable-kfds=kdfs],
-		     [select the KDFs to include]),
+      AS_HELP_STRING([--enable-kfds=kdfs],
+                     [select the KDFs to include]),
       [enabled_kdfs=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
       [enabled_kdfs=""])
 if test "x$enabled_kdfs" = "x" \
@@ -489,8 +489,8 @@ AC_MSG_RESULT([$enabled_kdfs])
 
 # Implementation of the --enable-random switch.
 AC_ARG_ENABLE(random,
-	      AC_HELP_STRING([--enable-random=name],
-	                     [select which random number generator to use]),
+	      AS_HELP_STRING([--enable-random=name],
+                             [select which random number generator to use]),
 	      [random=`echo $enableval | tr '[A-Z]' '[a-z]'`],
 	      [])
 if test "x$random" = "x" -o "$random" = "yes" -o "$random" = "no"; then
@@ -523,7 +523,7 @@ AC_DEFINE_UNQUOTED(EGD_SOCKET_NAME, "$egd_socket_name",
 # Implementation of the --enable-random-daemon
 AC_MSG_CHECKING([whether the experimental random daemon is requested])
 AC_ARG_ENABLE([random-daemon],
-              AC_HELP_STRING([--enable-random-daemon],
+              AS_HELP_STRING([--enable-random-daemon],
                              [Build and support the experimental gcryptrnd]),
               [use_random_daemon=$enableval],
               [use_random_daemon=no])
@@ -538,8 +538,8 @@ AM_CONDITIONAL(USE_RANDOM_DAEMON, test x$use_random_daemon = xyes)
 # Implementation of --disable-asm.
 AC_MSG_CHECKING([whether MPI and cipher assembler modules are requested])
 AC_ARG_ENABLE([asm],
-              AC_HELP_STRING([--disable-asm],
-	                     [Disable MPI and cipher assembler modules]),
+              AS_HELP_STRING([--disable-asm],
+                             [Disable MPI and cipher assembler modules]),
               [try_asm_modules=$enableval],
               [try_asm_modules=yes])
 AC_MSG_RESULT($try_asm_modules)
@@ -547,7 +547,7 @@ AC_MSG_RESULT($try_asm_modules)
 # Implementation of the --enable-m-guard switch.
 AC_MSG_CHECKING([whether memory guard is requested])
 AC_ARG_ENABLE(m-guard,
-              AC_HELP_STRING([--enable-m-guard],
+              AS_HELP_STRING([--enable-m-guard],
                              [Enable memory guard facility]),
               [use_m_guard=$enableval], [use_m_guard=no])
 AC_MSG_RESULT($use_m_guard)
@@ -558,7 +558,7 @@ fi
 # Implementation of the --enable-large-data-tests switch.
 AC_MSG_CHECKING([whether to run large data tests])
 AC_ARG_ENABLE(large-data-tests,
-              AC_HELP_STRING([--enable-large-data-tests],
+              AS_HELP_STRING([--enable-large-data-tests],
                  [Enable the real long ruinning large data tests]),
 	      large_data_tests=$enableval,large_data_tests=no)
 AC_MSG_RESULT($large_data_tests)
@@ -569,7 +569,7 @@ AC_SUBST(RUN_LARGE_DATA_TESTS, $large_data_tests)
 # Check whether we want to use Linux capabilities
 AC_MSG_CHECKING([whether use of capabilities is requested])
 AC_ARG_WITH(capabilities,
-            AC_HELP_STRING([--with-capabilities],
+            AS_HELP_STRING([--with-capabilities],
                            [Use linux capabilities [default=no]]),
             [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
@@ -577,7 +577,7 @@ AC_MSG_RESULT($use_capabilities)
 # Implementation of the --enable-hmac-binary-check.
 AC_MSG_CHECKING([whether a HMAC binary check is requested])
 AC_ARG_ENABLE(hmac-binary-check,
-              AC_HELP_STRING([--enable-hmac-binary-check],
+              AS_HELP_STRING([--enable-hmac-binary-check],
                              [Enable library integrity check]),
               [use_hmac_binary_check=$enableval],
               [use_hmac_binary_check=no])
@@ -591,7 +591,7 @@ fi
 # Implementation of the --disable-jent-support switch.
 AC_MSG_CHECKING([whether jitter entropy support is requested])
 AC_ARG_ENABLE(jent-support,
-              AC_HELP_STRING([--disable-jent-support],
+              AS_HELP_STRING([--disable-jent-support],
                         [Disable support for the Jitter entropy collector]),
 	      jentsupport=$enableval,jentsupport=yes)
 AC_MSG_RESULT($jentsupport)
@@ -599,15 +599,15 @@ AC_MSG_RESULT($jentsupport)
 # Implementation of the --disable-padlock-support switch.
 AC_MSG_CHECKING([whether padlock support is requested])
 AC_ARG_ENABLE(padlock-support,
-              AC_HELP_STRING([--disable-padlock-support],
-       	         [Disable support for the PadLock Engine of VIA processors]),
+              AS_HELP_STRING([--disable-padlock-support],
+                        [Disable support for the PadLock Engine of VIA processors]),
 	      padlocksupport=$enableval,padlocksupport=yes)
 AC_MSG_RESULT($padlocksupport)
 
 # Implementation of the --disable-aesni-support switch.
 AC_MSG_CHECKING([whether AESNI support is requested])
 AC_ARG_ENABLE(aesni-support,
-              AC_HELP_STRING([--disable-aesni-support],
+              AS_HELP_STRING([--disable-aesni-support],
                  [Disable support for the Intel AES-NI instructions]),
 	      aesnisupport=$enableval,aesnisupport=yes)
 AC_MSG_RESULT($aesnisupport)
@@ -615,7 +615,7 @@ AC_MSG_RESULT($aesnisupport)
 # Implementation of the --disable-shaext-support switch.
 AC_MSG_CHECKING([whether SHAEXT support is requested])
 AC_ARG_ENABLE(shaext-support,
-              AC_HELP_STRING([--disable-shaext-support],
+              AS_HELP_STRING([--disable-shaext-support],
                  [Disable support for the Intel SHAEXT instructions]),
               shaextsupport=$enableval,shaextsupport=yes)
 AC_MSG_RESULT($shaextsupport)
@@ -623,7 +623,7 @@ AC_MSG_RESULT($shaextsupport)
 # Implementation of the --disable-pclmul-support switch.
 AC_MSG_CHECKING([whether PCLMUL support is requested])
 AC_ARG_ENABLE(pclmul-support,
-              AC_HELP_STRING([--disable-pclmul-support],
+              AS_HELP_STRING([--disable-pclmul-support],
                  [Disable support for the Intel PCLMUL instructions]),
 	      pclmulsupport=$enableval,pclmulsupport=yes)
 AC_MSG_RESULT($pclmulsupport)
@@ -631,7 +631,7 @@ AC_MSG_RESULT($pclmulsupport)
 # Implementation of the --disable-sse41-support switch.
 AC_MSG_CHECKING([whether SSE4.1 support is requested])
 AC_ARG_ENABLE(sse41-support,
-              AC_HELP_STRING([--disable-sse41-support],
+              AS_HELP_STRING([--disable-sse41-support],
                  [Disable support for the Intel SSE4.1 instructions]),
 	      sse41support=$enableval,sse41support=yes)
 AC_MSG_RESULT($sse41support)
@@ -639,7 +639,7 @@ AC_MSG_RESULT($sse41support)
 # Implementation of the --disable-drng-support switch.
 AC_MSG_CHECKING([whether DRNG support is requested])
 AC_ARG_ENABLE(drng-support,
-              AC_HELP_STRING([--disable-drng-support],
+              AS_HELP_STRING([--disable-drng-support],
                  [Disable support for the Intel DRNG (RDRAND instruction)]),
 	      drngsupport=$enableval,drngsupport=yes)
 AC_MSG_RESULT($drngsupport)
@@ -647,7 +647,7 @@ AC_MSG_RESULT($drngsupport)
 # Implementation of the --disable-avx-support switch.
 AC_MSG_CHECKING([whether AVX support is requested])
 AC_ARG_ENABLE(avx-support,
-              AC_HELP_STRING([--disable-avx-support],
+              AS_HELP_STRING([--disable-avx-support],
                  [Disable support for the Intel AVX instructions]),
 	      avxsupport=$enableval,avxsupport=yes)
 AC_MSG_RESULT($avxsupport)
@@ -655,7 +655,7 @@ AC_MSG_RESULT($avxsupport)
 # Implementation of the --disable-avx2-support switch.
 AC_MSG_CHECKING([whether AVX2 support is requested])
 AC_ARG_ENABLE(avx2-support,
-              AC_HELP_STRING([--disable-avx2-support],
+              AS_HELP_STRING([--disable-avx2-support],
                  [Disable support for the Intel AVX2 instructions]),
 	      avx2support=$enableval,avx2support=yes)
 AC_MSG_RESULT($avx2support)
@@ -663,7 +663,7 @@ AC_MSG_RESULT($avx2support)
 # Implementation of the --disable-neon-support switch.
 AC_MSG_CHECKING([whether NEON support is requested])
 AC_ARG_ENABLE(neon-support,
-              AC_HELP_STRING([--disable-neon-support],
+              AS_HELP_STRING([--disable-neon-support],
                  [Disable support for the ARM NEON instructions]),
 	      neonsupport=$enableval,neonsupport=yes)
 AC_MSG_RESULT($neonsupport)
@@ -671,7 +671,7 @@ AC_MSG_RESULT($neonsupport)
 # Implementation of the --disable-arm-crypto-support switch.
 AC_MSG_CHECKING([whether ARMv8 Crypto Extension support is requested])
 AC_ARG_ENABLE(arm-crypto-support,
-              AC_HELP_STRING([--disable-arm-crypto-support],
+              AS_HELP_STRING([--disable-arm-crypto-support],
                  [Disable support for the ARMv8 Crypto Extension instructions]),
 	      armcryptosupport=$enableval,armcryptosupport=yes)
 AC_MSG_RESULT($armcryptosupport)
@@ -679,7 +679,7 @@ AC_MSG_RESULT($armcryptosupport)
 # Implementation of the --disable-ppc-crypto-support switch.
 AC_MSG_CHECKING([whether PPC crypto support is requested])
 AC_ARG_ENABLE(ppc-crypto-support,
-              AC_HELP_STRING([--disable-ppc-crypto-support],
+              AS_HELP_STRING([--disable-ppc-crypto-support],
                  [Disable support for the PPC crypto instructions introduced in POWER 8 (PowerISA 2.07)]),
               ppccryptosupport=$enableval,ppccryptosupport=yes)
 AC_MSG_RESULT($ppccryptosupport)
@@ -687,7 +687,7 @@ AC_MSG_RESULT($ppccryptosupport)
 # Implementation of the --disable-O-flag-munging switch.
 AC_MSG_CHECKING([whether a -O flag munging is requested])
 AC_ARG_ENABLE([O-flag-munging],
-              AC_HELP_STRING([--disable-O-flag-munging],
+              AS_HELP_STRING([--disable-O-flag-munging],
                  [Disable modification of the cc -O flag]),
               [enable_o_flag_munging=$enableval],
               [enable_o_flag_munging=yes])
@@ -697,7 +697,7 @@ AM_CONDITIONAL(ENABLE_O_FLAG_MUNGING, test "$enable_o_flag_munging" = "yes")
 # Implementation of the --disable-instrumentation-munging switch.
 AC_MSG_CHECKING([whether a instrumentation (-fprofile, -fsanitize) munging is requested])
 AC_ARG_ENABLE([instrumentation-munging],
-              AC_HELP_STRING([--disable-instrumentation-munging],
+              AS_HELP_STRING([--disable-instrumentation-munging],
                  [Disable modification of the cc instrumentation options]),
               [enable_instrumentation_munging=$enableval],
               [enable_instrumentation_munging=yes])
@@ -708,7 +708,7 @@ AM_CONDITIONAL(ENABLE_INSTRUMENTATION_MUNGING,
 # Implementation of the --disable-amd64-as-feature-detection switch.
 AC_MSG_CHECKING([whether to enable AMD64 as(1) feature detection])
 AC_ARG_ENABLE(amd64-as-feature-detection,
-              AC_HELP_STRING([--disable-amd64-as-feature-detection],
+              AS_HELP_STRING([--disable-amd64-as-feature-detection],
                  [Disable the auto-detection of AMD64 as(1) features]),
 	      amd64_as_feature_detection=$enableval,
               amd64_as_feature_detection=yes)
@@ -730,7 +730,7 @@ case "${host}" in
         ;;
 esac
 AC_ARG_ENABLE([ld-version-script],
-              AC_HELP_STRING([--enable-ld-version-script],
+              AS_HELP_STRING([--enable-ld-version-script],
                              [enable/disable use of linker version script.
                               (default is system dependent)]),
               [have_ld_version_script=$enableval],
@@ -764,7 +764,7 @@ AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
 # to build the optional gcryptrnd program.
 #
 AC_ARG_WITH(pth-prefix,
-            AC_HELP_STRING([--with-pth-prefix=PFX],
+            AS_HELP_STRING([--with-pth-prefix=PFX],
                            [prefix where GNU Pth is installed (optional)]),
      pth_config_prefix="$withval", pth_config_prefix="")
 if test x$pth_config_prefix != x ; then
@@ -835,8 +835,6 @@ AC_SUBST(INSERT_SYS_SELECT_H)
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_SIZE_T
-AC_TYPE_SIGNAL
-AC_DECL_SYS_SIGLIST
 AC_TYPE_PID_T
 
 AC_CHECK_TYPES([byte, ushort, u16, u32, u64])
@@ -1238,8 +1236,8 @@ GNUPG_SYS_SYMBOL_UNDERSCORE()
 ####                         ####
 #################################
 AC_ARG_ENABLE(mpi-path,
-              AC_HELP_STRING([--enable-mpi-path=EXTRA_PATH],
-	      [prepend EXTRA_PATH to list of CPU specific optimizations]),
+              AS_HELP_STRING([--enable-mpi-path=EXTRA_PATH],
+              [prepend EXTRA_PATH to list of CPU specific optimizations]),
 	      mpi_extra_path="$enableval",mpi_extra_path="")
 AC_MSG_CHECKING(architecture and mpi assembler functions)
 if test -f $srcdir/mpi/config.links ; then
@@ -2110,8 +2108,8 @@ AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
 # This is handy for debugging so the compiler doesn't rearrange
 # things and eliminate variables.
 AC_ARG_ENABLE(optimization,
-       AC_HELP_STRING([--disable-optimization],
-		      [disable compiler optimization]),
+       AS_HELP_STRING([--disable-optimization],
+                      [disable compiler optimization]),
                       [if test $enableval = no ; then
                          CFLAGS=`echo $CFLAGS | sed 's/-O[[0-9]]//'`
                        fi])
@@ -2950,7 +2948,7 @@ AC_SUBST([GCRYPT_HWF_MODULES])
 # Option to disable building of doc file
 #
 build_doc=yes
-AC_ARG_ENABLE([doc], AC_HELP_STRING([--disable-doc],
+AC_ARG_ENABLE([doc], AS_HELP_STRING([--disable-doc],
                                     [do not build the documentation]),
                      build_doc=$enableval, build_doc=yes)
 AM_CONDITIONAL([BUILD_DOC], [test "x$build_doc" != xno])
@@ -2973,7 +2971,7 @@ AC_SUBST(BUILD_VERSION)
 AC_SUBST(BUILD_FILEVERSION)
 
 AC_ARG_ENABLE([build-timestamp],
-  AC_HELP_STRING([--enable-build-timestamp],
+  AS_HELP_STRING([--enable-build-timestamp],
                  [set an explicit build timestamp for reproducibility.
                   (default is the current time in ISO-8601 format)]),
      [if test "$enableval" = "yes"; then

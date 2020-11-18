@@ -25,7 +25,7 @@ AC_REQUIRE([AM_PROG_AS])
 
 AC_MSG_CHECKING([whether non excutable stack support is requested])
 AC_ARG_ENABLE(noexecstack,
-              AC_HELP_STRING([--disable-noexecstack],
+              AS_HELP_STRING([--disable-noexecstack],
                              [disable non executable stack support]),
               noexecstack_support=$enableval, noexecstack_support=yes)
 AC_MSG_RESULT($noexecstack_support)

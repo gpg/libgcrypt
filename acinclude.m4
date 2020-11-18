@@ -136,15 +136,15 @@ EOF
         if egrep '^nm_test_func ' "$ac_nlist" >/dev/null; then
           :
         else
-          echo "configure: cannot find nm_test_func in $ac_nlist" >&AC_FD_CC
+          echo "configure: cannot find nm_test_func in $ac_nlist" >&AS_MESSAGE_LOG_FD
         fi
       fi
     else
-      echo "configure: cannot run $lt_cv_sys_global_symbol_pipe" >&AC_FD_CC
+      echo "configure: cannot run $lt_cv_sys_global_symbol_pipe" >&AS_MESSAGE_LOG_FD
     fi
   else
-    echo "configure: failed program was:" >&AC_FD_CC
-    cat conftest.c >&AC_FD_CC
+    echo "configure: failed program was:" >&AS_MESSAGE_LOG_FD
+    cat conftest.c >&AS_MESSAGE_LOG_FD
   fi
   rm -rf conftest*
   ])
@@ -176,12 +176,13 @@ define(GNUPG_CHECK_MLOCK,
             AC_CHECK_LIB(rt, memlk)
             AC_CACHE_CHECK([whether mlock is in sys/mman.h],
                             gnupg_cv_mlock_is_in_sys_mman,
-                [AC_TRY_LINK([
+                [AC_LINK_IFELSE(
+                   [AC_LANG_PROGRAM([[
                     #include <assert.h>
                     #ifdef HAVE_SYS_MMAN_H
                     #include <sys/mman.h>
                     #endif
-                ], [
+                    ]], [[
 int i;
 
 /* glibc defines this for functions which it implements
@@ -194,7 +195,7 @@ choke me
 mlock(&i, 4);
 #endif
 ; return 0;
-                ],
+                    ]])],
                 gnupg_cv_mlock_is_in_sys_mman=yes,
                 gnupg_cv_mlock_is_in_sys_mman=no)])
             if test "$gnupg_cv_mlock_is_in_sys_mman" = "yes"; then
@@ -207,7 +208,7 @@ mlock(&i, 4);
         AC_CHECK_FUNCS(sysconf getpagesize)
         AC_MSG_CHECKING(whether mlock is broken)
           AC_CACHE_VAL(gnupg_cv_have_broken_mlock,
-             AC_TRY_RUN([
+             AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -243,8 +244,7 @@ int main()
 
     return 1;  /* hmmm */
 }
-
-            ],
+            ]])],
             gnupg_cv_have_broken_mlock="no",
             gnupg_cv_have_broken_mlock="yes",
             gnupg_cv_have_broken_mlock="assume-no"
