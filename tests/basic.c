@@ -9415,6 +9415,210 @@ err_out_free:
 
 
 
+static int
+check_one_cipher_ctr_reset (gcry_cipher_hd_t hd, int algo, int mode,
+			    u32 ctr_high_bits, int be_ctr,
+			    int pass)
+{
+  unsigned char iv[16] = { 0 };
+  unsigned char swap;
+  unsigned int ivlen;
+  u32 ctr_low_bits;
+  int err;
+  int i;
+
+  /* This should be largest parallel block processing count in any
+   * implementation negated. Currently for CTR this is 32 and, for
+   * ChaCha20, count is 8. */
+  ctr_low_bits = (mode == GCRY_CIPHER_MODE_CTR) ? -32 : -8;
+
+  gcry_cipher_reset (hd);
+
+  if (mode == GCRY_CIPHER_MODE_CTR)
+    ivlen = get_algo_mode_blklen(algo, GCRY_CIPHER_MODE_ECB);
+  else
+    ivlen = 16;
+
+  /* Little-endian fill. */
+  for (i = 0; i < 4; i++)
+    iv[i + 0] = (ctr_low_bits >> (i * 8)) & 0xff;
+  for (i = 0; i < 4; i++)
+    iv[i + 4] = (ctr_high_bits >> (i * 8)) & 0xff;
+
+  if (be_ctr)
+    {
+      /* Swap to big-endian. */
+      for (i = 0; i < ivlen / 2; i++)
+	{
+	  swap = iv[i];
+	  iv[i] = iv[ivlen - (i + 1)];
+	  iv[ivlen - (i + 1)] = swap;
+	}
+    }
+
+  clutter_vector_registers();
+  if (mode == GCRY_CIPHER_MODE_CTR)
+    err = gcry_cipher_setctr (hd, iv, ivlen);
+  else
+    err = gcry_cipher_setiv (hd, iv, ivlen);
+
+  if (err)
+    {
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_setiv failed: %s\n",
+	    pass, algo, mode, gpg_strerror (err));
+      gcry_cipher_close (hd);
+      return -1;
+    }
+
+  return 0;
+}
+
+static int
+check_one_cipher_ctr_overflow (int algo, int mode, int flags,
+			       const char *key, size_t nkey,
+			       const unsigned char *plain, size_t nplain,
+			       unsigned long ctr_high_bits, int be_ctr,
+			       int pass)
+{
+  gcry_cipher_hd_t hd;
+  unsigned char *out;
+  unsigned char *enc_result;
+  int keylen;
+  gcry_error_t err = 0;
+  unsigned int firstlen;
+  unsigned int leftlen;
+  unsigned int blklen;
+  unsigned int pos;
+  unsigned int i;
+
+  out = malloc (nplain);
+  enc_result = malloc (nplain);
+  if (!out || !enc_result)
+    {
+      fail ("pass %d, algo %d, mode %d, malloc failed\n",
+	    pass, algo, mode);
+      goto err_out_free;
+    }
+
+  assert (nkey == 64);
+  assert (nplain > 0);
+  assert ((nplain % 16) == 0);
+
+  keylen = gcry_cipher_get_algo_keylen (algo);
+  if (!keylen)
+    {
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_get_algo_keylen failed\n",
+	    pass, algo, mode);
+      goto err_out_free;
+    }
+
+  if (keylen < 40 / 8 || keylen > 32)
+    {
+      fail ("pass %d, algo %d, mode %d, keylength problem (%d)\n",
+	    pass, algo, mode, keylen);
+      goto err_out_free;
+    }
+
+  err = gcry_cipher_open (&hd, algo, mode, flags);
+  if (err)
+    {
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_open failed: %s\n",
+	    pass, algo, mode, gpg_strerror (err));
+      goto err_out_free;
+    }
+
+  clutter_vector_registers();
+  err = gcry_cipher_setkey (hd, key, keylen);
+  if (err)
+    {
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_setkey failed: %s\n",
+	    pass, algo, mode, gpg_strerror (err));
+      gcry_cipher_close (hd);
+      goto err_out_free;
+    }
+
+  if (check_one_cipher_ctr_reset (hd, algo, mode, ctr_high_bits, be_ctr,
+				  pass) < 0)
+    goto err_out_free;
+
+  /* Non-bulk processing. */
+  for (i = 0; i < nplain; i += 16)
+    {
+      clutter_vector_registers();
+      err = gcry_cipher_encrypt (hd, out + i, 16, plain + i, 16);
+      if (err)
+	{
+	  fail ("pass %d, algo %d, mode %d, gcry_cipher_encrypt failed: %s\n",
+		pass, algo, mode, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  goto err_out_free;
+	}
+    }
+
+  memcpy (enc_result, out, nplain);
+
+  /* Test with different bulk processing sizes. */
+  for (blklen = 2 * 16; blklen <= 32 * 16; blklen *= 2)
+    {
+      /* Move bulk processing start offset, test at different spots to
+       * test bulk counter calculation throughly. */
+      for (firstlen = 16; firstlen < 8 * 64; firstlen += 16)
+	{
+	  if (check_one_cipher_ctr_reset (hd, algo, mode, ctr_high_bits, be_ctr,
+					  pass) < 0)
+	    goto err_out_free;
+
+	  clutter_vector_registers();
+	  err = gcry_cipher_encrypt (hd, out, firstlen, plain, firstlen);
+	  if (err)
+	    {
+	      fail ("pass %d, algo %d, mode %d, gcry_cipher_encrypt "
+		    "failed: %s\n", pass, algo, mode, gpg_strerror (err));
+	      gcry_cipher_close (hd);
+	      goto err_out_free;
+	    }
+
+	  leftlen = nplain - firstlen;
+	  pos = firstlen;
+	  while (leftlen)
+	    {
+	      unsigned int currlen = leftlen > blklen ? blklen : leftlen;
+
+	      clutter_vector_registers();
+	      err = gcry_cipher_encrypt (hd, out + pos, currlen, plain + pos,
+					 currlen);
+	      if (err)
+		{
+		  fail ("pass %d, algo %d, mode %d, block len %d, first len %d,"
+			"gcry_cipher_encrypt failed: %s\n", pass, algo, mode,
+			blklen, firstlen, gpg_strerror (err));
+		  gcry_cipher_close (hd);
+		  goto err_out_free;
+		}
+
+	      pos += currlen;
+	      leftlen -= currlen;
+	    }
+
+	  if (memcmp (enc_result, out, nplain))
+	    fail ("pass %d, algo %d, mode %d, block len %d, first len %d, "
+	          "encrypt mismatch\n", pass, algo, mode, blklen, firstlen);
+	}
+    }
+
+  gcry_cipher_close (hd);
+
+  free (enc_result);
+  free (out);
+  return 0;
+
+err_out_free:
+  free (enc_result);
+  free (out);
+  return -1;
+}
+
+
 static void
 check_one_cipher (int algo, int mode, int flags)
 {
@@ -9490,6 +9694,34 @@ check_one_cipher (int algo, int mode, int flags)
 			     large_buffer_size, bufshift,
 			     50))
     goto out;
+
+  /* Pass 6: Counter overflow tests for ChaCha20 and CTR mode. */
+  if (mode == GCRY_CIPHER_MODE_STREAM && algo == GCRY_CIPHER_CHACHA20)
+    {
+      /* 32bit overflow test (little-endian counter) */
+      if (check_one_cipher_ctr_overflow (algo, mode, flags, key, 64, plain,
+					  medium_buffer_size, 0UL,
+					  0, 60))
+	goto out;
+      /* 64bit overflow test (little-endian counter) */
+      if (check_one_cipher_ctr_overflow (algo, mode, flags, key, 64, plain,
+					  medium_buffer_size, 0xffffffffUL,
+					  0, 61))
+	goto out;
+    }
+   else if (mode == GCRY_CIPHER_MODE_CTR)
+    {
+      /* 32bit overflow test (big-endian counter) */
+      if (check_one_cipher_ctr_overflow (algo, mode, flags, key, 64, plain,
+					  medium_buffer_size, 0UL,
+					  1, 62))
+	goto out;
+      /* 64bit overflow test (big-endian counter) */
+      if (check_one_cipher_ctr_overflow (algo, mode, flags, key, 64, plain,
+					  medium_buffer_size, 0xffffffffUL,
+					  1, 63))
+	goto out;
+    }
 
 out:
   free (plain);
