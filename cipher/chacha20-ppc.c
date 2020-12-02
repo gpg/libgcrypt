@@ -88,6 +88,24 @@ vec_store_le(vector4x_u32 vec, unsigned long offset, unsigned char *ptr)
 }
 
 
+static ASM_FUNC_ATTR_INLINE vector4x_u32
+vec_add_ctr_u64(vector4x_u32 v, vector4x_u32 a)
+{
+#ifdef WORDS_BIGENDIAN
+  static const vector16x_u8 swap32 =
+    { 4, 5, 6, 7, 0, 1, 2, 3, 12, 13, 14, 15, 8, 9, 10, 11 };
+  vector2x_u64 vec, add, sum;
+
+  vec = (vector2x_u64)vec_perm((vector16x_u8)v, (vector16x_u8)v, swap32);
+  add = (vector2x_u64)vec_perm((vector16x_u8)a, (vector16x_u8)a, swap32);
+  sum = vec + add;
+  return (vector4x_u32)vec_perm((vector16x_u8)sum, (vector16x_u8)sum, swap32);
+#else
+  return (vector4x_u32)((vector2x_u64)(v) + (vector2x_u64)(a));
+#endif
+}
+
+
 /**********************************************************************
   2-way && 1-way chacha20
  **********************************************************************/
@@ -114,6 +132,9 @@ vec_store_le(vector4x_u32 vec, unsigned long offset, unsigned char *ptr)
 	  WORD_ROL(x2, rol_x2); \
 				   ROTATE(x1, rotate_7); \
 	  WORD_ROL(x1, rol_x1);
+
+#define ADD_U64(v,a) \
+	(v = vec_add_ctr_u64(v, a))
 
 unsigned int ASM_FUNC_ATTR
 _gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst, const byte *src,
@@ -152,7 +173,7 @@ _gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst, const byte *src,
       v5 = state1;
       v6 = state2;
       v7 = state3;
-      v7 += counter_1;
+      ADD_U64(v7, counter_1);
 
       for (i = 20; i > 0; i -= 2)
 	{
@@ -166,12 +187,12 @@ _gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst, const byte *src,
       v1 += state1;
       v2 += state2;
       v3 += state3;
-      state3 += counter_1; /* update counter */
+      ADD_U64(state3, counter_1); /* update counter */
       v4 += state0;
       v5 += state1;
       v6 += state2;
       v7 += state3;
-      state3 += counter_1; /* update counter */
+      ADD_U64(state3, counter_1); /* update counter */
 
       v0 ^= vec_load_le(0 * 16, src);
       v1 ^= vec_load_le(1 * 16, src);
@@ -214,7 +235,7 @@ _gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst, const byte *src,
       v1 += state1;
       v2 += state2;
       v3 += state3;
-      state3 += counter_1; /* update counter */
+      ADD_U64(state3, counter_1); /* update counter */
 
       v0 ^= vec_load_le(0 * 16, src);
       v1 ^= vec_load_le(1 * 16, src);
@@ -339,7 +360,7 @@ _gcry_chacha20_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
       v13 += vec_splat(state3, 1) - vec_cmplt(tmp, counters_0123);
       v14 += vec_splat(state3, 2);
       v15 += vec_splat(state3, 3);
-      state3 += counter_4; /* update counter */
+      ADD_U64(state3, counter_4); /* update counter */
 
       transpose_4x4(v0, v1, v2, v3);
       transpose_4x4(v4, v5, v6, v7);
@@ -554,7 +575,7 @@ _gcry_chacha20_poly1305_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
       v13 += vec_splat(state3, 1) - vec_cmplt(tmp, counters_0123);
       v14 += vec_splat(state3, 2);
       v15 += vec_splat(state3, 3);
-      state3 += counter_4; /* update counter */
+      ADD_U64(state3, counter_4); /* update counter */
 
       transpose_4x4(v0, v1, v2, v3);
       transpose_4x4(v4, v5, v6, v7);
