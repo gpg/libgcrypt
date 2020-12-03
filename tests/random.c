@@ -505,6 +505,65 @@ check_drbg_reinit (void)
 }
 
 
+#ifdef USE_POSIX_SPAWN_FOR_TESTS
+#include <spawn.h>
+extern char **environ;
+
+static void
+run_all_rng_tests (const char *program)
+{
+  static const char *options[][2] = {
+    { "--early-rng-check",     NULL },
+    { "--early-rng-check",     "--prefer-standard-rng" },
+    { "--early-rng-check",     "--prefer-fips-rng" },
+    { "--early-rng-check",     "--prefer-system-rng" },
+    { "--prefer-standard-rng", NULL },
+    { "--prefer-fips-rng",     NULL },
+    { "--prefer-system-rng",   NULL },
+    { NULL, NULL }
+  };
+  int idx;
+  char *argv[8];
+
+  for (idx=0; options[idx][0]; idx++)
+    {
+      int i;
+      pid_t pid;
+      int status;
+
+      if (verbose)
+        info ("now running with options '%s%s%s'\n",
+              options[idx][0],
+              options[idx][1] ? " " : "",
+              options[idx][1] ? options[idx][1] : "");
+
+      i = 0;
+      argv[i++] = xstrdup (program);
+      argv[i++] = xstrdup ("--in-recursion");
+      argv[i++] = xstrdup ("--verbose");
+      argv[i++] = xstrdup ("--debug");
+      argv[i++] = xstrdup ("--progress");
+      argv[i++] = xstrdup (options[idx][0]);
+      if (options[idx][1])
+        argv[i++] = xstrdup (options[idx][1]);
+      argv[i++] = NULL;
+
+      if (posix_spawn (&pid, program, NULL, NULL, argv, environ))
+        die ("spawning '%s' failed\n", program);
+
+      if (waitpid (pid, &status, 0) < 0)
+        die ("waitpid for '%s' failed\n", program);
+
+      if (WIFEXITED (status) && WEXITSTATUS (status))
+        die ("running '%s' failed with %d\n", program, WEXITSTATUS (status));
+      else if (!WIFEXITED (status))
+        die ("running '%s' failed\n", program);
+
+      while (i)
+        xfree (argv[--i]);
+    }
+}
+#else
 /* Because we want to check initialization behaviour, we need to
    fork/exec this program with several command line arguments.  We use
    system, so that these tests work also on Windows.  */
@@ -559,6 +618,7 @@ run_all_rng_tests (const char *program)
 
   free (cmdline);
 }
+#endif
 
 
 static void
