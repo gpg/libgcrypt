@@ -23,7 +23,7 @@
 
 #include <config.h>
 
-#ifdef __ELF__
+#ifdef HAVE_GCC_ASM_ELF_DIRECTIVES
 # define ELF(...) __VA_ARGS__
 #else
 # define ELF(...) /*_*/

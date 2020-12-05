@@ -1225,6 +1225,26 @@ fi
 
 
 #
+# Check whether GCC assembler supports for ELF directives.
+#
+AC_CACHE_CHECK([whether GCC assembler supports for ELF directives],
+       [gcry_cv_gcc_asm_elf_directives],
+       [gcry_cv_gcc_asm_elf_directives=no
+        AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[__asm__(
+                /* Test if ELF directives '.type' and '.size' are supported. */
+                "asmfunc:\n\t"
+                ".size asmfunc,.-asmfunc;\n\t"
+                ".type asmfunc,STT_FUNC;\n\t"
+            );]])],
+          [gcry_cv_gcc_asm_elf_directives=yes])])
+if test "$gcry_cv_gcc_asm_elf_directives" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ASM_ELF_DIRECTIVES,1,
+             [Defined if underlying assembler supports for ELF directives])
+fi
+
+
+#
 # Check whether underscores in symbols are required.  This needs to be
 # done before setting up the assembler stuff.
 #
