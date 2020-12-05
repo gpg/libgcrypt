@@ -305,9 +305,13 @@ extern UDItype __udiv_qrnnd ();
     (ph) = __ph; \
   } while (0)
 # define count_leading_zeros(count, x) \
-  __asm__ ("clz %0, %1\n"                                               \
-           : "=r" ((count))                                             \
-           : "r" ((UDItype)(x)))
+  do {                                                                  \
+    UDItype __co;                                                       \
+    __asm__ ("clz %0, %1\n"                                             \
+             : "=r" (__co)                                              \
+             : "r" ((UDItype)(x)));                                     \
+    (count) = __co;                                                     \
+  } while (0)
 #endif /* __aarch64__ */
 
 /***************************************
