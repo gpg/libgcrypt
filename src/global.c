@@ -141,6 +141,34 @@ global_init (void)
 }
 
 
+#ifndef FIPS_MODULE_PATH
+#define FIPS_MODULE_PATH "/etc/system-fips"
+#endif
+
+void __attribute__ ((constructor)) _gcry_global_constructor (void)
+{
+  int rv;
+
+  rv = access (FIPS_MODULE_PATH, F_OK);
+  if (rv < 0 && errno != ENOENT)
+    rv = 0;
+
+  if (!rv)
+    {
+      int no_secmem_save;
+
+      /* it should be always 0 at this point but let's keep on the safe side */
+      no_secmem_save = no_secure_memory;
+      no_secure_memory = 1;
+      /* force selftests */
+      global_init();
+      _gcry_fips_run_selftests (0);
+      if (!fips_mode())
+         _gcry_random_close_fds ();
+      no_secure_memory = no_secmem_save;
+    }
+}
+
 /* This function is called by the macro fips_is_operational and makes
    sure that the minimal initialization has been done.  This is far
    from a perfect solution and hides problems with an improper
@@ -672,8 +700,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     case GCRYCTL_FIPS_MODE_P:
       if (fips_mode ()
-          && !_gcry_is_fips_mode_inactive ()
-          && !no_secure_memory)
+          && !_gcry_is_fips_mode_inactive ())
 	rc = GPG_ERR_GENERAL; /* Used as TRUE value */
       break;
 
@@ -750,9 +777,9 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_SET_ENFORCED_FIPS_FLAG:
-      if (!_gcry_global_any_init_done)
+      if (fips_mode ())
         {
-          /* Not yet initialized at all.  Set the enforced fips mode flag */
+          /* We are in FIPS mode, we can set the enforced fips mode flag. */
           _gcry_set_preferred_rng_type (0);
           _gcry_set_enforced_fips_mode ();
         }
