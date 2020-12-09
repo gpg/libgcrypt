@@ -317,6 +317,7 @@ struct drbg_state_s
   gcry_cipher_hd_t ctr_handle;	/* CTR mode cipher handle */
   int seeded:1;			/* DRBG fully seeded? */
   int pr:1;			/* Prediction resistance enabled? */
+  int ent_primed:1;             /* Previous entropy data primed? */
   /* Taken from libgcrypt ANSI X9.31 DRNG: We need to keep track of the
    * process which did the initialization so that we can detect a fork.
    * The volatile modifier is required so that the compiler does not
@@ -324,6 +325,7 @@ struct drbg_state_s
   pid_t seed_init_pid;
   const struct drbg_state_ops_s *d_ops;
   const struct drbg_core_s *core;
+  unsigned char ent_hash[64];	/* Hash of previous entropy data */
   struct drbg_test_data_s *test_data;
 };
 
@@ -610,11 +612,13 @@ drbg_get_entropy (drbg_state_t drbg, unsigned char *buffer,
 		       size_t len)
 {
   int rc = 0;
+  unsigned char newhash[64];
 
   /* Perform testing as defined in 11.3.2 */
   if (drbg->test_data && drbg->test_data->fail_seed_source)
     return -1;
 
+redo:
   read_cb_buffer = buffer;
   read_cb_size = len;
   read_cb_len = 0;
@@ -634,6 +638,27 @@ drbg_get_entropy (drbg_state_t drbg, unsigned char *buffer,
 #else
   rc = -1;
 #endif
+
+  /* to avoid storing the actual entropy obtained for indefinite
+     time, we just store the SHA-512 hash of the entropy gathered
+   */
+  _gcry_md_hash_buffer (GCRY_MD_SHA512, newhash, buffer, len);
+
+  if (!drbg->ent_primed)
+    {
+      memcpy (drbg->ent_hash, newhash, sizeof (drbg->ent_hash));
+      drbg->ent_primed = 1;
+      goto redo;
+    }
+
+  if (memcmp (newhash, drbg->ent_hash, sizeof (drbg->ent_hash)) == 0)
+    {
+      fips_signal_error ("Entropy source failed the continuous test");
+      return -1;  /* continuous entropy test failed */
+    }
+
+  memcpy (drbg->ent_hash, newhash, sizeof (drbg->ent_hash));
+
   return rc;
 }
 
@@ -1342,26 +1367,38 @@ drbg_seed (drbg_state_t drbg, drbg_string_t *pers, int reseed)
     }
   else
     {
+      int nonce = 0;
       /* Gather entropy equal to the security strength of the DRBG.
        * With a derivation function, a nonce is required in addition
        * to the entropy. A nonce must be at least 1/2 of the security
        * strength of the DRBG in size. Thus, entropy * nonce is 3/2
        * of the strength. The consideration of a nonce is only
-       * applicable during initial seeding. */
+       * applicable during initial seeding.
+       * To avoid pulling different length of data from entropy
+       * source, we use 2 * strength for initial seeding. */
       entropylen = drbg_sec_strength (drbg->core->flags);
       if (!entropylen)
 	return GPG_ERR_GENERAL;
       if (0 == reseed)
-	/* make sure we round up strength/2 in
-	 * case it is not divisible by 2 */
-	entropylen = ((entropylen + 1) / 2) * 3;
+        {
+	  nonce = 1;
+        }
       dbg (("DRBG: (re)seeding with %lu bytes of entropy\n", entropylen));
-      entropy = xcalloc_secure (1, entropylen);
+      entropy = xcalloc_secure (nonce + 1, entropylen);
       if (!entropy)
 	return GPG_ERR_ENOMEM;
       ret = drbg_get_entropy (drbg, entropy, entropylen);
       if (ret)
 	goto out;
+      if (nonce)
+        {
+          ret = drbg_get_entropy (drbg, entropy + entropylen, entropylen);
+          if (ret)
+	    goto out;
+	  /* make sure we round up strength/2 in
+	   * case it is not divisible by 2 */
+	  entropylen = 2 * entropylen;
+        }
       drbg_string_fill (&data1, entropy, entropylen);
     }
 
@@ -1598,6 +1635,7 @@ drbg_instantiate (drbg_state_t drbg,
   drbg->core = &drbg_cores[coreref];
   drbg->pr = pr;
   drbg->seeded = 0;
+  drbg->ent_primed = 0;
   if (drbg->core->flags & DRBG_HMAC)
     drbg->d_ops = &drbg_hmac_ops;
   else if (drbg->core->flags & DRBG_HASH_MASK)
