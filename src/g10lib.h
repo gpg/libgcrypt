@@ -429,6 +429,9 @@ gpg_err_code_t _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
 
 extern int _gcry_no_fips_mode_required;
 
+/* The name of the file used to force libgcrypt into fips mode. */
+#define FIPS_FORCE_FILE "/etc/gcrypt/fips_enabled"
+
 void _gcry_initialize_fips_mode (int force);
 
 /* This macro returns true if fips mode is enabled.  This is

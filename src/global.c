@@ -153,6 +153,53 @@ void __attribute__ ((constructor)) _gcry_global_constructor (void)
   if (rv < 0 && errno != ENOENT)
     rv = 0;
 
+  /* For testing the system it is useful to override the system
+     provided detection of the FIPS mode and force FIPS mode using a
+     file.  The filename is hardwired so that there won't be any
+     confusion on whether /etc/gcrypt/ or /usr/local/etc/gcrypt/ is
+     actually used.  The file itself may be empty.  */
+  if ( !access (FIPS_FORCE_FILE, F_OK) )
+    {
+      rv = 0;
+      force_fips_mode = 1;
+    }
+
+  /* Checking based on /proc file properties.  */
+  {
+    static const char procfname[] = "/proc/sys/crypto/fips_enabled";
+    FILE *fp;
+    int saved_errno;
+
+    fp = fopen (procfname, "r");
+    if (fp)
+      {
+        char line[256];
+
+        if (fgets (line, sizeof line, fp) && atoi (line))
+          {
+            /* System is in fips mode.  */
+            rv = 0;
+            force_fips_mode = 1;
+          }
+        fclose (fp);
+      }
+    else if ((saved_errno = errno) != ENOENT
+             && saved_errno != EACCES
+             && !access ("/proc/version", F_OK) )
+      {
+        /* Problem reading the fips file despite that we have the proc
+           file system.  We better stop right away. */
+        log_info ("FATAL: error reading `%s' in libgcrypt: %s\n",
+                  procfname, strerror (saved_errno));
+#ifdef HAVE_SYSLOG
+        syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
+                "reading `%s' failed: %s - abort",
+                procfname, strerror (saved_errno));
+#endif /*HAVE_SYSLOG*/
+        abort ();
+      }
+  }
+
   if (!rv)
     {
       int no_secmem_save;
