@@ -389,7 +389,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
 
   if (nbits < 1024 || (nbits & 0x1FF))
     return GPG_ERR_INV_VALUE;
-  if (_gcry_enforced_fips_mode() && nbits != 2048 && nbits != 3072)
+  if (fips_mode() && nbits < 2048)
       return GPG_ERR_INV_VALUE;
 
   /* The random quality depends on the transient_key flag.  */
@@ -696,7 +696,7 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
 
   *swapped = 0;
 
-  if (e_value == 1)   /* Alias for a secure value. */
+  if (e_value == 1 || e_value == 0)   /* Alias for a secure value. */
     e_value = 65537;
 
   /* Point 1 of section 4.1:  k = 1024 + 256s with S >= 0  */

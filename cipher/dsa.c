@@ -457,11 +457,22 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
                                              &prime_q, &prime_p,
                                              r_counter,
                                              r_seed, r_seedlen);
-      else
-        ec = _gcry_generate_fips186_3_prime (nbits, qbits, NULL, 0,
+      else if (!domain->p || !domain->q)
+        ec = _gcry_generate_fips186_3_prime (nbits, qbits,
+                                             initial_seed.seed,
+                                             initial_seed.seedlen,
                                              &prime_q, &prime_p,
                                              r_counter,
                                              r_seed, r_seedlen, NULL);
+      else
+        {
+          /* Domain parameters p and q are given; use them.  */
+          prime_p = mpi_copy (domain->p);
+          prime_q = mpi_copy (domain->q);
+          gcry_assert (mpi_get_nbits (prime_p) == nbits);
+          gcry_assert (mpi_get_nbits (prime_q) == qbits);
+          ec = 0;
+        }
       sexp_release (initial_seed.sexp);
       if (ec)
         goto leave;
@@ -857,13 +868,12 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       sexp_release (l1);
       sexp_release (domainsexp);
 
-      /* Check that all domain parameters are available.  */
-      if (!domain.p || !domain.q || !domain.g)
+      /* Check that p and q domain parameters are available.  */
+      if (!domain.p || !domain.q || (!domain.g && !(flags & PUBKEY_FLAG_USE_FIPS186)))
         {
           _gcry_mpi_release (domain.p);
           _gcry_mpi_release (domain.q);
           _gcry_mpi_release (domain.g);
-          sexp_release (deriveparms);
           return GPG_ERR_MISSING_VALUE;
         }
 
