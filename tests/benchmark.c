@@ -943,8 +943,10 @@ cipher_bench ( const char *algoname )
           && algo != GCRY_CIPHER_CHACHA20)
         continue;
 
-      if (modes[modeidx].req_blocksize > 0
-          && blklen != modes[modeidx].req_blocksize)
+      if ((modes[modeidx].req_blocksize > 0
+           && blklen != modes[modeidx].req_blocksize)
+          || (in_fips_mode
+           && modes[modeidx].mode == GCRY_CIPHER_MODE_GCM))
         {
           printf (" %7s %7s", "-", "-" );
           continue;

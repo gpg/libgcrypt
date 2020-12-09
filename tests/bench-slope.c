@@ -1628,7 +1628,7 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
     return;
 
   /* GCM has restrictions for block-size */
-  if (mode.mode == GCRY_CIPHER_MODE_GCM && blklen != GCRY_GCM_BLOCK_LEN)
+  if (mode.mode == GCRY_CIPHER_MODE_GCM && (gcry_fips_mode_active () || blklen != GCRY_GCM_BLOCK_LEN))
     return;
 
   /* XTS has restrictions for block-size */

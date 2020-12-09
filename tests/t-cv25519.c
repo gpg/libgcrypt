@@ -639,6 +639,9 @@ main (int argc, char **argv)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
+  /* Curve25519 isn't supported in fips mode */
+  if (gcry_fips_mode_active())
+    return 77;
 
   start_timer ();
   check_cv25519 ();

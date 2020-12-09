@@ -504,15 +504,30 @@ get_dsa_key_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   rc = gcry_sexp_new
     (&key_spec,
      "(genkey (dsa (transient-key)(domain"
-     "(p #d3aed1876054db831d0c1348fbb1ada72507e5fbf9a62cbd47a63aeb7859d6921"
-     "4adeb9146a6ec3f43520f0fd8e3125dd8bbc5d87405d1ac5f82073cd762a3f8d7"
-     "74322657c9da88a7d2f0e1a9ceb84a39cb40876179e6a76e400498de4bb9379b0"
-     "5f5feb7b91eb8fea97ee17a955a0a8a37587a272c4719d6feb6b54ba4ab69#)"
-     "(q #9c916d121de9a03f71fb21bc2e1c0d116f065a4f#)"
-     "(g #8157c5f68ca40b3ded11c353327ab9b8af3e186dd2e8dade98761a0996dda99ab"
-     "0250d3409063ad99efae48b10c6ab2bba3ea9a67b12b911a372a2bba260176fad"
-     "b4b93247d9712aad13aa70216c55da9858f7a298deb670a403eb1e7c91b847f1e"
-     "ccfbd14bd806fd42cf45dbb69cd6d6b43add2a78f7d16928eaa04458dea44#)"
+     " (p #a85378d8fd3f8d72ec7418080da21317e43ec4b62ba8c862"
+     "     3b7e4d04441dd1a0658662596493ca8e9e8fbb7e34aaddb6"
+     "     2e5d67b6d09a6e61b769e7c352aa2b10e20ca0636963b552"
+     "     3e86470decbbeda027e797e7b67635d4d49c30700e74af8a"
+     "     0ff156a801af57a26e7078f1d82f74908ecb6d07e70b3503"
+     "     eed94fa32cf17a7fc3d6cf40dc7b00830e6a2566dc073e34"
+     "     3312517c6aa5152b4bfecd2e551fee346318a153423c996b"
+     "     0d5dcb9102aedd38798616f1f1e0d6c403525b1f9b3d4dc7"
+     "     66de2dfc4a56d7b8ba5963d60f3e16318870ad436952e557"
+     "     65374eab85e8ec17d6b9a4547b9b5f2752f3105be809b23a"
+     "     2c8d7469db02e24d592394a7dba069e9#)"
+     " (q #d277044e50f5a4e3f510a50a0b84fdffbca047ed27602056"
+     "     7441a0a5#)"
+     " (g #13d754e21fd241655da891c522a65a72a89bdc64ec9b54a8"
+     "     21ed4a898b490e0c4fcb72192a4a20f541f3f2925399f0ba"
+     "     ecf929aafbf79dfe4332393b32cd2e2fcf272f32a627434a"
+     "     0df242b75b414df372121e53a553f222f836b000f016485b"
+     "     6bd0898451801dcd8de64cd5365696ffc532d528c506620a"
+     "     942a0305046d8f1876341f1e570bc3974ba6b9a438e97023"
+     "     02a2e6e67bfd06d32bc679962271d7b40cd72f386e64e0d7"
+     "     ef86ca8ca5d14228dc2a4f16e3189886b5990674f4200f3a"
+     "     4cf65a3f0ddba1fa672dff2f5e143d10e4e97ae84f6da095"
+     "     35d5b9df259181a79b63b069e949972b02ba36b3586aab7e"
+     "     45f322f82e4e85ca3ab85591b3c2a966#)"
      ")))", 0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
@@ -595,7 +610,7 @@ get_dsa_key_fips186_with_seed_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
      "    (use-fips186)"
      "    (transient-key)"
      "    (derive-parms"
-     "      (seed #0cb1990c1fd3626055d7a0096f8fa99807399871#))))",
+     "      (seed #8b4c4d671fff82e8ed932260206d0571e3a1c2cee8cd94cb73fe58f9b67488fa#))))",
      0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));

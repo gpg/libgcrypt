@@ -174,7 +174,8 @@ main (int argc, char **argv)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
   xgcry_control ((GCRYCTL_INIT_SECMEM, pool_size, 0));
-  gcry_set_outofcore_handler (outofcore_handler, NULL);
+  if (!gcry_fips_mode_active ())
+    gcry_set_outofcore_handler (outofcore_handler, NULL);
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
   /* Libgcrypt prints a warning when the first overflow is allocated;
@@ -184,7 +185,8 @@ main (int argc, char **argv)
 
 
   test_secmem ();
-  test_secmem_overflow ();
+  if (!gcry_fips_mode_active ())
+    test_secmem_overflow ();
   /* FIXME: We need to improve the tests, for example by registering
    * our own log handler and comparing the output of
    * PRIV_CTL_DUMP_SECMEM_STATS to expected pattern.  */

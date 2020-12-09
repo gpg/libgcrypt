@@ -9821,7 +9821,7 @@ check_ciphers (void)
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_EAX, 0);
       if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_CCM_BLOCK_LEN)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_CCM, 0);
-      if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_GCM_BLOCK_LEN)
+      if (!in_fips_mode && gcry_cipher_get_algo_blklen (algos[i]) == GCRY_GCM_BLOCK_LEN)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_GCM, 0);
       if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_OCB_BLOCK_LEN)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_OCB, 0);
@@ -9868,12 +9868,18 @@ check_cipher_modes(void)
   check_cfb_cipher ();
   check_ofb_cipher ();
   check_ccm_cipher ();
-  check_gcm_cipher ();
-  check_poly1305_cipher ();
-  check_ocb_cipher ();
+  if (!in_fips_mode)
+    {
+      check_gcm_cipher ();
+      check_poly1305_cipher ();
+      check_ocb_cipher ();
+    }
   check_xts_cipher ();
-  check_eax_cipher ();
-  check_gost28147_cipher ();
+  if (!in_fips_mode)
+    {
+      check_eax_cipher ();
+      check_gost28147_cipher ();
+    }
   check_stream_cipher ();
   check_stream_cipher_large_block ();
 
@@ -13219,7 +13225,7 @@ check_mac (void)
           show_mac_not_available (algos[i].algo);
           continue;
         }
-      if (gcry_mac_test_algo (algos[i].algo) && in_fips_mode)
+      if ((algos[i].algo == GCRY_MAC_GMAC_AES || gcry_mac_test_algo (algos[i].algo)) && in_fips_mode)
         {
           if (verbose)
             fprintf (stderr, "  algorithm %d not available in fips mode\n",
@@ -14344,8 +14350,6 @@ main (int argc, char **argv)
       /* If we are in fips mode do some more tests. */
       gcry_md_hd_t md;
 
-      /* First trigger a self-test.  */
-      xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
       if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
         fail ("not in operational state after self-test\n");
 
@@ -14370,15 +14374,6 @@ main (int argc, char **argv)
               gcry_md_close (md);
               if (gcry_control (GCRYCTL_OPERATIONAL_P, 0))
                 fail ("expected error state but still in operational state\n");
-              else
-                {
-                  /* Now run a self-test and to get back into
-                     operational state.  */
-                  xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
-                  if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
-                    fail ("did not reach operational after error "
-                          "and self-test\n");
-                }
             }
         }
 
