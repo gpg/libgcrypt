@@ -495,29 +495,32 @@ run_digest_selftests (int extended)
 
 /* Run self-tests for all HMAC algorithms.  Return 0 on success. */
 static int
-run_hmac_selftests (int extended)
+run_mac_selftests (int extended)
 {
-  static int algos[] =
+  static int algos[][2] =
     {
-      GCRY_MD_SHA1,
-      GCRY_MD_SHA224,
-      GCRY_MD_SHA256,
-      GCRY_MD_SHA384,
-      GCRY_MD_SHA512,
-      GCRY_MD_SHA3_224,
-      GCRY_MD_SHA3_256,
-      GCRY_MD_SHA3_384,
-      GCRY_MD_SHA3_512,
-      0
+      { GCRY_MD_SHA1, 0 },
+      { GCRY_MD_SHA224, 0 },
+      { GCRY_MD_SHA256, 0 },
+      { GCRY_MD_SHA384, 0 },
+      { GCRY_MD_SHA512, 0 },
+      { GCRY_MD_SHA3_224, 0 },
+      { GCRY_MD_SHA3_256, 0 },
+      { GCRY_MD_SHA3_384, 0 },
+      { GCRY_MD_SHA3_512, 0 },
+      { GCRY_MAC_CMAC_3DES, 1 },
+      { GCRY_MAC_CMAC_AES, 1 },
+      { 0, 0 }
     };
   int idx;
   gpg_error_t err;
   int anyerr = 0;
 
-  for (idx=0; algos[idx]; idx++)
+  for (idx=0; algos[idx][0]; idx++)
     {
-      err = _gcry_hmac_selftest (algos[idx], extended, reporter);
-      reporter ("hmac", algos[idx], NULL,
+      err = algos[idx][1] ? _gcry_cmac_selftest (algos[idx][0], extended, reporter) :
+        _gcry_hmac_selftest (algos[idx][0], extended, reporter);
+      reporter (algos[idx][1] ? "cmac" : "hmac", algos[idx][0], NULL,
                 err? gpg_strerror (err):NULL);
       if (err)
         anyerr = 1;
@@ -678,7 +681,7 @@ _gcry_fips_run_selftests (int extended)
   if (run_digest_selftests (extended))
     goto leave;
 
-  if (run_hmac_selftests (extended))
+  if (run_mac_selftests (extended))
     goto leave;
 
   /* Run random tests before the pubkey tests because the latter
