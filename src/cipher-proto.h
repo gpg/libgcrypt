@@ -271,6 +271,8 @@ gcry_error_t _gcry_hmac_selftest (int algo, int extended,
                                   selftest_report_func_t report);
 gcry_error_t _gcry_cmac_selftest (int algo, int extended,
                                   selftest_report_func_t report);
+gcry_error_t _gcry_kdf_selftest (int algo, int extended,
+                                  selftest_report_func_t report);
 
 gcry_error_t _gcry_random_selftest (selftest_report_func_t report);
 
