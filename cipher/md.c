@@ -562,13 +562,10 @@ md_enable (gcry_md_hd_t hd, int algorithm)
     }
 
 
-  if (!err && algorithm == GCRY_MD_MD5 && fips_mode ())
+  if (!err && !spec->flags.fips && fips_mode ())
     {
-      _gcry_inactivate_fips_mode ("MD5 used");
       if (_gcry_enforced_fips_mode () )
         {
-          /* We should never get to here because we do not register
-             MD5 in enforced fips mode. But better throw an error.  */
           err = GPG_ERR_DIGEST_ALGO;
         }
     }
