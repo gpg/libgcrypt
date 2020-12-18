@@ -222,6 +222,49 @@ hmac_get_keylen (int algo)
     }
 }
 
+#include "hmac-tests.c"
+
+static gpg_err_code_t
+hmac_selftest (int algo, int extended, selftest_report_func_t report)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_MAC_HMAC_SHA1:
+      ec = selftests_sha1 (extended, report);
+      break;
+    case GCRY_MAC_HMAC_SHA224:
+      ec = selftests_sha224 (extended, report);
+      break;
+    case GCRY_MAC_HMAC_SHA256:
+      ec = selftests_sha256 (extended, report);
+      break;
+    case GCRY_MAC_HMAC_SHA384:
+      ec = selftests_sha384 (extended, report);
+      break;
+    case GCRY_MAC_HMAC_SHA512:
+      ec = selftests_sha512 (extended, report);
+      break;
+
+    case GCRY_MAC_HMAC_SHA3_224:
+    case GCRY_MAC_HMAC_SHA3_256:
+    case GCRY_MAC_HMAC_SHA3_384:
+    case GCRY_MAC_HMAC_SHA3_512:
+      {
+        int md_algo = map_mac_algo_to_md (algo);
+        ec = selftests_sha3 (md_algo, extended, report);
+      }
+      break;
+
+    default:
+      ec = GPG_ERR_MAC_ALGO;
+      break;
+    }
+
+  return ec;
+}
+
 
 static const gcry_mac_spec_ops_t hmac_ops = {
   hmac_open,
@@ -234,7 +277,8 @@ static const gcry_mac_spec_ops_t hmac_ops = {
   hmac_verify,
   hmac_get_maclen,
   hmac_get_keylen,
-  NULL
+  NULL,
+  hmac_selftest
 };
 
 

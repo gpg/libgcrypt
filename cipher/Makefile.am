@@ -26,7 +26,7 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
-EXTRA_DIST = gost-s-box.c
+EXTRA_DIST = gost-s-box.c hmac-tests.c
 
 CLEANFILES = gost-s-box
 DISTCLEANFILES = gost-sb.h
@@ -61,7 +61,6 @@ libcipher_la_SOURCES = \
 	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
 	poly1305.c poly1305-internal.h \
 	kdf.c kdf-internal.h \
-	hmac-tests.c \
 	bithelp.h  \
 	bufhelp.h  \
 	primegen.c  \

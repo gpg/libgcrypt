@@ -781,3 +781,28 @@ _gcry_mac_algo_info (int algo, int what, void *buffer, size_t * nbytes)
 
   return rc;
 }
+
+
+/* Run the self-tests for the MAC.  */
+gpg_error_t
+_gcry_mac_selftest (int algo, int extended, selftest_report_func_t report)
+{
+  gcry_err_code_t ec;
+  gcry_mac_spec_t *spec;
+
+  spec = spec_from_algo (algo);
+  if (spec && !spec->flags.disabled && spec->ops && spec->ops->selftest)
+    ec = spec->ops->selftest (algo, extended, report);
+  else
+    {
+      ec = GPG_ERR_MAC_ALGO;
+      if (report)
+        report ("mac", algo, "module",
+                spec && !spec->flags.disabled?
+                "no selftest available" :
+                spec? "algorithm disabled" :
+                "algorithm not found");
+    }
+
+  return gpg_error (ec);
+}

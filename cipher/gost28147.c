@@ -542,6 +542,7 @@ static gcry_mac_spec_ops_t gost_imit_ops = {
   gost_imit_get_maclen,
   gost_imit_get_keylen,
   gost_imit_set_extra_info,
+  NULL
 };
 
 gcry_mac_spec_t _gcry_mac_type_spec_gost28147_imit =

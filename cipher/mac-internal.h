@@ -20,6 +20,7 @@
 #include <config.h>
 
 #include "g10lib.h"
+#include "cipher-proto.h"
 #include "gost.h"
 
 
@@ -81,6 +82,7 @@ typedef struct gcry_mac_spec_ops
   gcry_mac_get_maclen_func_t get_maclen;
   gcry_mac_get_keylen_func_t get_keylen;
   gcry_mac_set_extra_info_t set_extra_info;
+  selftest_func_t selftest;
 } gcry_mac_spec_ops_t;
 
 

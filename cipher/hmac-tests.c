@@ -1098,6 +1098,7 @@ selftests_sha3 (int hashalgo, int extended, selftest_report_func_t report)
 }
 
 
+#if 0
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
 run_selftests (int algo, int extended, selftest_report_func_t report)
@@ -1158,3 +1159,4 @@ _gcry_hmac_selftest (int algo, int extended, selftest_report_func_t report)
     }
   return gpg_error (ec);
 }
+#endif
