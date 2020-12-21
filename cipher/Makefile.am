@@ -26,7 +26,7 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
-EXTRA_DIST = gost-s-box.c hmac-tests.c
+EXTRA_DIST = gost-s-box.c
 
 CLEANFILES = gost-s-box
 DISTCLEANFILES = gost-sb.h
