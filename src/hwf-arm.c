@@ -93,10 +93,10 @@ struct feature_map_s {
 # define HWCAP2_PMULL  2
 #endif
 #ifndef HWCAP2_SHA1
-# define HWCAP2_SHA1   3
+# define HWCAP2_SHA1   4
 #endif
 #ifndef HWCAP2_SHA2
-# define HWCAP2_SHA2   4
+# define HWCAP2_SHA2   8
 #endif
 
 static const struct feature_map_s arm_features[] =
