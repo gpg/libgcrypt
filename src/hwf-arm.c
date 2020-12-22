@@ -54,8 +54,8 @@ struct feature_map_s {
 
 #define HWCAP2_AES    1
 #define HWCAP2_PMULL  2
-#define HWCAP2_SHA1   3
-#define HWCAP2_SHA2   4
+#define HWCAP2_SHA1   4
+#define HWCAP2_SHA2   8
 
 static const struct feature_map_s arm_features[] =
   {
