@@ -2067,7 +2067,8 @@ AC_CACHE_CHECK([whether GCC inline assembler supports zSeries vector instruction
 	    AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 	    [[void testfunc(void)
 	      {
-		asm volatile ("vx %%v0, %%v1, %%v31\n\t"
+		asm volatile (".machine \"z13+vx\"\n\t"
+			      "vx %%v0, %%v1, %%v31\n\t"
 			      "verllf %%v11, %%v11, (16)(0)\n\t"
 			      :
 			      :
@@ -2661,6 +2662,10 @@ if test "$found" = "1" ; then
       powerpc-*-*)
          # Build with the ppc8 vector implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-ppc.lo"
+      ;;
+      s390x-*-*)
+         # Build with the s390x/zSeries vector implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-s390x.lo"
       ;;
    esac
 
