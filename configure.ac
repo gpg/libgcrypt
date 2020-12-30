@@ -2053,6 +2053,36 @@ if test "$gcry_cv_gcc_inline_asm_s390x" = "yes" ; then
 fi
 
 
+#
+# Check whether GCC inline assembler supports zSeries vector instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports zSeries vector instructions],
+      [gcry_cv_gcc_inline_asm_s390x_vx],
+      [if test "$mpi_cpu_arch" != "s390x" ||
+	  test "$try_asm_modules" != "yes" ; then
+	  gcry_cv_gcc_inline_asm_s390x_vx="n/a"
+	else
+	  gcry_cv_gcc_inline_asm_s390x_vx=no
+	  if test "$gcry_cv_gcc_inline_asm_s390x" = "yes" ; then
+	    AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	    [[void testfunc(void)
+	      {
+		asm volatile ("vx %%v0, %%v1, %%v31\n\t"
+			      "verllf %%v11, %%v11, (16)(0)\n\t"
+			      :
+			      :
+			      : "memory");
+	      }
+	      ]])],
+	    [gcry_cv_gcc_inline_asm_s390x_vx=yes])
+	  fi
+	fi])
+if test "$gcry_cv_gcc_inline_asm_s390x_vx" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_S390X_VX,1,
+     [Defined if inline assembler supports zSeries vector instructions])
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################

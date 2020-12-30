@@ -74,6 +74,7 @@ static struct
     { HWF_S390X_MSA,           "s390x-msa" },
     { HWF_S390X_MSA_4,         "s390x-msa-4" },
     { HWF_S390X_MSA_8,         "s390x-msa-8" },
+    { HWF_S390X_VX,            "s390x-vx" },
 #endif
   };
 

@@ -41,6 +41,16 @@
 # define HAVE_STFLE 1
 #endif
 
+#ifndef AT_HWCAP
+# define AT_HWCAP         16
+#endif
+#ifndef HWCAP_S390_STFLE
+# define HWCAP_S390_STFLE 4
+#endif
+#ifndef HWCAP_S390_VXRS
+# define HWCAP_S390_VXRS  2048
+#endif
+
 struct feature_map_s
   {
     unsigned int facilities_bit;
@@ -53,6 +63,9 @@ static const struct feature_map_s s390x_features[] =
     { 17,  0, HWF_S390X_MSA },
     { 77,  0, HWF_S390X_MSA_4 },
     { 146, 0, HWF_S390X_MSA_8 },
+#ifdef HAVE_GCC_INLINE_ASM_S390X_VX
+    { 129, HWCAP_S390_VXRS, HWF_S390X_VX },
+#endif
   };
 
 #if defined(HAVE_SYS_AUXV_H) && defined(HAVE_ELF_AUX_INFO) && \
@@ -87,13 +100,6 @@ struct facilities_s
   {
     u64 bits[3];
   };
-
-#ifndef AT_HWCAP
-# define AT_HWCAP         16
-#endif
-#ifndef HWCAP_S390_STFLE
-# define HWCAP_S390_STFLE 4
-#endif
 
 static int
 get_hwcap(unsigned int *hwcap)
