@@ -2042,6 +2042,14 @@ AC_CACHE_CHECK([whether GCC inline assembler supports zSeries instructions],
 			    :
 			    : "a" (fac)
 			    : "memory");
+	      asm volatile ("risbgn %%r11, %%r11, 0, 129, 0\n\t"
+			    :
+			    :
+			    : "memory", "r11");
+	      asm volatile ("algrk %%r14, %%r14, %%r14\n\t"
+			    :
+			    :
+			    : "memory", "r14");
 	      return (unsigned int)r1 ^ reg0;
 	    }
 	    ]])],

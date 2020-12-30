@@ -189,6 +189,18 @@ unsigned int _gcry_chacha20_s390x_vx_blocks8(u32 *state, byte *dst,
 unsigned int _gcry_chacha20_s390x_vx_blocks4_2_1(u32 *state, byte *dst,
 						 const byte *src, size_t nblks);
 
+#undef USE_S390X_VX_POLY1305
+#if SIZEOF_UNSIGNED_LONG == 8
+#define USE_S390X_VX_POLY1305 1
+unsigned int _gcry_chacha20_poly1305_s390x_vx_blocks8(
+		u32 *state, byte *dst, const byte *src, size_t nblks,
+		POLY1305_STATE *st, const byte *poly1305_src);
+
+unsigned int _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1(
+		u32 *state, byte *dst, const byte *src, size_t nblks,
+		POLY1305_STATE *st, const byte *poly1305_src);
+#endif /* SIZEOF_UNSIGNED_LONG == 8 */
+
 #endif /* USE_S390X_VX */
 
 #ifdef USE_ARMV7_NEON
@@ -759,6 +771,48 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
       inbuf  += 4 * CHACHA20_BLOCK_SIZE;
     }
 #endif
+#ifdef USE_S390X_VX_POLY1305
+  else if (ctx->use_s390x && length >= 2 * CHACHA20_BLOCK_SIZE * 8)
+    {
+      nburn = _gcry_chacha20_s390x_vx_blocks8(ctx->input, outbuf, inbuf, 8);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 8 * CHACHA20_BLOCK_SIZE;
+      outbuf += 8 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 8 * CHACHA20_BLOCK_SIZE;
+    }
+  else if (ctx->use_s390x && length >= CHACHA20_BLOCK_SIZE * 4)
+    {
+      nburn = _gcry_chacha20_s390x_vx_blocks4_2_1(ctx->input, outbuf, inbuf, 4);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 4 * CHACHA20_BLOCK_SIZE;
+      outbuf += 4 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 4 * CHACHA20_BLOCK_SIZE;
+    }
+  else if (ctx->use_s390x && length >= CHACHA20_BLOCK_SIZE * 2)
+    {
+      nburn = _gcry_chacha20_s390x_vx_blocks4_2_1(ctx->input, outbuf, inbuf, 2);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 2 * CHACHA20_BLOCK_SIZE;
+      outbuf += 2 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 2 * CHACHA20_BLOCK_SIZE;
+    }
+  else if (ctx->use_s390x && length >= CHACHA20_BLOCK_SIZE)
+    {
+      nburn = _gcry_chacha20_s390x_vx_blocks4_2_1(ctx->input, outbuf, inbuf, 1);
+      burn = nburn > burn ? nburn : burn;
+
+      authptr = outbuf;
+      length -= 1 * CHACHA20_BLOCK_SIZE;
+      outbuf += 1 * CHACHA20_BLOCK_SIZE;
+      inbuf  += 1 * CHACHA20_BLOCK_SIZE;
+    }
+#endif
 
   if (authptr)
     {
@@ -859,6 +913,44 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
 	  outbuf  += nblocks * CHACHA20_BLOCK_SIZE;
 	  inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
 	  authptr += nblocks * CHACHA20_BLOCK_SIZE;
+	}
+#endif
+
+#ifdef USE_S390X_VX_POLY1305
+      if (ctx->use_s390x)
+	{
+	  if (length >= 8 * CHACHA20_BLOCK_SIZE &&
+	      authoffset >= 8 * CHACHA20_BLOCK_SIZE)
+	    {
+	      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+	      nblocks -= nblocks % 8;
+
+	      burn = _gcry_chacha20_poly1305_s390x_vx_blocks8(
+			  ctx->input, outbuf, inbuf, nblocks,
+			  &c->u_mode.poly1305.ctx.state, authptr);
+	      burn = nburn > burn ? nburn : burn;
+
+	      length  -= nblocks * CHACHA20_BLOCK_SIZE;
+	      outbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	      inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
+	      authptr += nblocks * CHACHA20_BLOCK_SIZE;
+	    }
+
+	  if (length >= CHACHA20_BLOCK_SIZE &&
+	      authoffset >= CHACHA20_BLOCK_SIZE)
+	    {
+	      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+
+	      burn = _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1(
+			  ctx->input, outbuf, inbuf, nblocks,
+			  &c->u_mode.poly1305.ctx.state, authptr);
+	      burn = nburn > burn ? nburn : burn;
+
+	      length  -= nblocks * CHACHA20_BLOCK_SIZE;
+	      outbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	      inbuf   += nblocks * CHACHA20_BLOCK_SIZE;
+	      authptr += nblocks * CHACHA20_BLOCK_SIZE;
+	    }
 	}
 #endif
 
@@ -1023,6 +1115,40 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
       length -= nblocks * CHACHA20_BLOCK_SIZE;
       outbuf += nblocks * CHACHA20_BLOCK_SIZE;
       inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+    }
+#endif
+
+#ifdef USE_S390X_VX_POLY1305
+  if (ctx->use_s390x)
+    {
+      if (length >= 8 * CHACHA20_BLOCK_SIZE)
+	{
+	  size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+	  nblocks -= nblocks % 8;
+
+	  nburn = _gcry_chacha20_poly1305_s390x_vx_blocks8(
+			    ctx->input, outbuf, inbuf, nblocks,
+			    &c->u_mode.poly1305.ctx.state, inbuf);
+	  burn = nburn > burn ? nburn : burn;
+
+	  length -= nblocks * CHACHA20_BLOCK_SIZE;
+	  outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+	  inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	}
+
+      if (length >= CHACHA20_BLOCK_SIZE)
+	{
+	  size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+
+	  nburn = _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1(
+			    ctx->input, outbuf, inbuf, nblocks,
+			    &c->u_mode.poly1305.ctx.state, inbuf);
+	  burn = nburn > burn ? nburn : burn;
+
+	  length -= nblocks * CHACHA20_BLOCK_SIZE;
+	  outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+	  inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	}
     }
 #endif
 

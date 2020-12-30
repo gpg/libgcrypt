@@ -23,6 +23,7 @@
 #if defined(HAVE_GCC_INLINE_ASM_S390X_VX)
 
 #include "asm-common-s390x.h"
+#include "asm-poly1305-s390x.h"
 
 .machine "z13+vx"
 .text
@@ -574,6 +575,393 @@ ELF(.size _gcry_chacha20_s390x_vx_blocks4_2_1,
     .-_gcry_chacha20_s390x_vx_blocks4_2_1;)
 
 /**********************************************************************
+  4-way && 2-way && 1-way stitched chacha20-poly1305 ("horizontal")
+ **********************************************************************/
+
+.balign 8
+.globl _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1
+ELF(.type _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1,@function;)
+
+_gcry_chacha20_poly1305_s390x_vx_blocks4_2_1:
+	/* input:
+	 *       %r2: input
+	 *       %r3: dst
+	 *       %r4: src
+	 *       %r5: nblks
+	 *       %r6: poly1305 state
+	 * 160(%r15): poly1305 src
+	 */
+	CFI_STARTPROC();
+
+	START_STACK(%r14);
+	lgr NBLKS, %r5;
+
+	/* Load constants. */
+	larl %r8, .Lconsts;
+	vl TMP0, (.Lwordswap - .Lconsts)(%r8);
+	vl TMP1, (.Lone - .Lconsts)(%r8);
+	vl TMP2, (.Lbswap128 - .Lconsts)(%r8);
+
+	/* Load state. */
+	vlm S0, S3, 0(INPUT);
+	vperm S0, S0, S0, TMP0;
+	vperm S1, S1, S1, TMP0;
+	vperm S2, S2, S2, TMP0;
+	vperm S3, S3, S3, TMP0;
+
+	/* Store parameters to stack. */
+	stmg %r2, %r6, STACK_INPUT(%r15);
+
+	lgr POLY_RSTATE, %r6;
+	lgr NBLKS, %r5;
+
+	lg POLY_RSRC, 0(%r15);
+	lg POLY_RSRC, 160(POLY_RSRC);
+	stg POLY_RSRC, STACK_POSRC(%r15);
+
+	/* Load poly1305 state */
+	POLY1305_LOAD_STATE();
+
+	clgijl NBLKS, 4, .Lloop2_poly;
+
+.balign 4
+.Lloop4_poly:
+	/* Process four chacha20 blocks and 16 poly1305 blocks. */
+	vlr TMP3, S3;
+	lghi ROUND, (20 / 4);
+	vlr A0, S0;
+	vlr A1, S1;
+	vlr A2, S2;
+	vlr A3, TMP3;
+	vag TMP3, TMP3, TMP1;
+	vlr B0, S0;
+	vlr B1, S1;
+	vlr B2, S2;
+	vlr B3, TMP3;
+	vag TMP3, TMP3, TMP1;
+	vlr C0, S0;
+	vlr C1, S1;
+	vlr C2, S2;
+	vlr C3, TMP3;
+	vlr D0, S0;
+	vlr D1, S1;
+	vlr D2, S2;
+	vag D3, TMP3, TMP1;
+
+	slgfi NBLKS, 4;
+
+.balign 4
+.Lround4_4_poly:
+	/* Total 15 poly1305 blocks processed by this loop. */
+	QUARTERROUND4_4_POLY(3, 2, 1,
+			     POLY1305_BLOCK_PART1(0 * 16),
+			     POLY1305_BLOCK_PART2(),
+			     POLY1305_BLOCK_PART3(),
+			     POLY1305_BLOCK_PART4(),
+			     POLY1305_BLOCK_PART5(),
+			     POLY1305_BLOCK_PART6());
+	QUARTERROUND4_4_POLY(1, 2, 3,
+			     POLY1305_BLOCK_PART7(),
+			     POLY1305_BLOCK_PART8(),
+			     POLY1305_BLOCK_PART1(1 * 16),
+			     POLY1305_BLOCK_PART2(),
+			     POLY1305_BLOCK_PART3(),
+			     POLY1305_BLOCK_PART4());
+	QUARTERROUND4_4_POLY(3, 2, 1,
+			     POLY1305_BLOCK_PART5(),
+			     POLY1305_BLOCK_PART6(),
+			     POLY1305_BLOCK_PART7(),
+			     POLY1305_BLOCK_PART8(),
+			     POLY1305_BLOCK_PART1(2 * 16);
+			      INC_POLY1305_SRC(3 * 16),
+			     POLY1305_BLOCK_PART2());
+	QUARTERROUND4_4_POLY(1, 2, 3,
+			     POLY1305_BLOCK_PART3(),
+			     POLY1305_BLOCK_PART4(),
+			     POLY1305_BLOCK_PART5(),
+			     POLY1305_BLOCK_PART6(),
+			     POLY1305_BLOCK_PART7(),
+			     POLY1305_BLOCK_PART8());
+	brctg ROUND, .Lround4_4_poly;
+
+	POLY1305_BLOCK_PART1(0 * 16);
+	INC_POLY1305_SRC(1 * 16);
+	stg POLY_RSRC, STACK_POSRC(%r15);
+
+	lg %r14, STACK_SRC(%r15);
+	vlm IO0, IO7, 0(%r14);
+
+	PLUS(A0, S0);
+	PLUS(A1, S1);
+	PLUS(A2, S2);
+	PLUS(A3, S3);
+	vag S3, S3, TMP1; /* Update counter. */
+	POLY1305_BLOCK_PART2();
+	PLUS(B0, S0);
+	PLUS(B1, S1);
+	PLUS(B2, S2);
+	PLUS(B3, S3);
+	vag S3, S3, TMP1; /* Update counter. */
+	POLY1305_BLOCK_PART3();
+	vperm A0, A0, A0, TMP2;
+	vperm A1, A1, A1, TMP2;
+	vperm A2, A2, A2, TMP2;
+	vperm A3, A3, A3, TMP2;
+	vperm B0, B0, B0, TMP2;
+	vperm B1, B1, B1, TMP2;
+	vperm B2, B2, B2, TMP2;
+	vperm B3, B3, B3, TMP2;
+	POLY1305_BLOCK_PART4();
+	PLUS(C0, S0);
+	PLUS(C1, S1);
+	PLUS(C2, S2);
+	PLUS(C3, S3);
+	vag S3, S3, TMP1; /* Update counter. */
+	PLUS(D0, S0);
+	PLUS(D1, S1);
+	PLUS(D2, S2);
+	PLUS(D3, S3);
+	vag S3, S3, TMP1; /* Update counter. */
+	POLY1305_BLOCK_PART5();
+	vperm C0, C0, C0, TMP2;
+	vperm C1, C1, C1, TMP2;
+	vperm C2, C2, C2, TMP2;
+	vperm C3, C3, C3, TMP2;
+	vperm D0, D0, D0, TMP2;
+	vperm D1, D1, D1, TMP2;
+	vperm D2, D2, D2, TMP2;
+	vperm D3, D3, D3, TMP2;
+
+	POLY1305_BLOCK_PART6();
+	XOR(IO0, A0);
+	XOR(IO1, A1);
+	XOR(IO2, A2);
+	XOR(IO3, A3);
+	XOR(IO4, B0);
+	XOR(IO5, B1);
+	XOR(IO6, B2);
+	XOR(IO7, B3);
+	vlm A0, B3, 128(%r14);
+	aghi %r14, 256;
+	stg %r14, STACK_SRC(%r15);
+
+	lg %r14, STACK_DST(%r15);
+	POLY1305_BLOCK_PART7();
+	vstm IO0, IO7, 0(%r14);
+	XOR(A0, C0);
+	XOR(A1, C1);
+	XOR(A2, C2);
+	XOR(A3, C3);
+	XOR(B0, D0);
+	XOR(B1, D1);
+	XOR(B2, D2);
+	XOR(B3, D3);
+	POLY1305_BLOCK_PART8();
+	vstm A0, B3, 128(%r14);
+	aghi %r14, 256;
+	stg %r14, STACK_DST(%r15);
+
+	lg POLY_RSRC, STACK_POSRC(%r15);
+
+	clgijhe NBLKS, 4, .Lloop4_poly;
+
+	CLEAR(C0);
+	CLEAR(C1);
+	CLEAR(C2);
+	CLEAR(C3);
+	CLEAR(D0);
+	CLEAR(D1);
+	CLEAR(D2);
+	CLEAR(D3);
+
+.balign 4
+.Lloop2_poly:
+	clgijl NBLKS, 2, .Lloop1_poly;
+
+	/* Process two chacha20 and eight poly1305 blocks. */
+	lghi ROUND, ((20 - 4) / 2);
+	vlr A0, S0;
+	vlr A1, S1;
+	vlr A2, S2;
+	vlr A3, S3;
+	vlr B0, S0;
+	vlr B1, S1;
+	vlr B2, S2;
+	vag B3, S3, TMP1;
+
+	slgfi NBLKS, 2;
+
+.balign 4
+.Lround4_2_poly:
+	/* Total eight poly1305 blocks processed by this loop. */
+	QUARTERROUND4_2_POLY(3, 2, 1,
+			     POLY1305_BLOCK_PART1(0 * 16),
+			     POLY1305_BLOCK_PART2(),
+			     POLY1305_BLOCK_PART3(),
+			     POLY1305_BLOCK_PART4());
+			     INC_POLY1305_SRC(1 * 16);
+	QUARTERROUND4_2_POLY(1, 2, 3,
+			     POLY1305_BLOCK_PART5(),
+			     POLY1305_BLOCK_PART6(),
+			     POLY1305_BLOCK_PART7(),
+			     POLY1305_BLOCK_PART8());
+	brctg ROUND, .Lround4_2_poly;
+
+	stg POLY_RSRC, STACK_POSRC(%r15);
+	lg %r14, STACK_SRC(%r15);
+
+	QUARTERROUND4_2(3, 2, 1);
+	QUARTERROUND4_2(1, 2, 3);
+	QUARTERROUND4_2(3, 2, 1);
+	QUARTERROUND4_2(1, 2, 3);
+
+	vlm IO0, IO7, 0(%r14);
+	aghi %r14, 128;
+	stg %r14, STACK_SRC(%r15);
+
+	PLUS(A0, S0);
+	PLUS(A1, S1);
+	PLUS(A2, S2);
+	PLUS(A3, S3);
+	vag S3, S3, TMP1; /* Update counter. */
+	PLUS(B0, S0);
+	PLUS(B1, S1);
+	PLUS(B2, S2);
+	PLUS(B3, S3);
+	vag S3, S3, TMP1; /* Update counter. */
+	vperm A0, A0, A0, TMP2;
+	vperm A1, A1, A1, TMP2;
+	vperm A2, A2, A2, TMP2;
+	vperm A3, A3, A3, TMP2;
+	vperm B0, B0, B0, TMP2;
+	vperm B1, B1, B1, TMP2;
+	vperm B2, B2, B2, TMP2;
+	vperm B3, B3, B3, TMP2;
+
+	lg %r14, STACK_DST(%r15);
+	XOR(IO0, A0);
+	XOR(IO1, A1);
+	XOR(IO2, A2);
+	XOR(IO3, A3);
+	XOR(IO4, B0);
+	XOR(IO5, B1);
+	XOR(IO6, B2);
+	XOR(IO7, B3);
+	vstm IO0, IO7, 0(%r14);
+	aghi %r14, 128;
+	stg %r14, STACK_DST(%r15);
+
+	lg POLY_RSRC, STACK_POSRC(%r15);
+
+	clgijhe NBLKS, 2, .Lloop2_poly;
+
+	CLEAR(B0);
+	CLEAR(B1);
+	CLEAR(B2);
+	CLEAR(B3);
+
+.balign 4
+.Lloop1_poly:
+	clgijl NBLKS, 1, .Ldone_poly;
+
+	/* Process one chacha20 block and four poly1305 blocks.*/
+	lghi ROUND, ((20 - 4) / 4);
+	vlr A0, S0;
+	vlr A1, S1;
+	vlr A2, S2;
+	vlr A3, S3;
+
+	slgfi NBLKS, 1;
+
+.balign 4
+.Lround4_1_poly:
+	/* Total four poly1305 blocks processed by this loop. */
+	QUARTERROUND4_POLY(3, 2, 1,
+			   POLY1305_BLOCK_PART1(0 * 16),
+			   POLY1305_BLOCK_PART2());
+			   INC_POLY1305_SRC(1 * 16);
+	QUARTERROUND4_POLY(1, 2, 3,
+			   POLY1305_BLOCK_PART3(),
+			   POLY1305_BLOCK_PART4());
+	QUARTERROUND4_POLY(3, 2, 1,
+			   POLY1305_BLOCK_PART5(),
+			   POLY1305_BLOCK_PART6());
+	QUARTERROUND4_POLY(1, 2, 3,
+			   POLY1305_BLOCK_PART7(),
+			   POLY1305_BLOCK_PART8());
+	brct ROUND, .Lround4_1_poly;
+
+	stg POLY_RSRC, STACK_POSRC(%r15);
+	lg %r14, STACK_SRC(%r15);
+
+	QUARTERROUND4(3, 2, 1);
+	QUARTERROUND4(1, 2, 3);
+	QUARTERROUND4(3, 2, 1);
+	QUARTERROUND4(1, 2, 3);
+
+	vlm IO0, IO3, 0(%r14);
+	aghi %r14, 64;
+	stg %r14, STACK_SRC(%r15);
+
+	PLUS(A0, S0);
+	PLUS(A1, S1);
+	PLUS(A2, S2);
+	PLUS(A3, S3);
+	vag S3, S3, TMP1; /* Update counter. */
+
+	lg %r14, STACK_DST(%r15);
+	vperm A0, A0, A0, TMP2;
+	vperm A1, A1, A1, TMP2;
+	vperm A2, A2, A2, TMP2;
+	vperm A3, A3, A3, TMP2;
+	XOR(IO0, A0);
+	XOR(IO1, A1);
+	XOR(IO2, A2);
+	XOR(IO3, A3);
+	vstm IO0, IO3, 0(%r14);
+	aghi %r14, 64;
+	stg %r14, STACK_DST(%r15);
+
+	lg POLY_RSRC, STACK_POSRC(%r15);
+
+	clgijhe NBLKS, 1, .Lloop1_poly;
+
+.balign 4
+.Ldone_poly:
+	/* Store poly1305 state */
+	lg POLY_RSTATE, STACK_POCTX(%r15);
+	POLY1305_STORE_STATE();
+
+	/* Store counter. */
+	lg INPUT, STACK_INPUT(%r15);
+	vperm S3, S3, S3, TMP0;
+	vst S3, (48)(INPUT);
+
+	/* Clear the used vector registers. */
+	CLEAR(A0);
+	CLEAR(A1);
+	CLEAR(A2);
+	CLEAR(A3);
+	CLEAR(IO0);
+	CLEAR(IO1);
+	CLEAR(IO2);
+	CLEAR(IO3);
+	CLEAR(IO4);
+	CLEAR(IO5);
+	CLEAR(IO6);
+	CLEAR(IO7);
+	CLEAR(TMP0);
+	CLEAR(TMP1);
+	CLEAR(TMP2);
+
+	END_STACK(%r14);
+	xgr %r2, %r2;
+	br %r14;
+	CFI_ENDPROC();
+ELF(.size _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1,
+    .-_gcry_chacha20_poly1305_s390x_vx_blocks4_2_1;)
+
+/**********************************************************************
   8-way chacha20 ("vertical")
  **********************************************************************/
 
@@ -883,6 +1271,291 @@ _gcry_chacha20_s390x_vx_blocks8:
 	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_s390x_vx_blocks8,
     .-_gcry_chacha20_s390x_vx_blocks8;)
+
+/**********************************************************************
+  8-way stitched chacha20-poly1305 ("vertical")
+ **********************************************************************/
+
+.balign 8
+.globl _gcry_chacha20_poly1305_s390x_vx_blocks8
+ELF(.type _gcry_chacha20_poly1305_s390x_vx_blocks8,@function;)
+
+_gcry_chacha20_poly1305_s390x_vx_blocks8:
+	/* input:
+	 *       %r2: input
+	 *       %r3: dst
+	 *       %r4: src
+	 *       %r5: nblks (multiple of 8)
+	 *       %r6: poly1305 state
+	 * 160(%r15): poly1305 src
+	 */
+	CFI_STARTPROC();
+
+	START_STACK(%r14);
+
+	/* Store parameters to stack. */
+	stmg %r2, %r6, STACK_INPUT(%r15);
+
+	lgr POLY_RSTATE, %r6;
+	lgr NBLKS, %r5;
+
+	lg POLY_RSRC, 0(%r15);
+	lg POLY_RSRC, 160(POLY_RSRC);
+	stg POLY_RSRC, STACK_POSRC(%r15);
+
+	/* Load poly1305 state */
+	POLY1305_LOAD_STATE();
+
+.balign 4
+	/* Process eight chacha20 blocks and 32 poly1305 blocks per loop. */
+.Lloop8_poly:
+	lg INPUT, STACK_INPUT(%r15);
+	larl %r8, .Lconsts;
+
+	vlm Y0, Y3, 0(INPUT);
+
+	slgfi NBLKS, 8;
+	lghi ROUND, (20 / 2);
+
+	/* Construct counter vectors X12/X13 & Y12/Y13. */
+	vl X4, (.Ladd_counter_0123 - .Lconsts)(%r8);
+	vl Y4, (.Ladd_counter_4567 - .Lconsts)(%r8);
+	lg %r8, (12 * 4)(INPUT); /* Update counter. */
+	vrepf Y12, Y3, 0;
+	vrepf Y13, Y3, 1;
+	vaccf X5, Y12, X4;
+	vaccf Y5, Y12, Y4;
+	vaf X12, Y12, X4;
+	vaf Y12, Y12, Y4;
+	vaf X13, Y13, X5;
+	vaf Y13, Y13, Y5;
+	rllg %r8, %r8, 32;
+
+	vrepf X0, Y0, 0;
+	vrepf X1, Y0, 1;
+	vrepf X2, Y0, 2;
+	vrepf X3, Y0, 3;
+	vrepf X4, Y1, 0;
+	vrepf X5, Y1, 1;
+	vrepf X6, Y1, 2;
+	vrepf X7, Y1, 3;
+	vrepf X8, Y2, 0;
+	vrepf X9, Y2, 1;
+	vrepf X10, Y2, 2;
+	vrepf X11, Y2, 3;
+	vrepf X14, Y3, 2;
+	vrepf X15, Y3, 3;
+	agfi %r8, 8;
+
+	/* Store counters for blocks 0-7. */
+	vstm X12, X13, (STACK_CTR + 0 * 16)(%r15);
+	vstm Y12, Y13, (STACK_CTR + 2 * 16)(%r15);
+	rllg %r8, %r8, 32;
+
+	vlr Y0, X0;
+	vlr Y1, X1;
+	vlr Y2, X2;
+	vlr Y3, X3;
+	vlr Y4, X4;
+	vlr Y5, X5;
+	vlr Y6, X6;
+	vlr Y7, X7;
+	vlr Y8, X8;
+	vlr Y9, X9;
+	vlr Y10, X10;
+	vlr Y11, X11;
+	vlr Y14, X14;
+	vlr Y15, X15;
+	stg %r8, (12 * 4)(INPUT);
+
+.balign 4
+.Lround2_8_poly:
+	/* Total 30 poly1305 blocks processed by this loop. */
+	QUARTERROUND4_V8_POLY(X0, X4,  X8, X12,   X1, X5,  X9, X13,
+			      X2, X6, X10, X14,   X3, X7, X11, X15,
+			      Y0, Y4,  Y8, Y12,   Y1, Y5,  Y9, Y13,
+			      Y2, Y6, Y10, Y14,   Y3, Y7, Y11, Y15,
+			      POLY1305_BLOCK_PART1(0 * 16),
+			      POLY1305_BLOCK_PART2(),
+			      POLY1305_BLOCK_PART3(),
+			      POLY1305_BLOCK_PART4(),
+			      POLY1305_BLOCK_PART5(),
+			      POLY1305_BLOCK_PART6(),
+			      POLY1305_BLOCK_PART7(),
+			      POLY1305_BLOCK_PART8(),
+			      POLY1305_BLOCK_PART1(1 * 16),
+			      POLY1305_BLOCK_PART2(),
+			      POLY1305_BLOCK_PART3(),
+			      POLY1305_BLOCK_PART4());
+	QUARTERROUND4_V8_POLY(X0, X5, X10, X15,   X1, X6, X11, X12,
+			      X2, X7,  X8, X13,   X3, X4,  X9, X14,
+			      Y0, Y5, Y10, Y15,   Y1, Y6, Y11, Y12,
+			      Y2, Y7,  Y8, Y13,   Y3, Y4,  Y9, Y14,
+			      POLY1305_BLOCK_PART5(),
+			      POLY1305_BLOCK_PART6(),
+			      POLY1305_BLOCK_PART7(),
+			      POLY1305_BLOCK_PART8(),
+			      POLY1305_BLOCK_PART1(2 * 16);
+				INC_POLY1305_SRC(3 * 16),
+			      POLY1305_BLOCK_PART2(),
+			      POLY1305_BLOCK_PART3(),
+			      POLY1305_BLOCK_PART4(),
+			      POLY1305_BLOCK_PART5(),
+			      POLY1305_BLOCK_PART6(),
+			      POLY1305_BLOCK_PART7(),
+			      POLY1305_BLOCK_PART8());
+	brctg ROUND, .Lround2_8_poly;
+
+	POLY1305_BLOCK_PART1(0 * 16);
+
+	/* Store blocks 4-7. */
+	vstm Y0, Y15, STACK_Y0_Y15(%r15);
+
+	/* Load counters for blocks 0-3. */
+	vlm Y0, Y1, (STACK_CTR + 0 * 16)(%r15);
+
+	stg POLY_RSRC, STACK_POSRC(%r15); /* %r14 used for INPUT/SRC/DST pointer. */
+
+	lghi ROUND, 1;
+	j .Lfirst_output_4blks_8_poly;
+
+.balign 4
+.Lsecond_output_4blks_8_poly:
+
+	POLY1305_BLOCK_PART1(1 * 16);
+
+	/* Load blocks 4-7. */
+	vlm X0, X15, STACK_Y0_Y15(%r15);
+
+	/* Load counters for blocks 4-7. */
+	vlm Y0, Y1, (STACK_CTR + 2 * 16)(%r15);
+
+	INC_POLY1305_SRC(2 * 16);
+	stg POLY_RSRC, STACK_POSRC(%r15); /* %r14 used for INPUT/SRC/DST pointer. */
+
+	lghi ROUND, 0;
+
+.balign 4
+	/* Output four chacha20 blocks and one poly1305 block per loop. */
+.Lfirst_output_4blks_8_poly:
+	lg %r14, STACK_INPUT(%r15);
+	vlm Y12, Y15, 0(%r14);
+	POLY1305_BLOCK_PART2();
+	PLUS(X12, Y0);
+	PLUS(X13, Y1);
+	vrepf Y0, Y12, 0;
+	vrepf Y1, Y12, 1;
+	vrepf Y2, Y12, 2;
+	vrepf Y3, Y12, 3;
+	vrepf Y4, Y13, 0;
+	vrepf Y5, Y13, 1;
+	vrepf Y6, Y13, 2;
+	vrepf Y7, Y13, 3;
+	vrepf Y8, Y14, 0;
+	vrepf Y9, Y14, 1;
+	vrepf Y10, Y14, 2;
+	vrepf Y11, Y14, 3;
+	vrepf Y14, Y15, 2;
+	vrepf Y15, Y15, 3;
+	POLY1305_BLOCK_PART3();
+	PLUS(X0, Y0);
+	PLUS(X1, Y1);
+	PLUS(X2, Y2);
+	PLUS(X3, Y3);
+	PLUS(X4, Y4);
+	PLUS(X5, Y5);
+	PLUS(X6, Y6);
+	PLUS(X7, Y7);
+	PLUS(X8, Y8);
+	PLUS(X9, Y9);
+	PLUS(X10, Y10);
+	PLUS(X11, Y11);
+	PLUS(X14, Y14);
+	PLUS(X15, Y15);
+	POLY1305_BLOCK_PART4();
+
+	larl %r14, .Lconsts;
+	vl Y15, (.Lbswap32 - .Lconsts)(%r14);
+	TRANSPOSE_4X4_2(X0, X1, X2, X3, X4, X5, X6, X7,
+			Y9, Y10, Y11, Y12, Y13, Y14);
+	lg %r14, STACK_SRC(%r15);
+	POLY1305_BLOCK_PART5();
+	TRANSPOSE_4X4_2(X8, X9, X10, X11, X12, X13, X14, X15,
+			Y9, Y10, Y11, Y12, Y13, Y14);
+
+	vlm Y0, Y14, 0(%r14);
+	POLY1305_BLOCK_PART6();
+	vperm X0, X0, X0, Y15;
+	vperm X1, X1, X1, Y15;
+	vperm X2, X2, X2, Y15;
+	vperm X3, X3, X3, Y15;
+	vperm X4, X4, X4, Y15;
+	vperm X5, X5, X5, Y15;
+	vperm X6, X6, X6, Y15;
+	vperm X7, X7, X7, Y15;
+	vperm X8, X8, X8, Y15;
+	vperm X9, X9, X9, Y15;
+	vperm X10, X10, X10, Y15;
+	vperm X11, X11, X11, Y15;
+	vperm X12, X12, X12, Y15;
+	vperm X13, X13, X13, Y15;
+	vperm X14, X14, X14, Y15;
+	vperm X15, X15, X15, Y15;
+	vl Y15, (15 * 16)(%r14);
+	POLY1305_BLOCK_PART7();
+
+	aghi %r14, 256;
+	stg %r14, STACK_SRC(%r15);
+	lg %r14, STACK_DST(%r15);
+
+	XOR(Y0, X0);
+	XOR(Y1, X4);
+	XOR(Y2, X8);
+	XOR(Y3, X12);
+	XOR(Y4, X1);
+	XOR(Y5, X5);
+	XOR(Y6, X9);
+	XOR(Y7, X13);
+	XOR(Y8, X2);
+	XOR(Y9, X6);
+	XOR(Y10, X10);
+	XOR(Y11, X14);
+	XOR(Y12, X3);
+	XOR(Y13, X7);
+	XOR(Y14, X11);
+	XOR(Y15, X15);
+	POLY1305_BLOCK_PART8();
+	vstm Y0, Y15, 0(%r14);
+
+	aghi %r14, 256;
+	stg %r14, STACK_DST(%r15);
+
+	lg POLY_RSRC, STACK_POSRC(%r15);
+
+	clgije ROUND, 1, .Lsecond_output_4blks_8_poly;
+
+	clgijhe NBLKS, 8, .Lloop8_poly;
+
+	/* Store poly1305 state */
+	lg POLY_RSTATE, STACK_POCTX(%r15);
+	POLY1305_STORE_STATE();
+
+	/* Clear the used vector registers */
+	DST_8(CLEAR, 0, _);
+	DST_8(CLEAR, 1, _);
+	DST_8(CLEAR, 2, _);
+	DST_8(CLEAR, 3, _);
+
+	/* Clear sensitive data in stack. */
+	vlm Y0, Y15, STACK_Y0_Y15(%r15);
+	vlm Y0, Y3, STACK_CTR(%r15);
+
+	END_STACK(%r14);
+	xgr %r2, %r2;
+	br %r14;
+	CFI_ENDPROC();
+ELF(.size _gcry_chacha20_poly1305_s390x_vx_blocks8,
+    .-_gcry_chacha20_poly1305_s390x_vx_blocks8;)
 
 #endif /*HAVE_GCC_INLINE_ASM_S390X_VX*/
 #endif /*__s390x__*/

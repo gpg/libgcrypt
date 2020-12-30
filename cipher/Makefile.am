@@ -60,6 +60,7 @@ libcipher_la_SOURCES = \
 	mac.c mac-internal.h \
 	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
 	poly1305.c poly1305-internal.h \
+	poly1305-s390x.S \
 	kdf.c kdf-internal.h \
 	bithelp.h  \
 	bufhelp.h  \
@@ -75,6 +76,7 @@ EXTRA_libcipher_la_SOURCES = \
 	asm-inline-s390x.h \
 	asm-poly1305-aarch64.h \
 	asm-poly1305-amd64.h \
+	asm-poly1305-s390x.h \
 	arcfour.c arcfour-amd64.S \
 	blowfish.c blowfish-amd64.S blowfish-arm.S \
 	cast5.c cast5-amd64.S cast5-arm.S \
