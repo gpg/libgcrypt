@@ -949,9 +949,9 @@ needs to be initialized before the user land threading systems and at
 that point the system call clamp has not been registered with
 Libgpg-error and in turn Libgcrypt would not use them.  The control
 code can be used to tell Libgcrypt that a system call clamp has now
-been registered with Libgpg-error and advised it to read the clamp
-again.  Obviously this control code may only be used before a second
-thread is started in a process.
+been registered with Libgpg-error and advise Libgcrypt to read the
+clamp again.  Obviously this control code may only be used before a
+second thread is started in a process.
 
 
 @end table
@@ -2347,30 +2347,86 @@ missing parameters.
 
 @noindent
 Currently implemented curves are:
+
 @table @code
+@item Curve25519
+@itemx X25519
+@itemx 1.3.6.1.4.1.3029.1.5.1
+@itemx 1.3.101.110
+The RFC-8410 255 bit curve, its RFC name, OpenPGP and RFC OIDs.
+
+@item X448
+@itemx 1.3.101.111
+The RFC-8410 448 bit curve and its RFC OID.
+
+@item Ed25519
+@itemx 1.3.6.1.4.1.11591.15.1
+@itemx 1.3.101.112
+The signing variant of the RFC-8410 255 bit curve, its OpenPGP and RFC OIDs.
+
+@item Ed448
+@itemx 1.3.101.113
+The signing variant of the RFC-8410 448 bit curve and its RFC OID.
+
 @item NIST P-192
 @itemx 1.2.840.10045.3.1.1
+@itemx nistp192
 @itemx prime192v1
 @itemx secp192r1
-The NIST 192 bit curve, its OID, X9.62 and SECP aliases.
+The NIST 192 bit curve, its OID and aliases.
 
 @item NIST P-224
+@itemx 1.3.132.0.33
+@itemx nistp224
 @itemx secp224r1
-The NIST 224 bit curve and its SECP alias.
+The NIST 224 bit curve, its OID and aliases.
 
 @item NIST P-256
 @itemx 1.2.840.10045.3.1.7
+@itemx nistp256
 @itemx prime256v1
 @itemx secp256r1
-The NIST 256 bit curve, its OID, X9.62 and SECP aliases.
+The NIST 256 bit curve, its OID and aliases.
 
 @item NIST P-384
+@itemx 1.3.132.0.34
+@itemx nistp384
 @itemx secp384r1
-The NIST 384 bit curve and its SECP alias.
+The NIST 384 bit curve, its OID and aliases.
 
 @item NIST P-521
+@itemx 1.3.132.0.35
+@itemx nistp521
 @itemx secp521r1
-The NIST 521 bit curve and its SECP alias.
+The NIST 521 bit curve, its OID and aliases.
+
+@item brainpoolP160r1
+@itemx 1.3.36.3.3.2.8.1.1.1
+The Brainpool 160 bit curve and its OID.
+
+@item brainpoolP192r1
+@itemx 1.3.36.3.3.2.8.1.1.3
+The Brainpool 192 bit curve and its OID.
+
+@item brainpoolP224r1
+@itemx 1.3.36.3.3.2.8.1.1.5
+The Brainpool 224 bit curve and its OID.
+
+@item brainpoolP256r1
+@itemx 1.3.36.3.3.2.8.1.1.7
+The Brainpool 256 bit curve and its OID.
+
+@item brainpoolP320r1
+@itemx 1.3.36.3.3.2.8.1.1.9
+The Brainpool 320 bit curve and its OID.
+
+@item brainpoolP384r1
+@itemx 1.3.36.3.3.2.8.1.1.11
+The Brainpool 384 bit curve and its OID.
+
+@item brainpoolP512r1
+@itemx 1.3.36.3.3.2.8.1.1.13
+The Brainpool 512 bit curve and its OID.
 
 @end table
 As usual the OIDs may optionally be prefixed with the string @code{OID.}
