@@ -508,6 +508,8 @@ run_mac_selftests (int extended)
       GCRY_MAC_HMAC_SHA3_256,
       GCRY_MAC_HMAC_SHA3_384,
       GCRY_MAC_HMAC_SHA3_512,
+      GCRY_MAC_CMAC_3DES,
+      GCRY_MAC_CMAC_AES,
       0
     };
   int idx;
