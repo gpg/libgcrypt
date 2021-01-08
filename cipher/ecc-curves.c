@@ -859,12 +859,45 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
 
       mpi_free (tmp);
       tmp = scanval (domain_parms[idx].a);
-      if (mpi_cmp (tmp, E.a))
+      if (tmp->sign)
+        {
+          if (!mpi_cmpabs (tmp, E.a))
+            /* For backward compatibility to <= libgcrypt 1.8, we
+               allow this match to support existing keys in SEXP.  */
+            ;
+          else
+            {
+              mpi_resize (tmp, E.p->nlimbs);
+              _gcry_mpih_sub_n (tmp->d, E.p->d,
+                                tmp->d, E.p->nlimbs);
+              tmp->nlimbs = E.p->nlimbs;
+              tmp->sign = 0;
+              if (mpi_cmp (tmp, E.a))
+                continue;
+            }
+        }
+      else if (mpi_cmp (tmp, E.a))
         continue;
 
       mpi_free (tmp);
       tmp = scanval (domain_parms[idx].b);
-      if (mpi_cmp (tmp, E.b))
+      if (tmp->sign)
+        {
+          if (!mpi_cmpabs (tmp, E.b))
+            /* Same for backward compatibility, see above.  */
+            ;
+          else
+            {
+              mpi_resize (tmp, E.p->nlimbs);
+              _gcry_mpih_sub_n (tmp->d, E.p->d,
+                                tmp->d, E.p->nlimbs);
+              tmp->nlimbs = E.p->nlimbs;
+              tmp->sign = 0;
+              if (mpi_cmp (tmp, E.b))
+                continue;
+            }
+        }
+      else if (mpi_cmp (tmp, E.b))
         continue;
 
       mpi_free (tmp);
