@@ -854,38 +854,38 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
     {
       mpi_free (tmp);
       tmp = scanval (domain_parms[idx].p);
-      if (!mpi_cmp (tmp, E.p))
-        {
-          mpi_free (tmp);
-          tmp = scanval (domain_parms[idx].a);
-          if (!mpi_cmp (tmp, E.a))
-            {
-              mpi_free (tmp);
-              tmp = scanval (domain_parms[idx].b);
-              if (!mpi_cmp (tmp, E.b))
-                {
-                  mpi_free (tmp);
-                  tmp = scanval (domain_parms[idx].n);
-                  if (!mpi_cmp (tmp, E.n))
-                    {
-                      mpi_free (tmp);
-                      tmp = scanval (domain_parms[idx].g_x);
-                      if (!mpi_cmp (tmp, E.G.x))
-                        {
-                          mpi_free (tmp);
-                          tmp = scanval (domain_parms[idx].g_y);
-                          if (!mpi_cmp (tmp, E.G.y))
-                            {
-                              result = domain_parms[idx].desc;
-                              if (r_nbits)
-                                *r_nbits = domain_parms[idx].nbits;
-                              goto leave;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+      if (mpi_cmp (tmp, E.p))
+        continue;
+
+      mpi_free (tmp);
+      tmp = scanval (domain_parms[idx].a);
+      if (mpi_cmp (tmp, E.a))
+        continue;
+
+      mpi_free (tmp);
+      tmp = scanval (domain_parms[idx].b);
+      if (mpi_cmp (tmp, E.b))
+        continue;
+
+      mpi_free (tmp);
+      tmp = scanval (domain_parms[idx].n);
+      if (mpi_cmp (tmp, E.n))
+        continue;
+
+      mpi_free (tmp);
+      tmp = scanval (domain_parms[idx].g_x);
+      if (mpi_cmp (tmp, E.G.x))
+        continue;
+
+      mpi_free (tmp);
+      tmp = scanval (domain_parms[idx].g_y);
+      if (mpi_cmp (tmp, E.G.y))
+        continue;
+
+      result = domain_parms[idx].desc;
+      if (r_nbits)
+        *r_nbits = domain_parms[idx].nbits;
+      break;
     }
 
  leave:
