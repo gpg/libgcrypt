@@ -1,4 +1,4 @@
-/* camellia-aesni-avx2-amd64.S  -  AES-NI/AVX2 implementation of Camellia cipher
+/* camellia-vaes-avx2-amd64.S  -  VAES/AVX2 implementation of Camellia cipher
  *
  * Copyright (C) 2021 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
@@ -23,10 +23,11 @@
 #ifdef __x86_64
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
-    defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX2_SUPPORT)
+    defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX2_SUPPORT) && \
+    defined(HAVE_GCC_INLINE_ASM_VAES_VPCLMUL)
 
-#undef CAMELLIA_VAES_BUILD
-#define FUNC_NAME(func) _gcry_camellia_aesni_avx2_ ## func
+#define CAMELLIA_VAES_BUILD 1
+#define FUNC_NAME(func) _gcry_camellia_vaes_avx2_ ## func
 
 #include "camellia-aesni-avx2-amd64.h"
 
