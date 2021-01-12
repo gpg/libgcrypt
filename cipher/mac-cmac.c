@@ -282,10 +282,10 @@ selftests_cmac_3des (int extended, selftest_report_func_t report)
   for (tvidx=0; tv[tvidx].desc; tvidx++)
     {
       what = tv[tvidx].desc;
-      errtxt = check_one_mac (GCRY_MAC_CMAC_3DES,
-                              tv[tvidx].data, strlen (tv[tvidx].data),
-                              tv[tvidx].key, strlen (tv[tvidx].key),
-                              tv[tvidx].expect, 8);
+      errtxt = check_one (GCRY_MAC_CMAC_3DES,
+                          tv[tvidx].data, strlen (tv[tvidx].data),
+                          tv[tvidx].key, strlen (tv[tvidx].key),
+                          tv[tvidx].expect, 8);
       if (errtxt)
         goto failed;
       if (!extended)
@@ -393,10 +393,10 @@ selftests_cmac_aes (int extended, selftest_report_func_t report)
   for (tvidx=0; tv[tvidx].desc; tvidx++)
     {
       what = tv[tvidx].desc;
-      errtxt = check_one_mac (GCRY_MAC_CMAC_AES,
-                              tv[tvidx].data, strlen (tv[tvidx].data),
-                              tv[tvidx].key, strlen (tv[tvidx].key),
-                              tv[tvidx].expect, strlen (tv[tvidx].expect));
+      errtxt = check_one (GCRY_MAC_CMAC_AES,
+                          tv[tvidx].data, strlen (tv[tvidx].data),
+                          tv[tvidx].key, strlen (tv[tvidx].key),
+                          tv[tvidx].expect, strlen (tv[tvidx].expect));
       if (errtxt)
         goto failed;
       if (tvidx >= 2 && !extended)
