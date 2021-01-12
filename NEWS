@@ -41,11 +41,43 @@ Noteworthy changes in version 1.9.0 (unreleased)  [C22/A3/R0]
    - Fix fatal out of secure memory status in the s-expression parser
      on heavy loaded systems.  [also in 1.8.2]
 
+   - Fix build problems on OpenIndiana et al. [#4818, also in 1.8.6]
+
+   - Fix GCM bug on arm64 which troubles for example OMEMO.  [#4986,
+     also in 1.8.6]
+
+   - Detect a div-by-zero in a debug helper tool.  [#4868, also in 1.8.6]
+
+   - Use a constant time mpi_inv and related changes.  [#4869, partly
+     also in 1.8.6]
+
+   - Fix mpi_copy to correctly handle flags of opaque MPIs.
+     [also in 1.8.6]
+
+   - Fix mpi_cmp to consider +0 and -0 the same.  [also in 1.8.6]
+
+   - Fix extra entropy collection via clock_gettime.  Note that this
+     fallback code path is not used on any decent hardware.  [#4966,
+     also in 1.8.7]
+
+   - Support opaque MPI with gcry_mpi_print.  [#4872, also in 1.8.7]
+
+   - Allow for a Unicode random seed file on Windows.  [#5098, also in
+     1.8.7]
+
  * Extended interfaces:
 
    - gcry_sexp_extract_param understands new format specifiers to
      directly store to integers and strings.
 
+ * Other features:
+
+   - Support curves Ed448 and X448.
+
+   - Add OIDs from RFC-8410 as aliases for Ed25519 and Curve25519.
+     [also in 1.8.6]
+
+   - New implementations for Poly1305.
 
  * Interface changes relative to the 1.8.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,6 +91,9 @@ Noteworthy changes in version 1.9.0 (unreleased)  [C22/A3/R0]
    Version 1.8.2 (2017-12-13)
    Version 1.8.3 (2018-06-13)
    Version 1.8.4 (2018-10-26)
+   Version 1.8.5 (2019-08-29)
+   Version 1.8.6 (2020-07-06)
+   Version 1.8.7 (2020-10-23)
 
 
 Noteworthy changes in version 1.8.1 (2017-08-27)  [C22/A2/R1]
