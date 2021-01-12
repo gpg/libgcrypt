@@ -1,6 +1,6 @@
 /* mac-cmac.c  -  CMAC glue for MAC API
  * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
- * Copyright (C) 2019 Red Hat, Inc.
+ * Copyright (C) 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -147,14 +147,14 @@ cmac_get_keylen (int algo)
 }
 
 
-/* Check one MAC with MAC ALGO using the regular MAC
+/* Check one CMAC with MAC ALGO using the regular MAC
  * API. (DATA,DATALEN) is the data to be MACed, (KEY,KEYLEN) the key
  * and (EXPECT,EXPECTLEN) the expected result.  Returns NULL on
  * success or a string describing the failure.  */
 static const char *
-check_one_mac (int algo, const char *data, size_t datalen,
-	       const char *key, size_t keylen,
-	       const char *expect, size_t expectlen)
+check_one (int algo, const char *data, size_t datalen,
+           const char *key, size_t keylen,
+           const char *expect, size_t expectlen)
 {
   gcry_mac_hd_t hd;
   unsigned char mac[512]; /* hardcoded to avoid allocation */
@@ -206,7 +206,7 @@ check_one_mac (int algo, const char *data, size_t datalen,
     return "gcry_mac_read failed";
 
   if (memcmp (mac, expect, maclen))
-    return "does not mismatch";
+    return "does not match";
 
   return NULL;
 }
