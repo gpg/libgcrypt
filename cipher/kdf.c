@@ -1,5 +1,5 @@
 /* kdf.c  - Key Derivation Functions
- * Copyright (C) 1998, 2011 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2008, 2011 Free Software Foundation, Inc.
  * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
@@ -304,4 +304,199 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
 
  leave:
   return ec;
+}
+
+
+/* Check one KDF call with ALGO and HASH_ALGO using the regular KDF
+ * API. (passphrase,passphraselen) is the password to be derived,
+ * (salt,saltlen) the salt for the key derivation,
+ * iterations is the number of the kdf iterations,
+ * and (expect,expectlen) the expected result. Returns NULL on
+ * success or a string describing the failure.  */
+
+static const char *
+check_one (int algo, int hash_algo,
+           const void *passphrase, size_t passphraselen,
+           const void *salt, size_t saltlen,
+           unsigned long iterations,
+           const void *expect, size_t expectlen)
+{
+  unsigned char key[512]; /* hardcoded to avoid allocation */
+  size_t keysize = expectlen;
+
+  if (keysize > sizeof(key))
+    return "invalid tests data";
+
+  if (_gcry_kdf_derive (passphrase, passphraselen, algo,
+                        hash_algo, salt, saltlen, iterations,
+                        keysize, key))
+    return "gcry_kdf_derive failed";
+
+  if (memcmp (key, expect, expectlen))
+    return "does not match";
+
+  return NULL;
+}
+
+
+static gpg_err_code_t
+selftest_pbkdf2 (int extended, selftest_report_func_t report)
+{
+  static struct {
+    const char *desc;
+    const char *p;   /* Passphrase.  */
+    size_t plen;     /* Length of P. */
+    const char *salt;
+    size_t saltlen;
+    int hashalgo;
+    unsigned long c; /* Iterations.  */
+    int dklen;       /* Requested key length.  */
+    const char *dk;  /* Derived key.  */
+    int disabled;
+  } tv[] = {
+#if USE_SHA1
+#define NUM_TEST_VECTORS 9
+    /* SHA1 test vectors are from RFC-6070.  */
+    {
+      "Basic PBKDF2 SHA1 #1",
+      "password", 8,
+      "salt", 4,
+      GCRY_MD_SHA1,
+      1,
+      20,
+      "\x0c\x60\xc8\x0f\x96\x1f\x0e\x71\xf3\xa9"
+      "\xb5\x24\xaf\x60\x12\x06\x2f\xe0\x37\xa6"
+    },
+    {
+      "Basic PBKDF2 SHA1 #2",
+      "password", 8,
+      "salt", 4,
+      GCRY_MD_SHA1,
+      2,
+      20,
+      "\xea\x6c\x01\x4d\xc7\x2d\x6f\x8c\xcd\x1e"
+      "\xd9\x2a\xce\x1d\x41\xf0\xd8\xde\x89\x57"
+    },
+    {
+      "Basic PBKDF2 SHA1 #3",
+      "password", 8,
+      "salt", 4,
+      GCRY_MD_SHA1,
+      4096,
+      20,
+      "\x4b\x00\x79\x01\xb7\x65\x48\x9a\xbe\xad"
+      "\x49\xd9\x26\xf7\x21\xd0\x65\xa4\x29\xc1"
+    },
+    {
+      "Basic PBKDF2 SHA1 #4",
+      "password", 8,
+      "salt", 4,
+      GCRY_MD_SHA1,
+      16777216,
+      20,
+      "\xee\xfe\x3d\x61\xcd\x4d\xa4\xe4\xe9\x94"
+      "\x5b\x3d\x6b\xa2\x15\x8c\x26\x34\xe9\x84",
+      1 /* This test takes too long.  */
+    },
+    {
+      "Basic PBKDF2 SHA1 #5",
+      "passwordPASSWORDpassword", 24,
+      "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
+      GCRY_MD_SHA1,
+      4096,
+      25,
+      "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
+      "\xd8\x36\x62\xc0\xe4\x4a\x8b\x29\x1a\x96"
+      "\x4c\xf2\xf0\x70\x38"
+    },
+    {
+      "Basic PBKDF2 SHA1 #6",
+      "pass\0word", 9,
+      "sa\0lt", 5,
+      GCRY_MD_SHA1,
+      4096,
+      16,
+      "\x56\xfa\x6a\xa7\x55\x48\x09\x9d\xcc\x37"
+      "\xd7\xf0\x34\x25\xe0\xc3"
+    },
+    { /* empty password test, not in RFC-6070 */
+      "Basic PBKDF2 SHA1 #7",
+      "", 0,
+      "salt", 4,
+      GCRY_MD_SHA1,
+      2,
+      20,
+      "\x13\x3a\x4c\xe8\x37\xb4\xd2\x52\x1e\xe2"
+      "\xbf\x03\xe1\x1c\x71\xca\x79\x4e\x07\x97"
+    },
+#else
+#define NUM_TEST_VECTORS 2
+#endif
+    {
+      "Basic PBKDF2 SHA256",
+      "password", 8,
+      "salt", 4,
+      GCRY_MD_SHA256,
+      2,
+      32,
+      "\xae\x4d\x0c\x95\xaf\x6b\x46\xd3\x2d\x0a\xdf\xf9\x28\xf0\x6d\xd0"
+      "\x2a\x30\x3f\x8e\xf3\xc2\x51\xdf\xd6\xe2\xd8\x5a\x95\x47\x4c\x43"
+    },
+    {
+      "Extended PBKDF2 SHA256",
+      "passwordPASSWORDpassword", 24,
+      "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
+      GCRY_MD_SHA256,
+      4096,
+      40,
+      "\x34\x8c\x89\xdb\xcb\xd3\x2b\x2f\x32\xd8\x14\xb8\x11\x6e\x84\xcf"
+      "\x2b\x17\x34\x7e\xbc\x18\x00\x18\x1c\x4e\x2a\x1f\xb8\xdd\x53\xe1"
+      "\xc6\x35\x51\x8c\x7d\xac\x47\xe9"
+    }
+  };
+  const char *what;
+  const char *errtxt;
+  int tvidx;
+
+  for (tvidx=0; tv[tvidx].desc; tvidx++)
+    {
+      what = tv[tvidx].desc;
+      if (tv[tvidx].disabled)
+        continue;
+      errtxt = check_one (GCRY_KDF_PBKDF2, tv[tvidx].hashalgo,
+                          tv[tvidx].p, tv[tvidx].plen,
+                          tv[tvidx].salt, tv[tvidx].saltlen,
+                          tv[tvidx].c,
+                          tv[tvidx].dk, tv[tvidx].dklen);
+      if (errtxt)
+        goto failed;
+      if (tvidx >= NUM_TEST_VECTORS - 1 && !extended)
+        break;
+    }
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("kdf", GCRY_KDF_PBKDF2, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+/* Run the selftests for KDF with KDF algorithm ALGO with optional
+   reporting function REPORT.  */
+gpg_error_t
+_gcry_kdf_selftest (int algo, int extended, selftest_report_func_t report)
+{
+  gcry_err_code_t ec = 0;
+
+  if (algo == GCRY_KDF_PBKDF2)
+    ec = selftest_pbkdf2 (extended, report);
+  else
+    {
+      ec = GPG_ERR_UNSUPPORTED_ALGORITHM;
+      if (report)
+        report ("kdf", algo, "module", "algorithm not available");
+    }
+  return gpg_error (ec);
 }

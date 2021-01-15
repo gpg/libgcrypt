@@ -527,6 +527,29 @@ run_mac_selftests (int extended)
   return anyerr;
 }
 
+/* Run self-tests for all KDF algorithms.  Return 0 on success. */
+static int
+run_kdf_selftests (int extended)
+{
+  static int algos[] =
+    {
+      GCRY_KDF_PBKDF2,
+      0
+    };
+  int idx;
+  gpg_error_t err;
+  int anyerr = 0;
+
+  for (idx=0; algos[idx]; idx++)
+    {
+      err = _gcry_kdf_selftest (algos[idx], extended, reporter);
+      reporter ("kdf", algos[idx], NULL, err? gpg_strerror (err):NULL);
+      if (err)
+        anyerr = 1;
+    }
+  return anyerr;
+}
+
 
 /* Run self-tests for all required public key algorithms.  Return 0 on
    success. */
@@ -681,6 +704,9 @@ _gcry_fips_run_selftests (int extended)
     goto leave;
 
   if (run_mac_selftests (extended))
+    goto leave;
+
+  if (run_kdf_selftests (extended))
     goto leave;
 
   /* Run random tests before the pubkey tests because the latter
