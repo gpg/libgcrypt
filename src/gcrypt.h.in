@@ -946,7 +946,7 @@ enum gcry_cipher_algos
     GCRY_CIPHER_SALSA20R12  = 314,
     GCRY_CIPHER_GOST28147   = 315,
     GCRY_CIPHER_CHACHA20    = 316,
-    GCRY_CIPHER_GOST28147_MESH   = 317, /* GOST 28247 with optional CryptoPro keymeshing */
+    GCRY_CIPHER_GOST28147_MESH   = 317, /* With CryptoPro key meshing.  */
     GCRY_CIPHER_SM4         = 318
   };
 
@@ -1215,11 +1215,11 @@ enum gcry_ecc_curves
   };
 
 /* Get the length of point to prepare buffer for the result.  */
-unsigned int gcry_ecc_get_algo_keylen (int algo);
+unsigned int gcry_ecc_get_algo_keylen (int curveid);
 
 /* Convenience function to compute scalar multiplication of the
-   Montgomery form of curve.  */
-gpg_error_t gcry_ecc_mul_point (int algo, unsigned char *result,
+ * Montgomery form of curve.  */
+gpg_error_t gcry_ecc_mul_point (int curveid, unsigned char *result,
                                 const unsigned char *scalar,
                                 const unsigned char *point);
 
