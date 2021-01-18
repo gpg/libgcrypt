@@ -1483,6 +1483,12 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                 }
               else
                 {
+                  if (mpifmt == GCRYMPI_FMT_USG && mpi_cmp_ui (m, 0) < 0)
+                    {
+                      err = GPG_ERR_INV_ARG;
+                      goto leave;
+                    }
+
                   err = _gcry_mpi_print (mpifmt, NULL, 0, &nm, m);
                   if (err)
                     goto leave;

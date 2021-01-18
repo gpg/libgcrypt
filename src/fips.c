@@ -508,6 +508,8 @@ run_mac_selftests (int extended)
       GCRY_MAC_HMAC_SHA3_256,
       GCRY_MAC_HMAC_SHA3_384,
       GCRY_MAC_HMAC_SHA3_512,
+      GCRY_MAC_CMAC_3DES,
+      GCRY_MAC_CMAC_AES,
       0
     };
   int idx;
@@ -519,6 +521,29 @@ run_mac_selftests (int extended)
       err = _gcry_mac_selftest (algos[idx], extended, reporter);
       reporter ("mac", algos[idx], NULL,
                 err? gpg_strerror (err):NULL);
+      if (err)
+        anyerr = 1;
+    }
+  return anyerr;
+}
+
+/* Run self-tests for all KDF algorithms.  Return 0 on success. */
+static int
+run_kdf_selftests (int extended)
+{
+  static int algos[] =
+    {
+      GCRY_KDF_PBKDF2,
+      0
+    };
+  int idx;
+  gpg_error_t err;
+  int anyerr = 0;
+
+  for (idx=0; algos[idx]; idx++)
+    {
+      err = _gcry_kdf_selftest (algos[idx], extended, reporter);
+      reporter ("kdf", algos[idx], NULL, err? gpg_strerror (err):NULL);
       if (err)
         anyerr = 1;
     }
@@ -679,6 +704,9 @@ _gcry_fips_run_selftests (int extended)
     goto leave;
 
   if (run_mac_selftests (extended))
+    goto leave;
+
+  if (run_kdf_selftests (extended))
     goto leave;
 
   /* Run random tests before the pubkey tests because the latter
