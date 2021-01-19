@@ -89,6 +89,16 @@
 # endif
 #endif /* ENABLE_AESNI_SUPPORT */
 
+/* USE_VAES inidicates whether to compile with Intel VAES code.  */
+#undef USE_VAES
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
+     defined(__x86_64__) && defined(ENABLE_AVX2_SUPPORT) && \
+     defined(HAVE_GCC_INLINE_ASM_VAES_VPCLMUL) && \
+     defined(USE_AESNI)
+# define USE_VAES 1
+#endif
+
 /* USE_ARM_CE indicates whether to enable ARMv8 Crypto Extension assembly
  * code. */
 #undef USE_ARM_CE

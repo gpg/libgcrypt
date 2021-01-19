@@ -100,6 +100,7 @@ EXTRA_libcipher_la_SOURCES = \
 	rijndael-aesni.c rijndael-padlock.c                \
 	rijndael-amd64.S rijndael-arm.S                    \
 	rijndael-ssse3-amd64.c rijndael-ssse3-amd64-asm.S  \
+	rijndael-vaes.c rijndael-vaes-avx2-amd64.S         \
 	rijndael-armv8-ce.c rijndael-armv8-aarch32-ce.S    \
 	rijndael-armv8-aarch64-ce.S rijndael-aarch64.S     \
 	rijndael-ppc.c rijndael-ppc9le.c                   \

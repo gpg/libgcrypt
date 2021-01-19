@@ -102,6 +102,26 @@ extern void _gcry_aes_aesni_xts_crypt (void *context, unsigned char *tweak,
                                        size_t nblocks, int encrypt);
 #endif
 
+#ifdef USE_VAES
+/* VAES (AMD64) accelerated implementation of AES */
+
+extern void _gcry_aes_vaes_cfb_dec (void *context, unsigned char *iv,
+				    void *outbuf_arg, const void *inbuf_arg,
+				    size_t nblocks);
+extern void _gcry_aes_vaes_cbc_dec (void *context, unsigned char *iv,
+				    void *outbuf_arg, const void *inbuf_arg,
+				    size_t nblocks);
+extern void _gcry_aes_vaes_ctr_enc (void *context, unsigned char *ctr,
+				    void *outbuf_arg, const void *inbuf_arg,
+				    size_t nblocks);
+extern size_t _gcry_aes_vaes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+					const void *inbuf_arg, size_t nblocks,
+					int encrypt);
+extern void _gcry_aes_vaes_xts_crypt (void *context, unsigned char *tweak,
+				      void *outbuf_arg, const void *inbuf_arg,
+				      size_t nblocks, int encrypt);
+#endif
+
 #ifdef USE_SSSE3
 /* SSSE3 (AMD64) vector permutation implementation of AES */
 extern void _gcry_aes_ssse3_do_setkey(RIJNDAEL_context *ctx, const byte *key);
@@ -480,6 +500,19 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->ocb_crypt = _gcry_aes_aesni_ocb_crypt;
       bulk_ops->ocb_auth = _gcry_aes_aesni_ocb_auth;
       bulk_ops->xts_crypt = _gcry_aes_aesni_xts_crypt;
+
+#ifdef USE_VAES
+      if ((hwfeatures & HWF_INTEL_VAES_VPCLMUL) &&
+	  (hwfeatures & HWF_INTEL_AVX2))
+	{
+	  /* Setup VAES bulk encryption routines.  */
+	  bulk_ops->cfb_dec = _gcry_aes_vaes_cfb_dec;
+	  bulk_ops->cbc_dec = _gcry_aes_vaes_cbc_dec;
+	  bulk_ops->ctr_enc = _gcry_aes_vaes_ctr_enc;
+	  bulk_ops->ocb_crypt = _gcry_aes_vaes_ocb_crypt;
+	  bulk_ops->xts_crypt = _gcry_aes_vaes_xts_crypt;
+	}
+#endif
     }
 #endif
 #ifdef USE_PADLOCK
@@ -1644,7 +1677,11 @@ selftest_basic_256 (void)
 static const char*
 selftest_ctr_128 (void)
 {
+#ifdef USE_VAES
+  const int nblocks = 16+1;
+#else
   const int nblocks = 8+1;
+#endif
   const int blocksize = BLOCKSIZE;
   const int context_size = sizeof(RIJNDAEL_context);
 
@@ -1658,7 +1695,11 @@ selftest_ctr_128 (void)
 static const char*
 selftest_cbc_128 (void)
 {
+#ifdef USE_VAES
+  const int nblocks = 16+2;
+#else
   const int nblocks = 8+2;
+#endif
   const int blocksize = BLOCKSIZE;
   const int context_size = sizeof(RIJNDAEL_context);
 
@@ -1672,7 +1713,11 @@ selftest_cbc_128 (void)
 static const char*
 selftest_cfb_128 (void)
 {
+#ifdef USE_VAES
+  const int nblocks = 16+2;
+#else
   const int nblocks = 8+2;
+#endif
   const int blocksize = BLOCKSIZE;
   const int context_size = sizeof(RIJNDAEL_context);
 
