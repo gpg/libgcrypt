@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.9.0 (unreleased)  [C23/A3/R0]
+Noteworthy changes in version 1.9.0 (2021-01-19)  [C23/A3/R0]
 ------------------------------------------------
 
  * New and extended interfaces:
@@ -22,9 +22,9 @@ Noteworthy changes in version 1.9.0 (unreleased)  [C23/A3/R0]
      directly store to integers and strings.
 
    - New function gcry_ecc_mul_point and curve constants for Curve448
-     and Curve25519.  [#4293] DOC-MISSING
+     and Curve25519.  [#4293]
 
-   - New function gcry_ecc_get_algo_keylen.  DOC-MISSING
+   - New function gcry_ecc_get_algo_keylen.
 
    - New control code GCRYCTL_AUTO_EXPAND_SECMEM to allow growing the
      secure memory area.  Also in 1.8.2 as an undocumented feature.
@@ -170,8 +170,10 @@ Noteworthy changes in version 1.9.0 (unreleased)  [C23/A3/R0]
    GCRY_MAC_HMAC_SHA512_224        NEW mac algo.
    GCRY_MAC_CMAC_SM4               NEW mac algo.
 
- * Release dates of 1.8.x versions:
-   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Release-info: https://dev.gnupg.org/T4294
+
+ Release dates of 1.8.x versions:
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    Version 1.8.2 (2017-12-13)
    Version 1.8.3 (2018-06-13)
    Version 1.8.4 (2018-10-26)
