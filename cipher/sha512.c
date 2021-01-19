@@ -125,6 +125,13 @@
 #endif
 
 
+/* USE_S390X_CRYPTO indicates whether to enable zSeries code. */
+#undef USE_S390X_CRYPTO
+#if defined(HAVE_GCC_INLINE_ASM_S390X)
+# define USE_S390X_CRYPTO 1
+#endif /* USE_S390X_CRYPTO */
+
+
 typedef struct
 {
   u64 h0, h1, h2, h3, h4, h5, h6, h7;
@@ -134,6 +141,10 @@ typedef struct
 {
   gcry_md_block_ctx_t bctx;
   SHA512_STATE state;
+#ifdef USE_S390X_CRYPTO
+  u64 final_len_msb, final_len_lsb; /* needs to be right after state.h7. */
+  int use_s390x_crypto;
+#endif
 } SHA512_CONTEXT;
 
 
@@ -313,6 +324,42 @@ do_sha512_transform_ppc9(void *ctx, const unsigned char *data, size_t nblks)
 #endif
 
 
+#ifdef USE_S390X_CRYPTO
+#include "asm-inline-s390x.h"
+
+static unsigned int
+do_sha512_transform_s390x (void *ctx, const unsigned char *data, size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+
+  kimd_execute (KMID_FUNCTION_SHA512, &hd->state.h0, data, nblks * 128);
+  return 0;
+}
+
+static unsigned int
+do_sha512_final_s390x (void *ctx, const unsigned char *data, size_t datalen,
+		       u64 len_msb, u64 len_lsb)
+{
+  SHA512_CONTEXT *hd = ctx;
+
+  /* Make sure that 'final_len' is positioned at correct offset relative
+   * to 'state.h0'. This is because we are passing 'state.h0' pointer as start of
+   * parameter block to 'klmd' instruction. */
+
+  gcry_assert (offsetof (SHA512_CONTEXT, final_len_msb)
+	       - offsetof (SHA512_CONTEXT, state.h0) == 8 * sizeof(u64));
+  gcry_assert (offsetof (SHA512_CONTEXT, final_len_lsb)
+	       - offsetof (SHA512_CONTEXT, final_len_msb) == 1 * sizeof(u64));
+
+  hd->final_len_msb = len_msb;
+  hd->final_len_lsb = len_lsb;
+
+  klmd_execute (KMID_FUNCTION_SHA512, &hd->state.h0, data, datalen);
+  return 0;
+}
+#endif
+
+
 static void
 sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 {
@@ -355,6 +402,18 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 #ifdef USE_SSSE3_I386
   if ((features & HWF_INTEL_SSSE3) != 0)
     ctx->bctx.bwrite = do_sha512_transform_i386_ssse3;
+#endif
+#ifdef USE_S390X_CRYPTO
+  ctx->use_s390x_crypto = 0;
+  if ((features & HWF_S390X_MSA) != 0)
+    {
+      if ((kimd_query () & km_function_to_mask (KMID_FUNCTION_SHA512)) &&
+	  (klmd_query () & km_function_to_mask (KMID_FUNCTION_SHA512)))
+	{
+	  ctx->bctx.bwrite = do_sha512_transform_s390x;
+	  ctx->use_s390x_crypto = 1;
+	}
+    }
 #endif
   (void)features;
 }
@@ -720,7 +779,7 @@ static void
 sha512_final (void *context)
 {
   SHA512_CONTEXT *hd = context;
-  unsigned int stack_burn_depth;
+  unsigned int burn;
   u64 t, th, msb, lsb;
   byte *p;
 
@@ -743,27 +802,39 @@ sha512_final (void *context)
   msb <<= 3;
   msb |= t >> 61;
 
-  if (hd->bctx.count < 112)
-    {				/* enough room */
-      hd->bctx.buf[hd->bctx.count++] = 0x80;	/* pad */
-      if (hd->bctx.count < 112)
-	memset (&hd->bctx.buf[hd->bctx.count], 0, 112 - hd->bctx.count);
-      hd->bctx.count = 112;
+  if (0)
+    { }
+#ifdef USE_S390X_CRYPTO
+  else if (hd->use_s390x_crypto)
+    {
+      burn = do_sha512_final_s390x (hd, hd->bctx.buf, hd->bctx.count, msb, lsb);
     }
+#endif
   else
-    {				/* need one extra block */
-      hd->bctx.buf[hd->bctx.count++] = 0x80;	/* pad character */
-      if (hd->bctx.count < 128)
-	memset (&hd->bctx.buf[hd->bctx.count], 0, 128 - hd->bctx.count);
-      hd->bctx.count = 128;
-      _gcry_md_block_write (context, NULL, 0); /* flush */ ;
-      memset (hd->bctx.buf, 0, 112);	/* fill next block with zeroes */
+    {
+      if (hd->bctx.count < 112)
+	{
+	  /* enough room */
+	  hd->bctx.buf[hd->bctx.count++] = 0x80;  /* pad */
+	  if (hd->bctx.count < 112)
+	    memset (&hd->bctx.buf[hd->bctx.count], 0, 112 - hd->bctx.count);
+	  hd->bctx.count = 112;
+	}
+      else
+	{
+	  /* need one extra block */
+	  hd->bctx.buf[hd->bctx.count++] = 0x80;  /* pad character */
+	  if (hd->bctx.count < 128)
+	    memset (&hd->bctx.buf[hd->bctx.count], 0, 128 - hd->bctx.count);
+	  hd->bctx.count = 128;
+	  _gcry_md_block_write (context, NULL, 0); /* flush */
+	  memset (hd->bctx.buf, 0, 112);  /* fill next block with zeroes */
+	}
+      /* append the 128 bit count */
+      buf_put_be64(hd->bctx.buf + 112, msb);
+      buf_put_be64(hd->bctx.buf + 120, lsb);
+      burn = (*hd->bctx.bwrite) (hd, hd->bctx.buf, 1);
     }
-  /* append the 128 bit count */
-  buf_put_be64(hd->bctx.buf + 112, msb);
-  buf_put_be64(hd->bctx.buf + 120, lsb);
-  stack_burn_depth = (*hd->bctx.bwrite) (hd, hd->bctx.buf, 1);
-  _gcry_burn_stack (stack_burn_depth);
 
   p = hd->bctx.buf;
 #define X(a) do { buf_put_be64(p, hd->state.h##a); p += 8; } while (0)
@@ -778,6 +849,8 @@ sha512_final (void *context)
   X (6);
   X (7);
 #undef X
+
+  _gcry_burn_stack (burn);
 }
 
 static byte *

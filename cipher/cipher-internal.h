@@ -96,6 +96,12 @@
 #endif
 #endif /* GCM_USE_ARM_NEON */
 
+/* GCM_USE_S390X_CRYPTO indicates whether to enable zSeries code. */
+#undef GCM_USE_S390X_CRYPTO
+#if defined(HAVE_GCC_INLINE_ASM_S390X)
+# define GCM_USE_S390X_CRYPTO 1
+#endif /* GCM_USE_S390X_CRYPTO */
+
 typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);
 
@@ -135,6 +141,8 @@ typedef struct cipher_bulk_ops
 		  const void *inbuf_arg, size_t nblocks, int cbc_mac);
   void (*cbc_dec)(void *context, unsigned char *iv, void *outbuf_arg,
 		  const void *inbuf_arg, size_t nblocks);
+  void (*ofb_enc)(void *context, unsigned char *iv, void *outbuf_arg,
+		  const void *inbuf_arg, size_t nblocks);
   void (*ctr_enc)(void *context, unsigned char *iv, void *outbuf_arg,
 		  const void *inbuf_arg, size_t nblocks);
   size_t (*ocb_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
@@ -142,6 +150,8 @@ typedef struct cipher_bulk_ops
   size_t (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks);
   void (*xts_crypt)(void *context, unsigned char *tweak, void *outbuf_arg,
 		    const void *inbuf_arg, size_t nblocks, int encrypt);
+  size_t (*gcm_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
+		      const void *inbuf_arg, size_t nblocks, int encrypt);
 } cipher_bulk_ops_t;
 
 

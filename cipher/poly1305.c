@@ -35,6 +35,9 @@
 static const char *selftest (void);
 
 
+#undef HAVE_ASM_POLY1305_BLOCKS
+
+
 #undef USE_MPI_64BIT
 #undef USE_MPI_32BIT
 #if BYTES_PER_MPI_LIMB == 8 && defined(HAVE_TYPE_U64)
@@ -44,6 +47,35 @@ static const char *selftest (void);
 #else
 # error please implement for this limb size.
 #endif
+
+
+/* USE_S390X_ASM indicates whether to enable zSeries code. */
+#undef USE_S390X_ASM
+#if BYTES_PER_MPI_LIMB == 8
+# if defined (__s390x__) && __GNUC__ >= 4 && __ARCH__ >= 9
+#  if defined(HAVE_GCC_INLINE_ASM_S390X)
+#   define USE_S390X_ASM 1
+#  endif /* USE_S390X_ASM */
+# endif
+#endif
+
+
+#ifdef USE_S390X_ASM
+
+#define HAVE_ASM_POLY1305_BLOCKS 1
+
+extern unsigned int _gcry_poly1305_s390x_blocks1(void *state,
+						 const byte *buf, size_t len,
+						 byte high_pad);
+
+static unsigned int
+poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
+		 byte high_pad)
+{
+  return _gcry_poly1305_s390x_blocks1(&ctx->state, buf, len, high_pad);
+}
+
+#endif /* USE_S390X_ASM */
 
 
 static void poly1305_init (poly1305_context_t *ctx,
@@ -146,6 +178,8 @@ static void poly1305_init (poly1305_context_t *ctx,
     ADD_1305_64(H2, H1, H0, (u64)0, x0_hi, x0_lo); \
   } while (0)
 
+#ifndef HAVE_ASM_POLY1305_BLOCKS
+
 static unsigned int
 poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
 		 byte high_pad)
@@ -200,6 +234,8 @@ poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
 
   return 6 * sizeof (void *) + 18 * sizeof (u64);
 }
+
+#endif /* !HAVE_ASM_POLY1305_BLOCKS */
 
 static unsigned int poly1305_final (poly1305_context_t *ctx,
 				    byte mac[POLY1305_TAGLEN])
@@ -354,6 +390,8 @@ static unsigned int poly1305_final (poly1305_context_t *ctx,
     ADD_1305_32(H4, H3, H2, H1, H0, 0, x3_lo, x2_lo, x1_lo, x0_lo); \
   } while (0)
 
+#ifndef HAVE_ASM_POLY1305_BLOCKS
+
 static unsigned int
 poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
 		 byte high_pad)
@@ -402,6 +440,8 @@ poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
 
   return 6 * sizeof (void *) + 28 * sizeof (u32);
 }
+
+#endif /* !HAVE_ASM_POLY1305_BLOCKS */
 
 static unsigned int poly1305_final (poly1305_context_t *ctx,
 				    byte mac[POLY1305_TAGLEN])

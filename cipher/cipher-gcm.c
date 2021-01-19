@@ -89,6 +89,26 @@ ghash_armv7_neon (gcry_cipher_hd_t c, byte *result, const byte *buf,
 }
 #endif /* GCM_USE_ARM_NEON */
 
+#ifdef GCM_USE_S390X_CRYPTO
+#include "asm-inline-s390x.h"
+
+static unsigned int
+ghash_s390x_kimd (gcry_cipher_hd_t c, byte *result, const byte *buf,
+		  size_t nblocks)
+{
+  u128_t params[2];
+
+  memcpy (&params[0], result, 16);
+  memcpy (&params[1], c->u_mode.gcm.u_ghash_key.key, 16);
+
+  kimd_execute (KMID_FUNCTION_GHASH, &params, buf, nblocks * 16);
+
+  memcpy (result, &params[0], 16);
+  wipememory (params, sizeof(params));
+  return 0;
+}
+#endif /* GCM_USE_S390X_CRYPTO*/
+
 
 #ifdef GCM_USE_TABLES
 static struct
@@ -522,9 +542,12 @@ ghash_internal (gcry_cipher_hd_t c, byte *result, const byte *buf,
 static void
 setupM (gcry_cipher_hd_t c)
 {
-#if defined(GCM_USE_INTEL_PCLMUL) || defined(GCM_USE_ARM_PMULL)
+#if defined(GCM_USE_INTEL_PCLMUL) || defined(GCM_USE_ARM_PMULL) || \
+    defined(GCM_USE_S390X_CRYPTO)
   unsigned int features = _gcry_get_hw_features ();
 #endif
+
+  c->u_mode.gcm.ghash_fn = NULL;
 
   if (0)
     ;
@@ -549,7 +572,17 @@ setupM (gcry_cipher_hd_t c)
       ghash_setup_armv7_neon (c);
     }
 #endif
-  else
+#ifdef GCM_USE_S390X_CRYPTO
+  else if (features & HWF_S390X_MSA)
+    {
+      if (kimd_query () & km_function_to_mask (KMID_FUNCTION_GHASH))
+	{
+	  c->u_mode.gcm.ghash_fn = ghash_s390x_kimd;
+	}
+    }
+#endif
+
+  if (c->u_mode.gcm.ghash_fn == NULL)
     {
       c->u_mode.gcm.ghash_fn = ghash_internal;
       fillM (c);
@@ -648,8 +681,10 @@ do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte *buf,
         }
       if (!buflen)
         {
-          if (!do_padding)
-            break;
+          if (!do_padding && unused < blocksize)
+	    {
+	      break;
+	    }
 
 	  n = blocksize - unused;
 	  if (n > 0)
@@ -757,13 +792,83 @@ gcm_ctr_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
 }
 
 
+static gcry_err_code_t
+gcm_crypt_inner (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
+		 const byte *inbuf, size_t inbuflen, int encrypt)
+{
+  gcry_err_code_t err;
+
+  while (inbuflen)
+    {
+      size_t currlen = inbuflen;
+
+      /* Use a bulk method if available.  */
+      if (c->bulk.gcm_crypt)
+	{
+	  /* Bulk method requires that there is no cached data. */
+	  if (inbuflen >= GCRY_GCM_BLOCK_LEN && c->u_mode.gcm.mac_unused == 0)
+	    {
+	      size_t nblks = inbuflen / GCRY_GCM_BLOCK_LEN;
+	      size_t nleft;
+	      size_t ndone;
+
+	      nleft = c->bulk.gcm_crypt (c, outbuf, inbuf, nblks, encrypt);
+	      ndone = nblks - nleft;
+
+	      inbuf += ndone * GCRY_GCM_BLOCK_LEN;
+	      outbuf += ndone * GCRY_GCM_BLOCK_LEN;
+	      inbuflen -= ndone * GCRY_GCM_BLOCK_LEN;
+	      outbuflen -= ndone * GCRY_GCM_BLOCK_LEN;
+
+	      if (inbuflen == 0)
+		break;
+
+	      currlen = inbuflen;
+	    }
+	  else if (c->u_mode.gcm.mac_unused > 0
+	           && inbuflen >= GCRY_GCM_BLOCK_LEN
+			  + (16 - c->u_mode.gcm.mac_unused))
+	    {
+	      /* Handle just enough data so that cache is depleted, and on
+	       * next loop iteration use bulk method. */
+	      currlen = 16 - c->u_mode.gcm.mac_unused;
+
+	      gcry_assert(currlen);
+	    }
+	}
+
+      /* Since checksumming is done after/before encryption/decryption,
+       * process input in 24KiB chunks to keep data loaded in L1 cache for
+       * checksumming/decryption. */
+      if (currlen > 24 * 1024)
+	currlen = 24 * 1024;
+
+      if (!encrypt)
+	do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, inbuf, currlen, 0);
+
+      err = gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, currlen);
+      if (err != 0)
+	return err;
+
+      if (encrypt)
+	do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, outbuf, currlen, 0);
+
+      outbuf += currlen;
+      inbuf += currlen;
+      outbuflen -= currlen;
+      inbuflen -= currlen;
+    }
+
+  return 0;
+}
+
+
 gcry_err_code_t
 _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
                           byte *outbuf, size_t outbuflen,
                           const byte *inbuf, size_t inbuflen)
 {
   static const unsigned char zerobuf[MAX_BLOCKSIZE];
-  gcry_err_code_t err;
 
   if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_CIPHER_ALGO;
@@ -796,28 +901,7 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  while (inbuflen)
-    {
-      size_t currlen = inbuflen;
-
-      /* Since checksumming is done after encryption, process input in 24KiB
-       * chunks to keep data loaded in L1 cache for checksumming. */
-      if (currlen > 24 * 1024)
-	currlen = 24 * 1024;
-
-      err = gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, currlen);
-      if (err != 0)
-	return err;
-
-      do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, outbuf, currlen, 0);
-
-      outbuf += currlen;
-      inbuf += currlen;
-      outbuflen -= currlen;
-      inbuflen -= currlen;
-    }
-
-  return 0;
+  return gcm_crypt_inner (c, outbuf, outbuflen, inbuf, inbuflen, 1);
 }
 
 
@@ -827,7 +911,6 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
                           const byte *inbuf, size_t inbuflen)
 {
   static const unsigned char zerobuf[MAX_BLOCKSIZE];
-  gcry_err_code_t err;
 
   if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_CIPHER_ALGO;
@@ -857,28 +940,7 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  while (inbuflen)
-    {
-      size_t currlen = inbuflen;
-
-      /* Since checksumming is done before decryption, process input in
-       * 24KiB chunks to keep data loaded in L1 cache for decryption. */
-      if (currlen > 24 * 1024)
-	currlen = 24 * 1024;
-
-      do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, inbuf, currlen, 0);
-
-      err = gcm_ctr_encrypt(c, outbuf, outbuflen, inbuf, currlen);
-      if (err)
-	return err;
-
-      outbuf += currlen;
-      inbuf += currlen;
-      outbuflen -= currlen;
-      inbuflen -= currlen;
-    }
-
-  return 0;
+  return gcm_crypt_inner (c, outbuf, outbuflen, inbuf, inbuflen, 0);
 }
 
 

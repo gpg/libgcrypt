@@ -1541,6 +1541,54 @@ extern USItype __udiv_qrnnd ();
 
 
 /***************************************
+ *********** s390x/zSeries  ************
+ ***************************************/
+#if defined (__s390x__) && W_TYPE_SIZE == 64 && __GNUC__ >= 4
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+  __asm__ ("algr %1,%5\n"                                               \
+	   "alcgr %0,%3\n"                                              \
+	   : "=r" ((sh)),                                               \
+	     "=&r" ((sl))                                               \
+	   : "0" ((UDItype)(ah)),                                       \
+	     "r"  ((UDItype)(bh)),                                      \
+	     "1" ((UDItype)(al)),                                       \
+	     "r"  ((UDItype)(bl))                                       \
+	   __CLOBBER_CC)
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+  __asm__ ("slgr %1,%5\n"                                               \
+	   "slbgr %0,%3\n"                                              \
+	   : "=r" ((sh)),                                               \
+	     "=&r" ((sl))                                               \
+	   : "0" ((UDItype)(ah)),                                       \
+	     "r" ((UDItype)(bh)),                                       \
+	     "1" ((UDItype)(al)),                                       \
+	     "r" ((UDItype)(bl))                                        \
+	   __CLOBBER_CC)
+typedef unsigned int UTItype __attribute__ ((mode (TI)));
+#  define umul_ppmm(w1, w0, u, v) \
+  do {                                                                  \
+    UTItype ___r;                                                       \
+    __asm__ ("mlgr %0,%2"                                               \
+	     : "=r" (___r)                                              \
+	     : "0" ((UDItype)(u)),                                      \
+	       "r" ((UDItype)(v)));                                     \
+    (w1) = ___r >> 64;                                                  \
+    (w0) = (UDItype) ___r;                                              \
+  } while (0)
+# define udiv_qrnnd(q, r, n1, n0, d) \
+  do {                                                                  \
+    UTItype ___r = ((UTItype)n1 << 64) | n0;                            \
+    __asm__ ("dlgr %0,%2"                                               \
+	     : "=r" (___r)                                              \
+	     : "0" (___r),                                              \
+	       "r" ((UDItype)(d)));                                     \
+    (r) = ___r >> 64;                                                   \
+    (q) = (UDItype) ___r;                                               \
+  } while (0)
+#endif /* __s390x__ */
+
+
+/***************************************
  *****  End CPU Specific Versions  *****
  ***************************************/
 

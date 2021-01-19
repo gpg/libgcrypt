@@ -107,6 +107,7 @@
 # endif
 #endif
 
+
 /* A macro to test whether P is properly aligned for an u32 type.
    Note that config.h provides a suitable replacement for uintptr_t if
    it does not exist in stdint.h.  */
@@ -252,6 +253,41 @@ do_sha1_transform_armv8_ce (void *ctx, const unsigned char *data,
 }
 #endif
 
+#ifdef SHA1_USE_S390X_CRYPTO
+#include "asm-inline-s390x.h"
+
+static unsigned int
+do_sha1_transform_s390x (void *ctx, const unsigned char *data, size_t nblks)
+{
+  SHA1_CONTEXT *hd = ctx;
+
+  kimd_execute (KMID_FUNCTION_SHA1, &hd->h0, data, nblks * 64);
+  return 0;
+}
+
+static unsigned int
+do_sha1_final_s390x (void *ctx, const unsigned char *data, size_t datalen,
+		     u32 len_msb, u32 len_lsb)
+{
+  SHA1_CONTEXT *hd = ctx;
+
+  /* Make sure that 'final_len' is positioned at correct offset relative
+   * to 'h0'. This is because we are passing 'h0' pointer as start of
+   * parameter block to 'klmd' instruction. */
+
+  gcry_assert (offsetof (SHA1_CONTEXT, final_len_msb)
+	       - offsetof (SHA1_CONTEXT, h0) == 5 * sizeof(u32));
+  gcry_assert (offsetof (SHA1_CONTEXT, final_len_lsb)
+	       - offsetof (SHA1_CONTEXT, final_len_msb) == 1 * sizeof(u32));
+
+  hd->final_len_msb = len_msb;
+  hd->final_len_lsb = len_lsb;
+
+  klmd_execute (KMID_FUNCTION_SHA1, &hd->h0, data, datalen);
+  return 0;
+}
+#endif
+
 
 static unsigned int
 do_transform_generic (void *c, const unsigned char *data, size_t nblks);
@@ -310,6 +346,18 @@ sha1_init (void *context, unsigned int flags)
 #ifdef USE_ARM_CE
   if ((features & HWF_ARM_SHA1) != 0)
     hd->bctx.bwrite = do_sha1_transform_armv8_ce;
+#endif
+#ifdef SHA1_USE_S390X_CRYPTO
+  hd->use_s390x_crypto = 0;
+  if ((features & HWF_S390X_MSA) != 0)
+    {
+      if ((kimd_query () & km_function_to_mask (KMID_FUNCTION_SHA1)) &&
+	  (klmd_query () & km_function_to_mask (KMID_FUNCTION_SHA1)))
+	{
+	  hd->bctx.bwrite = do_sha1_transform_s390x;
+	  hd->use_s390x_crypto = 1;
+	}
+    }
 #endif
 
   (void)features;
@@ -530,7 +578,15 @@ sha1_final(void *context)
   msb <<= 3;
   msb |= t >> 29;
 
-  if (hd->bctx.count < 56)  /* enough room */
+  if (0)
+    { }
+#ifdef SHA1_USE_S390X_CRYPTO
+  else if (hd->use_s390x_crypto)
+    {
+      burn = do_sha1_final_s390x (hd, hd->bctx.buf, hd->bctx.count, msb, lsb);
+    }
+#endif
+  else if (hd->bctx.count < 56)  /* enough room */
     {
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
       if (hd->bctx.count < 56)
