@@ -1307,6 +1307,8 @@ gcry_kdf_derive (const void *passphrase, size_t passphraselen,
                  unsigned long iterations,
                  size_t keysize, void *keybuffer)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return gpg_error (_gcry_kdf_derive (passphrase, passphraselen, algo, hashalgo,
                                       salt, saltlen, iterations,
                                       keysize, keybuffer));
@@ -1362,6 +1364,13 @@ void
 gcry_mpi_randomize (gcry_mpi_t w,
                     unsigned int nbits, enum gcry_random_level level)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      fips_signal_fatal_error ("called in non-operational state");
+      fips_noreturn ();
+    }
+
   _gcry_mpi_randomize (w, nbits, level);
 }
 
@@ -1387,6 +1396,8 @@ gcry_prime_generate (gcry_mpi_t *prime,
                      gcry_random_level_t random_level,
                      unsigned int flags)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return gpg_error (_gcry_prime_generate (prime, prime_bits, factor_bits,
                                           factors, cb_func, cb_arg,
                                           random_level, flags));
@@ -1397,6 +1408,8 @@ gcry_prime_group_generator (gcry_mpi_t *r_g,
                             gcry_mpi_t prime, gcry_mpi_t *factors,
                             gcry_mpi_t start_g)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return gpg_error (_gcry_prime_group_generator (r_g, prime, factors, start_g));
 }
 
