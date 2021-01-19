@@ -342,7 +342,7 @@ check_one (int algo, int hash_algo,
 static gpg_err_code_t
 selftest_pbkdf2 (int extended, selftest_report_func_t report)
 {
-  static struct {
+  static const struct {
     const char *desc;
     const char *p;   /* Passphrase.  */
     size_t plen;     /* Length of P. */
