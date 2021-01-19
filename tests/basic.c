@@ -223,12 +223,12 @@ progress_handler (void *cb_data, const char *what, int printchar,
 # define CLUTTER_VECTOR_REGISTER_COUNT 8
 #elif defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
       defined(HAVE_GCC_INLINE_ASM_AARCH64_NEON) && \
-      (defined(__ARM_FEATURE_SIMD32) || defined(__ARM_NEON))
+      defined(__ARM_NEON)
 # define CLUTTER_VECTOR_REGISTER_AARCH64 1
 # define CLUTTER_VECTOR_REGISTER_COUNT 32
 #elif defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
       defined(HAVE_GCC_INLINE_ASM_NEON) && \
-      (defined(__ARM_FEATURE_SIMD32) || defined(__ARM_NEON))
+      defined(__ARM_NEON)
 # define CLUTTER_VECTOR_REGISTER_NEON 1
 # define CLUTTER_VECTOR_REGISTER_COUNT 16
 #endif
