@@ -154,7 +154,7 @@ check_dsa_gen_186_2 (void)
     int counter;
     const char *h;
   } tbl[] = {
-    /* These tests are from FIPS 186-2, B.3.1.  */
+    /* These tests are from FIPS 186-2, DSAVS B.3.1 PQGGen.rsp.  CAVS 2.2.  */
     {
       1024,
       "d3aed1876054db831d0c1348fbb1ada72507e5fbf9a62cbd47a63aeb7859d6921"
@@ -394,9 +394,152 @@ check_dsa_gen_186_2 (void)
 static void
 check_dsa_gen_186_3 (void)
 {
-  /* FIXME: Needs to be implemented.  */
-  if (verbose)
-    info ("generating FIPS 186-3 test keys - skipped\n");
+  static struct {
+    int nbits, qbits;
+    const char *p, *q;
+    const char *seed;
+    int counter;
+  } tbl[] = {
+    /* These tests are from FIPS 186-3 Test Vectors, PQGGen.rsp.  CAVS 11.1.  */
+    {
+      2048,
+      256,
+      "8e2266d5cb5b1e9ad34ac6380e3d166fd4d60dadc6dfa1be8492a5642c91fdf7"
+      "e81b9634a4eeff59e7e93b1b0e8f49ded45a72788866dff71b1329feeb4b6cdb"
+      "f2c7166c7cbca20b04300ae127c9940233e891712ac905ed6b43495717a2998e"
+      "a8c4eef4ec6c32dc9e774e8e66476f17d9c39abac59e8b583b1107b679e0bed0"
+      "78476e933a90cfcf80c89b831c0e054f86eac7ca848e059662d938a4e12947e2"
+      "e73b1ffedd7125dd54ba463217abc9c5f3399132aec77b946c806429f6f812c1"
+      "0716d57dde7b5d45cb2e5eb6e4dbb81d5a465054fa17e613cbe01afb49ea593f"
+      "33f1a696a774941ca1ff6f208577fe529f5e7592f39698c63bf6ae9d56cd2d93",
+      "b19c6d094e1210c92910f49aa083957fbe68c0ca4602896f50123fd776786275",
+      "f770a4598ff756931fc529764513b103ce57d85f4ad8c5cf297c9b4d48241c5b",
+      105
+    },
+    {
+      2048,
+      256,
+      "b636e5970383cecab68840cca8a909a29325c3924e2c187dd034222f9e1a4334"
+      "1061ca620f82787bd349fb8f380fc3f0adb84be116c695529114aecee8a0a1b0"
+      "9e7ebb6888e6da71f48eefb3e9990e2d7bd36c1aa24fb10e011a193d6b5a1b22"
+      "6cf97fab302e237ecb1dc824264dba2e2285930005717c4e9a12cc1a1ac336c2"
+      "0619c4d06ec4e1e02e0d1d2d285661a7472d30c4282646506487cbe6a5c988ee"
+      "8402d474713a7d8213eeb19a0719996bbfd3835eb8832eead5a3a340e61c52f0"
+      "0dde1c98655a13839ad215d8f43c8e482317af8b086c3d555fc8dbb2f595f256"
+      "3520a0c6387661774e1e6ca5fe2626b26a2c4f99b7aff043a091434dfd3275b7",
+      "fe9f06fa1901182ab00bf063bff8fd4f736922ce830fd50fee47ebbd21e291e9",
+      "3a66a430f23374ce3d2e758881c411c23dad4a8cd6ad697056d24b8cfcc8c353",
+      720
+    },
+    {
+      2048,
+      256,
+      "8d636640981c2ce1935bd16ad3aa3ce2a6efa26f23f07ceda92766f80e82fa03"
+      "5c6cf44dc41e08fea242c5cd5846d839bdf0c11d3a29ebaca00aad844cd33a80"
+      "448f1f96cebe66b9963f7e3b5c976e29dc430bc5ddf5d2c198eb736339adc14d"
+      "5c8a3d22533d7c6a861b6a8b31c55e46804e4c2f95e2e9cc2bbb23bbc833995a"
+      "7afe619127d28fa53b0712b17da4786f9116cc39e2c6254845e85513c220e368"
+      "fe9c92bc71eabfa831062f01e66e8a970f043112ca0af175f64d13fcff2f087f"
+      "ff9198a9fe9732001ab49b2a48d0e39f99d036698703aa853ac02c65f3d55993"
+      "5a72c8bbc6ab2fa59ff9a2fcd837a4675229abed23d42badc12a60b34a3bf0f5",
+      "b5f3c535e7f48d3251d353b73b3a05c4bdb4591a8c2f2ba4a6a945a889f5aeff",
+      "77eb88f087bfbbc312bca7572bafd36f2a7aca2e4d7378dd923b0b277f3d730f",
+      137
+    },
+    {
+      2048,
+      256,
+      "8fa95228b848a9533375e4789c88bb7df505c4478ed3c79545c5d2b04f0e0efb"
+      "ac8d3f603603a48b203e1cc67ded22b840ac21bc41b7ab78c73a9cd0773148ca"
+      "7c87a5a51564164f683e8f8a77b97cf7d91f989aa3668819bca8f54e0ec8f10c"
+      "78ecd26982048cf0ab0446a6de154bbed8891be916627d470061811caf51bef1"
+      "b5be8ef2b560cf981c2a097b3769bed61d6ee9b66221e956fe2c49f1809a2d5f"
+      "6996be7b39f41afea5184a73c049f3abbd28fddbf37bcae6c4aa4a7255464c2e"
+      "ee915c44b8d90d76e5d9e3d8e6cf4ac7c5d9436d19ccc27c5bc1b65dbb56723b"
+      "5e77624489652313f9da2ce38554401fdbd61c78f2a4fa69bcc2f5aaffbfed2d",
+      "ed3f52bce81572d126b27fb1e9c02346ae523532af82b79943565593d6f46d45",
+      "e0ed96bf5e7d78754b5095ed766a1bbc4338eaa8f3d00e9906ef51a8798bc1c2",
+      40
+    },
+    {
+      2048,
+      256,
+      "a80f2481a814d07eb47a7c67e24bc3f8f1ccebc6cf684a0bc9fbb0054cc24cef"
+      "24872315b566630d5147184980b4bce3f0849660c84b22dfacb785446c0f6314"
+      "b7a53a92cf821bcceb325e03dc9e404832146d34ff8a9b112ed0e69efe69c619"
+      "5de03373e590eba88fc5b9d337d6566dc7e82e326a28343f644779f6784159eb"
+      "3d33f2ddf1157a02f2f91d0897a4e8ad53f614186a5fe043187510316904bd95"
+      "6966e10735d6ef01c195b7dd7fd245a83c18af7908fef0bced2f454e1954f2a3"
+      "2c35658f4e0f5811a3d06c81cca715537debabbbc65ba4dd0e7fb0c08397622f"
+      "039a51df69f5b10dda61f57bbb84c55f25eacd0f3d8b40ae016ed0ba856837e7",
+      "9e3b5a7939082c95069902d3833df8421871ca2dab8a34f7be6cd39151291d07",
+      "c7bb440d973189ca07464b037fd309f68ec38baba390988a2e986ecee281e2f5",
+      722
+    }
+  };
+  gpg_error_t err;
+  int tno;
+  gcry_sexp_t key_spec, key, pub_key, sec_key, seed_values;
+  gcry_sexp_t l1;
+
+  for (tno = 0; tno < DIM (tbl); tno++)
+    {
+      if (verbose)
+        info ("generating FIPS 186-3 test key %d\n", tno);
+
+      {
+        void *data;
+        size_t datalen;
+
+        data = data_from_hex (tbl[tno].seed, &datalen);
+        err = gcry_sexp_build (&key_spec, NULL,
+                               "(genkey (dsa (nbits %d)(qbits %d)(use-fips186)"
+                               "(derive-parms(seed %b))))",
+                               tbl[tno].nbits, tbl[tno].qbits,
+                               (int)datalen, data);
+        gcry_free (data);
+      }
+      if (err)
+        die ("error creating S-expression %d: %s\n", tno, gpg_strerror (err));
+
+      err = gcry_pk_genkey (&key, key_spec);
+      gcry_sexp_release (key_spec);
+      if (err)
+        {
+          fail ("error generating key %d: %s\n", tno, gpg_strerror (err));
+          continue;
+        }
+
+      if (verbose > 1)
+        show_sexp ("generated key:\n", key);
+
+      pub_key = gcry_sexp_find_token (key, "public-key", 0);
+      if (!pub_key)
+        fail ("public part missing in key %d\n", tno);
+
+      sec_key = gcry_sexp_find_token (key, "private-key", 0);
+      if (!sec_key)
+        fail ("private part missing in key %d\n", tno);
+
+      l1 = gcry_sexp_find_token (key, "misc-key-info", 0);
+      if (!l1)
+        fail ("misc_key_info part missing in key %d\n", tno);
+      seed_values = gcry_sexp_find_token (l1, "seed-values", 0);
+      if (!seed_values)
+        fail ("seed-values part missing in key %d\n", tno);
+      gcry_sexp_release (l1);
+
+      extract_cmp_mpi (sec_key, "p", tbl[tno].p);
+      extract_cmp_mpi (sec_key, "q", tbl[tno].q);
+
+      extract_cmp_data (seed_values, "seed", tbl[tno].seed);
+      extract_cmp_int (seed_values, "counter", tbl[tno].counter);
+
+      gcry_sexp_release (seed_values);
+      gcry_sexp_release (sec_key);
+      gcry_sexp_release (pub_key);
+      gcry_sexp_release (key);
+    }
 }
 
 

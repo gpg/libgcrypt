@@ -458,7 +458,9 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
                                              r_counter,
                                              r_seed, r_seedlen);
       else
-        ec = _gcry_generate_fips186_3_prime (nbits, qbits, NULL, 0,
+        ec = _gcry_generate_fips186_3_prime (nbits, qbits,
+                                             initial_seed.seed,
+                                             initial_seed.seedlen,
                                              &prime_q, &prime_p,
                                              r_counter,
                                              r_seed, r_seedlen, NULL);

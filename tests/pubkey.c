@@ -592,10 +592,11 @@ get_dsa_key_fips186_with_seed_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
      "(genkey"
      "  (dsa"
      "    (nbits 4:2048)"
+     "    (qbits 3:256)"
      "    (use-fips186)"
      "    (transient-key)"
      "    (derive-parms"
-     "      (seed #0cb1990c1fd3626055d7a0096f8fa99807399871#))))",
+     "      (seed #f770a4598ff756931fc529764513b103ce57d85f4ad8c5cf297c9b4d48241c5b#))))",
      0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
