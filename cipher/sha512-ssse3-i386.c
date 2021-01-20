@@ -228,7 +228,11 @@ static const unsigned char bshuf_mask[16] __attribute__ ((aligned (16))) =
 	asm volatile ("movdqu %[w_t_m_2], %%xmm2;\n\t"			\
 		      "movdqa %%xmm2, %%xmm0;\n\t"			\
 		      "movdqu %[w_t_m_15], %%xmm5;\n\t"			\
-		      "movdqa %%xmm5, %%xmm3;\n\t"			\
+		      :							\
+		      : [w_t_m_2] "m" (w[(i)-2]),			\
+		        [w_t_m_15] "m" (w[(i)-15])			\
+		      : "memory" );					\
+	asm volatile ("movdqa %%xmm5, %%xmm3;\n\t"			\
 		      "psrlq $(61-19), %%xmm0;\n\t"			\
 		      "psrlq $(8-7), %%xmm3;\n\t"			\
 		      "pxor %%xmm2, %%xmm0;\n\t"			\
@@ -251,17 +255,17 @@ static const unsigned char bshuf_mask[16] __attribute__ ((aligned (16))) =
 		      "movdqu %[w_t_m_16], %%xmm2;\n\t"			\
 		      "pxor %%xmm4, %%xmm3;\n\t"			\
 		      "movdqu %[w_t_m_7], %%xmm1;\n\t"			\
-		      "paddq %%xmm3, %%xmm0;\n\t"			\
+		      :							\
+		      : [w_t_m_7] "m" (w[(i)-7]),			\
+		        [w_t_m_16] "m" (w[(i)-16])			\
+		      : "memory" );					\
+	asm volatile ("paddq %%xmm3, %%xmm0;\n\t"			\
 		      "paddq %%xmm2, %%xmm0;\n\t"			\
 		      "paddq %%xmm1, %%xmm0;\n\t"			\
 		      "movdqu %%xmm0, %[w_t_m_0];\n\t"			\
 		      "paddq %[k], %%xmm0;\n\t"				\
 		      :	[w_t_m_0] "=m" (w[(i)-0])			\
-		      : [k] "m" (K[i]),					\
-		        [w_t_m_2] "m" (w[(i)-2]),			\
-		        [w_t_m_7] "m" (w[(i)-7]),			\
-		        [w_t_m_15] "m" (w[(i)-15]),			\
-		        [w_t_m_16] "m" (w[(i)-16])			\
+		      : [k] "m" (K[i])					\
 		      : "memory" )
 
 unsigned int ASM_FUNC_ATTR
