@@ -137,7 +137,7 @@ Noteworthy changes in version 1.9.0 (2021-01-19)  [C23/A3/R0]
    - Add OIDs from RFC-8410 as aliases for Ed25519 and Curve25519.
      [also in 1.8.6]
 
-   - Add mitigation against ECC timing attack CVE-2019-13626.  [#4626]
+   - Add mitigation against ECC timing attack CVE-2019-13627.  [#4626]
 
    - Internal cleanup of the ECC implementation.
 
