@@ -53,32 +53,32 @@
 .text
 
 /* Virtual Registers */
-msg = rdi /* ARG1 */
-digest = rsi /* ARG2 */
-msglen = rdx /* ARG3 */
-T1 = rcx
-T2 = r8
-a_64 = r9
-b_64 = r10
-c_64 = r11
-d_64 = r12
-e_64 = r13
-f_64 = r14
-g_64 = r15
-h_64 = rbx
-tmp0 = rax
+#define msg rdi /* ARG1 */
+#define digest rsi /* ARG2 */
+#define msglen rdx /* ARG3 */
+#define T1 rcx
+#define T2 r8
+#define a_64 r9
+#define b_64 r10
+#define c_64 r11
+#define d_64 r12
+#define e_64 r13
+#define f_64 r14
+#define g_64 r15
+#define h_64 rbx
+#define tmp0 rax
 
 /*
 ; Local variables (stack frame)
 ; Note: frame_size must be an odd multiple of 8 bytes to XMM align RSP
 */
-frame_W      = 0 /* Message Schedule */
-frame_W_size = (80 * 8)
-frame_WK      = ((frame_W) + (frame_W_size)) /* W[t] + K[t] | W[t+1] + K[t+1] */
-frame_WK_size = (2 * 8)
-frame_GPRSAVE      = ((frame_WK) + (frame_WK_size))
-frame_GPRSAVE_size = (5 * 8)
-frame_size = ((frame_GPRSAVE) + (frame_GPRSAVE_size))
+#define frame_W 0 /* Message Schedule */
+#define frame_W_size (80 * 8)
+#define frame_WK ((frame_W) + (frame_W_size)) /* W[t] + K[t] | W[t+1] + K[t+1] */
+#define frame_WK_size (2 * 8)
+#define frame_GPRSAVE ((frame_WK) + (frame_WK_size))
+#define frame_GPRSAVE_size (5 * 8)
+#define frame_size ((frame_GPRSAVE) + (frame_GPRSAVE_size))
 
 
 /* Useful QWORD "arrays" for simpler memory references */
@@ -90,162 +90,151 @@ frame_size = ((frame_GPRSAVE) + (frame_GPRSAVE_size))
 /* MSG, DIGEST, K_t, W_t are arrays */
 /* WK_2(t) points to 1 of 2 qwords at frame.WK depdending on t being odd/even */
 
-.macro RotateState
-	/* Rotate symbles a..h right */
-	__TMP = h_64
-	h_64 =  g_64
-	g_64 =  f_64
-	f_64 =  e_64
-	e_64 =  d_64
-	d_64 =  c_64
-	c_64 =  b_64
-	b_64 =  a_64
-	a_64 =  __TMP
-.endm
+#define RORQ(p1, p2) \
+	/* shld is faster than ror on Intel Sandybridge */ \
+	shld	p1, p1, (64 - p2)
 
-.macro RORQ p1 p2
-	/* shld is faster than ror on Intel Sandybridge */
-	shld	\p1, \p1, (64 - \p2)
-.endm
+#define SHA512_Round(t, a, b, c, d, e, f, g, h) \
+	/* Compute Round %%t */; \
+	mov	T1,   f        /* T1 = f */; \
+	mov	tmp0, e        /* tmp = e */; \
+	xor	T1,   g        /* T1 = f ^ g */; \
+	RORQ(	tmp0, 23) /* 41     ; tmp = e ror 23 */; \
+	and	T1,   e        /* T1 = (f ^ g) & e */; \
+	xor	tmp0, e        /* tmp = (e ror 23) ^ e */; \
+	xor	T1,   g        /* T1 = ((f ^ g) & e) ^ g = CH(e,f,g) */; \
+	add	T1,   [WK_2(t)] /* W[t] + K[t] from message scheduler */; \
+	RORQ(	tmp0, 4) /* 18      ; tmp = ((e ror 23) ^ e) ror 4 */; \
+	xor	tmp0, e        /* tmp = (((e ror 23) ^ e) ror 4) ^ e */; \
+	mov	T2,   a        /* T2 = a */; \
+	add	T1,   h        /* T1 = CH(e,f,g) + W[t] + K[t] + h */; \
+	RORQ(	tmp0, 14) /* 14     ; tmp = ((((e ror23)^e)ror4)^e)ror14 = S1(e) */; \
+	add	T1,   tmp0        /* T1 = CH(e,f,g) + W[t] + K[t] + S1(e) */; \
+	mov	tmp0, a        /* tmp = a */; \
+	xor	T2,   c        /* T2 = a ^ c */; \
+	and	tmp0, c        /* tmp = a & c */; \
+	and	T2,   b        /* T2 = (a ^ c) & b */; \
+	xor	T2,   tmp0        /* T2 = ((a ^ c) & b) ^ (a & c) = Maj(a,b,c) */; \
+	mov	tmp0, a        /* tmp = a */; \
+	RORQ(	tmp0, 5) /* 39      ; tmp = a ror 5 */; \
+	xor	tmp0, a        /* tmp = (a ror 5) ^ a */; \
+	add	d, T1          /* e(next_state) = d + T1  */; \
+	RORQ(	tmp0, 6) /* 34      ; tmp = ((a ror 5) ^ a) ror 6 */; \
+	xor	tmp0, a        /* tmp = (((a ror 5) ^ a) ror 6) ^ a */; \
+	lea	h, [T1 + T2]   /* a(next_state) = T1 + Maj(a,b,c) */; \
+	RORQ(	tmp0, 28) /* 28     ; tmp = ((((a ror5)^a)ror6)^a)ror28 = S0(a) */; \
+	add	h, tmp0        /* a(next_state) = T1 + Maj(a,b,c) S0(a) */
 
-.macro SHA512_Round t
-	/* Compute Round %%t */
-	mov	T1,   f_64        /* T1 = f */
-	mov	tmp0, e_64        /* tmp = e */
-	xor	T1,   g_64        /* T1 = f ^ g */
-	RORQ	tmp0, 23 /* 41     ; tmp = e ror 23 */
-	and	T1,   e_64        /* T1 = (f ^ g) & e */
-	xor	tmp0, e_64        /* tmp = (e ror 23) ^ e */
-	xor	T1,   g_64        /* T1 = ((f ^ g) & e) ^ g = CH(e,f,g) */
-	add	T1,   [WK_2(\t)] /* W[t] + K[t] from message scheduler */
-	RORQ	tmp0, 4 /* 18      ; tmp = ((e ror 23) ^ e) ror 4 */
-	xor	tmp0, e_64        /* tmp = (((e ror 23) ^ e) ror 4) ^ e */
-	mov	T2,   a_64        /* T2 = a */
-	add	T1,   h_64        /* T1 = CH(e,f,g) + W[t] + K[t] + h */
-	RORQ	tmp0, 14 /* 14     ; tmp = ((((e ror23)^e)ror4)^e)ror14 = S1(e) */
-	add	T1,   tmp0        /* T1 = CH(e,f,g) + W[t] + K[t] + S1(e) */
-	mov	tmp0, a_64        /* tmp = a */
-	xor	T2,   c_64        /* T2 = a ^ c */
-	and	tmp0, c_64        /* tmp = a & c */
-	and	T2,   b_64        /* T2 = (a ^ c) & b */
-	xor	T2,   tmp0        /* T2 = ((a ^ c) & b) ^ (a & c) = Maj(a,b,c) */
-	mov	tmp0, a_64        /* tmp = a */
-	RORQ	tmp0, 5 /* 39      ; tmp = a ror 5 */
-	xor	tmp0, a_64        /* tmp = (a ror 5) ^ a */
-	add	d_64, T1          /* e(next_state) = d + T1  */
-	RORQ	tmp0, 6 /* 34      ; tmp = ((a ror 5) ^ a) ror 6 */
-	xor	tmp0, a_64        /* tmp = (((a ror 5) ^ a) ror 6) ^ a */
-	lea	h_64, [T1 + T2]   /* a(next_state) = T1 + Maj(a,b,c) */
-	RORQ	tmp0, 28 /* 28     ; tmp = ((((a ror5)^a)ror6)^a)ror28 = S0(a) */
-	add	h_64, tmp0        /* a(next_state) = T1 + Maj(a,b,c) S0(a) */
-	RotateState
-.endm
+#define SHA512_2Sched_2Round_avx_PART1(t, a, b, c, d, e, f, g, h) \
+	/* \
+	; Compute rounds %%t-2 and %%t-1 \
+	; Compute message schedule QWORDS %%t and %%t+1 \
+	; \
+	;   Two rounds are computed based on the values for K[t-2]+W[t-2] and \
+	; K[t-1]+W[t-1] which were previously stored at WK_2 by the message \
+	; scheduler. \
+	;   The two new schedule QWORDS are stored at [W_t(%%t)] and [W_t(%%t+1)]. \
+	; They are then added to their respective SHA512 constants at \
+	; [K_t(%%t)] and [K_t(%%t+1)] and stored at dqword [WK_2(%%t)] \
+	;   For brievity, the comments following vectored instructions only refer to \
+	; the first of a pair of QWORDS. \
+	; Eg. XMM4=W[t-2] really means XMM4={W[t-2]|W[t-1]} \
+	;   The computation of the message schedule and the rounds are tightly \
+	; stitched to take advantage of instruction-level parallelism. \
+	; For clarity, integer instructions (for the rounds calculation) are indented \
+	; by one tab. Vectored instructions (for the message scheduler) are indented \
+	; by two tabs. \
+	*/ \
+	\
+		vmovdqa	xmm4, [W_t(t-2)]   /* XMM4 = W[t-2] */; \
+		vmovdqu	xmm5, [W_t(t-15)]  /* XMM5 = W[t-15] */; \
+	mov	T1,   f; \
+		vpsrlq	xmm0, xmm4, 61       /* XMM0 = W[t-2]>>61 */; \
+	mov	tmp0, e; \
+		vpsrlq	xmm6, xmm5, 1        /* XMM6 = W[t-15]>>1 */; \
+	xor	T1,   g; \
+	RORQ(	tmp0, 23) /* 41 */; \
+		vpsrlq	xmm1, xmm4, 19       /* XMM1 = W[t-2]>>19 */; \
+	and	T1,   e; \
+	xor	tmp0, e; \
+		vpxor	xmm0, xmm0, xmm1           /* XMM0 = W[t-2]>>61 ^ W[t-2]>>19 */; \
+	xor	T1,   g; \
+	add	T1,   [WK_2(t)]; \
+		vpsrlq	xmm7, xmm5, 8        /* XMM7 = W[t-15]>>8 */; \
+	RORQ(	tmp0, 4) /* 18 */; \
+		vpsrlq	xmm2, xmm4, 6        /* XMM2 = W[t-2]>>6 */; \
+	xor	tmp0, e; \
+	mov	T2,   a; \
+	add	T1,   h; \
+		vpxor	xmm6, xmm6, xmm7           /* XMM6 = W[t-15]>>1 ^ W[t-15]>>8 */; \
+	RORQ(	tmp0, 14) /* 14 */; \
+	add	T1,   tmp0; \
+		vpsrlq	xmm8, xmm5, 7        /* XMM8 = W[t-15]>>7 */; \
+	mov 	tmp0, a; \
+	xor	T2,   c; \
+		vpsllq	xmm3, xmm4, (64-61)  /* XMM3 = W[t-2]<<3 */; \
+	and	tmp0, c; \
+	and	T2,   b; \
+		vpxor	xmm2, xmm2, xmm3           /* XMM2 = W[t-2]>>6 ^ W[t-2]<<3 */; \
+	xor	T2,   tmp0; \
+	mov	tmp0, a; \
+		vpsllq	xmm9, xmm5, (64-1)   /* XMM9 = W[t-15]<<63 */; \
+	RORQ(	tmp0, 5) /* 39 */; \
+		vpxor	xmm8, xmm8, xmm9           /* XMM8 = W[t-15]>>7 ^ W[t-15]<<63 */; \
+	xor	tmp0, a; \
+	add	d, T1; \
+	RORQ(	tmp0, 6) /* 34 */; \
+	xor	tmp0, a; \
+		vpxor	xmm6, xmm6, xmm8           /* XMM6 = W[t-15]>>1 ^ W[t-15]>>8 ^ W[t-15]>>7 ^ W[t-15]<<63 */; \
+	lea	h, [T1 + T2]; \
+	RORQ(	tmp0, 28) /* 28 */; \
+		vpsllq	xmm4, xmm4, (64-19)        /* XMM4 = W[t-2]<<25 */; \
+	add	h, tmp0
 
-.macro SHA512_2Sched_2Round_avx t
-/*	; Compute rounds %%t-2 and %%t-1
-	; Compute message schedule QWORDS %%t and %%t+1
+#define SHA512_2Sched_2Round_avx_PART2(t, a, b, c, d, e, f, g, h) \
+		vpxor	xmm0, xmm0, xmm4           /* XMM0 = W[t-2]>>61 ^ W[t-2]>>19 ^ W[t-2]<<25 */; \
+	mov	T1, f; \
+		vpxor	xmm0, xmm0, xmm2           /* XMM0 = s1(W[t-2]) */; \
+	mov	tmp0, e; \
+	xor	T1,   g; \
+		vpaddq	xmm0, xmm0, [W_t(t-16)]  /* XMM0 = s1(W[t-2]) + W[t-16] */; \
+		vmovdqu	xmm1, [W_t(t- 7)]  /* XMM1 = W[t-7] */; \
+	RORQ(	tmp0, 23) /* 41 */; \
+	and	T1,   e; \
+	xor	tmp0, e; \
+	xor	T1,   g; \
+		vpsllq	xmm5, xmm5, (64-8)         /* XMM5 = W[t-15]<<56 */; \
+	add	T1,   [WK_2(t+1)]; \
+		vpxor	xmm6, xmm6, xmm5           /* XMM6 = s0(W[t-15]) */; \
+	RORQ(	tmp0, 4) /* 18 */; \
+		vpaddq	xmm0, xmm0, xmm6           /* XMM0 = s1(W[t-2]) + W[t-16] + s0(W[t-15]) */; \
+	xor	tmp0, e; \
+		vpaddq	xmm0, xmm0, xmm1           /* XMM0 = W[t] = s1(W[t-2]) + W[t-7] + s0(W[t-15]) + W[t-16] */; \
+	mov	T2,   a; \
+	add	T1,   h; \
+	RORQ(	tmp0, 14) /* 14 */; \
+	add	T1,   tmp0; \
+		vmovdqa	[W_t(t)], xmm0      /* Store W[t] */; \
+		vpaddq	xmm0, xmm0, [K_t(t)]        /* Compute W[t]+K[t] */; \
+		vmovdqa	[WK_2(t)], xmm0       /* Store W[t]+K[t] for next rounds */; \
+	mov	tmp0, a; \
+	xor	T2,   c; \
+	and	tmp0, c; \
+	and	T2,   b; \
+	xor	T2,   tmp0; \
+	mov	tmp0, a; \
+	RORQ(	tmp0, 5) /* 39 */; \
+	xor	tmp0, a; \
+	add	d, T1; \
+	RORQ(	tmp0, 6) /* 34 */; \
+	xor	tmp0, a; \
+	lea	h, [T1 + T2]; \
+	RORQ(	tmp0, 28) /* 28 */; \
+	add	h, tmp0
 
-	;   Two rounds are computed based on the values for K[t-2]+W[t-2] and
-	; K[t-1]+W[t-1] which were previously stored at WK_2 by the message
-	; scheduler.
-	;   The two new schedule QWORDS are stored at [W_t(%%t)] and [W_t(%%t+1)].
-	; They are then added to their respective SHA512 constants at
-	; [K_t(%%t)] and [K_t(%%t+1)] and stored at dqword [WK_2(%%t)]
-	;   For brievity, the comments following vectored instructions only refer to
-	; the first of a pair of QWORDS.
-	; Eg. XMM4=W[t-2] really means XMM4={W[t-2]|W[t-1]}
-	;   The computation of the message schedule and the rounds are tightly
-	; stitched to take advantage of instruction-level parallelism.
-	; For clarity, integer instructions (for the rounds calculation) are indented
-	; by one tab. Vectored instructions (for the message scheduler) are indented
-	; by two tabs. */
-
-		vmovdqa	xmm4, [W_t(\t-2)]   /* XMM4 = W[t-2] */
-		vmovdqu	xmm5, [W_t(\t-15)]  /* XMM5 = W[t-15] */
-	mov	T1,   f_64
-		vpsrlq	xmm0, xmm4, 61       /* XMM0 = W[t-2]>>61 */
-	mov	tmp0, e_64
-		vpsrlq	xmm6, xmm5, 1        /* XMM6 = W[t-15]>>1 */
-	xor	T1,   g_64
-	RORQ	tmp0, 23 /* 41 */
-		vpsrlq	xmm1, xmm4, 19       /* XMM1 = W[t-2]>>19 */
-	and	T1,   e_64
-	xor	tmp0, e_64
-		vpxor	xmm0, xmm0, xmm1           /* XMM0 = W[t-2]>>61 ^ W[t-2]>>19 */
-	xor	T1,   g_64
-	add	T1,   [WK_2(\t)];
-		vpsrlq	xmm7, xmm5, 8        /* XMM7 = W[t-15]>>8 */
-	RORQ	tmp0, 4 /* 18 */
-		vpsrlq	xmm2, xmm4, 6        /* XMM2 = W[t-2]>>6 */
-	xor	tmp0, e_64
-	mov	T2,   a_64
-	add	T1,   h_64
-		vpxor	xmm6, xmm6, xmm7           /* XMM6 = W[t-15]>>1 ^ W[t-15]>>8 */
-	RORQ	tmp0, 14 /* 14 */
-	add	T1,   tmp0
-		vpsrlq	xmm8, xmm5, 7        /* XMM8 = W[t-15]>>7 */
-	mov 	tmp0, a_64
-	xor	T2,   c_64
-		vpsllq	xmm3, xmm4, (64-61)  /* XMM3 = W[t-2]<<3 */
-	and	tmp0, c_64
-	and	T2,   b_64
-		vpxor	xmm2, xmm2, xmm3           /* XMM2 = W[t-2]>>6 ^ W[t-2]<<3 */
-	xor	T2,   tmp0
-	mov	tmp0, a_64
-		vpsllq	xmm9, xmm5, (64-1)   /* XMM9 = W[t-15]<<63 */
-	RORQ	tmp0, 5 /* 39 */
-		vpxor	xmm8, xmm8, xmm9           /* XMM8 = W[t-15]>>7 ^ W[t-15]<<63 */
-	xor	tmp0, a_64
-	add	d_64, T1
-	RORQ	tmp0, 6 /* 34 */
-	xor	tmp0, a_64
-		vpxor	xmm6, xmm6, xmm8           /* XMM6 = W[t-15]>>1 ^ W[t-15]>>8 ^ W[t-15]>>7 ^ W[t-15]<<63 */
-	lea	h_64, [T1 + T2]
-	RORQ 	tmp0, 28 /* 28 */
-		vpsllq	xmm4, xmm4, (64-19)        /* XMM4 = W[t-2]<<25 */
-	add	h_64, tmp0
-	RotateState
-		vpxor	xmm0, xmm0, xmm4           /* XMM0 = W[t-2]>>61 ^ W[t-2]>>19 ^ W[t-2]<<25 */
-	mov	T1, f_64
-		vpxor	xmm0, xmm0, xmm2           /* XMM0 = s1(W[t-2]) */
-	mov	tmp0, e_64
-	xor	T1,   g_64
-		vpaddq	xmm0, xmm0, [W_t(\t-16)]  /* XMM0 = s1(W[t-2]) + W[t-16] */
-		vmovdqu	xmm1, [W_t(\t- 7)]  /* XMM1 = W[t-7] */
-	RORQ	tmp0, 23 /* 41 */
-	and	T1,   e_64
-	xor	tmp0, e_64
-	xor	T1,   g_64
-		vpsllq	xmm5, xmm5, (64-8)         /* XMM5 = W[t-15]<<56 */
-	add	T1,   [WK_2(\t+1)]
-		vpxor	xmm6, xmm6, xmm5           /* XMM6 = s0(W[t-15]) */
-	RORQ	tmp0, 4 /* 18 */
-		vpaddq	xmm0, xmm0, xmm6           /* XMM0 = s1(W[t-2]) + W[t-16] + s0(W[t-15]) */
-	xor	tmp0, e_64
-		vpaddq	xmm0, xmm0, xmm1           /* XMM0 = W[t] = s1(W[t-2]) + W[t-7] + s0(W[t-15]) + W[t-16] */
-	mov	T2,   a_64
-	add	T1,   h_64
-	RORQ	tmp0, 14 /* 14 */
-	add	T1,   tmp0
-		vmovdqa	[W_t(\t)], xmm0      /* Store W[t] */
-		vpaddq	xmm0, xmm0, [K_t(t)]        /* Compute W[t]+K[t] */
-		vmovdqa	[WK_2(t)], xmm0       /* Store W[t]+K[t] for next rounds */
-	mov	tmp0, a_64
-	xor	T2,   c_64
-	and	tmp0, c_64
-	and	T2,   b_64
-	xor	T2,   tmp0
-	mov	tmp0, a_64
-	RORQ	tmp0, 5 /* 39 */
-	xor	tmp0, a_64
-	add	d_64, T1
-	RORQ	tmp0, 6 /* 34 */
-	xor	tmp0, a_64
-	lea	h_64, [T1 + T2]
-	RORQ	tmp0, 28 /* 28 */
-	add	h_64, tmp0
-	RotateState
-.endm
+#define SHA512_2Sched_2Round_avx(t, a, b, c, d, e, f, g, h) \
+	SHA512_2Sched_2Round_avx_PART1(t, a, b, c, d, e, f, g, h); \
+	SHA512_2Sched_2Round_avx_PART2(t, h, a, b, c, d, e, f, g)
 
 /*
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -295,37 +284,77 @@ _gcry_sha512_transform_amd64_avx:
 	mov	g_64, [DIGEST(6)]
 	mov	h_64, [DIGEST(7)]
 
-	t = 0
-	.rept 80/2 + 1
-	/* (80 rounds) / (2 rounds/iteration) + (1 iteration) */
-	/* +1 iteration because the scheduler leads hashing by 1 iteration */
-		.if t < 2
-			/* BSWAP 2 QWORDS */
-			vmovdqa	xmm1, [.LXMM_QWORD_BSWAP ADD_RIP]
-			vmovdqu	xmm0, [MSG(t)]
-			vpshufb	xmm0, xmm0, xmm1     /* BSWAP */
-			vmovdqa	[W_t(t)], xmm0       /* Store Scheduled Pair */
-			vpaddq	xmm0, xmm0, [K_t(t)] /* Compute W[t]+K[t] */
-			vmovdqa	[WK_2(t)], xmm0      /* Store into WK for rounds */
-		.elseif t < 16
-			/* BSWAP 2 QWORDS, Compute 2 Rounds */
-			vmovdqu	xmm0, [MSG(t)]
-			vpshufb	xmm0, xmm0, xmm1     /* BSWAP */
-			SHA512_Round (t - 2)         /* Round t-2 */
-			vmovdqa	[W_t(t)], xmm0       /* Store Scheduled Pair */
-			vpaddq	xmm0, xmm0, [K_t(t)] /* Compute W[t]+K[t] */
-			SHA512_Round (t - 1)         /* Round t-1 */
-			vmovdqa	[WK_2(t)], xmm0      /* W[t]+K[t] into WK */
-		.elseif t < 79
-			/* Schedule 2 QWORDS; Compute 2 Rounds */
-			SHA512_2Sched_2Round_avx t
-		.else
-			/* Compute 2 Rounds */
-			SHA512_Round (t - 2)
-			SHA512_Round (t - 1)
-		.endif
-		t = ((t)+2)
-	.endr
+	/* BSWAP 2 QWORDS */
+	vmovdqa	xmm1, [.LXMM_QWORD_BSWAP ADD_RIP]
+	vmovdqu	xmm0, [MSG(0)]
+	vpshufb	xmm0, xmm0, xmm1     /* BSWAP */
+	vmovdqa	[W_t(0)], xmm0       /* Store Scheduled Pair */
+	vpaddq	xmm0, xmm0, [K_t(0)] /* Compute W[t]+K[t] */
+	vmovdqa	[WK_2(0)], xmm0      /* Store into WK for rounds */
+
+	#define T_2_14(t, a, b, c, d, e, f, g, h) \
+		/* BSWAP 2 QWORDS, Compute 2 Rounds */; \
+		vmovdqu	xmm0, [MSG(t)]; \
+		vpshufb	xmm0, xmm0, xmm1     /* BSWAP */; \
+		SHA512_Round(((t) - 2), a##_64, b##_64, c##_64, d##_64, \
+				        e##_64, f##_64, g##_64, h##_64); \
+		vmovdqa	[W_t(t)], xmm0       /* Store Scheduled Pair */; \
+		vpaddq	xmm0, xmm0, [K_t(t)] /* Compute W[t]+K[t] */; \
+		SHA512_Round(((t) - 1), h##_64, a##_64, b##_64, c##_64, \
+				        d##_64, e##_64, f##_64, g##_64); \
+		vmovdqa	[WK_2(t)], xmm0      /* W[t]+K[t] into WK */
+
+	#define T_16_78(t, a, b, c, d, e, f, g, h) \
+		SHA512_2Sched_2Round_avx((t), a##_64, b##_64, c##_64, d##_64, \
+					      e##_64, f##_64, g##_64, h##_64)
+
+	#define T_80(t, a, b, c, d, e, f, g, h) \
+		/* Compute 2 Rounds */; \
+		SHA512_Round((t - 2), a##_64, b##_64, c##_64, d##_64, \
+				      e##_64, f##_64, g##_64, h##_64); \
+		SHA512_Round((t - 1), h##_64, a##_64, b##_64, c##_64, \
+				      d##_64, e##_64, f##_64, g##_64)
+
+	T_2_14(2, a, b, c, d, e, f, g, h)
+	T_2_14(4, g, h, a, b, c, d, e, f)
+	T_2_14(6, e, f, g, h, a, b, c, d)
+	T_2_14(8, c, d, e, f, g, h, a, b)
+	T_2_14(10, a, b, c, d, e, f, g, h)
+	T_2_14(12, g, h, a, b, c, d, e, f)
+	T_2_14(14, e, f, g, h, a, b, c, d)
+	T_16_78(16, c, d, e, f, g, h, a, b)
+	T_16_78(18, a, b, c, d, e, f, g, h)
+	T_16_78(20, g, h, a, b, c, d, e, f)
+	T_16_78(22, e, f, g, h, a, b, c, d)
+	T_16_78(24, c, d, e, f, g, h, a, b)
+	T_16_78(26, a, b, c, d, e, f, g, h)
+	T_16_78(28, g, h, a, b, c, d, e, f)
+	T_16_78(30, e, f, g, h, a, b, c, d)
+	T_16_78(32, c, d, e, f, g, h, a, b)
+	T_16_78(34, a, b, c, d, e, f, g, h)
+	T_16_78(36, g, h, a, b, c, d, e, f)
+	T_16_78(38, e, f, g, h, a, b, c, d)
+	T_16_78(40, c, d, e, f, g, h, a, b)
+	T_16_78(42, a, b, c, d, e, f, g, h)
+	T_16_78(44, g, h, a, b, c, d, e, f)
+	T_16_78(46, e, f, g, h, a, b, c, d)
+	T_16_78(48, c, d, e, f, g, h, a, b)
+	T_16_78(50, a, b, c, d, e, f, g, h)
+	T_16_78(52, g, h, a, b, c, d, e, f)
+	T_16_78(54, e, f, g, h, a, b, c, d)
+	T_16_78(56, c, d, e, f, g, h, a, b)
+	T_16_78(58, a, b, c, d, e, f, g, h)
+	T_16_78(60, g, h, a, b, c, d, e, f)
+	T_16_78(62, e, f, g, h, a, b, c, d)
+	T_16_78(64, c, d, e, f, g, h, a, b)
+	T_16_78(66, a, b, c, d, e, f, g, h)
+	T_16_78(68, g, h, a, b, c, d, e, f)
+	T_16_78(70, e, f, g, h, a, b, c, d)
+	T_16_78(72, c, d, e, f, g, h, a, b)
+	T_16_78(74, a, b, c, d, e, f, g, h)
+	T_16_78(76, g, h, a, b, c, d, e, f)
+	T_16_78(78, e, f, g, h, a, b, c, d)
+	T_80(80, c, d, e, f, g, h, a, b)
 
 	/* Update digest */
 	add	[DIGEST(0)], a_64
@@ -357,11 +386,12 @@ _gcry_sha512_transform_amd64_avx:
 	vzeroall
 
 	/* Burn stack */
-	t = 0
-	.rept frame_W_size / 32
-		vmovups [rsp + frame_W + (t) * 32], ymm0
-		t = ((t)+1)
-	.endr
+	mov eax, 0
+.Lerase_stack:
+	vmovdqu [rsp + rax], ymm0
+	add eax, 32
+	cmp eax, frame_W_size
+	jne .Lerase_stack
 	vmovdqu [rsp + frame_WK], xmm0
 	xor     eax, eax
 

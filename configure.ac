@@ -1741,21 +1741,11 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for Intel syntax assembly im
                 ".text\n\t"
                 "actest:\n\t"
                 "pxor xmm1, xmm7;\n\t"
-                /* Intel syntax implementation also use GAS macros, so check
-                 * for them here. */
-                "VAL_A = xmm4\n\t"
-                "VAL_B = xmm2\n\t"
-                ".macro SET_VAL_A p1\n\t"
-                "  VAL_A = \\\\p1 \n\t"
-                ".endm\n\t"
-                ".macro SET_VAL_B p1\n\t"
-                "  VAL_B = \\\\p1 \n\t"
-                ".endm\n\t"
-                "vmovdqa VAL_A, VAL_B;\n\t"
-                "SET_VAL_A eax\n\t"
-                "SET_VAL_B ebp\n\t"
-                "add VAL_A, VAL_B;\n\t"
-                "add VAL_B, 0b10101;\n\t"
+                "vperm2i128 ymm2, ymm3, ymm0, 1;\n\t"
+                "add eax, ebp;\n\t"
+                "rorx eax, ebp, 1;\n\t"
+                "sub eax, [esp + 4];\n\t"
+                "add dword ptr [esp + eax], 0b10101;\n\t"
                 ".att_syntax prefix\n\t"
             );]], [ actest(); ])],
           [gcry_cv_gcc_platform_as_ok_for_intel_syntax=yes])

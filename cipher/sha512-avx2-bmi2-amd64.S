@@ -56,46 +56,45 @@
 .text
 
 /* Virtual Registers */
-Y_0 = ymm4
-Y_1 = ymm5
-Y_2 = ymm6
-Y_3 = ymm7
+#define Y_0 ymm4
+#define Y_1 ymm5
+#define Y_2 ymm6
+#define Y_3 ymm7
 
-YTMP0 = ymm0
-YTMP1 = ymm1
-YTMP2 = ymm2
-YTMP3 = ymm3
-YTMP4 = ymm8
-XFER =  YTMP0
+#define YTMP0 ymm0
+#define YTMP1 ymm1
+#define YTMP2 ymm2
+#define YTMP3 ymm3
+#define YTMP4 ymm8
+#define XFER YTMP0
 
-BYTE_FLIP_MASK =  ymm9
-MASK_YMM_LO    =  ymm10
-MASK_YMM_LOx   =  xmm10
+#define BYTE_FLIP_MASK ymm9
+#define MASK_YMM_LO ymm10
+#define MASK_YMM_LOx xmm10
 
-INP =         rdi /* 1st arg */
-CTX =         rsi /* 2nd arg */
-NUM_BLKS =    rdx /* 3rd arg */
-c =           rcx
-d =           r8
-e =           rdx
-y3 =          rdi
+#define INP rdi /* 1st arg */
+#define CTX rsi /* 2nd arg */
+#define NUM_BLKS rdx /* 3rd arg */
+#define c rcx
+#define d r8
+#define e rdx
+#define y3 rdi
 
-TBL =   rbp
+#define TBL rbp
 
-a =     rax
-b =     rbx
+#define a rax
+#define b rbx
 
-f =     r9
-g =     r10
-h =     r11
-old_h = rax
+#define f r9
+#define g r10
+#define h r11
 
-T1 =    r12
-y0 =    r13
-y1 =    r14
-y2 =    r15
+#define T1 r12
+#define y0 r13
+#define y1 r14
+#define y2 r15
 
-y4 =    r12
+#define y4 r12
 
 /* Local variables (stack frame) */
 #define frame_XFER      0
@@ -116,218 +115,153 @@ y4 =    r12
 
 /* addm [mem], reg */
 /* Add reg to mem using reg-mem add and store */
-.macro addm p1 p2
-	add	\p2, \p1
-	mov	\p1, \p2
-.endm
+#define addm(p1, p2) \
+	add	p2, p1; \
+	mov	p1, p2;
 
 
 /* COPY_YMM_AND_BSWAP ymm, [mem], byte_flip_mask */
 /* Load ymm with mem and byte swap each dword */
-.macro COPY_YMM_AND_BSWAP p1 p2 p3
-	VMOVDQ \p1, \p2
-	vpshufb \p1, \p1, \p3
-.endm
-/* rotate_Ys */
-/* Rotate values of symbols Y0...Y3 */
-.macro rotate_Ys
-	__Y_ = Y_0
-	Y_0 = Y_1
-	Y_1 = Y_2
-	Y_2 = Y_3
-	Y_3 = __Y_
-.endm
-
-/* RotateState */
-.macro RotateState
-	/* Rotate symbles a..h right */
-	old_h =  h
-	__TMP_ = h
-	h =      g
-	g =      f
-	f =      e
-	e =      d
-	d =      c
-	c =      b
-	b =      a
-	a =      __TMP_
-.endm
+#define COPY_YMM_AND_BSWAP(p1, p2, p3) \
+	VMOVDQ p1, p2; \
+	vpshufb p1, p1, p3
 
 /* %macro MY_VPALIGNR	YDST, YSRC1, YSRC2, RVAL */
 /* YDST = {YSRC1, YSRC2} >> RVAL*8 */
-.macro MY_VPALIGNR YDST, YSRC1, YSRC2, RVAL
-	vperm2f128 	\YDST, \YSRC1, \YSRC2, 0x3	/* YDST = {YS1_LO, YS2_HI} */
-	vpalignr 	\YDST, \YDST, \YSRC2, \RVAL	/* YDST = {YDS1, YS2} >> RVAL*8 */
-.endm
+#define MY_VPALIGNR(YDST, YSRC1, YSRC2, RVAL) \
+	vperm2i128 YDST, YSRC1, YSRC2, 0x3 /* YDST = {YS1_LO, YS2_HI} */; \
+	vpalignr   YDST, YDST, YSRC2, RVAL /* YDST = {YDS1, YS2} >> RVAL*8 */
 
-.macro ONE_ROUND_PART1 XFER
-	/* h += Sum1 (e) + Ch (e, f, g) + (k[t] + w[0]);
-	 * d += h;
-	 * h += Sum0 (a) + Maj (a, b, c);
-	 *
-	 * Ch(x, y, z) => ((x & y) + (~x & z))
-	 * Maj(x, y, z) => ((x & y) + (z & (x ^ y)))
-	 */
+#define ONE_ROUND_PART1(XFERIN, a, b, c, d, e, f, g, h) \
+	/* h += Sum1 (e) + Ch (e, f, g) + (k[t] + w[0]); \
+	 * d += h; \
+	 * h += Sum0 (a) + Maj (a, b, c); \
+	 * \
+	 * Ch(x, y, z) => ((x & y) + (~x & z)) \
+	 * Maj(x, y, z) => ((x & y) + (z & (x ^ y))) \
+	 */ \
+	\
+	mov y3, e; \
+	add h, [XFERIN]; \
+	and y3, f; \
+	rorx y0, e, 41; \
+	rorx y1, e, 18; \
+	lea h, [h + y3]; \
+	andn y3, e, g; \
+	rorx T1, a, 34; \
+	xor y0, y1; \
+	lea h, [h + y3]
 
-	mov y3, e
-	add h, [\XFER]
-	and y3, f
-	rorx y0, e, 41
-	rorx y1, e, 18
-	lea h, [h + y3]
-	andn y3, e, g
-	rorx T1, a, 34
-	xor y0, y1
-	lea h, [h + y3]
-.endm
-.macro ONE_ROUND_PART2
-	rorx y2, a, 39
-	rorx y1, e, 14
-	mov y3, a
-	xor T1, y2
-	xor y0, y1
-	xor y3, b
+#define ONE_ROUND_PART2(a, b, c, d, e, f, g, h) \
+	rorx y2, a, 39; \
+	rorx y1, e, 14; \
+	mov y3, a; \
+	xor T1, y2; \
+	xor y0, y1; \
+	xor y3, b; \
+	lea h, [h + y0]; \
+	mov y0, a; \
+	rorx y2, a, 28; \
+	add d, h; \
+	and y3, c; \
+	xor T1, y2; \
+	lea h, [h + y3]; \
+	lea h, [h + T1]; \
+	and y0, b; \
 	lea h, [h + y0]
-	mov y0, a
-	rorx y2, a, 28
-	add d, h
-	and y3, c
-	xor T1, y2
-	lea h, [h + y3]
-	lea h, [h + T1]
-	and y0, b
-	lea h, [h + y0]
-.endm
 
-.macro ONE_ROUND XFER
-	ONE_ROUND_PART1 \XFER
-	ONE_ROUND_PART2
-.endm
+#define ONE_ROUND(XFERIN, a, b, c, d, e, f, g, h) \
+	ONE_ROUND_PART1(XFERIN, a, b, c, d, e, f, g, h); \
+	ONE_ROUND_PART2(a, b, c, d, e, f, g, h)
 
-.macro FOUR_ROUNDS_AND_SCHED X
-/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
+#define FOUR_ROUNDS_AND_SCHED(X, Y_0, Y_1, Y_2, Y_3, a, b, c, d, e, f, g, h) \
+	/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */; \
+		/* Extract w[t-7] */; \
+		MY_VPALIGNR(	YTMP0, Y_3, Y_2, 8)		/* YTMP0 = W[-7] */; \
+		/* Calculate w[t-16] + w[t-7] */; \
+		vpaddq		YTMP0, YTMP0, Y_0		/* YTMP0 = W[-7] + W[-16] */; \
+		/* Extract w[t-15] */; \
+		MY_VPALIGNR(	YTMP1, Y_1, Y_0, 8)		/* YTMP1 = W[-15] */; \
+		\
+		/* Calculate sigma0 */; \
+		\
+		/* Calculate w[t-15] ror 1 */; \
+		vpsrlq		YTMP2, YTMP1, 1; \
+		vpsllq		YTMP3, YTMP1, (64-1); \
+		vpor		YTMP3, YTMP3, YTMP2		/* YTMP3 = W[-15] ror 1 */; \
+		/* Calculate w[t-15] shr 7 */; \
+		vpsrlq		YTMP4, YTMP1, 7			/* YTMP4 = W[-15] >> 7 */; \
+	\
+	ONE_ROUND(rsp+frame_XFER+0*8+X*32, a, b, c, d, e, f, g, h); \
+	\
+	/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */; \
+		/* Calculate w[t-15] ror 8 */; \
+		vpsrlq		YTMP2, YTMP1, 8; \
+		vpsllq		YTMP1, YTMP1, (64-8); \
+		vpor		YTMP1, YTMP1, YTMP2		/* YTMP1 = W[-15] ror 8 */; \
+		/* XOR the three components */; \
+		vpxor		YTMP3, YTMP3, YTMP4		/* YTMP3 = W[-15] ror 1 ^ W[-15] >> 7 */; \
+		vpxor		YTMP1, YTMP3, YTMP1		/* YTMP1 = s0 */; \
+		\
+		/* Add three components, w[t-16], w[t-7] and sigma0 */; \
+		vpaddq		YTMP0, YTMP0, YTMP1		/* YTMP0 = W[-16] + W[-7] + s0 */; \
+		/* Move to appropriate lanes for calculating w[16] and w[17] */; \
+		vperm2i128	Y_0, YTMP0, YTMP0, 0x0		/* Y_0 = W[-16] + W[-7] + s0 {BABA} */; \
+		/* Move to appropriate lanes for calculating w[18] and w[19] */; \
+		vpand		YTMP0, YTMP0, MASK_YMM_LO	/* YTMP0 = W[-16] + W[-7] + s0 {DC00} */; \
+		\
+		/* Calculate w[16] and w[17] in both 128 bit lanes */; \
+		\
+		/* Calculate sigma1 for w[16] and w[17] on both 128 bit lanes */; \
+		vperm2i128	YTMP2, Y_3, Y_3, 0x11		/* YTMP2 = W[-2] {BABA} */; \
+		vpsrlq		YTMP4, YTMP2, 6			/* YTMP4 = W[-2] >> 6 {BABA} */; \
+	\
+	ONE_ROUND(rsp+frame_XFER+1*8+X*32, h, a, b, c, d, e, f, g); \
+	\
+	/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */; \
+		vpsrlq		YTMP3, YTMP2, 19		/* YTMP3 = W[-2] >> 19 {BABA} */; \
+		vpsllq		YTMP1, YTMP2, (64-19)		/* YTMP1 = W[-2] << 19 {BABA} */; \
+		vpor		YTMP3, YTMP3, YTMP1		/* YTMP3 = W[-2] ror 19 {BABA} */; \
+		vpxor		YTMP4, YTMP4, YTMP3		/* YTMP4 = W[-2] ror 19 ^ W[-2] >> 6 {BABA} */; \
+		vpsrlq		YTMP3, YTMP2, 61		/* YTMP3 = W[-2] >> 61 {BABA} */; \
+		vpsllq		YTMP1, YTMP2, (64-61)		/* YTMP1 = W[-2] << 61 {BABA} */; \
+		vpor		YTMP3, YTMP3, YTMP1		/* YTMP3 = W[-2] ror 61 {BABA} */; \
+		vpxor		YTMP4, YTMP4, YTMP3		/* YTMP4 = s1 = (W[-2] ror 19) ^ (W[-2] ror 61) ^ (W[-2] >> 6) {BABA} */; \
+		\
+		/* Add sigma1 to the other compunents to get w[16] and w[17] */; \
+		vpaddq		Y_0, Y_0, YTMP4			/* Y_0 = {W[1], W[0], W[1], W[0]} */; \
+		\
+		/* Calculate sigma1 for w[18] and w[19] for upper 128 bit lane */; \
+		vpsrlq		YTMP4, Y_0, 6			/* YTMP4 = W[-2] >> 6 {DC--} */; \
+	\
+	ONE_ROUND(rsp+frame_XFER+2*8+X*32, g, h, a, b, c, d, e, f); \
+	\
+	/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */; \
+		vpsrlq		YTMP3, Y_0, 19			/* YTMP3 = W[-2] >> 19 {DC--} */; \
+		vpsllq		YTMP1, Y_0, (64-19)		/* YTMP1 = W[-2] << 19 {DC--} */; \
+		vpor		YTMP3, YTMP3, YTMP1		/* YTMP3 = W[-2] ror 19 {DC--} */; \
+		vpxor		YTMP4, YTMP4, YTMP3		/* YTMP4 = W[-2] ror 19 ^ W[-2] >> 6 {DC--} */; \
+		vpsrlq		YTMP3, Y_0, 61			/* YTMP3 = W[-2] >> 61 {DC--} */; \
+		vpsllq		YTMP1, Y_0, (64-61)		/* YTMP1 = W[-2] << 61 {DC--} */; \
+		vpor		YTMP3, YTMP3, YTMP1		/* YTMP3 = W[-2] ror 61 {DC--} */; \
+		vpxor		YTMP4, YTMP4, YTMP3		/* YTMP4 = s1 = (W[-2] ror 19) ^ (W[-2] ror 61) ^ (W[-2] >> 6) {DC--} */; \
+		\
+		/* Add the sigma0 + w[t-7] + w[t-16] for w[18] and w[19] to newly calculated sigma1 to get w[18] and w[19] */; \
+		vpaddq		YTMP2, YTMP0, YTMP4		/* YTMP2 = {W[3], W[2], --, --} */; \
+		\
+		/* Form w[19, w[18], w17], w[16] */; \
+		vpblendd	Y_0, Y_0, YTMP2, 0xF0		/* Y_0 = {W[3], W[2], W[1], W[0]} */; \
+	\
+	ONE_ROUND_PART1(rsp+frame_XFER+3*8+X*32, f, g, h, a, b, c, d, e); \
+		vpaddq		XFER, Y_0, [TBL + (4+X)*32]; \
+		vmovdqa		[rsp + frame_XFER + X*32], XFER; \
+	ONE_ROUND_PART2(f, g, h, a, b, c, d, e)
 
-		/* Extract w[t-7] */
-		MY_VPALIGNR	YTMP0, Y_3, Y_2, 8		/* YTMP0 = W[-7] */
-		/* Calculate w[t-16] + w[t-7] */
-		vpaddq		YTMP0, YTMP0, Y_0		/* YTMP0 = W[-7] + W[-16] */
-		/* Extract w[t-15] */
-		MY_VPALIGNR	YTMP1, Y_1, Y_0, 8		/* YTMP1 = W[-15] */
-
-		/* Calculate sigma0 */
-
-		/* Calculate w[t-15] ror 1 */
-		vpsrlq		YTMP2, YTMP1, 1
-		vpsllq		YTMP3, YTMP1, (64-1)
-		vpor		YTMP3, YTMP3, YTMP2		/* YTMP3 = W[-15] ror 1 */
-		/* Calculate w[t-15] shr 7 */
-		vpsrlq		YTMP4, YTMP1, 7			/* YTMP4 = W[-15] >> 7 */
-
-	ONE_ROUND rsp+frame_XFER+0*8+\X*32
-	RotateState
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-		/* Calculate w[t-15] ror 8 */
-		vpsrlq		YTMP2, YTMP1, 8
-		vpsllq		YTMP1, YTMP1, (64-8)
-		vpor		YTMP1, YTMP1, YTMP2		/* YTMP1 = W[-15] ror 8 */
-		/* XOR the three components */
-		vpxor		YTMP3, YTMP3, YTMP4		/* YTMP3 = W[-15] ror 1 ^ W[-15] >> 7 */
-		vpxor		YTMP1, YTMP3, YTMP1		/* YTMP1 = s0 */
-
-
-		/* Add three components, w[t-16], w[t-7] and sigma0 */
-		vpaddq		YTMP0, YTMP0, YTMP1		/* YTMP0 = W[-16] + W[-7] + s0 */
-		/* Move to appropriate lanes for calculating w[16] and w[17] */
-		vperm2f128	Y_0, YTMP0, YTMP0, 0x0		/* Y_0 = W[-16] + W[-7] + s0 {BABA} */
-		/* Move to appropriate lanes for calculating w[18] and w[19] */
-		vpand		YTMP0, YTMP0, MASK_YMM_LO	/* YTMP0 = W[-16] + W[-7] + s0 {DC00} */
-
-		/* Calculate w[16] and w[17] in both 128 bit lanes */
-
-		/* Calculate sigma1 for w[16] and w[17] on both 128 bit lanes */
-		vperm2f128	YTMP2, Y_3, Y_3, 0x11		/* YTMP2 = W[-2] {BABA} */
-		vpsrlq		YTMP4, YTMP2, 6			/* YTMP4 = W[-2] >> 6 {BABA} */
-
-	ONE_ROUND rsp+frame_XFER+1*8+\X*32
-	RotateState
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-
-		vpsrlq		YTMP3, YTMP2, 19		/* YTMP3 = W[-2] >> 19 {BABA} */
-		vpsllq		YTMP1, YTMP2, (64-19)		/* YTMP1 = W[-2] << 19 {BABA} */
-		vpor		YTMP3, YTMP3, YTMP1		/* YTMP3 = W[-2] ror 19 {BABA} */
-		vpxor		YTMP4, YTMP4, YTMP3		/* YTMP4 = W[-2] ror 19 ^ W[-2] >> 6 {BABA} */
-		vpsrlq		YTMP3, YTMP2, 61		/* YTMP3 = W[-2] >> 61 {BABA} */
-		vpsllq		YTMP1, YTMP2, (64-61)		/* YTMP1 = W[-2] << 61 {BABA} */
-		vpor		YTMP3, YTMP3, YTMP1		/* YTMP3 = W[-2] ror 61 {BABA} */
-		vpxor		YTMP4, YTMP4, YTMP3		/* YTMP4 = s1 = (W[-2] ror 19) ^ (W[-2] ror 61) ^ (W[-2] >> 6) {BABA} */
-
-		/* Add sigma1 to the other compunents to get w[16] and w[17] */
-		vpaddq		Y_0, Y_0, YTMP4			/* Y_0 = {W[1], W[0], W[1], W[0]} */
-
-		/* Calculate sigma1 for w[18] and w[19] for upper 128 bit lane */
-		vpsrlq		YTMP4, Y_0, 6			/* YTMP4 = W[-2] >> 6 {DC--} */
-
-	ONE_ROUND rsp+frame_XFER+2*8+\X*32
-	RotateState
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-		vpsrlq		YTMP3, Y_0, 19			/* YTMP3 = W[-2] >> 19 {DC--} */
-		vpsllq		YTMP1, Y_0, (64-19)		/* YTMP1 = W[-2] << 19 {DC--} */
-		vpor		YTMP3, YTMP3, YTMP1		/* YTMP3 = W[-2] ror 19 {DC--} */
-		vpxor		YTMP4, YTMP4, YTMP3		/* YTMP4 = W[-2] ror 19 ^ W[-2] >> 6 {DC--} */
-		vpsrlq		YTMP3, Y_0, 61			/* YTMP3 = W[-2] >> 61 {DC--} */
-		vpsllq		YTMP1, Y_0, (64-61)		/* YTMP1 = W[-2] << 61 {DC--} */
-		vpor		YTMP3, YTMP3, YTMP1		/* YTMP3 = W[-2] ror 61 {DC--} */
-		vpxor		YTMP4, YTMP4, YTMP3		/* YTMP4 = s1 = (W[-2] ror 19) ^ (W[-2] ror 61) ^ (W[-2] >> 6) {DC--} */
-
-		/* Add the sigma0 + w[t-7] + w[t-16] for w[18] and w[19] to newly calculated sigma1 to get w[18] and w[19] */
-		vpaddq		YTMP2, YTMP0, YTMP4		/* YTMP2 = {W[3], W[2], --, --} */
-
-		/* Form w[19, w[18], w17], w[16] */
-		vpblendd		Y_0, Y_0, YTMP2, 0xF0		/* Y_0 = {W[3], W[2], W[1], W[0]} */
-
-	ONE_ROUND_PART1 rsp+frame_XFER+3*8+\X*32
-		vpaddq		XFER, Y_0, [TBL + (4+\X)*32]
-		vmovdqa		[rsp + frame_XFER + \X*32], XFER
-	ONE_ROUND_PART2
-	RotateState
-	rotate_Ys
-.endm
-
-.macro DO_4ROUNDS X
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-	ONE_ROUND rsp+frame_XFER+0*8+\X*32
-	RotateState
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-	ONE_ROUND rsp+frame_XFER+1*8+\X*32
-	RotateState
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-	ONE_ROUND rsp+frame_XFER+2*8+\X*32
-	RotateState
-
-/*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-	ONE_ROUND rsp+frame_XFER+3*8+\X*32
-	RotateState
-
-.endm
+#define DO_4ROUNDS(X, a, b, c, d, e, f, g, h) \
+	ONE_ROUND(rsp+frame_XFER+0*8+X*32, a, b, c, d, e, f, g, h); \
+	ONE_ROUND(rsp+frame_XFER+1*8+X*32, h, a, b, c, d, e, f, g); \
+	ONE_ROUND(rsp+frame_XFER+2*8+X*32, g, h, a, b, c, d, e, f); \
+	ONE_ROUND(rsp+frame_XFER+3*8+X*32, f, g, h, a, b, c, d, e)
 
 /*
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -390,10 +324,10 @@ _gcry_sha512_transform_amd64_avx2:
 	lea	TBL,[.LK512 ADD_RIP]
 
 	/*; byte swap first 16 dwords */
-	COPY_YMM_AND_BSWAP	Y_0, [INP + 0*32], BYTE_FLIP_MASK
-	COPY_YMM_AND_BSWAP	Y_1, [INP + 1*32], BYTE_FLIP_MASK
-	COPY_YMM_AND_BSWAP	Y_2, [INP + 2*32], BYTE_FLIP_MASK
-	COPY_YMM_AND_BSWAP	Y_3, [INP + 3*32], BYTE_FLIP_MASK
+	COPY_YMM_AND_BSWAP(Y_0, [INP + 0*32], BYTE_FLIP_MASK)
+	COPY_YMM_AND_BSWAP(Y_1, [INP + 1*32], BYTE_FLIP_MASK)
+	COPY_YMM_AND_BSWAP(Y_2, [INP + 2*32], BYTE_FLIP_MASK)
+	COPY_YMM_AND_BSWAP(Y_3, [INP + 3*32], BYTE_FLIP_MASK)
 
 	add	INP, 128
 	mov	[rsp + frame_INP], INP
@@ -408,20 +342,20 @@ _gcry_sha512_transform_amd64_avx2:
 	vmovdqa [rsp + frame_XFER + 3*32], XFER
 
 	/*; schedule 64 input dwords, by doing 12 rounds of 4 each */
-	movq	[rsp + frame_SRND],4
+	mov	qword ptr [rsp + frame_SRND], 4
 
 .align 16
 .Loop0:
-	FOUR_ROUNDS_AND_SCHED 0
-	FOUR_ROUNDS_AND_SCHED 1
-	FOUR_ROUNDS_AND_SCHED 2
-	FOUR_ROUNDS_AND_SCHED 3
+	FOUR_ROUNDS_AND_SCHED(0, Y_0, Y_1, Y_2, Y_3, a, b, c, d, e, f, g, h)
+	FOUR_ROUNDS_AND_SCHED(1, Y_1, Y_2, Y_3, Y_0, e, f, g, h, a, b, c, d)
+	FOUR_ROUNDS_AND_SCHED(2, Y_2, Y_3, Y_0, Y_1, a, b, c, d, e, f, g, h)
+	FOUR_ROUNDS_AND_SCHED(3, Y_3, Y_0, Y_1, Y_2, e, f, g, h, a, b, c, d)
 	add	TBL, 4*32
 
-	subq	[rsp + frame_SRND], 1
+	sub	qword ptr [rsp + frame_SRND], 1
 	jne	.Loop0
 
-	subq	[rsp + frame_NBLKS], 1
+	sub	qword ptr [rsp + frame_NBLKS], 1
 	je	.Ldone_hash
 
 	mov	INP, [rsp + frame_INP]
@@ -429,62 +363,62 @@ _gcry_sha512_transform_amd64_avx2:
 	lea	TBL,[.LK512 ADD_RIP]
 
 	/* load next block and byte swap */
-	COPY_YMM_AND_BSWAP	Y_0, [INP + 0*32], BYTE_FLIP_MASK
-	COPY_YMM_AND_BSWAP	Y_1, [INP + 1*32], BYTE_FLIP_MASK
-	COPY_YMM_AND_BSWAP	Y_2, [INP + 2*32], BYTE_FLIP_MASK
-	COPY_YMM_AND_BSWAP	Y_3, [INP + 3*32], BYTE_FLIP_MASK
+	COPY_YMM_AND_BSWAP(Y_0, [INP + 0*32], BYTE_FLIP_MASK)
+	COPY_YMM_AND_BSWAP(Y_1, [INP + 1*32], BYTE_FLIP_MASK)
+	COPY_YMM_AND_BSWAP(Y_2, [INP + 2*32], BYTE_FLIP_MASK)
+	COPY_YMM_AND_BSWAP(Y_3, [INP + 3*32], BYTE_FLIP_MASK)
 
 	add	INP, 128
 	mov	[rsp + frame_INP], INP
 
-	DO_4ROUNDS 0
+	DO_4ROUNDS(0, a, b, c, d, e, f, g, h)
 	vpaddq	XFER, Y_0, [TBL + 0*32]
 	vmovdqa [rsp + frame_XFER + 0*32], XFER
-	DO_4ROUNDS 1
+	DO_4ROUNDS(1, e, f, g, h, a, b, c, d)
 	vpaddq	XFER, Y_1, [TBL + 1*32]
 	vmovdqa [rsp + frame_XFER + 1*32], XFER
-	DO_4ROUNDS 2
+	DO_4ROUNDS(2, a, b, c, d, e, f, g, h)
 	vpaddq	XFER, Y_2, [TBL + 2*32]
 	vmovdqa [rsp + frame_XFER + 2*32], XFER
-	DO_4ROUNDS 3
+	DO_4ROUNDS(3, e, f, g, h, a, b, c, d)
 	vpaddq	XFER, Y_3, [TBL + 3*32]
 	vmovdqa [rsp + frame_XFER + 3*32], XFER
 
-	addm	[8*0 + CTX],a
-	addm	[8*1 + CTX],b
-	addm	[8*2 + CTX],c
-	addm	[8*3 + CTX],d
-	addm	[8*4 + CTX],e
-	addm	[8*5 + CTX],f
-	addm	[8*6 + CTX],g
-	addm	[8*7 + CTX],h
+	addm([8*0 + CTX],a)
+	addm([8*1 + CTX],b)
+	addm([8*2 + CTX],c)
+	addm([8*3 + CTX],d)
+	addm([8*4 + CTX],e)
+	addm([8*5 + CTX],f)
+	addm([8*6 + CTX],g)
+	addm([8*7 + CTX],h)
 
 	/*; schedule 64 input dwords, by doing 12 rounds of 4 each */
-	movq	[rsp + frame_SRND],4
+	mov	qword ptr [rsp + frame_SRND],4
 
 	jmp	.Loop0
 
 .Ldone_hash:
 	vzeroall
 
-	DO_4ROUNDS 0
+	DO_4ROUNDS(0, a, b, c, d, e, f, g, h)
 	vmovdqa	[rsp + frame_XFER + 0*32], ymm0 /* burn stack */
-	DO_4ROUNDS 1
+	DO_4ROUNDS(1, e, f, g, h, a, b, c, d)
 	vmovdqa	[rsp + frame_XFER + 1*32], ymm0 /* burn stack */
-	DO_4ROUNDS 2
+	DO_4ROUNDS(2, a, b, c, d, e, f, g, h)
 	vmovdqa	[rsp + frame_XFER + 2*32], ymm0 /* burn stack */
-	DO_4ROUNDS 3
+	DO_4ROUNDS(3, e, f, g, h, a, b, c, d)
 	vmovdqa	[rsp + frame_XFER + 3*32], ymm0 /* burn stack */
 
-	addm	[8*0 + CTX],a
+	addm([8*0 + CTX],a)
 	xor     eax, eax /* burn stack */
-	addm	[8*1 + CTX],b
-	addm	[8*2 + CTX],c
-	addm	[8*3 + CTX],d
-	addm	[8*4 + CTX],e
-	addm	[8*5 + CTX],f
-	addm	[8*6 + CTX],g
-	addm	[8*7 + CTX],h
+	addm([8*1 + CTX],b)
+	addm([8*2 + CTX],c)
+	addm([8*3 + CTX],d)
+	addm([8*4 + CTX],e)
+	addm([8*5 + CTX],f)
+	addm([8*6 + CTX],g)
+	addm([8*7 + CTX],h)
 
 	/* Restore GPRs */
 	mov	rbp, [rsp + frame_GPRSAVE + 8 * 0]

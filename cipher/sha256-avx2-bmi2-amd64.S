@@ -70,226 +70,171 @@
 
 /*  addm [mem], reg */
 /*  Add reg to mem using reg-mem add and store */
-.macro addm p1 p2
-	add	\p2, \p1
-	mov	\p1, \p2
-.endm
+#define addm(p1, p2) \
+	add	p2, p1; \
+	mov	p1, p2;
 
 /* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 
-X0 = ymm4
-X1 = ymm5
-X2 = ymm6
-X3 = ymm7
+#define X0 ymm4
+#define X1 ymm5
+#define X2 ymm6
+#define X3 ymm7
 
 /*  XMM versions of above */
-XWORD0 = xmm4
-XWORD1 = xmm5
-XWORD2 = xmm6
-XWORD3 = xmm7
+#define XWORD0 xmm4
+#define XWORD1 xmm5
+#define XWORD2 xmm6
+#define XWORD3 xmm7
 
-XTMP0 = ymm0
-XTMP1 = ymm1
-XTMP2 = ymm2
-XTMP3 = ymm3
-XTMP4 = ymm8
-XFER =  ymm9
-XTMP5 = ymm11
+#define XTMP0 ymm0
+#define XTMP1 ymm1
+#define XTMP2 ymm2
+#define XTMP3 ymm3
+#define XTMP4 ymm8
+#define XFER ymm9
+#define XTMP5 ymm11
 
-SHUF_00BA = ymm10 /*  shuffle xBxA -> 00BA */
-SHUF_DC00 = ymm12 /*  shuffle xDxC -> DC00 */
-BYTE_FLIP_MASK = ymm13
+#define SHUF_00BA ymm10 /*  shuffle xBxA -> 00BA */
+#define SHUF_DC00 ymm12 /*  shuffle xDxC -> DC00 */
+#define BYTE_FLIP_MASK ymm13
 
-X_BYTE_FLIP_MASK = xmm13 /*  XMM version of BYTE_FLIP_MASK */
+#define X_BYTE_FLIP_MASK xmm13 /*  XMM version of BYTE_FLIP_MASK */
 
-NUM_BLKS = rdx	/*  3rd arg */
-CTX =	rsi   	/*  2nd arg */
-INP =	rdi	/*  1st arg */
-c =	ecx
-d =	r8d
-e =	edx	/*  clobbers NUM_BLKS */
-y3 =	edi	/*  clobbers INP */
+#define NUM_BLKS rdx /*  3rd arg */
+#define CTX rsi      /*  2nd arg */
+#define INP rdi      /*  1st arg */
+#define c ecx
+#define d r8d
+#define e edx        /*  clobbers NUM_BLKS */
+#define y3 edi       /*  clobbers INP */
 
-TBL =	rbp
-SRND =	CTX	/*  SRND is same register as CTX */
+#define TBL rbp
+#define SRND CTX     /*  SRND is same register as CTX */
 
-a =	eax
-b =	ebx
-f =	r9d
-g =	r10d
-h =	r11d
-old_h =	r11d
+#define a eax
+#define b ebx
+#define f r9d
+#define g r10d
+#define h r11d
+#define old_h r11d
 
-T1 = r12d
-y0 = r13d
-y1 = r14d
-y2 = r15d
+#define T1 r12d
+#define y0 r13d
+#define y1 r14d
+#define y2 r15d
 
 
-_XFER_SIZE	= 2*64*4	/*  2 blocks, 64 rounds, 4 bytes/round */
-_XMM_SAVE_SIZE  = 0
-_INP_END_SIZE	= 8
-_INP_SIZE	= 8
-_CTX_SIZE	= 8
-_RSP_SIZE	= 8
+#define _XFER_SIZE 2*64*4	/*  2 blocks, 64 rounds, 4 bytes/round */
+#define _XMM_SAVE_SIZE 0
+#define _INP_END_SIZE 8
+#define _INP_SIZE 8
+#define _CTX_SIZE 8
+#define _RSP_SIZE 8
 
-_XFER		= 0
-_XMM_SAVE	= _XFER     + _XFER_SIZE
-_INP_END	= _XMM_SAVE + _XMM_SAVE_SIZE
-_INP 		= _INP_END  + _INP_END_SIZE
-_CTX		= _INP      + _INP_SIZE
-_RSP		= _CTX      + _CTX_SIZE
-STACK_SIZE	= _RSP      + _RSP_SIZE
+#define _XFER 0
+#define _XMM_SAVE  _XFER     + _XFER_SIZE
+#define _INP_END   _XMM_SAVE + _XMM_SAVE_SIZE
+#define _INP       _INP_END  + _INP_END_SIZE
+#define _CTX       _INP      + _INP_SIZE
+#define _RSP       _CTX      + _CTX_SIZE
+#define STACK_SIZE _RSP      + _RSP_SIZE
 
-/*  rotate_Xs */
-/*  Rotate values of symbols X0...X3 */
-.macro rotate_Xs
-X_ = X0
-X0 = X1
-X1 = X2
-X2 = X3
-X3 = X_
-.endm
-
-/*  ROTATE_ARGS */
-/*  Rotate values of symbols a...h */
-.macro ROTATE_ARGS
-old_h = h
-TMP_ = h
-h = g
-g = f
-f = e
-e = d
-d = c
-c = b
-b = a
-a = TMP_
-.endm
-
-.macro ONE_ROUND_PART1 XFER
-	/* h += Sum1 (e) + Ch (e, f, g) + (k[t] + w[0]);
-	 * d += h;
-	 * h += Sum0 (a) + Maj (a, b, c);
-	 *
-	 * Ch(x, y, z) => ((x & y) + (~x & z))
-	 * Maj(x, y, z) => ((x & y) + (z & (x ^ y)))
-	 */
-
-	mov y3, e
-	add h, [\XFER]
-	and y3, f
-	rorx y0, e, 25
-	rorx y1, e, 11
+#define ONE_ROUND_PART1(XFERIN, a, b, c, d, e, f, g, h) \
+	/* h += Sum1 (e) + Ch (e, f, g) + (k[t] + w[0]); */ \
+	/* d += h; */ \
+	/* h += Sum0 (a) + Maj (a, b, c); */ \
+	\
+	/* Ch(x, y, z) => ((x & y) + (~x & z)) */ \
+	/* Maj(x, y, z) => ((x & y) + (z & (x ^ y))) */ \
+	\
+	mov y3, e; \
+	add h, [XFERIN]; \
+	and y3, f; \
+	rorx y0, e, 25; \
+	rorx y1, e, 11; \
+	lea h, [h + y3]; \
+	andn y3, e, g; \
+	rorx T1, a, 13; \
+	xor y0, y1; \
 	lea h, [h + y3]
-	andn y3, e, g
-	rorx T1, a, 13
-	xor y0, y1
-	lea h, [h + y3]
-.endm
-.macro ONE_ROUND_PART2
-	rorx y2, a, 22
-	rorx y1, e, 6
-	mov y3, a
-	xor T1, y2
-	xor y0, y1
-	xor y3, b
+
+#define ONE_ROUND_PART2(a, b, c, d, e, f, g, h) \
+	rorx y2, a, 22; \
+	rorx y1, e, 6; \
+	mov y3, a; \
+	xor T1, y2; \
+	xor y0, y1; \
+	xor y3, b; \
+	lea h, [h + y0]; \
+	mov y0, a; \
+	rorx y2, a, 2; \
+	add d, h; \
+	and y3, c; \
+	xor T1, y2; \
+	lea h, [h + y3]; \
+	lea h, [h + T1]; \
+	and y0, b; \
 	lea h, [h + y0]
-	mov y0, a
-	rorx y2, a, 2
-	add d, h
-	and y3, c
-	xor T1, y2
-	lea h, [h + y3]
-	lea h, [h + T1]
-	and y0, b
-	lea h, [h + y0]
-.endm
 
-.macro ONE_ROUND XFER
-	ONE_ROUND_PART1 \XFER
-	ONE_ROUND_PART2
-.endm
+#define ONE_ROUND(XFER, a, b, c, d, e, f, g, h) \
+	ONE_ROUND_PART1(XFER, a, b, c, d, e, f, g, h); \
+	ONE_ROUND_PART2(a, b, c, d, e, f, g, h)
 
-.macro FOUR_ROUNDS_AND_SCHED XFER, XFEROUT
-/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
+#define FOUR_ROUNDS_AND_SCHED(XFERIN, XFEROUT, X0, X1, X2, X3, a, b, c, d, e, f, g, h) \
+	/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */; \
+		vpalignr	XTMP0, X3, X2, 4	/*  XTMP0 = W[-7] */; \
+		vpaddd	XTMP0, XTMP0, X0	/*  XTMP0 = W[-7] + W[-16]; y1 = (e >> 6); S1 */; \
+		vpalignr	XTMP1, X1, X0, 4	/*  XTMP1 = W[-15] */; \
+		vpsrld	XTMP2, XTMP1, 7; \
+		vpslld	XTMP3, XTMP1, (32-7); \
+		vpor	XTMP3, XTMP3, XTMP2	/*  XTMP3 = W[-15] ror 7 */; \
+		vpsrld	XTMP2, XTMP1,18; \
+	\
+	ONE_ROUND(0*4+XFERIN, a, b, c, d, e, f, g, h); \
+	\
+	/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */; \
+		vpsrld	XTMP4, XTMP1, 3	/*  XTMP4 = W[-15] >> 3 */; \
+		vpslld	XTMP1, XTMP1, (32-18); \
+		vpxor	XTMP3, XTMP3, XTMP1; \
+		vpxor	XTMP3, XTMP3, XTMP2	/*  XTMP3 = W[-15] ror 7 ^ W[-15] ror 18 */; \
+		vpxor	XTMP1, XTMP3, XTMP4	/*  XTMP1 = s0 */; \
+		vpshufd	XTMP2, X3, 0b11111010	/*  XTMP2 = W[-2] {BBAA} */; \
+		vpaddd	XTMP0, XTMP0, XTMP1	/*  XTMP0 = W[-16] + W[-7] + s0 */; \
+		vpsrld	XTMP4, XTMP2, 10	/*  XTMP4 = W[-2] >> 10 {BBAA} */; \
+	\
+	ONE_ROUND(1*4+XFERIN, h, a, b, c, d, e, f, g); \
+	\
+	/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */; \
+		vpsrlq	XTMP3, XTMP2, 19	/*  XTMP3 = W[-2] ror 19 {xBxA} */; \
+		vpsrlq	XTMP2, XTMP2, 17	/*  XTMP2 = W[-2] ror 17 {xBxA} */; \
+		vpxor	XTMP2, XTMP2, XTMP3; \
+		vpxor	XTMP4, XTMP4, XTMP2	/*  XTMP4 = s1 {xBxA} */; \
+		vpshufb	XTMP4, XTMP4, SHUF_00BA	/*  XTMP4 = s1 {00BA} */; \
+		vpaddd	XTMP0, XTMP0, XTMP4	/*  XTMP0 = {..., ..., W[1], W[0]} */; \
+		vpshufd	XTMP2, XTMP0, 0b1010000	/*  XTMP2 = W[-2] {DDCC} */; \
+	\
+	ONE_ROUND(2*4+XFERIN, g, h, a, b, c, d, e, f); \
+	\
+	/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */; \
+		vpsrld	XTMP5, XTMP2,   10	/*  XTMP5 = W[-2] >> 10 {DDCC} */; \
+		vpsrlq	XTMP3, XTMP2, 19	/*  XTMP3 = W[-2] ror 19 {xDxC} */; \
+		vpsrlq	XTMP2, XTMP2, 17	/*  XTMP2 = W[-2] ror 17 {xDxC} */; \
+		vpxor	XTMP2, XTMP2, XTMP3; \
+		vpxor	XTMP5, XTMP5, XTMP2	/*  XTMP5 = s1 {xDxC} */; \
+		vpshufb	XTMP5, XTMP5, SHUF_DC00	/*  XTMP5 = s1 {DC00} */; \
+		vpaddd	X0, XTMP5, XTMP0	/*  X0 = {W[3], W[2], W[1], W[0]} */; \
+		vpaddd	XFER, X0, [TBL + XFEROUT]; \
+	\
+	ONE_ROUND_PART1(3*4+XFERIN, f, g, h, a, b, c, d, e); \
+		vmovdqa [rsp + _XFER + XFEROUT], XFER; \
+	ONE_ROUND_PART2(f, g, h, a, b, c, d, e);
 
-		vpalignr	XTMP0, X3, X2, 4	/*  XTMP0 = W[-7] */
-		vpaddd	XTMP0, XTMP0, X0	/*  XTMP0 = W[-7] + W[-16]; y1 = (e >> 6); S1 */
-		vpalignr	XTMP1, X1, X0, 4	/*  XTMP1 = W[-15] */
-		vpsrld	XTMP2, XTMP1, 7
-		vpslld	XTMP3, XTMP1, (32-7)
-		vpor	XTMP3, XTMP3, XTMP2	/*  XTMP3 = W[-15] ror 7 */
-		vpsrld	XTMP2, XTMP1,18
-
-	ONE_ROUND 0*4+\XFER
-	ROTATE_ARGS
-
-/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-		vpsrld	XTMP4, XTMP1, 3	/*  XTMP4 = W[-15] >> 3 */
-		vpslld	XTMP1, XTMP1, (32-18)
-		vpxor	XTMP3, XTMP3, XTMP1
-		vpxor	XTMP3, XTMP3, XTMP2	/*  XTMP3 = W[-15] ror 7 ^ W[-15] ror 18 */
-		vpxor	XTMP1, XTMP3, XTMP4	/*  XTMP1 = s0 */
-		vpshufd	XTMP2, X3, 0b11111010	/*  XTMP2 = W[-2] {BBAA} */
-		vpaddd	XTMP0, XTMP0, XTMP1	/*  XTMP0 = W[-16] + W[-7] + s0 */
-		vpsrld	XTMP4, XTMP2, 10	/*  XTMP4 = W[-2] >> 10 {BBAA} */
-
-	ONE_ROUND 1*4+\XFER
-	ROTATE_ARGS
-
-/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-		vpsrlq	XTMP3, XTMP2, 19	/*  XTMP3 = W[-2] ror 19 {xBxA} */
-		vpsrlq	XTMP2, XTMP2, 17	/*  XTMP2 = W[-2] ror 17 {xBxA} */
-		vpxor	XTMP2, XTMP2, XTMP3
-		vpxor	XTMP4, XTMP4, XTMP2	/*  XTMP4 = s1 {xBxA} */
-		vpshufb	XTMP4, XTMP4, SHUF_00BA	/*  XTMP4 = s1 {00BA} */
-		vpaddd	XTMP0, XTMP0, XTMP4	/*  XTMP0 = {..., ..., W[1], W[0]} */
-		vpshufd	XTMP2, XTMP0, 0b1010000	/*  XTMP2 = W[-2] {DDCC} */
-
-	ONE_ROUND 2*4+\XFER
-	ROTATE_ARGS
-
-/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-		vpsrld	XTMP5, XTMP2,   10	/*  XTMP5 = W[-2] >> 10 {DDCC} */
-		vpsrlq	XTMP3, XTMP2, 19	/*  XTMP3 = W[-2] ror 19 {xDxC} */
-		vpsrlq	XTMP2, XTMP2, 17	/*  XTMP2 = W[-2] ror 17 {xDxC} */
-		vpxor	XTMP2, XTMP2, XTMP3
-		vpxor	XTMP5, XTMP5, XTMP2	/*  XTMP5 = s1 {xDxC} */
-		vpshufb	XTMP5, XTMP5, SHUF_DC00	/*  XTMP5 = s1 {DC00} */
-		vpaddd	X0, XTMP5, XTMP0	/*  X0 = {W[3], W[2], W[1], W[0]} */
-		vpaddd	XFER, X0, [TBL + \XFEROUT]
-
-	ONE_ROUND_PART1 3*4+\XFER
-		vmovdqa [rsp + _XFER + \XFEROUT], XFER
-	ONE_ROUND_PART2
-	ROTATE_ARGS
-	rotate_Xs
-.endm
-
-.macro DO_4ROUNDS XFER
-/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-	ONE_ROUND 0*4+\XFER
-	ROTATE_ARGS
-
-/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-	ONE_ROUND 1*4+\XFER
-	ROTATE_ARGS
-
-/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-	ONE_ROUND 2*4+\XFER
-	ROTATE_ARGS
-
-/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; RND N + 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;; */
-
-	ONE_ROUND 3*4+\XFER
-	ROTATE_ARGS
-.endm
+#define DO_4ROUNDS(XFERIN, a, b, c, d, e, f, g, h) \
+	ONE_ROUND(0*4+XFERIN, a, b, c, d, e, f, g, h); \
+	ONE_ROUND(1*4+XFERIN, h, a, b, c, d, e, f, g); \
+	ONE_ROUND(2*4+XFERIN, g, h, a, b, c, d, e, f); \
+	ONE_ROUND(3*4+XFERIN, f, g, h, a, b, c, d, e)
 
 /*
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -391,32 +336,32 @@ _gcry_sha256_transform_amd64_avx2:
 
 .align 16
 .Loop1:
-	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 0*32, SRND + 4*32
-	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 1*32, SRND + 5*32
-	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 2*32, SRND + 6*32
-	FOUR_ROUNDS_AND_SCHED	rsp + _XFER + SRND + 3*32, SRND + 7*32
+	FOUR_ROUNDS_AND_SCHED(rsp + _XFER + SRND + 0*32, SRND + 4*32, X0, X1, X2, X3, a, b, c, d, e, f, g, h)
+	FOUR_ROUNDS_AND_SCHED(rsp + _XFER + SRND + 1*32, SRND + 5*32, X1, X2, X3, X0, e, f, g, h, a, b, c, d)
+	FOUR_ROUNDS_AND_SCHED(rsp + _XFER + SRND + 2*32, SRND + 6*32, X2, X3, X0, X1, a, b, c, d, e, f, g, h)
+	FOUR_ROUNDS_AND_SCHED(rsp + _XFER + SRND + 3*32, SRND + 7*32, X3, X0, X1, X2, e, f, g, h, a, b, c, d)
 
 	add	SRND, 4*32
 	cmp	SRND, 3 * 4*32
 	jb	.Loop1
 
 	/* ; Do last 16 rounds with no scheduling */
-	DO_4ROUNDS	rsp + _XFER + (3*4*32 + 0*32)
-	DO_4ROUNDS	rsp + _XFER + (3*4*32 + 1*32)
-	DO_4ROUNDS	rsp + _XFER + (3*4*32 + 2*32)
-	DO_4ROUNDS	rsp + _XFER + (3*4*32 + 3*32)
+	DO_4ROUNDS(rsp + _XFER + (3*4*32 + 0*32), a, b, c, d, e, f, g, h)
+	DO_4ROUNDS(rsp + _XFER + (3*4*32 + 1*32), e, f, g, h, a, b, c, d)
+	DO_4ROUNDS(rsp + _XFER + (3*4*32 + 2*32), a, b, c, d, e, f, g, h)
+	DO_4ROUNDS(rsp + _XFER + (3*4*32 + 3*32), e, f, g, h, a, b, c, d)
 
 	mov	CTX, [rsp + _CTX]
 	mov	INP, [rsp + _INP]
 
-	addm	[4*0 + CTX],a
-	addm	[4*1 + CTX],b
-	addm	[4*2 + CTX],c
-	addm	[4*3 + CTX],d
-	addm	[4*4 + CTX],e
-	addm	[4*5 + CTX],f
-	addm	[4*6 + CTX],g
-	addm	[4*7 + CTX],h
+	addm([4*0 + CTX],a)
+	addm([4*1 + CTX],b)
+	addm([4*2 + CTX],c)
+	addm([4*3 + CTX],d)
+	addm([4*4 + CTX],e)
+	addm([4*5 + CTX],f)
+	addm([4*6 + CTX],g)
+	addm([4*7 + CTX],h)
 
 	cmp	INP, [rsp + _INP_END]
 	ja	.Ldone_hash
@@ -425,8 +370,8 @@ _gcry_sha256_transform_amd64_avx2:
 	xor	SRND, SRND
 .align 16
 .Loop3:
-	DO_4ROUNDS	rsp + _XFER + SRND + 0*32 + 16
-	DO_4ROUNDS	rsp + _XFER + SRND + 1*32 + 16
+	DO_4ROUNDS(rsp + _XFER + SRND + 0*32 + 16, a, b, c, d, e, f, g, h)
+	DO_4ROUNDS(rsp + _XFER + SRND + 1*32 + 16, e, f, g, h, a, b, c, d)
 	add	SRND, 2*32
 	cmp	SRND, 4 * 4*32
 	jb .Loop3
@@ -435,14 +380,14 @@ _gcry_sha256_transform_amd64_avx2:
 	mov	INP, [rsp + _INP]
 	add	INP, 64
 
-	addm	[4*0 + CTX],a
-	addm	[4*1 + CTX],b
-	addm	[4*2 + CTX],c
-	addm	[4*3 + CTX],d
-	addm	[4*4 + CTX],e
-	addm	[4*5 + CTX],f
-	addm	[4*6 + CTX],g
-	addm	[4*7 + CTX],h
+	addm([4*0 + CTX],a)
+	addm([4*1 + CTX],b)
+	addm([4*2 + CTX],c)
+	addm([4*3 + CTX],d)
+	addm([4*4 + CTX],e)
+	addm([4*5 + CTX],f)
+	addm([4*6 + CTX],g)
+	addm([4*7 + CTX],h)
 
 	cmp	INP, [rsp + _INP_END]
 	jb	.Loop0
