@@ -1203,11 +1203,12 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementat
           gcry_cv_gcc_arm_platform_as_ok="n/a"
         else
           gcry_cv_gcc_arm_platform_as_ok=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
             [[__asm__(
                 /* Test if assembler supports UAL syntax.  */
                 ".syntax unified\n\t"
                 ".arm\n\t" /* our assembly code is in ARM mode  */
+                ".text\n\t"
                 /* Following causes error if assembler ignored '.syntax unified'.  */
                 "asmfunc:\n\t"
                 "add %r0, %r0, %r4, ror #12;\n\t"
@@ -1215,7 +1216,7 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementat
                 /* Test if '.type' and '.size' are supported.  */
                 ".size asmfunc,.-asmfunc;\n\t"
                 ".type asmfunc,%function;\n\t"
-              );]])],
+              );]], [ asmfunc(); ] )],
             [gcry_cv_gcc_arm_platform_as_ok=yes])
         fi])
 if test "$gcry_cv_gcc_arm_platform_as_ok" = "yes" ; then
@@ -1235,13 +1236,14 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARMv8/Aarch64 assembly i
           gcry_cv_gcc_aarch64_platform_as_ok="n/a"
         else
           gcry_cv_gcc_aarch64_platform_as_ok=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
             [[__asm__(
+                ".text\n\t"
                 "asmfunc:\n\t"
                 "eor x0, x0, x30, ror #12;\n\t"
                 "add x0, x0, x30, asr #12;\n\t"
                 "eor v0.16b, v0.16b, v31.16b;\n\t"
-              );]])],
+              );]], [ asmfunc(); ] )],
             [gcry_cv_gcc_aarch64_platform_as_ok=yes])
         fi])
 if test "$gcry_cv_gcc_aarch64_platform_as_ok" = "yes" ; then
@@ -1287,6 +1289,7 @@ AC_CACHE_CHECK([whether GCC assembler supports for ELF directives],
         AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(
                 /* Test if ELF directives '.type' and '.size' are supported. */
+                ".text\n\t"
                 "asmfunc:\n\t"
                 ".size asmfunc,.-asmfunc;\n\t"
                 ".type asmfunc,STT_FUNC;\n\t"
@@ -1474,12 +1477,12 @@ AC_CACHE_CHECK([whether GCC inline assembler supports SSSE3 instructions],
           gcry_cv_gcc_inline_asm_ssse3="n/a"
         else
           gcry_cv_gcc_inline_asm_ssse3=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[static unsigned char be_mask[16] __attribute__ ((aligned (16))) =
               { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
             void a(void) {
               __asm__("pshufb %[mask], %%xmm2\n\t"::[mask]"m"(*be_mask):);
-            }]])],
+            }]], [ a(); ] )],
           [gcry_cv_gcc_inline_asm_ssse3=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_ssse3" = "yes" ; then
@@ -1498,10 +1501,10 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PCLMUL instructions],
           gcry_cv_gcc_inline_asm_pclmul="n/a"
         else
           gcry_cv_gcc_inline_asm_pclmul=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[void a(void) {
               __asm__("pclmulqdq \$0, %%xmm1, %%xmm3\n\t":::"cc");
-            }]])],
+            }]], [ a(); ] )],
           [gcry_cv_gcc_inline_asm_pclmul=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_pclmul" = "yes" ; then
@@ -1520,7 +1523,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports SHA Extensions instruction
           gcry_cv_gcc_inline_asm_shaext="n/a"
         else
           gcry_cv_gcc_inline_asm_shaext=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[void a(void) {
               __asm__("sha1rnds4 \$0, %%xmm1, %%xmm3\n\t":::"cc");
               __asm__("sha1nexte %%xmm1, %%xmm3\n\t":::"cc");
@@ -1529,7 +1532,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports SHA Extensions instruction
               __asm__("sha256rnds2 %%xmm0, %%xmm1, %%xmm3\n\t":::"cc");
               __asm__("sha256msg1 %%xmm1, %%xmm3\n\t":::"cc");
               __asm__("sha256msg2 %%xmm1, %%xmm3\n\t":::"cc");
-            }]])],
+            }]], [ a(); ] )],
           [gcry_cv_gcc_inline_asm_shaext=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_shaext" = "yes" ; then
@@ -1548,11 +1551,11 @@ AC_CACHE_CHECK([whether GCC inline assembler supports SSE4.1 instructions],
           gcry_cv_gcc_inline_asm_sse41="n/a"
         else
           gcry_cv_gcc_inline_asm_sse41=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[void a(void) {
               int i;
               __asm__("pextrd \$2, %%xmm0, %[out]\n\t" : [out] "=m" (i));
-            }]])],
+            }]], [ a(); ] )],
           [gcry_cv_gcc_inline_asm_sse41=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_sse41" = "yes" ; then
@@ -1571,10 +1574,10 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AVX instructions],
           gcry_cv_gcc_inline_asm_avx="n/a"
         else
           gcry_cv_gcc_inline_asm_avx=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[void a(void) {
               __asm__("xgetbv; vaesdeclast (%[mem]),%%xmm0,%%xmm7\n\t"::[mem]"r"(0):);
-            }]])],
+            }]], [ a(); ] )],
           [gcry_cv_gcc_inline_asm_avx=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_avx" = "yes" ; then
@@ -1593,10 +1596,10 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AVX2 instructions],
           gcry_cv_gcc_inline_asm_avx2="n/a"
         else
           gcry_cv_gcc_inline_asm_avx2=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[void a(void) {
               __asm__("xgetbv; vpbroadcastb %%xmm7,%%ymm1\n\t":::"cc");
-            }]])],
+            }]], [ a(); ] )],
           [gcry_cv_gcc_inline_asm_avx2=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_avx2" = "yes" ; then
@@ -1615,7 +1618,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports BMI2 instructions],
           gcry_cv_gcc_inline_asm_bmi2="n/a"
         else
           gcry_cv_gcc_inline_asm_bmi2=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[unsigned int a(unsigned int x, unsigned int y) {
               unsigned int tmp1, tmp2;
               asm ("rorxl %2, %1, %0"
@@ -1625,7 +1628,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports BMI2 instructions],
                    : "=r" (tmp2)
                    : "r0" (x), "rm" (y));
               return tmp1 + tmp2;
-            }]])],
+            }]], [ a(1, 2); ] )],
           [gcry_cv_gcc_inline_asm_bmi2=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_bmi2" = "yes" ; then
@@ -1642,8 +1645,9 @@ if test $amd64_as_feature_detection = yes; then
   AC_CACHE_CHECK([whether GCC assembler handles division correctly],
        [gcry_cv_gcc_as_const_division_ok],
        [gcry_cv_gcc_as_const_division_ok=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[__asm__("xorl \$(123456789/12345678), %ebp;\n\t");]])],
+        AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[__asm__(".text\n\tfn:\n\t xorl \$(123456789/12345678), %ebp;\n\t");]],
+            [fn();])],
           [gcry_cv_gcc_as_const_division_ok=yes])])
   if test "$gcry_cv_gcc_as_const_division_ok" = "no" ; then
     #
@@ -1654,8 +1658,9 @@ if test $amd64_as_feature_detection = yes; then
     AC_CACHE_CHECK([whether GCC assembler handles division correctly with "-Wa,--divide"],
          [gcry_cv_gcc_as_const_division_with_wadivide_ok],
          [gcry_cv_gcc_as_const_division_with_wadivide_ok=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-            [[__asm__("xorl \$(123456789/12345678), %ebp;\n\t");]])],
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+            [[__asm__(".text\n\tfn:\n\t xorl \$(123456789/12345678), %ebp;\n\t");]],
+              [fn();])],
             [gcry_cv_gcc_as_const_division_with_wadivide_ok=yes])])
     if test "$gcry_cv_gcc_as_const_division_with_wadivide_ok" = "no" ; then
       # '-Wa,--divide' did not work, restore old flags.
@@ -1677,10 +1682,11 @@ if test $amd64_as_feature_detection = yes; then
           gcry_cv_gcc_amd64_platform_as_ok="n/a"
         else
           gcry_cv_gcc_amd64_platform_as_ok=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(
                 /* Test if '.type' and '.size' are supported.  */
                 /* These work only on ELF targets. */
+                ".text\n\t"
 		"asmfunc:\n\t"
                 ".size asmfunc,.-asmfunc;\n\t"
                 ".type asmfunc,@function;\n\t"
@@ -1689,7 +1695,7 @@ if test $amd64_as_feature_detection = yes; then
 		 * and "-Wa,--divide" workaround failed, this causes assembly
 		 * to be disable on this machine. */
 		"xorl \$(123456789/12345678), %ebp;\n\t"
-            );]])],
+            );]], [ asmfunc(); ])],
           [gcry_cv_gcc_amd64_platform_as_ok=yes])
         fi])
   if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
@@ -1702,12 +1708,13 @@ if test $amd64_as_feature_detection = yes; then
     AC_CACHE_CHECK([whether GCC assembler is compatible for WIN64 assembly implementations],
       [gcry_cv_gcc_win64_platform_as_ok],
       [gcry_cv_gcc_win64_platform_as_ok=no
-      AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+      AC_LINK_IFELSE([AC_LANG_PROGRAM(
         [[__asm__(
+              ".text\n\t"
               ".globl asmfunc\n\t"
               "asmfunc:\n\t"
               "xorq \$(1234), %rbp;\n\t"
-          );]])],
+          );]], [ asmfunc(); ])],
         [gcry_cv_gcc_win64_platform_as_ok=yes])])
     if test "$gcry_cv_gcc_win64_platform_as_ok" = "yes" ; then
       AC_DEFINE(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS,1,
@@ -1728,9 +1735,11 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for Intel syntax assembly im
           gcry_cv_gcc_platform_as_ok_for_intel_syntax="n/a"
         else
           gcry_cv_gcc_platform_as_ok_for_intel_syntax=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(
                 ".intel_syntax noprefix\n\t"
+                ".text\n\t"
+                "actest:\n\t"
                 "pxor xmm1, xmm7;\n\t"
                 /* Intel syntax implementation also use GAS macros, so check
                  * for them here. */
@@ -1747,7 +1756,8 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for Intel syntax assembly im
                 "SET_VAL_B ebp\n\t"
                 "add VAL_A, VAL_B;\n\t"
                 "add VAL_B, 0b10101;\n\t"
-            );]])],
+                ".att_syntax prefix\n\t"
+            );]], [ actest(); ])],
           [gcry_cv_gcc_platform_as_ok_for_intel_syntax=yes])
         fi])
 if test "$gcry_cv_gcc_platform_as_ok_for_intel_syntax" = "yes" ; then
@@ -1800,17 +1810,19 @@ AC_CACHE_CHECK([whether GCC inline assembler supports NEON instructions],
           gcry_cv_gcc_inline_asm_neon="n/a"
         else
           gcry_cv_gcc_inline_asm_neon=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(
                 ".syntax unified\n\t"
                 ".arm\n\t"
                 ".fpu neon\n\t"
+                ".text\n\t"
+                "testfn:\n\t"
                 "vld1.64 {%q0-%q1}, [%r0]!;\n\t"
                 "vrev64.8 %q0, %q3;\n\t"
                 "vadd.u64 %q0, %q1;\n\t"
                 "vadd.s64 %d3, %d2, %d3;\n\t"
                 );
-            ]])],
+            ]], [ testfn(); ])],
           [gcry_cv_gcc_inline_asm_neon=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_neon" = "yes" ; then
@@ -1829,13 +1841,15 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch32 Crypto Extension i
           gcry_cv_gcc_inline_asm_aarch32_crypto="n/a"
         else
           gcry_cv_gcc_inline_asm_aarch32_crypto=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(
                 ".syntax unified\n\t"
                 ".arch armv8-a\n\t"
                 ".arm\n\t"
                 ".fpu crypto-neon-fp-armv8\n\t"
+                ".text\n\t"
 
+                "testfn:\n\t"
                 "sha1h.32 q0, q0;\n\t"
                 "sha1c.32 q0, q0, q0;\n\t"
                 "sha1p.32 q0, q0, q0;\n\t"
@@ -1855,7 +1869,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch32 Crypto Extension i
 
                 "vmull.p64 q0, d0, d0;\n\t"
                 );
-            ]])],
+            ]], [ testfn(); ])],
           [gcry_cv_gcc_inline_asm_aarch32_crypto=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_aarch32_crypto" = "yes" ; then
@@ -1874,14 +1888,16 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 NEON instructions]
           gcry_cv_gcc_inline_asm_aarch64_neon="n/a"
         else
           gcry_cv_gcc_inline_asm_aarch64_neon=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(
                 ".cpu generic+simd\n\t"
+                ".text\n\t"
+                "testfn:\n\t"
                 "mov w0, \#42;\n\t"
                 "dup v0.8b, w0;\n\t"
                 "ld4 {v0.8b,v1.8b,v2.8b,v3.8b},[x0],\#32;\n\t"
                 );
-            ]])],
+            ]], [ testfn(); ])],
           [gcry_cv_gcc_inline_asm_aarch64_neon=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_aarch64_neon" = "yes" ; then
@@ -1900,10 +1916,11 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 Crypto Extension i
           gcry_cv_gcc_inline_asm_aarch64_crypto="n/a"
         else
           gcry_cv_gcc_inline_asm_aarch64_crypto=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(
                 ".cpu generic+simd+crypto\n\t"
-
+                ".text\n\t"
+                "testfn:\n\t"
                 "mov w0, \#42;\n\t"
                 "dup v0.8b, w0;\n\t"
                 "ld4 {v0.8b,v1.8b,v2.8b,v3.8b},[x0],\#32;\n\t"
@@ -1928,7 +1945,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 Crypto Extension i
                 "pmull v0.1q, v0.1d, v31.1d;\n\t"
                 "pmull2 v0.1q, v0.2d, v31.2d;\n\t"
                 );
-            ]])],
+            ]], [ testfn(); ])],
           [gcry_cv_gcc_inline_asm_aarch64_crypto=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_aarch64_crypto" = "yes" ; then
@@ -2010,8 +2027,9 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto
           gcry_cv_gcc_inline_asm_ppc_altivec="n/a"
         else
           gcry_cv_gcc_inline_asm_ppc_altivec=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(".globl testfn;\n"
+                    ".text\n\t"
 		    "testfn:\n"
 		    "stvx %v31,%r12,%r0;\n"
 		    "lvx  %v20,%r12,%r0;\n"
@@ -2022,7 +2040,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto
 		    "vshasigmad %v0, %v1, 0, 15;\n"
 		    "vpmsumd %v11, %v11, %v11;\n"
 		  );
-            ]])],
+            ]], [ testfn(); ] )],
           [gcry_cv_gcc_inline_asm_ppc_altivec=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_ppc_altivec" = "yes" ; then
@@ -2041,12 +2059,13 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerISA 3.00 instructions
           gcry_cv_gcc_inline_asm_ppc_arch_3_00="n/a"
         else
           gcry_cv_gcc_inline_asm_ppc_arch_3_00=no
-          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[__asm__(".globl testfn;\n"
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[__asm__(".text\n\t"
+		    ".globl testfn;\n"
 		    "testfn:\n"
 		    "stxvb16x %r1,%v12,%v30;\n"
 		  );
-            ]])],
+            ]], [ testfn(); ])],
           [gcry_cv_gcc_inline_asm_ppc_arch_3_00=yes])
         fi])
 if test "$gcry_cv_gcc_inline_asm_ppc_arch_3_00" = "yes" ; then
@@ -2065,7 +2084,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports zSeries instructions],
 	  gcry_cv_gcc_inline_asm_s390x="n/a"
 	else
 	  gcry_cv_gcc_inline_asm_s390x=no
-	  AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	  AC_LINK_IFELSE([AC_LANG_PROGRAM(
 	  [[typedef unsigned int u128_t __attribute__ ((mode (TI)));
 	    unsigned int testfunc(unsigned int x, void *y, unsigned int z)
 	    {
@@ -2106,7 +2125,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports zSeries instructions],
 			    : "memory", "r14");
 	      return (unsigned int)r1 ^ reg0;
 	    }
-	    ]])],
+	    ]] , [ testfunc(0, 0, 0); ])],
 	  [gcry_cv_gcc_inline_asm_s390x=yes])
 	fi])
 if test "$gcry_cv_gcc_inline_asm_s390x" = "yes" ; then
@@ -2126,7 +2145,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports zSeries vector instruction
 	else
 	  gcry_cv_gcc_inline_asm_s390x_vx=no
 	  if test "$gcry_cv_gcc_inline_asm_s390x" = "yes" ; then
-	    AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	    AC_LINK_IFELSE([AC_LANG_PROGRAM(
 	    [[void testfunc(void)
 	      {
 		asm volatile (".machine \"z13+vx\"\n\t"
@@ -2136,7 +2155,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports zSeries vector instruction
 			      :
 			      : "memory");
 	      }
-	      ]])],
+	      ]], [ testfunc(); ])],
 	    [gcry_cv_gcc_inline_asm_s390x_vx=yes])
 	  fi
 	fi])
