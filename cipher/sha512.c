@@ -291,7 +291,7 @@ static unsigned int
 do_transform_generic (void *context, const unsigned char *data, size_t nblks)
 {
   SHA512_CONTEXT *hd = context;
-  return _gcry_sha512_transform_armv7_neon (&hd->state, data, k, nblks);
+  return _gcry_sha512_transform_arm (&hd->state, data, k, nblks);
 }
 #else
 static unsigned int
