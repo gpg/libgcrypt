@@ -3,8 +3,8 @@
                              Version 1.9
 
        Copyright (C) 1989,1991-2018 Free Software Foundation, Inc.
-       Copyright (C) 2012-2018 g10 Code GmbH
-       Copyright (C) 2013-2018 Jussi Kivilinna
+       Copyright (C) 2012-2021 g10 Code GmbH
+       Copyright (C) 2013-2021 Jussi Kivilinna
 
     Libgcrypt is free software.  See the file AUTHORS for full copying
     notices, and LICENSES for notices about contributions that require
@@ -261,12 +261,11 @@
     Commercial grade support for Libgcrypt is available; for a listing
     of offers see https://www.gnupg.org/service.html .
 
-    Maintenance and development of Libgcrypt is mostly financed by
-    donations.  We currently employ 3 full-time developers, one
-    part-timer, and one contractor.  They all work on GnuPG and
-    closely related software like Libgcrypt.  Please visit
-    https://gnupg.org/donate/ to see out how you can help.
-
+    Since 2001 maintenance and development of Libgcrypt is done by g10
+    Code GmbH and mostly financed by donations.  g10 Code currently
+    employs 3 full-time developers and two contractors.  They all work
+    on GnuPG and closely related software like Libgcrypt.  Please
+    visit https://gnupg.org/donate/ to see how you can help.
 
   This file is Free Software; as a special exception the authors gives
   unlimited permission to copy and/or distribute it, with or without

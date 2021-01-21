@@ -6,6 +6,7 @@ Repository: git://git.gnupg.org/libgcrypt.git
 Maintainer: Werner Koch <wk@gnupg.org>
 Bug reports: https://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
+End-of-life: TBD
 License (library): LGPLv2.1+
 License (manual and tools): GPLv2+
 
@@ -30,14 +31,17 @@ List of Copyright holders
   Copyright (C) 1996-2006 Peter Gutmann, Matt Thomlinson and Blake Coverett
   Copyright (C) 2003 Nikos Mavroyanopoulos
   Copyright (C) 2006-2007 NTT (Nippon Telegraph and Telephone Corporation)
-  Copyright (C) 2012-2018 g10 Code GmbH
+  Copyright (C) 2012-2021 g10 Code GmbH
   Copyright (C) 2012 Simon Josefsson, Niels Möller
   Copyright (c) 2012 Intel Corporation
   Copyright (C) 2013 Christian Grothoff
-  Copyright (C) 2013-2017 Jussi Kivilinna
+  Copyright (C) 2013-2021 Jussi Kivilinna
   Copyright (C) 2013-2014 Dmitry Eremin-Solenikov
   Copyright (C) 2014 Stephan Mueller
+  Copyright (C) 2017 Jia Zhang
   Copyright (C) 2018 Bundesamt für Sicherheit in der Informationstechnik
+  Copyright (C) 2020 Alibaba Group.
+  Copyright (C) 2020 Tianjia Zhang
 
 
 Authors with a FSF copyright assignment

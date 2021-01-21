@@ -2135,6 +2135,7 @@ S-expressions.
 * Available algorithms::        Algorithms supported by the library.
 * Used S-expressions::          Introduction into the used S-expression.
 * Cryptographic Functions::     Functions for performing the cryptographic actions.
+* Dedicated ECC Functions::     Dedicated functions for elliptic curves.
 * General public-key related Functions::  General functions, not implementing any cryptography.
 @end menu
 
@@ -2142,8 +2143,7 @@ S-expressions.
 @section Available algorithms
 
 Libgcrypt supports the RSA (Rivest-Shamir-Adleman) algorithms as well
-as DSA (Digital Signature Algorithm) and Elgamal.  The versatile
-interface allows to add more algorithms in the future.
+as DSA (Digital Signature Algorithm), Elgamal, ECDSA, ECDH, and EdDSA.
 
 @node Used S-expressions
 @section Used S-expressions
@@ -2151,7 +2151,7 @@ interface allows to add more algorithms in the future.
 Libgcrypt's API for asymmetric cryptography is based on data structures
 called S-expressions (see
 @uref{http://people.csail.mit.edu/@/rivest/@/sexp.html}) and does not work
-with contexts as most of the other building blocks of Libgcrypt do.
+with contexts/handles as most of the other building blocks of Libgcrypt do.
 
 @noindent
 The following information are stored in S-expressions:
@@ -2796,6 +2796,42 @@ to indicate that the signature does not match the provided data.
 
 @end deftypefun
 @c end gcry_pk_verify
+
+
+@node Dedicated ECC Functions
+@section Dedicated functions for elliptic curves.
+
+@noindent
+The S-expression based interface is for certain operations on elliptic
+curves not optimal.  Thus a few special functions are implemented to
+support common operations on curves with one of these assigned curve
+ids:
+
+@table @code
+@item GCRY_ECC_CURVE25519
+@item GCRY_ECC_CURVE448
+@end table
+
+@deftypefun @w{unsigned int} gcry_ecc_get_algo_keylen (@w{int @var{curveid}});
+
+Returns the length in bytes of a point on the curve with the id
+@var{curveid}.  0 is returned for curves which have no assigned id.
+@end deftypefun
+
+
+@deftypefun gpg_error_t gcry_ecc_mul_point @
+            (@w{int @var{curveid}}, @
+            @w{unsigned char *@var{result}}, @
+            @w{const unsigned char *@var{scalar}}, @
+            @w{const unsigned char *@var{point}})
+
+This function computes the scalar multiplication on the Montgomery
+form of the curve with id @var{curveid}.  If @var{point} is NULL the
+base point of the curve is used.  The caller needs to provide a large
+enough buffer for @var{result} and a valid @var{scalar} and
+@var{point}.
+@end deftypefun
+
 
 @node General public-key related Functions
 @section General public-key related Functions

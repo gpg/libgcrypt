@@ -1,7 +1,7 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
 #               2007, 2008, 2009, 2011 Free Software Foundation, Inc.
-# Copyright (C) 2012-2017  g10 Code GmbH
+# Copyright (C) 2012-2021  g10 Code GmbH
 #
 # This file is part of Libgcrypt.
 #
@@ -31,7 +31,7 @@ min_automake_version="1.14"
 m4_define([mym4_package],[libgcrypt])
 m4_define([mym4_major], [1])
 m4_define([mym4_minor], [9])
-m4_define([mym4_micro], [0])
+m4_define([mym4_micro], [1])
 
 # Below is m4 magic to extract and compute the git revision number,
 # the decimalized short revision number, a beta version string and a

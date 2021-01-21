@@ -1,7 +1,74 @@
-Noteworthy changes in version 1.9.0 (unreleased)  [C22/A3/R0]
+Noteworthy changes in version 1.9.1 (unreleased)  [C23/A3/R_]
 ------------------------------------------------
 
- * Bug fixes
+
+Noteworthy changes in version 1.9.0 (2021-01-19)  [C23/A3/R0]
+------------------------------------------------
+
+ * New and extended interfaces:
+
+   - New curves Ed448, X448, and SM2.
+
+   - New cipher mode EAX.
+
+   - New cipher algo SM4.
+
+   - New hash algo SM3.
+
+   - New hash algo variants SHA512/224 and SHA512/256.
+
+   - New MAC algos for Blake-2 algorithms, the new SHA512 variants,
+     SM3, SM4 and for a GOST variant.
+
+   - New convenience function gcry_mpi_get_ui.
+
+   - gcry_sexp_extract_param understands new format specifiers to
+     directly store to integers and strings.
+
+   - New function gcry_ecc_mul_point and curve constants for Curve448
+     and Curve25519.  [#4293]
+
+   - New function gcry_ecc_get_algo_keylen.
+
+   - New control code GCRYCTL_AUTO_EXPAND_SECMEM to allow growing the
+     secure memory area.  Also in 1.8.2 as an undocumented feature.
+
+ * Performance:
+
+   - Optimized implementations for Aarch64.
+
+   - Faster implementations for Poly1305 and ChaCha.  Also for
+     PowerPC.  [b9a471ccf5,172ad09cbe,#4460]
+
+   - Optimized implementations of AES and SHA-256 on PowerPC.
+     [#4529,#4530]
+
+   - Improved use of AES-NI to speed up AES-XTS (6 times faster).
+     [a00c5b2988]
+
+   - Improved use of AES-NI for OCB.  [eacbd59b13,e924ce456d]
+
+   - Speedup AES-XTS on ARMv8/CE (2.5 times faster).  [93503c127a]
+
+   - New AVX and AVX2 implementations for Blake-2 (1.3/1.4 times
+     faster).  [af7fc732f9, da58a62ac1]
+
+   - Use Intel SHA extension for SHA-1 and SHA-256 (4.0/3.7 times
+     faster).  [d02958bd30, 0b3ec359e2]
+
+   - Use ARMv7/NEON accelerated GCM implementation (3 times faster).
+     [2445cf7431]
+
+   - Use of i386/SSSE3 for SHA-512 (4.5 times faster on Ryzen 7).
+     [b52dde8609]
+
+   - Use 64 bit ARMv8/CE PMULL for CRC (7 times faster).  [14c8a593ed]
+
+   - Improve CAST5 (40% to 70% faster).  [4ec566b368]
+
+   - Improve Blowfish (60% to 80% faster).  [ced7508c85]
+
+ * Bug fixes:
 
    - Fix infinite loop due to applications using fork the wrong
      way.  [#3491][also in 1.8.4]
@@ -41,24 +108,82 @@ Noteworthy changes in version 1.9.0 (unreleased)  [C22/A3/R0]
    - Fix fatal out of secure memory status in the s-expression parser
      on heavy loaded systems.  [also in 1.8.2]
 
- * Extended interfaces:
+   - Fix build problems on OpenIndiana et al. [#4818, also in 1.8.6]
 
-   - gcry_sexp_extract_param understands new format specifiers to
-     directly store to integers and strings.
+   - Fix GCM bug on arm64 which troubles for example OMEMO.  [#4986,
+     also in 1.8.6]
 
+   - Detect a div-by-zero in a debug helper tool.  [#4868, also in 1.8.6]
+
+   - Use a constant time mpi_inv and related changes.  [#4869, partly
+     also in 1.8.6]
+
+   - Fix mpi_copy to correctly handle flags of opaque MPIs.
+     [also in 1.8.6]
+
+   - Fix mpi_cmp to consider +0 and -0 the same.  [also in 1.8.6]
+
+   - Fix extra entropy collection via clock_gettime.  Note that this
+     fallback code path is not used on any decent hardware.  [#4966,
+     also in 1.8.7]
+
+   - Support opaque MPI with gcry_mpi_print.  [#4872, also in 1.8.7]
+
+   - Allow for a Unicode random seed file on Windows.  [#5098, also in
+     1.8.7]
+
+ * Other features:
+
+   - Add OIDs from RFC-8410 as aliases for Ed25519 and Curve25519.
+     [also in 1.8.6]
+
+   - Add mitigation against ECC timing attack CVE-2019-13627.  [#4626]
+
+   - Internal cleanup of the ECC implementation.
+
+   - Support reading EC point in compressed format for some curves.
+     [#4951]
 
  * Interface changes relative to the 1.8.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    gcry_mpi_get_ui                 NEW function.
    GCRYCTL_AUTO_EXPAND_SECMEM      NEW control code.
    gcry_sexp_extract_param         EXTENDED.
+   GCRY_CIPHER_GOST28147_MESH      NEW cipher algo.
+   GCRY_CIPHER_SM4                 NEW cipher algo.
+   GCRY_CIPHER_MODE_EAX            NEW mode.
+   GCRY_ECC_CURVE25519             NEW curve id.
+   GCRY_ECC_CURVE448               NEW curve id.
+   gcry_ecc_get_algo_keylen        NEW function.
+   gcry_ecc_mul_point              NEW function.
+   GCRY_MD_SM3                     NEW hash algo.
+   GCRY_MD_SHA512_256              NEW hash algo.
+   GCRY_MD_SHA512_224              NEW hash algo.
+   GCRY_MAC_GOST28147_IMIT         NEW mac algo.
+   GCRY_MAC_HMAC_GOSTR3411_CP      NEW mac algo.
+   GCRY_MAC_HMAC_BLAKE2B_512       NEW mac algo.
+   GCRY_MAC_HMAC_BLAKE2B_384       NEW mac algo.
+   GCRY_MAC_HMAC_BLAKE2B_256       NEW mac algo.
+   GCRY_MAC_HMAC_BLAKE2B_160       NEW mac algo.
+   GCRY_MAC_HMAC_BLAKE2S_256       NEW mac algo.
+   GCRY_MAC_HMAC_BLAKE2S_224       NEW mac algo.
+   GCRY_MAC_HMAC_BLAKE2S_160       NEW mac algo.
+   GCRY_MAC_HMAC_BLAKE2S_128       NEW mac algo.
+   GCRY_MAC_HMAC_SM3               NEW mac algo.
+   GCRY_MAC_HMAC_SHA512_256        NEW mac algo.
+   GCRY_MAC_HMAC_SHA512_224        NEW mac algo.
+   GCRY_MAC_CMAC_SM4               NEW mac algo.
 
+ Release-info: https://dev.gnupg.org/T4294
 
- * Release dates of 1.8.x versions:
-   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Release dates of 1.8.x versions:
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    Version 1.8.2 (2017-12-13)
    Version 1.8.3 (2018-06-13)
    Version 1.8.4 (2018-10-26)
+   Version 1.8.5 (2019-08-29)
+   Version 1.8.6 (2020-07-06)
+   Version 1.8.7 (2020-10-23)
 
 
 Noteworthy changes in version 1.8.1 (2017-08-27)  [C22/A2/R1]

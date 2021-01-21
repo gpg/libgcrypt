@@ -1113,16 +1113,16 @@ gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp, int mode, gcry_ctx_t ctx)
 }
 
 unsigned int
-gcry_ecc_get_algo_keylen (int algo)
+gcry_ecc_get_algo_keylen (int curveid)
 {
-  return _gcry_ecc_get_algo_keylen (algo);
+  return _gcry_ecc_get_algo_keylen (curveid);
 }
 
 gpg_error_t
-gcry_ecc_mul_point (int algo, unsigned char *result,
+gcry_ecc_mul_point (int curveid, unsigned char *result,
                     const unsigned char *scalar, const unsigned char *point)
 {
-  return _gcry_ecc_mul_point (algo, result, scalar, point);
+  return _gcry_ecc_mul_point (curveid, result, scalar, point);
 }
 
 gcry_error_t

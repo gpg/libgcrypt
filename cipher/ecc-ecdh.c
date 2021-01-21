@@ -46,20 +46,20 @@ prepare_ec (mpi_ec_t *r_ec, const char *name)
 }
 
 unsigned int
-_gcry_ecc_get_algo_keylen (int algo)
+_gcry_ecc_get_algo_keylen (int curveid)
 {
   unsigned int len = 0;
 
-  if (algo == GCRY_ECC_CURVE25519)
+  if (curveid == GCRY_ECC_CURVE25519)
     len = ECC_CURVE25519_BYTES;
-  else if (algo == GCRY_ECC_CURVE448)
+  else if (curveid == GCRY_ECC_CURVE448)
     len = ECC_CURVE448_BYTES;
 
   return len;
 }
 
 gpg_error_t
-_gcry_ecc_mul_point (int algo, unsigned char *result,
+_gcry_ecc_mul_point (int curveid, unsigned char *result,
                      const unsigned char *scalar, const unsigned char *point)
 {
   unsigned int nbits;
@@ -73,12 +73,12 @@ _gcry_ecc_mul_point (int algo, unsigned char *result,
   unsigned int len;
   unsigned char *buf;
 
-  if (algo == GCRY_ECC_CURVE25519)
+  if (curveid == GCRY_ECC_CURVE25519)
     curve = "Curve25519";
-  else if (algo == GCRY_ECC_CURVE448)
+  else if (curveid == GCRY_ECC_CURVE448)
     curve = "X448";
   else
-    return gpg_error (GPG_ERR_UNKNOWN_ALGORITHM);
+    return gpg_error (GPG_ERR_UNKNOWN_CURVE);
 
   err = prepare_ec (&ec, curve);
   if (err)
