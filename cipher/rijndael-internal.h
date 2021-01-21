@@ -164,26 +164,10 @@ typedef struct RIJNDAEL_context_s
   } u2;
   int rounds;                         /* Key-length-dependent number of rounds.  */
   unsigned int decryption_prepared:1; /* The decryption key schedule is available.  */
-#ifdef USE_PADLOCK
-  unsigned int use_padlock:1;         /* Padlock shall be used.  */
-#endif /*USE_PADLOCK*/
 #ifdef USE_AESNI
-  unsigned int use_aesni:1;           /* AES-NI shall be used.  */
-  unsigned int use_avx:1;             /* AVX shall be used. */
-  unsigned int use_avx2:1;            /* AVX2 shall be used. */
+  unsigned int use_avx:1;             /* AVX shall be used by AES-NI implementation. */
+  unsigned int use_avx2:1;            /* AVX2 shall be used by AES-NI implementation. */
 #endif /*USE_AESNI*/
-#ifdef USE_SSSE3
-  unsigned int use_ssse3:1;           /* SSSE3 shall be used.  */
-#endif /*USE_SSSE3*/
-#ifdef USE_ARM_CE
-  unsigned int use_arm_ce:1;          /* ARMv8 CE shall be used.  */
-#endif /*USE_ARM_CE*/
-#ifdef USE_PPC_CRYPTO
-  unsigned int use_ppc_crypto:1;      /* PowerPC crypto shall be used.  */
-#endif /*USE_PPC_CRYPTO*/
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  unsigned int use_ppc9le_crypto:1;   /* POWER9 LE crypto shall be used.  */
-#endif
 #ifdef USE_S390X_CRYPTO
   byte km_func;
   byte km_func_xts;

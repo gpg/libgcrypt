@@ -441,24 +441,6 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
   hwfeatures = _gcry_get_hw_features ();
 
   ctx->decryption_prepared = 0;
-#ifdef USE_PADLOCK
-  ctx->use_padlock = 0;
-#endif
-#ifdef USE_AESNI
-  ctx->use_aesni = 0;
-#endif
-#ifdef USE_SSSE3
-  ctx->use_ssse3 = 0;
-#endif
-#ifdef USE_ARM_CE
-  ctx->use_arm_ce = 0;
-#endif
-#ifdef USE_PPC_CRYPTO
-  ctx->use_ppc_crypto = 0;
-#endif
-#ifdef USE_PPC_CRYPTO_WITH_PPC9LE
-  ctx->use_ppc9le_crypto = 0;
-#endif
 
   /* Setup default bulk encryption routines.  */
   memset (bulk_ops, 0, sizeof(*bulk_ops));
@@ -486,7 +468,6 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->prepare_decryption = _gcry_aes_aesni_prepare_decryption;
-      ctx->use_aesni = 1;
       ctx->use_avx = !!(hwfeatures & HWF_INTEL_AVX);
       ctx->use_avx2 = !!(hwfeatures & HWF_INTEL_AVX2);
 
@@ -509,7 +490,6 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->prepare_decryption = _gcry_aes_padlock_prepare_decryption;
-      ctx->use_padlock = 1;
       memcpy (ctx->padlockkey, key, keylen);
     }
 #endif
@@ -522,7 +502,6 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->prepare_decryption = _gcry_aes_ssse3_prepare_decryption;
-      ctx->use_ssse3 = 1;
 
       /* Setup SSSE3 bulk encryption routines.  */
       bulk_ops->cfb_enc = _gcry_aes_ssse3_cfb_enc;
@@ -543,7 +522,6 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->prepare_decryption = _gcry_aes_armv8_ce_prepare_decryption;
-      ctx->use_arm_ce = 1;
 
       /* Setup ARM-CE bulk encryption routines.  */
       bulk_ops->cfb_enc = _gcry_aes_armv8_ce_cfb_enc;
@@ -565,8 +543,6 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->prepare_decryption = _gcry_aes_ppc8_prepare_decryption;
-      ctx->use_ppc_crypto = 1; /* same key-setup as USE_PPC_CRYPTO */
-      ctx->use_ppc9le_crypto = 1;
 
       /* Setup PPC9LE bulk encryption routines.  */
       bulk_ops->cfb_enc = _gcry_aes_ppc9le_cfb_enc;
@@ -588,7 +564,6 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prefetch_enc_fn = NULL;
       ctx->prefetch_dec_fn = NULL;
       ctx->prepare_decryption = _gcry_aes_ppc8_prepare_decryption;
-      ctx->use_ppc_crypto = 1;
 
       /* Setup PPC8 bulk encryption routines.  */
       bulk_ops->cfb_enc = _gcry_aes_ppc8_cfb_enc;
