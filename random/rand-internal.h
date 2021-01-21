@@ -141,7 +141,7 @@ void _gcry_rndhw_poll_fast (void (*add)(const void*, size_t,
                             enum random_origins origin);
 size_t _gcry_rndhw_poll_slow (void (*add)(const void*, size_t,
                                           enum random_origins),
-                              enum random_origins origin);
+                              enum random_origins origin, size_t req_length);
 
 
 

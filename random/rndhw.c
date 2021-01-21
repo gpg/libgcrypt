@@ -198,24 +198,33 @@ _gcry_rndhw_poll_fast (void (*add)(const void*, size_t, enum random_origins),
 
 
 /* Read 64 bytes from a hardware RNG and return the number of bytes
-   actually read.  */
+   actually read.  However hardware source is let account only
+   for up to 50% (or 25% for RDRAND) of the requested bytes.  */
 size_t
 _gcry_rndhw_poll_slow (void (*add)(const void*, size_t, enum random_origins),
-                       enum random_origins origin)
+                       enum random_origins origin, size_t req_length)
 {
   size_t nbytes = 0;
 
   (void)add;
   (void)origin;
 
+  req_length /= 2; /* Up to 50%. */
+
 #ifdef USE_DRNG
   if ((_gcry_get_hw_features () & HWF_INTEL_RDRAND))
-    nbytes += poll_drng (add, origin, 0);
+    {
+      req_length /= 2; /* Up to 25%. */
+      nbytes += poll_drng (add, origin, 0);
+    }
 #endif
 #ifdef USE_PADLOCK
   if ((_gcry_get_hw_features () & HWF_PADLOCK_RNG))
     nbytes += poll_padlock (add, origin, 0);
 #endif
+
+  if (nbytes > req_length)
+    nbytes = req_length;
 
   return nbytes;
 }

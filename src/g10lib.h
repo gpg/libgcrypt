@@ -217,6 +217,8 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 
 
 /*-- src/hwfeatures.c --*/
+#if defined(HAVE_CPU_ARCH_X86)
+
 #define HWF_PADLOCK_RNG         (1 << 0)
 #define HWF_PADLOCK_AES         (1 << 1)
 #define HWF_PADLOCK_SHA         (1 << 2)
@@ -236,20 +238,28 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_INTEL_RDTSC         (1 << 15)
 #define HWF_INTEL_SHAEXT        (1 << 16)
 
-#define HWF_ARM_NEON            (1 << 17)
-#define HWF_ARM_AES             (1 << 18)
-#define HWF_ARM_SHA1            (1 << 19)
-#define HWF_ARM_SHA2            (1 << 20)
-#define HWF_ARM_PMULL           (1 << 21)
+#elif defined(HAVE_CPU_ARCH_ARM)
 
-#define HWF_PPC_VCRYPTO         (1 << 22)
-#define HWF_PPC_ARCH_3_00       (1 << 23)
-#define HWF_PPC_ARCH_2_07       (1 << 24)
+#define HWF_ARM_NEON            (1 << 0)
+#define HWF_ARM_AES             (1 << 1)
+#define HWF_ARM_SHA1            (1 << 2)
+#define HWF_ARM_SHA2            (1 << 3)
+#define HWF_ARM_PMULL           (1 << 4)
 
-#define HWF_S390X_MSA           (1 << 25)
-#define HWF_S390X_MSA_4         (1 << 26)
-#define HWF_S390X_MSA_8         (1 << 27)
-#define HWF_S390X_VX            (1 << 28)
+#elif defined(HAVE_CPU_ARCH_PPC)
+
+#define HWF_PPC_VCRYPTO         (1 << 0)
+#define HWF_PPC_ARCH_3_00       (1 << 1)
+#define HWF_PPC_ARCH_2_07       (1 << 2)
+
+#elif defined(HAVE_CPU_ARCH_S390X)
+
+#define HWF_S390X_MSA           (1 << 0)
+#define HWF_S390X_MSA_4         (1 << 1)
+#define HWF_S390X_MSA_8         (1 << 2)
+#define HWF_S390X_VX            (1 << 3)
+
+#endif
 
 gpg_err_code_t _gcry_disable_hw_feature (const char *name);
 void _gcry_detect_hw_features (void);
