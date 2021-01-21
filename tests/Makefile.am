@@ -64,10 +64,10 @@ EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
 	     basic-disable-all-hwf.in basic_all_hwfeature_combinations.sh
 
 LDADD = $(standard_ldadd) $(GPG_ERROR_LIBS) @LDADD_FOR_TESTS_KLUDGE@
-pkbench_LDADD = $(standard_ldadd)
-prime_LDADD = $(standard_ldadd)
-t_mpi_bit_LDADD = $(standard_ldadd)
-t_secmem_LDADD = $(standard_ldadd)
-testapi_LDADD = $(standard_ldadd)
+pkbench_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
+prime_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
+t_mpi_bit_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
+t_secmem_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
+testapi_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
 t_lock_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS) @LDADD_FOR_TESTS_KLUDGE@
 t_lock_CFLAGS = $(GPG_ERROR_MT_CFLAGS)
