@@ -566,6 +566,15 @@ AC_ARG_ENABLE(large-data-tests,
 AC_MSG_RESULT($large_data_tests)
 AC_SUBST(RUN_LARGE_DATA_TESTS, $large_data_tests)
 
+# Implementation of --enable-force-soft-hwfeatures
+AC_MSG_CHECKING([whether 'soft' HW feature bits are forced on])
+AC_ARG_ENABLE([force-soft-hwfeatures],
+              AS_HELP_STRING([--enable-force-soft-hwfeatures],
+                             [Enable forcing 'soft' HW feature bits on]),
+              [force_soft_hwfeatures=$enableval],
+              [force_soft_hwfeatures=no])
+AC_MSG_RESULT($force_soft_hwfeatures)
+
 
 # Implementation of the --with-capabilities switch.
 # Check whether we want to use Linux capabilities
@@ -2440,6 +2449,11 @@ if test x"$drngsupport" = xyes ; then
             [Enable support for Intel DRNG (RDRAND instruction).])
 fi
 
+
+if test x"$force_soft_hwfeatures" = xyes ; then
+  AC_DEFINE(ENABLE_FORCE_SOFT_HWFEATURES, 1,
+            [Enable forcing 'soft' HW feature bits on (for testing).])
+fi
 
 # Define conditional sources and config.h symbols depending on the
 # selected ciphers, pubkey-ciphers, digests, kdfs, and random modules.

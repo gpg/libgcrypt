@@ -301,6 +301,29 @@ detect_x86_gnuc (void)
       avoid_vpgather |= 1;
     }
 
+#ifdef ENABLE_FORCE_SOFT_HWFEATURES
+  /* Soft HW features mark functionality that is available on all systems
+   * but not feasible to use because of slow HW implementation. */
+
+  /* SHLD is faster at rotating register than actual ROR/ROL instructions
+   * on older Intel systems (~sandy-bridge era). However, SHLD is very
+   * slow on almost anything else and later Intel processors have faster
+   * ROR/ROL. Therefore in regular build HWF_INTEL_FAST_SHLD is enabled
+   * only for those Intel processors that benefit from the SHLD
+   * instruction. Enabled here unconditionally as requested. */
+  result |= HWF_INTEL_FAST_SHLD;
+
+  /* VPGATHER instructions are used for look-up table based
+   * implementations which require VPGATHER to be fast enough to beat
+   * regular parallelized look-up table implementations (see Twofish).
+   * So far, only Intel processors beginning with skylake have had
+   * VPGATHER fast enough to be enabled. AMD Zen3 comes close to
+   * being feasible, but not quite (where twofish-avx2 is few percent
+   * slower than twofish-3way). Enable VPGATHER here unconditionally
+   * as requested. */
+  avoid_vpgather = 0;
+#endif
+
 #ifdef ENABLE_PCLMUL_SUPPORT
   /* Test bit 1 for PCLMUL.  */
   if (features & 0x00000002)
