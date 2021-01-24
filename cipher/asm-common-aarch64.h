@@ -29,7 +29,11 @@
 # define ELF(...) /*_*/
 #endif
 
-#ifdef _WIN32
+#ifdef __APPLE__
+#define GET_DATA_POINTER(reg, name) \
+	adrp    reg, name@GOTPAGE ; \
+	add     reg, reg, name@GOTPAGEOFF ;
+#elif defined(_WIN32)
 #define GET_DATA_POINTER(reg, name) \
 	adrp    reg, name ; \
 	add     reg, reg, #:lo12:name ;
