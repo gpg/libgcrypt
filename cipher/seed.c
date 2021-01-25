@@ -30,6 +30,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
+#include "cipher-internal.h"
 
 #define NUMKC	16
 

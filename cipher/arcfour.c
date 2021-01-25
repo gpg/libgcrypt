@@ -30,6 +30,7 @@
 #include "types.h"
 #include "g10lib.h"
 #include "cipher.h"
+#include "cipher-internal.h"
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
 #undef USE_AMD64_ASM

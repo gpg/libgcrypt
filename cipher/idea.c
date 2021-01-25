@@ -48,6 +48,7 @@
 #include "types.h"  /* for byte and u32 typedefs */
 #include "g10lib.h"
 #include "cipher.h"
+#include "cipher-internal.h"
 
 
 #define IDEA_KEYSIZE 16

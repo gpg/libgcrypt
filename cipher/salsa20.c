@@ -39,6 +39,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
+#include "cipher-internal.h"
 
 
 /* USE_AMD64 indicates whether to compile with AMD64 code. */

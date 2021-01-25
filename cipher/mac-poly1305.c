@@ -45,7 +45,7 @@ static gcry_err_code_t
 poly1305mac_open (gcry_mac_hd_t h)
 {
   struct poly1305mac_context_s *mac_ctx;
-  int secure = (h->magic == CTX_MAGIC_SECURE);
+  int secure = (h->magic == CTX_MAC_MAGIC_SECURE);
   unsigned int flags = (secure ? GCRY_CIPHER_SECURE : 0);
   gcry_err_code_t err;
   int cipher_algo;

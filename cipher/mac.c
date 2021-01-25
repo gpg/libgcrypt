@@ -517,7 +517,7 @@ mac_open (gcry_mac_hd_t * hd, int algo, int secure, gcry_ctx_t ctx)
   if (!h)
     return gpg_err_code_from_syserror ();
 
-  h->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
+  h->magic = secure ? CTX_MAC_MAGIC_SECURE : CTX_MAC_MAGIC_NORMAL;
   h->spec = spec;
   h->algo = algo;
   h->gcry_ctx = ctx;

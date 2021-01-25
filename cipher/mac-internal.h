@@ -39,8 +39,8 @@ struct poly1305mac_context_s;
 
 
 /* Magic values for the context structure.  */
-#define CTX_MAGIC_NORMAL 0x59d9b8af
-#define CTX_MAGIC_SECURE 0x12c27cd0
+#define CTX_MAC_MAGIC_NORMAL 0x59d9b8af
+#define CTX_MAC_MAGIC_SECURE 0x12c27cd0
 
 
 /* MAC module functions. */

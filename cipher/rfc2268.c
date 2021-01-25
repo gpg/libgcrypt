@@ -35,6 +35,7 @@
 #include "g10lib.h"
 #include "types.h"
 #include "cipher.h"
+#include "cipher-internal.h"
 
 #define RFC2268_BLOCKSIZE 8
 

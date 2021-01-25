@@ -35,6 +35,7 @@
 #include "cipher.h"
 #include "mac-internal.h"
 #include "bufhelp.h"
+#include "cipher-internal.h"
 
 #include "gost.h"
 #include "gost-sb.h"
