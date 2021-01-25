@@ -197,11 +197,11 @@ _gcry_blake2s_transform_amd64_avx:
 
         addq $64, (STATE_T + 0)(RSTATE);
 
-        vmovdqa .Lshuf_ror16 (RIP), R16;
-        vmovdqa .Lshuf_ror8 (RIP), R8;
+        vmovdqa .Lshuf_ror16 rRIP, R16;
+        vmovdqa .Lshuf_ror8 rRIP, R8;
 
-        vmovdqa .Liv+(0 * 4) (RIP), ROW3;
-        vmovdqa .Liv+(4 * 4) (RIP), ROW4;
+        vmovdqa .Liv+(0 * 4) rRIP, ROW3;
+        vmovdqa .Liv+(4 * 4) rRIP, ROW4;
 
         vmovdqu (STATE_H + 0 * 4)(RSTATE), ROW1;
         vmovdqu (STATE_H + 4 * 4)(RSTATE), ROW2;
@@ -242,8 +242,8 @@ _gcry_blake2s_transform_amd64_avx:
         vpxor ROW3, ROW1, ROW1;
         vpxor ROW4, ROW2, ROW2;
 
-        vmovdqa .Liv+(0 * 4) (RIP), ROW3;
-        vmovdqa .Liv+(4 * 4) (RIP), ROW4;
+        vmovdqa .Liv+(0 * 4) rRIP, ROW3;
+        vmovdqa .Liv+(4 * 4) rRIP, ROW4;
 
         vpxor (STATE_H + 0 * 4)(RSTATE), ROW1, ROW1;
         vpxor (STATE_H + 4 * 4)(RSTATE), ROW2, ROW2;
