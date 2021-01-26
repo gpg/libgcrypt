@@ -454,6 +454,11 @@ _gcry_get_config (int mode, const char *what)
 
 
 
+#if _GCRY_GCC_VERSION >= 40200
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wswitch"
+#endif
+
 /* Command dispatcher function, acting as general control
    function.  */
 gcry_err_code_t
@@ -710,10 +715,6 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       rc = _gcry_fips_run_selftests (1);
       break;
 
-#if _GCRY_GCC_VERSION >= 40200
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wswitch"
-#endif
     case PRIV_CTL_INIT_EXTRNG_TEST:  /* Init external random test.  */
       rc = GPG_ERR_NOT_SUPPORTED;
       break;
@@ -738,9 +739,6 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
     case PRIV_CTL_DUMP_SECMEM_STATS:
       _gcry_secmem_dump_stats (1);
       break;
-#if _GCRY_GCC_VERSION >= 40200
-# pragma GCC diagnostic pop
-#endif
 
     case GCRYCTL_DISABLE_HWF:
       {
@@ -823,6 +821,9 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
   return rc;
 }
 
+#if _GCRY_GCC_VERSION >= 40200
+# pragma GCC diagnostic pop
+#endif
 
 
 /* Set custom allocation handlers.  This is in general not useful
