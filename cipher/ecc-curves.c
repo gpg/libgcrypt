@@ -1200,12 +1200,17 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec, int flags,
 
           if ((n+7)/8 != len)
             {
-              if ((n+7)/8 < len && ec->dialect == ECC_DIALECT_ED25519)
+              if (ec->dialect == ECC_DIALECT_ED25519)
                 {
                   /*
                    * GnuPG (<= 2.2) or OpenPGP implementations with no
                    * SOS support may remove zeros at the beginning.
                    * Recover those zeros.
+                   */
+                  /*
+                   * Also, GnuPG (<= 2.2) may add additional zero at
+                   * the beginning, when private key is moved from
+                   * OpenPGP to gpg-agent.  Remove such a zero-prefix.
                    */
                   const unsigned char *buf;
                   unsigned char *value;
@@ -1214,13 +1219,26 @@ mpi_ec_setup_elliptic_curve (mpi_ec_t ec, int flags,
                   if (!buf)
                     return GPG_ERR_INV_OBJ;
 
-                  value = xtrycalloc_secure (1, len);
+                  value = xtrymalloc_secure (len);
                   if (!value)
                     return gpg_err_code_from_syserror ();
 
-                  memset (value, 0, len - (n+7)/8);
-                  memcpy (value + len - (n+7)/8, buf, (n+7)/8);
-                  mpi_set_opaque (ec->d, value, len);
+                  if ((n+7)/8 < len)
+                    /* Recover zeros.  */
+                    {
+                      memset (value, 0, len - (n+7)/8);
+                      memcpy (value + len - (n+7)/8, buf, (n+7)/8);
+                    }
+                  else if ((n+7)/8 == len + 1)
+                    /* Remove a zero.  */
+                    memcpy (value, buf+1, len);
+                  else
+                    {
+                      xfree (value);
+                      return GPG_ERR_INV_OBJ;
+                    }
+
+                  mpi_set_opaque (ec->d, value, len*8);
                 }
               else
                 {
