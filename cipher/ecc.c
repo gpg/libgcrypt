@@ -688,6 +688,8 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   mpi_ec_t ec = NULL;
   int flags = 0;
 
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, 0);
+
   /*
    * Extract the key.
    */
@@ -700,7 +702,6 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       goto leave;
     }
 
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, 0);
   ctx.flags |= flags;
   if (ec->model == MPI_EC_EDWARDS && ec->dialect == ECC_DIALECT_SAFECURVE)
     ctx.flags |= PUBKEY_FLAG_EDDSA;
@@ -783,6 +784,9 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   mpi_ec_t ec = NULL;
   int flags = 0;
 
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
+                                   ecc_get_nbits (s_keyparms));
+
   /*
    * Extract the key.
    */
@@ -804,8 +808,6 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
       goto leave;
     }
 
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
-                                   ecc_get_nbits (s_keyparms));
   ctx.flags |= flags;
   if (ec->model == MPI_EC_EDWARDS && ec->dialect == ECC_DIALECT_SAFECURVE)
     ctx.flags |= PUBKEY_FLAG_EDDSA;
