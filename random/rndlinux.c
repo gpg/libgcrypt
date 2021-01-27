@@ -32,6 +32,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#if defined(__APPLE__) && defined(__MACH__)
+extern int getentropy (void *buf, size_t buflen) __attribute__ ((weak_import));
+#define HAVE_GETENTROPY
+#endif
 #if defined(__linux__) || !defined(HAVE_GETENTROPY)
 #ifdef HAVE_SYSCALL
 # include <sys/syscall.h>
@@ -251,6 +255,9 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
        * not been properly seeded.  And it differs from /dev/random by never
        * blocking once the kernel is seeded.  */
 #if defined(HAVE_GETENTROPY) || defined(__NR_getrandom)
+#if defined(__APPLE__) && defined(__MACH__)
+      if (&getentropy != NULL)
+#endif
         {
           long ret;
           size_t nbytes;
