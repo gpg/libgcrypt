@@ -299,6 +299,7 @@ case "${host}" in
                   Expose all libc features (__DARWIN_C_FULL).)
         AC_DEFINE(USE_POSIX_SPAWN_FOR_TESTS, 1,
                   [defined if we use posix_spawn in test program])
+        AC_CHECK_HEADERS(spawn.h)
         ;;
     *)
       ;;

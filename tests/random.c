@@ -505,7 +505,7 @@ check_drbg_reinit (void)
 }
 
 
-#ifdef USE_POSIX_SPAWN_FOR_TESTS
+#if defined(USE_POSIX_SPAWN_FOR_TESTS) && defined (HAVE_SPAWN_H)
 #include <spawn.h>
 extern char **environ;
 
