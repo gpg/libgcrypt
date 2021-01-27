@@ -170,12 +170,13 @@ _gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
       mpi_limb_t limb = vp[limbno];
       unsigned int the_bit = ((limb & (A_LIMB_1 << bitno)) ? 1 : 0);
       mpi_limb_t underflow;
+      mpi_limb_t overflow;
 
-      _gcry_mpih_lshift (rp, rp, usize, 1);
+      overflow = _gcry_mpih_lshift (rp, rp, usize, 1);
       rp[0] |= the_bit;
 
       underflow = _gcry_mpih_sub_n (rp, rp, up, usize);
-      mpih_add_n_cond (rp, rp, up, usize, underflow);
+      mpih_add_n_cond (rp, rp, up, usize, overflow ^ underflow);
     }
 
   return rp;
