@@ -392,6 +392,21 @@ print_config (const char *what, gpgrt_stream_t fp)
       jver = _gcry_rndjent_get_version (&active);
       gpgrt_fprintf (fp, "rng-type:%s:%d:%u:%d:\n", s, i, jver, active);
     }
+
+  if (!what || !strcmp (what, "compliance"))
+    {
+      /* Right now we have no certification for 1.9 so we return an
+       * empty string.  As soon as this version has been approved for
+       * VS-Nfd we will put the string "de-vs" into the second
+       * field. If further specifications are required they are added
+       * as parameters to that field.  Other certifications will go
+       * into field 3 and so on.
+       *  field 1: keyword "compliance"
+       *  field 2: German VS-Nfd is marked with "de-vs"
+       *  field 3: reserved for FIPS.
+       */
+      gpgrt_fprintf (fp, "compliance:%s::\n", "");
+    }
 }
 
 
