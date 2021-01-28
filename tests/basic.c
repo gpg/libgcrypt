@@ -10223,6 +10223,8 @@ check_one_md (int algo, const char *data, int len, const char *expect, int elen,
 
   if (!xof)
     {
+      static const char buf[128];
+
       clutter_vector_registers();
       p = gcry_md_read (hd2, algo);
 
@@ -10238,6 +10240,11 @@ check_one_md (int algo, const char *data, int len, const char *expect, int elen,
 
           fail ("algo %d, digest mismatch\n", algo);
         }
+
+      /* Write after final/read is allowed for timing attack mitigation
+       * purposes. Try writing and see if we catch fire. */
+      clutter_vector_registers();
+      gcry_md_write (hd2, buf, sizeof(buf));
     }
   else
     {

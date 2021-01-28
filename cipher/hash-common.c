@@ -134,6 +134,13 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
   if (!hd->bwrite)
     return;
 
+  if (hd->count > blocksize)
+    {
+      /* This happens only when gcry_md_write is called after final.
+       * Writing after final is used for mitigating timing attacks. */
+      hd->count = 0;
+    }
+
   while (hd->count)
     {
       if (hd->count == blocksize)  /* Flush the buffer. */
