@@ -40,21 +40,24 @@
 
 /* USE_64BIT_BMI2 indicates whether to compile with 64-bit Intel BMI2 code. */
 #undef USE_64BIT_BMI2
-#if defined(USE_64BIT) && defined(HAVE_GCC_INLINE_ASM_BMI2)
+#if defined(USE_64BIT) && defined(HAVE_GCC_INLINE_ASM_BMI2) && \
+    defined(HAVE_CPU_ARCH_X86)
 # define USE_64BIT_BMI2 1
 #endif
 
 
 /* USE_64BIT_SHLD indicates whether to compile with 64-bit Intel SHLD code. */
 #undef USE_64BIT_SHLD
-#if defined(USE_64BIT) && defined (__GNUC__) && defined(__x86_64__)
+#if defined(USE_64BIT) && defined (__GNUC__) && defined(__x86_64__) && \
+    defined(HAVE_CPU_ARCH_X86)
 # define USE_64BIT_SHLD 1
 #endif
 
 
 /* USE_32BIT_BMI2 indicates whether to compile with 32-bit Intel BMI2 code. */
 #undef USE_32BIT_BMI2
-#if defined(USE_32BIT) && defined(HAVE_GCC_INLINE_ASM_BMI2)
+#if defined(USE_32BIT) && defined(HAVE_GCC_INLINE_ASM_BMI2) && \
+    defined(HAVE_CPU_ARCH_X86)
 # define USE_32BIT_BMI2 1
 #endif
 

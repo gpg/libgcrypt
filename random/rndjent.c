@@ -57,7 +57,7 @@
 #define JENT_USES_GETTIME 2
 #define JENT_USES_READ_REAL_TIME 3
 #ifdef ENABLE_JENT_SUPPORT
-# if defined (__i386__) || defined(__x86_64__)
+# if (defined (__i386__) || defined(__x86_64__)) && defined(HAVE_CPU_ARCH_X86)
 #   define USE_JENT JENT_USES_RDTSC
 # elif defined (HAVE_CLOCK_GETTIME)
 #  if _AIX
