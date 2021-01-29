@@ -261,7 +261,6 @@ md5_final( void *context)
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
       if (hd->bctx.count < 56)
 	memset (&hd->bctx.buf[hd->bctx.count], 0, 56 - hd->bctx.count);
-      hd->bctx.count = 56;
 
       /* append the 64 bit count */
       buf_put_le32(hd->bctx.buf + 56, lsb);
@@ -273,7 +272,6 @@ md5_final( void *context)
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad character */
       /* fill pad and next block with zeroes */
       memset (&hd->bctx.buf[hd->bctx.count], 0, 64 - hd->bctx.count + 56);
-      hd->bctx.count = 64 + 56;
 
       /* append the 64 bit count */
       buf_put_le32(hd->bctx.buf + 64 + 56, lsb);
@@ -288,6 +286,8 @@ md5_final( void *context)
   X(C);
   X(D);
 #undef X
+
+  hd->bctx.count = 0;
 
   _gcry_burn_stack (burn);
 }

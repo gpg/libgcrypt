@@ -760,7 +760,7 @@ tiger_final( void *context )
       hd->bctx.buf[hd->bctx.count++] = pad;
       if (hd->bctx.count < 56)
 	memset (&hd->bctx.buf[hd->bctx.count], 0, 56 - hd->bctx.count);
-      hd->bctx.count = 56;
+
       /* append the 64 bit count */
       buf_put_le32(hd->bctx.buf + 56, lsb);
       buf_put_le32(hd->bctx.buf + 60, msb);
@@ -771,7 +771,6 @@ tiger_final( void *context )
       hd->bctx.buf[hd->bctx.count++] = pad; /* pad character */
       /* fill pad and next block with zeroes */
       memset (&hd->bctx.buf[hd->bctx.count], 0, 64 - hd->bctx.count + 56);
-      hd->bctx.count = 64 + 56;
 
       /* append the 64 bit count */
       buf_put_le32(hd->bctx.buf + 64 + 56, lsb);
@@ -796,6 +795,8 @@ tiger_final( void *context )
     }
 #undef X
 #undef Y
+
+  hd->bctx.count = 0;
 
   _gcry_burn_stack (burn);
 }

@@ -294,7 +294,6 @@ sm3_final(void *context)
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
       if (hd->bctx.count < 56)
 	memset (&hd->bctx.buf[hd->bctx.count], 0, 56 - hd->bctx.count);
-      hd->bctx.count = 56;
 
       /* append the 64 bit count */
       buf_put_be32(hd->bctx.buf + 56, msb);
@@ -306,7 +305,6 @@ sm3_final(void *context)
       hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad character */
       /* fill pad and next block with zeroes */
       memset (&hd->bctx.buf[hd->bctx.count], 0, 64 - hd->bctx.count + 56);
-      hd->bctx.count = 64 + 56;
 
       /* append the 64 bit count */
       buf_put_be32(hd->bctx.buf + 64 + 56, msb);
@@ -325,6 +323,8 @@ sm3_final(void *context)
   X(6);
   X(7);
 #undef X
+
+  hd->bctx.count = 0;
 
   _gcry_burn_stack (burn);
 }

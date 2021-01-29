@@ -818,7 +818,6 @@ sha512_final (void *context)
 	  hd->bctx.buf[hd->bctx.count++] = 0x80;  /* pad */
 	  if (hd->bctx.count < 112)
 	    memset (&hd->bctx.buf[hd->bctx.count], 0, 112 - hd->bctx.count);
-	  hd->bctx.count = 112;
 	}
       else
 	{
@@ -849,6 +848,8 @@ sha512_final (void *context)
   X (6);
   X (7);
 #undef X
+
+  hd->bctx.count = 0;
 
   _gcry_burn_stack (burn);
 }

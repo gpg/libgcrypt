@@ -1304,6 +1304,8 @@ stribog_final (void *context)
   for (i = 0; i < 8; i++)
     hd->h[i] = le_bswap64(hd->h[i]);
 
+  hd->bctx.count = 0;
+
   _gcry_burn_stack (768);
 }
 
