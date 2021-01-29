@@ -1,5 +1,58 @@
-Noteworthy changes in version 1.9.1 (unreleased)  [C23/A3/R_]
+Noteworthy changes in version 1.9.1 (2021-01-29)  [C23/A3/R1]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix exploitable bug in hash functions introduced with 1.9.0.
+     [#5275]
+
+   - Return an error if a negative MPI is used with sexp scan
+     functions.  [#4964]
+
+   - Check for operational FIPS in the random and KDF functions.
+     [#5243]
+
+   - Fix compile error on ARMv7 with NEON disabled.  [#5251]
+
+   - Fix self-test in KDF module.  [#5254]
+
+   - Improve assembler checks for better LTO support.  [#5255]
+
+   - Fix assember problem on macOS running on M1.  [#5157]
+
+   - Support older macOS without posix_spawn. [#5159]
+
+   - Fix 32-bit cross build on x86.  [#5257]
+
+   - Fix non-NEON ARM assembly implementation for SHA512.  [#5263]
+
+   - Fix build problems with the cipher_bulk_ops_t typedef.  [#5264]
+
+   - Fix Ed25519 private key handling for preceding ZEROs. [#5267]
+
+   - Fix overflow in modular inverse implementation.  [#5269]
+
+   - Fix register access for AVX/AVX2 implementations of Blake2.
+     [#5271].
+
+ * Performance:
+
+   - Add optimized cipher and hash functions for s390x/zSeries.
+
+   - Use hardware bit counting functionx when available.
+
+ * Internal changes:
+
+   - The macOS getentropy syscall is used when available.  [#5268]
+
+   - Update DSA functions to match FIPS 186-3.  [30ed9593f6]
+
+   - New self-tests for CMACs and KDFs.  [385a89e35b,7a0da24925]
+
+   - Add bulk cipher functions for OFB and GCM modes.
+     [f12b6788f2,f4e63e92dc]
+
+ Release-info: https://dev.gnupg.org/T5259
 
 
 Noteworthy changes in version 1.9.0 (2021-01-19)  [C23/A3/R0]
