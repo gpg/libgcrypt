@@ -306,7 +306,7 @@ static unsigned int jent_memaccess(struct rand_data *ec, uint64_t loop_cnt)
 static int jent_stuck(struct rand_data *ec, uint64_t current_delta)
 {
 	int64_t delta2 = ec->last_delta - current_delta;
-	int64_t delta3 = delta2 - ec->last_delta2;
+	int64_t delta3 = (uint64_t)delta2 - (uint64_t)ec->last_delta2;
 
 	ec->last_delta = current_delta;
 	ec->last_delta2 = delta2;
