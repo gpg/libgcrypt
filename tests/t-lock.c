@@ -426,7 +426,7 @@ main (int argc, char **argv)
         }
     }
 
-  srand (time(NULL)*getpid());
+  srand ((unsigned int)time(NULL)*getpid());
 
   if (debug)
     xgcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);

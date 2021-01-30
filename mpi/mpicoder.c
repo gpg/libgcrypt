@@ -354,10 +354,10 @@ _gcry_mpi_set_buffer (gcry_mpi_t a, const void *buffer_arg,
   for (i=0, p = buffer+nbytes-1; p >= buffer+BYTES_PER_MPI_LIMB; )
     {
 #if BYTES_PER_MPI_LIMB == 4
-      alimb  = *p--	    ;
-      alimb |= *p-- <<  8 ;
-      alimb |= *p-- << 16 ;
-      alimb |= *p-- << 24 ;
+      alimb  = (mpi_limb_t)*p--	    ;
+      alimb |= (mpi_limb_t)*p-- <<  8 ;
+      alimb |= (mpi_limb_t)*p-- << 16 ;
+      alimb |= (mpi_limb_t)*p-- << 24 ;
 #elif BYTES_PER_MPI_LIMB == 8
       alimb  = (mpi_limb_t)*p--	;
       alimb |= (mpi_limb_t)*p-- <<  8 ;
@@ -375,13 +375,13 @@ _gcry_mpi_set_buffer (gcry_mpi_t a, const void *buffer_arg,
   if ( p >= buffer )
     {
 #if BYTES_PER_MPI_LIMB == 4
-      alimb  = *p--;
+      alimb  = (mpi_limb_t)*p--;
       if (p >= buffer)
-        alimb |= *p-- <<  8;
+        alimb |= (mpi_limb_t)*p-- <<  8;
       if (p >= buffer)
-        alimb |= *p-- << 16;
+        alimb |= (mpi_limb_t)*p-- << 16;
       if (p >= buffer)
-        alimb |= *p-- << 24;
+        alimb |= (mpi_limb_t)*p-- << 24;
 #elif BYTES_PER_MPI_LIMB == 8
       alimb  = (mpi_limb_t)*p--;
       if (p >= buffer)
