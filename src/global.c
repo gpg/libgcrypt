@@ -418,6 +418,10 @@ _gcry_get_config (int mode, const char *what)
     return NULL;
 
   print_config (what, fp);
+
+  /* Make sure the output is null terminated. */
+  gpgrt_fwrite ("", 1, 1, fp);
+
   if (gpgrt_ferror (fp))
     {
       save_errno = errno;
