@@ -120,6 +120,14 @@ main (int argc, char **argv)
   long int pgsize_val = -1;
   size_t pgsize;
 
+  if (getenv ("GCRYPT_IN_ASAN_TEST"))
+    {
+      /* 'mlock' is not available when build with address sanitizer,
+       * so skip test. */
+      fputs ("Note: " PGM " skipped because running with ASAN.\n", stdout);
+      return 0;
+    }
+
 #if HAVE_MMAP
 # if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
   pgsize_val = sysconf (_SC_PAGESIZE);

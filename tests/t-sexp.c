@@ -1312,7 +1312,14 @@ main (int argc, char **argv)
   if (debug)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
   xgcry_control ((GCRYCTL_DISABLE_SECMEM_WARN));
-  xgcry_control ((GCRYCTL_INIT_SECMEM, 16384, 0));
+  if (getenv ("GCRYPT_IN_ASAN_TEST"))
+    {
+      fputs ("Note: " PGM " not using secmem as running with ASAN.\n", stdout);
+    }
+  else
+    {
+      xgcry_control ((GCRYCTL_INIT_SECMEM, 16384, 0));
+    }
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch");
   /* #include "../src/gcrypt-int.h" indicates that internal interfaces
