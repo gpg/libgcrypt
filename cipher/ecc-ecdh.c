@@ -122,5 +122,6 @@ _gcry_ecc_mul_point (int curveid, unsigned char *result,
   _gcry_mpi_release (x);
   point_free (&Q);
   _gcry_mpi_release (mpi_k);
+  _gcry_mpi_ec_free (ec);
   return err;
 }
