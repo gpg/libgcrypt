@@ -434,6 +434,13 @@ _gcry_get_config (int mode, const char *what)
     return NULL;
 
   print_config (what, fp);
+
+  if (!what)
+    {
+      /* Null-terminate bulk output. */
+      gpgrt_fwrite ("\0", 1, 1, fp);
+    }
+
   if (gpgrt_ferror (fp))
     {
       save_errno = errno;
