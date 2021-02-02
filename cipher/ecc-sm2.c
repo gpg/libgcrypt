@@ -500,6 +500,9 @@ _gcry_ecc_sm2_verify (gcry_mpi_t input, mpi_ec_t ec,
   gcry_mpi_t x1, y1;
   unsigned int nbits;
 
+  if (!_gcry_mpi_ec_curve_point (ec->Q, ec))
+    return GPG_ERR_BROKEN_PUBKEY;
+
   /* r, s within [1, n-1] */
   if (mpi_cmp_ui (r, 1) < 0 || mpi_cmp (r, ec->n) > 0)
     return GPG_ERR_BAD_SIGNATURE;

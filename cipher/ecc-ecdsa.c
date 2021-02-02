@@ -172,6 +172,9 @@ _gcry_ecc_ecdsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   mpi_point_struct Q, Q1, Q2;
   unsigned int nbits;
 
+  if (!_gcry_mpi_ec_curve_point (ec->Q, ec))
+    return GPG_ERR_BROKEN_PUBKEY;
+
   if( !(mpi_cmp_ui (r, 0) > 0 && mpi_cmp (r, ec->n) < 0) )
     return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < r < n  failed.  */
   if( !(mpi_cmp_ui (s, 0) > 0 && mpi_cmp (s, ec->n) < 0) )
