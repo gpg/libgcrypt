@@ -199,6 +199,12 @@ _gcry_ecc_ecdsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
   ctx = _gcry_mpi_ec_p_internal_new (pkey->E.model, pkey->E.dialect, 0,
                                      pkey->E.p, pkey->E.a, pkey->E.b);
 
+  if (!_gcry_mpi_ec_curve_point (&pkey->Q, ctx))
+    {
+      err = GPG_ERR_BROKEN_PUBKEY;
+      goto leave;
+    }
+
   /* h  = s^(-1) (mod n) */
   mpi_invm (h, s, pkey->E.n);
   /* h1 = hash * s^(-1) (mod n) */
