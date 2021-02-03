@@ -10478,7 +10478,8 @@ check_one_md_multi (int algo, const char *data, int len, const char *expect)
 static void
 check_one_md_final(int algo, const char *expect, unsigned int expectlen)
 {
-  char inbuf[288 + 1];
+  const unsigned int max_inbuf_len = 288 + 1;
+  char *inbuf;
   char xorbuf[64];
   char digest[64];
   unsigned int mdlen;
@@ -10499,16 +10500,25 @@ check_one_md_final(int algo, const char *expect, unsigned int expectlen)
       return;
     }
 
-  for (i = 0; i < sizeof(inbuf); i++)
-    inbuf[i] = i;
-
   clutter_vector_registers();
   gcry_md_hash_buffer (algo, xorbuf, NULL, 0);
-  for (i = 1; i < sizeof(inbuf); i++)
+  for (i = 1; i < max_inbuf_len; i++)
     {
+      inbuf = xmalloc(i);
+      if (!inbuf)
+	{
+	  fail ("out-of-memory\n");
+	  return;
+	}
+
+      for (j = 0; j < i; j++)
+	inbuf[j] = j;
+
       gcry_md_hash_buffer (algo, digest, inbuf, i);
       for (j = 0; j < expectlen; j++)
 	xorbuf[j] ^= digest[j];
+
+      xfree (inbuf);
     }
 
   if (memcmp(expect, xorbuf, expectlen) != 0)

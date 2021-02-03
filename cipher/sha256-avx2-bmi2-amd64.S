@@ -285,6 +285,11 @@ _gcry_sha256_transform_amd64_avx2:
 	lea	NUM_BLKS, [NUM_BLKS + INP - 64] /*  pointer to last block */
 	mov	[rsp + _INP_END], NUM_BLKS
 
+	/* Check if only one block of input. Note: Loading initial digest
+	 * only uses 'mov' instruction and does not change condition
+	 * flags. */
+	cmp	NUM_BLKS, INP
+
 	/* ; load initial digest */
 	mov	a,[4*0 + CTX]
 	mov	b,[4*1 + CTX]
@@ -296,6 +301,8 @@ _gcry_sha256_transform_amd64_avx2:
 	mov	h,[4*7 + CTX]
 
 	mov	[rsp + _CTX], CTX
+
+	je	.Ldo_last_block
 
 .Loop0:
 	lea	TBL, [.LK256 ADD_RIP]
