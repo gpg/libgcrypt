@@ -18,6 +18,9 @@
 
 ## Process this file with automake to produce Makefile.in
 
+# Note: Please keep these tests in sync with those in testdrv.c.
+# We will eventually switch over to the the new driver but as of now
+# the driver is only used for cross-compiling.
 tests_bin = \
         version t-secmem mpitests t-sexp t-convert \
 	t-mpi-bit t-mpi-point curves t-lock \
@@ -52,9 +55,11 @@ standard_ldadd = \
         ../compat/libcompat.la
 
 EXTRA_PROGRAMS = testapi pkbench
-noinst_PROGRAMS = $(tests_bin) $(tests_bin_last) fipsdrv rsacvt genhashdata \
-		  gchash
+noinst_PROGRAMS = testdrv $(tests_bin) $(tests_bin_last) \
+                  fipsdrv rsacvt genhashdata gchash
 noinst_HEADERS = t-common.h
+
+CLEANFILES = testdrv-build
 
 EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
 	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h \
@@ -71,3 +76,38 @@ t_secmem_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
 testapi_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
 t_lock_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS) @LDADD_FOR_TESTS_KLUDGE@
 t_lock_CFLAGS = $(GPG_ERROR_MT_CFLAGS)
+testdrv_LDADD = $(LDADD_FOR_TESTS_KLUDGE)
+
+# Build a version of the test driver for the build platform.
+testdrv-build: testdrv.c
+	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
+	  $(CPPFLAGS_FOR_BUILD) -DTESTDRV_EXEEXT=\"$(EXEEXT)\" \
+          -o $@ $(srcdir)/testdrv.c
+
+if HAVE_W32_SYSTEM
+xtestsuite_libs = ../src/.libs/libgcrypt-20.dll \
+                  $(prefix)/bin/libgpg-error*-0.dll
+xtestsuite_driver = .libs/testdrv.exe
+else
+xtestsuite_libs = ../src/.libs/libgcrypt.so*
+xtestsuite_driver = testdrv
+endif
+
+# xcheck uses our new testdrv instead of the automake test runner.
+.PHONY: xcheck xtestsuite
+xcheck: testdrv$(EXEEXT)
+	srcdir=$(srcdir) ./testdrv$(EXEEXT) --verbose
+
+# Make a tarballs with all the tests.
+xtestsuite: testdrv$(EXEEXT) testdrv-build $(TESTS)
+	+(set -e; \
+         name="$(PACKAGE_TARNAME)-tests-$(PACKAGE_VERSION)";\
+	 xname="$$name/$(host)" ;\
+	 rm -rf $$name; mkdir $$name ; mkdir $$xname ;\
+	 cp -L $(xtestsuite_driver) \
+           $$(srcdir=$(srcdir) ./testdrv-build --files|sort|uniq) $$xname/ ;\
+         cp -P $(xtestsuite_libs) $$xname/ ;\
+	 touch $$xname/libgcrypt-standalone-tests ;\
+         $(AMTAR) czf "$(PACKAGE_TARNAME)-tests-$(PACKAGE_VERSION)".tar.gz \
+             $$name ;\
+	 )
