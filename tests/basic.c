@@ -35,6 +35,8 @@
 
 #if __GNUC__ >= 4
 #  define ALWAYS_INLINE __attribute__((always_inline))
+#else
+#  define ALWAYS_INLINE
 #endif
 
 typedef struct test_spec_pubkey_key

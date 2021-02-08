@@ -157,10 +157,9 @@ main (int argc, char **argv)
         exit (1);
     }
 
-  xgcry_control ((GCRYCTL_PRINT_CONFIG, NULL));
+  xgcry_control ((GCRYCTL_PRINT_CONFIG, stdout));
 
   test_get_config ();
-
 
   return 0;
 }
