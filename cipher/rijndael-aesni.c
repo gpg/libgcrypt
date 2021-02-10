@@ -3661,7 +3661,7 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 }
 
 
-static const u64 xts_gfmul_const[16] __attribute__ ((aligned (16))) =
+static const u64 xts_gfmul_const[2] __attribute__ ((aligned (16))) =
   { 0x87, 0x01 };
 
 
@@ -3682,6 +3682,303 @@ _gcry_aes_aesni_xts_enc (RIJNDAEL_context *ctx, unsigned char *tweak,
 		: [tweak] "m" (*tweak),
 		  [gfmul] "m" (*xts_gfmul_const)
 		: "memory" );
+
+#ifdef __x86_64__
+  if (nblocks >= 8)
+    {
+      aesni_prepare_8_15_variable;
+
+      aesni_prepare_8_15();
+
+      for ( ;nblocks >= 8 ; nblocks -= 8 )
+	{
+	  asm volatile ("pshufd $0x13,     %%xmm5,  %%xmm11\n\t"
+			"movdqu %[inbuf0], %%xmm1\n\t"
+			"pxor   %%xmm5,    %%xmm1\n\t"
+			"movdqa %%xmm5,    %%xmm7\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf0] "m" (*(inbuf + 0 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
+			"pxor   %%xmm5,    %%xmm2\n\t"
+			"movdqa %%xmm5,    %%xmm12\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf1] "m" (*(inbuf + 1 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf2], %%xmm3\n\t"
+			"pxor   %%xmm5,    %%xmm3\n\t"
+			"movdqa %%xmm5,    %%xmm13\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf2] "m" (*(inbuf + 2 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf3], %%xmm4\n\t"
+			"pxor   %%xmm5,    %%xmm4\n\t"
+			"movdqa %%xmm5,    %%xmm14\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf3] "m" (*(inbuf + 3 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf4], %%xmm8\n\t"
+			"pxor   %%xmm5,    %%xmm8\n\t"
+			"movdqa %%xmm5,    %%xmm15\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf4] "m" (*(inbuf + 4 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf5], %%xmm9\n\t"
+			"pxor   %%xmm5,    %%xmm9\n\t"
+			"movdqu %%xmm5,    %[outbuf5]\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			: [outbuf5] "=m" (*(outbuf + 5 * 16))
+			: [inbuf5] "m" (*(inbuf + 5 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
+			"pxor   %%xmm5,    %%xmm10\n\t"
+			"movdqu %%xmm5,    %[outbuf6]\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			: [outbuf6] "=m" (*(outbuf + 6 * 16))
+			: [inbuf6] "m" (*(inbuf + 6 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqa %%xmm11,   %%xmm0\n\t"
+			"movdqu %[inbuf7], %%xmm11\n\t"
+			"pxor   %%xmm5,    %%xmm11\n\t"
+			"movdqu %%xmm5,    %[outbuf7]\n\t"
+
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			: [outbuf7] "=m" (*(outbuf + 7 * 16))
+			: [inbuf7] "m" (*(inbuf + 7 * 16))
+			: "memory" );
+
+	  asm volatile ("cmpl $12, %[rounds]\n\t"
+			"movdqa (%[key]), %%xmm0\n\t"
+			"pxor %%xmm0, %%xmm1\n\t"
+			"pxor %%xmm0, %%xmm2\n\t"
+			"pxor %%xmm0, %%xmm3\n\t"
+			"pxor %%xmm0, %%xmm4\n\t"
+			"pxor %%xmm0, %%xmm8\n\t"
+			"pxor %%xmm0, %%xmm9\n\t"
+			"pxor %%xmm0, %%xmm10\n\t"
+			"pxor %%xmm0, %%xmm11\n\t"
+			"movdqa 0x10(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x20(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x30(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x40(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x50(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x60(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x70(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x80(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0x90(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0xa0(%[key]), %%xmm0\n\t"
+			"jb .Lenclast%=\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0xb0(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0xc0(%[key]), %%xmm0\n\t"
+			"je .Lenclast%=\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0xd0(%[key]), %%xmm0\n\t"
+			"aesenc %%xmm0, %%xmm1\n\t"
+			"aesenc %%xmm0, %%xmm2\n\t"
+			"aesenc %%xmm0, %%xmm3\n\t"
+			"aesenc %%xmm0, %%xmm4\n\t"
+			"aesenc %%xmm0, %%xmm8\n\t"
+			"aesenc %%xmm0, %%xmm9\n\t"
+			"aesenc %%xmm0, %%xmm10\n\t"
+			"aesenc %%xmm0, %%xmm11\n\t"
+			"movdqa 0xe0(%[key]), %%xmm0\n\t"
+
+			".Lenclast%=:\n\t"
+			:
+			: [key] "r" (ctx->keyschenc),
+			  [rounds] "rm" (ctx->rounds)
+			: "cc", "memory");
+
+	  asm volatile ("pxor %%xmm0, %%xmm7\n\t"
+			"pxor %%xmm0, %%xmm12\n\t"
+			"pxor %%xmm0, %%xmm13\n\t"
+			"pxor %%xmm0, %%xmm14\n\t"
+			"aesenclast %%xmm7, %%xmm1\n\t"
+			"aesenclast %%xmm12, %%xmm2\n\t"
+			"aesenclast %%xmm13, %%xmm3\n\t"
+			"aesenclast %%xmm14, %%xmm4\n\t"
+			"movdqu 5*16(%[outbuf]), %%xmm12\n\t"
+			"movdqu 6*16(%[outbuf]), %%xmm13\n\t"
+			"movdqu 7*16(%[outbuf]), %%xmm14\n\t"
+			"pxor %%xmm0, %%xmm15\n\t"
+			"pxor %%xmm0, %%xmm12\n\t"
+			"pxor %%xmm0, %%xmm13\n\t"
+			"pxor %%xmm0, %%xmm14\n\t"
+			"aesenclast %%xmm15, %%xmm8\n\t"
+			"aesenclast %%xmm12, %%xmm9\n\t"
+			"aesenclast %%xmm13, %%xmm10\n\t"
+			"aesenclast %%xmm14, %%xmm11\n\t"
+			"movdqu %%xmm1, 0*16(%[outbuf])\n\t"
+			"movdqu %%xmm2, 1*16(%[outbuf])\n\t"
+			"movdqu %%xmm3, 2*16(%[outbuf])\n\t"
+			"movdqu %%xmm4, 3*16(%[outbuf])\n\t"
+			"movdqu %%xmm8, 4*16(%[outbuf])\n\t"
+			"movdqu %%xmm9, 5*16(%[outbuf])\n\t"
+			"movdqu %%xmm10, 6*16(%[outbuf])\n\t"
+			"movdqu %%xmm11, 7*16(%[outbuf])\n\t"
+			:
+			: [outbuf] "r" (outbuf)
+			: "memory" );
+
+	  outbuf += 8*BLOCKSIZE;
+	  inbuf  += 8*BLOCKSIZE;
+	}
+
+      aesni_cleanup_8_15();
+    }
+#endif
 
   for ( ;nblocks >= 4; nblocks -= 4 )
     {
@@ -3826,6 +4123,303 @@ _gcry_aes_aesni_xts_dec (RIJNDAEL_context *ctx, unsigned char *tweak,
 		: [tweak] "m" (*tweak),
 		  [gfmul] "m" (*xts_gfmul_const)
 		: "memory" );
+
+#ifdef __x86_64__
+  if (nblocks >= 8)
+    {
+      aesni_prepare_8_15_variable;
+
+      aesni_prepare_8_15();
+
+      for ( ;nblocks >= 8 ; nblocks -= 8 )
+	{
+	  asm volatile ("pshufd $0x13,     %%xmm5,  %%xmm11\n\t"
+			"movdqu %[inbuf0], %%xmm1\n\t"
+			"pxor   %%xmm5,    %%xmm1\n\t"
+			"movdqa %%xmm5,    %%xmm7\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf0] "m" (*(inbuf + 0 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf1], %%xmm2\n\t"
+			"pxor   %%xmm5,    %%xmm2\n\t"
+			"movdqa %%xmm5,    %%xmm12\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf1] "m" (*(inbuf + 1 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf2], %%xmm3\n\t"
+			"pxor   %%xmm5,    %%xmm3\n\t"
+			"movdqa %%xmm5,    %%xmm13\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf2] "m" (*(inbuf + 2 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf3], %%xmm4\n\t"
+			"pxor   %%xmm5,    %%xmm4\n\t"
+			"movdqa %%xmm5,    %%xmm14\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf3] "m" (*(inbuf + 3 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf4], %%xmm8\n\t"
+			"pxor   %%xmm5,    %%xmm8\n\t"
+			"movdqa %%xmm5,    %%xmm15\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			:
+			: [inbuf4] "m" (*(inbuf + 4 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf5], %%xmm9\n\t"
+			"pxor   %%xmm5,    %%xmm9\n\t"
+			"movdqu %%xmm5,    %[outbuf5]\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			: [outbuf5] "=m" (*(outbuf + 5 * 16))
+			: [inbuf5] "m" (*(inbuf + 5 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqu %[inbuf6], %%xmm10\n\t"
+			"pxor   %%xmm5,    %%xmm10\n\t"
+			"movdqu %%xmm5,    %[outbuf6]\n\t"
+
+			"movdqa %%xmm11,   %%xmm0\n\t"
+			"paddd  %%xmm11,   %%xmm11\n\t"
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			: [outbuf6] "=m" (*(outbuf + 6 * 16))
+			: [inbuf6] "m" (*(inbuf + 6 * 16))
+			: "memory" );
+
+	  asm volatile ("movdqa %%xmm11,   %%xmm0\n\t"
+			"movdqu %[inbuf7], %%xmm11\n\t"
+			"pxor   %%xmm5,    %%xmm11\n\t"
+			"movdqu %%xmm5,    %[outbuf7]\n\t"
+
+			"psrad  $31,       %%xmm0\n\t"
+			"paddq  %%xmm5,    %%xmm5\n\t"
+			"pand   %%xmm6,    %%xmm0\n\t"
+			"pxor   %%xmm0,    %%xmm5\n\t"
+			: [outbuf7] "=m" (*(outbuf + 7 * 16))
+			: [inbuf7] "m" (*(inbuf + 7 * 16))
+			: "memory" );
+
+	  asm volatile ("cmpl $12, %[rounds]\n\t"
+			"movdqa (%[key]), %%xmm0\n\t"
+			"pxor %%xmm0, %%xmm1\n\t"
+			"pxor %%xmm0, %%xmm2\n\t"
+			"pxor %%xmm0, %%xmm3\n\t"
+			"pxor %%xmm0, %%xmm4\n\t"
+			"pxor %%xmm0, %%xmm8\n\t"
+			"pxor %%xmm0, %%xmm9\n\t"
+			"pxor %%xmm0, %%xmm10\n\t"
+			"pxor %%xmm0, %%xmm11\n\t"
+			"movdqa 0x10(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x20(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x30(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x40(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x50(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x60(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x70(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x80(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0x90(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0xa0(%[key]), %%xmm0\n\t"
+			"jb .Ldeclast%=\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0xb0(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0xc0(%[key]), %%xmm0\n\t"
+			"je .Ldeclast%=\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0xd0(%[key]), %%xmm0\n\t"
+			"aesdec %%xmm0, %%xmm1\n\t"
+			"aesdec %%xmm0, %%xmm2\n\t"
+			"aesdec %%xmm0, %%xmm3\n\t"
+			"aesdec %%xmm0, %%xmm4\n\t"
+			"aesdec %%xmm0, %%xmm8\n\t"
+			"aesdec %%xmm0, %%xmm9\n\t"
+			"aesdec %%xmm0, %%xmm10\n\t"
+			"aesdec %%xmm0, %%xmm11\n\t"
+			"movdqa 0xe0(%[key]), %%xmm0\n\t"
+
+			".Ldeclast%=:\n\t"
+			:
+			: [key] "r" (ctx->keyschdec),
+			  [rounds] "rm" (ctx->rounds)
+			: "cc", "memory");
+
+	  asm volatile ("pxor %%xmm0, %%xmm7\n\t"
+			"pxor %%xmm0, %%xmm12\n\t"
+			"pxor %%xmm0, %%xmm13\n\t"
+			"pxor %%xmm0, %%xmm14\n\t"
+			"aesdeclast %%xmm7, %%xmm1\n\t"
+			"aesdeclast %%xmm12, %%xmm2\n\t"
+			"aesdeclast %%xmm13, %%xmm3\n\t"
+			"aesdeclast %%xmm14, %%xmm4\n\t"
+			"movdqu 5*16(%[outbuf]), %%xmm12\n\t"
+			"movdqu 6*16(%[outbuf]), %%xmm13\n\t"
+			"movdqu 7*16(%[outbuf]), %%xmm14\n\t"
+			"pxor %%xmm0, %%xmm15\n\t"
+			"pxor %%xmm0, %%xmm12\n\t"
+			"pxor %%xmm0, %%xmm13\n\t"
+			"pxor %%xmm0, %%xmm14\n\t"
+			"aesdeclast %%xmm15, %%xmm8\n\t"
+			"aesdeclast %%xmm12, %%xmm9\n\t"
+			"aesdeclast %%xmm13, %%xmm10\n\t"
+			"aesdeclast %%xmm14, %%xmm11\n\t"
+			"movdqu %%xmm1, 0*16(%[outbuf])\n\t"
+			"movdqu %%xmm2, 1*16(%[outbuf])\n\t"
+			"movdqu %%xmm3, 2*16(%[outbuf])\n\t"
+			"movdqu %%xmm4, 3*16(%[outbuf])\n\t"
+			"movdqu %%xmm8, 4*16(%[outbuf])\n\t"
+			"movdqu %%xmm9, 5*16(%[outbuf])\n\t"
+			"movdqu %%xmm10, 6*16(%[outbuf])\n\t"
+			"movdqu %%xmm11, 7*16(%[outbuf])\n\t"
+			:
+			: [outbuf] "r" (outbuf)
+			: "memory" );
+
+	  outbuf += 8*BLOCKSIZE;
+	  inbuf  += 8*BLOCKSIZE;
+	}
+
+      aesni_cleanup_8_15();
+    }
+#endif
 
   for ( ;nblocks >= 4; nblocks -= 4 )
     {
