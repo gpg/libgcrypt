@@ -3,6 +3,25 @@ Noteworthy changes in version 1.9.2 (unreleased)  [C23/A3/R_]
 
  * Bug fixes:
 
+   - Fix build problem for macOS in the random code.  [#5268]
+
+   - Fix building with --disable-asm on x86.  [#5277]
+
+   - Check public key for ECDSA verify operation.  [#5282]
+
+   - Make sure gcry_get_config (NULL) returns a nul-terminated string.
+     [8716e4b2ad]
+
+   - Fix a memory leak in the ECDH code.  [289543544e]
+
+   - Fix a reading beyond end of input buffer in SHA2-avx2.
+     [24af2a55d8]
+
+ * Other features:
+
+   - New test driver to allow for standalone regression
+     tests. [b142da4c88]
+
  Release-info: https://dev.gnupg.org/T5276
 
 
