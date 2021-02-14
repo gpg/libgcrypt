@@ -419,8 +419,13 @@ _gcry_get_config (int mode, const char *what)
 
   print_config (what, fp);
 
-  /* Make sure the output is null terminated. */
-  gpgrt_fwrite ("", 1, 1, fp);
+  /* Make sure the output is null terminated if no specific item was
+   * requested.  This is needed because tests/version.c expects that
+   * the function fails with the !data case below.  For the specific
+   * test an extra nul is not required because we always have a LF
+   * which is then replaced right at the end of this function.  */
+  if (!what)
+    gpgrt_fwrite ("", 1, 1, fp);
 
   if (gpgrt_ferror (fp))
     {
