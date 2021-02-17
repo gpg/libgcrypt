@@ -1785,7 +1785,7 @@ ChaCha20 stream cipher. The block cipher modes
 @code{GCRY_CIPHER_MODE_CFB}, @code{GCRY_CIPHER_MODE_OFB},
 @code{GCRY_CIPHER_MODE_CTR} and @code{GCRY_CIPHER_MODE_EAX}) will work
 with any block cipher algorithm.  GCM mode
-(@code{GCRY_CIPHER_MODE_CCM}), CCM mode (@code{GCRY_CIPHER_MODE_GCM}),
+(@code{GCRY_CIPHER_MODE_GCM}), CCM mode (@code{GCRY_CIPHER_MODE_CCM}),
 OCB mode (@code{GCRY_CIPHER_MODE_OCB}), and XTS mode
 (@code{GCRY_CIPHER_MODE_XTS}) will only work with block cipher
 algorithms which have the block size of 16 bytes.
