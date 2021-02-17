@@ -151,7 +151,7 @@ sign-release:
           cat "../$(RELEASE_NAME).buildlog" swdb.snippet \
                | gzip >$(RELEASE_NAME).buildlog ;\
           echo "Copying to archive $$myarchive ..." ;\
-	  scp -vp $${files1} $${files2} $${myarchive}/ || true;\
+	  scp -p $${files1} $${files2} $${myarchive}/ || true;\
 	  echo '/*' ;\
 	  echo ' * All done; for checksums see dist/swdb.snippet' ;\
 	  echo ' */' ;\
