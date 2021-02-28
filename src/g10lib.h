@@ -237,6 +237,7 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_INTEL_FAST_VPGATHER (1 << 14)
 #define HWF_INTEL_RDTSC         (1 << 15)
 #define HWF_INTEL_SHAEXT        (1 << 16)
+#define HWF_INTEL_VAES_VPCLMUL  (1 << 17)
 
 #elif defined(HAVE_CPU_ARCH_ARM)
 

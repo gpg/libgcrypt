@@ -372,7 +372,7 @@ detect_x86_gnuc (void)
   if (max_cpuid_level >= 7 && (features & 0x00000001))
     {
       /* Get CPUID:7 contains further Intel feature flags. */
-      get_cpuid(7, NULL, &features, NULL, NULL);
+      get_cpuid(7, NULL, &features, &features2, NULL);
 
       /* Test bit 8 for BMI2.  */
       if (features & 0x00000100)
@@ -390,7 +390,14 @@ detect_x86_gnuc (void)
 
       /* Test bit 29 for SHA Extensions. */
       if (features & (1 << 29))
-          result |= HWF_INTEL_SHAEXT;
+        result |= HWF_INTEL_SHAEXT;
+
+#if defined(ENABLE_AVX2_SUPPORT) && defined(ENABLE_AESNI_SUPPORT) && \
+    defined(ENABLE_PCLMUL_SUPPORT)
+      /* Test bit 9 for VAES and bit 10 for VPCLMULDQD */
+      if ((features2 & 0x00000200) && (features2 & 0x00000400))
+        result |= HWF_INTEL_VAES_VPCLMUL;
+#endif
     }
 
   return result;

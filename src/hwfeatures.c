@@ -60,6 +60,7 @@ static struct
     { HWF_INTEL_FAST_VPGATHER, "intel-fast-vpgather" },
     { HWF_INTEL_RDTSC,         "intel-rdtsc" },
     { HWF_INTEL_SHAEXT,        "intel-shaext" },
+    { HWF_INTEL_VAES_VPCLMUL,  "intel-vaes-vpclmul" },
 #elif defined(HAVE_CPU_ARCH_ARM)
     { HWF_ARM_NEON,            "arm-neon" },
     { HWF_ARM_AES,             "arm-aes" },

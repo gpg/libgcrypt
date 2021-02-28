@@ -1610,6 +1610,31 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports VAES and VPCLMUL instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports VAES and VPCLMUL instructions],
+       [gcry_cv_gcc_inline_asm_vaes_vpclmul],
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_vaes_vpclmul="n/a"
+        else
+          gcry_cv_gcc_inline_asm_vaes_vpclmul=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void a(void) {
+              __asm__("vaesenclast %%ymm7,%%ymm7,%%ymm1\n\t":::"cc");/*256-bit*/
+              __asm__("vaesenclast %%zmm7,%%zmm7,%%zmm1\n\t":::"cc");/*512-bit*/
+              __asm__("vpclmulqdq \$0,%%ymm7,%%ymm7,%%ymm1\n\t":::"cc");/*256-bit*/
+              __asm__("vpclmulqdq \$0,%%zmm7,%%zmm7,%%zmm1\n\t":::"cc");/*512-bit*/
+            }]], [ a(); ] )],
+          [gcry_cv_gcc_inline_asm_vaes_vpclmul=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_vaes_vpclmul" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_VAES_VPCLMUL,1,
+     [Defined if inline assembler supports VAES and VPCLMUL instructions])
+fi
+
+
+#
 # Check whether GCC inline assembler supports BMI2 instructions
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports BMI2 instructions],
@@ -2541,6 +2566,10 @@ if test "$found" = "1" ; then
          # Build with the SSSE3 implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ssse3-amd64.lo"
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ssse3-amd64-asm.lo"
+
+         # Build with the VAES/AVX2 implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-vaes.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-vaes-avx2-amd64.lo"
       ;;
       arm*-*-*)
          # Build with the assembly implementation
@@ -2679,6 +2708,9 @@ if test "$found" = "1" ; then
       if test x"$aesnisupport" = xyes ; then
         # Build with the AES-NI/AVX2 implementation
         GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-aesni-avx2-amd64.lo"
+
+        # Build with the VAES/AVX2 implementation
+        GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-vaes-avx2-amd64.lo"
       fi
    fi
 fi
