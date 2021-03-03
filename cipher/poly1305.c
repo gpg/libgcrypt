@@ -310,7 +310,8 @@ static unsigned int poly1305_final (poly1305_context_t *ctx,
 
 #endif /* HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS */
 
-#if defined (__i386__) && __GNUC__ >= 4
+#if defined (__i386__) && __GNUC__ >= 5
+/* Note: ADD_1305_32 below does not compile on GCC-4.7 */
 
 /* A += B (i386) */
 #define ADD_1305_32(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0) \
