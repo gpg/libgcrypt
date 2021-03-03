@@ -105,7 +105,7 @@ static void poly1305_init (poly1305_context_t *ctx,
 
 #ifdef USE_MPI_64BIT
 
-#if defined (__aarch64__) && __GNUC__ >= 4
+#if defined (__aarch64__) && defined(HAVE_CPU_ARCH_ARM) && __GNUC__ >= 4
 
 /* A += B (armv8/aarch64) */
 #define ADD_1305_64(A2, A1, A0, B2, B1, B0) \
@@ -118,7 +118,7 @@ static void poly1305_init (poly1305_context_t *ctx,
 
 #endif /* __aarch64__ */
 
-#if defined (__x86_64__) && __GNUC__ >= 4
+#if defined (__x86_64__) && defined(HAVE_CPU_ARCH_X86) && __GNUC__ >= 4
 
 /* A += B (x86-64) */
 #define ADD_1305_64(A2, A1, A0, B2, B1, B0) \
@@ -131,7 +131,7 @@ static void poly1305_init (poly1305_context_t *ctx,
 
 #endif /* __x86_64__ */
 
-#if defined (__powerpc__) && __GNUC__ >= 4
+#if defined (__powerpc__) && defined(HAVE_CPU_ARCH_PPC) && __GNUC__ >= 4
 
 /* A += B (ppc64) */
 #define ADD_1305_64(A2, A1, A0, B2, B1, B0) \
@@ -310,7 +310,7 @@ static unsigned int poly1305_final (poly1305_context_t *ctx,
 
 #endif /* HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS */
 
-#if defined (__i386__) && __GNUC__ >= 5
+#if defined (__i386__) && defined(HAVE_CPU_ARCH_X86) && __GNUC__ >= 5
 /* Note: ADD_1305_32 below does not compile on GCC-4.7 */
 
 /* A += B (i386) */
