@@ -397,7 +397,7 @@ static ASM_FUNC_ATTR_INLINE void gcm_lsh(void *h, unsigned int hoffs)
                 "pxor %%xmm4, %%xmm2\n\t"
                 "movdqu %%xmm2, (%[h])\n\t"
                 :
-                : [pconst] "m" (pconst),
+                : [pconst] "m" (*pconst),
                   [h] "r" ((byte *)h + hoffs)
                 : "memory" );
 }
