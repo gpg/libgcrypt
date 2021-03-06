@@ -109,6 +109,28 @@ ghash_s390x_kimd (gcry_cipher_hd_t c, byte *result, const byte *buf,
 }
 #endif /* GCM_USE_S390X_CRYPTO*/
 
+#ifdef GCM_USE_PPC_VPMSUM
+extern void _gcry_ghash_setup_ppc_vpmsum (void *gcm_table, void *gcm_key);
+
+/* result is 128-bits */
+extern unsigned int _gcry_ghash_ppc_vpmsum (byte *result, void *gcm_table,
+					    const byte *buf, size_t nblocks);
+
+static void
+ghash_setup_ppc_vpmsum (gcry_cipher_hd_t c)
+{
+  _gcry_ghash_setup_ppc_vpmsum(c->u_mode.gcm.gcm_table, c->u_mode.gcm.u_ghash_key.key);
+}
+
+static unsigned int
+ghash_ppc_vpmsum (gcry_cipher_hd_t c, byte *result, const byte *buf,
+		  size_t nblocks)
+{
+  _gcry_ghash_ppc_vpmsum(result, c->u_mode.gcm.gcm_table, buf,
+			 nblocks);
+  return 0;
+}
+#endif /* GCM_USE_PPC_VPMSUM */
 
 #ifdef GCM_USE_TABLES
 static struct
@@ -543,7 +565,7 @@ static void
 setupM (gcry_cipher_hd_t c)
 {
 #if defined(GCM_USE_INTEL_PCLMUL) || defined(GCM_USE_ARM_PMULL) || \
-    defined(GCM_USE_S390X_CRYPTO)
+    defined(GCM_USE_S390X_CRYPTO) || defined(GCM_USE_PPC_VPMSUM)
   unsigned int features = _gcry_get_hw_features ();
 #endif
 
@@ -570,6 +592,13 @@ setupM (gcry_cipher_hd_t c)
     {
       c->u_mode.gcm.ghash_fn = ghash_armv7_neon;
       ghash_setup_armv7_neon (c);
+    }
+#endif
+#ifdef GCM_USE_PPC_VPMSUM
+  else if (features & HWF_PPC_VCRYPTO)
+    {
+      c->u_mode.gcm.ghash_fn = ghash_ppc_vpmsum;
+      ghash_setup_ppc_vpmsum (c);
     }
 #endif
 #ifdef GCM_USE_S390X_CRYPTO

@@ -3058,6 +3058,19 @@ case "$mpi_cpu_arch" in
   ;;
 esac
 
+# Arch specific GCM implementations
+case "${host}" in
+  powerpc64le-*-*)
+      GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-ppc.lo"
+  ;;
+  powerpc64-*-*)
+      GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-ppc.lo"
+  ;;
+  powerpc-*-*)
+      GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-ppc.lo"
+  ;;
+esac
+
 LIST_MEMBER(sm3, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sm3.lo"

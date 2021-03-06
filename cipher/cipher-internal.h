@@ -102,6 +102,18 @@
 # define GCM_USE_S390X_CRYPTO 1
 #endif /* GCM_USE_S390X_CRYPTO */
 
+/* GCM_USE_PPC_VPMSUM indicates whether to compile GCM with PPC Power 8
+ * polynomial multiplication instruction. */
+#undef GCM_USE_PPC_VPMSUM
+#if defined(GCM_USE_TABLES)
+#if defined(ENABLE_PPC_CRYPTO_SUPPORT) && defined(__powerpc64__) && \
+    !defined(WORDS_BIGENDIAN) && defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+    defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC) && __GNUC__ >= 4
+#  define GCM_USE_PPC_VPMSUM 1
+#  define NEED_16BYTE_ALIGNED_CONTEXT 1 /* this also aligns gcm_table */
+#endif
+#endif /* GCM_USE_PPC_VPMSUM */
+
 typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);
 
@@ -322,9 +334,6 @@ struct gcry_cipher_handle
         unsigned char key[MAX_BLOCKSIZE];
       } u_ghash_key;
 
-      /* GHASH implementation in use. */
-      ghash_fn_t ghash_fn;
-
       /* Pre-calculated table for GCM. */
 #ifdef GCM_USE_TABLES
  #if (SIZEOF_UNSIGNED_LONG == 8 || defined(__x86_64__))
@@ -335,6 +344,9 @@ struct gcry_cipher_handle
       u32 gcm_table[8 * 16];
  #endif
 #endif
+
+      /* GHASH implementation in use. */
+      ghash_fn_t ghash_fn;
     } gcm;
 
     /* Mode specific storage for OCB mode. */
