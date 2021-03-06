@@ -578,11 +578,19 @@ are
 @item intel-fast-vpgather
 @item intel-rdtsc
 @item intel-shaext
+@item intel-vaes-vpclmul
 @item arm-neon
 @item arm-aes
 @item arm-sha1
 @item arm-sha2
 @item arm-pmull
+@item ppc-vcrypto
+@item ppc-arch_3_00
+@item ppc-arch_2_07
+@item s390x-msa
+@item s390x-msa-4
+@item s390x-msa-8
+@item s390x-vx
 @end table
 
 To disable a feature for all processes using Libgcrypt 1.6 or newer,
