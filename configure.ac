@@ -3060,14 +3060,18 @@ esac
 
 # Arch specific GCM implementations
 case "${host}" in
-  powerpc64le-*-*)
-      GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-ppc.lo"
+  i?86-*-* | x86_64-*-*)
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-intel-pclmul.lo"
   ;;
-  powerpc64-*-*)
-      GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-ppc.lo"
+  arm*-*-*)
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-armv7-neon.lo"
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-armv8-aarch32-ce.lo"
   ;;
-  powerpc-*-*)
-      GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-ppc.lo"
+  aarch64-*-*)
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-armv8-aarch64-ce.lo"
+  ;;
+  powerpc64le-*-* | powerpc64-*-* | powerpc-*-*)
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS cipher-gcm-ppc.lo"
   ;;
 esac
 

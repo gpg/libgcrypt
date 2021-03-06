@@ -48,8 +48,7 @@ libcipher_la_SOURCES = \
 	cipher-aeswrap.c \
 	cipher-ccm.c \
 	cipher-cmac.c \
-	cipher-gcm.c cipher-gcm-intel-pclmul.c cipher-gcm-armv7-neon.S \
-	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
+	cipher-gcm.c \
 	cipher-poly1305.c \
 	cipher-ocb.c \
 	cipher-xts.c \
@@ -83,7 +82,8 @@ EXTRA_libcipher_la_SOURCES = \
 	chacha20.c chacha20-amd64-ssse3.S chacha20-amd64-avx2.S \
 	chacha20-armv7-neon.S chacha20-aarch64.S \
 	chacha20-ppc.c chacha20-s390x.S \
-	cipher-gcm-ppc.c \
+	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c cipher-gcm-armv7-neon.S \
+	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
 	crc.c crc-intel-pclmul.c crc-armv8-ce.c \
 	crc-armv8-aarch64-ce.S \
 	crc-ppc.c \
