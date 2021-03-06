@@ -2837,17 +2837,17 @@ if test "$found" = "1" ; then
       ;;
       aarch64-*-*)
          # Build with the assembly implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-armv8-ce.lo"
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-armv8-aarch64-ce.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc-armv8-ce.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc-armv8-aarch64-ce.lo"
       ;;
       powerpc64le-*-*)
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc-ppc.lo"
       ;;
       powerpc64-*-*)
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc-ppc.lo"
       ;;
       powerpc-*-*)
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS crc-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc-ppc.lo"
       ;;
    esac
 fi
@@ -2914,17 +2914,17 @@ if test "$found" = "1" ; then
       ;;
       powerpc64le-*-*)
          # Build with the crypto extension implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha256-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-ppc.lo"
       ;;
       powerpc64-*-*)
          # Big-Endian.
          # Build with the crypto extension implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha256-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-ppc.lo"
       ;;
       powerpc-*-*)
          # Big-Endian.
          # Build with the crypto extension implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha256-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-ppc.lo"
    esac
 
    case "$mpi_cpu_arch" in
@@ -2957,17 +2957,17 @@ if test "$found" = "1" ; then
       ;;
       powerpc64le-*-*)
          # Build with the crypto extension implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha512-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-ppc.lo"
       ;;
       powerpc64-*-*)
          # Big-Endian.
          # Build with the crypto extension implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha512-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-ppc.lo"
       ;;
       powerpc-*-*)
          # Big-Endian.
          # Build with the crypto extension implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS sha512-ppc.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-ppc.lo"
    esac
 
    if test x"$neonsupport" = xyes ; then
