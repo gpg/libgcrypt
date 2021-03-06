@@ -35,7 +35,8 @@
 /* The name of a file used to globally disable selected features. */
 #define HWF_DENY_FILE "/etc/gcrypt/hwf.deny"
 
-/* A table to map hardware features to a string.  */
+/* A table to map hardware features to a string.
+ * Note: Remember to add new HW features to 'doc/gcrypt.texi'.  */
 static struct
 {
   unsigned int flag;
