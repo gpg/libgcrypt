@@ -94,38 +94,75 @@ typedef vector unsigned long long vector2x_u64;
 typedef vector unsigned long long block;
 
 static ASM_FUNC_ATTR_INLINE block
+asm_xor(block a, block b)
+{
+  block r;
+  __asm__ volatile ("xxlxor %x0, %x1, %x2"
+		    : "=wa" (r)
+		    : "wa" (a), "wa" (b));
+  return r;
+}
+
+static ASM_FUNC_ATTR_INLINE block
 asm_vpmsumd(block a, block b)
 {
   block r;
-  __asm__("vpmsumd %0, %1, %2"
-	  : "=v" (r)
-	  : "v" (a), "v" (b));
+  __asm__ volatile ("vpmsumd %0, %1, %2"
+		    : "=v" (r)
+		    : "v" (a), "v" (b));
   return r;
 }
 
 static ASM_FUNC_ATTR_INLINE block
 asm_swap_u64(block a)
 {
-  __asm__("xxswapd %x0, %x1"
-          : "=wa" (a)
-          : "wa" (a));
-  return a;
+  block r;
+  __asm__ volatile ("xxswapd %x0, %x1"
+		    : "=wa" (r)
+		    : "wa" (a));
+  return r;
+}
+
+static ASM_FUNC_ATTR_INLINE block
+asm_mergelo(block l, block r)
+{
+  block ret;
+  __asm__ volatile ("xxmrgld %x0, %x1, %x2\n\t"
+		    : "=wa" (ret)
+		    : "wa" (l), "wa" (r));
+  return ret;
+}
+
+static ASM_FUNC_ATTR_INLINE block
+asm_mergehi(block l, block r)
+{
+  block ret;
+  __asm__ volatile ("xxmrghd %x0, %x1, %x2\n\t"
+		    : "=wa" (ret)
+		    : "wa" (l), "wa" (r));
+  return ret;
 }
 
 static ASM_FUNC_ATTR_INLINE block
 asm_rot_block_left(block a)
 {
-  block zero = {0, 0};
-  block mask = {2, 0};
-  return __builtin_shuffle(a, zero, mask);
+  block r;
+  block zero = { 0, 0 };
+  __asm__ volatile ("xxmrgld %x0, %x1, %x2"
+		    : "=wa" (r)
+		    : "wa" (a), "wa" (zero));
+  return r;
 }
 
 static ASM_FUNC_ATTR_INLINE block
 asm_rot_block_right(block a)
 {
-  block zero = {0, 0};
-  block mask = {1, 2};
-  return __builtin_shuffle(a, zero, mask);
+  block r;
+  block zero = { 0, 0 };
+  __asm__ volatile ("xxsldwi %x0, %x2, %x1, 2"
+		    : "=wa" (r)
+		    : "wa" (a), "wa" (zero));
+  return r;
 }
 
 /* vsl is a slightly strange function in the way the shift is passed... */
@@ -133,71 +170,79 @@ static ASM_FUNC_ATTR_INLINE block
 asm_ashl_128(block a, vector16x_u8 shift)
 {
   block r;
-  __asm__("vsl %0, %1, %2"
-          : "=v" (r)
-          : "v" (a), "v" (shift));
+  __asm__ volatile ("vsl %0, %1, %2"
+		    : "=v" (r)
+		    : "v" (a), "v" (shift));
   return r;
 }
 
-#define ALIGNED_LOAD(in_ptr) \
-  (vec_aligned_ld (0, (const unsigned char *)(in_ptr)))
-
-static ASM_FUNC_ATTR_INLINE block
-vec_aligned_ld(unsigned long offset, const unsigned char *ptr)
-{
-#ifndef WORDS_BIGENDIAN
-  block vec;
-  __asm__ ("lvx %0,%1,%2\n\t"
-	   : "=v" (vec)
-	   : "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory", "r0");
-  return vec;
-#else
-  return vec_vsx_ld (offset, ptr);
-#endif
-}
-
 #define STORE_TABLE(gcm_table, slot, vec) \
-  vec_aligned_st (((block)vec), slot * 16, (unsigned char *)(gcm_table));
-
+  vec_store_he (((block)vec), slot * 16, (unsigned char *)(gcm_table));
 
 static ASM_FUNC_ATTR_INLINE void
-vec_aligned_st(block vec, unsigned long offset, unsigned char *ptr)
+vec_store_he(block vec, unsigned long offset, unsigned char *ptr)
 {
 #ifndef WORDS_BIGENDIAN
-  __asm__ ("stvx %0,%1,%2\n\t"
-	   :
-	   : "v" (vec), "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory", "r0");
+  /* GCC vec_vsx_ld is generating two instructions on little-endian. Use
+   * lxvd2x directly instead. */
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("stxvd2x %x0, 0, %1\n\t"
+		    :
+		    : "wa" (vec), "r" ((uintptr_t)ptr)
+		    : "memory", "r0");
+  else
+#endif
+    __asm__ volatile ("stxvd2x %x0, %1, %2\n\t"
+		      :
+		      : "wa" (vec), "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
 #else
   vec_vsx_st ((vector16x_u8)vec, offset, ptr);
 #endif
 }
 
 #define VEC_LOAD_BE(in_ptr, bswap_const) \
-  (vec_load_be (0, (const unsigned char *)(in_ptr), bswap_const))
+  vec_be_swap(vec_load_he (0, (const unsigned char *)(in_ptr)), bswap_const)
 
 static ASM_FUNC_ATTR_INLINE block
-vec_load_be(unsigned long offset, const unsigned char *ptr,
-	    vector unsigned char be_bswap_const)
+vec_load_he(unsigned long offset, const unsigned char *ptr)
 {
 #ifndef WORDS_BIGENDIAN
   block vec;
   /* GCC vec_vsx_ld is generating two instructions on little-endian. Use
-   * lxvw4x directly instead. */
-  __asm__ ("lxvw4x %x0,%1,%2\n\t"
-	   : "=wa" (vec)
-	   : "r" (offset), "r" ((uintptr_t)ptr)
-	   : "memory", "r0");
-  __asm__ ("vperm %0,%1,%1,%2\n\t"
-	   : "=v" (vec)
-	   : "v" (vec), "v" (be_bswap_const));
+   * lxvd2x directly instead. */
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("lxvd2x %x0, 0, %1\n\t"
+		    : "=wa" (vec)
+		    : "r" ((uintptr_t)ptr)
+		    : "memory", "r0");
+  else
+#endif
+    __asm__ volatile ("lxvd2x %x0, %1, %2\n\t"
+		      : "=wa" (vec)
+		      : "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
   return vec;
 #else
-  (void)be_bswap_const;
   return vec_vsx_ld (offset, ptr);
 #endif
 }
+
+static ASM_FUNC_ATTR_INLINE block
+vec_be_swap(block vec, vector16x_u8 be_bswap_const)
+{
+#ifndef WORDS_BIGENDIAN
+  __asm__ volatile ("vperm %0, %1, %1, %2\n\t"
+		    : "=v" (vec)
+		    : "v" (vec), "v" (be_bswap_const));
+#else
+  (void)be_bswap_const;
+#endif
+  return vec;
+}
+
 
 /* Power ghash based on papers:
    "The Galois/Counter Mode of Operation (GCM)"; David A. McGrew, John Viega
@@ -216,15 +261,16 @@ vec_load_be(unsigned long offset, const unsigned char *ptr,
 void ASM_FUNC_ATTR
 _gcry_ghash_setup_ppc_vpmsum (uint64_t *gcm_table, void *gcm_key)
 {
-  vector16x_u8 bswap_const =
-    { 12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3 };
-  vector16x_u8 c2 =
+  static const vector16x_u8 bswap_const =
+    { ~7, ~6, ~5, ~4, ~3, ~2, ~1, ~0, ~15, ~14, ~13, ~12, ~11, ~10, ~9, ~8 };
+  static const vector16x_u8 c2 =
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0b11000010 };
+  static const vector16x_u8 one =
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
   block T0, T1, T2;
   block C2, H, H1, H1l, H1h, H2, H2l, H2h;
   block H3l, H3, H3h, H4l, H4, H4h, T3, T4;
   vector16x_s8 most_sig_of_H, t7, carry;
-  vector16x_u8 one = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
   H = VEC_LOAD_BE(gcm_key, bswap_const);
   most_sig_of_H = vec_splat((vector16x_s8)H, 15);
@@ -255,7 +301,7 @@ _gcry_ghash_setup_ppc_vpmsum (uint64_t *gcm_table, void *gcm_key)
   /* reduce 1 */
   T0 = asm_vpmsumd (H2l, C2);
 
-  H2l ^= asm_rot_block_left (H2);;
+  H2l ^= asm_rot_block_left (H2);
   H2h ^= asm_rot_block_right (H2);
   H2l = asm_swap_u64 (H2l);
   H2l ^= T0;
@@ -321,45 +367,30 @@ _gcry_ghash_setup_ppc_vpmsum (uint64_t *gcm_table, void *gcm_key)
   STORE_TABLE (gcm_table, 12, H4h);
 }
 
-ASM_FUNC_ATTR_INLINE
-block
-vec_perm2(block l, block r, vector16x_u8 perm) {
-  block ret;
-  __asm__ ("vperm %0,%1,%2,%3\n\t"
-	   : "=v" (ret)
-	   : "v" (l), "v" (r), "v" (perm));
-  return ret;
-}
-
 void ASM_FUNC_ATTR
-_gcry_ghash_ppc_vpmsum (const byte *result, const void *const gcm_table,
-			const byte *const buf, const size_t nblocks)
+_gcry_ghash_ppc_vpmsum (byte *result, const void *const gcm_table,
+			const byte *buf, const size_t nblocks)
 {
-  /* This const is strange, it is reversing the bytes, and also reversing
-     the u32s that get switched by lxvw4 and it also addresses bytes big-endian,
-     and is here due to lack of proper peep-hole optimization. */
-  vector16x_u8 bswap_const =
-    { 12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3 };
-  vector16x_u8 bswap_8_const =
-    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+  static const vector16x_u8 bswap_const =
+    { ~7, ~6, ~5, ~4, ~3, ~2, ~1, ~0, ~15, ~14, ~13, ~12, ~11, ~10, ~9, ~8 };
   block c2, H0l, H0m, H0h, H4l, H4m, H4h, H2m, H3l, H3m, H3h, Hl;
   block Hm, Hh, in, in0, in1, in2, in3, Hm_right, Hl_rotate, cur;
-  size_t blocks_remaining = nblocks, off = 0;
+  size_t blocks_remaining = nblocks;
   size_t not_multiple_of_four;
   block t0;
 
-  cur = vec_load_be (0, result, bswap_const);
+  cur = vec_be_swap (vec_load_he (0, result), bswap_const);
 
-  c2 = vec_aligned_ld (0, gcm_table);
-  H0l = vec_aligned_ld (16, gcm_table);
-  H0m = vec_aligned_ld (32, gcm_table);
-  H0h = vec_aligned_ld (48, gcm_table);
+  c2 = vec_load_he (0, gcm_table);
+  H0l = vec_load_he (16, gcm_table);
+  H0m = vec_load_he (32, gcm_table);
+  H0h = vec_load_he (48, gcm_table);
 
   for (not_multiple_of_four = nblocks % 4; not_multiple_of_four;
        not_multiple_of_four--)
     {
-      in = vec_load_be (off, buf, bswap_const);
-      off += 16;
+      in = vec_be_swap (vec_load_he (0, buf), bswap_const);
+      buf += 16;
       blocks_remaining--;
       cur ^= in;
 
@@ -385,62 +416,64 @@ _gcry_ghash_ppc_vpmsum (const byte *result, const void *const gcm_table,
 
   if (blocks_remaining > 0)
     {
-      vector16x_u8 hiperm =
-	{
-	  0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10,
-	  0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0
-	};
-      vector16x_u8 loperm =
-        {
-	  0x1f, 0x1e, 0x1d, 0x1c, 0x1b, 0x1a, 0x19, 0x18,
-	  0xf, 0xe, 0xd, 0xc, 0xb, 0xa, 0x9, 0x8
-	};
       block Xl, Xm, Xh, Xl1, Xm1, Xh1, Xm2, Xl3, Xm3, Xh3, Xl_rotate;
       block H21l, H21h, merge_l, merge_h;
+      block t1, t2;
 
-      H2m = vec_aligned_ld (48 + 32, gcm_table);
-      H3l = vec_aligned_ld (48 * 2 + 16, gcm_table);
-      H3m = vec_aligned_ld (48 * 2 + 32, gcm_table);
-      H3h = vec_aligned_ld (48 * 2 + 48, gcm_table);
-      H4l = vec_aligned_ld (48 * 3 + 16, gcm_table);
-      H4m = vec_aligned_ld (48 * 3 + 32, gcm_table);
-      H4h = vec_aligned_ld (48 * 3 + 48, gcm_table);
+      H2m = vec_load_he (48 + 32, gcm_table);
+      H3l = vec_load_he (48 * 2 + 16, gcm_table);
+      H3m = vec_load_he (48 * 2 + 32, gcm_table);
+      H3h = vec_load_he (48 * 2 + 48, gcm_table);
+      H4l = vec_load_he (48 * 3 + 16, gcm_table);
+      H4m = vec_load_he (48 * 3 + 32, gcm_table);
+      H4h = vec_load_he (48 * 3 + 48, gcm_table);
 
-      in0 = vec_load_be (off, buf, bswap_const);
-      in1 = vec_load_be (off + 16, buf, bswap_const);
-      in2 = vec_load_be (off + 32, buf, bswap_const);
-      in3 = vec_load_be (off + 48, buf, bswap_const);
-      blocks_remaining -= 4;
-      off += 64;
+      in0 = vec_load_he (0, buf);
+      in1 = vec_load_he (16, buf);
+      in2 = vec_load_he (32, buf);
+      in3 = vec_load_he (48, buf);
+      in0 = vec_be_swap(in0, bswap_const);
+      in1 = vec_be_swap(in1, bswap_const);
+      in2 = vec_be_swap(in2, bswap_const);
+      in3 = vec_be_swap(in3, bswap_const);
 
-      Xh = in0 ^ cur;
+      Xh = asm_xor (in0, cur);
 
       Xl1 = asm_vpmsumd (in1, H3l);
       Xm1 = asm_vpmsumd (in1, H3m);
       Xh1 = asm_vpmsumd (in1, H3h);
 
-      H21l = vec_perm2 (H2m, H0m, hiperm);
-      H21h = vec_perm2 (H2m, H0m, loperm);
-      merge_l = vec_perm2 (in2, in3, loperm);
-      merge_h = vec_perm2 (in2, in3, hiperm);
+      H21l = asm_mergehi (H2m, H0m);
+      H21h = asm_mergelo (H2m, H0m);
+      merge_l = asm_mergelo (in2, in3);
+      merge_h = asm_mergehi (in2, in3);
 
       Xm2 = asm_vpmsumd (in2, H2m);
       Xl3 = asm_vpmsumd (merge_l, H21l);
       Xm3 = asm_vpmsumd (in3, H0m);
       Xh3 = asm_vpmsumd (merge_h, H21h);
 
-      Xm2 ^= Xm1;
-      Xl3 ^= Xl1;
-      Xm3 ^= Xm2;
-      Xh3 ^= Xh1;
+      Xm2 = asm_xor (Xm2, Xm1);
+      Xl3 = asm_xor (Xl3, Xl1);
+      Xm3 = asm_xor (Xm3, Xm2);
+      Xh3 = asm_xor (Xh3, Xh1);
 
       /* Gerald Estrin's scheme for parallel multiplication of polynomials */
-      for (;blocks_remaining > 0; blocks_remaining -= 4, off += 64)
+      while (1)
         {
-	  in0 = vec_load_be (off, buf, bswap_const);
-	  in1 = vec_load_be (off + 16, buf, bswap_const);
-	  in2 = vec_load_be (off + 32, buf, bswap_const);
-	  in3 = vec_load_be (off + 48, buf, bswap_const);
+	  buf += 64;
+	  blocks_remaining -= 4;
+	  if (!blocks_remaining)
+	    break;
+
+	  in0 = vec_load_he (0, buf);
+	  in1 = vec_load_he (16, buf);
+	  in2 = vec_load_he (32, buf);
+	  in3 = vec_load_he (48, buf);
+	  in1 = vec_be_swap(in1, bswap_const);
+	  in2 = vec_be_swap(in2, bswap_const);
+	  in3 = vec_be_swap(in3, bswap_const);
+	  in0 = vec_be_swap(in0, bswap_const);
 
 	  Xl = asm_vpmsumd (Xh, H4l);
 	  Xm = asm_vpmsumd (Xh, H4m);
@@ -449,62 +482,63 @@ _gcry_ghash_ppc_vpmsum (const byte *result, const void *const gcm_table,
 	  Xm1 = asm_vpmsumd (in1, H3m);
 	  Xh1 = asm_vpmsumd (in1, H3h);
 
-	  Xl ^= Xl3;
-	  Xm ^= Xm3;
-	  Xh ^= Xh3;
-	  merge_l = vec_perm2 (in2, in3, loperm);
-	  merge_h = vec_perm2 (in2, in3, hiperm);
+	  Xl = asm_xor (Xl, Xl3);
+	  Xm = asm_xor (Xm, Xm3);
+	  Xh = asm_xor (Xh, Xh3);
+	  merge_l = asm_mergelo (in2, in3);
+	  merge_h = asm_mergehi (in2, in3);
 
 	  t0 = asm_vpmsumd (Xl, c2);
 	  Xl3 = asm_vpmsumd (merge_l, H21l);
 	  Xh3 = asm_vpmsumd (merge_h, H21h);
 
-	  Xl ^= asm_rot_block_left (Xm);
-	  Xh ^= asm_rot_block_right (Xm);
+	  t1 = asm_rot_block_left (Xm);
+	  t2 = asm_rot_block_right (Xm);
+	  Xl = asm_xor(Xl, t1);
+	  Xh = asm_xor(Xh, t2);
 
 	  Xl = asm_swap_u64 (Xl);
-	  Xl ^= t0;
+	  Xl = asm_xor(Xl, t0);
 
 	  Xl_rotate = asm_swap_u64 (Xl);
 	  Xm2 = asm_vpmsumd (in2, H2m);
 	  Xm3 = asm_vpmsumd (in3, H0m);
 	  Xl = asm_vpmsumd (Xl, c2);
 
-	  Xl3 ^= Xl1;
-	  Xh3 ^= Xh1;
-	  Xh ^= in0;
-	  Xm2 ^= Xm1;
-	  Xh ^= Xl_rotate;
-	  Xm3 ^= Xm2;
-	  Xh ^= Xl;
+	  Xl3 = asm_xor (Xl3, Xl1);
+	  Xh3 = asm_xor (Xh3, Xh1);
+	  Xh = asm_xor (Xh, in0);
+	  Xm2 = asm_xor (Xm2, Xm1);
+	  Xh = asm_xor (Xh, Xl_rotate);
+	  Xm3 = asm_xor (Xm3, Xm2);
+	  Xh = asm_xor (Xh, Xl);
 	}
 
       Xl = asm_vpmsumd (Xh, H4l);
       Xm = asm_vpmsumd (Xh, H4m);
       Xh = asm_vpmsumd (Xh, H4h);
 
-      Xl ^= Xl3;
-      Xm ^= Xm3;
+      Xl = asm_xor (Xl, Xl3);
+      Xm = asm_xor (Xm, Xm3);
 
       t0 = asm_vpmsumd (Xl, c2);
 
-      Xh ^= Xh3;
-      Xl ^= asm_rot_block_left (Xm);
-      Xh ^= asm_rot_block_right (Xm);
+      Xh = asm_xor (Xh, Xh3);
+      t1 = asm_rot_block_left (Xm);
+      t2 = asm_rot_block_right (Xm);
+      Xl = asm_xor (Xl, t1);
+      Xh = asm_xor (Xh, t2);
 
       Xl = asm_swap_u64 (Xl);
-      Xl ^= t0;
+      Xl = asm_xor (Xl, t0);
 
       Xl_rotate = asm_swap_u64 (Xl);
       Xl = asm_vpmsumd (Xl, c2);
-      Xl_rotate ^= Xh;
-      Xl ^= Xl_rotate;
-
-      cur = Xl;
+      Xh = asm_xor (Xh, Xl_rotate);
+      cur = asm_xor (Xh, Xl);
     }
 
-  cur = (block)vec_perm ((vector16x_u8)cur, (vector16x_u8)cur, bswap_8_const);
-  STORE_TABLE (result, 0, cur);
+  vec_store_he (vec_be_swap (cur, bswap_const), 0, result);
 }
 
 #endif /* GCM_USE_PPC_VPMSUM */
