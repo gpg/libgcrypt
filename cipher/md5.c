@@ -317,6 +317,6 @@ gcry_md_spec_t _gcry_digest_spec_md5 =
     GCRY_MD_MD5, {0, 0},
     "MD5", asn, DIM (asn), oid_spec_md5, 16,
     md5_init, _gcry_md_block_write, md5_final, md5_read, NULL,
-    NULL, NULL,
+    NULL,
     sizeof (MD5_CONTEXT)
   };

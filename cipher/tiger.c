@@ -819,7 +819,7 @@ gcry_md_spec_t _gcry_digest_spec_tiger =
     GCRY_MD_TIGER, {0, 0},
     "TIGER192", NULL, 0, NULL, 24,
     tiger_init, _gcry_md_block_write, tiger_final, tiger_read, NULL,
-    NULL, NULL,
+    NULL,
     sizeof (TIGER_CONTEXT)
   };
 
@@ -843,7 +843,7 @@ gcry_md_spec_t _gcry_digest_spec_tiger1 =
     GCRY_MD_TIGER1, {0, 0},
     "TIGER", asn1, DIM (asn1), oid_spec_tiger1, 24,
     tiger1_init, _gcry_md_block_write, tiger_final, tiger_read, NULL,
-    NULL, NULL,
+    NULL,
     sizeof (TIGER_CONTEXT)
   };
 
@@ -855,6 +855,6 @@ gcry_md_spec_t _gcry_digest_spec_tiger2 =
     GCRY_MD_TIGER2, {0, 0},
     "TIGER2", NULL, 0, NULL, 24,
     tiger2_init, _gcry_md_block_write, tiger_final, tiger_read, NULL,
-    NULL, NULL,
+    NULL,
     sizeof (TIGER_CONTEXT)
   };

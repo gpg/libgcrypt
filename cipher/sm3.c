@@ -338,22 +338,9 @@ sm3_read (void *context)
 }
 
 
-/* Shortcut functions which puts the hash value of the supplied buffer
+/* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 32 bytes.  */
-void
-_gcry_sm3_hash_buffer (void *outbuf, const void *buffer, size_t length)
-{
-  SM3_CONTEXT hd;
-
-  sm3_init (&hd, 0);
-  _gcry_md_block_write (&hd, buffer, length);
-  sm3_final (&hd);
-  memcpy (outbuf, hd.bctx.buf, 32);
-}
-
-
-/* Variant of the above shortcut function using multiple buffers.  */
-void
+static void
 _gcry_sm3_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 {
   SM3_CONTEXT hd;
@@ -467,7 +454,7 @@ gcry_md_spec_t _gcry_digest_spec_sm3 =
     GCRY_MD_SM3, {0, 0},
     "SM3", asn_sm3, DIM (asn_sm3), oid_spec_sm3, 32,
     sm3_init, _gcry_md_block_write, sm3_final, sm3_read, NULL,
-    _gcry_sm3_hash_buffer, _gcry_sm3_hash_buffers,
+    _gcry_sm3_hash_buffers,
     sizeof (SM3_CONTEXT),
     run_selftests
   };

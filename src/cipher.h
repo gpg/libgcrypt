@@ -114,33 +114,9 @@ gcry_err_code_t _gcry_cipher_cmac_check_tag
 gcry_err_code_t _gcry_cipher_cmac_set_subkeys
 /*           */ (gcry_cipher_hd_t c);
 
-/*-- rmd160.c --*/
-void _gcry_rmd160_hash_buffer (void *outbuf,
-                               const void *buffer, size_t length);
-
 /*-- sha1.c --*/
 void _gcry_sha1_hash_buffer (void *outbuf,
                              const void *buffer, size_t length);
-void _gcry_sha1_hash_buffers (void *outbuf,
-                              const gcry_buffer_t *iov, int iovcnt);
-
-/*-- sha256.c --*/
-void _gcry_sha256_hash_buffer (void *outbuf,
-                               const void *buffer, size_t length);
-void _gcry_sha256_hash_buffers (void *outbuf,
-                                const gcry_buffer_t *iov, int iovcnt);
-
-/*-- sha512.c --*/
-void _gcry_sha512_hash_buffer (void *outbuf,
-                               const void *buffer, size_t length);
-void _gcry_sha512_hash_buffers (void *outbuf,
-                                const gcry_buffer_t *iov, int iovcnt);
-
-/*-- sm3.c --*/
-void _gcry_sm3_hash_buffer (void *outbuf,
-                            const void *buffer, size_t length);
-void _gcry_sm3_hash_buffers (void *outbuf,
-                             const gcry_buffer_t *iov, int iovcnt);
 
 /*-- blake2.c --*/
 gcry_err_code_t _gcry_blake2_init_with_key(void *ctx, unsigned int flags,

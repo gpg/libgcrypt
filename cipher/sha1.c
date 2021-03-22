@@ -631,24 +631,12 @@ sha1_read( void *context )
   return hd->bctx.buf;
 }
 
+
 /****************
- * Shortcut functions which puts the hash value of the supplied buffer
+ * Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 20 bytes.
  */
-void
-_gcry_sha1_hash_buffer (void *outbuf, const void *buffer, size_t length)
-{
-  SHA1_CONTEXT hd;
-
-  sha1_init (&hd, 0);
-  _gcry_md_block_write (&hd, buffer, length);
-  sha1_final (&hd);
-  memcpy (outbuf, hd.bctx.buf, 20);
-}
-
-
-/* Variant of the above shortcut function using a multiple buffers.  */
-void
+static void
 _gcry_sha1_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 {
   SHA1_CONTEXT hd;
@@ -659,6 +647,18 @@ _gcry_sha1_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
                           (const char*)iov[0].data + iov[0].off, iov[0].len);
   sha1_final (&hd);
   memcpy (outbuf, hd.bctx.buf, 20);
+}
+
+/* Variant of the above shortcut function using a single buffer.  */
+void
+_gcry_sha1_hash_buffer (void *outbuf, const void *buffer, size_t length)
+{
+  gcry_buffer_t iov = { 0 };
+
+  iov.data = (void *)buffer;
+  iov.len = length;
+
+  _gcry_sha1_hash_buffers (outbuf, &iov, 1);
 }
 
 
@@ -759,7 +759,7 @@ gcry_md_spec_t _gcry_digest_spec_sha1 =
     GCRY_MD_SHA1, {0, 1},
     "SHA1", asn, DIM (asn), oid_spec_sha1, 20,
     sha1_init, _gcry_md_block_write, sha1_final, sha1_read, NULL,
-    _gcry_sha1_hash_buffer, _gcry_sha1_hash_buffers,
+    _gcry_sha1_hash_buffers,
     sizeof (SHA1_CONTEXT),
     run_selftests
   };

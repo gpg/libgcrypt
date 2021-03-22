@@ -1205,11 +1205,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
         }
     }
 
-  if (spec->hash_buffer != NULL)
-    {
-      spec->hash_buffer (digest, buffer, length);
-    }
-  else if (spec->hash_buffers != NULL)
+  if (spec->hash_buffers != NULL)
     {
       gcry_buffer_t iov;
 

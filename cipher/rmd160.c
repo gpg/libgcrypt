@@ -477,21 +477,9 @@ rmd160_read( void *context )
 
 
 /****************
- * Shortcut functions which puts the hash value of the supplied buffer
+ * Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 20 bytes.
  */
-void
-_gcry_rmd160_hash_buffer (void *outbuf, const void *buffer, size_t length )
-{
-  RMD160_CONTEXT hd;
-
-  rmd160_init (&hd, 0);
-  _gcry_md_block_write ( &hd, buffer, length );
-  rmd160_final ( &hd );
-  memcpy ( outbuf, hd.bctx.buf, 20 );
-}
-
-/* Variant of the above shortcut function using a multiple buffers.  */
 static void
 _gcry_rmd160_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 {
@@ -524,6 +512,6 @@ gcry_md_spec_t _gcry_digest_spec_rmd160 =
     GCRY_MD_RMD160, {0, 0},
     "RIPEMD160", asn, DIM (asn), oid_spec_rmd160, 20,
     rmd160_init, _gcry_md_block_write, rmd160_final, rmd160_read, NULL,
-    _gcry_rmd160_hash_buffer, _gcry_rmd160_hash_buffers,
+    _gcry_rmd160_hash_buffers,
     sizeof (RMD160_CONTEXT)
   };

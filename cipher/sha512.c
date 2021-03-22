@@ -862,22 +862,9 @@ sha512_read (void *context)
 }
 
 
-/* Shortcut functions which puts the hash value of the supplied buffer
+/* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 64 bytes.  */
-void
-_gcry_sha512_hash_buffer (void *outbuf, const void *buffer, size_t length)
-{
-  SHA512_CONTEXT hd;
-
-  sha512_init (&hd, 0);
-  _gcry_md_block_write (&hd, buffer, length);
-  sha512_final (&hd);
-  memcpy (outbuf, hd.bctx.buf, 64);
-}
-
-
-/* Variant of the above shortcut function using multiple buffers.  */
-void
+static void
 _gcry_sha512_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 {
   SHA512_CONTEXT hd;
@@ -892,21 +879,8 @@ _gcry_sha512_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 
 
 
-/* Shortcut functions which puts the hash value of the supplied buffer
+/* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 48 bytes.  */
-static void
-_gcry_sha384_hash_buffer (void *outbuf, const void *buffer, size_t length)
-{
-  SHA512_CONTEXT hd;
-
-  sha384_init (&hd, 0);
-  _gcry_md_block_write (&hd, buffer, length);
-  sha512_final (&hd);
-  memcpy (outbuf, hd.bctx.buf, 48);
-}
-
-
-/* Variant of the above shortcut function using multiple buffers.  */
 static void
 _gcry_sha384_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 {
@@ -922,26 +896,14 @@ _gcry_sha384_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 
 
 
-/* Shortcut functions which puts the hash value of the supplied buffer
+/* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 32 bytes.  */
-static void
-_gcry_sha512_256_hash_buffer (void *outbuf, const void *buffer, size_t length)
-{
-  SHA512_CONTEXT hd;
-
-  sha512_256_init (&hd, 0);
-  _gcry_md_block_write (&hd, buffer, length);
-  sha512_final (&hd);
-  memcpy (outbuf, hd.bctx.buf, 32);
-}
-
-
-/* Variant of the above shortcut function using multiple buffers.  */
 static void
 _gcry_sha512_256_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
 			       int iovcnt)
 {
   SHA512_CONTEXT hd;
+
 
   sha512_256_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)
@@ -953,21 +915,8 @@ _gcry_sha512_256_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
 
 
 
-/* Shortcut functions which puts the hash value of the supplied buffer
+/* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 28 bytes.  */
-static void
-_gcry_sha512_224_hash_buffer (void *outbuf, const void *buffer, size_t length)
-{
-  SHA512_CONTEXT hd;
-
-  sha512_224_init (&hd, 0);
-  _gcry_md_block_write (&hd, buffer, length);
-  sha512_final (&hd);
-  memcpy (outbuf, hd.bctx.buf, 28);
-}
-
-
-/* Variant of the above shortcut function using multiple buffers.  */
 static void
 _gcry_sha512_224_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
 			       int iovcnt)
@@ -1242,7 +1191,7 @@ gcry_md_spec_t _gcry_digest_spec_sha512 =
     GCRY_MD_SHA512, {0, 1},
     "SHA512", sha512_asn, DIM (sha512_asn), oid_spec_sha512, 64,
     sha512_init, _gcry_md_block_write, sha512_final, sha512_read, NULL,
-    _gcry_sha512_hash_buffer, _gcry_sha512_hash_buffers,
+    _gcry_sha512_hash_buffers,
     sizeof (SHA512_CONTEXT),
     run_selftests
   };
@@ -1272,7 +1221,7 @@ gcry_md_spec_t _gcry_digest_spec_sha384 =
     GCRY_MD_SHA384, {0, 1},
     "SHA384", sha384_asn, DIM (sha384_asn), oid_spec_sha384, 48,
     sha384_init, _gcry_md_block_write, sha512_final, sha512_read, NULL,
-    _gcry_sha384_hash_buffer, _gcry_sha384_hash_buffers,
+    _gcry_sha384_hash_buffers,
     sizeof (SHA512_CONTEXT),
     run_selftests
   };
@@ -1291,7 +1240,7 @@ gcry_md_spec_t _gcry_digest_spec_sha512_256 =
     GCRY_MD_SHA512_256, {0, 1},
     "SHA512_256", sha512_256_asn, DIM (sha512_256_asn), oid_spec_sha512_256, 32,
     sha512_256_init, _gcry_md_block_write, sha512_final, sha512_read, NULL,
-    _gcry_sha512_256_hash_buffer, _gcry_sha512_256_hash_buffers,
+    _gcry_sha512_256_hash_buffers,
     sizeof (SHA512_CONTEXT),
     run_selftests
   };
@@ -1310,7 +1259,7 @@ gcry_md_spec_t _gcry_digest_spec_sha512_224 =
     GCRY_MD_SHA512_224, {0, 1},
     "SHA512_224", sha512_224_asn, DIM (sha512_224_asn), oid_spec_sha512_224, 28,
     sha512_224_init, _gcry_md_block_write, sha512_final, sha512_read, NULL,
-    _gcry_sha512_224_hash_buffer, _gcry_sha512_224_hash_buffers,
+    _gcry_sha512_224_hash_buffers,
     sizeof (SHA512_CONTEXT),
     run_selftests
   };

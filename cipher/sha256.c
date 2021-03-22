@@ -628,22 +628,9 @@ sha256_read (void *context)
 }
 
 
-/* Shortcut functions which puts the hash value of the supplied buffer
+/* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 32 bytes.  */
-void
-_gcry_sha256_hash_buffer (void *outbuf, const void *buffer, size_t length)
-{
-  SHA256_CONTEXT hd;
-
-  sha256_init (&hd, 0);
-  _gcry_md_block_write (&hd, buffer, length);
-  sha256_final (&hd);
-  memcpy (outbuf, hd.bctx.buf, 32);
-}
-
-
-/* Variant of the above shortcut function using multiple buffers.  */
-void
+static void
 _gcry_sha256_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 {
   SHA256_CONTEXT hd;
@@ -657,21 +644,8 @@ _gcry_sha256_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 }
 
 
-/* Shortcut functions which puts the hash value of the supplied buffer
+/* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 28 bytes.  */
-static void
-_gcry_sha224_hash_buffer (void *outbuf, const void *buffer, size_t length)
-{
-  SHA256_CONTEXT hd;
-
-  sha224_init (&hd, 0);
-  _gcry_md_block_write (&hd, buffer, length);
-  sha256_final (&hd);
-  memcpy (outbuf, hd.bctx.buf, 28);
-}
-
-
-/* Variant of the above shortcut function using multiple buffers.  */
 static void
 _gcry_sha224_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 {
@@ -841,7 +815,7 @@ gcry_md_spec_t _gcry_digest_spec_sha224 =
     GCRY_MD_SHA224, {0, 1},
     "SHA224", asn224, DIM (asn224), oid_spec_sha224, 28,
     sha224_init, _gcry_md_block_write, sha256_final, sha256_read, NULL,
-    _gcry_sha224_hash_buffer, _gcry_sha224_hash_buffers,
+    _gcry_sha224_hash_buffers,
     sizeof (SHA256_CONTEXT),
     run_selftests
   };
@@ -851,7 +825,7 @@ gcry_md_spec_t _gcry_digest_spec_sha256 =
     GCRY_MD_SHA256, {0, 1},
     "SHA256", asn256, DIM (asn256), oid_spec_sha256, 32,
     sha256_init, _gcry_md_block_write, sha256_final, sha256_read, NULL,
-    _gcry_sha256_hash_buffer, _gcry_sha256_hash_buffers,
+    _gcry_sha256_hash_buffers,
     sizeof (SHA256_CONTEXT),
     run_selftests
   };

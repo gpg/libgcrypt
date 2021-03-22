@@ -291,6 +291,6 @@ gcry_md_spec_t _gcry_digest_spec_md4 =
     GCRY_MD_MD4, {0, 0},
     "MD4", asn, DIM (asn), oid_spec_md4,16,
     md4_init, _gcry_md_block_write, md4_final, md4_read, NULL,
-    NULL, NULL,
+    NULL,
     sizeof (MD4_CONTEXT)
   };
