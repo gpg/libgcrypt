@@ -341,9 +341,12 @@ sm3_read (void *context)
 /* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 32 bytes.  */
 static void
-_gcry_sm3_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+_gcry_sm3_hash_buffers (void *outbuf, size_t nbytes,
+			const gcry_buffer_t *iov, int iovcnt)
 {
   SM3_CONTEXT hd;
+
+  (void)nbytes;
 
   sm3_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)

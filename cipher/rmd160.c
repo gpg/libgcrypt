@@ -481,9 +481,12 @@ rmd160_read( void *context )
  * into outbuf which must have a size of 20 bytes.
  */
 static void
-_gcry_rmd160_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+_gcry_rmd160_hash_buffers (void *outbuf, size_t nbytes,
+			   const gcry_buffer_t *iov, int iovcnt)
 {
   RMD160_CONTEXT hd;
+
+  (void)nbytes;
 
   rmd160_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)

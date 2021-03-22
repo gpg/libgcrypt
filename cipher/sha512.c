@@ -865,9 +865,12 @@ sha512_read (void *context)
 /* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 64 bytes.  */
 static void
-_gcry_sha512_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+_gcry_sha512_hash_buffers (void *outbuf, size_t nbytes,
+			   const gcry_buffer_t *iov, int iovcnt)
 {
   SHA512_CONTEXT hd;
+
+  (void)nbytes;
 
   sha512_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)
@@ -882,9 +885,12 @@ _gcry_sha512_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 /* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 48 bytes.  */
 static void
-_gcry_sha384_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+_gcry_sha384_hash_buffers (void *outbuf, size_t nbytes,
+			   const gcry_buffer_t *iov, int iovcnt)
 {
   SHA512_CONTEXT hd;
+
+  (void)nbytes;
 
   sha384_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)
@@ -899,11 +905,12 @@ _gcry_sha384_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 /* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 32 bytes.  */
 static void
-_gcry_sha512_256_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
-			       int iovcnt)
+_gcry_sha512_256_hash_buffers (void *outbuf, size_t nbytes,
+			       const gcry_buffer_t *iov, int iovcnt)
 {
   SHA512_CONTEXT hd;
 
+  (void)nbytes;
 
   sha512_256_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)
@@ -918,10 +925,12 @@ _gcry_sha512_256_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
 /* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 28 bytes.  */
 static void
-_gcry_sha512_224_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
-			       int iovcnt)
+_gcry_sha512_224_hash_buffers (void *outbuf, size_t nbytes,
+			       const gcry_buffer_t *iov, int iovcnt)
 {
   SHA512_CONTEXT hd;
+
+  (void)nbytes;
 
   sha512_224_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)

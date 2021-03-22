@@ -637,9 +637,12 @@ sha1_read( void *context )
  * into outbuf which must have a size of 20 bytes.
  */
 static void
-_gcry_sha1_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+_gcry_sha1_hash_buffers (void *outbuf, size_t nbytes,
+			 const gcry_buffer_t *iov, int iovcnt)
 {
   SHA1_CONTEXT hd;
+
+  (void)nbytes;
 
   sha1_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)
@@ -658,7 +661,7 @@ _gcry_sha1_hash_buffer (void *outbuf, const void *buffer, size_t length)
   iov.data = (void *)buffer;
   iov.len = length;
 
-  _gcry_sha1_hash_buffers (outbuf, &iov, 1);
+  _gcry_sha1_hash_buffers (outbuf, 20, &iov, 1);
 }
 
 

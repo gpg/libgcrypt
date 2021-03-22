@@ -946,10 +946,11 @@ gcry_err_code_t _gcry_blake2_init_with_key(void *ctx, unsigned int flags,
     gcry_assert (err == 0); \
   } \
   static void \
-  _gcry_blake2##bs##_##dbits##_hash_buffers(void *outbuf, \
+  _gcry_blake2##bs##_##dbits##_hash_buffers(void *outbuf, size_t nbytes, \
         const gcry_buffer_t *iov, int iovcnt) \
   { \
     BLAKE2##BS##_CONTEXT hd; \
+    (void)nbytes; \
     blake2##bs##_##dbits##_init (&hd, 0); \
     for (;iovcnt > 0; iov++, iovcnt--) \
       blake2##bs##_write (&hd, (const char*)iov[0].data + iov[0].off, \

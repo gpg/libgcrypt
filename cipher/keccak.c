@@ -1223,8 +1223,8 @@ keccak_extract (void *context, void *out, size_t outlen)
 
 /* Variant of the above shortcut function using multiple buffers.  */
 static void
-_gcry_sha3_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt,
-                         const gcry_md_spec_t *spec)
+_gcry_sha3_hash_buffers (void *outbuf, size_t nbytes, const gcry_buffer_t *iov,
+			 int iovcnt, const gcry_md_spec_t *spec)
 {
   KECCAK_CONTEXT hd;
 
@@ -1232,36 +1232,43 @@ _gcry_sha3_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt,
   for (;iovcnt > 0; iov++, iovcnt--)
     keccak_write (&hd, (const char*)iov[0].data + iov[0].off, iov[0].len);
   keccak_final (&hd);
-  memcpy (outbuf, keccak_read (&hd), spec->mdlen);
+  if (spec->mdlen > 0)
+    memcpy (outbuf, keccak_read (&hd), spec->mdlen);
+  else
+    keccak_extract (&hd, outbuf, nbytes);
 }
 
 
 static void
-_gcry_sha3_224_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
-                             int iovcnt)
+_gcry_sha3_224_hash_buffers (void *outbuf, size_t nbytes,
+			     const gcry_buffer_t *iov, int iovcnt)
 {
-  _gcry_sha3_hash_buffers (outbuf, iov, iovcnt, &_gcry_digest_spec_sha3_224);
+  _gcry_sha3_hash_buffers (outbuf, nbytes, iov, iovcnt,
+			   &_gcry_digest_spec_sha3_224);
 }
 
 static void
-_gcry_sha3_256_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
-                             int iovcnt)
+_gcry_sha3_256_hash_buffers (void *outbuf, size_t nbytes,
+			     const gcry_buffer_t *iov, int iovcnt)
 {
-  _gcry_sha3_hash_buffers (outbuf, iov, iovcnt, &_gcry_digest_spec_sha3_256);
+  _gcry_sha3_hash_buffers (outbuf, nbytes, iov, iovcnt,
+			   &_gcry_digest_spec_sha3_256);
 }
 
 static void
-_gcry_sha3_384_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
-                             int iovcnt)
+_gcry_sha3_384_hash_buffers (void *outbuf, size_t nbytes,
+			     const gcry_buffer_t *iov, int iovcnt)
 {
-  _gcry_sha3_hash_buffers (outbuf, iov, iovcnt, &_gcry_digest_spec_sha3_384);
+  _gcry_sha3_hash_buffers (outbuf, nbytes, iov, iovcnt,
+			   &_gcry_digest_spec_sha3_384);
 }
 
 static void
-_gcry_sha3_512_hash_buffers (void *outbuf, const gcry_buffer_t *iov,
-                             int iovcnt)
+_gcry_sha3_512_hash_buffers (void *outbuf, size_t nbytes,
+			     const gcry_buffer_t *iov, int iovcnt)
 {
-  _gcry_sha3_hash_buffers (outbuf, iov, iovcnt, &_gcry_digest_spec_sha3_512);
+  _gcry_sha3_hash_buffers (outbuf, nbytes, iov, iovcnt,
+			   &_gcry_digest_spec_sha3_512);
 }
 
 

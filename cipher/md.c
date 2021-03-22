@@ -1214,7 +1214,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
       iov.off = 0;
       iov.len = length;
 
-      spec->hash_buffers (digest, &iov, 1);
+      spec->hash_buffers (digest, spec->mdlen, &iov, 1);
     }
   else
     {
@@ -1294,7 +1294,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 
   if (!hmac && spec->hash_buffers)
     {
-      spec->hash_buffers (digest, iov, iovcnt);
+      spec->hash_buffers (digest, digestlen, iov, iovcnt);
     }
   else
     {

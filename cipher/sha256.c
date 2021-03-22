@@ -631,9 +631,12 @@ sha256_read (void *context)
 /* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 32 bytes.  */
 static void
-_gcry_sha256_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+_gcry_sha256_hash_buffers (void *outbuf, size_t nbytes,
+			   const gcry_buffer_t *iov, int iovcnt)
 {
   SHA256_CONTEXT hd;
+
+  (void)nbytes;
 
   sha256_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)
@@ -647,9 +650,12 @@ _gcry_sha256_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 /* Shortcut functions which puts the hash value of the supplied buffer iov
  * into outbuf which must have a size of 28 bytes.  */
 static void
-_gcry_sha224_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+_gcry_sha224_hash_buffers (void *outbuf, size_t nbytes,
+			   const gcry_buffer_t *iov, int iovcnt)
 {
   SHA256_CONTEXT hd;
+
+  (void)nbytes;
 
   sha224_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)
