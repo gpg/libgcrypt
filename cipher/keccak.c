@@ -1271,6 +1271,22 @@ _gcry_sha3_512_hash_buffers (void *outbuf, size_t nbytes,
 			   &_gcry_digest_spec_sha3_512);
 }
 
+static void
+_gcry_shake128_hash_buffers (void *outbuf, size_t nbytes,
+			     const gcry_buffer_t *iov, int iovcnt)
+{
+  _gcry_sha3_hash_buffers (outbuf, nbytes, iov, iovcnt,
+			   &_gcry_digest_spec_shake128);
+}
+
+static void
+_gcry_shake256_hash_buffers (void *outbuf, size_t nbytes,
+			     const gcry_buffer_t *iov, int iovcnt)
+{
+  _gcry_sha3_hash_buffers (outbuf, nbytes, iov, iovcnt,
+			   &_gcry_digest_spec_shake256);
+}
+
 
 /*
      Self-test section.
@@ -1530,7 +1546,7 @@ gcry_md_spec_t _gcry_digest_spec_shake128 =
     GCRY_MD_SHAKE128, {0, 1},
     "SHAKE128", shake128_asn, DIM (shake128_asn), oid_spec_shake128, 0,
     shake128_init, keccak_write, keccak_final, NULL, keccak_extract,
-    NULL,
+    _gcry_shake128_hash_buffers,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -1539,7 +1555,7 @@ gcry_md_spec_t _gcry_digest_spec_shake256 =
     GCRY_MD_SHAKE256, {0, 1},
     "SHAKE256", shake256_asn, DIM (shake256_asn), oid_spec_shake256, 0,
     shake256_init, keccak_write, keccak_final, NULL, keccak_extract,
-    NULL,
+    _gcry_shake256_hash_buffers,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
