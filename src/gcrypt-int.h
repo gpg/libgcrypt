@@ -128,6 +128,10 @@ gpg_err_code_t _gcry_md_extract (gcry_md_hd_t hd, int algo, void *buffer,
                                  size_t length);
 void _gcry_md_hash_buffer (int algo, void *digest,
                            const void *buffer, size_t length);
+gpg_err_code_t _gcry_md_hash_buffers_extract (int algo, unsigned int flags,
+					      void *digest, int digestlen,
+					      const gcry_buffer_t *iov,
+					      int iovcnt);
 gpg_err_code_t _gcry_md_hash_buffers (int algo, unsigned int flags,
                                       void *digest,
                                       const gcry_buffer_t *iov, int iovcnt);

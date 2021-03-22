@@ -1251,11 +1251,15 @@ _gcry_md_hash_buffer (int algo, void *digest,
    used as the key.
 
    On success 0 is returned and resulting hash or HMAC is stored at
-   DIGEST which must have been provided by the caller with an
-   appropriate length.  */
+   DIGEST. DIGESTLEN may be given as -1, in which case DIGEST must
+   have been provided by the caller with an appropriate length.
+   DIGESTLEN may also be the appropriate length or, in case of XOF
+   algorithms, DIGESTLEN indicates number bytes to extract from XOF
+   to DIGEST.  */
 gpg_err_code_t
-_gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
-                       const gcry_buffer_t *iov, int iovcnt)
+_gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
+			       int digestlen, const gcry_buffer_t *iov,
+			       int iovcnt)
 {
   gcry_md_spec_t *spec;
   int hmac;
@@ -1287,6 +1291,11 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
         }
     }
 
+  if (spec->mdlen > 0 && digestlen != -1 && digestlen != spec->mdlen)
+    return GPG_ERR_DIGEST_ALGO;
+  if (spec->mdlen == 0 && digestlen == -1)
+    return GPG_ERR_DIGEST_ALGO;
+
   if (!hmac && spec->hash_buffers)
     {
       spec->hash_buffers (digest, iov, iovcnt);
@@ -1297,13 +1306,6 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
          normal functions.  */
       gcry_md_hd_t h;
       gpg_err_code_t rc;
-      int dlen;
-
-      /* Detect SHAKE128 like algorithms which we can't use because
-       * our API does not allow for a variable length digest.  */
-      dlen = md_digest_length (algo);
-      if (!dlen)
-        return GPG_ERR_DIGEST_ALGO;
 
       rc = md_open (&h, algo, (hmac? GCRY_MD_FLAG_HMAC:0));
       if (rc)
@@ -1324,11 +1326,36 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
       for (;iovcnt; iov++, iovcnt--)
         md_write (h, (const char*)iov[0].data + iov[0].off, iov[0].len);
       md_final (h);
-      memcpy (digest, md_read (h, algo), dlen);
+      if (spec->mdlen > 0)
+	memcpy (digest, md_read (h, algo), spec->mdlen);
+      else if (digestlen > 0)
+	md_extract (h, algo, digest, digestlen);
       md_close (h);
     }
 
   return 0;
+}
+
+
+/* Shortcut function to hash multiple buffers with a given algo.  In
+   contrast to gcry_md_hash_buffer, this function returns an error on
+   invalid arguments or on other problems; disabled algorithms are
+   _not_ ignored but flagged as an error.
+
+   The data to sign is taken from the array IOV which has IOVCNT items.
+
+   The only supported flag in FLAGS is GCRY_MD_FLAG_HMAC which turns
+   this function into a HMAC function; the first item in IOV is then
+   used as the key.
+
+   On success 0 is returned and resulting hash or HMAC is stored at
+   DIGEST which must have been provided by the caller with an
+   appropriate length.  */
+gpg_err_code_t
+_gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
+		       const gcry_buffer_t *iov, int iovcnt)
+{
+  return _gcry_md_hash_buffers_extract(algo, flags, digest, -1, iov, iovcnt);
 }
 
 

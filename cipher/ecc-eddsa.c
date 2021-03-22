@@ -500,7 +500,8 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest, mpi_ec_t ec)
   unsigned char *rawmpi = NULL;
   unsigned int rawmpilen;
   unsigned char *digest;
-  int hashalgo, b;
+  int hashalgo, b, digestlen;
+  gcry_buffer_t hvec[2];
 
   *r_digest = NULL;
 
@@ -511,11 +512,15 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest, mpi_ec_t ec)
    * For now, it's determine by the bit size of the field.
    */
   if (ec->nbits == 255)
-    hashalgo = GCRY_MD_SHA512;
+    {
+      hashalgo = GCRY_MD_SHA512;
+      digestlen = 64;
+    }
   else if (ec->nbits == 448)
     {
       b++;
       hashalgo = GCRY_MD_SHAKE256;
+      digestlen = 2 * b;
     }
   else
     return GPG_ERR_NOT_IMPLEMENTED;
@@ -533,35 +538,14 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest, mpi_ec_t ec)
       return gpg_err_code_from_syserror ();
     }
 
-  if (hashalgo == GCRY_MD_SHAKE256)
-    {
-      gcry_error_t err;
-      gcry_md_hd_t hd;
+  memset (hvec, 0, sizeof hvec);
 
-      err = _gcry_md_open (&hd, hashalgo, 0);
-      if (err)
-        rc = gcry_err_code (err);
-      else
-        {
-          _gcry_md_write (hd, rawmpi, rawmpilen);
-          _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
-          _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
-          _gcry_md_close (hd);
-          rc = 0;
-        }
-    }
-  else
-    {
-      gcry_buffer_t hvec[2];
-
-      memset (hvec, 0, sizeof hvec);
-
-      hvec[0].data = digest;
-      hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
-      hvec[1].data = rawmpi;
-      hvec[1].len = rawmpilen;
-      rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
-    }
+  hvec[0].data = digest;
+  hvec[0].len = (hashalgo == GCRY_MD_SHA512 && b > rawmpilen)
+		  ? b - rawmpilen : 0;
+  hvec[1].data = rawmpi;
+  hvec[1].len = rawmpilen;
+  rc = _gcry_md_hash_buffers_extract (hashalgo, 0, digest, digestlen, hvec, 2);
 
   xfree (rawmpi);
   if (rc)
@@ -705,16 +689,29 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   unsigned int encpklen;
   mpi_point_struct I;          /* Intermediate value.  */
   gcry_mpi_t a, x, y, r;
-  int b;
+  const char *dom;
+  int domlen, digestlen;
+  int b, i;
   unsigned char x_olen[2];
   unsigned char prehashed_msg[64];
+  gcry_buffer_t hvec[6];
+  gcry_buffer_t hvec2[1];
 
   b = (ec->nbits+7)/8;
 
   if (ec->nbits == 255)
-    ;
+    {
+      dom = DOM25519;
+      domlen = DOM25519_LEN;
+      digestlen = 64;
+    }
   else if (ec->nbits == 448)
-    b++;
+    {
+      b++;
+      dom = DOM448;
+      domlen = DOM448_LEN;
+      digestlen = 2 * b;
+    }
   else
     return GPG_ERR_NOT_IMPLEMENTED;
 
@@ -754,98 +751,58 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   if (DBG_CIPHER)
     log_printhex ("     m", mbuf, mlen);
 
-  if (ctx->hash_algo == GCRY_MD_SHAKE256)
+  memset (hvec, 0, sizeof hvec);
+  i = 0;
+
+  if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen || ec->nbits == 448)
     {
-      gcry_error_t err;
-      gcry_md_hd_t hd;
+      hvec[i].data = (void *)dom;
+      hvec[i].len  = domlen;
+      i++;
+      x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+      x_olen[1] = ctx->labellen;
+      hvec[i].data = x_olen;
+      hvec[i].len  = 2;
+      i++;
+      if (ctx->labellen)
+	{
+	  hvec[i].data = ctx->label;
+	  hvec[i].len  = ctx->labellen;
+	  i++;
+	}
+    }
 
-      err = _gcry_md_open (&hd, ctx->hash_algo, 0);
-      if (err)
-        rc = gcry_err_code (err);
-      else
-        {
-          _gcry_md_write (hd, DOM448, DOM448_LEN);
-          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
-          x_olen[1] = ctx->labellen;
-          _gcry_md_write (hd, x_olen, 2);
-          if (ctx->labellen)
-            _gcry_md_write (hd, ctx->label, ctx->labellen);
-          _gcry_md_write (hd, digest+b, b);
-          if ((ctx->flags & PUBKEY_FLAG_PREHASH))
-            {
-              gcry_md_hd_t hd2;
+  hvec[i].data = digest;
+  hvec[i].off  = b;
+  hvec[i].len  = b;
+  i++;
+  if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+    {
+      memset (hvec2, 0, sizeof hvec2);
 
-              err = _gcry_md_open (&hd2, ctx->hash_algo, 0);
-              if (err)
-                {
-                  rc = gcry_err_code (err);
-                  _gcry_md_close (hd);
-                  goto leave;
-                }
-              _gcry_md_write (hd2, mbuf, mlen);
-              _gcry_md_ctl (hd2, GCRYCTL_FINALIZE, NULL, 0);
-              _gcry_md_extract (hd2, GCRY_MD_SHAKE256, prehashed_msg, 64);
-              _gcry_md_close (hd2);
-              _gcry_md_write (hd, prehashed_msg, 64);
-            }
-          else
-            _gcry_md_write (hd, mbuf, mlen);
-          _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
-          _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
-          _gcry_md_close (hd);
-          rc = 0;
-        }
+      hvec2[0].data = (char*)mbuf;
+      hvec2[0].len  = mlen;
+
+      _gcry_md_hash_buffers_extract (ctx->hash_algo, 0, prehashed_msg, 64,
+				     hvec2, 1);
+      hvec[i].data = (char*)prehashed_msg;
+      hvec[i].len  = 64;
     }
   else
     {
-      gcry_buffer_t hvec[6];
-      int i = 0;
-
-      memset (hvec, 0, sizeof hvec);
-
-      if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen)
-        {
-          hvec[i].data = (void *)DOM25519;
-          hvec[i].len  = DOM25519_LEN;
-          i++;
-          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
-          x_olen[1] = ctx->labellen;
-          hvec[i].data = x_olen;
-          hvec[i].len  = 2;
-          i++;
-          if (ctx->labellen)
-            {
-              hvec[i].data = ctx->label;
-              hvec[i].len  = ctx->labellen;
-              i++;
-            }
-        }
-
-      hvec[i].data = digest;
-      hvec[i].off  = b;
-      hvec[i].len  = b;
-      i++;
-      if ((ctx->flags & PUBKEY_FLAG_PREHASH))
-        {
-          _gcry_md_hash_buffer (ctx->hash_algo, prehashed_msg, mbuf, mlen);
-          hvec[i].data = (char*)prehashed_msg;
-          hvec[i].len  = 64;
-        }
-      else
-        {
-          hvec[i].data = (char*)mbuf;
-          hvec[i].len  = mlen;
-        }
-      i++;
-      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, i);
+      hvec[i].data = (char*)mbuf;
+      hvec[i].len  = mlen;
     }
+  i++;
 
+  rc = _gcry_md_hash_buffers_extract (ctx->hash_algo, 0, digest, digestlen,
+				      hvec, i);
   if (rc)
     goto leave;
-  reverse_buffer (digest, 2*b);
+  reverse_buffer (digest, digestlen);
   if (DBG_CIPHER)
-    log_printhex ("     r", digest, 2*b);
-  _gcry_mpi_set_buffer (r, digest, 2*b, 0);
+    log_printhex ("     r", digest, digestlen);
+  _gcry_mpi_set_buffer (r, digest, digestlen, 0);
   mpi_mod (r, r, ec->n);
   _gcry_mpi_ec_mul_point (&I, r, ec->G, ec);
   if (DBG_CIPHER)
@@ -858,80 +815,48 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   if (DBG_CIPHER)
     log_printhex ("   e_r", rawmpi, rawmpilen);
 
-  if (ctx->hash_algo == GCRY_MD_SHAKE256)
-    {
-      gcry_error_t err;
-      gcry_md_hd_t hd;
+  memset (hvec, 0, sizeof hvec);
+  i = 0;
 
-      err = _gcry_md_open (&hd, ctx->hash_algo, 0);
-      if (err)
-        rc = gcry_err_code (err);
-      else
-        {
-          _gcry_md_write (hd, DOM448, DOM448_LEN);
-          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
-          x_olen[1] = ctx->labellen;
-          _gcry_md_write (hd, x_olen, 2);
-          if (ctx->labellen)
-            _gcry_md_write (hd, ctx->label, ctx->labellen);
-          _gcry_md_write (hd, rawmpi, rawmpilen);
-          _gcry_md_write (hd, encpk, encpklen);
-          if ((ctx->flags & PUBKEY_FLAG_PREHASH))
-            _gcry_md_write (hd, prehashed_msg, 64);
-          else
-            _gcry_md_write (hd, mbuf, mlen);
-          _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
-          _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
-          _gcry_md_close (hd);
-          rc = 0;
-        }
+  if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen || ec->nbits == 448)
+    {
+      hvec[i].data = (void *)dom;
+      hvec[i].len  = domlen;
+      i++;
+      x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+      x_olen[1] = ctx->labellen;
+      hvec[i].data = x_olen;
+      hvec[i].len  = 2;
+      i++;
+      if (ctx->labellen)
+	{
+	  hvec[i].data = ctx->label;
+	  hvec[i].len  = ctx->labellen;
+	  i++;
+	}
+    }
+
+  /* S = r + a * H(dom2(F,C)+encodepoint(R)+encodepoint(pk)+m) mod n  */
+  hvec[i].data = rawmpi;  /* (this is R) */
+  hvec[i].len  = rawmpilen;
+  i++;
+  hvec[i].data = encpk;
+  hvec[i].len  = encpklen;
+  i++;
+  if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+    {
+      hvec[i].data = (char*)prehashed_msg;
+      hvec[i].len  = 64;
     }
   else
     {
-      gcry_buffer_t hvec[6];
-      int i = 0;
-
-      memset (hvec, 0, sizeof hvec);
-
-      if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen)
-        {
-          hvec[i].data = (void *)DOM25519;
-          hvec[i].len  = DOM25519_LEN;
-          i++;
-          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
-          x_olen[1] = ctx->labellen;
-          hvec[i].data = x_olen;
-          hvec[i].len  = 2;
-          i++;
-          if (ctx->labellen)
-            {
-              hvec[i].data = ctx->label;
-              hvec[i].len  = ctx->labellen;
-              i++;
-            }
-        }
-
-      /* S = r + a * H(dom2(F,C)+encodepoint(R)+encodepoint(pk)+m) mod n  */
-      hvec[i].data = rawmpi;  /* (this is R) */
-      hvec[i].len  = rawmpilen;
-      i++;
-      hvec[i].data = encpk;
-      hvec[i].len  = encpklen;
-      i++;
-      if ((ctx->flags & PUBKEY_FLAG_PREHASH))
-        {
-          hvec[i].data = (char*)prehashed_msg;
-          hvec[i].len  = 64;
-        }
-      else
-        {
-          hvec[i].data = (char*)mbuf;
-          hvec[i].len  = mlen;
-        }
-      i++;
-      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, i);
+      hvec[i].data = (char*)mbuf;
+      hvec[i].len  = mlen;
     }
+  i++;
 
+  rc = _gcry_md_hash_buffers_extract (ctx->hash_algo, 0, digest, digestlen,
+				      hvec, i);
   if (rc)
     goto leave;
 
@@ -939,10 +864,10 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   mpi_set_opaque (r_r, rawmpi, rawmpilen*8);
   rawmpi = NULL;
 
-  reverse_buffer (digest, 2*b);
+  reverse_buffer (digest, digestlen);
   if (DBG_CIPHER)
-    log_printhex (" H(R+)", digest, 2*b);
-  _gcry_mpi_set_buffer (s, digest, 2*b, 0);
+    log_printhex (" H(R+)", digest, digestlen);
+  _gcry_mpi_set_buffer (s, digest, digestlen, 0);
   mpi_mulm (s, s, a, ec->n);
   mpi_addm (s, s, r, ec->n);
   rc = eddsa_encodempi (s, ec->nbits, &rawmpi, &rawmpilen);
@@ -988,8 +913,13 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   unsigned char digest[114];
   gcry_mpi_t h, s;
   mpi_point_struct Ia, Ib;
+  const char *dom;
+  int domlen, digestlen;
+  int i;
   unsigned char x_olen[2];
   unsigned char prehashed_msg[64];
+  gcry_buffer_t hvec[6];
+  gcry_buffer_t hvec2[1];
 
   if (!mpi_is_opaque (input) || !mpi_is_opaque (r_in) || !mpi_is_opaque (s_in))
     return GPG_ERR_INV_DATA;
@@ -997,9 +927,18 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   b = (ec->nbits+7)/8;
 
   if (ec->nbits == 255)
-    ;
+    {
+      dom = DOM25519;
+      domlen = DOM25519_LEN;
+      digestlen = 64;
+    }
   else if (ec->nbits == 448)
-    b++;
+    {
+      b++;
+      dom = DOM448;
+      domlen = DOM448_LEN;
+      digestlen = 2 * b;
+    }
   else
     return GPG_ERR_NOT_IMPLEMENTED;
 
@@ -1041,102 +980,61 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
       goto leave;
     }
 
-  if (ctx->hash_algo == GCRY_MD_SHAKE256)
+  memset (hvec, 0, sizeof hvec);
+  i = 0;
+
+  /* h = H(dom2(F,C)+encodepoint(R)+encodepoint(pk)+m)  */
+  if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen || ec->nbits == 448)
     {
-      gcry_error_t err;
-      gcry_md_hd_t hd;
+      hvec[i].data = (void *)dom;
+      hvec[i].len  = domlen;
+      i++;
+      x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
+      x_olen[1] = ctx->labellen;
+      hvec[i].data = x_olen;
+      hvec[i].len  = 2;
+      i++;
+      if (ctx->labellen)
+	{
+	  hvec[i].data = ctx->label;
+	  hvec[i].len  = ctx->labellen;
+	  i++;
+	}
+    }
 
-      err = _gcry_md_open (&hd, ctx->hash_algo, 0);
-      if (err)
-        rc = gcry_err_code (err);
-      else
-        {
-          _gcry_md_write (hd, DOM448, DOM448_LEN);
-          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
-          x_olen[1] = ctx->labellen;
-          _gcry_md_write (hd, x_olen, 2);
-          if (ctx->labellen)
-            _gcry_md_write (hd, ctx->label, ctx->labellen);
-          _gcry_md_write (hd, rbuf, rlen);
-          _gcry_md_write (hd, encpk, encpklen);
-          if ((ctx->flags & PUBKEY_FLAG_PREHASH))
-            {
-              gcry_md_hd_t hd2;
+  hvec[i].data = (char*)rbuf;
+  hvec[i].len  = rlen;
+  i++;
+  hvec[i].data = encpk;
+  hvec[i].len  = encpklen;
+  i++;
+  if ((ctx->flags & PUBKEY_FLAG_PREHASH))
+    {
+      memset (hvec2, 0, sizeof hvec2);
 
-              err = _gcry_md_open (&hd2, ctx->hash_algo, 0);
-              if (err)
-                {
-                  rc = gcry_err_code (err);
-                  _gcry_md_close (hd);
-                  goto leave;
-                }
-              _gcry_md_write (hd2, mbuf, mlen);
-              _gcry_md_ctl (hd2, GCRYCTL_FINALIZE, NULL, 0);
-              _gcry_md_extract (hd2, GCRY_MD_SHAKE256, prehashed_msg, 64);
-              _gcry_md_close (hd2);
-              _gcry_md_write (hd, prehashed_msg, 64);
-            }
-          else
-            _gcry_md_write (hd, mbuf, mlen);
-          _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
-          _gcry_md_extract (hd, GCRY_MD_SHAKE256, digest, 2*b);
-          _gcry_md_close (hd);
-          rc = 0;
-        }
+      hvec2[0].data = (char*)mbuf;
+      hvec2[0].len  = mlen;
+
+      _gcry_md_hash_buffers_extract (ctx->hash_algo, 0, prehashed_msg, 64,
+				      hvec2, 1);
+      hvec[i].data = (char*)prehashed_msg;
+      hvec[i].len  = 64;
     }
   else
     {
-      gcry_buffer_t hvec[6];
-      int i = 0;
-
-      memset (hvec, 0, sizeof hvec);
-
-      /* h = H(dom2(F,C)+encodepoint(R)+encodepoint(pk)+m)  */
-      if ((ctx->flags & PUBKEY_FLAG_PREHASH) || ctx->labellen)
-        {
-          hvec[i].data = (void *)DOM25519;
-          hvec[i].len  = DOM25519_LEN;
-          i++;
-          x_olen[0] = !!(ctx->flags & PUBKEY_FLAG_PREHASH);
-          x_olen[1] = ctx->labellen;
-          hvec[i].data = x_olen;
-          hvec[i].len  = 2;
-          i++;
-          if (ctx->labellen)
-            {
-              hvec[i].data = ctx->label;
-              hvec[i].len  = ctx->labellen;
-              i++;
-            }
-        }
-
-      hvec[i].data = (char*)rbuf;
-      hvec[i].len  = rlen;
-      i++;
-      hvec[i].data = encpk;
-      hvec[i].len  = encpklen;
-      i++;
-      if ((ctx->flags & PUBKEY_FLAG_PREHASH))
-        {
-          _gcry_md_hash_buffer (ctx->hash_algo, prehashed_msg, mbuf, mlen);
-          hvec[i].data = (char*)prehashed_msg;
-          hvec[i].len  = 64;
-        }
-      else
-        {
-          hvec[i].data = (char*)mbuf;
-          hvec[i].len  = mlen;
-        }
-      i++;
-      rc = _gcry_md_hash_buffers (ctx->hash_algo, 0, digest, hvec, i);
+      hvec[i].data = (char*)mbuf;
+      hvec[i].len  = mlen;
     }
+  i++;
 
+  rc = _gcry_md_hash_buffers_extract (ctx->hash_algo, 0, digest, digestlen,
+				      hvec, i);
   if (rc)
     goto leave;
-  reverse_buffer (digest, 2*b);
+  reverse_buffer (digest, digestlen);
   if (DBG_CIPHER)
-    log_printhex (" H(R+)", digest, 2*b);
-  _gcry_mpi_set_buffer (h, digest, 2*b, 0);
+    log_printhex (" H(R+)", digest, digestlen);
+  _gcry_mpi_set_buffer (h, digest, digestlen, 0);
 
   /* According to the paper the best way for verification is:
          encodepoint(sG - h·Q) = encodepoint(r)
