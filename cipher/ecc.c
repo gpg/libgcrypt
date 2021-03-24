@@ -1330,6 +1330,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
   enum ecc_dialects dialect = 0;
   const unsigned char *raw;
   unsigned int n;
+  int maybe_uncompress;
 
   /* Clear the values first.  */
   for (idx=0; idx < N_COMPONENTS; idx++)
@@ -1410,6 +1411,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
       rc = _gcry_ecc_eddsa_ensure_compact (values[5], pbits);
       if (rc)
         goto leave;
+      maybe_uncompress = 0;
     }
   else if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     {
@@ -1428,39 +1430,129 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
           rc = GPG_ERR_INV_OBJ;
           goto leave;
         }
+      maybe_uncompress = 0;
     }
+  else
+    maybe_uncompress = 1;
 
   /* Hash them all.  */
   for (idx = 0; idx < N_COMPONENTS; idx++)
     {
       char buf[30];
+      unsigned char *rawbuffer;
+      unsigned int rawlen;
 
       if (mpi_is_opaque (values[idx]))
         {
-          raw = mpi_get_opaque (values[idx], &n);
-          n = (n + 7)/8;
-          snprintf (buf, sizeof buf, "(1:%c%u:", names[idx], n);
-          _gcry_md_write (md, buf, strlen (buf));
-          _gcry_md_write (md, raw, n);
-          _gcry_md_write (md, ")", 1);
+          rawbuffer = NULL;
+          raw = mpi_get_opaque (values[idx], &rawlen);
+          rawlen = (rawlen + 7)/8;
         }
       else
         {
-          unsigned char *rawmpi;
-          unsigned int rawmpilen;
-
-          rawmpi = _gcry_mpi_get_buffer (values[idx], 0, &rawmpilen, NULL);
-          if (!rawmpi)
+          rawbuffer = _gcry_mpi_get_buffer (values[idx], 0, &rawlen, NULL);
+          if (!rawbuffer)
             {
               rc = gpg_err_code_from_syserror ();
               goto leave;
             }
-          snprintf (buf, sizeof buf, "(1:%c%u:", names[idx], rawmpilen);
-          _gcry_md_write (md, buf, strlen (buf));
-          _gcry_md_write (md, rawmpi, rawmpilen);
-          _gcry_md_write (md, ")", 1);
-          xfree (rawmpi);
+          raw = rawbuffer;
         }
+
+      if (maybe_uncompress && idx == 5 && rawlen > 1
+          && (*raw == 0x02 || *raw == 0x03))
+        {
+          /* This is a compressed Q - uncompress.  */
+          mpi_ec_t ec = NULL;
+          gcry_mpi_t x, y;
+          gcry_mpi_t x3;
+          gcry_mpi_t t;
+          gcry_mpi_t p1_4;
+          int y_bit = (*raw == 0x03);
+
+          /* We need to get the curve parameters as MPIs so that we
+           * can do computations.  We have them in VALUES but it is
+           * possible that the caller provided them as opaque MPIs. */
+          rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecc_keygrip",
+                                          keyparms, NULL);
+          if (rc)
+            goto leave;
+          if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n)
+            {
+              rc = GPG_ERR_NO_OBJ;
+              _gcry_mpi_ec_free (ec);
+              goto leave;
+            }
+
+          if (!mpi_test_bit (ec->p, 1))
+            {
+              /* No support for point compression for this curve.  */
+              rc = GPG_ERR_NOT_IMPLEMENTED;
+              _gcry_mpi_ec_free (ec);
+              xfree (rawbuffer);
+              goto leave;
+            }
+
+          raw++;
+          rawlen--;
+          rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG, raw, rawlen, NULL);
+          if (rc)
+            {
+              _gcry_mpi_ec_free (ec);
+              xfree (rawbuffer);
+              goto leave;
+            }
+
+          /*
+           * Recover Y.  The Weierstrass curve: y^2 = x^3 + a*x + b
+           */
+
+          x3 = mpi_new (0);
+          t = mpi_new (0);
+          p1_4 = mpi_new (0);
+          y = mpi_new (0);
+
+          /* Compute right hand side.  */
+          mpi_powm (x3, x, mpi_const (MPI_C_THREE), ec->p);
+          mpi_mul (t, ec->a, x);
+          mpi_mod (t, t, ec->p);
+          mpi_add (t, t, ec->b);
+          mpi_mod (t, t, ec->p);
+          mpi_add (t, t, x3);
+          mpi_mod (t, t, ec->p);
+
+          /*
+           * When p mod 4 = 3, modular square root of A can be computed by
+           * A^((p+1)/4) mod p
+           */
+
+          /* Compute (p+1)/4 into p1_4 */
+          mpi_rshift (p1_4, ec->p, 2);
+          _gcry_mpi_add_ui (p1_4, p1_4, 1);
+
+          mpi_powm (y, t, p1_4, ec->p);
+
+          if (y_bit != mpi_test_bit (y, 0))
+            mpi_sub (y, ec->p, y);
+
+          mpi_free (p1_4);
+          mpi_free (t);
+          mpi_free (x3);
+
+          xfree (rawbuffer);
+          rawbuffer = _gcry_ecc_ec2os_buf (x, y, ec->p, &rawlen);
+          raw = rawbuffer;
+
+          mpi_free (x);
+          mpi_free (y);
+          _gcry_mpi_ec_free (ec);
+        }
+
+      snprintf (buf, sizeof buf, "(1:%c%u:", names[idx], rawlen);
+      _gcry_md_write (md, buf, strlen (buf));
+      _gcry_md_write (md, raw, rawlen);
+      _gcry_md_write (md, ")", 1);
+      xfree (rawbuffer);
     }
 
  leave:

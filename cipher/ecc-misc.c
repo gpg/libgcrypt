@@ -103,8 +103,12 @@ _gcry_ecc_dialect2str (enum ecc_dialects dialect)
 }
 
 
-gcry_mpi_t
-_gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
+/* Return an uncompressed point (X,Y) in P as a malloced buffer with
+ * its byte length stored at R_LENGTH.  May not be used for sensitive
+ * data. */
+unsigned char *
+_gcry_ecc_ec2os_buf (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p,
+                     unsigned int *r_length)
 {
   gpg_err_code_t rc;
   int pbytes = (mpi_get_nbits (p)+7)/8;
@@ -132,9 +136,20 @@ _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
       memset (ptr, 0, (pbytes-n));
     }
 
-  return mpi_set_opaque (NULL, buf, (1+2*pbytes)*8);
+  *r_length = 1 + 2*pbytes;
+  return buf;
 }
 
+
+gcry_mpi_t
+_gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
+{
+  unsigned char *buf;
+  unsigned int buflen;
+
+  buf = _gcry_ecc_ec2os_buf (x, y, p, &buflen);
+  return mpi_set_opaque (NULL, buf, 8*buflen);
+}
 
 /* Convert POINT into affine coordinates using the context CTX and
    return a newly allocated MPI.  If the conversion is not possible

@@ -145,6 +145,50 @@ static struct
       " (q #04C8A4CEC2E9A9BC8E173531A67B0840DF345C32E261ADD780E6D83D56EFADFD5DE872F8B854819B59543CE0B7F822330464FBC4E6324DADDCD9D059554F63B344#)))",
       "\xE6\xDF\x94\x2D\xBD\x8C\x77\x05\xA3\xDD\x41\x6E\xFC\x04\x01\xDB\x31\x0E\x99\xB6"
     },
+    {
+      GCRY_PK_ECC,
+      "(public-key"
+      " (ecc"
+      " (curve brainpoolP256r1)"
+      " (q #042ECD8679930BE2DB4AD42B8600BA3F80"
+      /*   */"2D4D539BFF2F69B83EC9B7BBAA7F3406"
+      /*   */"436DD11A1756AFE56CD93408410FCDA9"
+      /*   */"BA95024EB613BD481A14FCFEC27A448A#)))",
+      "\x52\xBA\xD4\xB4\xA3\x2D\x32\xA1\xDD\x06"
+      "\x5E\x99\x0B\xF1\xAB\xC1\x13\x3D\x84\xD4"
+    },
+    { /* Compressed form of above.  */
+      GCRY_PK_ECC,
+      "(public-key"
+      " (ecc"
+      " (curve brainpoolP256r1)"
+      " (q #022ECD8679930BE2DB4AD42B8600BA3F80"
+      /*   */"2D4D539BFF2F69B83EC9B7BBAA7F3406#)))",
+      "\x52\xBA\xD4\xB4\xA3\x2D\x32\xA1\xDD\x06"
+      "\x5E\x99\x0B\xF1\xAB\xC1\x13\x3D\x84\xD4"
+    },
+    {
+      GCRY_PK_ECC,
+      "(public-key"
+      " (ecc"
+      " (curve brainpoolP256r1)"
+      " (q #045B784CA008EE64AB3D85017EE0D2BE87"
+      /*   */"558762C7300E0C8E06B1F9AF7C031458"
+      /*   */"9EBBA41915313417BA54218EB0569C59"
+      /*   */"0B156C76DBCAB6E84575E6EF68CE7B87#)))",
+      "\x99\x38\x6A\x82\x41\x96\x29\x9C\x89\x74"
+      "\xD6\xE1\xBF\x43\xAC\x9B\x9A\x12\xE7\x3F"
+    },
+    { /* Compressed form of above.  */
+      GCRY_PK_ECC,
+      "(public-key"
+      " (ecc"
+      " (curve brainpoolP256r1)"
+      " (q #035B784CA008EE64AB3D85017EE0D2BE87"
+      /*   */"558762C7300E0C8E06B1F9AF7C031458#)))",
+      "\x99\x38\x6A\x82\x41\x96\x29\x9C\x89\x74"
+      "\xD6\xE1\xBF\x43\xAC\x9B\x9A\x12\xE7\x3F"
+    },
     { /* Ed25519 standard */
       GCRY_PK_ECC,
       "(public-key"
