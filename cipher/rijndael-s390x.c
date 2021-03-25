@@ -777,9 +777,7 @@ aes_s390x_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
       OCB_INPUT_4((n) + 12);
 
 #define OCB_OUTPUT(n) \
-      cipher_block_xor_1 (&blocks[n], outbuf + (n) * BLOCKSIZE, BLOCKSIZE); \
-      cipher_block_xor_1 (c->u_ctr.ctr, &blocks[n], BLOCKSIZE); \
-      cipher_block_cpy (outbuf + (n) * BLOCKSIZE, &blocks[n], BLOCKSIZE);
+      cipher_block_xor_1 (outbuf + (n) * BLOCKSIZE, &blocks[n], BLOCKSIZE);
 
 #define OCB_OUTPUT_4(n) \
       OCB_OUTPUT((n) + 0); OCB_OUTPUT((n) + 1); OCB_OUTPUT((n) + 2); \
@@ -894,6 +892,8 @@ aes_s390x_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 
   if (max_blocks_used)
     wipememory (&blocks, max_blocks_used * BLOCKSIZE);
+
+  aes_s390x_ocb_checksum (c->u_ctr.ctr, outbuf_arg, nblocks_arg);
 
   return 0;
 }
