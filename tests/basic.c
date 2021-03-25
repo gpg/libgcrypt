@@ -6800,9 +6800,10 @@ check_ocb_cipher_checksum (int algo, int keylen)
   const size_t buflen = 128 * 16;
   unsigned char *inbuf, *outbuf;
   gpg_error_t err = 0;
-  gcry_cipher_hd_t hde, hde2;
+  gcry_cipher_hd_t hde, hde2, hdd;
   unsigned char tag[16];
   unsigned char tag2[16];
+  unsigned char tag3[16];
   int i;
 
   inbuf = xmalloc(buflen);
@@ -6833,6 +6834,8 @@ check_ocb_cipher_checksum (int algo, int keylen)
   err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
   if (!err)
     err = gcry_cipher_open (&hde2, algo, GCRY_CIPHER_MODE_OCB, 0);
+  if (!err)
+    err = gcry_cipher_open (&hdd, algo, GCRY_CIPHER_MODE_OCB, 0);
   if (err)
     {
       fail ("cipher-ocb, gcry_cipher_open failed (checksum, algo %d): %s\n",
@@ -6843,24 +6846,30 @@ check_ocb_cipher_checksum (int algo, int keylen)
   err = gcry_cipher_setkey (hde, key, keylen);
   if (!err)
     err = gcry_cipher_setkey (hde2, key, keylen);
+  if (!err)
+    err = gcry_cipher_setkey (hdd, key, keylen);
   if (err)
     {
       fail ("cipher-ocb, gcry_cipher_setkey failed (checksum, algo %d): %s\n",
 	    algo, gpg_strerror (err));
       gcry_cipher_close (hde);
       gcry_cipher_close (hde2);
+      gcry_cipher_close (hdd);
       goto out_free;
     }
 
   err = gcry_cipher_setiv (hde, nonce, 12);
   if (!err)
     err = gcry_cipher_setiv (hde2, nonce, 12);
+  if (!err)
+    err = gcry_cipher_setiv (hdd, nonce, 12);
   if (err)
     {
       fail ("cipher-ocb, gcry_cipher_setiv failed (checksum, algo %d): %s\n",
 	    algo, gpg_strerror (err));
       gcry_cipher_close (hde);
       gcry_cipher_close (hde2);
+      gcry_cipher_close (hdd);
       goto out_free;
     }
 
@@ -6876,6 +6885,14 @@ check_ocb_cipher_checksum (int algo, int keylen)
       if (!err)
 	err = gcry_cipher_encrypt (hde2, outbuf + i, 16, inbuf + i, 16);
     }
+  if (!err)
+    {
+      err = gcry_cipher_final (hdd);
+    }
+  if (!err)
+    {
+      err = gcry_cipher_decrypt (hdd, outbuf, buflen, outbuf, buflen);
+    }
 
   if (err)
     {
@@ -6883,6 +6900,7 @@ check_ocb_cipher_checksum (int algo, int keylen)
 	    algo, gpg_strerror (err));
       gcry_cipher_close (hde);
       gcry_cipher_close (hde2);
+      gcry_cipher_close (hdd);
       goto out_free;
     }
 
@@ -6899,14 +6917,26 @@ check_ocb_cipher_checksum (int algo, int keylen)
       fail ("cipher_ocb, gcry_cipher_gettag failed (checksum2, algo %d): %s\n",
 	    algo, gpg_strerror (err));
     }
+  err = gcry_cipher_gettag (hdd, tag3, 16);
+  if (err)
+    {
+      fail ("cipher_ocb, gcry_cipher_gettag failed (checksum3, algo %d): %s\n",
+	    algo, gpg_strerror (err));
+    }
   if (memcmp (tag, tag2, 16))
     {
       mismatch (tag, 16, tag2, 16);
       fail ("cipher-ocb, encrypt tag mismatch (checksum, algo %d)\n", algo);
     }
+  if (memcmp (tag, tag3, 16))
+    {
+      mismatch (tag, 16, tag3, 16);
+      fail ("cipher-ocb, decrypt tag mismatch (checksum, algo %d)\n", algo);
+    }
 
   gcry_cipher_close (hde);
   gcry_cipher_close (hde2);
+  gcry_cipher_close (hdd);
 
 out_free:
   xfree(inbuf);
