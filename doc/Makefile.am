@@ -20,13 +20,15 @@
 EXTRA_DIST = README.apichanges HACKING DCO \
 	     libgcrypt-modules.eps fips-fsm.eps \
 	     libgcrypt-modules.png fips-fsm.png \
+             libgcrypt-modules.pdf fips-fsm.pdf \
 	     yat2m.c
 
 DISTCLEANFILES = gcrypt.cps yat2m-stamp.tmp yat2m-stamp $(myman_pages)
 CLEANFILES = yat2m
 
 BUILT_SOURCES = libgcrypt-modules.eps fips-fsm.eps \
-                libgcrypt-modules.png fips-fsm.png
+                libgcrypt-modules.png fips-fsm.png \
+                libgcrypt-modules.pdf fips-fsm.pdf
 
 info_TEXINFOS = gcrypt.texi
 gcrypt_TEXINFOS = lgpl.texi gpl.texi libgcrypt-modules.fig fips-fsm.fig
