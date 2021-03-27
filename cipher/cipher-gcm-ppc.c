@@ -88,6 +88,8 @@
 #define ASM_FUNC_ATTR        NO_INSTRUMENT_FUNCTION
 #define ASM_FUNC_ATTR_INLINE ASM_FUNC_ATTR ALWAYS_INLINE
 
+#define ALIGNED_16 __attribute__ ((aligned (16)))
+
 typedef vector unsigned char vector16x_u8;
 typedef vector signed char vector16x_s8;
 typedef vector unsigned long long vector2x_u64;
@@ -182,7 +184,6 @@ asm_ashl_128(block a, vector16x_u8 shift)
 static ASM_FUNC_ATTR_INLINE void
 vec_store_he(block vec, unsigned long offset, unsigned char *ptr)
 {
-#ifndef WORDS_BIGENDIAN
   /* GCC vec_vsx_ld is generating two instructions on little-endian. Use
    * lxvd2x directly instead. */
 #if __GNUC__ >= 4
@@ -197,9 +198,6 @@ vec_store_he(block vec, unsigned long offset, unsigned char *ptr)
 		      :
 		      : "wa" (vec), "r" (offset), "r" ((uintptr_t)ptr)
 		      : "memory", "r0");
-#else
-  vec_vsx_st ((vector16x_u8)vec, offset, ptr);
-#endif
 }
 
 #define VEC_LOAD_BE(in_ptr, bswap_const) \
@@ -208,7 +206,6 @@ vec_store_he(block vec, unsigned long offset, unsigned char *ptr)
 static ASM_FUNC_ATTR_INLINE block
 vec_load_he(unsigned long offset, const unsigned char *ptr)
 {
-#ifndef WORDS_BIGENDIAN
   block vec;
   /* GCC vec_vsx_ld is generating two instructions on little-endian. Use
    * lxvd2x directly instead. */
@@ -225,9 +222,6 @@ vec_load_he(unsigned long offset, const unsigned char *ptr)
 		      : "r" (offset), "r" ((uintptr_t)ptr)
 		      : "memory", "r0");
   return vec;
-#else
-  return vec_vsx_ld (offset, ptr);
-#endif
 }
 
 static ASM_FUNC_ATTR_INLINE block
@@ -243,6 +237,15 @@ vec_be_swap(block vec, vector16x_u8 be_bswap_const)
   return vec;
 }
 
+static ASM_FUNC_ATTR_INLINE block
+vec_dup_byte_elem(block vec, int idx)
+{
+#ifndef WORDS_BIGENDIAN
+  return (block)vec_splat((vector16x_s8)vec, idx);
+#else
+  return (block)vec_splat((vector16x_s8)vec, (15 - idx) & 15);
+#endif
+}
 
 /* Power ghash based on papers:
    "The Galois/Counter Mode of Operation (GCM)"; David A. McGrew, John Viega
@@ -259,31 +262,33 @@ vec_be_swap(block vec, vector16x_u8 be_bswap_const)
 
    The ghash "key" is a salt. */
 void ASM_FUNC_ATTR
-_gcry_ghash_setup_ppc_vpmsum (uint64_t *gcm_table, void *gcm_key)
+_gcry_ghash_setup_ppc_vpmsum (void *gcm_table_arg, void *gcm_key)
 {
-  static const vector16x_u8 bswap_const =
+  static const vector16x_u8 bswap_const ALIGNED_16 =
     { ~7, ~6, ~5, ~4, ~3, ~2, ~1, ~0, ~15, ~14, ~13, ~12, ~11, ~10, ~9, ~8 };
-  static const vector16x_u8 c2 =
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0b11000010 };
-  static const vector16x_u8 one =
+  static const byte c2[16] ALIGNED_16 =
+    { 0xc2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+  static const vector16x_u8 one ALIGNED_16 =
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  uint64_t *gcm_table = gcm_table_arg;
   block T0, T1, T2;
   block C2, H, H1, H1l, H1h, H2, H2l, H2h;
   block H3l, H3, H3h, H4l, H4, H4h, T3, T4;
   vector16x_s8 most_sig_of_H, t7, carry;
 
   H = VEC_LOAD_BE(gcm_key, bswap_const);
-  most_sig_of_H = vec_splat((vector16x_s8)H, 15);
+  C2 = VEC_LOAD_BE(c2, bswap_const);
+  most_sig_of_H = (vector16x_s8)vec_dup_byte_elem(H, 15);
   t7 = vec_splat_s8(7);
   carry = most_sig_of_H >> t7;
-  carry &= c2; /* only interested in certain carries. */
+  carry &= (vector16x_s8)C2; /* only interested in certain carries. */
   H1 = asm_ashl_128(H, one);
   H1 ^= (block)carry; /* complete the <<< 1 */
 
   T1 = asm_swap_u64 (H1);
   H1l = asm_rot_block_right (T1);
   H1h = asm_rot_block_left (T1);
-  C2 = asm_rot_block_right ((block)c2);
+  C2 = asm_rot_block_right (C2);
 
   STORE_TABLE (gcm_table, 0, C2);
   STORE_TABLE (gcm_table, 1, H1l);
@@ -367,11 +372,11 @@ _gcry_ghash_setup_ppc_vpmsum (uint64_t *gcm_table, void *gcm_key)
   STORE_TABLE (gcm_table, 12, H4h);
 }
 
-void ASM_FUNC_ATTR
-_gcry_ghash_ppc_vpmsum (byte *result, const void *const gcm_table,
+unsigned int ASM_FUNC_ATTR
+_gcry_ghash_ppc_vpmsum (byte *result, void *gcm_table,
 			const byte *buf, const size_t nblocks)
 {
-  static const vector16x_u8 bswap_const =
+  static const vector16x_u8 bswap_const ALIGNED_16 =
     { ~7, ~6, ~5, ~4, ~3, ~2, ~1, ~0, ~15, ~14, ~13, ~12, ~11, ~10, ~9, ~8 };
   block c2, H0l, H0m, H0h, H4l, H4m, H4h, H2m, H3l, H3m, H3h, Hl;
   block Hm, Hh, in, in0, in1, in2, in3, Hm_right, Hl_rotate, cur;
@@ -539,6 +544,8 @@ _gcry_ghash_ppc_vpmsum (byte *result, const void *const gcm_table,
     }
 
   vec_store_he (vec_be_swap (cur, bswap_const), 0, result);
+
+  return 0;
 }
 
 #endif /* GCM_USE_PPC_VPMSUM */

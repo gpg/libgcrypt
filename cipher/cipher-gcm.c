@@ -119,16 +119,16 @@ extern unsigned int _gcry_ghash_ppc_vpmsum (byte *result, void *gcm_table,
 static void
 ghash_setup_ppc_vpmsum (gcry_cipher_hd_t c)
 {
-  _gcry_ghash_setup_ppc_vpmsum(c->u_mode.gcm.gcm_table, c->u_mode.gcm.u_ghash_key.key);
+  _gcry_ghash_setup_ppc_vpmsum(c->u_mode.gcm.gcm_table,
+			       c->u_mode.gcm.u_ghash_key.key);
 }
 
 static unsigned int
 ghash_ppc_vpmsum (gcry_cipher_hd_t c, byte *result, const byte *buf,
 		  size_t nblocks)
 {
-  _gcry_ghash_ppc_vpmsum(result, c->u_mode.gcm.gcm_table, buf,
-			 nblocks);
-  return 0;
+  return _gcry_ghash_ppc_vpmsum(result, c->u_mode.gcm.gcm_table, buf,
+				nblocks);
 }
 #endif /* GCM_USE_PPC_VPMSUM */
 
