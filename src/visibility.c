@@ -26,6 +26,7 @@
 #include "cipher-proto.h"
 #include "context.h"
 #include "mpi.h"
+#include "ec-context.h"
 
 const char *
 gcry_strerror (gcry_error_t err)
@@ -570,23 +571,47 @@ gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,
 void
 gcry_mpi_ec_dup (gcry_mpi_point_t w, gcry_mpi_point_t u, gcry_ctx_t ctx)
 {
-  _gcry_mpi_ec_dup_point (w, u, _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
+  mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
+
+  if (ec->model == MPI_EC_EDWARDS || ec->model == MPI_EC_MONTGOMERY)
+    {
+      mpi_point_resize (w, ec);
+      mpi_point_resize (u, ec);
+    }
+
+  _gcry_mpi_ec_dup_point (w, u, ec);
 }
 
 void
 gcry_mpi_ec_add (gcry_mpi_point_t w,
                  gcry_mpi_point_t u, gcry_mpi_point_t v, gcry_ctx_t ctx)
 {
-  _gcry_mpi_ec_add_points (w, u, v,
-                           _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
+  mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
+
+  if (ec->model == MPI_EC_EDWARDS || ec->model == MPI_EC_MONTGOMERY)
+    {
+      mpi_point_resize (w, ec);
+      mpi_point_resize (u, ec);
+      mpi_point_resize (v, ec);
+    }
+
+  _gcry_mpi_ec_add_points (w, u, v, ec);
 }
 
 void
 gcry_mpi_ec_sub (gcry_mpi_point_t w,
                  gcry_mpi_point_t u, gcry_mpi_point_t v, gcry_ctx_t ctx)
 {
-  _gcry_mpi_ec_sub_points (w, u, v,
-                           _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
+  mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
+
+  if (ec->model == MPI_EC_EDWARDS || ec->model == MPI_EC_MONTGOMERY)
+    {
+      mpi_point_resize (w, ec);
+      mpi_point_resize (u, ec);
+      mpi_point_resize (v, ec);
+    }
+
+  _gcry_mpi_ec_sub_points (w, u, v, ec);
 }
 
 void

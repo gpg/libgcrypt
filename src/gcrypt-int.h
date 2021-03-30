@@ -421,6 +421,7 @@ gcry_mpi_point_t _gcry_mpi_ec_get_point (const char *name,
                                         gcry_ctx_t ctx, int copy);
 int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,
                              mpi_ec_t ctx);
+void _gcry_mpi_ec_point_resize (gcry_mpi_point_t p, mpi_ec_t ctx);
 void _gcry_mpi_ec_dup (gcry_mpi_point_t w, gcry_mpi_point_t u, gcry_ctx_t ctx);
 void _gcry_mpi_ec_add (gcry_mpi_point_t w,
                        gcry_mpi_point_t u, gcry_mpi_point_t v, mpi_ec_t ctx);
@@ -513,6 +514,7 @@ int _gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 #define mpi_point_set(p,x,y,z)        _gcry_mpi_point_set((p),(x),(y),(z))
 #define mpi_point_snatch_set(p,x,y,z) _gcry_mpi_point_snatch_set((p),(x), \
                                                                  (y),(z))
+#define mpi_point_resize(p,ctx) _gcry_mpi_ec_point_resize (p, ctx)
 
 #define mpi_get_nbits(a)       _gcry_mpi_get_nbits ((a))
 #define mpi_test_bit(a,b)      _gcry_mpi_test_bit ((a),(b))

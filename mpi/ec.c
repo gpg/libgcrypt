@@ -154,8 +154,8 @@ _gcry_mpi_point_copy (gcry_mpi_point_t point)
 }
 
 
-static void
-point_resize (mpi_point_t p, mpi_ec_t ctx)
+void
+_gcry_mpi_ec_point_resize (mpi_point_t p, mpi_ec_t ctx)
 {
   size_t nlimbs = ctx->p->nlimbs;
 
@@ -1483,7 +1483,7 @@ add_points_edwards (mpi_point_t result,
 #define G (ctx->t.scratch[6])
 #define tmp (ctx->t.scratch[7])
 
-  point_resize (result, ctx);
+  mpi_point_resize (result, ctx);
 
   /* Compute: (X_3 : Y_3 : Z_3) = (X_1 : Y_1 : Z_1) + (X_2 : Y_2 : Z_3)  */
 
@@ -1711,7 +1711,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
           mpi_set_ui (result->x, 0);
           mpi_set_ui (result->y, 1);
           mpi_set_ui (result->z, 1);
-          point_resize (point, ctx);
+          mpi_point_resize (point, ctx);
         }
 
       if (mpi_is_secure (scalar))
@@ -1721,8 +1721,8 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
           mpi_point_struct tmppnt;
 
           point_init (&tmppnt);
-          point_resize (result, ctx);
-          point_resize (&tmppnt, ctx);
+          mpi_point_resize (result, ctx);
+          mpi_point_resize (&tmppnt, ctx);
           for (j=nbits-1; j >= 0; j--)
             {
               _gcry_mpi_ec_dup_point (result, result, ctx);
@@ -1735,8 +1735,8 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
         {
           if (ctx->model == MPI_EC_EDWARDS)
             {
-              point_resize (result, ctx);
-              point_resize (point, ctx);
+              mpi_point_resize (result, ctx);
+              mpi_point_resize (point, ctx);
             }
 
           for (j=nbits-1; j >= 0; j--)
@@ -1798,10 +1798,10 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
           scalar = a;
         }
 
-      point_resize (&p1, ctx);
-      point_resize (&p2, ctx);
-      point_resize (&p1_, ctx);
-      point_resize (&p2_, ctx);
+      mpi_point_resize (&p1, ctx);
+      mpi_point_resize (&p2, ctx);
+      mpi_point_resize (&p1_, ctx);
+      mpi_point_resize (&p2_, ctx);
 
       mpi_resize (point->x, ctx->p->nlimbs);
       point->x->nlimbs = ctx->p->nlimbs;
