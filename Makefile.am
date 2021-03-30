@@ -27,6 +27,7 @@ RELEASE_ARCHIVE_SUFFIX  = libgcrypt/v1.9
 
 
 ACLOCAL_AMFLAGS = -I m4
+AM_DISTCHECK_DVI_TARGET = pdf
 DISTCHECK_CONFIGURE_FLAGS = --disable-random-daemon --enable-doc \
                             --enable-random=auto
 
