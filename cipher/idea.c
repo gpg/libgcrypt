@@ -251,7 +251,9 @@ do_setkey( IDEA_context *c, const byte *key, unsigned int keylen )
     if( selftest_failed )
 	return GPG_ERR_SELFTEST_FAILED;
 
-    assert(keylen == 16);
+    if (keylen != 16)
+      return GPG_ERR_INV_KEYLEN;
+
     c->have_dk = 0;
     expand_key( key, c->ek );
     invert_key( c->ek, c->dk );

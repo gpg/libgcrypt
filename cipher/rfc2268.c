@@ -228,6 +228,9 @@ setkey_core (void *context, const unsigned char *key, unsigned int keylen, int w
   if (keylen < 40 / 8)	/* We want at least 40 bits. */
     return GPG_ERR_INV_KEYLEN;
 
+  if (keylen > 128)
+    return GPG_ERR_INV_KEYLEN;
+
   S = (unsigned char *) ctx->S;
 
   for (i = 0; i < keylen; i++)

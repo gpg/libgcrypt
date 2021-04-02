@@ -732,11 +732,14 @@ serpent_subkeys_generate (serpent_key_t key, serpent_subkeys_t subkeys)
 }
 
 /* Initialize CONTEXT with the key KEY of KEY_LENGTH bits.  */
-static void
+static gcry_err_code_t
 serpent_setkey_internal (serpent_context_t *context,
 			 const byte *key, unsigned int key_length)
 {
   serpent_key_t key_prepared;
+
+  if (key_length > 32)
+    return GPG_ERR_INV_KEYLEN;
 
   serpent_key_prepare (key, key_length, key_prepared);
   serpent_subkeys_generate (key_prepared, context->keys);
@@ -758,6 +761,7 @@ serpent_setkey_internal (serpent_context_t *context,
 #endif
 
   wipememory (key_prepared, sizeof(key_prepared));
+  return 0;
 }
 
 /* Initialize CTX with the key KEY of KEY_LENGTH bytes.  */
@@ -791,7 +795,7 @@ serpent_setkey (void *ctx,
   if (serpent_test_ret)
     ret = GPG_ERR_SELFTEST_FAILED;
   else
-    serpent_setkey_internal (context, key, key_length);
+    ret = serpent_setkey_internal (context, key, key_length);
 
   return ret;
 }
