@@ -60,22 +60,24 @@ _gcry_mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
 {
   mpi_size_t i;
   mpi_limb_t cy;
-  mpi_limb_t mask = ((mpi_limb_t)0) - op_enable;
+  mpi_limb_t mask1 = vzero - op_enable;
+  mpi_limb_t mask2 = op_enable - vone;
 
   cy = 0;
   for (i = 0; i < usize; i++)
     {
-      mpi_limb_t x = up[i] + (vp[i] & mask);
-      mpi_limb_t cy1 = x < up[i];
+      mpi_limb_t u = up[i];
+      mpi_limb_t x = u + vp[i];
+      mpi_limb_t cy1 = x < u;
       mpi_limb_t cy2;
 
       x = x + cy;
       cy2 = x < cy;
       cy = cy1 | cy2;
-      wp[i] = x;
+      wp[i] = (u & mask2) | (x & mask1);
     }
 
-  return cy;
+  return cy & mask1;
 }
 
 
@@ -89,22 +91,24 @@ _gcry_mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
 {
   mpi_size_t i;
   mpi_limb_t cy;
-  mpi_limb_t mask = ((mpi_limb_t)0) - op_enable;
+  mpi_limb_t mask1 = vzero - op_enable;
+  mpi_limb_t mask2 = op_enable - vone;
 
   cy = 0;
   for (i = 0; i < usize; i++)
     {
-      mpi_limb_t x = up[i] - (vp[i] & mask);
-      mpi_limb_t cy1 = x > up[i];
+      mpi_limb_t u = up[i];
+      mpi_limb_t x = u - vp[i];
+      mpi_limb_t cy1 = x > u;
       mpi_limb_t cy2;
 
       cy2 = x < cy;
       x = x - cy;
       cy = cy1 | cy2;
-      wp[i] = x;
+      wp[i] = (u & mask2) | (x & mask1);
     }
 
-  return cy;
+  return cy & mask1;
 }
 
 
@@ -139,15 +143,17 @@ _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
                      unsigned long op_enable)
 {
   mpi_size_t i;
-  mpi_limb_t mask = ((mpi_limb_t)0) - op_enable;
+  mpi_limb_t mask1 = vzero - op_enable;
+  mpi_limb_t mask2 = op_enable - vone;
   mpi_limb_t cy = op_enable;
 
   for (i = 0; i < usize; i++)
     {
-      mpi_limb_t x = ~up[i] + cy;
+      mpi_limb_t u = up[i];
+      mpi_limb_t x = ~u + cy;
 
-      cy = (x < ~up[i]);
-      wp[i] = up[i] ^ (mask & (x ^ up[i]));
+      cy = (x < ~u);
+      wp[i] = (u & mask2) | (x & mask1);
     }
 }
 
