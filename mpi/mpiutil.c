@@ -519,23 +519,30 @@ _gcry_mpi_set_cond (gcry_mpi_t w, const gcry_mpi_t u, unsigned long set)
 {
   mpi_size_t i;
   mpi_size_t nlimbs = u->alloced;
-  mpi_limb_t mask = ((mpi_limb_t)0) - set;
-  mpi_limb_t x;
+  mpi_limb_t mask1 = vzero - set;
+  mpi_limb_t mask2 = set - vone;
+  mpi_limb_t xu;
+  mpi_limb_t xw;
+  mpi_limb_t *uu = u->d;
+  mpi_limb_t *uw = w->d;
 
   if (w->alloced != u->alloced)
     log_bug ("mpi_set_cond: different sizes\n");
 
   for (i = 0; i < nlimbs; i++)
     {
-      x = mask & (w->d[i] ^ u->d[i]);
-      w->d[i] = w->d[i] ^ x;
+      xu = uu[i];
+      xw = uw[i];
+      uw[i] = (xw & mask2) | (xu & mask1);
     }
 
-  x = mask & (w->nlimbs ^ u->nlimbs);
-  w->nlimbs = w->nlimbs ^ x;
+  xu = u->nlimbs;
+  xw = w->nlimbs;
+  w->nlimbs = (xw & mask2) | (xu & mask1);
 
-  x = mask & (w->sign ^ u->sign);
-  w->sign = w->sign ^ x;
+  xu = u->sign;
+  xw = w->sign;
+  w->sign = (xw & mask2) | (xu & mask1);
   return w;
 }
 
