@@ -25,6 +25,12 @@
 
 #define A_LIMB_1 ((mpi_limb_t)1)
 
+/* These variables are used to generate masks from conditional operation
+ * flag parameters.  Use of volatile prevents compiler optimizations from
+ * converting AND-masking to conditional branches.  */
+static volatile mpi_limb_t vzero = 0;
+static volatile mpi_limb_t vone = 1;
+
 /*
  *  W = U when OP_ENABLED=1
  *  otherwise, W keeps old value
@@ -112,14 +118,15 @@ _gcry_mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                       unsigned long op_enable)
 {
   mpi_size_t i;
-  mpi_limb_t mask = ((mpi_limb_t)0) - op_enable;
+  mpi_limb_t mask1 = vzero - op_enable;
+  mpi_limb_t mask2 = op_enable - vone;
 
   for (i = 0; i < usize; i++)
     {
-      mpi_limb_t x = mask & (up[i] ^ vp[i]);
-
-      up[i] = up[i] ^ x;
-      vp[i] = vp[i] ^ x;
+      mpi_limb_t u = up[i];
+      mpi_limb_t v = vp[i];
+      up[i] = (u & mask2) | (v & mask1);
+      vp[i] = (u & mask1) | (v & mask2);
     }
 }
 
