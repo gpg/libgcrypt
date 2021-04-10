@@ -1475,7 +1475,7 @@ ecc_bench (int iterations, int print_header)
 {
 #if USE_ECC
   gpg_error_t err;
-  const char *p_sizes[] = { "192", "224", "256", "384", "521", "Ed25519",
+  const char *p_sizes[] = { "192", "224", "256", "384", "521", "Ed25519", "Ed448",
               "gost256", "gost512" };
   int testno;
 
@@ -1492,20 +1492,29 @@ ecc_bench (int iterations, int print_header)
       int count;
       int p_size;
       int is_ed25519;
+      int is_ed448;
       int is_gost;
 
       is_ed25519 = !strcmp (p_sizes[testno], "Ed25519");
+      is_ed448 = !strcmp (p_sizes[testno], "Ed448");
       is_gost = !strncmp (p_sizes[testno], "gost", 4);
 
       /* Only P-{224,256,384,521} are allowed in fips mode */
       if (gcry_fips_mode_active()
-          && (is_ed25519 || is_gost || !strcmp (p_sizes[testno], "192")))
+          && (is_ed25519 || is_ed448 || is_gost
+              || !strcmp (p_sizes[testno], "192")))
          continue;
 
       if (is_ed25519)
         {
           p_size = 256;
           printf ("EdDSA Ed25519 ");
+          fflush (stdout);
+        }
+      else if (is_ed448)
+        {
+          p_size = 448;
+          printf ("EdDSA Ed448   ");
           fflush (stdout);
         }
       else if (is_gost)
@@ -1524,6 +1533,10 @@ ecc_bench (int iterations, int print_header)
       if (is_ed25519)
         err = gcry_sexp_build (&key_spec, NULL,
                                "(genkey (ecdsa (curve \"Ed25519\")"
+                               "(flags eddsa)))");
+      else if (is_ed448)
+        err = gcry_sexp_build (&key_spec, NULL,
+                               "(genkey (ecdsa (curve \"Ed448\")"
                                "(flags eddsa)))");
       else if (is_gost)
         err = gcry_sexp_build (&key_spec, NULL,
@@ -1561,6 +1574,10 @@ ecc_bench (int iterations, int print_header)
       if (is_ed25519)
         err = gcry_sexp_build (&data, NULL,
                                "(data (flags eddsa)(hash-algo sha512)"
+                               " (value %m))", x);
+      else if (is_ed448)
+        err = gcry_sexp_build (&data, NULL,
+                               "(data (flags eddsa)(hash-algo shake256)"
                                " (value %m))", x);
       else if (is_gost)
         err = gcry_sexp_build (&data, NULL, "(data (flags gost) (value %m))", x);
