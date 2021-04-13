@@ -35,8 +35,11 @@
 #if defined(__APPLE__) && defined(__MACH__)
 #include <Availability.h>
 #ifdef __MAC_10_11
+#include <TargetConditionals.h>
+#if !defined(TARGET_OS_IPHONE) || TARGET_OS_IPHONE == 0
 extern int getentropy (void *buf, size_t buflen) __attribute__ ((weak_import));
 #define HAVE_GETENTROPY
+#endif
 #endif
 #endif
 #if defined(__linux__) || !defined(HAVE_GETENTROPY)
