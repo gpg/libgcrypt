@@ -641,7 +641,10 @@ _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags)
   ec->d = _gcry_mpi_set_opaque (NULL, dbuf, dlen*8);
   rc = _gcry_ecc_eddsa_compute_h_d (&hash_d, ec);
   if (rc)
-    goto leave;
+    {
+      point_free (&Q);
+      goto leave;
+    }
 
   _gcry_mpi_set_buffer (a, hash_d, b, 0);
   xfree (hash_d);
@@ -991,11 +994,6 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   if (!mpi_is_opaque (input) || !mpi_is_opaque (r_in) || !mpi_is_opaque (s_in))
     return GPG_ERR_INV_DATA;
 
-  point_init (&Ia);
-  point_init (&Ib);
-  h = mpi_new (0);
-  s = mpi_new (0);
-
   b = (ec->nbits+7)/8;
 
   if (ec->nbits == 255)
@@ -1004,6 +1002,11 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
     b++;
   else
     return GPG_ERR_NOT_IMPLEMENTED;
+
+  point_init (&Ia);
+  point_init (&Ib);
+  h = mpi_new (0);
+  s = mpi_new (0);
 
   /* Encode and check the public key.  */
   rc = _gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL, 0,
