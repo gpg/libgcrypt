@@ -285,7 +285,7 @@ static void
 ec_addm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 {
   mpi_add (w, u, v);
-  ec_mod (w, ctx);
+  ctx->mod (w, ctx);
 }
 
 static void
@@ -294,14 +294,14 @@ ec_subm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ec)
   mpi_sub (w, u, v);
   while (w->sign)
     mpi_add (w, w, ec->p);
-  /*ec_mod (w, ec);*/
+  /*ctx->mod (w, ec);*/
 }
 
 static void
 ec_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 {
   mpi_mul (w, u, v);
-  ec_mod (w, ctx);
+  ctx->mod (w, ctx);
 }
 
 /* W = 2 * U mod P.  */
@@ -309,7 +309,7 @@ static void
 ec_mul2 (gcry_mpi_t w, gcry_mpi_t u, mpi_ec_t ctx)
 {
   mpi_lshift (w, u, 1);
-  ec_mod (w, ctx);
+  ctx->mod (w, ctx);
 }
 
 static void
@@ -585,6 +585,7 @@ struct field_table {
   void (* mulm) (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx);
   void (* mul2) (gcry_mpi_t w, gcry_mpi_t u, mpi_ec_t ctx);
   void (* pow2) (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx);
+  void (* mod) (gcry_mpi_t w, mpi_ec_t ctx);
 };
 
 static const struct field_table field_table[] = {
@@ -594,7 +595,8 @@ static const struct field_table field_table[] = {
     ec_subm_25519,
     ec_mulm_25519,
     ec_mul2_25519,
-    ec_pow2_25519
+    ec_pow2_25519,
+    NULL
   },
   {
    "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"
@@ -603,7 +605,55 @@ static const struct field_table field_table[] = {
     ec_subm_448,
     ec_mulm_448,
     ec_mul2_448,
-    ec_pow2_448
+    ec_pow2_448,
+    NULL
+  },
+  {
+    "0xfffffffffffffffffffffffffffffffeffffffffffffffff",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    _gcry_mpi_ec_nist192_mod
+  },
+  {
+    "0xffffffffffffffffffffffffffffffff000000000000000000000001",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    _gcry_mpi_ec_nist224_mod
+  },
+  {
+    "0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    _gcry_mpi_ec_nist256_mod
+  },
+  {
+    "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+    "ffffffff0000000000000000ffffffff",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    _gcry_mpi_ec_nist384_mod
+  },
+  {
+    "0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    _gcry_mpi_ec_nist521_mod
   },
   { NULL, NULL, NULL, NULL, NULL, NULL },
 };
@@ -757,6 +807,7 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
   ctx->mulm = ec_mulm;
   ctx->mul2 = ec_mul2;
   ctx->pow2 = ec_pow2;
+  ctx->mod = ec_mod;
 
   for (i=0; field_table[i].p; i++)
     {
@@ -769,18 +820,25 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
 
       if (!mpi_cmp (p, f_p))
         {
-          ctx->addm = field_table[i].addm;
-          ctx->subm = field_table[i].subm;
-          ctx->mulm = field_table[i].mulm;
-          ctx->mul2 = field_table[i].mul2;
-          ctx->pow2 = field_table[i].pow2;
+          ctx->addm = field_table[i].addm ? field_table[i].addm : ctx->addm;
+          ctx->subm = field_table[i].subm ? field_table[i].subm : ctx->subm;
+          ctx->mulm = field_table[i].mulm ? field_table[i].mulm : ctx->mulm;
+          ctx->mul2 = field_table[i].mul2 ? field_table[i].mul2 : ctx->mul2;
+          ctx->pow2 = field_table[i].pow2 ? field_table[i].pow2 : ctx->pow2;
+          ctx->mod = field_table[i].mod ? field_table[i].mod : ctx->mod;
           _gcry_mpi_release (f_p);
 
-          mpi_resize (ctx->a, ctx->p->nlimbs);
-          ctx->a->nlimbs = ctx->p->nlimbs;
+	  if (ctx->a)
+	    {
+	      mpi_resize (ctx->a, ctx->p->nlimbs);
+	      ctx->a->nlimbs = ctx->p->nlimbs;
+	    }
 
-          mpi_resize (ctx->b, ctx->p->nlimbs);
-          ctx->b->nlimbs = ctx->p->nlimbs;
+	  if (ctx->b)
+	    {
+	      mpi_resize (ctx->b, ctx->p->nlimbs);
+	      ctx->b->nlimbs = ctx->p->nlimbs;
+	    }
 
           for (i=0; i< DIM(ctx->t.scratch) && ctx->t.scratch[i]; i++)
             ctx->t.scratch[i]->nlimbs = ctx->p->nlimbs;

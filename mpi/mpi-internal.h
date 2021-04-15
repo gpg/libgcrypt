@@ -79,6 +79,11 @@ typedef int mpi_size_t;        /* (must be a signed type) */
 	if( (a)->alloced < (b) )   \
 	    mpi_resize((a), (b));  \
     } while(0)
+#define RESIZE_AND_CLEAR_IF_NEEDED(a,b) \
+    do {			   \
+	if( (a)->nlimbs < (b) )   \
+	    mpi_resize((a), (b));  \
+    } while(0)
 
 /* Copy N limbs from S to D.  */
 #define MPN_COPY( d, s, n) \

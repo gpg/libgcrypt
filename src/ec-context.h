@@ -74,6 +74,7 @@ struct mpi_ec_ctx_s
   void (* mulm) (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx);
   void (* pow2) (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx);
   void (* mul2) (gcry_mpi_t w, gcry_mpi_t u, mpi_ec_t ctx);
+  void (* mod) (gcry_mpi_t w, mpi_ec_t ctx);
 };
 
 

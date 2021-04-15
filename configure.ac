@@ -546,6 +546,9 @@ AC_ARG_ENABLE([asm],
               [try_asm_modules=$enableval],
               [try_asm_modules=yes])
 AC_MSG_RESULT($try_asm_modules)
+if test "$try_asm_modules" != yes ; then
+    AC_DEFINE(ASM_DISABLED,1,[Defined if --disable-asm was used to configure])
+fi
 
 # Implementation of the --enable-m-guard switch.
 AC_MSG_CHECKING([whether memory guard is requested])

@@ -20,6 +20,22 @@
 #ifndef GCRY_EC_INTERNAL_H
 #define GCRY_EC_INTERNAL_H
 
+#include <config.h>
+
 void _gcry_mpi_ec_ed25519_mod (gcry_mpi_t a);
+
+#ifndef ASM_DISABLED
+void _gcry_mpi_ec_nist192_mod (gcry_mpi_t w, mpi_ec_t ctx);
+void _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx);
+void _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx);
+void _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx);
+void _gcry_mpi_ec_nist521_mod (gcry_mpi_t w, mpi_ec_t ctx);
+#else
+# define _gcry_mpi_ec_nist192_mod NULL
+# define _gcry_mpi_ec_nist224_mod NULL
+# define _gcry_mpi_ec_nist256_mod NULL
+# define _gcry_mpi_ec_nist384_mod NULL
+# define _gcry_mpi_ec_nist521_mod NULL
+#endif
 
 #endif /*GCRY_EC_INTERNAL_H*/
