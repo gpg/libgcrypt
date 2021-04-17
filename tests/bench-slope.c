@@ -784,6 +784,54 @@ bench_print_result (double nsecs_per_byte)
 }
 
 static void
+bench_print_result_nsec_per_iteration (double nsecs_per_iteration)
+{
+  double cycles_per_iteration;
+  char nsecpiter_buf[16];
+  char cpiter_buf[16];
+  char mhz_buf[16];
+
+  strcpy(cpiter_buf, csv_mode ? "" : "-");
+  strcpy(mhz_buf, csv_mode ? "" : "-");
+
+  double_to_str (nsecpiter_buf, sizeof (nsecpiter_buf), nsecs_per_iteration);
+
+  /* If user didn't provide CPU speed, we cannot show cycles/iter results.  */
+  if (bench_ghz > 0.0)
+    {
+      cycles_per_iteration = nsecs_per_iteration * bench_ghz;
+      double_to_str (cpiter_buf, sizeof (cpiter_buf), cycles_per_iteration);
+      double_to_str (mhz_buf, sizeof (mhz_buf), bench_ghz * 1000);
+    }
+
+  if (csv_mode)
+    {
+      if (auto_ghz)
+        printf ("%s,%s,%s,,,,,,,,,%s,ns/iter,%s,c/iter,%s,Mhz\n",
+                current_section_name,
+                current_algo_name ? current_algo_name : "",
+                current_mode_name ? current_mode_name : "",
+                nsecpiter_buf,
+                cpiter_buf,
+                mhz_buf);
+      else
+        printf ("%s,%s,%s,,,,,,,,,%s,ns/iter,%s,c/iter\n",
+                current_section_name,
+                current_algo_name ? current_algo_name : "",
+                current_mode_name ? current_mode_name : "",
+                nsecpiter_buf,
+                cpiter_buf);
+    }
+  else
+    {
+      if (auto_ghz)
+        printf ("%14s %13s %9s\n", nsecpiter_buf, cpiter_buf, mhz_buf);
+      else
+        printf ("%14s %13s\n", nsecpiter_buf, cpiter_buf);
+    }
+}
+
+static void
 bench_print_section (const char *section_name, const char *print_name)
 {
   if (csv_mode)
@@ -816,6 +864,28 @@ bench_print_header (int algo_width, const char *algo_name)
       else
         printf ("%14s %15s %13s\n", "nanosecs/byte", "mebibytes/sec",
                 "cycles/byte");
+    }
+}
+
+static void
+bench_print_header_nsec_per_iteration (int algo_width, const char *algo_name)
+{
+  if (csv_mode)
+    {
+      gcry_free (current_algo_name);
+      current_algo_name = gcry_xstrdup (algo_name);
+    }
+  else
+    {
+      if (algo_width < 0)
+        printf (" %-*s | ", -algo_width, algo_name);
+      else
+        printf (" %-*s | ", algo_width, algo_name);
+
+      if (auto_ghz)
+        printf ("%14s %13s %9s\n", "nanosecs/iter", "cycles/iter", "auto Mhz");
+      else
+        printf ("%14s %13s\n", "nanosecs/iter", "cycles/iter");
     }
 }
 
@@ -1991,11 +2061,7 @@ kdf_bench_one (int algo, int subalgo)
   struct bench_kdf_mode mode = { &kdf_ops };
   struct bench_obj obj = { 0 };
   double nsecs_per_iteration;
-  double cycles_per_iteration;
   char algo_name[32];
-  char nsecpiter_buf[16];
-  char cpiter_buf[16];
-  char mhz_buf[16];
 
   mode.algo = algo;
   mode.subalgo = subalgo;
@@ -2030,45 +2096,7 @@ kdf_bench_one (int algo, int subalgo)
   obj.priv = &mode;
 
   nsecs_per_iteration = do_slope_benchmark (&obj);
-
-  strcpy(cpiter_buf, csv_mode ? "" : "-");
-  strcpy(mhz_buf, csv_mode ? "" : "-");
-
-  double_to_str (nsecpiter_buf, sizeof (nsecpiter_buf), nsecs_per_iteration);
-
-  /* If user didn't provide CPU speed, we cannot show cycles/iter results.  */
-  if (bench_ghz > 0.0)
-    {
-      cycles_per_iteration = nsecs_per_iteration * bench_ghz;
-      double_to_str (cpiter_buf, sizeof (cpiter_buf), cycles_per_iteration);
-      double_to_str (mhz_buf, sizeof (mhz_buf), bench_ghz * 1000);
-    }
-
-  if (csv_mode)
-    {
-      if (auto_ghz)
-        printf ("%s,%s,%s,,,,,,,,,%s,ns/iter,%s,c/iter,%s,Mhz\n",
-                current_section_name,
-                current_algo_name ? current_algo_name : "",
-                current_mode_name ? current_mode_name : "",
-                nsecpiter_buf,
-                cpiter_buf,
-                mhz_buf);
-      else
-        printf ("%s,%s,%s,,,,,,,,,%s,ns/iter,%s,c/iter\n",
-                current_section_name,
-                current_algo_name ? current_algo_name : "",
-                current_mode_name ? current_mode_name : "",
-                nsecpiter_buf,
-                cpiter_buf);
-    }
-  else
-    {
-      if (auto_ghz)
-        printf ("%14s %13s %9s\n", nsecpiter_buf, cpiter_buf, mhz_buf);
-      else
-        printf ("%14s %13s\n", nsecpiter_buf, cpiter_buf);
-    }
+  bench_print_result_nsec_per_iteration (nsecs_per_iteration);
 }
 
 void
@@ -2079,14 +2107,7 @@ kdf_bench (char **argv, int argc)
 
   bench_print_section ("kdf", "KDF");
 
-  if (!csv_mode)
-    {
-      printf (" %-*s | ", 24, "");
-      if (auto_ghz)
-        printf ("%14s %13s %9s\n", "nanosecs/iter", "cycles/iter", "auto Mhz");
-      else
-        printf ("%14s %13s\n", "nanosecs/iter", "cycles/iter");
-    }
+  bench_print_header_nsec_per_iteration (24, "");
 
   if (argv && argc)
     {
@@ -2116,13 +2137,571 @@ kdf_bench (char **argv, int argc)
 }
 
 
+/************************************************************ ECC benchmarks. */
+
+#if USE_ECC
+enum bench_ecc_algo
+{
+  ECC_ALGO_ED25519 = 0,
+  ECC_ALGO_ED448,
+  ECC_ALGO_NIST_P192,
+  ECC_ALGO_NIST_P224,
+  ECC_ALGO_NIST_P256,
+  ECC_ALGO_NIST_P384,
+  ECC_ALGO_NIST_P521,
+  ECC_ALGO_SECP256K1,
+  __MAX_ECC_ALGO
+};
+
+enum bench_ecc_operation
+{
+  ECC_OPER_MULT = 0,
+  ECC_OPER_KEYGEN,
+  ECC_OPER_SIGN,
+  ECC_OPER_VERIFY,
+  __MAX_ECC_OPER
+};
+
+struct bench_ecc_oper
+{
+  enum bench_ecc_operation oper;
+  const char *name;
+  struct bench_ops *ops;
+
+  enum bench_ecc_algo algo;
+};
+
+struct bench_ecc_mult_hd
+{
+  gcry_ctx_t ec;
+  gcry_mpi_t k, x, y;
+  gcry_mpi_point_t G, Q;
+};
+
+struct bench_ecc_hd
+{
+  gcry_sexp_t key_spec;
+  gcry_sexp_t data;
+  gcry_sexp_t pub_key;
+  gcry_sexp_t sec_key;
+  gcry_sexp_t sig;
+};
+
+
+static const char *
+ecc_algo_name (int algo)
+{
+  switch (algo)
+    {
+      case ECC_ALGO_ED25519:
+	return "Ed25519";
+      case ECC_ALGO_ED448:
+	return "Ed448";
+      case ECC_ALGO_NIST_P192:
+	return "NIST-P192";
+      case ECC_ALGO_NIST_P224:
+	return "NIST-P224";
+      case ECC_ALGO_NIST_P256:
+	return "NIST-P256";
+      case ECC_ALGO_NIST_P384:
+	return "NIST-P384";
+      case ECC_ALGO_NIST_P521:
+	return "NIST-P521";
+      case ECC_ALGO_SECP256K1:
+	return "secp256k1";
+      default:
+	return NULL;
+    }
+}
+
+static const char *
+ecc_algo_curve (int algo)
+{
+  switch (algo)
+    {
+      case ECC_ALGO_ED25519:
+	return "Ed25519";
+      case ECC_ALGO_ED448:
+	return "Ed448";
+      case ECC_ALGO_NIST_P192:
+	return "NIST P-192";
+      case ECC_ALGO_NIST_P224:
+	return "NIST P-224";
+      case ECC_ALGO_NIST_P256:
+	return "NIST P-256";
+      case ECC_ALGO_NIST_P384:
+	return "NIST P-384";
+      case ECC_ALGO_NIST_P521:
+	return "NIST P-521";
+      case ECC_ALGO_SECP256K1:
+	return "secp256k1";
+      default:
+	return NULL;
+    }
+}
+
+static int
+ecc_nbits (int algo)
+{
+  switch (algo)
+    {
+      case ECC_ALGO_ED25519:
+	return 255;
+      case ECC_ALGO_ED448:
+	return 448;
+      case ECC_ALGO_NIST_P192:
+	return 192;
+      case ECC_ALGO_NIST_P224:
+	return 224;
+      case ECC_ALGO_NIST_P256:
+	return 256;
+      case ECC_ALGO_NIST_P384:
+	return 384;
+      case ECC_ALGO_NIST_P521:
+	return 521;
+      case ECC_ALGO_SECP256K1:
+	return 256;
+      default:
+	return 0;
+    }
+}
+
+static int
+ecc_map_name (const char *name)
+{
+  int i;
+
+  for (i = 0; i < __MAX_ECC_ALGO; i++)
+    {
+      if (strcmp(ecc_algo_name(i), name) == 0)
+	{
+	  return i;
+	}
+    }
+
+  return -1;
+}
+
+
+static int
+bench_ecc_mult_init (struct bench_obj *obj)
+{
+  struct bench_ecc_oper *oper = obj->priv;
+  struct bench_ecc_mult_hd *hd;
+  int p_size = ecc_nbits (oper->algo);
+  gpg_error_t err;
+  gcry_mpi_t p;
+
+  obj->min_bufsize = 1;
+  obj->max_bufsize = 4;
+  obj->step_size = 1;
+  obj->num_measure_repetitions =
+    num_measurement_repetitions / obj->max_bufsize;
+
+  while (obj->num_measure_repetitions == 0)
+    {
+      if (obj->max_bufsize == 2)
+	{
+	  obj->num_measure_repetitions = 2;
+	}
+      else
+	{
+	  obj->max_bufsize--;
+	  obj->num_measure_repetitions =
+	    num_measurement_repetitions / obj->max_bufsize;
+	}
+    }
+
+  hd = calloc (1, sizeof(*hd));
+  if (!hd)
+    return -1;
+
+  err = gcry_mpi_ec_new (&hd->ec, NULL, ecc_algo_curve(oper->algo));
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_mpi_ec_new failed: %s\n",
+	      gpg_strerror (err));
+      exit (1);
+    }
+  hd->G = gcry_mpi_ec_get_point ("g", hd->ec, 1);
+  hd->Q = gcry_mpi_point_new (0);
+  hd->x = gcry_mpi_new (0);
+  hd->y = gcry_mpi_new (0);
+  hd->k = gcry_mpi_new (p_size);
+  gcry_mpi_randomize (hd->k, p_size, GCRY_WEAK_RANDOM);
+  p = gcry_mpi_ec_get_mpi ("p", hd->ec, 1);
+  gcry_mpi_mod (hd->k, hd->k, p);
+  gcry_mpi_release (p);
+
+  obj->hd = hd;
+  return 0;
+}
+
+static void
+bench_ecc_mult_free (struct bench_obj *obj)
+{
+  struct bench_ecc_mult_hd *hd = obj->hd;
+
+  gcry_mpi_release (hd->k);
+  gcry_mpi_release (hd->y);
+  gcry_mpi_release (hd->x);
+  gcry_mpi_point_release (hd->Q);
+  gcry_mpi_point_release (hd->G);
+  gcry_ctx_release (hd->ec);
+  free (hd);
+  obj->hd = NULL;
+}
+
+static void
+bench_ecc_mult_do_bench (struct bench_obj *obj, void *buf, size_t num_iter)
+{
+  struct bench_ecc_mult_hd *hd = obj->hd;
+  size_t i;
+
+  (void)buf;
+
+  for (i = 0; i < num_iter; i++)
+    {
+      gcry_mpi_ec_mul (hd->Q, hd->k, hd->G, hd->ec);
+      if (gcry_mpi_ec_get_affine (hd->x, hd->y, hd->Q, hd->ec))
+	{
+	  fprintf (stderr, PGM ": gcry_mpi_ec_get_affine failed\n");
+	  exit (1);
+	}
+    }
+}
+
+
+static int
+bench_ecc_init (struct bench_obj *obj)
+{
+  struct bench_ecc_oper *oper = obj->priv;
+  struct bench_ecc_hd *hd;
+  int p_size = ecc_nbits (oper->algo);
+  gpg_error_t err;
+  gcry_mpi_t x;
+
+  obj->min_bufsize = 1;
+  obj->max_bufsize = 4;
+  obj->step_size = 1;
+  obj->num_measure_repetitions =
+    num_measurement_repetitions / obj->max_bufsize;
+
+  while (obj->num_measure_repetitions == 0)
+    {
+      if (obj->max_bufsize == 2)
+	{
+	  obj->num_measure_repetitions = 2;
+	}
+      else
+	{
+	  obj->max_bufsize--;
+	  obj->num_measure_repetitions =
+	    num_measurement_repetitions / obj->max_bufsize;
+	}
+    }
+
+  hd = calloc (1, sizeof(*hd));
+  if (!hd)
+    return -1;
+
+  x = gcry_mpi_new (p_size);
+  gcry_mpi_randomize (x, p_size, GCRY_WEAK_RANDOM);
+
+  switch (oper->algo)
+    {
+      default:
+	return -1;
+
+      case ECC_ALGO_ED25519:
+        err = gcry_sexp_build (&hd->key_spec, NULL,
+                               "(genkey (ecdsa (curve \"Ed25519\")"
+                               "(flags eddsa)))");
+	if (err)
+	  break;
+        err = gcry_sexp_build (&hd->data, NULL,
+                               "(data (flags eddsa)(hash-algo sha512)"
+                               " (value %m))", x);
+	break;
+
+      case ECC_ALGO_ED448:
+        err = gcry_sexp_build (&hd->key_spec, NULL,
+                               "(genkey (ecdsa (curve \"Ed448\")"
+                               "(flags eddsa)))");
+	if (err)
+	  break;
+        err = gcry_sexp_build (&hd->data, NULL,
+                               "(data (flags eddsa)(hash-algo shake256)"
+                               " (value %m))", x);
+	break;
+
+      case ECC_ALGO_NIST_P192:
+      case ECC_ALGO_NIST_P224:
+      case ECC_ALGO_NIST_P256:
+      case ECC_ALGO_NIST_P384:
+      case ECC_ALGO_NIST_P521:
+        err = gcry_sexp_build (&hd->key_spec, NULL,
+                               "(genkey (ECDSA (nbits %d)))", p_size);
+	if (err)
+	  break;
+        err = gcry_sexp_build (&hd->data, NULL,
+			       "(data (flags raw) (value %m))", x);
+	break;
+    }
+
+  gcry_mpi_release (x);
+
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_sexp_build failed: %s\n",
+	       gpg_strerror (err));
+      exit (1);
+    }
+
+  obj->hd = hd;
+  return 0;
+}
+
+static void
+bench_ecc_free (struct bench_obj *obj)
+{
+  struct bench_ecc_hd *hd = obj->hd;
+
+  gcry_sexp_release (hd->sig);
+  gcry_sexp_release (hd->pub_key);
+  gcry_sexp_release (hd->sec_key);
+  gcry_sexp_release (hd->data);
+  gcry_sexp_release (hd->key_spec);
+  free (hd);
+  obj->hd = NULL;
+}
+
+static void
+bench_ecc_keygen (struct bench_ecc_hd *hd)
+{
+  gcry_sexp_t key_pair;
+  gpg_error_t err;
+
+  err = gcry_pk_genkey (&key_pair, hd->key_spec);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_pk_genkey failed: %s\n",
+		gpg_strerror (err));
+      exit (1);
+    }
+
+  hd->pub_key = gcry_sexp_find_token (key_pair, "public-key", 0);
+  if (!hd->pub_key)
+    {
+      fprintf (stderr, PGM ": public part missing in key\n");
+      exit (1);
+    }
+  hd->sec_key = gcry_sexp_find_token (key_pair, "private-key", 0);
+  if (!hd->sec_key)
+    {
+      fprintf (stderr, PGM ": private part missing in key\n");
+      exit (1);
+    }
+
+  gcry_sexp_release (key_pair);
+}
+
+static void
+bench_ecc_keygen_do_bench (struct bench_obj *obj, void *buf, size_t num_iter)
+{
+  struct bench_ecc_hd *hd = obj->hd;
+  size_t i;
+
+  (void)buf;
+
+  for (i = 0; i < num_iter; i++)
+    {
+      bench_ecc_keygen (hd);
+      gcry_sexp_release (hd->pub_key);
+      gcry_sexp_release (hd->sec_key);
+    }
+
+  hd->pub_key = NULL;
+  hd->sec_key = NULL;
+}
+
+static void
+bench_ecc_sign_do_bench (struct bench_obj *obj, void *buf, size_t num_iter)
+{
+  struct bench_ecc_hd *hd = obj->hd;
+  gpg_error_t err;
+  size_t i;
+
+  (void)buf;
+
+  bench_ecc_keygen (hd);
+
+  for (i = 0; i < num_iter; i++)
+    {
+      err = gcry_pk_sign (&hd->sig, hd->data, hd->sec_key);
+      if (err)
+	{
+	  fprintf (stderr, PGM ": gcry_pk_sign failed: %s\n",
+		  gpg_strerror (err));
+	  exit (1);
+	}
+      gcry_sexp_release (hd->sig);
+    }
+
+  gcry_sexp_release (hd->pub_key);
+  gcry_sexp_release (hd->sec_key);
+  hd->sig = NULL;
+  hd->pub_key = NULL;
+  hd->sec_key = NULL;
+}
+
+static void
+bench_ecc_verify_do_bench (struct bench_obj *obj, void *buf, size_t num_iter)
+{
+  struct bench_ecc_hd *hd = obj->hd;
+  gpg_error_t err;
+  int i;
+
+  (void)buf;
+
+  bench_ecc_keygen (hd);
+  err = gcry_pk_sign (&hd->sig, hd->data, hd->sec_key);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_pk_sign failed: %s\n",
+	      gpg_strerror (err));
+      exit (1);
+    }
+
+  for (i = 0; i < num_iter; i++)
+    {
+      err = gcry_pk_verify (hd->sig, hd->data, hd->pub_key);
+      if (err)
+	{
+	  fprintf (stderr, PGM ": gcry_pk_verify failed: %s\n",
+		  gpg_strerror (err));
+	  exit (1);
+	}
+    }
+
+  gcry_sexp_release (hd->sig);
+  gcry_sexp_release (hd->pub_key);
+  gcry_sexp_release (hd->sec_key);
+  hd->sig = NULL;
+  hd->pub_key = NULL;
+  hd->sec_key = NULL;
+}
+
+
+static struct bench_ops ecc_mult_ops = {
+  &bench_ecc_mult_init,
+  &bench_ecc_mult_free,
+  &bench_ecc_mult_do_bench
+};
+
+static struct bench_ops ecc_keygen_ops = {
+  &bench_ecc_init,
+  &bench_ecc_free,
+  &bench_ecc_keygen_do_bench
+};
+
+static struct bench_ops ecc_sign_ops = {
+  &bench_ecc_init,
+  &bench_ecc_free,
+  &bench_ecc_sign_do_bench
+};
+
+static struct bench_ops ecc_verify_ops = {
+  &bench_ecc_init,
+  &bench_ecc_free,
+  &bench_ecc_verify_do_bench
+};
+
+
+static struct bench_ecc_oper ecc_operations[] = {
+  { ECC_OPER_MULT,   "mult",   &ecc_mult_ops },
+  { ECC_OPER_KEYGEN, "keygen", &ecc_keygen_ops },
+  { ECC_OPER_SIGN,   "sign",   &ecc_sign_ops },
+  { ECC_OPER_VERIFY, "verify", &ecc_verify_ops },
+  { 0, NULL, NULL }
+};
+
+
+static void
+cipher_ecc_one (enum bench_ecc_algo algo, struct bench_ecc_oper *poper)
+{
+  struct bench_ecc_oper oper = *poper;
+  struct bench_obj obj = { 0 };
+  double result;
+
+  if (algo == ECC_ALGO_SECP256K1 && oper.oper != ECC_OPER_MULT)
+    return;
+
+  oper.algo = algo;
+
+  bench_print_mode (14, oper.name);
+
+  obj.ops = oper.ops;
+  obj.priv = &oper;
+
+  result = do_slope_benchmark (&obj);
+  bench_print_result_nsec_per_iteration (result);
+}
+
+
+static void
+_ecc_bench (int algo)
+{
+  const char *algo_name;
+  int i;
+
+  algo_name = ecc_algo_name (algo);
+
+  bench_print_header_nsec_per_iteration (14, algo_name);
+
+  for (i = 0; ecc_operations[i].name; i++)
+    cipher_ecc_one (algo, &ecc_operations[i]);
+
+  bench_print_footer (14);
+}
+#endif
+
+
+void
+ecc_bench (char **argv, int argc)
+{
+#if USE_ECC
+  int i, algo;
+
+  bench_print_section ("ecc", "ECC");
+
+  if (argv && argc)
+    {
+      for (i = 0; i < argc; i++)
+        {
+          algo = ecc_map_name (argv[i]);
+          if (algo >= 0)
+            _ecc_bench (algo);
+        }
+    }
+  else
+    {
+      for (i = 0; i < __MAX_ECC_ALGO; i++)
+        _ecc_bench (i);
+    }
+#else
+  (void)argv;
+  (void)argc;
+#endif
+}
+
 /************************************************************** Main program. */
 
 void
 print_help (void)
 {
   static const char *help_lines[] = {
-    "usage: bench-slope [options] [hash|mac|cipher|kdf [algonames]]",
+    "usage: bench-slope [options] [hash|mac|cipher|kdf|ecc [algonames]]",
     "",
     " options:",
     "   --cpu-mhz <mhz>           Set CPU speed for calculating cycles",
@@ -2304,6 +2883,7 @@ main (int argc, char **argv)
       mac_bench (NULL, 0);
       cipher_bench (NULL, 0);
       kdf_bench (NULL, 0);
+      ecc_bench (NULL, 0);
     }
   else if (!strcmp (*argv, "hash"))
     {
@@ -2336,6 +2916,14 @@ main (int argc, char **argv)
 
       warm_up_cpu ();
       kdf_bench ((argc == 0) ? NULL : argv, argc);
+    }
+  else if (!strcmp (*argv, "ecc"))
+    {
+      argc--;
+      argv++;
+
+      warm_up_cpu ();
+      ecc_bench ((argc == 0) ? NULL : argv, argc);
     }
   else
     {
