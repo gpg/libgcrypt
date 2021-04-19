@@ -1,8 +1,39 @@
-Noteworthy changes in version 1.9.3 (unreleased)  [C23/A3/R_]
+Noteworthy changes in version 1.9.3 (2021-04-19)  [C23/A3/R3]
 ------------------------------------------------
 
  * Bug fixes:
 
+   - Fix build problems on i386 using gcc-4.7.
+
+   - Fix checksum calculation in OCB decryption for AES on s390.
+     [#5356]
+
+   - Fix a regression in gcry_mpi_ec_add related to certain usages of
+     curve 25519.  [#5372]
+
+   - Fix a symbol not found problem on Apple M1.  [#5370]
+
+   - Fix for Apple iOS getentropy peculiarity.  [#5375]
+
+   - Make keygrip computation work for compressed points.  [#4961]
+
+* Performance:
+
+   - Add x86_64 VAES/AVX2 accelerated implementation of Camellia.
+     [0e7e60241a]
+
+   - Add x86_64 VAES/AVX2 accelerated implementation of AES.
+     [e72498a54f]
+
+   - Add VPMSUMD acceleration for GCM mode on PPC.  [#5040]
+
+ * Internal changes.
+
+   - Harden MPI conditional code against EM leakage.  [#5330]
+
+   - Harden Elgamal by introducing exponent blinding.  [#5328]
+
+   - Fix memory leaks in the error code paths of EdDSA.  [#5385]
 
  Release-info: https://dev.gnupg.org/T5305
 
