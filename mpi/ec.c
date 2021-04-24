@@ -576,6 +576,59 @@ ec_pow2_448 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
   ec_mulm_448 (w, b, b, ctx);
 }
 
+
+/* Fast reduction for secp256k1 */
+static void
+ec_secp256k1_mod (gcry_mpi_t w, mpi_ec_t ctx)
+{
+  mpi_size_t wsize = (256 + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB;
+  mpi_limb_t n[wsize + 1];
+  mpi_limb_t s[wsize + 1];
+  mpi_limb_t cy, borrow;
+  mpi_ptr_t wp;
+
+  MPN_NORMALIZE (w->d, w->nlimbs);
+  if (w->nlimbs > 2 * 256 / BITS_PER_MPI_LIMB)
+    log_bug ("W must be less than m^2\n");
+
+  RESIZE_AND_CLEAR_IF_NEEDED (w, wsize * 2);
+
+  wp = w->d;
+
+  /* mod P (2^256 - 2^32 - 977) */
+
+  /* first pass of reduction */
+  memcpy (n, wp + wsize, wsize * BYTES_PER_MPI_LIMB);
+#if BITS_PER_MPI_LIMB == 64
+  s[wsize] = _gcry_mpih_lshift (s, wp + wsize, wsize, 32);
+#else
+  s[0] = 0;
+  memcpy (s + 1, wp + wsize, wsize * BYTES_PER_MPI_LIMB);
+#endif
+  wp[wsize] = _gcry_mpih_addmul_1 (wp, n, wsize, 977);
+  cy = _gcry_mpih_add_n (wp, wp, s, wsize + 1);
+
+  /* second pass of reduction */
+#if BITS_PER_MPI_LIMB == 64
+  /* cy == 0 */
+  memset (n + 1, 0, (wsize - 1) * BYTES_PER_MPI_LIMB);
+  umul_ppmm(n[1], n[0], wp[wsize], ((mpi_limb_t)1 << 32) + 977);
+#else
+  memset (n + 2, 0, (wsize - 2) * BYTES_PER_MPI_LIMB);
+  umul_ppmm(n[1], n[0], wp[wsize], 977);
+  add_ssaaaa(n[2], n[1], 0, n[1], 0, cy * 977);
+  add_ssaaaa(n[2], n[1], n[2], n[1], cy, wp[wsize]);
+#endif
+  cy = _gcry_mpih_add_n (wp, wp, n, wsize);
+
+  borrow = _gcry_mpih_sub_n (s, wp, ctx->p->d, wsize);
+  mpih_set_cond (wp, s, wsize, (cy != 0UL) | (borrow == 0UL));
+
+  w->nlimbs = wsize;
+  MPN_NORMALIZE (wp, w->nlimbs);
+}
+
+
 struct field_table {
   const char *p;
 
@@ -654,6 +707,15 @@ static const struct field_table field_table[] = {
     NULL,
     NULL,
     _gcry_mpi_ec_nist521_mod
+  },
+  {
+    "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    ec_secp256k1_mod
   },
   { NULL, NULL, NULL, NULL, NULL, NULL },
 };
