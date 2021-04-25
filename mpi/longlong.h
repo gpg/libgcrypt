@@ -168,7 +168,7 @@ MA 02111-1307, USA. */
   do {									\
     UDItype __m0 = (m0), __m1 = (m1);					\
     __asm__ ("umulh %r1,%2,%0"                                          \
-	     : "=r" ((UDItype) ph)                                      \
+	     : "=r" ((UDItype)(ph))                                     \
 	     : "%rJ" (__m0),                                            \
 	       "rI" (__m1));                                            \
     (pl) = __m0 * __m1; 						\
@@ -498,7 +498,7 @@ extern USItype __udiv_qrnnd ();
     union {DItype __ll; 						\
 	   struct {USItype __h, __l;} __i;				\
 	  } __xx;							\
-    __xx.__i.__h = n1; __xx.__i.__l = n0;				\
+    __xx.__i.__h = (n1); __xx.__i.__l = (n0);				\
     __asm__ ("dr %0,%2"                                                 \
 	     : "=r" (__xx.__ll)                                         \
 	     : "0" (__xx.__ll), "r" (d));                               \
@@ -865,7 +865,7 @@ extern USItype __udiv_qrnnd ();
 #  define umul_ppmm(w1, w0, u, v) \
   do {                                                                  \
     UDItype _r;                                                         \
-    _r = (UDItype) u * v;                                               \
+    _r = (UDItype)(u) * (v);                                            \
     (w1) = _r >> 32;                                                    \
     (w0) = (USItype) _r;                                                \
   } while (0)
@@ -880,7 +880,7 @@ extern USItype __udiv_qrnnd ();
 #  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("multu %2,%3 \n" \
 	   "mflo %0 \n"     \
-	   "mfhi %1"                                                        \
+	   "mfhi %1"                                                    \
 	   : "=d" ((USItype)(w0)),                                      \
 	     "=d" ((USItype)(w1))                                       \
 	   : "d" ((USItype)(u)),                                        \
@@ -900,7 +900,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 #  define umul_ppmm(w1, w0, u, v) \
   do {                                                                 \
     UTItype _r;                                                        \
-    _r = (UTItype) u * v;                                              \
+    _r = (UTItype)(u) * (v);                                           \
     (w1) = _r >> 64;                                                   \
     (w0) = (UDItype) _r;                                               \
   } while (0)
@@ -915,7 +915,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 #  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("dmultu %2,%3 \n"    \
 	   "mflo %0 \n"         \
-	   "mfhi %1"                                                        \
+	   "mfhi %1"                                                    \
 	   : "=d" ((UDItype)(w0)),                                      \
 	     "=d" ((UDItype)(w1))                                       \
 	   : "d" ((UDItype)(u)),                                        \
@@ -1494,7 +1494,7 @@ extern USItype __udiv_qrnnd ();
     union {DItype __ll; 						\
 	   struct {SItype __l, __h;} __i;				\
 	  } __xx;							\
-    __xx.__i.__h = n1; __xx.__i.__l = n0;				\
+    __xx.__i.__h = (n1); __xx.__i.__l = (n0);				\
     __asm__ ("ediv %3,%2,%0,%1"                                         \
 	     : "=g" (q), "=g" (r)                                       \
 	     : "g" (__xx.__ll), "g" (d));                               \
