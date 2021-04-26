@@ -358,56 +358,34 @@ void __gcry_burn_stack (unsigned int bytes);
 	do { __gcry_burn_stack (bytes); \
 	     __gcry_burn_stack_dummy (); } while(0)
 
-/* To avoid that a compiler optimizes certain memset calls away, these
-   macros may be used instead.  For small constant length buffers,
-   memory wiping is inlined.  For non-constant or large length buffers,
-   memory is wiped with memset through _gcry_fast_wipememory. */
+/* To avoid that a compiler optimizes certain memset calls away, this
+   macro may be used instead.  For constant length buffers, memory
+   wiping is inlined.  Dead store elimination of inlined memset is
+   avoided here by using assembly block after memset.  For non-constant
+   length buffers, memory is wiped through _gcry_fast_wipememory.  */
+#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
+#define fast_wipememory2_inline(_ptr,_set,_len) do { \
+	      memset((_ptr), (_set), (_len)); \
+	      asm volatile ("\n" :: "r" (_ptr) : "memory"); \
+	    } while(0)
+#else
+#define fast_wipememory2_inline(_ptr,_set,_len) \
+	    _gcry_fast_wipememory2((void *)_ptr, _set, _len)
+#endif
 #define wipememory2(_ptr,_set,_len) do { \
-	      if (!CONSTANT_P(_len) || _len > 64) { \
+	      if (!CONSTANT_P(_len) || !CONSTANT_P(_set)) { \
 		if (CONSTANT_P(_set) && (_set) == 0) \
-		  _gcry_fast_wipememory((void *)_ptr, _len); \
+		  _gcry_fast_wipememory((void *)(_ptr), (_len)); \
 		else \
-		  _gcry_fast_wipememory2((void *)_ptr, _set, _len); \
-	      } else {\
-		volatile char *_vptr = (volatile char *)(_ptr); \
-		size_t _vlen = (_len); \
-		const unsigned char _vset = (_set); \
-		fast_wipememory2(_vptr, _vset, _vlen); \
-		while(_vlen) { *_vptr = (_vset); _vptr++; _vlen--; } \
+		  _gcry_fast_wipememory2((void *)(_ptr), (_set), (_len)); \
+	      } else { \
+		fast_wipememory2_inline((void *)(_ptr), (_set), (_len)); \
 	      } \
 	    } while(0)
-#define wipememory(_ptr,_len) wipememory2(_ptr,0,_len)
+#define wipememory(_ptr,_len) wipememory2((_ptr),0,(_len))
 
 void _gcry_fast_wipememory(void *ptr, size_t len);
 void _gcry_fast_wipememory2(void *ptr, int set, size_t len);
-
-#if defined(HAVE_GCC_ATTRIBUTE_PACKED) && \
-    defined(HAVE_GCC_ATTRIBUTE_ALIGNED) && \
-    defined(HAVE_GCC_ATTRIBUTE_MAY_ALIAS)
-typedef struct fast_wipememory_s
-{
-  u64 a;
-} __attribute__((packed, aligned(1), may_alias)) fast_wipememory_t;
-/* fast_wipememory may leave tail bytes unhandled, in which case tail bytes
-   are handled by wipememory. */
-# define fast_wipememory2(_vptr,_vset,_vlen) do { \
-	      fast_wipememory_t _vset_long; \
-	      if (_vlen < sizeof(fast_wipememory_t)) \
-		break; \
-	      _vset_long.a = (_vset); \
-	      _vset_long.a *= U64_C(0x0101010101010101); \
-	      do { \
-		volatile fast_wipememory_t *_vptr_long = \
-		  (volatile void *)_vptr; \
-		_vptr_long->a = _vset_long.a; \
-		_vlen -= sizeof(fast_wipememory_t); \
-		_vptr += sizeof(fast_wipememory_t); \
-	      } while (_vlen >= sizeof(fast_wipememory_t)); \
-	    } while (0)
-#else
-# define fast_wipememory2(_vptr,_vset,_vlen)
-#endif
-
 
 /* Digit predicates.  */
 
