@@ -3515,8 +3515,8 @@ be set using the function:
 For use with the HMAC feature or BLAKE2 keyed hash, set the MAC key to
 the value of @var{key} of length @var{keylen} bytes.  For HMAC, there
 is no restriction on the length of the key.  For keyed BLAKE2b hash,
-length of the key must be 64 bytes or less.  For keyed BLAKE2s hash,
-length of the key must be 32 bytes or less.
+length of the key must be in the range 1 to 64 bytes.  For keyed
+BLAKE2s hash, length of the key must be in the range 1 to 32 bytes.
 
 @end deftypefun
 
