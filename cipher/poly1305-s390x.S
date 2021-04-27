@@ -18,8 +18,8 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#if defined (__s390x__) && __GNUC__ >= 4 && __ARCH__ >= 9
 #include <config.h>
+#if defined (__s390x__) && __GNUC__ >= 4 && __ARCH__ >= 9
 #if defined(HAVE_GCC_INLINE_ASM_S390X)
 
 #include "asm-poly1305-s390x.h"
