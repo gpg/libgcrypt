@@ -294,6 +294,7 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
 {
   unsigned char *rawmpi;
   unsigned int rawmpilen;
+  unsigned int nbytes = (ctx->nbits+7)/8;
 
   if (mpi_is_opaque (pk))
     {
@@ -305,27 +306,36 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
         return GPG_ERR_INV_OBJ;
       rawmpilen = (rawmpilen + 7)/8;
 
-      if (rawmpilen > 1 && (rawmpilen%2) && buf[0] == 0x40)
+      if (rawmpilen == nbytes + 1
+          && (buf[0] == 0x00 || buf[0] == 0x40))
         {
           rawmpilen--;
           buf++;
         }
+      else if (rawmpilen > nbytes)
+        return GPG_ERR_INV_OBJ;
 
-      rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
+      rawmpi = xtrymalloc (nbytes);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
 
       p = rawmpi + rawmpilen;
       while (p > rawmpi)
         *--p = *buf++;
+
+      if (rawmpilen < nbytes)
+        memset (rawmpi + nbytes - rawmpilen, 0, nbytes - rawmpilen);
     }
   else
     {
-      unsigned int nbytes = (ctx->nbits+7)/8;
-
       rawmpi = _gcry_mpi_get_buffer (pk, nbytes, &rawmpilen, NULL);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
+      if (rawmpilen > nbytes + 1)
+        {
+          xfree (rawmpi);
+          return GPG_ERR_INV_OBJ;
+        }
       /*
        * It is not reliable to assume that 0x40 means the prefix.
        *
