@@ -83,14 +83,12 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
   unsigned int regs[4];
 
   asm volatile
-    ("movl %%ebx, %%edi\n\t"     /* Save GOT register.  */
-     "xorl %%ebx, %%ebx\n\t"
+    ("xchgl %%ebx, %1\n\t"     /* Save GOT register.  */
      "cpuid\n\t"
-     "movl %%ebx, %1\n\t"
-     "movl %%edi, %%ebx\n\t"     /* Restore GOT register. */
-     : "=a" (regs[0]), "=g" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
-     : "0" (in), "2" (0), "3" (0)
-     : "cc", "edi"
+     "xchgl %%ebx, %1\n\t"     /* Restore GOT register. */
+     : "=a" (regs[0]), "=D" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
+     : "0" (in), "1" (0), "2" (0), "3" (0)
+     : "cc"
      );
 
   if (eax)
