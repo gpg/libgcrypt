@@ -331,7 +331,7 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
       rawmpi = _gcry_mpi_get_buffer (pk, nbytes, &rawmpilen, NULL);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
-      if (rawmpilen > nbytes + 1)
+      if (rawmpilen > nbytes + BYTES_PER_MPI_LIMB)
         {
           xfree (rawmpi);
           return GPG_ERR_INV_OBJ;
