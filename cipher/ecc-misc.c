@@ -411,12 +411,14 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ec, mpi_point_t result)
         return GPG_ERR_INV_OBJ;
       rawmpilen = (rawmpilen + 7)/8;
 
-      if (rawmpilen > nbytes
+      if (rawmpilen == nbytes + 1
           && (buf[0] == 0x00 || buf[0] == 0x40))
         {
           rawmpilen--;
           buf++;
         }
+      else if (rawmpilen > nbytes)
+        return GPG_ERR_INV_OBJ;
 
       rawmpi = xtrymalloc (nbytes);
       if (!rawmpi)
@@ -434,6 +436,11 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ec, mpi_point_t result)
       rawmpi = _gcry_mpi_get_buffer (pk, nbytes, &rawmpilen, NULL);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
+      if (rawmpilen > nbytes + BYTES_PER_MPI_LIMB)
+        {
+          xfree (rawmpi);
+          return GPG_ERR_INV_OBJ;
+        }
       /*
        * When we have the prefix (0x40 or 0x00), it comes at the end,
        * since it is taken by _gcry_mpi_get_buffer with little endian.
