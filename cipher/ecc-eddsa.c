@@ -598,8 +598,6 @@ _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags)
   size_t dlen;
   unsigned char *hash_d = NULL;
 
-  point_init (&Q);
-
   if ((flags & PUBKEY_FLAG_TRANSIENT_KEY))
     random_level = GCRY_STRONG_RANDOM;
   else
@@ -625,16 +623,14 @@ _gcry_ecc_eddsa_genkey (mpi_ec_t ec, int flags)
   ec->d = _gcry_mpi_set_opaque (NULL, dbuf, dlen*8);
   rc = _gcry_ecc_eddsa_compute_h_d (&hash_d, ec);
   if (rc)
-    {
-      point_free (&Q);
-      goto leave;
-    }
+    goto leave;
 
   _gcry_mpi_set_buffer (a, hash_d, b, 0);
   xfree (hash_d);
   /* log_printmpi ("ecgen         a", a); */
 
   /* Compute Q.  */
+  point_init (&Q);
   _gcry_mpi_ec_mul_point (&Q, a, ec->G, ec);
   if (DBG_CIPHER)
     log_printpnt ("ecgen      pk", &Q, ec);
