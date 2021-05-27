@@ -295,7 +295,7 @@ case "${host}" in
     m68k-atari-mint)
         ;;
     *-apple-darwin*)
-        AC_DEFINE(_DARWIN_C_SOURCE, 900000L,
+        AC_DEFINE(_DARWIN_C_SOURCE, 1,
                   Expose all libc features (__DARWIN_C_FULL).)
         AC_DEFINE(USE_POSIX_SPAWN_FOR_TESTS, 1,
                   [defined if we use posix_spawn in test program])
