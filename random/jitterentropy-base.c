@@ -50,7 +50,9 @@
  */
 
 #undef _FORTIFY_SOURCE
+#ifdef __OPTIMIZE__
 #pragma GCC optimize ("O0")
+#endif
 
 #include "jitterentropy.h"
 
