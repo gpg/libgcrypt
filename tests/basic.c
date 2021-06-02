@@ -1112,7 +1112,7 @@ check_ofb_cipher (void)
     struct data
     {
       unsigned char plaintext[MAX_DATA_LEN];
-      int inlen;
+      unsigned int inlen;
       char out[MAX_DATA_LEN];
     }
     data[MAX_DATA_LEN];
@@ -5127,7 +5127,7 @@ check_stream_cipher (void)
     const char *iv;
     struct data
     {
-      int inlen;
+      unsigned int inlen;
       const char *plaintext;
       const char *out;
     } data[MAX_DATA_LEN];
