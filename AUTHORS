@@ -6,8 +6,9 @@ Repository: git://git.gnupg.org/libgcrypt.git
 Maintainer: Werner Koch <wk@gnupg.org>
 Bug reports: https://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
-License (library): LGPLv2.1+
-License (manual and tools): GPLv2+
+End-of-life: 2024-12-31 or later
+License (library): LGPL-2.1-or-later
+License (manual and tools): GPL-2.0-or-later
 
 
 Libgcrypt is free software.  See the files COPYING.LIB and COPYING for
@@ -21,6 +22,8 @@ year that would otherwise be listed individually.
 List of Copyright holders
 =========================
 
+  Copyright (C) 2012-2021 g10 Code GmbH
+  Copyright (C) 2013-2018 Jussi Kivilinna
   Copyright (C) 1989,1991-2019 Free Software Foundation, Inc.
   Copyright (C) 1994 X Consortium
   Copyright (C) 1996 L. Peter Deutsch
@@ -30,11 +33,9 @@ List of Copyright holders
   Copyright (C) 1996-2006 Peter Gutmann, Matt Thomlinson and Blake Coverett
   Copyright (C) 2003 Nikos Mavroyanopoulos
   Copyright (C) 2006-2007 NTT (Nippon Telegraph and Telephone Corporation)
-  Copyright (C) 2012-2019 g10 Code GmbH
   Copyright (C) 2012 Simon Josefsson, Niels Möller
   Copyright (c) 2012 Intel Corporation
   Copyright (C) 2013 Christian Grothoff
-  Copyright (C) 2013-2017 Jussi Kivilinna
   Copyright (C) 2013-2014 Dmitry Eremin-Solenikov
   Copyright (C) 2014 Stephan Mueller
   Copyright (C) 2017 Bundesamt für Sicherheit in der Informationstechnik

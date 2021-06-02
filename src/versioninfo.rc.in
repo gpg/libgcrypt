@@ -34,12 +34,12 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "Provided under the terms of the GNU Lesser General Public License (LGPLv2.1+).\0"
+            VALUE "Comments", "Provided under the terms of the GNU Lesser General Public License (LGPL-2.1-or-later).\0"
             VALUE "CompanyName", "g10 Code GmbH\0"
             VALUE "FileDescription", "Libgcrypt - The GNU Crypto Library\0"
             VALUE "FileVersion", "@LIBGCRYPT_LT_CURRENT@.@LIBGCRYPT_LT_AGE@.@LIBGCRYPT_LT_REVISION@.@BUILD_REVISION@\0"
             VALUE "InternalName", "libgcrypt\0"
-            VALUE "LegalCopyright", "Copyright © 2019 Free Software Foundation, Inc.\0"
+            VALUE "LegalCopyright", "Copyright © 2021 g10 Code GmbH\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "libgcrypt.dll\0"
             VALUE "PrivateBuild", "\0"
