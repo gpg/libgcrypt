@@ -1954,6 +1954,8 @@ static gcry_cipher_oid_spec_t rijndael_oids[] =
     { "2.16.840.1.101.3.4.1.2", GCRY_CIPHER_MODE_CBC },
     { "2.16.840.1.101.3.4.1.3", GCRY_CIPHER_MODE_OFB },
     { "2.16.840.1.101.3.4.1.4", GCRY_CIPHER_MODE_CFB },
+    { "2.16.840.1.101.3.4.1.6", GCRY_CIPHER_MODE_GCM },
+    { "2.16.840.1.101.3.4.1.7", GCRY_CIPHER_MODE_CCM },
     { NULL }
   };
 
@@ -1981,6 +1983,8 @@ static gcry_cipher_oid_spec_t rijndael192_oids[] =
     { "2.16.840.1.101.3.4.1.22", GCRY_CIPHER_MODE_CBC },
     { "2.16.840.1.101.3.4.1.23", GCRY_CIPHER_MODE_OFB },
     { "2.16.840.1.101.3.4.1.24", GCRY_CIPHER_MODE_CFB },
+    { "2.16.840.1.101.3.4.1.26", GCRY_CIPHER_MODE_GCM },
+    { "2.16.840.1.101.3.4.1.27", GCRY_CIPHER_MODE_CCM },
     { NULL }
   };
 
@@ -2008,6 +2012,8 @@ static gcry_cipher_oid_spec_t rijndael256_oids[] =
     { "2.16.840.1.101.3.4.1.42", GCRY_CIPHER_MODE_CBC },
     { "2.16.840.1.101.3.4.1.43", GCRY_CIPHER_MODE_OFB },
     { "2.16.840.1.101.3.4.1.44", GCRY_CIPHER_MODE_CFB },
+    { "2.16.840.1.101.3.4.1.46", GCRY_CIPHER_MODE_GCM },
+    { "2.16.840.1.101.3.4.1.47", GCRY_CIPHER_MODE_CCM },
     { NULL }
   };
 
