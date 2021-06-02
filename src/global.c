@@ -1057,7 +1057,7 @@ _gcry_free (void *p)
   else
     _gcry_private_free (p);
 
-  if (save_errno)
+  if (save_errno && save_errno != errno)
     gpg_err_set_errno (save_errno);
 }
 
