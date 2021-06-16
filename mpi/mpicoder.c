@@ -26,6 +26,7 @@
 
 #include "mpi-internal.h"
 #include "g10lib.h"
+#include "../cipher/bufhelp.h"
 
 /* The maximum length we support in the functions converting an
  * external representation to an MPI.  This limit is used to catch
@@ -51,8 +52,9 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
   unsigned int nbits, nbytes, nlimbs, nread=0;
   mpi_limb_t a;
   gcry_mpi_t val = MPI_NULL;
+  unsigned int max_nread = *ret_nread;
 
-  if ( *ret_nread < 2 )
+  if ( max_nread < 2 )
     goto leave;
   nbits = buffer[0] << 8 | buffer[1];
   if ( nbits > MAX_EXTERN_MPI_BITS )
@@ -73,9 +75,22 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
   for ( ; j > 0; j-- )
     {
       a = 0;
+      if (i == 0 && nread + BYTES_PER_MPI_LIMB <= max_nread)
+	{
+#if BYTES_PER_MPI_LIMB == 4
+	  a = buf_get_be32 (buffer);
+#elif BYTES_PER_MPI_LIMB == 8
+	  a = buf_get_be64 (buffer);
+#else
+#     error please implement for this limb size.
+#endif
+	  buffer += BYTES_PER_MPI_LIMB;
+	  nread += BYTES_PER_MPI_LIMB;
+	  i += BYTES_PER_MPI_LIMB;
+	}
       for (; i < BYTES_PER_MPI_LIMB; i++ )
         {
-          if ( ++nread > *ret_nread )
+          if ( ++nread > max_nread )
             {
 /*               log_debug ("mpi larger than buffer"); */
               mpi_free (val);
@@ -99,8 +114,45 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
  * Fill the mpi VAL from the hex string in STR.
  */
 static int
-mpi_fromstr (gcry_mpi_t val, const char *str)
+mpi_fromstr (gcry_mpi_t val, const char *str, size_t slen)
 {
+  static const int hex2int[2][256] =
+  {
+    {
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0x00, 0x10, 0x20, 0x30,
+      0x40, 0x50, 0x60, 0x70, 0x80, 0x90, -1, -1, -1, -1, -1, -1, -1, 0xa0,
+      0xb0, 0xc0, 0xd0, 0xe0, 0xf0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0xa0,
+      0xb0, 0xc0, 0xd0, 0xe0, 0xf0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+    },
+    {
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0x00, 0x01, 0x02, 0x03,
+      0x04, 0x05, 0x06, 0x07, 0x08, 0x09, -1, -1, -1, -1, -1, -1, -1, 0x0a,
+      0x0b, 0x0c, 0x0d, 0x0e, 0x0f, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0x0a,
+      0x0b, 0x0c, 0x0d, 0x0e, 0x0f, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+    }
+  };
   int sign = 0;
   int prepend_zero = 0;
   int i, j, c, c1, c2;
@@ -111,19 +163,17 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
     {
       sign = 1;
       str++;
+      slen--;
     }
 
   /* Skip optional hex prefix.  */
   if ( *str == '0' && str[1] == 'x' )
-    str += 2;
-
-  nbits = strlen (str);
-  if (nbits > MAX_EXTERN_SCAN_BYTES)
     {
-      mpi_clear (val);
-      return 1;  /* Error.  */
+      str += 2;
+      slen -= 2;
     }
-  nbits *= 4;
+
+  nbits = slen * 4;
   if ((nbits % 8))
     prepend_zero = 1;
 
@@ -140,6 +190,44 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
   for (; j > 0; j--)
     {
       a = 0;
+
+      if (prepend_zero == 0 && (i & 31) == 0)
+	{
+	  while (slen >= sizeof(u32) * 2)
+	    {
+	      u32 n, m;
+	      u32 x, y;
+
+	      x = buf_get_le32(str);
+	      y = buf_get_le32(str + 4);
+	      str += 8;
+	      slen -= 8;
+
+	      a <<= 31; /* Two step to avoid compiler warning on 32-bit. */
+	      a <<= 1;
+
+	      n = (hex2int[0][(x >> 0) & 0xff]
+		   | hex2int[1][(x >> 8) & 0xff]) << 8;
+	      m = (hex2int[0][(y >> 0) & 0xff]
+		   | hex2int[1][(y >> 8) & 0xff]) << 8;
+	      n |= hex2int[0][(x >> 16) & 0xff];
+	      n |= hex2int[1][(x >> 24) & 0xff];
+	      m |= hex2int[0][(y >> 16) & 0xff];
+	      m |= hex2int[1][(y >> 24) & 0xff];
+
+	      a |= (n << 16) | m;
+	      i += 32;
+	      if ((int)(n | m) < 0)
+		{
+		  /* Invalid character. */
+		  mpi_clear (val);
+		  return 1;  /* Error.  */
+		}
+	      if (i == BITS_PER_MPI_LIMB)
+		break;
+	    }
+	}
+
       for (; i < BYTES_PER_MPI_LIMB; i++)
         {
           if (prepend_zero)
@@ -148,7 +236,10 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
               prepend_zero = 0;
 	    }
           else
-            c1 = *str++;
+	    {
+	      c1 = *str++;
+	      slen--;
+	    }
 
           if (!c1)
             {
@@ -156,30 +247,15 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
               return 1;  /* Error.  */
 	    }
           c2 = *str++;
+	  slen--;
           if (!c2)
             {
               mpi_clear (val);
               return 1;  /* Error.  */
 	    }
-          if ( c1 >= '0' && c1 <= '9' )
-            c = c1 - '0';
-          else if ( c1 >= 'a' && c1 <= 'f' )
-            c = c1 - 'a' + 10;
-          else if ( c1 >= 'A' && c1 <= 'F' )
-            c = c1 - 'A' + 10;
-          else
-            {
-              mpi_clear (val);
-              return 1;  /* Error.  */
-	    }
-          c <<= 4;
-          if ( c2 >= '0' && c2 <= '9' )
-            c |= c2 - '0';
-          else if( c2 >= 'a' && c2 <= 'f' )
-            c |= c2 - 'a' + 10;
-          else if( c2 >= 'A' && c2 <= 'F' )
-            c |= c2 - 'A' + 10;
-          else
+	  c = hex2int[0][c1 & 0xff];
+	  c |= hex2int[1][c2 & 0xff];
+          if (c < 0)
             {
               mpi_clear(val);
               return 1;  /* Error. */
@@ -248,19 +324,11 @@ do_get_buffer (gcry_mpi_t a, unsigned int fill_le, int extraalloc,
     {
       alimb = a->d[i];
 #if BYTES_PER_MPI_LIMB == 4
-      *p++ = alimb >> 24;
-      *p++ = alimb >> 16;
-      *p++ = alimb >>  8;
-      *p++ = alimb	  ;
+      buf_put_be32 (p, alimb);
+      p += 4;
 #elif BYTES_PER_MPI_LIMB == 8
-      *p++ = alimb >> 56;
-      *p++ = alimb >> 48;
-      *p++ = alimb >> 40;
-      *p++ = alimb >> 32;
-      *p++ = alimb >> 24;
-      *p++ = alimb >> 16;
-      *p++ = alimb >>  8;
-      *p++ = alimb	  ;
+      buf_put_be64 (p, alimb);
+      p += 8;
 #else
 #     error please implement for this limb size.
 #endif
@@ -270,7 +338,22 @@ do_get_buffer (gcry_mpi_t a, unsigned int fill_le, int extraalloc,
     {
       length = *nbytes;
       /* Reverse buffer and pad with zeroes.  */
-      for (i=0; i < length/2; i++)
+      for (i = 0; i + 8 < length / 2; i += 8)
+	{
+	  u64 head = buf_get_be64 (buffer + i);
+	  u64 tail = buf_get_be64 (buffer + length - 8 - i);
+	  buf_put_le64 (buffer + length - 8 - i, head);
+	  buf_put_le64 (buffer + i, tail);
+	}
+      if (i + 4 < length / 2)
+	{
+	  u32 head = buf_get_be32 (buffer + i);
+	  u32 tail = buf_get_be32 (buffer + length - 4 - i);
+	  buf_put_le32 (buffer + length - 4 - i, head);
+	  buf_put_le32 (buffer + i, tail);
+	  i += 4;
+	}
+      for (; i < length/2; i++)
         {
           tmp = buffer[i];
           buffer[i] = buffer[length-1-i];
@@ -354,53 +437,33 @@ _gcry_mpi_set_buffer (gcry_mpi_t a, const void *buffer_arg,
   for (i=0, p = buffer+nbytes-1; p >= buffer+BYTES_PER_MPI_LIMB; )
     {
 #if BYTES_PER_MPI_LIMB == 4
-      alimb  = (mpi_limb_t)*p--	    ;
-      alimb |= (mpi_limb_t)*p-- <<  8 ;
-      alimb |= (mpi_limb_t)*p-- << 16 ;
-      alimb |= (mpi_limb_t)*p-- << 24 ;
+      alimb = buf_get_be32(p - 4 + 1);
+      p -= 4;
 #elif BYTES_PER_MPI_LIMB == 8
-      alimb  = (mpi_limb_t)*p--	;
-      alimb |= (mpi_limb_t)*p-- <<  8 ;
-      alimb |= (mpi_limb_t)*p-- << 16 ;
-      alimb |= (mpi_limb_t)*p-- << 24 ;
-      alimb |= (mpi_limb_t)*p-- << 32 ;
-      alimb |= (mpi_limb_t)*p-- << 40 ;
-      alimb |= (mpi_limb_t)*p-- << 48 ;
-      alimb |= (mpi_limb_t)*p-- << 56 ;
+      alimb = buf_get_be64(p - 8 + 1);
+      p -= 8;
 #else
-#       error please implement for this limb size.
+#     error please implement for this limb size.
 #endif
       a->d[i++] = alimb;
     }
   if ( p >= buffer )
     {
+      byte last[BYTES_PER_MPI_LIMB] = { 0 };
+      unsigned int n = (p - buffer) + 1;
+
+      n = n > BYTES_PER_MPI_LIMB ? BYTES_PER_MPI_LIMB : n;
+      memcpy (last + BYTES_PER_MPI_LIMB - n, p - n + 1, n);
+      p -= n;
+
 #if BYTES_PER_MPI_LIMB == 4
-      alimb  = (mpi_limb_t)*p--;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- <<  8;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 16;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 24;
+      alimb = buf_get_be32(last);
 #elif BYTES_PER_MPI_LIMB == 8
-      alimb  = (mpi_limb_t)*p--;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 8;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 16;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 24;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 32;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 40;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 48;
-      if (p >= buffer)
-        alimb |= (mpi_limb_t)*p-- << 56;
+      alimb = buf_get_be64(last);
 #else
 #     error please implement for this limb size.
 #endif
+
       a->d[i++] = alimb;
     }
   a->nlimbs = i;
@@ -446,25 +509,24 @@ twocompl (unsigned char *p, unsigned int n)
     ;
   if (i >= 0)
     {
-      if ((p[i] & 0x01))
-        p[i] = (((p[i] ^ 0xfe) | 0x01) & 0xff);
-      else if ((p[i] & 0x02))
-        p[i] = (((p[i] ^ 0xfc) | 0x02) & 0xfe);
-      else if ((p[i] & 0x04))
-        p[i] = (((p[i] ^ 0xf8) | 0x04) & 0xfc);
-      else if ((p[i] & 0x08))
-        p[i] = (((p[i] ^ 0xf0) | 0x08) & 0xf8);
-      else if ((p[i] & 0x10))
-        p[i] = (((p[i] ^ 0xe0) | 0x10) & 0xf0);
-      else if ((p[i] & 0x20))
-        p[i] = (((p[i] ^ 0xc0) | 0x20) & 0xe0);
-      else if ((p[i] & 0x40))
-        p[i] = (((p[i] ^ 0x80) | 0x40) & 0xc0);
-      else
-        p[i] = 0x80;
+      unsigned char pi = p[i];
+      unsigned int ntz = _gcry_ctz (pi);
 
-      for (i--; i >= 0; i--)
-        p[i] ^= 0xff;
+      p[i] = ((p[i] ^ (0xfe << ntz)) | (0x01 << ntz)) & (0xff << ntz);
+
+      for (i--; i >= 7; i -= 8)
+	{
+	  buf_put_he64(&p[i-7], ~buf_get_he64(&p[i-7]));
+	}
+      if (i >= 3)
+	{
+	  buf_put_he32(&p[i-3], ~buf_get_he32(&p[i-3]));
+	  i -= 4;
+	}
+      for (; i >= 0; i--)
+	{
+	  p[i] ^= 0xff;
+	}
     }
 }
 
@@ -571,7 +633,7 @@ _gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
       if (len && len < 4)
         return GPG_ERR_TOO_SHORT;
 
-      n = (s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3]);
+      n = buf_get_be32 (s);
       s += 4;
       if (len)
         len -= 4;
@@ -605,12 +667,19 @@ _gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
     }
   else if (format == GCRYMPI_FMT_HEX)
     {
+      size_t slen;
       /* We can only handle C strings for now.  */
       if (buflen)
         return GPG_ERR_INV_ARG;
 
-      a = secure? mpi_alloc_secure (0) : mpi_alloc(0);
-      if (mpi_fromstr (a, (const char *)buffer))
+      slen = strlen ((const char *)buffer);
+      if (slen > MAX_EXTERN_SCAN_BYTES)
+	return GPG_ERR_INV_OBJ;
+      a = secure? mpi_alloc_secure ((((slen+1)/2)+BYTES_PER_MPI_LIMB-1)
+				    /BYTES_PER_MPI_LIMB)
+		: mpi_alloc((((slen+1)/2)+BYTES_PER_MPI_LIMB-1)
+			    /BYTES_PER_MPI_LIMB);
+      if (mpi_fromstr (a, (const char *)buffer, slen))
         {
           mpi_free (a);
           return GPG_ERR_INV_OBJ;
@@ -798,10 +867,8 @@ _gcry_mpi_print (enum gcry_mpi_format format,
         {
           unsigned char *s = buffer;
 
-          *s++ = n >> 24;
-          *s++ = n >> 16;
-          *s++ = n >> 8;
-          *s++ = n;
+	  buf_put_be32 (s, n);
+	  s += 4;
           if (extra == 1)
             *s++ = 0;
           else if (extra)
@@ -832,6 +899,11 @@ _gcry_mpi_print (enum gcry_mpi_format format,
 	}
       if (buffer)
         {
+	  static const u32 nibble2hex[] =
+	  {
+	    '0', '1', '2', '3', '4', '5', '6', '7',
+	    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+	  };
           unsigned char *s = buffer;
 
           if (negative)
@@ -842,13 +914,37 @@ _gcry_mpi_print (enum gcry_mpi_format format,
               *s++ = '0';
 	    }
 
-          for (i=0; i < n; i++)
+	  for (i = 0; i + 4 < n; i += 4)
+	    {
+	      u32 c = buf_get_be32(tmp + i);
+	      u32 o1, o2;
+
+	      o1 = nibble2hex[(c >> 28) & 0xF];
+	      o1 <<= 8;
+	      o1 |= nibble2hex[(c >> 24) & 0xF];
+	      o1 <<= 8;
+	      o1 |= nibble2hex[(c >> 20) & 0xF];
+	      o1 <<= 8;
+	      o1 |= nibble2hex[(c >> 16) & 0xF];
+
+	      o2 = nibble2hex[(c >> 12) & 0xF];
+	      o2 <<= 8;
+	      o2 |= (u64)nibble2hex[(c >> 8) & 0xF];
+	      o2 <<= 8;
+	      o2 |= (u64)nibble2hex[(c >> 4) & 0xF];
+	      o2 <<= 8;
+	      o2 |= (u64)nibble2hex[(c >> 0) & 0xF];
+
+	      buf_put_be32 (s + 0, o1);
+	      buf_put_be32 (s + 4, o2);
+	      s += 8;
+	    }
+          for (; i < n; i++)
             {
               unsigned int c = tmp[i];
 
-              *s++ = (c >> 4) < 10? '0'+(c>>4) : 'A'+(c>>4)-10 ;
-              c &= 15;
-              *s++ = c < 10? '0'+c : 'A'+c-10 ;
+              *s++ = nibble2hex[c >> 4];
+              *s++ = nibble2hex[c & 0xF];
 	    }
           *s++ = 0;
           *nwritten = s - buffer;

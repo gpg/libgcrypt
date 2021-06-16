@@ -141,6 +141,7 @@ static void
 check_formats (void)
 {
   static struct {
+    int have_value;
     int value;
     struct {
       const char *hex;
@@ -154,136 +155,283 @@ check_formats (void)
       const char *pgp;
     } a;
   } data[] = {
-    {    0, { "00",
-              0, "",
-              4, "\x00\x00\x00\x00",
-              0, "",
-              2, "\x00\x00"}
+    {
+      1, 0,
+      { "00",
+	0, "",
+	4, "\x00\x00\x00\x00",
+	0, "",
+	2, "\x00\x00" }
     },
-    {    1, { "01",
-              1, "\x01",
-              5, "\x00\x00\x00\x01\x01",
-              1, "\x01",
-              3, "\x00\x01\x01" }
+    {
+      1, 1,
+      { "01",
+	1, "\x01",
+	5, "\x00\x00\x00\x01\x01",
+	1, "\x01",
+	3, "\x00\x01\x01" }
     },
-    {    2, { "02",
-              1, "\x02",
-              5, "\x00\x00\x00\x01\x02",
-              1, "\x02",
-              3, "\x00\x02\x02" }
+    {
+      1, 2,
+      { "02",
+	1, "\x02",
+	5, "\x00\x00\x00\x01\x02",
+	1, "\x02",
+	3, "\x00\x02\x02" }
     },
-    {  127, { "7F",
-              1, "\x7f",
-              5, "\x00\x00\x00\x01\x7f",
-              1, "\x7f",
-              3, "\x00\x07\x7f" }
+    {
+      1, 127,
+      { "7F",
+	1, "\x7f",
+	5, "\x00\x00\x00\x01\x7f",
+	1, "\x7f",
+	3, "\x00\x07\x7f" }
     },
-    {  128, { "0080",
-              2, "\x00\x80",
-              6, "\x00\x00\x00\x02\x00\x80",
-              1, "\x80",
-              3, "\x00\x08\x80" }
+    {
+      1, 128,
+      { "0080",
+	2, "\x00\x80",
+	6, "\x00\x00\x00\x02\x00\x80",
+	1, "\x80",
+	3, "\x00\x08\x80" }
     },
-    {  129, { "0081",
-              2, "\x00\x81",
-              6, "\x00\x00\x00\x02\x00\x81",
-              1, "\x81",
-              3, "\x00\x08\x81" }
+    {
+      1, 129,
+      { "0081",
+	2, "\x00\x81",
+	6, "\x00\x00\x00\x02\x00\x81",
+	1, "\x81",
+	3, "\x00\x08\x81" }
     },
-    {  255, { "00FF",
-              2, "\x00\xff",
-              6, "\x00\x00\x00\x02\x00\xff",
-              1, "\xff",
-              3, "\x00\x08\xff" }
+    {
+      1, 255,
+      { "00FF",
+	2, "\x00\xff",
+	6, "\x00\x00\x00\x02\x00\xff",
+	1, "\xff",
+	3, "\x00\x08\xff" }
     },
-    {  256, { "0100",
-              2, "\x01\x00",
-              6, "\x00\x00\x00\x02\x01\x00",
-              2, "\x01\x00",
-              4, "\x00\x09\x01\x00" }
+    {
+      1, 256,
+      { "0100",
+	2, "\x01\x00",
+	6, "\x00\x00\x00\x02\x01\x00",
+	2, "\x01\x00",
+	4, "\x00\x09\x01\x00" }
     },
-    {  257, { "0101",
-              2, "\x01\x01",
-              6, "\x00\x00\x00\x02\x01\x01",
-              2, "\x01\x01",
-              4, "\x00\x09\x01\x01" }
+    {
+      1, 257,
+      { "0101",
+	2, "\x01\x01",
+	6, "\x00\x00\x00\x02\x01\x01",
+	2, "\x01\x01",
+	4, "\x00\x09\x01\x01" }
     },
-    {   -1, { "-01",
-              1, "\xff",
-              5, "\x00\x00\x00\x01\xff",
-              1,"\x01" }
+    {
+      1, -1,
+      { "-01",
+	1, "\xff",
+	5, "\x00\x00\x00\x01\xff",
+	1,"\x01" }
     },
-    {   -2, { "-02",
-              1, "\xfe",
-              5, "\x00\x00\x00\x01\xfe",
-              1, "\x02" }
+    {
+      1, -2,
+      { "-02",
+	1, "\xfe",
+	5, "\x00\x00\x00\x01\xfe",
+	1, "\x02" }
     },
-    { -127, { "-7F",
-              1, "\x81",
-              5, "\x00\x00\x00\x01\x81",
-              1, "\x7f" }
+    {
+      1, -127,
+      { "-7F",
+	1, "\x81",
+	5, "\x00\x00\x00\x01\x81",
+	1, "\x7f" }
     },
-    { -128, { "-0080",
-              1, "\x80",
-              5, "\x00\x00\x00\x01\x80",
-              1, "\x80" }
+    {
+      1, -128,
+      { "-0080",
+	1, "\x80",
+	5, "\x00\x00\x00\x01\x80",
+	1, "\x80" }
     },
-    { -129, { "-0081",
-              2, "\xff\x7f",
-              6, "\x00\x00\x00\x02\xff\x7f",
-              1, "\x81" }
+    {
+      1, -129,
+      { "-0081",
+	2, "\xff\x7f",
+	6, "\x00\x00\x00\x02\xff\x7f",
+	1, "\x81" }
     },
-    { -255, { "-00FF",
-              2, "\xff\x01",
-              6, "\x00\x00\x00\x02\xff\x01",
-              1, "\xff" }
+    {
+      1, -255,
+      { "-00FF",
+	2, "\xff\x01",
+	6, "\x00\x00\x00\x02\xff\x01",
+	1, "\xff" }
     },
-    { -256, { "-0100",
-              2, "\xff\x00",
-              6, "\x00\x00\x00\x02\xff\x00",
-              2, "\x01\x00" }
+    {
+      1, -256,
+      { "-0100",
+	2, "\xff\x00",
+	6, "\x00\x00\x00\x02\xff\x00",
+	2, "\x01\x00" }
     },
-    { -257, { "-0101",
-              2, "\xfe\xff",
-              6, "\x00\x00\x00\x02\xfe\xff",
-              2, "\x01\x01" }
+    {
+      1, -257,
+      { "-0101",
+	2, "\xfe\xff",
+	6, "\x00\x00\x00\x02\xfe\xff",
+	2, "\x01\x01" }
     },
-    {  65535, { "00FFFF",
-                3, "\x00\xff\xff",
-                7, "\x00\x00\x00\x03\x00\xff\xff",
-                2, "\xff\xff",
-                4, "\x00\x10\xff\xff" }
+    {
+      1, 65535,
+      { "00FFFF",
+	3, "\x00\xff\xff",
+	7, "\x00\x00\x00\x03\x00\xff\xff",
+	2, "\xff\xff",
+	4, "\x00\x10\xff\xff" }
     },
-    {  65536, { "010000",
-                3, "\x01\00\x00",
-                7, "\x00\x00\x00\x03\x01\x00\x00",
-                3, "\x01\x00\x00",
-                5, "\x00\x11\x01\x00\x00 "}
+    {
+      1, 65536,
+      { "010000",
+	3, "\x01\00\x00",
+	7, "\x00\x00\x00\x03\x01\x00\x00",
+	3, "\x01\x00\x00",
+	5, "\x00\x11\x01\x00\x00 "}
     },
-    {  65537, { "010001",
-                3, "\x01\00\x01",
-                7, "\x00\x00\x00\x03\x01\x00\x01",
-                3, "\x01\x00\x01",
-                5, "\x00\x11\x01\x00\x01" }
+    {
+      1, 65537,
+      { "010001",
+	3, "\x01\00\x01",
+	7, "\x00\x00\x00\x03\x01\x00\x01",
+	3, "\x01\x00\x01",
+	5, "\x00\x11\x01\x00\x01" }
     },
-    { -65537, { "-010001",
-                3, "\xfe\xff\xff",
-                7, "\x00\x00\x00\x03\xfe\xff\xff",
-                3, "\x01\x00\x01" }
+    {
+      1, -65537,
+      { "-010001",
+	3, "\xfe\xff\xff",
+	7, "\x00\x00\x00\x03\xfe\xff\xff",
+	3, "\x01\x00\x01" }
     },
-    { -65536, { "-010000",
-                3, "\xff\x00\x00",
-                7, "\x00\x00\x00\x03\xff\x00\x00",
-                3, "\x01\x00\x00" }
+    {
+      1, -65536,
+      { "-010000",
+	3, "\xff\x00\x00",
+	7, "\x00\x00\x00\x03\xff\x00\x00",
+	3, "\x01\x00\x00" }
     },
-    { -65535, { "-00FFFF",
-                3, "\xff\x00\x01",
-                7, "\x00\x00\x00\x03\xff\x00\x01",
-                2, "\xff\xff" }
+    {
+      1, -65535,
+      { "-00FFFF",
+	3, "\xff\x00\x01",
+	7, "\x00\x00\x00\x03\xff\x00\x01",
+	2, "\xff\xff" }
+    },
+    {
+      1, 0x7fffffff,
+      { "7FFFFFFF",
+	4, "\x7f\xff\xff\xff",
+	8, "\x00\x00\x00\x04\x7f\xff\xff\xff",
+	4, "\x7f\xff\xff\xff",
+	6, "\x00\x1f\x7f\xff\xff\xff" }
+    },
+    { 1, -0x7fffffff,
+      { "-7FFFFFFF",
+	4, "\x80\x00\x00\x01",
+	8, "\x00\x00\x00\x04\x80\x00\x00\x01",
+	4, "\x7f\xff\xff\xff" }
+    },
+    {
+      1, (int)0x800000ffU,
+      { "-7FFFFF01",
+	4, "\x80\x00\x00\xff",
+	8, "\x00\x00\x00\x04\x80\x00\x00\xff",
+	4, "\x7f\xff\xff\x01" }
+    },
+    {
+      1, (int)0x800000feU,
+      { "-7FFFFF02",
+	4, "\x80\x00\x00\xfe",
+	8, "\x00\x00\x00\x04\x80\x00\x00\xfe",
+	4, "\x7f\xff\xff\x02" }
+    },
+    {
+      1, (int)0x800000fcU,
+      { "-7FFFFF04",
+	4, "\x80\x00\x00\xfc",
+	8, "\x00\x00\x00\x04\x80\x00\x00\xfc",
+	4, "\x7f\xff\xff\x04" }
+    },
+    {
+      1, (int)0x800000f8U,
+      { "-7FFFFF08",
+	4, "\x80\x00\x00\xf8",
+	8, "\x00\x00\x00\x04\x80\x00\x00\xf8",
+	4, "\x7f\xff\xff\x08" }
+    },
+    {
+      1, (int)0x800000f0U,
+      { "-7FFFFF10",
+	4, "\x80\x00\x00\xf0",
+	8, "\x00\x00\x00\x04\x80\x00\x00\xf0",
+	4, "\x7f\xff\xff\x10" }
+    },
+    {
+      1, (int)0x800000e0U,
+      { "-7FFFFF20",
+	4, "\x80\x00\x00\xe0",
+	8, "\x00\x00\x00\x04\x80\x00\x00\xe0",
+	4, "\x7f\xff\xff\x20" }
+    },
+    {
+      1, (int)0x800000c0U,
+      { "-7FFFFF40",
+	4, "\x80\x00\x00\xc0",
+	8, "\x00\x00\x00\x04\x80\x00\x00\xc0",
+	4, "\x7f\xff\xff\x40" }
+    },
+    {
+      1, (int)0x80000080U,
+      { "-7FFFFF80",
+	4, "\x80\x00\x00\x80",
+	8, "\x00\x00\x00\x04\x80\x00\x00\x80",
+	4, "\x7f\xff\xff\x80" }
+    },
+    {
+      1, (int)0x80000100U,
+      { "-7FFFFF00",
+	4, "\x80\x00\x01\x00",
+	8, "\x00\x00\x00\x04\x80\x00\x01\x00",
+	4, "\x7f\xff\xff\x00" }
+    },
+    {
+      0, 0,
+      { "076543210FEDCBA9876543210123456789ABCDEF00112233",
+	24, "\x07\x65\x43\x21\x0f\xed\xcb\xa9\x87\x65\x43\x21\x01\x23"
+	    "\x45\x67\x89\xab\xcd\xef\x00\x11\x22\x33",
+	28, "\x00\x00\x00\x18\x07\x65\x43\x21\x0f\xed\xcb\xa9\x87\x65"
+	    "\x43\x21\x01\x23\x45\x67\x89\xab\xcd\xef\x00\x11\x22\x33"
+	    "\x44",
+	24, "\x07\x65\x43\x21\x0f\xed\xcb\xa9\x87\x65\x43\x21\x01\x23"
+	    "\x45\x67\x89\xab\xcd\xef\x00\x11\x22\x33",
+	26, "\x00\xbb\x07\x65\x43\x21\x0f\xed\xcb\xa9\x87\x65\x43\x21"
+	    "\x01\x23\x45\x67\x89\xab\xcd\xef\x00\x11\x22\x33" }
+    },
+    {
+      0, 0,
+      { "-07FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF01",
+	24, "\xf8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff",
+	28, "\x00\x00\x00\x18\xf8\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff",
+	24, "\x07\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+	    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01" }
     }
   };
   gpg_error_t err;
   gcry_mpi_t a, b;
+  char valuestr[128];
   char *buf;
   void *bufaddr = &buf;
   int idx;
@@ -295,24 +443,39 @@ check_formats (void)
       if (debug)
         info ("print test %d\n", data[idx].value);
 
-      if (data[idx].value < 0)
-        {
-          gcry_mpi_set_ui (a, -data[idx].value);
-          gcry_mpi_neg (a, a);
-        }
+      if (data[idx].have_value)
+	{
+	  snprintf(valuestr, sizeof(valuestr), "%d", data[idx].value);
+	  if (data[idx].value < 0)
+	    {
+	      gcry_mpi_set_ui (a, -data[idx].value);
+	      gcry_mpi_neg (a, a);
+	    }
+	  else
+	    gcry_mpi_set_ui (a, data[idx].value);
+	}
       else
-        gcry_mpi_set_ui (a, data[idx].value);
+	{
+	  /* Use hex-format as source test vector. */
+	  snprintf(valuestr, sizeof(valuestr), "%s", data[idx].a.hex);
+          gcry_mpi_release (a);
+	  err = gcry_mpi_scan (&a, GCRYMPI_FMT_HEX, data[idx].a.hex, 0,
+			       &buflen);
+	  if (err)
+	    fail ("error scanning value %s from %s: %s\n",
+		  valuestr, "HEX", gpg_strerror (err));
+	}
 
       err = gcry_mpi_aprint (GCRYMPI_FMT_HEX, bufaddr, NULL, a);
       if (err)
-        fail ("error printing value %d as %s: %s\n",
-              data[idx].value, "HEX", gpg_strerror (err));
+        fail ("error printing value %s as %s: %s\n",
+              valuestr, "HEX", gpg_strerror (err));
       else
         {
           if (strcmp (buf, data[idx].a.hex))
             {
-              fail ("error printing value %d as %s: %s\n",
-                    data[idx].value, "HEX", "wrong result");
+              fail ("error printing value %s as %s: %s\n",
+                    valuestr, "HEX", "wrong result");
               info ("expected: '%s'\n", data[idx].a.hex);
               info ("     got: '%s'\n", buf);
             }
@@ -321,15 +484,15 @@ check_formats (void)
 
       err = gcry_mpi_aprint (GCRYMPI_FMT_STD, bufaddr, &buflen, a);
       if (err)
-        fail ("error printing value %d as %s: %s\n",
-              data[idx].value, "STD", gpg_strerror (err));
+        fail ("error printing value %s as %s: %s\n",
+              valuestr, "STD", gpg_strerror (err));
       else
         {
           if (buflen != data[idx].a.stdlen
               || memcmp (buf, data[idx].a.std, data[idx].a.stdlen))
             {
-              fail ("error printing value %d as %s: %s\n",
-                    data[idx].value, "STD", "wrong result");
+              fail ("error printing value %s as %s: %s\n",
+                    valuestr, "STD", "wrong result");
               showhex ("expected:", data[idx].a.std, data[idx].a.stdlen);
               showhex ("     got:", buf, buflen);
             }
@@ -338,15 +501,15 @@ check_formats (void)
 
       err = gcry_mpi_aprint (GCRYMPI_FMT_SSH, bufaddr, &buflen, a);
       if (err)
-        fail ("error printing value %d as %s: %s\n",
-              data[idx].value, "SSH", gpg_strerror (err));
+        fail ("error printing value %s as %s: %s\n",
+              valuestr, "SSH", gpg_strerror (err));
       else
         {
           if (buflen != data[idx].a.sshlen
               || memcmp (buf, data[idx].a.ssh, data[idx].a.sshlen))
             {
-              fail ("error printing value %d as %s: %s\n",
-                    data[idx].value, "SSH", "wrong result");
+              fail ("error printing value %s as %s: %s\n",
+                    valuestr, "SSH", "wrong result");
               showhex ("expected:", data[idx].a.ssh, data[idx].a.sshlen);
               showhex ("     got:", buf, buflen);
             }
@@ -355,15 +518,15 @@ check_formats (void)
 
       err = gcry_mpi_aprint (GCRYMPI_FMT_USG, bufaddr, &buflen, a);
       if (err)
-        fail ("error printing value %d as %s: %s\n",
-              data[idx].value, "USG", gpg_strerror (err));
+        fail ("error printing value %s as %s: %s\n",
+              valuestr, "USG", gpg_strerror (err));
       else
         {
           if (buflen != data[idx].a.usglen
               || memcmp (buf, data[idx].a.usg, data[idx].a.usglen))
             {
-              fail ("error printing value %d as %s: %s\n",
-                    data[idx].value, "USG", "wrong result");
+              fail ("error printing value %s as %s: %s\n",
+                    valuestr, "USG", "wrong result");
               showhex ("expected:", data[idx].a.usg, data[idx].a.usglen);
               showhex ("     got:", buf, buflen);
             }
@@ -374,19 +537,19 @@ check_formats (void)
       if (gcry_mpi_is_neg (a))
         {
           if (gpg_err_code (err) != GPG_ERR_INV_ARG)
-            fail ("error printing value %d as %s: %s\n",
-                  data[idx].value, "PGP", "Expected error not returned");
+            fail ("error printing value %s as %s: %s\n",
+                  valuestr, "PGP", "Expected error not returned");
         }
       else if (err)
-        fail ("error printing value %d as %s: %s\n",
-              data[idx].value, "PGP", gpg_strerror (err));
+        fail ("error printing value %s as %s: %s\n",
+              valuestr, "PGP", gpg_strerror (err));
       else
         {
           if (buflen != data[idx].a.pgplen
               || memcmp (buf, data[idx].a.pgp, data[idx].a.pgplen))
             {
-              fail ("error printing value %d as %s: %s\n",
-                    data[idx].value, "PGP", "wrong result");
+              fail ("error printing value %s as %s: %s\n",
+                    valuestr, "PGP", "wrong result");
               showhex ("expected:", data[idx].a.pgp, data[idx].a.pgplen);
               showhex ("     got:", buf, buflen);
             }
@@ -401,24 +564,39 @@ check_formats (void)
       if (debug)
         info ("scan test %d\n", data[idx].value);
 
-      if (data[idx].value < 0)
-        {
-          gcry_mpi_set_ui (a, -data[idx].value);
-          gcry_mpi_neg (a, a);
-        }
+      if (data[idx].have_value)
+	{
+	  snprintf(valuestr, sizeof(valuestr), "%d", data[idx].value);
+	  if (data[idx].value < 0)
+	    {
+	      gcry_mpi_set_ui (a, -data[idx].value);
+	      gcry_mpi_neg (a, a);
+	    }
+	  else
+	    gcry_mpi_set_ui (a, data[idx].value);
+	}
       else
-        gcry_mpi_set_ui (a, data[idx].value);
+	{
+	  /* Use hex-format as source test vector. */
+	  snprintf(valuestr, sizeof(valuestr), "%s", data[idx].a.hex);
+          gcry_mpi_release (a);
+	  err = gcry_mpi_scan (&a, GCRYMPI_FMT_HEX, data[idx].a.hex, 0,
+			       &buflen);
+	  if (err)
+	    fail ("error scanning value %s from %s: %s\n",
+		  valuestr, "HEX", gpg_strerror (err));
+	}
 
       err = gcry_mpi_scan (&b, GCRYMPI_FMT_HEX, data[idx].a.hex, 0, &buflen);
       if (err)
-        fail ("error scanning value %d from %s: %s\n",
-              data[idx].value, "HEX", gpg_strerror (err));
+        fail ("error scanning value %s from %s: %s\n",
+              valuestr, "HEX", gpg_strerror (err));
       else
         {
           if (gcry_mpi_cmp (a, b))
             {
-              fail ("error scanning value %d from %s: %s\n",
-                    data[idx].value, "HEX", "wrong result");
+              fail ("error scanning value %s from %s: %s\n",
+                    valuestr, "HEX", "wrong result");
               showmpi ("expected:", a);
               showmpi ("     got:", b);
             }
@@ -428,14 +606,14 @@ check_formats (void)
       err = gcry_mpi_scan (&b, GCRYMPI_FMT_STD,
                            data[idx].a.std, data[idx].a.stdlen, &buflen);
       if (err)
-        fail ("error scanning value %d as %s: %s\n",
-              data[idx].value, "STD", gpg_strerror (err));
+        fail ("error scanning value %s as %s: %s\n",
+              valuestr, "STD", gpg_strerror (err));
       else
         {
           if (gcry_mpi_cmp (a, b) || data[idx].a.stdlen != buflen)
             {
-              fail ("error scanning value %d from %s: %s (%lu)\n",
-                    data[idx].value, "STD", "wrong result",
+              fail ("error scanning value %s from %s: %s (%lu)\n",
+                    valuestr, "STD", "wrong result",
                     (long unsigned int)buflen);
               showmpi ("expected:", a);
               showmpi ("     got:", b);
@@ -446,14 +624,14 @@ check_formats (void)
       err = gcry_mpi_scan (&b, GCRYMPI_FMT_SSH,
                            data[idx].a.ssh, data[idx].a.sshlen, &buflen);
       if (err)
-        fail ("error scanning value %d as %s: %s\n",
-              data[idx].value, "SSH", gpg_strerror (err));
+        fail ("error scanning value %s as %s: %s\n",
+              valuestr, "SSH", gpg_strerror (err));
       else
         {
           if (gcry_mpi_cmp (a, b) || data[idx].a.sshlen != buflen)
             {
-              fail ("error scanning value %d from %s: %s (%lu)\n",
-                    data[idx].value, "SSH", "wrong result",
+              fail ("error scanning value %s from %s: %s (%lu)\n",
+                    valuestr, "SSH", "wrong result",
                     (long unsigned int)buflen);
               showmpi ("expected:", a);
               showmpi ("     got:", b);
@@ -464,16 +642,16 @@ check_formats (void)
       err = gcry_mpi_scan (&b, GCRYMPI_FMT_USG,
                            data[idx].a.usg, data[idx].a.usglen, &buflen);
       if (err)
-        fail ("error scanning value %d as %s: %s\n",
-              data[idx].value, "USG", gpg_strerror (err));
+        fail ("error scanning value %s as %s: %s\n",
+              valuestr, "USG", gpg_strerror (err));
       else
         {
           if (gcry_mpi_is_neg (a))
             gcry_mpi_neg (b, b);
           if (gcry_mpi_cmp (a, b) || data[idx].a.usglen != buflen)
             {
-              fail ("error scanning value %d from %s: %s (%lu)\n",
-                    data[idx].value, "USG", "wrong result",
+              fail ("error scanning value %s from %s: %s (%lu)\n",
+                    valuestr, "USG", "wrong result",
                     (long unsigned int)buflen);
               showmpi ("expected:", a);
               showmpi ("     got:", b);
@@ -488,14 +666,14 @@ check_formats (void)
           err = gcry_mpi_scan (&b, GCRYMPI_FMT_PGP,
                                data[idx].a.pgp, data[idx].a.pgplen, &buflen);
           if (err)
-            fail ("error scanning value %d as %s: %s\n",
-                  data[idx].value, "PGP", gpg_strerror (err));
+            fail ("error scanning value %s as %s: %s\n",
+                  valuestr, "PGP", gpg_strerror (err));
           else
             {
               if (gcry_mpi_cmp (a, b) || data[idx].a.pgplen != buflen)
                 {
-                  fail ("error scanning value %d from %s: %s (%lu)\n",
-                        data[idx].value, "PGP", "wrong result",
+                  fail ("error scanning value %s from %s: %s (%lu)\n",
+                        valuestr, "PGP", "wrong result",
                         (long unsigned int)buflen);
                   showmpi ("expected:", a);
                   showmpi ("     got:", b);
