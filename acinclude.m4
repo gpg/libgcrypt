@@ -239,7 +239,7 @@ int main()
     pool = malloc( 4096 + pgsize );
     if( !pool )
         return 2;
-    pool += (pgsize - ((long int)pool % pgsize));
+    pool += (pgsize - ((size_t)pool % pgsize));
 
     err = mlock( pool, 4096 );
     if( !err || errno == EPERM || errno == EAGAIN)
