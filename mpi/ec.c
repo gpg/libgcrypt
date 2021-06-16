@@ -719,7 +719,10 @@ static const struct field_table field_table[] = {
   },
   { NULL, NULL, NULL, NULL, NULL, NULL },
 };
+
+static gcry_mpi_t field_table_mpis[DIM(field_table)];
 
+
 /* Force recomputation of all helper variables.  */
 void
 _gcry_mpi_ec_get_reset (mpi_ec_t ec)
@@ -876,9 +879,19 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
       gcry_mpi_t f_p;
       gpg_err_code_t rc;
 
-      rc = _gcry_mpi_scan (&f_p, GCRYMPI_FMT_HEX, field_table[i].p, 0, NULL);
-      if (rc)
-        log_fatal ("scanning ECC parameter failed: %s\n", gpg_strerror (rc));
+      if (field_table_mpis[i] == NULL)
+	{
+	  rc = _gcry_mpi_scan (&f_p, GCRYMPI_FMT_HEX, field_table[i].p, 0,
+			       NULL);
+	  if (rc)
+	    log_fatal ("scanning ECC parameter failed: %s\n",
+		       gpg_strerror (rc));
+	  field_table_mpis[i] = f_p; /* cache */
+	}
+      else
+	{
+	  f_p = field_table_mpis[i];
+	}
 
       if (!mpi_cmp (p, f_p))
         {
@@ -888,7 +901,6 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
           ctx->mul2 = field_table[i].mul2 ? field_table[i].mul2 : ctx->mul2;
           ctx->pow2 = field_table[i].pow2 ? field_table[i].pow2 : ctx->pow2;
           ctx->mod = field_table[i].mod ? field_table[i].mod : ctx->mod;
-          _gcry_mpi_release (f_p);
 
 	  if (ctx->a)
 	    {
@@ -907,8 +919,6 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
 
           break;
         }
-
-      _gcry_mpi_release (f_p);
     }
 
   /* Prepare for fast reduction.  */
