@@ -2144,6 +2144,8 @@ enum bench_ecc_algo
 {
   ECC_ALGO_ED25519 = 0,
   ECC_ALGO_ED448,
+  ECC_ALGO_X25519,
+  ECC_ALGO_X448,
   ECC_ALGO_NIST_P192,
   ECC_ALGO_NIST_P224,
   ECC_ALGO_NIST_P256,
@@ -2197,6 +2199,10 @@ ecc_algo_name (int algo)
 	return "Ed25519";
       case ECC_ALGO_ED448:
 	return "Ed448";
+      case ECC_ALGO_X25519:
+	return "X25519";
+      case ECC_ALGO_X448:
+	return "X448";
       case ECC_ALGO_NIST_P192:
 	return "NIST-P192";
       case ECC_ALGO_NIST_P224:
@@ -2223,6 +2229,10 @@ ecc_algo_curve (int algo)
 	return "Ed25519";
       case ECC_ALGO_ED448:
 	return "Ed448";
+      case ECC_ALGO_X25519:
+	return "Curve25519";
+      case ECC_ALGO_X448:
+	return "X448";
       case ECC_ALGO_NIST_P192:
 	return "NIST P-192";
       case ECC_ALGO_NIST_P224:
@@ -2248,6 +2258,10 @@ ecc_nbits (int algo)
       case ECC_ALGO_ED25519:
 	return 255;
       case ECC_ALGO_ED448:
+	return 448;
+      case ECC_ALGO_X25519:
+	return 255;
+      case ECC_ALGO_X448:
 	return 448;
       case ECC_ALGO_NIST_P192:
 	return 192;
@@ -2355,15 +2369,26 @@ bench_ecc_mult_free (struct bench_obj *obj)
 static void
 bench_ecc_mult_do_bench (struct bench_obj *obj, void *buf, size_t num_iter)
 {
+  struct bench_ecc_oper *oper = obj->priv;
   struct bench_ecc_mult_hd *hd = obj->hd;
+  gcry_mpi_t y;
   size_t i;
 
   (void)buf;
 
+  if (oper->algo == ECC_ALGO_X25519 || oper->algo == ECC_ALGO_X448)
+    {
+      y = NULL;
+    }
+  else
+    {
+      y = hd->y;
+    }
+
   for (i = 0; i < num_iter; i++)
     {
       gcry_mpi_ec_mul (hd->Q, hd->k, hd->G, hd->ec);
-      if (gcry_mpi_ec_get_affine (hd->x, hd->y, hd->Q, hd->ec))
+      if (gcry_mpi_ec_get_affine (hd->x, y, hd->Q, hd->ec))
 	{
 	  fprintf (stderr, PGM ": gcry_mpi_ec_get_affine failed\n");
 	  exit (1);
@@ -2634,7 +2659,8 @@ cipher_ecc_one (enum bench_ecc_algo algo, struct bench_ecc_oper *poper)
   struct bench_obj obj = { 0 };
   double result;
 
-  if (algo == ECC_ALGO_SECP256K1 && oper.oper != ECC_OPER_MULT)
+  if ((algo == ECC_ALGO_X25519 || algo == ECC_ALGO_X448 ||
+       algo == ECC_ALGO_SECP256K1) && oper.oper != ECC_OPER_MULT)
     return;
 
   oper.algo = algo;
