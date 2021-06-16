@@ -45,6 +45,14 @@ enum kmxx_functions_e
   KMID_FUNCTION_SHAKE128 = 36,
   KMID_FUNCTION_SHAKE256 = 37,
   KMID_FUNCTION_GHASH = 65,
+
+  PCC_FUNCTION_NIST_P256 = 64,
+  PCC_FUNCTION_NIST_P384 = 65,
+  PCC_FUNCTION_NIST_P521 = 66,
+  PCC_FUNCTION_ED25519 = 72,
+  PCC_FUNCTION_ED448 = 73,
+  PCC_FUNCTION_X25519 = 80,
+  PCC_FUNCTION_X448 = 81
 };
 
 enum kmxx_function_flags_e
@@ -108,6 +116,26 @@ static inline u128_t klmd_query(void)
   return function_codes;
 }
 
+static inline u128_t pcc_query(void)
+{
+  static u128_t function_codes = 0;
+  static int initialized = 0;
+  register unsigned long reg0 asm("0") = 0;
+  register void *reg1 asm("1") = &function_codes;
+
+  if (initialized)
+    return function_codes;
+
+  asm volatile ("0: .insn rre,0xb92c << 16, 0, 0\n\t"
+		"   brc 1,0b\n\t"
+		:
+		: [reg0] "r" (reg0), [reg1] "r" (reg1)
+		: "cc", "memory");
+
+  initialized = 1;
+  return function_codes;
+}
+
 static ALWAYS_INLINE void
 kimd_execute(unsigned int func, void *param_block, const void *src,
 	     size_t src_len)
@@ -152,6 +180,26 @@ klmd_shake_execute(unsigned int func, void *param_block, void *dst,
 		: [func] "+r" (reg0), [r1] "+a" (r1), [r2] "+a" (r2)
 		: [param_ptr] "r" (reg1)
 		: "cc", "memory");
+}
+
+static ALWAYS_INLINE unsigned int
+pcc_scalar_multiply(unsigned int func, void *param_block)
+{
+  register unsigned long reg0 asm("0") = func;
+  register byte *reg1 asm("1") = param_block;
+  register unsigned long error = 0;
+
+  asm volatile ("0: .insn rre,0xb92c << 16, 0, 0\n\t"
+		"   brc 1,0b\n\t"
+		"   brc 7,1f\n\t"
+		"   j 2f\n\t"
+		"1: lhi %[error], 1\n\t"
+		"2:\n\t"
+		: [func] "+r" (reg0), [error] "+r" (error)
+		: [param_ptr] "r" (reg1)
+		: "cc", "memory");
+
+  return error;
 }
 
 #endif /* GCRY_ASM_INLINE_S390X_H */

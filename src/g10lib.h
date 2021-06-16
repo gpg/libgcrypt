@@ -258,7 +258,8 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_S390X_MSA           (1 << 0)
 #define HWF_S390X_MSA_4         (1 << 1)
 #define HWF_S390X_MSA_8         (1 << 2)
-#define HWF_S390X_VX            (1 << 3)
+#define HWF_S390X_MSA_9         (1 << 3)
+#define HWF_S390X_VX            (1 << 4)
 
 #endif
 

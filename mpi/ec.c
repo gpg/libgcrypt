@@ -1769,7 +1769,7 @@ _gcry_mpi_ec_sub_points (mpi_point_t result,
 }
 
 
-/* Scalar point multiplication - the main function for ECC.  If takes
+/* Scalar point multiplication - the main function for ECC.  It takes
    an integer SCALAR and a POINT as well as the usual context CTX.
    RESULT will be set to the resulting point. */
 void
@@ -1780,6 +1780,14 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   gcry_mpi_t x1, y1, z1, k, h, yy;
   unsigned int i, loops;
   mpi_point_struct p1, p2, p1inv;
+
+  /* First try HW accelerated scalar multiplications.  Error
+     is returned if acceleration is not supported or if HW
+     does not support acceleration of given input.  */
+  if (mpi_ec_hw_mul_point (result, scalar, point, ctx) >= 0)
+    {
+      return;
+    }
 
   if (ctx->model == MPI_EC_EDWARDS
       || (ctx->model == MPI_EC_WEIERSTRASS
