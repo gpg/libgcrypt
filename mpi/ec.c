@@ -1117,6 +1117,15 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
       {
         gcry_mpi_t z1, z2, z3;
 
+	if (!mpi_cmp_ui (point->z, 1))
+	  {
+	    if (x)
+	      mpi_set (x, point->x);
+	    if (y)
+	      mpi_set (y, point->y);
+	    return 0;
+	  }
+
         z1 = mpi_new (0);
         z2 = mpi_new (0);
         ec_invm (z1, point->z, ctx);  /* z1 = z^(-1) mod p  */
@@ -1155,6 +1164,15 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
     case MPI_EC_EDWARDS:
       {
         gcry_mpi_t z;
+
+	if (!mpi_cmp_ui (point->z, 1))
+	  {
+	    if (x)
+	      mpi_set (x, point->x);
+	    if (y)
+	      mpi_set (y, point->y);
+	    return 0;
+	  }
 
         z = mpi_new (0);
         ec_invm (z, point->z, ctx);
