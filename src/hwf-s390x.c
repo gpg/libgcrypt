@@ -63,6 +63,7 @@ static const struct feature_map_s s390x_features[] =
     { 17,  0, HWF_S390X_MSA },
     { 77,  0, HWF_S390X_MSA_4 },
     { 146, 0, HWF_S390X_MSA_8 },
+    { 155, 0, HWF_S390X_MSA_9 },
 #ifdef HAVE_GCC_INLINE_ASM_S390X_VX
     { 129, HWCAP_S390_VXRS, HWF_S390X_VX },
 #endif
