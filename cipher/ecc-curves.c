@@ -1379,45 +1379,27 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
 gcry_sexp_t
 _gcry_ecc_get_param_sexp (const char *name)
 {
-  unsigned int nbits;
   elliptic_curve_t E;
-  mpi_ec_t ctx;
-  gcry_mpi_t g_x, g_y;
   gcry_mpi_t pkey[5];
   gcry_sexp_t result;
-  int i;
 
   memset (&E, 0, sizeof E);
-  if (_gcry_ecc_fill_in_curve (0, name, &E, &nbits))
+  if (_gcry_ecc_fill_in_curve (0, name, &E, NULL))
     return NULL;
-
-  g_x = mpi_new (0);
-  g_y = mpi_new (0);
-  ctx = _gcry_mpi_ec_p_internal_new (E.model,
-                                     E.dialect,
-                                     0,
-                                     E.p, E.a, E.b);
-  if (_gcry_mpi_ec_get_affine (g_x, g_y, &E.G, ctx))
-    log_fatal ("ecc get param: Failed to get affine coordinates\n");
-  _gcry_mpi_ec_free (ctx);
-  _gcry_mpi_point_free_parts (&E.G);
 
   pkey[0] = E.p;
   pkey[1] = E.a;
   pkey[2] = E.b;
-  pkey[3] = _gcry_ecc_ec2os (g_x, g_y, E.p);
+  pkey[3] = _gcry_ecc_ec2os (E.G.x, E.G.y, E.p);
   pkey[4] = E.n;
-
-  mpi_free (g_x);
-  mpi_free (g_y);
 
   if (sexp_build (&result, NULL,
                   "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(h%u)))",
                   pkey[0], pkey[1], pkey[2], pkey[3], pkey[4], E.h))
     result = NULL;
 
-  for (i=0; i < DIM (pkey); i++)
-    _gcry_mpi_release (pkey[i]);
+  _gcry_ecc_curve_free (&E);
+  _gcry_mpi_release (pkey[3]);
 
   return result;
 }
