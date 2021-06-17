@@ -61,6 +61,7 @@ map_algo (int algo)
    case GCRY_PK_RSA_S: return GCRY_PK_RSA;
    case GCRY_PK_ELG_E: return GCRY_PK_ELG;
    case GCRY_PK_ECDSA: return GCRY_PK_ECC;
+   case GCRY_PK_EDDSA: return GCRY_PK_ECC;
    case GCRY_PK_ECDH:  return GCRY_PK_ECC;
    default:            return algo;
    }

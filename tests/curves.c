@@ -132,6 +132,134 @@ check_matching (void)
 static void
 check_get_params (void)
 {
+  static struct {
+    int algo;
+    const char *name;
+    int error_expected;
+  } tv[] =
+      {
+       { GCRY_PK_ECC, "Ed25519" },
+       { GCRY_PK_ECC, "1.3.6.1.4.1.11591.15.1" },
+       { GCRY_PK_ECC, "1.3.101.112" },
+
+       { GCRY_PK_ECC, "Curve25519" },
+       { GCRY_PK_ECC, "1.3.6.1.4.1.3029.1.5.1" },
+       { GCRY_PK_ECC, "1.3.101.110" },
+       { GCRY_PK_ECC, "X25519" },
+
+       { GCRY_PK_ECC, "Ed448" },
+       { GCRY_PK_ECC, "X448"  },
+       { GCRY_PK_ECC, "1.3.101.113" },
+       { GCRY_PK_ECC, "1.3.101.111" },
+
+       { GCRY_PK_ECC, "NIST P-192" },
+       { GCRY_PK_ECC, "1.2.840.10045.3.1.1" },
+       { GCRY_PK_ECC,  "prime192v1" },
+       { GCRY_PK_ECC,  "secp192r1"  },
+       { GCRY_PK_ECC,  "nistp192"   },
+
+       { GCRY_PK_ECC, "NIST P-224" },
+       { GCRY_PK_ECC, "secp224r1"  },
+       { GCRY_PK_ECC, "1.3.132.0.33" },
+       { GCRY_PK_ECC, "nistp224"   },
+
+       { GCRY_PK_ECC, "NIST P-256" },
+       { GCRY_PK_ECC, "1.2.840.10045.3.1.7" },
+       { GCRY_PK_ECC, "prime256v1" },
+       { GCRY_PK_ECC, "secp256r1" },
+       { GCRY_PK_ECC, "nistp256"  },
+
+       { GCRY_PK_ECC, "NIST P-384" },
+       { GCRY_PK_ECC, "secp384r1" },
+       { GCRY_PK_ECC, "1.3.132.0.34" },
+       { GCRY_PK_ECC, "nistp384"   },
+
+       { GCRY_PK_ECC, "NIST P-521" },
+       { GCRY_PK_ECC, "secp521r1" },
+       { GCRY_PK_ECC, "1.3.132.0.35" },
+       { GCRY_PK_ECC, "nistp521"   },
+
+       { GCRY_PK_ECC, "brainpoolP160r1"      },
+       { GCRY_PK_ECC, "1.3.36.3.3.2.8.1.1.1" },
+       { GCRY_PK_ECC, "brainpoolP192r1"      },
+       { GCRY_PK_ECC, "1.3.36.3.3.2.8.1.1.3" },
+       { GCRY_PK_ECC, "brainpoolP224r1" },
+       { GCRY_PK_ECC, "1.3.36.3.3.2.8.1.1.5" },
+       { GCRY_PK_ECC, "brainpoolP256r1" },
+       { GCRY_PK_ECC, "1.3.36.3.3.2.8.1.1.7" },
+       { GCRY_PK_ECC, "brainpoolP320r1" },
+       { GCRY_PK_ECC, "1.3.36.3.3.2.8.1.1.9" },
+       { GCRY_PK_ECC, "brainpoolP384r1" },
+       { GCRY_PK_ECC, "1.3.36.3.3.2.8.1.1.11"},
+       { GCRY_PK_ECC, "brainpoolP512r1" },
+       { GCRY_PK_ECC, "1.3.36.3.3.2.8.1.1.13"},
+
+       { GCRY_PK_ECC, "GOST2001-test" },
+       { GCRY_PK_ECC, "1.2.643.2.2.35.0" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-A" },
+       { GCRY_PK_ECC, "1.2.643.2.2.35.1" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-B" },
+       { GCRY_PK_ECC, "1.2.643.2.2.35.2" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-C" },
+       { GCRY_PK_ECC, "1.2.643.2.2.35.3" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-A" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-XchA" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-C" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-XchB" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-A" },
+       { GCRY_PK_ECC, "1.2.643.2.2.36.0" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-C" },
+       { GCRY_PK_ECC, "1.2.643.2.2.36.1" },
+
+       /* Noet that GOST2012-256-tc26-A" is only in the curve alias
+        * list but has no parameter entry.  */
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-A" },
+       { GCRY_PK_ECC, "1.2.643.7.1.2.1.1.2" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-A" },
+       { GCRY_PK_ECC, "GOST2012-256-tc26-B" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-B" },
+       { GCRY_PK_ECC, "1.2.643.7.1.2.1.1.3" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-B" },
+       { GCRY_PK_ECC, "GOST2012-256-tc26-C" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-C" },
+       { GCRY_PK_ECC, "1.2.643.7.1.2.1.1.4" },
+       { GCRY_PK_ECC, "GOST2001-CryptoPro-C" },
+       { GCRY_PK_ECC, "GOST2012-256-tc26-D" },
+
+       { GCRY_PK_ECC, "GOST2012-512-test" },
+       { GCRY_PK_ECC, "GOST2012-test" },
+       { GCRY_PK_ECC, "GOST2012-512-test" },
+       { GCRY_PK_ECC, "1.2.643.7.1.2.1.2.0" },
+       { GCRY_PK_ECC, "GOST2012-512-tc26-A" },
+       { GCRY_PK_ECC, "GOST2012-tc26-A" },
+       { GCRY_PK_ECC, "GOST2012-512-tc26-B" },
+       { GCRY_PK_ECC, "GOST2012-tc26-B" },
+       { GCRY_PK_ECC, "GOST2012-512-tc26-A" },
+       { GCRY_PK_ECC, "1.2.643.7.1.2.1.2.1" },
+       { GCRY_PK_ECC, "GOST2012-512-tc26-B" },
+       { GCRY_PK_ECC, "1.2.643.7.1.2.1.2.2" },
+       { GCRY_PK_ECC, "GOST2012-512-tc26-C" },
+       { GCRY_PK_ECC, "1.2.643.7.1.2.1.2.3" },
+
+       { GCRY_PK_ECC, "secp256k1" },
+       { GCRY_PK_ECC, "1.3.132.0.10" },
+
+       { GCRY_PK_ECC, "sm2p256v1" },
+       { GCRY_PK_ECC, "1.2.156.10197.1.301" },
+
+       /* Check also the ECC algo mapping.  */
+       { GCRY_PK_ECDSA, "Ed25519" },
+       { GCRY_PK_EDDSA, "Ed25519" },
+       { GCRY_PK_ECDH,  "Ed25519" },
+       { GCRY_PK_ECDSA, "Curve25519" },
+       { GCRY_PK_EDDSA, "Curve25519" },
+       { GCRY_PK_ECDH,  "Curve25519" },
+       { GCRY_PK_ECC,   "NoSuchCurve", 1 },
+       { GCRY_PK_RSA,   "rsa", 1 },
+       { GCRY_PK_ELG,   "elg", 1 },
+       { GCRY_PK_DSA,   "dsa", 1 }
+      };
+  int idx;
   gcry_sexp_t param;
   const char *name;
 
@@ -164,6 +292,24 @@ check_get_params (void)
           sample_key_2_curve, name);
 
   gcry_sexp_release (param);
+
+  /* Some simple tests */
+  for (idx=0; idx < DIM (tv); idx++)
+    {
+      param = gcry_pk_get_param (tv[idx].algo, tv[idx].name);
+      if (!param)
+        {
+          if (!tv[idx].error_expected)
+            fail ("get_param: test %d (%s) failed\n", idx, tv[idx].name);
+        }
+      else
+        {
+          if (tv[idx].error_expected)
+            fail ("get_param: test %d (%s) failed (error expected)\n",
+                  idx, tv[idx].name);
+        }
+      gcry_sexp_release (param);
+    }
 }
 
 
