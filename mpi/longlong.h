@@ -864,10 +864,10 @@ extern USItype __udiv_qrnnd ();
                                                __GNUC_MINOR__ >= 4)
 #  define umul_ppmm(w1, w0, u, v) \
   do {                                                                  \
-    UDItype _r;                                                         \
-    _r = (UDItype)(u) * (v);                                            \
-    (w1) = _r >> 32;                                                    \
-    (w0) = (USItype) _r;                                                \
+    UDItype __r;                                                        \
+    __r = (UDItype)(u) * (v);                                           \
+    (w1) = __r >> 32;                                                   \
+    (w0) = (USItype) __r;                                               \
   } while (0)
 # elif __GNUC__ > 2 || __GNUC_MINOR__ >= 7
 #  define umul_ppmm(w1, w0, u, v) \
@@ -898,11 +898,11 @@ extern USItype __udiv_qrnnd ();
                                                __GNUC_MINOR__ >= 4)
 typedef unsigned int UTItype __attribute__ ((mode (TI)));
 #  define umul_ppmm(w1, w0, u, v) \
-  do {                                                                 \
-    UTItype _r;                                                        \
-    _r = (UTItype)(u) * (v);                                           \
-    (w1) = _r >> 64;                                                   \
-    (w0) = (UDItype) _r;                                               \
+  do {                                                                  \
+    UTItype __r;                                                        \
+    __r = (UTItype)(u) * (v);                                           \
+    (w1) = __r >> 64;                                                   \
+    (w0) = (UDItype) __r;                                               \
   } while (0)
 # elif __GNUC__ > 2 || __GNUC_MINOR__ >= 7
 #  define umul_ppmm(w1, w0, u, v) \
