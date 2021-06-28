@@ -94,12 +94,12 @@ _gcry_mpi_ec_nist192_mod (gcry_mpi_t w, mpi_ec_t ctx)
   };
   const mpi_limb64_t zero = LIMB_TO64(0);
   mpi_ptr_t wp;
-  mpi_ptr_t pp;
   mpi_size_t wsize = 192 / BITS_PER_MPI_LIMB64;
   mpi_limb64_t s[wsize + 1];
   mpi_limb64_t o[wsize + 1];
   mpi_limb_t mask1;
   mpi_limb_t mask2;
+  mpi_limb_t s_is_negative;
   int carry;
 
   MPN_NORMALIZE (w->d, w->nlimbs);
@@ -109,7 +109,6 @@ _gcry_mpi_ec_nist192_mod (gcry_mpi_t w, mpi_ec_t ctx)
   RESIZE_AND_CLEAR_IF_NEEDED (w, wsize * 2 * LIMBS_PER_LIMB64);
   RESIZE_AND_CLEAR_IF_NEEDED (ctx->p, wsize * LIMBS_PER_LIMB64);
 
-  pp = ctx->p->d;
   wp = w->d;
 
   prefetch (p_mult, sizeof(p_mult));
@@ -143,9 +142,13 @@ _gcry_mpi_ec_nist192_mod (gcry_mpi_t w, mpi_ec_t ctx)
 
   ADD4_LIMB64 (o[3], o[2], o[1], o[0],
 	       s[3], s[2], s[1], s[0],
-	       zero, LOAD64(pp, 2), LOAD64(pp, 1), LOAD64(pp, 0));
-  mask1 = vzero - (LO32_LIMB64(o[3]) >> 31);
-  mask2 = (LO32_LIMB64(o[3]) >> 31) - vone;
+	       zero,
+	       p_mult[0][2], p_mult[0][1], p_mult[0][0]);
+
+  s_is_negative = LO32_LIMB64(s[3]) >> 31;
+
+  mask2 = vzero - s_is_negative;
+  mask1 = s_is_negative - vone;
 
   STORE64_COND(wp, 0, mask2, o[0], mask1, s[0]);
   STORE64_COND(wp, 1, mask2, o[1], mask1, s[1]);
@@ -183,13 +186,13 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
   };
   const mpi_limb64_t zero = LIMB_TO64(0);
   mpi_ptr_t wp;
-  mpi_ptr_t pp;
   mpi_size_t wsize = (224 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64;
   mpi_size_t psize = ctx->p->nlimbs;
   mpi_limb64_t s[wsize];
   mpi_limb64_t d[wsize];
   mpi_limb_t mask1;
   mpi_limb_t mask2;
+  mpi_limb_t s_is_negative;
   int carry;
 
   MPN_NORMALIZE (w->d, w->nlimbs);
@@ -200,7 +203,6 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
   RESIZE_AND_CLEAR_IF_NEEDED (ctx->p, wsize * LIMBS_PER_LIMB64);
   ctx->p->nlimbs = psize;
 
-  pp = ctx->p->d;
   wp = w->d;
 
   prefetch (p_mult, sizeof(p_mult));
@@ -263,10 +265,13 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
 
   ADD4_LIMB64 (d[3], d[2], d[1], d[0],
 	       s[3], s[2], s[1], s[0],
-	       LOAD64(pp, 3), LOAD64(pp, 2), LOAD64(pp, 1), LOAD64(pp, 0));
+	       p_mult[0 + 2][3], p_mult[0 + 2][2],
+	       p_mult[0 + 2][1], p_mult[0 + 2][0]);
 
-  mask1 = vzero - (HI32_LIMB64(d[3]) >> 31);
-  mask2 = (HI32_LIMB64(d[3]) >> 31) - vone;
+  s_is_negative = (HI32_LIMB64(s[3]) >> 31);
+
+  mask2 = vzero - s_is_negative;
+  mask1 = s_is_negative - vone;
 
   STORE64_COND(wp, 0, mask2, d[0], mask1, s[0]);
   STORE64_COND(wp, 1, mask2, d[1], mask1, s[1]);
@@ -280,7 +285,7 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
 void
 _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
 {
-  static const mpi_limb64_t p_mult[11][5] =
+  static const mpi_limb64_t p_mult[12][5] =
   {
     { /* P * -3 */
       LIMB64_C(0x00000000U, 0x00000003U), LIMB64_C(0xfffffffdU, 0x00000000U),
@@ -340,14 +345,17 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
   };
   const mpi_limb64_t zero = LIMB_TO64(0);
   mpi_ptr_t wp;
-  mpi_ptr_t pp;
   mpi_size_t wsize = (256 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64;
   mpi_size_t psize = ctx->p->nlimbs;
   mpi_limb64_t s[wsize + 1];
   mpi_limb64_t t[wsize + 1];
   mpi_limb64_t d[wsize + 1];
+  mpi_limb64_t e[wsize + 1];
   mpi_limb_t mask1;
   mpi_limb_t mask2;
+  mpi_limb_t mask3;
+  mpi_limb_t s_is_negative;
+  mpi_limb_t d_is_negative;
   int carry;
 
   MPN_NORMALIZE (w->d, w->nlimbs);
@@ -358,7 +366,6 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
   RESIZE_AND_CLEAR_IF_NEEDED (ctx->p, wsize * LIMBS_PER_LIMB64);
   ctx->p->nlimbs = psize;
 
-  pp = ctx->p->d;
   wp = w->d;
 
   prefetch (p_mult, sizeof(p_mult));
@@ -465,7 +472,7 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
 
   /* mod p:
    *  's[4]' holds carry value (-4..6). Subtract (carry + 1) * p. Result
-   *  will be with in range -p...p. Handle result being negative with
+   *  will be with in range -2*p...p. Handle result being negative with
    *  addition and conditional store. */
 
   carry = LO32_LIMB64(s[4]);
@@ -476,18 +483,39 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
 	       p_mult[carry + 4][2], p_mult[carry + 4][1],
 	       p_mult[carry + 4][0]);
 
+  /* Add 1*P */
   ADD5_LIMB64 (d[4], d[3], d[2], d[1], d[0],
 	       s[4], s[3], s[2], s[1], s[0],
 	       zero,
-	       LOAD64(pp, 3), LOAD64(pp, 2), LOAD64(pp, 1), LOAD64(pp, 0));
+	       p_mult[0 + 4][3], p_mult[0 + 4][2],
+	       p_mult[0 + 4][1], p_mult[0 + 4][0]);
 
-  mask1 = vzero - (LO32_LIMB64(d[4]) >> 31);
-  mask2 = (LO32_LIMB64(d[4]) >> 31) - vone;
+  /* Add 2*P */
+  ADD5_LIMB64 (e[4], e[3], e[2], e[1], e[0],
+	       s[4], s[3], s[2], s[1], s[0],
+	       zero,
+	       p_mult[1 + 4][3], p_mult[1 + 4][2],
+	       p_mult[1 + 4][1], p_mult[1 + 4][0]);
 
-  STORE64_COND(wp, 0, mask2, d[0], mask1, s[0]);
-  STORE64_COND(wp, 1, mask2, d[1], mask1, s[1]);
-  STORE64_COND(wp, 2, mask2, d[2], mask1, s[2]);
-  STORE64_COND(wp, 3, mask2, d[3], mask1, s[3]);
+  s_is_negative = LO32_LIMB64(s[4]) >> 31;
+  d_is_negative = LO32_LIMB64(d[4]) >> 31;
+  mask3 = vzero - d_is_negative;
+  mask2 = (vzero - s_is_negative) & ~mask3;
+  mask1 = (s_is_negative - vone) & ~mask3;
+
+  s[0] = LIMB_OR64(MASK_AND64(mask2, d[0]), MASK_AND64(mask1, s[0]));
+  s[1] = LIMB_OR64(MASK_AND64(mask2, d[1]), MASK_AND64(mask1, s[1]));
+  s[2] = LIMB_OR64(MASK_AND64(mask2, d[2]), MASK_AND64(mask1, s[2]));
+  s[3] = LIMB_OR64(MASK_AND64(mask2, d[3]), MASK_AND64(mask1, s[3]));
+  s[0] = LIMB_OR64(MASK_AND64(mask3, e[0]), s[0]);
+  s[1] = LIMB_OR64(MASK_AND64(mask3, e[1]), s[1]);
+  s[2] = LIMB_OR64(MASK_AND64(mask3, e[2]), s[2]);
+  s[3] = LIMB_OR64(MASK_AND64(mask3, e[3]), s[3]);
+
+  STORE64(wp, 0, s[0]);
+  STORE64(wp, 1, s[1]);
+  STORE64(wp, 2, s[2]);
+  STORE64(wp, 3, s[3]);
 
   w->nlimbs = wsize * LIMBS_PER_LIMB64;
   MPN_NORMALIZE (wp, w->nlimbs);
@@ -567,7 +595,6 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
   };
   const mpi_limb64_t zero = LIMB_TO64(0);
   mpi_ptr_t wp;
-  mpi_ptr_t pp;
   mpi_size_t wsize = (384 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64;
   mpi_size_t psize = ctx->p->nlimbs;
 #if (BITS_PER_MPI_LIMB64 == BITS_PER_MPI_LIMB) && defined(WORDS_BIGENDIAN)
@@ -579,6 +606,7 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
   mpi_limb64_t x[wsize + 1];
   mpi_limb_t mask1;
   mpi_limb_t mask2;
+  mpi_limb_t s_is_negative;
   int carry;
 
   MPN_NORMALIZE (w->d, w->nlimbs);
@@ -589,7 +617,6 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
   RESIZE_AND_CLEAR_IF_NEEDED (ctx->p, wsize * LIMBS_PER_LIMB64);
   ctx->p->nlimbs = psize;
 
-  pp = ctx->p->d;
   wp = w->d;
 
   prefetch (p_mult, sizeof(p_mult));
@@ -738,12 +765,13 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
   ADD7_LIMB64 (d[6], d[5], d[4], d[3], d[2], d[1], d[0],
 	       s[6], s[5], s[4], s[3], s[2], s[1], s[0],
 	       zero,
-	       LOAD64(pp, 5), LOAD64(pp, 4),
-	       LOAD64(pp, 3), LOAD64(pp, 2),
-	       LOAD64(pp, 1), LOAD64(pp, 0));
+	       p_mult[0 + 3][5], p_mult[0 + 3][4],
+	       p_mult[0 + 3][3], p_mult[0 + 3][2],
+	       p_mult[0 + 3][1], p_mult[0 + 3][0]);
 
-  mask1 = vzero - (LO32_LIMB64(d[6]) >> 31);
-  mask2 = (LO32_LIMB64(d[6]) >> 31) - vone;
+  s_is_negative = LO32_LIMB64(s[6]) >> 31;
+  mask2 = vzero - s_is_negative;
+  mask1 = s_is_negative - vone;
 
   STORE64_COND(wp, 0, mask2, d[0], mask1, s[0]);
   STORE64_COND(wp, 1, mask2, d[1], mask1, s[1]);

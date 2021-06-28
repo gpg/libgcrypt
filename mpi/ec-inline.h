@@ -40,6 +40,8 @@
 #define HI32_LIMB64(v) (u32)((mpi_limb_t)(v) >> (BITS_PER_MPI_LIMB - 32))
 #define LO32_LIMB64(v) ((u32)(v))
 #define LIMB64_C(hi, lo) (((mpi_limb_t)(u32)(hi) << 32) | (u32)(lo))
+#define MASK_AND64(mask, val) ((mask) & (val))
+#define LIMB_OR64(val1, val2) ((val1) | (val2))
 #define STORE64_COND(x, pos, mask1, val1, mask2, val2) \
     ((x)[(pos)] = ((mask1) & (val1)) | ((mask2) & (val2)))
 
@@ -73,9 +75,9 @@ LIMB64_HILO(u32 hi, u32 lo)
 	   : "0" ((mpi_limb_t)(B2)), \
 	     "1" ((mpi_limb_t)(B1)), \
 	     "2" ((mpi_limb_t)(B0)), \
-	     "g" ((mpi_limb_t)(C2)), \
-	     "g" ((mpi_limb_t)(C1)), \
-	     "g" ((mpi_limb_t)(C0)) \
+	     "rme" ((mpi_limb_t)(C2)), \
+	     "rme" ((mpi_limb_t)(C1)), \
+	     "rme" ((mpi_limb_t)(C0)) \
 	   : "cc")
 
 #define SUB3_LIMB64(A3, A2, A1, A0, B2, B1, B0, C2, C1, C0) \
@@ -88,9 +90,9 @@ LIMB64_HILO(u32 hi, u32 lo)
 	   : "0" ((mpi_limb_t)(B2)), \
 	     "1" ((mpi_limb_t)(B1)), \
 	     "2" ((mpi_limb_t)(B0)), \
-	     "g" ((mpi_limb_t)(C2)), \
-	     "g" ((mpi_limb_t)(C1)), \
-	     "g" ((mpi_limb_t)(C0)) \
+	     "rme" ((mpi_limb_t)(C2)), \
+	     "rme" ((mpi_limb_t)(C1)), \
+	     "rme" ((mpi_limb_t)(C0)) \
 	   : "cc")
 
 #define ADD4_LIMB64(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) \
@@ -106,10 +108,10 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "1" ((mpi_limb_t)(B2)), \
 	     "2" ((mpi_limb_t)(B1)), \
 	     "3" ((mpi_limb_t)(B0)), \
-	     "g" ((mpi_limb_t)(C3)), \
-	     "g" ((mpi_limb_t)(C2)), \
-	     "g" ((mpi_limb_t)(C1)), \
-	     "g" ((mpi_limb_t)(C0)) \
+	     "rme" ((mpi_limb_t)(C3)), \
+	     "rme" ((mpi_limb_t)(C2)), \
+	     "rme" ((mpi_limb_t)(C1)), \
+	     "rme" ((mpi_limb_t)(C0)) \
 	   : "cc")
 
 #define SUB4_LIMB64(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) \
@@ -125,10 +127,10 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "1" ((mpi_limb_t)(B2)), \
 	     "2" ((mpi_limb_t)(B1)), \
 	     "3" ((mpi_limb_t)(B0)), \
-	     "g" ((mpi_limb_t)(C3)), \
-	     "g" ((mpi_limb_t)(C2)), \
-	     "g" ((mpi_limb_t)(C1)), \
-	     "g" ((mpi_limb_t)(C0)) \
+	     "rme" ((mpi_limb_t)(C3)), \
+	     "rme" ((mpi_limb_t)(C2)), \
+	     "rme" ((mpi_limb_t)(C1)), \
+	     "rme" ((mpi_limb_t)(C0)) \
 	   : "cc")
 
 #define ADD5_LIMB64(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0, \
@@ -148,11 +150,11 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "2" ((mpi_limb_t)(B2)), \
 	     "3" ((mpi_limb_t)(B1)), \
 	     "4" ((mpi_limb_t)(B0)), \
-	     "g" ((mpi_limb_t)(C4)), \
-	     "g" ((mpi_limb_t)(C3)), \
-	     "g" ((mpi_limb_t)(C2)), \
-	     "g" ((mpi_limb_t)(C1)), \
-	     "g" ((mpi_limb_t)(C0)) \
+	     "rme" ((mpi_limb_t)(C4)), \
+	     "rme" ((mpi_limb_t)(C3)), \
+	     "rme" ((mpi_limb_t)(C2)), \
+	     "rme" ((mpi_limb_t)(C1)), \
+	     "rme" ((mpi_limb_t)(C0)) \
 	   : "cc")
 
 #define SUB5_LIMB64(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0, \
@@ -172,11 +174,11 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "2" ((mpi_limb_t)(B2)), \
 	     "3" ((mpi_limb_t)(B1)), \
 	     "4" ((mpi_limb_t)(B0)), \
-	     "g" ((mpi_limb_t)(C4)), \
-	     "g" ((mpi_limb_t)(C3)), \
-	     "g" ((mpi_limb_t)(C2)), \
-	     "g" ((mpi_limb_t)(C1)), \
-	     "g" ((mpi_limb_t)(C0)) \
+	     "rme" ((mpi_limb_t)(C4)), \
+	     "rme" ((mpi_limb_t)(C3)), \
+	     "rme" ((mpi_limb_t)(C2)), \
+	     "rme" ((mpi_limb_t)(C1)), \
+	     "rme" ((mpi_limb_t)(C0)) \
 	   : "cc")
 
 #endif /* __x86_64__ */
@@ -591,6 +593,22 @@ STORE64(mpi_ptr_t x, unsigned int pos, mpi_limb64_t v)
 {
   x[pos * 2 + 0] = v.lo;
   x[pos * 2 + 1] = v.hi;
+}
+
+static inline mpi_limb64_t
+MASK_AND64(mpi_limb_t mask, mpi_limb64_t val)
+{
+  val.lo &= mask;
+  val.hi &= mask;
+  return val;
+}
+
+static inline mpi_limb64_t
+LIMB_OR64(mpi_limb64_t val1, mpi_limb64_t val2)
+{
+  val1.lo |= val2.lo;
+  val1.hi |= val2.hi;
+  return val1;
 }
 
 static inline void
