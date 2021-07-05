@@ -534,6 +534,17 @@ aes_s390x_ocb_prepare_Ls (gcry_cipher_hd_t c, u64 blkn, const void *Ls[64],
     }
 }
 
+static ALWAYS_INLINE const unsigned char *
+aes_s390x_ocb_get_l (gcry_cipher_hd_t c, u64 n)
+{
+  unsigned long ntz = _gcry_ctz (n);
+  if (ntz >= OCB_L_TABLE_SIZE)
+    {
+      return NULL; /* Not accessed. */
+    }
+  return c->u_mode.ocb.L[ntz];
+}
+
 static NO_INLINE void
 aes_s390x_ocb_checksum (unsigned char *checksum, const void *plainbuf_arg,
 			size_t nblks)
@@ -637,7 +648,7 @@ aes_s390x_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
   while (nblocks >= 64)
     {
       blkn += 64;
-      *pl = ocb_get_l(c, blkn - blkn % 64);
+      *pl = aes_s390x_ocb_get_l(c, blkn - blkn % 64);
 
       OCB_INPUT_16(0);
       OCB_INPUT_16(16);
@@ -667,7 +678,7 @@ aes_s390x_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
       max_blocks_used = max_blocks_used < nblocks ? nblocks : max_blocks_used;
 
       blkn += nblocks;
-      *pl = ocb_get_l(c, blkn - blkn % 64);
+      *pl = aes_s390x_ocb_get_l(c, blkn - blkn % 64);
 
       while (nblocks >= 16)
 	{
@@ -790,7 +801,7 @@ aes_s390x_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
   while (nblocks >= 64)
     {
       blkn += 64;
-      *pl = ocb_get_l(c, blkn - blkn % 64);
+      *pl = aes_s390x_ocb_get_l(c, blkn - blkn % 64);
 
       OCB_INPUT_16(0);
       OCB_INPUT_16(16);
@@ -820,7 +831,7 @@ aes_s390x_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
       max_blocks_used = max_blocks_used < nblocks ? nblocks : max_blocks_used;
 
       blkn += nblocks;
-      *pl = ocb_get_l(c, blkn - blkn % 64);
+      *pl = aes_s390x_ocb_get_l(c, blkn - blkn % 64);
 
       while (nblocks >= 16)
 	{
@@ -941,7 +952,7 @@ aes_s390x_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   while (nblocks_arg >= 64)
     {
       blkn += 64;
-      *pl = ocb_get_l(c, blkn - blkn % 64);
+      *pl = aes_s390x_ocb_get_l(c, blkn - blkn % 64);
 
       OCB_INPUT_16(0);
       OCB_INPUT_16(16);
@@ -965,7 +976,7 @@ aes_s390x_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
       max_blocks_used = max_blocks_used < nblocks ? nblocks : max_blocks_used;
 
       blkn += nblocks;
-      *pl = ocb_get_l(c, blkn - blkn % 64);
+      *pl = aes_s390x_ocb_get_l(c, blkn - blkn % 64);
 
       while (nblocks >= 16)
 	{
