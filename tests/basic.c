@@ -5026,6 +5026,14 @@ _check_poly1305_cipher (unsigned int step)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                     tv[i].algo);
+          continue;
+        }
+
       if (verbose)
         fprintf (stderr, "    checking POLY1305 mode for %s [%i]\n",
                  gcry_cipher_algo_name (tv[i].algo),
@@ -6643,6 +6651,14 @@ check_ocb_cipher_largebuf_split (int algo, int keylen, const char *tagexpect,
       memcpy(inbuf + i, hash, 16);
     }
 
+  if (gcry_cipher_test_algo (algo) && in_fips_mode)
+    {
+      if (verbose)
+        fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                 algo);
+      goto out_free;
+    }
+
   err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
   if (!err)
     err = gcry_cipher_open (&hdd, algo, GCRY_CIPHER_MODE_OCB, 0);
@@ -6839,6 +6855,14 @@ check_ocb_cipher_checksum (int algo, int keylen)
       int bitpos = bit2set % 8;
 
       blk[byteidx] |= 1 << bitpos;
+    }
+
+  if (gcry_cipher_test_algo (algo) && in_fips_mode)
+    {
+      if (verbose)
+        fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                 algo);
+      goto out_free;
     }
 
   err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
@@ -7651,6 +7675,15 @@ check_gost28147_cipher_basic (enum gcry_cipher_algos algo)
 
   if (verbose)
     fprintf (stderr, "  Starting GOST28147 cipher checks.\n");
+
+  if (gcry_cipher_test_algo (algo) && in_fips_mode)
+    {
+      if (verbose)
+        fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                 algo);
+      return;
+    }
+
   keylen = gcry_cipher_get_algo_keylen(algo);
   if (!keylen)
     {
