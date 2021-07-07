@@ -10395,7 +10395,7 @@ check_one_md (int algo, const char *data, int len, const char *expect, int elen,
 
       if (*data == '!' && !data[1])
 	{
-	  int crcalgo = GCRY_MD_RMD160;
+	  int crcalgo = GCRY_MD_SHA256;
 	  gcry_md_hd_t crc1, crc2;
 	  size_t startlen;
 	  size_t piecelen;
