@@ -14610,7 +14610,7 @@ main (int argc, char **argv)
       gcry_md_hd_t md;
 
       /* First trigger a self-test.  */
-      xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
+      gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
       if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
         fail ("not in operational state after self-test\n");
 
@@ -14639,7 +14639,7 @@ main (int argc, char **argv)
                 {
                   /* Now run a self-test and to get back into
                      operational state.  */
-                  xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
+                  gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
                   if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
                     fail ("did not reach operational after error "
                           "and self-test\n");
