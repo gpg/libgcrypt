@@ -11884,14 +11884,14 @@ check_digests (void)
     {
       if (gcry_md_test_algo (algos[i].md))
         {
-          show_md_not_available (algos[i].md);
-          continue;
-        }
-      if (gcry_md_test_algo (algos[i].md) && in_fips_mode)
-        {
-          if (verbose)
-            fprintf (stderr, "  algorithm %d not available in fips mode\n",
-		     algos[i].md);
+          if (in_fips_mode)
+            {
+              if (verbose)
+                fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                         algos[i].md);
+            }
+          else
+            show_md_not_available (algos[i].md);
           continue;
         }
 
@@ -12335,14 +12335,14 @@ check_hmac (void)
     {
       if (gcry_md_test_algo (algos[i].md))
         {
-          show_old_hmac_not_available (algos[i].md);
-          continue;
-        }
-      if (gcry_md_test_algo (algos[i].md) && in_fips_mode)
-        {
-          if (verbose)
-            fprintf (stderr, "  algorithm %d not available in fips mode\n",
-		     algos[i].md);
+          if (in_fips_mode)
+            {
+              if (verbose)
+                fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                         algos[i].md);
+            }
+          else
+            show_old_hmac_not_available (algos[i].md);
           continue;
         }
       if (verbose)
@@ -13448,14 +13448,14 @@ check_mac (void)
 
       if (gcry_mac_test_algo (algos[i].algo))
         {
-          show_mac_not_available (algos[i].algo);
-          continue;
-        }
-      if (gcry_mac_test_algo (algos[i].algo) && in_fips_mode)
-        {
-          if (verbose)
-            fprintf (stderr, "  algorithm %d not available in fips mode\n",
-		     algos[i].algo);
+          if (in_fips_mode)
+            {
+              if (verbose)
+                fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                         algos[i].algo);
+            }
+          else
+            show_mac_not_available (algos[i].algo);
           continue;
         }
       if (verbose)
