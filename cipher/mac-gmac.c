@@ -157,7 +157,7 @@ static gcry_mac_spec_ops_t gmac_ops = {
 
 #if USE_AES
 gcry_mac_spec_t _gcry_mac_type_spec_gmac_aes = {
-  GCRY_MAC_GMAC_AES, {0, 1}, "GMAC_AES",
+  GCRY_MAC_GMAC_AES, {0, 0}, "GMAC_AES",
   &gmac_ops
 };
 #endif
