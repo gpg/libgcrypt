@@ -9369,6 +9369,13 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   clutter_vector_registers();
   err = gcry_cipher_encrypt (hd, out, nplain, plain, nplain);
+  if (in_fips_mode && mode == GCRY_CIPHER_MODE_GCM)
+    {
+      if (!err)
+        fail ("pass %d, algo %d, mode %d, gcry_cipher_encrypt is expected to "
+              "fail in FIPS mode: %s\n", pass, algo, mode, gpg_strerror (err));
+      goto err_out_free;
+    }
   if (err)
     {
       fail ("pass %d, algo %d, mode %d, gcry_cipher_encrypt failed: %s\n",
@@ -10116,7 +10123,12 @@ check_cipher_modes(void)
   check_cfb_cipher ();
   check_ofb_cipher ();
   check_ccm_cipher ();
-  check_gcm_cipher ();
+  if (!in_fips_mode)
+    {
+      /* This will have to go through modifications as the GCM fails in fips
+       * as late as in gcry_cipher_gettag, but we want to allow it in the end */
+      check_gcm_cipher ();
+    }
   check_poly1305_cipher ();
   check_ocb_cipher ();
   check_xts_cipher ();
