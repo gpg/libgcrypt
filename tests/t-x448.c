@@ -34,6 +34,7 @@
 #include "t-common.h"
 #define N_TESTS 9
 
+static int in_fips_mode = 0;
 
 static void
 print_mpi (const char *text, gcry_mpi_t a)
@@ -179,8 +180,18 @@ test_cv_hl (int testno, const char *k_str, const char *u_str,
   xfree (buffer);
   buffer = NULL;
 
-  if ((err = gcry_pk_encrypt (&s_result, s_data, s_pk)))
-    fail ("gcry_pk_encrypt failed for test %d: %s", testno,
+  err = gcry_pk_encrypt (&s_result, s_data, s_pk);
+  if (in_fips_mode)
+    {
+      if (!err)
+        fail ("gcry_pk_encrypt is not expected to work in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      goto leave;
+    }
+  if (err)
+    fail ("gcry_pk_encrypt goto leavefailed for test %d: %s", testno,
           gpg_strerror (err));
 
   s_tmp = gcry_sexp_find_token (s_result, "s", 0);
@@ -257,7 +268,17 @@ test_cv_x448 (int testno, const char *k_str, const char *u_str,
       goto leave;
     }
 
-  if ((err = gcry_ecc_mul_point (GCRY_ECC_CURVE448, result, scalar, point)))
+  err = gcry_ecc_mul_point (GCRY_ECC_CURVE448, result, scalar, point);
+  if (in_fips_mode)
+    {
+      if (err != GPG_ERR_NOT_SUPPORTED)
+        fail ("gcry_ecc_mul_point is not expected to work in FIPS mode for test %d: %s",
+              testno, gpg_strerror (err));
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      goto leave;
+    }
+  if (err)
     fail ("gcry_ecc_mul_point failed for test %d: %s", testno,
           gpg_strerror (err));
 
@@ -296,7 +317,7 @@ test_cv (int testno, const char *k_str, const char *u_str,
 static void
 test_it (int testno, const char *k_str, int iter, const char *result_str)
 {
-  gcry_ctx_t ctx;
+  gcry_ctx_t ctx = NULL;
   gpg_error_t err;
   void *buffer = NULL;
   size_t buflen;
@@ -311,6 +332,15 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
     info ("Running test %d: iteration=%d\n", testno, iter);
 
   gcry_mpi_ec_new (&ctx, NULL, "X448");
+  if (in_fips_mode)
+    {
+      if (ctx)
+        fail ("gcry_mpi_ec_new should fail in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      return;
+    }
   Q = gcry_mpi_point_new (0);
 
   if (!(buffer = hex2buffer (k_str, &buflen)) || buflen != 56)
@@ -582,6 +612,9 @@ main (int argc, char **argv)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
+
+  if (gcry_fips_mode_active ())
+    in_fips_mode = 1;
 
   start_timer ();
   check_x448 ();
