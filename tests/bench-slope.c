@@ -70,6 +70,7 @@ static double bench_ghz;
 /* Current accuracy of auto-detected CPU Ghz. */
 static double bench_ghz_diff;
 
+static int in_fips_mode = 0;
 
 /*************************************** Default parameters for measurements. */
 
@@ -1642,8 +1643,8 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
   if (mode.mode == GCRY_CIPHER_MODE_CCM && blklen != GCRY_CCM_BLOCK_LEN)
     return;
 
-  /* GCM has restrictions for block-size */
-  if (mode.mode == GCRY_CIPHER_MODE_GCM && blklen != GCRY_GCM_BLOCK_LEN)
+  /* GCM has restrictions for block-size; not allowed in FIPS mode */
+  if (mode.mode == GCRY_CIPHER_MODE_GCM && (in_fips_mode || blklen != GCRY_GCM_BLOCK_LEN))
     return;
 
   /* XTS has restrictions for block-size */
@@ -2190,6 +2191,27 @@ struct bench_ecc_hd
 };
 
 
+static int
+ecc_algo_fips_allowed (int algo)
+{
+  switch (algo)
+    {
+      case ECC_ALGO_NIST_P224:
+      case ECC_ALGO_NIST_P256:
+      case ECC_ALGO_NIST_P384:
+      case ECC_ALGO_NIST_P521:
+        return 1;
+      case ECC_ALGO_SECP256K1:
+      case ECC_ALGO_ED25519:
+      case ECC_ALGO_ED448:
+      case ECC_ALGO_X25519:
+      case ECC_ALGO_X448:
+      case ECC_ALGO_NIST_P192:
+      default:
+	return 0;
+    }
+}
+
 static const char *
 ecc_algo_name (int algo)
 {
@@ -2681,6 +2703,10 @@ _ecc_bench (int algo)
   const char *algo_name;
   int i;
 
+  /* Skip not allowed mechanisms */
+  if (!ecc_algo_fips_allowed(algo))
+    return;
+
   algo_name = ecc_algo_name (algo);
 
   bench_print_header_nsec_per_iteration (14, algo_name);
@@ -2898,6 +2924,9 @@ main (int argc, char **argv)
   xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
+
+  if (gcry_fips_mode_active ())
+    in_fips_mode = 1;
 
   if (in_regression_test)
     fputs ("Note: " PGM " running in quick regression test mode.\n", stdout);
