@@ -680,15 +680,12 @@ check_run (void)
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
 
-  if (!gcry_fips_mode_active ())
-    {
-      if (verbose)
-        fprintf (stderr, "Generating transient DSA key.\n");
-      get_dsa_key_new (&pkey, &skey, 1);
-      /* Fixme:  Add a check function for DSA keys.  */
-      gcry_sexp_release (pkey);
-      gcry_sexp_release (skey);
-    }
+  if (verbose)
+    fprintf (stderr, "Generating transient DSA key.\n");
+  get_dsa_key_new (&pkey, &skey, 1);
+  /* Fixme:  Add a check function for DSA keys.  */
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
 
   if (verbose)
     fprintf (stderr, "Generating DSA key (FIPS 186).\n");
