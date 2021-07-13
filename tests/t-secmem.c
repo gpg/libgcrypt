@@ -37,6 +37,7 @@
 #define MINIMUM_POOL_SIZE 16384
 static size_t pool_size;
 static size_t chunk_size;
+static int in_fips_mode = 0;
 
 static void
 test_secmem (void)
@@ -182,8 +183,11 @@ main (int argc, char **argv)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
   xgcry_control ((GCRYCTL_INIT_SECMEM, pool_size, 0));
+  /* This is ignored in FIPS Mode */
   gcry_set_outofcore_handler (outofcore_handler, NULL);
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
+  if (gcry_fips_mode_active ())
+    in_fips_mode = 1;
 
   /* Libgcrypt prints a warning when the first overflow is allocated;
    * we do not want to see that.  */
@@ -192,7 +196,8 @@ main (int argc, char **argv)
 
 
   test_secmem ();
-  test_secmem_overflow ();
+  if (!in_fips_mode)
+    test_secmem_overflow ();
   /* FIXME: We need to improve the tests, for example by registering
    * our own log handler and comparing the output of
    * PRIV_CTL_DUMP_SECMEM_STATS to expected pattern.  */
