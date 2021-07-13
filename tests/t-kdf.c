@@ -1104,6 +1104,13 @@ check_pbkdf2 (void)
                              GCRY_KDF_PBKDF2, tv[tvidx].hashalgo,
                              tv[tvidx].salt, tv[tvidx].saltlen,
                              tv[tvidx].c, tv[tvidx].dklen, outbuf);
+      if (gcry_fips_mode_active() && tvidx > 6)
+        {
+          if (!err)
+            fail ("pbkdf2 test %d unexpectedly passed in FIPS mode: %s\n",
+                  tvidx, gpg_strerror (err));
+          continue;
+        }
       if (err)
         fail ("pbkdf2 test %d failed: %s\n", tvidx, gpg_strerror (err));
       else if (memcmp (outbuf, tv[tvidx].dk, tv[tvidx].dklen))
