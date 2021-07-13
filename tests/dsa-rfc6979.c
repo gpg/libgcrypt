@@ -33,6 +33,7 @@
 #define PGM "dsa-rfc6979"
 #include "t-common.h"
 
+static int in_fips_mode = 0;
 
 static void
 show_sexp (const char *prefix, gcry_sexp_t a)
@@ -111,6 +112,7 @@ check_dsa_rfc6979 (void)
   static struct {
     const char *name;
     const char *key;
+    int fips;
   } keys[] = {
     {
       "DSA, 1024 bits",
@@ -130,7 +132,7 @@ check_dsa_rfc6979 (void)
       "     92195A38B90523E2542EE61871C0440CB87C322FC4B4D2EC5E1E7EC766E1BE8D"
       "     4CE935437DC11C3C8FD426338933EBFE739CB3465F4D3668C5E473508253B1E6"
       "     82F65CBDC4FAE93C2EA212390E54905A86E2223170B44EAA7DA5DD9FFCFB7F3B#)"
-      " ))"
+      " ))", 1
     },
     {
       "DSA, 2048 bits",
@@ -162,7 +164,7 @@ check_dsa_rfc6979 (void)
       "     687972A2D382599C9BAC4E0ED7998193078913032558134976410B89D2C171D1"
       "     23AC35FD977219597AA7D15C1A9A428E59194F75C721EBCBCFAE44696A499AFA"
       "     74E04299F132026601638CB87AB79190D4A0986315DA8EEC6561C938996BEADF#)"
-      " ))"
+      " ))", 1
     },
     {
       "ECDSA, 192 bits (prime field)",
@@ -172,7 +174,7 @@ check_dsa_rfc6979 (void)
       " (q #04AC2C77F529F91689FEA0EA5EFEC7F210D8EEA0B9E047ED56"
       "       3BC723E57670BD4887EBC732C523063D0A7C957BC97C1C43#)"
       " (d #6FAB034934E4C0FC9AE67F5B5659A9D7D1FEFD187EE09FD4#)"
-      " ))"
+      " ))", 0
     },
     {
       "ECDSA, 224 bits (prime field)",
@@ -183,7 +185,7 @@ check_dsa_rfc6979 (void)
       "     00CF08DA5AD719E42707FA431292DEA11244D64FC51610D94B130D6C"
       "     EEAB6F3DEBE455E3DBF85416F7030CBD94F34F2D6F232C69F3C1385A#)"
       " (d #F220266E1105BFE3083E03EC7A3A654651F45E37167E88600BF257C1#)"
-      " ))"
+      " ))", 1
     },
     {
       "ECDSA, 256 bits (prime field)",
@@ -194,7 +196,7 @@ check_dsa_rfc6979 (void)
       "     60FED4BA255A9D31C961EB74C6356D68C049B8923B61FA6CE669622E60F29FB6"
       "     7903FE1008B8BC99A41AE9E95628BC64F2F1B20C2D7E9F5177A3C294D4462299#)"
       " (d #C9AFA9D845BA75166B5C215767B1D6934E50C3DB36E89B127B8A622B120F6721#)"
-      " ))"
+      " ))", 1
     },
     {
       "ECDSA, 384 bits (prime field)",
@@ -208,7 +210,7 @@ check_dsa_rfc6979 (void)
       "     288B231C3AE0D4FE7344FD2533264720#)"
       " (d #6B9D3DAD2E1B8C1C05B19875B6659F4DE23C3B667BF297BA9AA47740787137D8"
       "     96D5724E4C70A825F872C9EA60D2EDF5#)"
-      " ))"
+      " ))", 1
     },
     {
       "ECDSA, 521 bits (prime field)",
@@ -225,7 +227,7 @@ check_dsa_rfc6979 (void)
       " (d #FAD06DAA62BA3B25D2FB40133DA757205DE67F5BB0018FEE8C86E1B68C7E75"
       "     CAA896EB32F1F47C70855836A6D16FCC1466F6D8FBEC67DB89EC0C08B0E996B8"
       "     3538#)"
-      " ))"
+      " ))", 1
     },
     { NULL }
   };
@@ -937,6 +939,12 @@ check_dsa_rfc6979 (void)
         die ("building data sexp failed: %s\n", gpg_strerror (err));
 
       err = gcry_pk_sign (&sig, data, seckey);
+      if (in_fips_mode && !keys[i].fips)
+        {
+          if (!err)
+            fail ("signing should not work in FIPS mode: %s\n", gpg_strerror (err));
+          continue;
+        }
       if (err)
         fail ("signing failed: %s\n", gpg_strerror (err));
 
@@ -972,6 +980,8 @@ main (int argc, char **argv)
     die ("version mismatch; pgm=%s, library=%s\n",
          GCRYPT_VERSION,gcry_check_version (NULL));
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
+  if (gcry_fips_mode_active ())
+    in_fips_mode = 1;
   if (debug)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
   /* No valuable keys are create, so we can speed up our RNG. */
