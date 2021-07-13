@@ -29,6 +29,7 @@
 #define PGM "pubkey"
 #include "t-common.h"
 
+static int in_fips_mode;
 
 /* Sample RSA keys, taken from basic.c.  */
 
@@ -518,6 +519,14 @@ get_dsa_key_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
   rc = gcry_pk_genkey (&key, key_spec);
   gcry_sexp_release (key_spec);
+  if (in_fips_mode)
+    {
+      if (!rc)
+        die ("generating DSA key should fail in FIPS mode: %s\n", gcry_strerror (rc));
+      *pkey = NULL;
+      *skey = NULL;
+      return;
+    }
   if (rc)
     die ("error generating DSA key: %s\n", gcry_strerror (rc));
 
@@ -899,7 +908,7 @@ check_x931_derived_key (int what)
     err = _gcry_pk_util_get_nbits(key_spec, &nbits);
     if (err)
       die ("nbits not found\n");
-    if (gcry_fips_mode_active() && nbits < 2048)
+    if (in_fips_mode && nbits < 2048)
       {
         info("RSA key test with %d bits skipped in fips mode\n", nbits);
         goto leave;
@@ -1186,6 +1195,9 @@ main (int argc, char **argv)
   /* No valuable keys are create, so we can speed up our RNG. */
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
 
+  if (gcry_fips_mode_active ())
+    in_fips_mode = 1;
+
   for (i=0; i < 2; i++)
     check_run ();
 
@@ -1193,7 +1205,7 @@ main (int argc, char **argv)
     check_x931_derived_key (i);
 
   check_ecc_sample_key ();
-  if (!gcry_fips_mode_active ())
+  if (!in_fips_mode)
     check_ed25519ecdsa_sample_key ();
 
   return !!error_count;
