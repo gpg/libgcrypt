@@ -70,6 +70,7 @@ typedef uint32_t u32;
 #ifdef STANDALONE
 #define xtrymalloc(a) malloc((a))
 #define gpg_err_set_errno(a) (errno = (a))
+#define xfree(a) free((a))
 #else
 #include "g10lib.h"
 #endif
@@ -341,7 +342,7 @@ _gcry_hmac256_new (const void *key, size_t keylen)
           tmphd = _gcry_hmac256_new (NULL, 0);
           if (!tmphd)
             {
-              free (hd);
+              xfree (hd);
               return NULL;
             }
           _gcry_hmac256_update (tmphd, key, keylen);
@@ -373,7 +374,7 @@ _gcry_hmac256_release (hmac256_context_t ctx)
       /* Note: We need to take care not to modify errno.  */
       if (ctx->use_hmac)
         my_wipememory (ctx->opad, 64);
-      free (ctx);
+      xfree (ctx);
     }
 }
 
@@ -489,7 +490,7 @@ _gcry_hmac256_file (void *result, size_t resultsize, const char *filename,
   while ( (nread = fread (buffer, 1, buffer_size, fp)))
     _gcry_hmac256_update (hd, buffer, nread);
 
-  free (buffer);
+  xfree (buffer);
 
   if (ferror (fp))
     {
