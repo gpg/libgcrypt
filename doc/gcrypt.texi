@@ -3191,7 +3191,7 @@ algorithm provides them.
 
 @noindent
 Future versions of Libgcrypt will have extended versions of the public
-key interfaced which will take an additional context to allow for
+key interface which will take an additional context to allow for
 pre-computations, special operations, and other optimization.  As a
 first step a new function is introduced to help using the ECC
 algorithms in new ways:
