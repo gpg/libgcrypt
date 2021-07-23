@@ -79,7 +79,7 @@ _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
                       const unsigned char *value, size_t valuelen,
                       const void *random_override);
 gpg_err_code_t
-_gcry_rsa_pss_verify (gcry_mpi_t value, gcry_mpi_t encoded,
+_gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already, gcry_mpi_t encoded,
                       unsigned int nbits, int algo, size_t saltlen);
 
 

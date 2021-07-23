@@ -39,9 +39,10 @@ static int
 pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
 {
   struct pk_encoding_ctx *ctx = opaque;
-  gcry_mpi_t hash = ctx->verify_arg;
+  gcry_mpi_t value = ctx->verify_arg;
 
-  return _gcry_rsa_pss_verify (hash, tmp, ctx->nbits - 1,
+  return _gcry_rsa_pss_verify (value, !(ctx->flags & PUBKEY_FLAG_PREHASH),
+                               tmp, ctx->nbits - 1,
                                ctx->hash_algo, ctx->saltlen);
 }
 
@@ -1129,7 +1130,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
 		  sexp_release (list);
 		}
 
-	      *ret_mpi = sexp_nth_mpi (lhash, 2, GCRYMPI_FMT_USG);
+	      *ret_mpi = sexp_nth_mpi (lhash, 2, GCRYMPI_FMT_OPAQUE);
 	      if (!*ret_mpi)
 		rc = GPG_ERR_INV_OBJ;
 	      ctx->verify_cmp = pss_verify_cmp;

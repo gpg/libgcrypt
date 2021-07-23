@@ -912,17 +912,21 @@ _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 }
 
 
-/* Verify a signature assuming PSS padding.  VALUE is the hash of the
-   message (mHash) encoded as an MPI; its length must match the digest
-   length of ALGO.  ENCODED is the output of the RSA public key
-   function (EM).  NBITS is the size of the public key.  ALGO is the
-   hash algorithm and SALTLEN is the length of the used salt.  The
+/* Verify a signature assuming PSS padding.  When HASHED_ALREADY is
+   set, VALUE is the hash of the message (mHash); its length must
+   match the digest length of ALGO.  Otherwise, its M (before mHash).
+   VALUE is an opaque MPI.  ENCODED is the output of the RSA public
+   key function (EM).  NBITS is the size of the public key.  ALGO is
+   the hash algorithm and SALTLEN is the length of the used salt.  The
    function returns 0 on success or on error code.  */
 gpg_err_code_t
-_gcry_rsa_pss_verify (gcry_mpi_t value, gcry_mpi_t encoded,
+_gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
+                      gcry_mpi_t encoded,
                       unsigned int nbits, int algo, size_t saltlen)
 {
   gcry_err_code_t rc = 0;
+  gcry_md_hd_t hd = NULL;
+  unsigned char *digest;
   size_t hlen;                 /* Length of the hash digest.  */
   unsigned char *em = NULL;    /* Encoded message.  */
   size_t emlen = (nbits+7)/8;  /* Length in bytes of EM.  */
@@ -934,8 +938,13 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, gcry_mpi_t encoded,
   unsigned char *mhash;        /* Points into BUF.  */
   unsigned char *p;
   size_t n;
+  unsigned int input_nbits;
 
   /* This code is implemented as described by rfc-3447 9.1.2.  */
+
+  rc = _gcry_md_open (&hd, algo, 0);
+  if (rc)
+    return rc;
 
   /* Get the length of the digest.  */
   hlen = _gcry_md_get_algo_dlen (algo);
@@ -966,11 +975,23 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, gcry_mpi_t encoded,
   dbmask = buf;
   mhash = buf + buflen - hlen;
 
-  /* Step 2: That would be: mHash = Hash(M) but our input is already
-     mHash thus we only need to convert VALUE into MHASH.  */
-  rc = octet_string_from_mpi (NULL, mhash, value, hlen);
-  if (rc)
-    goto leave;
+  /* Step 2: mHash = Hash(M) (or copy input to mHash, if already hashed).   */
+  p = mpi_get_opaque (value, &input_nbits);
+  if (!p)
+    {
+      rc = GPG_ERR_INV_ARG;
+      goto leave;
+    }
+
+  if (!hashed_already)
+    {
+      _gcry_md_write (hd, p, (input_nbits+7)/8);
+      digest = _gcry_md_read (hd, 0);
+      memcpy (mhash, digest, hlen);
+      _gcry_md_reset (hd);
+    }
+  else
+    memcpy (mhash, p, hlen);
 
   /* Convert the signature into an octet string.  */
   rc = octet_string_from_mpi (&em, NULL, encoded, emlen);
@@ -1034,12 +1055,15 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, gcry_mpi_t encoded,
   memcpy (buf+8+hlen, salt, saltlen);
 
   /* Step 13:  H' = Hash(M').  */
-  _gcry_md_hash_buffer (algo, buf, buf, 8 + hlen + saltlen);
+  _gcry_md_write (hd, buf, 8 + hlen + saltlen);
+  digest = _gcry_md_read (hd, 0);
+  memcpy (buf, digest, hlen);
 
   /* Step 14:  Check H == H'.   */
   rc = memcmp (h, buf, hlen) ? GPG_ERR_BAD_SIGNATURE : GPG_ERR_NO_ERROR;
 
  leave:
+  _gcry_md_close (hd);
   if (em)
     {
       wipememory (em, emlen);

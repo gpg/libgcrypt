@@ -1582,7 +1582,7 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     goto leave;
   if (DBG_CIPHER)
     log_printmpi ("rsa_verify data", data);
-  if (mpi_is_opaque (data))
+  if (ctx.encoding != PUBKEY_ENC_PSS && mpi_is_opaque (data))
     {
       rc = GPG_ERR_INV_DATA;
       goto leave;
