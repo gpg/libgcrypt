@@ -13608,6 +13608,17 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
         " (random-override #4253647587980912233445566778899019283747#))\n",
 	GCRY_PK_RSA,
 	0 },
+      { "(data\n (flags pss)\n"
+	" (hash-algo sha1)\n"
+	" (value #11223344556677889900AA#))\n",
+	GCRY_PK_RSA,
+	0 },
+      { "(data\n (flags pss)\n"
+	" (hash-algo sha1)\n"
+	" (value #11223344556677889900AA#)\n"
+        " (random-override #4253647587980912233445566778899019283747#))\n",
+	GCRY_PK_RSA,
+	0 },
       { NULL }
     };
 
