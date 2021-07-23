@@ -678,7 +678,7 @@ _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx)
 
    LABEL is specific to OAEP.
 
-   SALT-LENGTH is for PSS it is limited to 16384 bytes.
+   SALT-LENGTH is for PSS, it is limited to 16384 bytes.
 
    RANDOM-OVERRIDE is used to replace random nonces for regression
    testing.  */
@@ -1032,7 +1032,6 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
           const void * value;
           size_t valuelen;
           void *random_override = NULL;
-          size_t random_override_len = 0;
 
 	  ctx->hash_algo = get_hash_algo (s, n);
 
@@ -1066,17 +1065,16 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                   s = sexp_nth_data (list, 1, &n);
                   if (!s)
                     rc = GPG_ERR_NO_OBJ;
-                  else if (n > 0)
+                  else if (n == ctx->saltlen)
                     {
                       random_override = xtrymalloc (n);
                       if (!random_override)
                         rc = gpg_err_code_from_syserror ();
                       else
-                        {
-                          memcpy (random_override, s, n);
-                          random_override_len = n;
-                        }
+                        memcpy (random_override, s, n);
                     }
+                  else
+                    rc = GPG_ERR_INV_ARG;
                   sexp_release (list);
                   if (rc)
                     goto leave;
@@ -1085,9 +1083,8 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
               /* Encode the data.  (NBITS-1 is due to 8.1.1, step 1.) */
 	      rc = _gcry_rsa_pss_encode (ret_mpi, ctx->nbits - 1,
                                          ctx->hash_algo,
-                                         value, valuelen, ctx->saltlen,
-                                         random_override, random_override_len);
-
+                                         value, valuelen,
+                                         ctx->saltlen, random_override);
               xfree (random_override);
 	    }
         }

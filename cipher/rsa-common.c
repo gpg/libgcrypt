@@ -742,9 +742,9 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
    length of salt to be used.  On success the result is stored as a
    new MPI at R_RESULT.  On error the value at R_RESULT is undefined.
 
-   If {RANDOM_OVERRIDE, RANDOM_OVERRIDE_LEN} is given it is used as
-   the salt instead of using a random string for the salt.  This
-   feature is only useful for regression tests.
+   If RANDOM_OVERRIDE is given it is used as the salt instead of using
+   a random string for the salt.  This feature is only useful for
+   regression tests.
 
    Here is figure 2 from the RFC (errata 595 applied) depicting the
    process:
@@ -778,7 +778,7 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
 gpg_err_code_t
 _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
                       const unsigned char *value, size_t valuelen, int saltlen,
-                      const void *random_override, size_t random_override_len)
+                      const void *random_override)
 {
   gcry_err_code_t rc = 0;
   size_t hlen;                 /* Length of the hash digest.  */
@@ -840,14 +840,7 @@ _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   if (saltlen)
     {
       if (random_override)
-        {
-          if (random_override_len != saltlen)
-            {
-              rc = GPG_ERR_INV_ARG;
-              goto leave;
-            }
-          memcpy (salt, random_override, saltlen);
-        }
+        memcpy (salt, random_override, saltlen);
       else
         _gcry_randomize (salt, saltlen, GCRY_STRONG_RANDOM);
     }
