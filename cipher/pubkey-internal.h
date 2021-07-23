@@ -75,7 +75,8 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
                        const unsigned char *label, size_t labellen);
 gpg_err_code_t
 _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
-                      const unsigned char *value, size_t valuelen, int saltlen,
+                      int hashed_already, int saltlen,
+                      const unsigned char *value, size_t valuelen,
                       const void *random_override);
 gpg_err_code_t
 _gcry_rsa_pss_verify (gcry_mpi_t value, gcry_mpi_t encoded,
