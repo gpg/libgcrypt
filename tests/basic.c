@@ -4801,6 +4801,426 @@ check_eax_cipher (void)
 
 
 static void
+check_siv_cipher (void)
+{
+  static const struct tv
+  {
+    int algo;
+    char key[MAX_DATA_LEN];
+    char ad1[MAX_DATA_LEN];
+    int ad1len;
+    char ad2[MAX_DATA_LEN];
+    int ad2len;
+    char nonce[MAX_DATA_LEN];
+    int noncelen;
+    unsigned char plaintext[MAX_DATA_LEN];
+    int inlen;
+    char tag[MAX_DATA_LEN];
+    char out[MAX_DATA_LEN];
+  } tv[] =
+    {
+      /* Test vectors from RFC5297 */
+      {
+	GCRY_CIPHER_AES128,
+	"\xff\xfe\xfd\xfc\xfb\xfa\xf9\xf8\xf7\xf6\xf5\xf4\xf3\xf2\xf1\xf0"
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"
+	"\x20\x21\x22\x23\x24\x25\x26\x27",
+	24,
+	"",
+	-1,
+	"",
+	-1,
+	"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee",
+	14,
+	"\x85\x63\x2d\x07\xc6\xe8\xf3\x7f\x95\x0a\xcd\x32\x0a\x2e\xcc\x93",
+	"\x40\xc0\x2b\x96\x90\xc4\xdc\x04\xda\xef\x7f\x6a\xfe\x5c"
+      },
+      {
+	GCRY_CIPHER_AES128,
+	"\x7f\x7e\x7d\x7c\x7b\x7a\x79\x78\x77\x76\x75\x74\x73\x72\x71\x70"
+	"\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f",
+	"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff"
+	"\xde\xad\xda\xda\xde\xad\xda\xda\xff\xee\xdd\xcc\xbb\xaa\x99\x88"
+	"\x77\x66\x55\x44\x33\x22\x11\x00",
+	40,
+	"\x10\x20\x30\x40\x50\x60\x70\x80\x90\xa0",
+	10,
+	"\x09\xf9\x11\x02\x9d\x74\xe3\x5b\xd8\x41\x56\xc5\x63\x56\x88\xc0",
+	16,
+	"\x74\x68\x69\x73\x20\x69\x73\x20\x73\x6f\x6d\x65\x20\x70\x6c\x61"
+	"\x69\x6e\x74\x65\x78\x74\x20\x74\x6f\x20\x65\x6e\x63\x72\x79\x70"
+	"\x74\x20\x75\x73\x69\x6e\x67\x20\x53\x49\x56\x2d\x41\x45\x53",
+	47,
+	"\x7b\xdb\x6e\x3b\x43\x26\x67\xeb\x06\xf4\xd1\x4b\xff\x2f\xbd\x0f",
+	"\xcb\x90\x0f\x2f\xdd\xbe\x40\x43\x26\x60\x19\x65\xc8\x89\xbf\x17"
+	"\xdb\xa7\x7c\xeb\x09\x4f\xa6\x63\xb7\xa3\xf7\x48\xba\x8a\xf8\x29"
+	"\xea\x64\xad\x54\x4a\x27\x2e\x9c\x48\x5b\x62\xa3\xfd\x5c\x0d"
+      },
+      /* From libaes_siv */
+      {
+	GCRY_CIPHER_AES256,
+	"\xff\xfe\xfd\xfc\xfb\xfa\xf9\xf8\xf7\xf6\xf5\xf4\xf3\xf2\xf1\xf0"
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"
+	"\xff\xfe\xfd\xfc\xfb\xfa\xf9\xf8\xf7\xf6\xf5\xf4\xf3\xf2\xf1\xf0",
+	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"
+	"\x20\x21\x22\x23\x24\x25\x26\x27",
+	24,
+	"",
+	-1,
+	"",
+	-1,
+	"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee",
+	14,
+	"\x72\x4d\xfb\x2e\xaf\x94\xdb\xb1\x9b\x0b\xa3\xa2\x99\xa0\x80\x1e",
+	"\xf3\xb0\x5a\x55\x49\x8e\xc2\x55\x26\x90\xb8\x98\x10\xe4"
+      },
+      /* From https://github.com/cryptomator/siv-mode */
+      { GCRY_CIPHER_AES128,
+	"\x90\xe5\x90\xae\xca\x19\x70\xed\xd1\x9f\xe5\x0f\xa6\x91\xae\x12"
+	"\x34\x2c\x49\x7a\x22\xc2\x4f\xaa\x9e\x87\x19\x2e\x34\x00\xfb\xce",
+	"\x2d\xdf\x87\xac\x97\x5d\x0c",
+	7,
+	"",
+	-1,
+	"",
+	-1,
+	"\x44",
+	1,
+	"\x7b\x0d\xdd\x88\x74\x39\x43\xc6\x44\xc1\xd1\xa2\x18\xa3\x1e\xdf",
+	"\x2e"
+      },
+      {
+	GCRY_CIPHER_AES128,
+	"\xf6\xde\x98\x19\x31\x1b\xd3\xde\x0b\xd1\x98\x70\x9d\xea\x9f\xdf"
+	"\xb8\x2e\x80\x44\xe4\x00\x13\x2a\x90\xff\xe9\xa9\xde\x81\x44\x75",
+	"\x7b\xd3\x6f\x24\x09\xfc\xd0\x0f\x5c\xcd\x9a\xf2\xe3\xf5\x76\x45"
+	"\xf7\xc5\x3f\x39\xf7\xad\xcb\xf0\x7a\x0e\x43\x30\x7e\x55\xa2\x53"
+	"\x47\x49\x48\x20\x20\x27\x6c\x8a\x20\x44\x22\xcd\x26\xbf\x7e\x89"
+	"\x88\x38\x0d\x94\xff\x12\xc5\x18\xfd\x20\x2c\x2a\x1b\x00\xb3",
+	63,
+	"",
+	-1,
+	"",
+	-1,
+	"",
+	0,
+	"\x4c\x0e\xc2\xcc\x61\x59\xb1\x17\xdb\x98\x6d\x9a\xa5\xb4\xa0\x11",
+	""
+      },
+      /* From https://github.com/RustCrypto/AEADs */
+      {
+	GCRY_CIPHER_AES128,
+	"\xff\xfe\xfd\xfc\xfb\xfa\xf9\xf8\xf7\xf6\xf5\xf4\xf3\xf2\xf1\xf0"
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+	"",
+	-1,
+	"",
+	-1,
+	"",
+	-1,
+	"",
+	0,
+	"\xf2\x00\x7a\x5b\xeb\x2b\x89\x00\xc5\x88\xa7\xad\xf5\x99\xf1\x72",
+	""
+      },
+      {
+	GCRY_CIPHER_AES128,
+	"\xff\xfe\xfd\xfc\xfb\xfa\xf9\xf8\xf7\xf6\xf5\xf4\xf3\xf2\xf1\xf0"
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+	"",
+	-1,
+	"",
+	-1,
+	"",
+	-1,
+	"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff",
+	16,
+	"\xf3\x04\xf9\x12\x86\x3e\x30\x3d\x5b\x54\x0e\x50\x57\xc7\x01\x0c",
+	"\x94\x2f\xfa\xf4\x5b\x0e\x5c\xa5\xfb\x9a\x56\xa5\x26\x3b\xb0\x65"
+      },
+      /* From nettle */
+      {
+	GCRY_CIPHER_AES128,
+	"\xff\xfe\xfd\xfc\xfb\xfa\xf9\xf8\xf7\xf6\xf5\xf4\xf3\xf2\xf1\xf0"
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+	"",
+	0,
+	"",
+	-1,
+	"\x01",
+	1,
+	"",
+	0,
+	"\xc6\x96\xf8\x4f\xdf\x92\xab\xa3\xc3\x1c\x23\xd5\xf2\x08\x75\x13",
+	""
+      },
+      /* From botan */
+      {
+	GCRY_CIPHER_AES128,
+	"\x2a\x83\xf6\x10\xa1\xd1\x77\xec\x2e\x00\x89\x80\xdc\x02\xa6\x6e"
+	"\xeb\x75\xaf\x6c\xba\x44\xa4\xe0\x9f\x3d\x93\xea\x1f\xa2\x88\x67",
+	"",
+	0,
+	"",
+	-1,
+	"",
+	-1,
+	"",
+	0,
+	"\x6b\xc5\xca\x86\x32\x29\x66\x75\x18\xa9\xab\xbd\x5a\xe6\xc1\xd5",
+	""
+      },
+      {
+	GCRY_CIPHER_AES128,
+	"\x97\xef\x57\xd4\xe2\xe9\x2f\x14\xdf\x73\x31\xfb\xa3\xd9\xf3\x58"
+	"\x87\xdd\xe7\xad\x86\x91\xfb\x80\x17\x68\x58\xd6\x59\x20\x14\x27",
+	"",
+	0,
+	"",
+	-1,
+	"",
+	-1,
+	"\x75\x73\x97\x4d\x6f\xa7\x65\xbc\xd0\xe6\x23\x2c\x24\x0e\x82\x7e",
+	16,
+	"\x68\x60\xa9\xc7\xbf\x4a\x6b\x21\x92\x44\xd7\xa8\xea\xa1\xf5\x0c",
+	"\x6f\x97\x93\x82\xcd\xe6\x8d\xe6\x0a\xb2\xad\x09\x53\x60\x64\x85"
+      }
+    };
+
+  gcry_cipher_hd_t hde, hdd;
+  unsigned char out[MAX_DATA_LEN];
+  unsigned char tag[16];
+  int i, keylen;
+  gcry_error_t err = 0;
+  size_t taglen2;
+
+  if (verbose)
+    fprintf (stderr, "  Starting SIV checks.\n");
+
+  for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
+    {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+	{
+	  if (verbose)
+	    fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+	  continue;
+	}
+
+      if (verbose)
+	fprintf (stderr, "    checking SIV mode for %s [%i]\n",
+		 gcry_cipher_algo_name (tv[i].algo),
+		 tv[i].algo);
+      err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_SIV, 0);
+      if (!err)
+	err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_SIV, 0);
+      if (err)
+	{
+	  fail ("aes-siv, gcry_cipher_open failed: %s\n", gpg_strerror (err));
+	  return;
+	}
+
+      keylen = gcry_cipher_get_algo_keylen (tv[i].algo) * 2;
+      if (!keylen)
+	{
+	  fail ("aes-siv, gcry_cipher_get_algo_keylen failed\n");
+	  return;
+	}
+
+      err = gcry_cipher_setkey (hde, tv[i].key, keylen);
+      if (!err)
+	err = gcry_cipher_setkey (hdd, tv[i].key, keylen);
+      if (err)
+	{
+	  fail ("aes-siv, gcry_cipher_setkey failed: %s\n",
+		gpg_strerror (err));
+	  gcry_cipher_close (hde);
+	  gcry_cipher_close (hdd);
+	  return;
+	}
+
+      if (tv[i].ad1len >= 0)
+	{
+	  err = gcry_cipher_authenticate (hde, tv[i].ad1, tv[i].ad1len);
+	  if (!err)
+	    err = gcry_cipher_authenticate (hdd, tv[i].ad1, tv[i].ad1len);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_authenticate failed: %s\n",
+		    gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+	}
+
+      if (tv[i].ad2len >= 0)
+	{
+	  err = gcry_cipher_authenticate (hde, tv[i].ad2, tv[i].ad2len);
+	  if (!err)
+	    err = gcry_cipher_authenticate (hdd, tv[i].ad2, tv[i].ad2len);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_authenticate failed: %s\n",
+		    gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+	}
+
+      if (tv[i].noncelen >= 0)
+	{
+	  err = gcry_cipher_setiv (hde, tv[i].nonce, tv[i].noncelen);
+	  if (!err)
+	    err = gcry_cipher_setiv (hdd, tv[i].nonce, tv[i].noncelen);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_setiv failed: %s\n",
+		    gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  /* Further AD not allowed after setting nonce. */
+	  err = gcry_cipher_authenticate (hde, tv[i].nonce, tv[i].noncelen);
+	  if (!err)
+	    {
+	      fail ("aes-siv, gcry_cipher_authenticate after setiv did not fail\n");
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+	}
+
+      err = gcry_cipher_info (hde, GCRYCTL_GET_TAGLEN, NULL, &taglen2);
+      if (err)
+	{
+	  fail ("cipher-siv, gcryctl_get_taglen failed (tv %d): %s\n",
+		i, gpg_strerror (err));
+	  gcry_cipher_close (hde);
+	  gcry_cipher_close (hdd);
+	  return;
+	}
+      if (taglen2 != 16)
+	{
+	  fail ("cipher-siv, gcryctl_get_taglen returned bad length"
+		" (tv %d): got=%zu want=%d\n",
+		i, taglen2, 16);
+	  gcry_cipher_close (hde);
+	  gcry_cipher_close (hdd);
+	  return;
+	}
+
+      if (tv[i].inlen)
+	{
+	  err = gcry_cipher_encrypt (hde, out, tv[i].inlen,
+				     tv[i].plaintext, tv[i].inlen);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_encrypt (%d) failed: %s\n",
+		    i, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  if (memcmp (tv[i].out, out, tv[i].inlen))
+	    {
+	      mismatch (tv[i].out, tv[i].inlen, out, tv[i].inlen);
+	      fail ("aes-siv, encrypt mismatch entry %d\n", i);
+	    }
+
+	  err = gcry_cipher_gettag (hde, tag, taglen2);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_gettag(%d) failed: %s\n",
+		    i, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  if (memcmp (tv[i].tag, tag, taglen2))
+	    {
+	      mismatch (tv[i].tag, taglen2, tag, taglen2);
+	      fail ("aes-siv, tag mismatch entry %d\n", i);
+	    }
+
+	  err = gcry_cipher_set_decryption_tag (hdd, tag, taglen2);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_set_decryption_tag (%d) failed: %s\n",
+		    i, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  err = gcry_cipher_decrypt (hdd, out, tv[i].inlen, NULL, 0);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_decrypt (%d) failed: %s\n",
+		    i, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  if (memcmp (tv[i].plaintext, out, tv[i].inlen))
+	    fail ("aes-siv, decrypt mismatch entry %d\n", i);
+
+	  err = gcry_cipher_checktag (hdd, tag, taglen2);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_checktag (%d) failed: %s\n",
+		    i, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+	}
+      else
+	{
+	  err = gcry_cipher_gettag (hde, tag, taglen2);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_gettag(%d) failed: %s\n",
+		    i, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  if (memcmp (tv[i].tag, tag, taglen2))
+	    {
+	      mismatch (tv[i].tag, taglen2, tag, taglen2);
+	      fail ("aes-siv, tag mismatch entry %d\n", i);
+	    }
+
+	  err = gcry_cipher_checktag (hdd, tv[i].tag, taglen2);
+	  if (err)
+	    {
+	      fail ("aes-siv, gcry_cipher_checktag (%d) failed: %s\n",
+		    i, gpg_strerror (err));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+	}
+
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+    }
+  if (verbose)
+    fprintf (stderr, "  Completed SIV checks.\n");
+}
+
+
+static void
 _check_poly1305_cipher (unsigned int step)
 {
   static const struct tv
@@ -10133,6 +10553,7 @@ check_cipher_modes(void)
   check_ocb_cipher ();
   check_xts_cipher ();
   check_eax_cipher ();
+  check_siv_cipher ();
   check_gost28147_cipher ();
   check_stream_cipher ();
   check_stream_cipher_large_block ();

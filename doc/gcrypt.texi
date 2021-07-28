@@ -1760,6 +1760,28 @@ EAX is an Authenticated Encryption with Associated Data (AEAD) block cipher
 mode by Bellare, Rogaway, and Wagner (see
 @uref{http://web.cs.ucdavis.edu/~rogaway/papers/eax.html}).
 
+@item  GCRY_CIPHER_MODE_SIV
+@cindex SIV, SIV mode
+Synthetic Initialization Vector (SIV) is an Authenticated Encryption
+with Associated Data (AEAD) block cipher mode, which is specified in
+RFC-5297.  This mode works with block ciphers with block size of 128
+bits and uses tag length of 128 bits.  Depending on how it is used,
+SIV achieves either the goal of deterministic authenticated encryption
+or the goal of nonce-based, misuse-resistant authenticated encryption.
+
+The SIV mode requires doubling key-length, for example, using 512-bit
+key with AES-256 (@code{GCRY_CIPHER_AES256}). Multiple AD instances can
+be passed to SIV mode with separate calls to
+@code{gcry_cipher_authenticate}. Nonce may be passed either through
+@code{gcry_cipher_setiv} or in the last call to
+@code{gcry_cipher_authenticate}. Note that use of @code{gcry_cipher_setiv}
+blocks any further calls to @code{gcry_cipher_authenticate} as nonce needs
+to be the last AD element with the SIV mode. When encrypting or decrypting,
+full-sized plaintext or ciphertext needs to be passed to
+@code{gcry_cipher_encrypt} or @code{gcry_cipher_decrypt}. Decryption tag
+needs to be given to SIV mode before decryption using
+@code{gcry_cipher_set_decryption_tag}.
+
 @end table
 
 @node Working with cipher handles
@@ -1794,8 +1816,9 @@ ChaCha20 stream cipher. The block cipher modes
 @code{GCRY_CIPHER_MODE_CTR} and @code{GCRY_CIPHER_MODE_EAX}) will work
 with any block cipher algorithm.  GCM mode
 (@code{GCRY_CIPHER_MODE_GCM}), CCM mode (@code{GCRY_CIPHER_MODE_CCM}),
-OCB mode (@code{GCRY_CIPHER_MODE_OCB}), and XTS mode
-(@code{GCRY_CIPHER_MODE_XTS}) will only work with block cipher
+OCB mode (@code{GCRY_CIPHER_MODE_OCB}), XTS mode
+(@code{GCRY_CIPHER_MODE_XTS}) and SIV mode
+(@code{GCRY_CIPHER_MODE_SIV}) will only work with block cipher
 algorithms which have the block size of 16 bytes.
 
 The third argument @var{flags} can either be passed as @code{0} or as
@@ -1985,6 +2008,16 @@ that their next call will provide the last chunk of data.  Only the
 first call to this function has an effect and only for modes which
 support it.  Checking the error is in general not necessary.  This is
 implemented as a macro.
+@end deftypefun
+
+
+The SIV mode requires decryption tag to be input before decryption.
+This is done with:
+
+@deftypefun gcry_error_t gcry_cipher_set_decryption_tag (gcry_cipher_hd_t @var{h}, const void *@var{tag}, size_t @var{taglen})
+
+Set decryption tag for the SIV mode decryption.  This is implemented
+as a macro.
 @end deftypefun
 
 

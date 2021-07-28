@@ -31,9 +31,10 @@
 
 
 gcry_err_code_t
-_gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
-                          unsigned char *outbuf, size_t outbuflen,
-                          const unsigned char *inbuf, size_t inbuflen)
+_gcry_cipher_ctr_encrypt_ctx (gcry_cipher_hd_t c,
+			      unsigned char *outbuf, size_t outbuflen,
+			      const unsigned char *inbuf, size_t inbuflen,
+			      void *algo_context)
 {
   size_t n;
   int i;
@@ -65,7 +66,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
   nblocks = inbuflen >> blocksize_shift;
   if (nblocks && c->bulk.ctr_enc)
     {
-      c->bulk.ctr_enc (&c->context.c, c->u_ctr.ctr, outbuf, inbuf, nblocks);
+      c->bulk.ctr_enc (algo_context, c->u_ctr.ctr, outbuf, inbuf, nblocks);
       inbuf  += nblocks << blocksize_shift;
       outbuf += nblocks << blocksize_shift;
       inbuflen -= nblocks << blocksize_shift;
@@ -80,7 +81,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
       n = blocksize;
       do
         {
-          nburn = enc_fn (&c->context.c, tmp, c->u_ctr.ctr);
+          nburn = enc_fn (algo_context, tmp, c->u_ctr.ctr);
           burn = nburn > burn ? nburn : burn;
 
 	  cipher_block_add(c->u_ctr.ctr, 1, blocksize);
@@ -117,4 +118,14 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
     _gcry_burn_stack (burn + 4 * sizeof(void *));
 
   return 0;
+}
+
+
+gcry_err_code_t
+_gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
+			  unsigned char *outbuf, size_t outbuflen,
+			  const unsigned char *inbuf, size_t inbuflen)
+{
+  return _gcry_cipher_ctr_encrypt_ctx (c, outbuf, outbuflen, inbuf, inbuflen,
+				       &c->context.c);
 }

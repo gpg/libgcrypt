@@ -334,7 +334,8 @@ enum gcry_ctl_cmds
     GCRYCTL_GET_TAGLEN = 76,
     GCRYCTL_REINIT_SYSCALL_CLAMP = 77,
     GCRYCTL_AUTO_EXPAND_SECMEM = 78,
-    GCRYCTL_SET_ALLOW_WEAK_KEY = 79
+    GCRYCTL_SET_ALLOW_WEAK_KEY = 79,
+    GCRYCTL_SET_DECRYPTION_TAG = 80
   };
 
 /* Perform various operations defined by CMD. */
@@ -975,7 +976,8 @@ enum gcry_cipher_modes
     GCRY_CIPHER_MODE_OCB      = 11,  /* OCB3 mode.  */
     GCRY_CIPHER_MODE_CFB8     = 12,  /* Cipher feedback (8 bit mode). */
     GCRY_CIPHER_MODE_XTS      = 13,  /* XTS mode.  */
-    GCRY_CIPHER_MODE_EAX      = 14   /* EAX mode.  */
+    GCRY_CIPHER_MODE_EAX      = 14,  /* EAX mode.  */
+    GCRY_CIPHER_MODE_SIV      = 15   /* SIV mode.  */
   };
 
 /* Flags used with the open function. */
@@ -998,6 +1000,9 @@ enum gcry_cipher_flags
 
 /* XTS works only with blocks of 128 bits.  */
 #define GCRY_XTS_BLOCK_LEN  (128 / 8)
+
+/* SIV works only with blocks of 128 bits */
+#define GCRY_SIV_BLOCK_LEN  (128 / 8)
 
 /* Create a handle for algorithm ALGO to be used in MODE.  FLAGS may
    be given as an bitwise OR of the gcry_cipher_flags values. */
@@ -1100,6 +1105,11 @@ size_t gcry_cipher_get_algo_blklen (int algo);
 /* Return 0 if the algorithm A is available for use. */
 #define gcry_cipher_test_algo(a) \
             gcry_cipher_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
+
+/* Setup tag for decryption (for SIV mode). */
+#define gcry_cipher_set_decryption_tag(a, tag, taglen) \
+            gcry_cipher_ctl ((a), GCRYCTL_SET_DECRYPTION_TAG, \
+                             (void *)(tag), (taglen))
 
 
 /************************************

@@ -398,6 +398,31 @@ struct gcry_cipher_handle
        * cipher context. */
       char *tweak_context;
     } xts;
+
+    /* Mode specific storage for SIV mode. */
+    struct {
+      /* Tag used for decryption. */
+      unsigned char dec_tag[GCRY_SIV_BLOCK_LEN];
+
+      /* S2V state. */
+      unsigned char s2v_d[GCRY_SIV_BLOCK_LEN];
+
+      /* Number of AAD elements processed. */
+      unsigned int aad_count:8;
+
+      /* Flags for SIV state. */
+      unsigned int dec_tag_set:1;
+
+      /* --- Following members are not cleared in gcry_cipher_reset --- */
+
+      /* S2V CMAC state. */
+      gcry_cmac_context_t s2v_cmac;
+      unsigned char s2v_zero_block[GCRY_SIV_BLOCK_LEN];
+
+      /* Pointer to CTR cipher context, allocated after actual
+       * cipher context. */
+      char *ctr_context;
+    } siv;
   } u_mode;
 
   /* What follows are two contexts of the cipher in use.  The first
@@ -453,6 +478,11 @@ gcry_err_code_t _gcry_cipher_ofb_encrypt
                  const unsigned char *inbuf, size_t inbuflen);
 
 /*-- cipher-ctr.c --*/
+gcry_err_code_t _gcry_cipher_ctr_encrypt_ctx
+/*           */ (gcry_cipher_hd_t c,
+		 unsigned char *outbuf, size_t outbuflen,
+		 const unsigned char *inbuf, size_t inbuflen,
+		 void *algo_context);
 gcry_err_code_t _gcry_cipher_ctr_encrypt
 /*           */ (gcry_cipher_hd_t c,
                  unsigned char *outbuf, size_t outbuflen,
@@ -620,6 +650,33 @@ gcry_err_code_t _gcry_cipher_xts_encrypt
 gcry_err_code_t _gcry_cipher_xts_decrypt
 /*           */ (gcry_cipher_hd_t c, unsigned char *outbuf, size_t outbuflen,
 		 const unsigned char *inbuf, size_t inbuflen);
+
+
+/*-- cipher-siv.c --*/
+gcry_err_code_t _gcry_cipher_siv_encrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_siv_decrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_siv_set_nonce
+/*           */ (gcry_cipher_hd_t c, const unsigned char *nonce,
+                 size_t noncelen);
+gcry_err_code_t _gcry_cipher_siv_authenticate
+/*           */ (gcry_cipher_hd_t c, const unsigned char *abuf, size_t abuflen);
+gcry_err_code_t _gcry_cipher_siv_set_decryption_tag
+/*           */ (gcry_cipher_hd_t c, const byte *tag, size_t taglen);
+gcry_err_code_t _gcry_cipher_siv_get_tag
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outtag, size_t taglen);
+gcry_err_code_t _gcry_cipher_siv_check_tag
+/*           */ (gcry_cipher_hd_t c,
+                 const unsigned char *intag, size_t taglen);
+gcry_err_code_t _gcry_cipher_siv_setkey
+/*           */ (gcry_cipher_hd_t c,
+                 const unsigned char *ctrkey, size_t ctrkeylen);
 
 
 /* Return the L-value for block N.  Note: 'cipher_ocb.c' ensures that N

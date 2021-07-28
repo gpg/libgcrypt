@@ -107,7 +107,8 @@ ocb_get_L_big (gcry_cipher_hd_t c, u64 n, unsigned char *l_buf)
 
 
 /* Called after key has been set. Sets up L table. */
-void _gcry_cipher_ocb_setkey (gcry_cipher_hd_t c)
+void
+_gcry_cipher_ocb_setkey (gcry_cipher_hd_t c)
 {
   unsigned char ktop[OCB_BLOCK_LEN];
   unsigned int burn = 0;
