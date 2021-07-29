@@ -93,7 +93,8 @@ gpg_err_code_t _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
                                         unsigned int h1len,
                                         int halgo,
                                         unsigned int extraloops);
-
+gpg_err_code_t _gcry_dsa_compute_hash (gcry_mpi_t *r_hash, gcry_mpi_t input,
+                                       int hashalgo);
 gpg_err_code_t _gcry_dsa_normalize_hash (gcry_mpi_t input,
                                          gcry_mpi_t *out,
                                          unsigned int qbits);

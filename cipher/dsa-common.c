@@ -384,6 +384,61 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
   return rc;
 }
 
+
+
+/*
+ * For DSA/ECDSA, as prehash function, compute hash with HASHALGO for
+ * INPUT.  Result hash value is returned in R_HASH as an opaque MPI.
+ * Returns error code.
+ */
+gpg_err_code_t
+_gcry_dsa_compute_hash (gcry_mpi_t *r_hash, gcry_mpi_t input, int hashalgo)
+{
+  gpg_err_code_t rc = 0;
+  size_t hlen;
+  void *hashbuf;
+  void *abuf;
+  unsigned int abits;
+  unsigned int n;
+
+  hlen = _gcry_md_get_algo_dlen (hashalgo);
+  hashbuf = xtrymalloc (hlen);
+  if (!hashbuf)
+    {
+      rc = gpg_err_code_from_syserror ();
+      return rc;
+    }
+
+  if (mpi_is_opaque (input))
+    {
+      abuf = mpi_get_opaque (input, &abits);
+      n = (abits+7)/8;
+      _gcry_md_hash_buffer (hashalgo, hashbuf, abuf, n);
+    }
+  else
+    {
+      abits = mpi_get_nbits (input);
+      n = (abits+7)/8;
+      abuf = xtrymalloc (n);
+      if (!abuf)
+        {
+          rc = gpg_err_code_from_syserror ();
+          xfree (hashbuf);
+          return rc;
+        }
+      _gcry_mpi_to_octet_string (NULL, abuf, input, n);
+      _gcry_md_hash_buffer (hashalgo, hashbuf, abuf, n);
+      xfree (abuf);
+    }
+
+  *r_hash = mpi_set_opaque (NULL, hashbuf, hlen*8);
+  if (!*r_hash)
+    rc = GPG_ERR_INV_OBJ;
+
+  return rc;
+}
+
+
 /*
  * Truncate opaque hash value to qbits for DSA.
  * Non-opaque input is not truncated, in hope that user

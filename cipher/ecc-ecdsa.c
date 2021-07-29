@@ -51,16 +51,29 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   unsigned int abits, qbits;
   gcry_mpi_t b;                /* Random number needed for blinding.  */
   gcry_mpi_t bi;               /* multiplicative inverse of B.        */
+  gcry_mpi_t hash_computed_internally = NULL;
 
   if (DBG_CIPHER)
     log_mpidump ("ecdsa sign hash  ", input );
 
   qbits = mpi_get_nbits (ec->n);
 
+  if ((flags & PUBKEY_FLAG_PREHASH))
+    {
+      rc = _gcry_dsa_compute_hash (&hash_computed_internally, input, hashalgo);
+      if (rc)
+        return rc;
+      input = hash_computed_internally;
+    }
+
   /* Convert the INPUT into an MPI if needed.  */
   rc = _gcry_dsa_normalize_hash (input, &hash, qbits);
+
   if (rc)
-    return rc;
+    {
+      mpi_free (hash_computed_internally);
+      return rc;
+    }
 
   b  = mpi_snew (qbits);
   bi = mpi_snew (qbits);
@@ -155,6 +168,7 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, mpi_ec_t ec,
 
   if (hash != input)
     mpi_free (hash);
+  mpi_free (hash_computed_internally);
 
   return rc;
 }
@@ -165,12 +179,14 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, mpi_ec_t ec,
  */
 gpg_err_code_t
 _gcry_ecc_ecdsa_verify (gcry_mpi_t input, mpi_ec_t ec,
-                        gcry_mpi_t r, gcry_mpi_t s)
+                        gcry_mpi_t r, gcry_mpi_t s,
+                        int flags, int hashalgo)
 {
   gpg_err_code_t err = 0;
   gcry_mpi_t hash, h, h1, h2, x;
   mpi_point_struct Q, Q1, Q2;
   unsigned int nbits;
+  gcry_mpi_t hash_computed_internally = NULL;
 
   if (!_gcry_mpi_ec_curve_point (ec->Q, ec))
     return GPG_ERR_BROKEN_PUBKEY;
@@ -181,9 +197,21 @@ _gcry_ecc_ecdsa_verify (gcry_mpi_t input, mpi_ec_t ec,
     return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < s < n  failed.  */
 
   nbits = mpi_get_nbits (ec->n);
+  if ((flags & PUBKEY_FLAG_PREHASH))
+    {
+      err = _gcry_dsa_compute_hash (&hash_computed_internally, input,
+                                    hashalgo);
+      if (err)
+        return err;
+      input = hash_computed_internally;
+    }
+
   err = _gcry_dsa_normalize_hash (input, &hash, nbits);
   if (err)
-    return err;
+    {
+      mpi_free (hash_computed_internally);
+      return err;
+    }
 
   h  = mpi_alloc (0);
   h1 = mpi_alloc (0);
@@ -243,6 +271,7 @@ _gcry_ecc_ecdsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   mpi_free (h);
   if (hash != input)
     mpi_free (hash);
+  mpi_free (hash_computed_internally);
 
   return err;
 }

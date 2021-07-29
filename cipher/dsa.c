@@ -136,7 +136,7 @@ static gpg_err_code_t generate (DSA_secret_key *sk,
 static gpg_err_code_t sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                             DSA_secret_key *skey, int flags, int hashalgo);
 static gpg_err_code_t verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
-                   DSA_public_key *pkey);
+                              DSA_public_key *pkey, int flags, int hashalgo);
 static unsigned int dsa_get_nbits (gcry_sexp_t parms);
 
 
@@ -185,12 +185,12 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
   sign (sig_a, sig_b, data, sk, 0, 0);
 
   /* Verify the signature using the public key.  */
-  if ( verify (sig_a, sig_b, data, &pk) )
+  if ( verify (sig_a, sig_b, data, &pk, 0, 0) )
     goto leave; /* Signature does not match.  */
 
   /* Modify the data and check that the signing fails.  */
   mpi_add_ui (data, data, 1);
-  if ( !verify (sig_a, sig_b, data, &pk) )
+  if ( !verify (sig_a, sig_b, data, &pk, 0, 0) )
     goto leave; /* Signature matches but should not.  */
 
   result = 0; /* The test succeeded.  */
@@ -604,13 +604,25 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
   const void *abuf;
   unsigned int abits, qbits;
   int extraloops = 0;
+  gcry_mpi_t hash_computed_internally = NULL;
 
   qbits = mpi_get_nbits (skey->q);
+
+  if ((flags & PUBKEY_FLAG_PREHASH))
+    {
+      rc = _gcry_dsa_compute_hash (&hash_computed_internally, input, hashalgo);
+      if (rc)
+        return rc;
+      input = hash_computed_internally;
+    }
 
   /* Convert the INPUT into an MPI.  */
   rc = _gcry_dsa_normalize_hash (input, &hash, qbits);
   if (rc)
-    return rc;
+    {
+      mpi_free (hash_computed_internally);
+      return rc;
+    }
 
  again:
   /* Create the K value.  */
@@ -669,6 +681,7 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
  leave:
   if (hash != input)
     mpi_free (hash);
+  mpi_free (hash_computed_internally);
 
   return rc;
 }
@@ -678,7 +691,8 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
    Returns true if the signature composed from R and S is valid.
  */
 static gpg_err_code_t
-verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_public_key *pkey )
+verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_public_key *pkey,
+        int flags, int hashalgo)
 {
   gpg_err_code_t rc = 0;
   gcry_mpi_t w, u1, u2, v;
@@ -686,6 +700,7 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_public_key *pkey )
   gcry_mpi_t ex[3];
   gcry_mpi_t hash;
   unsigned int nbits;
+  gcry_mpi_t hash_computed_internally = NULL;
 
   if( !(mpi_cmp_ui( r, 0 ) > 0 && mpi_cmp( r, pkey->q ) < 0) )
     return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < r < n  failed.  */
@@ -693,9 +708,19 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_public_key *pkey )
     return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < s < n  failed.  */
 
   nbits = mpi_get_nbits (pkey->q);
+  if ((flags & PUBKEY_FLAG_PREHASH))
+    {
+      rc = _gcry_dsa_compute_hash (&hash_computed_internally, input, hashalgo);
+      if (rc)
+        return rc;
+      input = hash_computed_internally;
+    }
   rc = _gcry_dsa_normalize_hash (input, &hash, nbits);
   if (rc)
-    return rc;
+    {
+      mpi_free (hash_computed_internally);
+      return rc;
+    }
 
   w  = mpi_alloc( mpi_get_nlimbs(pkey->q) );
   u1 = mpi_alloc( mpi_get_nlimbs(pkey->q) );
@@ -737,6 +762,7 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_public_key *pkey )
   mpi_free(v);
   if (hash != input)
     mpi_free (hash);
+  mpi_free (hash_computed_internally);
 
   return rc;
 }
@@ -1136,7 +1162,7 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     }
 
   /* Verify the signature.  */
-  rc = verify (sig_r, sig_s, data, &pk);
+  rc = verify (sig_r, sig_s, data, &pk, ctx.flags, ctx.hash_algo);
 
  leave:
   _gcry_mpi_release (pk.p);
@@ -1195,8 +1221,9 @@ selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
   /* Sample data from RFC 6979 section A.2.2, hash is of message "sample" */
   static const char sample_data[] =
-    "(data (flags rfc6979)"
-    " (hash sha256 #af2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e9891562113d8a62add1bf#))";
+    "(data (flags rfc6979 prehash)"
+    " (hash-algo sha256)"
+    " (value 6:sample))";
   static const char sample_data_bad[] =
     "(data (flags rfc6979)"
     " (hash sha256 #bf2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e9891562113d8a62add1bf#))";

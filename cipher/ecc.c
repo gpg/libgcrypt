@@ -288,7 +288,7 @@ test_keys (mpi_ec_t ec, unsigned int nbits)
   if (_gcry_ecc_ecdsa_sign (test, ec, r, s, 0, 0) )
     log_fatal ("ECDSA operation: sign failed\n");
 
-  if (_gcry_ecc_ecdsa_verify (test, ec, r, s))
+  if (_gcry_ecc_ecdsa_verify (test, ec, r, s, 0, 0))
     {
       log_fatal ("ECDSA operation: sign, verify failed\n");
     }
@@ -869,7 +869,8 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     }
   else
     {
-      rc = _gcry_ecc_ecdsa_verify (data, ec, sig_r, sig_s);
+      rc = _gcry_ecc_ecdsa_verify (data, ec, sig_r, sig_s,
+                                   ctx.flags, ctx.hash_algo);
     }
 
  leave:
@@ -1675,9 +1676,9 @@ selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
   /* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
   static const char sample_data[] =
-    "(data (flags rfc6979)"
-    " (hash sha256 #af2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e98915"
-    /**/           "62113d8a62add1bf#))";
+    "(data (flags rfc6979 prehash)"
+    " (hash-algo sha256)"
+    " (value 6:sample))";
   static const char sample_data_bad[] =
     "(data (flags rfc6979)"
     " (hash sha256 #bf2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e98915"

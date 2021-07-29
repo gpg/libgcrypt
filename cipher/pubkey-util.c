@@ -807,27 +807,41 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       /* Note that mpi_set_opaque takes ownership of VALUE.  */
       *ret_mpi = mpi_set_opaque (NULL, value, valuelen*8);
     }
-  else if (ctx->encoding == PUBKEY_ENC_RAW && lhash
+  else if (ctx->encoding == PUBKEY_ENC_RAW
+           && (lhash || (lvalue && (parsed_flags & PUBKEY_FLAG_PREHASH)))
            && ((parsed_flags & PUBKEY_FLAG_RAW_FLAG)
                || (parsed_flags & PUBKEY_FLAG_RFC6979)))
     {
+      void * value;
+      size_t valuelen;
+      gcry_sexp_t list;
+
       /* Raw encoding along with a hash element.  This is commonly
          used for DSA.  For better backward error compatibility we
          allow this only if either the rfc6979 flag has been given or
          the raw flags was explicitly given.  */
-      if (sexp_length (lhash) != 3)
-        rc = GPG_ERR_INV_OBJ;
-      else if ( !(s=sexp_nth_data (lhash, 1, &n)) || !n )
-        rc = GPG_ERR_INV_OBJ;
-      else
-        {
-          void *value;
-          size_t valuelen;
 
-	  ctx->hash_algo = get_hash_algo (s, n);
-          if (!ctx->hash_algo)
-            rc = GPG_ERR_DIGEST_ALGO;
-          else if (!(value=sexp_nth_buffer (lhash, 2, &valuelen)))
+      if (lvalue && (parsed_flags & PUBKEY_FLAG_PREHASH))
+        {
+          /* Get HASH-ALGO. */
+          list = sexp_find_token (ldata, "hash-algo", 0);
+          if (list)
+            {
+              s = sexp_nth_data (list, 1, &n);
+              if (!s)
+                rc = GPG_ERR_NO_OBJ;
+              else
+                {
+                  ctx->hash_algo = get_hash_algo (s, n);
+                  if (!ctx->hash_algo)
+                    rc = GPG_ERR_DIGEST_ALGO;
+                }
+              sexp_release (list);
+              if (rc)
+                goto leave;
+            }
+
+          if ( !(value=sexp_nth_buffer (lvalue, 1, &valuelen)) || !valuelen )
             rc = GPG_ERR_INV_OBJ;
           else if ((valuelen * 8) < valuelen)
             {
@@ -837,10 +851,39 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
           else
             *ret_mpi = mpi_set_opaque (NULL, value, valuelen*8);
         }
+      else if (lhash)
+        {
+          if (sexp_length (lhash) != 3)
+            rc = GPG_ERR_INV_OBJ;
+          else if ( !(s=sexp_nth_data (lhash, 1, &n)) || !n )
+            rc = GPG_ERR_INV_OBJ;
+          else
+            {
+              ctx->hash_algo = get_hash_algo (s, n);
+
+              if (!ctx->hash_algo)
+                rc = GPG_ERR_DIGEST_ALGO;
+              else if ( !(value=sexp_nth_buffer (lhash, 2, &valuelen))
+                        || !valuelen )
+                rc = GPG_ERR_INV_OBJ;
+              else if ((valuelen * 8) < valuelen)
+                {
+                  xfree (value);
+                  rc = GPG_ERR_TOO_LARGE;
+                }
+              else
+                *ret_mpi = mpi_set_opaque (NULL, value, valuelen*8);
+            }
+        }
+      else
+        rc = GPG_ERR_CONFLICT;
+
+      if (rc)
+        goto leave;
     }
   else if (ctx->encoding == PUBKEY_ENC_RAW && lvalue)
     {
-      /* RFC6969 may only be used with the a hash value and not the
+      /* RFC6979 may only be used with the a hash value and not the
          MPI based value.  */
       if (parsed_flags & PUBKEY_FLAG_RFC6979)
         {
