@@ -116,7 +116,7 @@ _gcry_initialize_fips_mode (int force)
   done = 1;
 
   /* If the calling application explicitly requested fipsmode, do so.  */
-  if (force)
+  if (force || getenv ("LIBGCRYPT_FORCE_FIPS_MODE"))
     {
       gcry_assert (!_gcry_no_fips_mode_required);
       goto leave;
