@@ -30,13 +30,12 @@
 # include <syslog.h>
 #endif /*HAVE_SYSLOG*/
 
+/* The name of the file used to force libgcrypt into fips mode. */
+#define FIPS_FORCE_FILE "/etc/gcrypt/fips_enabled"
+
 #include "g10lib.h"
 #include "cipher-proto.h"
 #include "hmac256.h"
-
-
-/* The name of the file used to force libgcrypt into fips mode. */
-#define FIPS_FORCE_FILE "/etc/gcrypt/fips_enabled"
 
 
 /* The states of the finite state machine used in fips mode.  */
@@ -604,7 +603,7 @@ check_binary_integrity (void)
   char *fname = NULL;
   const char key[] = "What am I, a doctor or a moonshuttle conductor?";
 
-  if (!dladdr ("gcry_check_version", &info))
+  if (!dladdr (gcry_check_version, &info))
     err = gpg_error_from_syserror ();
   else
     {
