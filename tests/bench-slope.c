@@ -2200,7 +2200,7 @@ ecc_algo_fips_allowed (int algo)
       case ECC_ALGO_NIST_P256:
       case ECC_ALGO_NIST_P384:
       case ECC_ALGO_NIST_P521:
-        return 1;
+	return 1;
       case ECC_ALGO_SECP256K1:
       case ECC_ALGO_ED25519:
       case ECC_ALGO_ED448:
@@ -2704,7 +2704,7 @@ _ecc_bench (int algo)
   int i;
 
   /* Skip not allowed mechanisms */
-  if (!ecc_algo_fips_allowed(algo))
+  if (in_fips_mode && !ecc_algo_fips_allowed (algo))
     return;
 
   algo_name = ecc_algo_name (algo);
