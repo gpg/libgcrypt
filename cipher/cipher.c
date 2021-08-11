@@ -526,20 +526,6 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
   if (! err)
     switch (mode)
       {
-      case GCRY_CIPHER_MODE_CCM:
-	if (spec->blocksize != GCRY_CCM_BLOCK_LEN)
-	  err = GPG_ERR_INV_CIPHER_MODE;
-	if (!spec->encrypt || !spec->decrypt)
-	  err = GPG_ERR_INV_CIPHER_MODE;
-	break;
-
-      case GCRY_CIPHER_MODE_XTS:
-	if (spec->blocksize != GCRY_XTS_BLOCK_LEN)
-	  err = GPG_ERR_INV_CIPHER_MODE;
-	if (!spec->encrypt || !spec->decrypt)
-	  err = GPG_ERR_INV_CIPHER_MODE;
-	break;
-
       case GCRY_CIPHER_MODE_ECB:
       case GCRY_CIPHER_MODE_CBC:
       case GCRY_CIPHER_MODE_CFB:
@@ -549,9 +535,36 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
       case GCRY_CIPHER_MODE_AESWRAP:
       case GCRY_CIPHER_MODE_CMAC:
       case GCRY_CIPHER_MODE_EAX:
-      case GCRY_CIPHER_MODE_GCM:
-      case GCRY_CIPHER_MODE_SIV:
 	if (!spec->encrypt || !spec->decrypt)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	break;
+
+      case GCRY_CIPHER_MODE_CCM:
+	if (!spec->encrypt || !spec->decrypt)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	else if (spec->blocksize != GCRY_CCM_BLOCK_LEN)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	break;
+
+      case GCRY_CIPHER_MODE_XTS:
+	if (!spec->encrypt || !spec->decrypt)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	else if (spec->blocksize != GCRY_XTS_BLOCK_LEN)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	break;
+
+      case GCRY_CIPHER_MODE_GCM:
+	if (!spec->encrypt || !spec->decrypt)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	else if (spec->blocksize != GCRY_GCM_BLOCK_LEN)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	break;
+
+      case GCRY_CIPHER_MODE_SIV:
+      case GCRY_CIPHER_MODE_GCM_SIV:
+	if (!spec->encrypt || !spec->decrypt)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	else if (spec->blocksize != GCRY_SIV_BLOCK_LEN)
 	  err = GPG_ERR_INV_CIPHER_MODE;
 	break;
 
@@ -569,7 +582,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
            security too much.  */
 	if (!spec->encrypt || !spec->decrypt)
 	  err = GPG_ERR_INV_CIPHER_MODE;
-	else if (spec->blocksize != (128/8))
+	else if (spec->blocksize != GCRY_OCB_BLOCK_LEN)
 	  err = GPG_ERR_INV_CIPHER_MODE;
 	break;
 
@@ -769,6 +782,12 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
           _gcry_cipher_gcm_setkey (c);
           break;
 
+        case GCRY_CIPHER_MODE_GCM_SIV:
+          rc = _gcry_cipher_gcm_siv_setkey (c, keylen);
+          if (rc)
+	    c->marks.key = 0;
+          break;
+
         case GCRY_CIPHER_MODE_OCB:
           _gcry_cipher_ocb_setkey (c);
           break;
@@ -884,6 +903,7 @@ cipher_reset (gcry_cipher_hd_t c)
       break;
 
     case GCRY_CIPHER_MODE_GCM:
+    case GCRY_CIPHER_MODE_GCM_SIV:
       /* Only clear head of u_mode, keep ghash_key and gcm_table. */
       {
         byte *u_mode_pos = (void *)&c->u_mode;
@@ -1375,6 +1395,11 @@ _gcry_cipher_setup_mode_ops(gcry_cipher_hd_t c, int mode)
       c->mode_ops.decrypt = _gcry_cipher_siv_decrypt;
       break;
 
+    case GCRY_CIPHER_MODE_GCM_SIV:
+      c->mode_ops.encrypt = _gcry_cipher_gcm_siv_encrypt;
+      c->mode_ops.decrypt = _gcry_cipher_gcm_siv_decrypt;
+      break;
+
     default:
       c->mode_ops.encrypt = do_encrypt_none_unknown;
       c->mode_ops.decrypt = do_decrypt_none_unknown;
@@ -1406,6 +1431,10 @@ _gcry_cipher_setup_mode_ops(gcry_cipher_hd_t c, int mode)
 
     case GCRY_CIPHER_MODE_SIV:
       c->mode_ops.setiv = _gcry_cipher_siv_set_nonce;
+      break;
+
+    case GCRY_CIPHER_MODE_GCM_SIV:
+      c->mode_ops.setiv = _gcry_cipher_gcm_siv_set_nonce;
       break;
 
     default:
@@ -1457,6 +1486,12 @@ _gcry_cipher_setup_mode_ops(gcry_cipher_hd_t c, int mode)
       c->mode_ops.authenticate = _gcry_cipher_siv_authenticate;
       c->mode_ops.get_tag      = _gcry_cipher_siv_get_tag;
       c->mode_ops.check_tag    = _gcry_cipher_siv_check_tag;
+      break;
+
+    case GCRY_CIPHER_MODE_GCM_SIV:
+      c->mode_ops.authenticate = _gcry_cipher_gcm_siv_authenticate;
+      c->mode_ops.get_tag      = _gcry_cipher_gcm_siv_get_tag;
+      c->mode_ops.check_tag    = _gcry_cipher_gcm_siv_check_tag;
       break;
 
     default:
@@ -1540,6 +1575,8 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 
         if (h->mode == GCRY_CIPHER_MODE_SIV)
           rc = _gcry_cipher_siv_set_decryption_tag (h, buffer, buflen);
+        else if (h->mode == GCRY_CIPHER_MODE_GCM_SIV)
+          rc = _gcry_cipher_gcm_siv_set_decryption_tag (h, buffer, buflen);
         else
           rc = GPG_ERR_INV_CIPHER_MODE;
       }
@@ -1679,6 +1716,10 @@ _gcry_cipher_info (gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
               break;
 
             case GCRY_CIPHER_MODE_SIV:
+              *nbytes = GCRY_SIV_BLOCK_LEN;
+              break;
+
+            case GCRY_CIPHER_MODE_GCM_SIV:
               *nbytes = GCRY_SIV_BLOCK_LEN;
               break;
 

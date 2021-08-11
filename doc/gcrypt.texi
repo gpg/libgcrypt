@@ -1782,6 +1782,22 @@ full-sized plaintext or ciphertext needs to be passed to
 needs to be given to SIV mode before decryption using
 @code{gcry_cipher_set_decryption_tag}.
 
+@item  GCRY_CIPHER_MODE_GCM_SIV
+@cindex GCM-SIV, GCM-SIV mode, AES-GCM-SIV
+This mode implements is GCM-SIV Authenticated Encryption with
+Associated Data (AEAD) block cipher mode specified in RFC-5297
+(AES-GCM-SIV: Nonce Misuse-Resistant Authenticated Encryption).
+This implementations works with block ciphers with block size of
+128 bits and uses tag length of 128 bits.  Supported key lengths
+by the mode are 128 bits and 256 bits. GCM-SIV is specified as
+nonce misuse resistant, so that it does not fail catastrophically
+if a nonce is repeated.
+
+When encrypting or decrypting, full-sized plaintext or ciphertext
+needs to be passed to @code{gcry_cipher_encrypt} or
+@code{gcry_cipher_decrypt}. Decryption tag needs to be given to
+GCM-SIV mode before decryption using @code{gcry_cipher_set_decryption_tag}.
+
 @end table
 
 @node Working with cipher handles
@@ -1817,8 +1833,9 @@ ChaCha20 stream cipher. The block cipher modes
 with any block cipher algorithm.  GCM mode
 (@code{GCRY_CIPHER_MODE_GCM}), CCM mode (@code{GCRY_CIPHER_MODE_CCM}),
 OCB mode (@code{GCRY_CIPHER_MODE_OCB}), XTS mode
-(@code{GCRY_CIPHER_MODE_XTS}) and SIV mode
-(@code{GCRY_CIPHER_MODE_SIV}) will only work with block cipher
+(@code{GCRY_CIPHER_MODE_XTS}), SIV mode
+(@code{GCRY_CIPHER_MODE_SIV}) and GCM-SIV mode
+(@code{GCRY_CIPHER_MODE_GCM_SIV}) will only work with block cipher
 algorithms which have the block size of 16 bytes.
 
 The third argument @var{flags} can either be passed as @code{0} or as
@@ -2011,13 +2028,13 @@ implemented as a macro.
 @end deftypefun
 
 
-The SIV mode requires decryption tag to be input before decryption.
-This is done with:
+The SIV mode and the GCM-SIV mode requires decryption tag to be input
+before decryption. This is done with:
 
 @deftypefun gcry_error_t gcry_cipher_set_decryption_tag (gcry_cipher_hd_t @var{h}, const void *@var{tag}, size_t @var{taglen})
 
-Set decryption tag for the SIV mode decryption.  This is implemented
-as a macro.
+Set decryption tag for SIV or GCM-SIV mode decryption.  This is
+implemented as a macro.
 @end deftypefun
 
 

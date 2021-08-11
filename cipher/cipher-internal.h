@@ -301,7 +301,7 @@ struct gcry_cipher_handle
       gcry_cmac_context_t cmac_ciphertext;
     } eax;
 
-    /* Mode specific storage for GCM mode. */
+    /* Mode specific storage for GCM mode and GCM-SIV mode. */
     struct {
       /* The interim tag for GCM mode.  */
       union {
@@ -347,6 +347,9 @@ struct gcry_cipher_handle
 
       /* GHASH implementation in use. */
       ghash_fn_t ghash_fn;
+
+      /* Key length used for GCM-SIV key generating key. */
+      unsigned int siv_keylen;
     } gcm;
 
     /* Mode specific storage for OCB mode. */
@@ -583,6 +586,8 @@ gcry_err_code_t _gcry_cipher_gcm_check_tag
                    const unsigned char *intag, size_t taglen);
 void _gcry_cipher_gcm_setkey
 /*           */   (gcry_cipher_hd_t c);
+void _gcry_cipher_gcm_setupM
+/*           */   (gcry_cipher_hd_t c);
 
 
 /*-- cipher-poly1305.c --*/
@@ -677,6 +682,32 @@ gcry_err_code_t _gcry_cipher_siv_check_tag
 gcry_err_code_t _gcry_cipher_siv_setkey
 /*           */ (gcry_cipher_hd_t c,
                  const unsigned char *ctrkey, size_t ctrkeylen);
+
+
+/*-- cipher-gcm-siv.c --*/
+gcry_err_code_t _gcry_cipher_gcm_siv_encrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_gcm_siv_decrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_gcm_siv_set_nonce
+/*           */ (gcry_cipher_hd_t c, const unsigned char *nonce,
+                 size_t noncelen);
+gcry_err_code_t _gcry_cipher_gcm_siv_authenticate
+/*           */ (gcry_cipher_hd_t c, const unsigned char *abuf, size_t abuflen);
+gcry_err_code_t _gcry_cipher_gcm_siv_set_decryption_tag
+/*           */ (gcry_cipher_hd_t c, const byte *tag, size_t taglen);
+gcry_err_code_t _gcry_cipher_gcm_siv_get_tag
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outtag, size_t taglen);
+gcry_err_code_t _gcry_cipher_gcm_siv_check_tag
+/*           */ (gcry_cipher_hd_t c,
+                 const unsigned char *intag, size_t taglen);
+gcry_err_code_t _gcry_cipher_gcm_siv_setkey
+/*           */ (gcry_cipher_hd_t c, unsigned int keylen);
 
 
 /* Return the L-value for block N.  Note: 'cipher_ocb.c' ensures that N
@@ -861,6 +892,29 @@ cipher_block_xor_n_copy_2(void *_dst_xor, const void *_src_xor,
       buf_put_he64(dst_xor + 8, sx[1]);
       buf_put_he64(srcdst_cpy + 0, sc[0]);
       buf_put_he64(srcdst_cpy + 8, sc[1]);
+    }
+}
+
+
+/* Optimized function for combined cipher block byte-swapping.  */
+static inline void
+cipher_block_bswap (void *_dst_bswap, const void *_src_bswap,
+                    size_t blocksize)
+{
+  byte *dst_bswap = _dst_bswap;
+  const byte *src_bswap = _src_bswap;
+  u64 t[2];
+
+  if (blocksize == 8)
+    {
+      buf_put_le64(dst_bswap, buf_get_be64(src_bswap));
+    }
+  else
+    {
+      t[0] = buf_get_be64(src_bswap + 0);
+      t[1] = buf_get_be64(src_bswap + 8);
+      buf_put_le64(dst_bswap + 8, t[0]);
+      buf_put_le64(dst_bswap + 0, t[1]);
     }
 }
 

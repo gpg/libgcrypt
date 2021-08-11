@@ -572,7 +572,7 @@ setupM (gcry_cipher_hd_t c)
   c->u_mode.gcm.ghash_fn = NULL;
 
   if (0)
-    ;
+    { }
 #ifdef GCM_USE_INTEL_PCLMUL
   else if (features & HWF_INTEL_PCLMUL)
     {
@@ -1002,6 +1002,13 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
   do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, aadbuf, aadbuflen, 0);
 
   return 0;
+}
+
+
+void
+_gcry_cipher_gcm_setupM (gcry_cipher_hd_t c)
+{
+  setupM (c);
 }
 
 

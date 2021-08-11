@@ -1,4 +1,4 @@
-/* cipher-siv.c  -  SIV implementation
+/* cipher-siv.c  -  SIV implementation (RFC 5297)
  * Copyright (C) 2021 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
