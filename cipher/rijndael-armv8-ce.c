@@ -75,6 +75,12 @@ extern void _gcry_aes_ctr_enc_armv8_ce (const void *keysched,
                                         unsigned char *iv, size_t nblocks,
                                         unsigned int nrounds);
 
+extern void _gcry_aes_ctr32le_enc_armv8_ce (const void *keysched,
+                                            unsigned char *outbuf,
+                                            const unsigned char *inbuf,
+                                            unsigned char *iv, size_t nblocks,
+                                            unsigned int nrounds);
+
 extern void _gcry_aes_ocb_enc_armv8_ce (const void *keysched,
                                         unsigned char *outbuf,
                                         const unsigned char *inbuf,
@@ -343,6 +349,17 @@ _gcry_aes_armv8_ce_ctr_enc (RIJNDAEL_context *ctx, unsigned char *iv,
   unsigned int nrounds = ctx->rounds;
 
   _gcry_aes_ctr_enc_armv8_ce(keysched, outbuf, inbuf, iv, nblocks, nrounds);
+}
+
+void
+_gcry_aes_armv8_ce_ctr32le_enc (RIJNDAEL_context *ctx, unsigned char *iv,
+                                unsigned char *outbuf,
+                                const unsigned char *inbuf, size_t nblocks)
+{
+  const void *keysched = ctx->keyschenc32;
+  unsigned int nrounds = ctx->rounds;
+
+  _gcry_aes_ctr32le_enc_armv8_ce(keysched, outbuf, inbuf, iv, nblocks, nrounds);
 }
 
 size_t

@@ -209,6 +209,10 @@ extern void _gcry_aes_armv8_ce_cbc_enc (void *context, unsigned char *iv,
 extern void _gcry_aes_armv8_ce_ctr_enc (void *context, unsigned char *ctr,
                                         void *outbuf_arg, const void *inbuf_arg,
                                         size_t nblocks);
+extern void _gcry_aes_armv8_ce_ctr32le_enc (void *context, unsigned char *ctr,
+                                            void *outbuf_arg,
+                                            const void *inbuf_arg,
+                                            size_t nblocks);
 extern void _gcry_aes_armv8_ce_cfb_dec (void *context, unsigned char *iv,
                                         void *outbuf_arg, const void *inbuf_arg,
                                         size_t nblocks);
@@ -570,6 +574,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->cbc_enc = _gcry_aes_armv8_ce_cbc_enc;
       bulk_ops->cbc_dec = _gcry_aes_armv8_ce_cbc_dec;
       bulk_ops->ctr_enc = _gcry_aes_armv8_ce_ctr_enc;
+      bulk_ops->ctr32le_enc = _gcry_aes_armv8_ce_ctr32le_enc;
       bulk_ops->ocb_crypt = _gcry_aes_armv8_ce_ocb_crypt;
       bulk_ops->ocb_auth = _gcry_aes_armv8_ce_ocb_auth;
       bulk_ops->xts_crypt = _gcry_aes_armv8_ce_xts_crypt;

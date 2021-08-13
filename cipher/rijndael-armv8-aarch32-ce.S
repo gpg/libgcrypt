@@ -1017,6 +1017,127 @@ _gcry_aes_ctr_enc_armv8_ce:
 
 
 /*
+ * void _gcry_aes_ctr32le_enc_armv8_ce (const void *keysched,
+ *                                      unsigned char *outbuf,
+ *                                      const unsigned char *inbuf,
+ *                                      unsigned char *iv,
+ *                                      unsigned int nrounds);
+ */
+
+.align 3
+.globl _gcry_aes_ctr32le_enc_armv8_ce
+.type  _gcry_aes_ctr32le_enc_armv8_ce,%function;
+_gcry_aes_ctr32le_enc_armv8_ce:
+  /* input:
+   *    r0: keysched
+   *    r1: outbuf
+   *    r2: inbuf
+   *    r3: iv
+   *    %st+0: nblocks => r4
+   *    %st+4: nrounds => r5
+   */
+
+  vpush {q4-q7}
+  push {r4-r12,lr} /* 4*16 + 4*10 = 104b */
+  ldr r4, [sp, #(104+0)]
+  ldr r5, [sp, #(104+4)]
+  cmp r4, #0
+  beq .Lctr32le_enc_skip
+
+  cmp r5, #12
+  vld1.8 {q0}, [r3] /* load IV */
+
+  aes_preload_keys(r0, r6);
+
+  beq .Lctr32le_enc_entry_192
+  bhi .Lctr32le_enc_entry_256
+
+#define CTR_ENC(bits, ...) \
+  .Lctr32le_enc_entry_##bits: \
+    cmp r4, #4; \
+    blo .Lctr32le_enc_loop_##bits; \
+    \
+  .Lctr32le_enc_loop4_##bits: \
+    veor q2, q2; \
+    sub r4, r4, #4; \
+    vmov.i64 d4, #0xffffffff; /* q2 <= -1:0:0:0 */ \
+    vmov q1, q0; \
+    vadd.u32 q3, q2, q2; /* q3 <= -2:0:0:0 */ \
+    vadd.u32 q0, q3, q3; /* q0 <= -4:0:0:0 */ \
+    vadd.u32 q4, q3, q2; /* q4 <= -3:0:0:0 */ \
+    vsub.u32 q0, q1, q0; \
+    vsub.u32 q2, q1, q2; \
+    vst1.8 {q0}, [r3]; \
+    vsub.u32 q3, q1, q3; \
+    vsub.u32 q4, q1, q4; \
+    \
+    cmp r4, #4; \
+    vld1.8 {q0}, [r2]!; /* load ciphertext */ \
+    \
+    do_aes_4_##bits(e, mc, q1, q2, q3, q4, ##__VA_ARGS__); \
+    \
+    veor q1, q1, q0; \
+    vld1.8 {q0}, [r2]!; /* load ciphertext */ \
+    vst1.8 {q1}, [r1]!; /* store plaintext */ \
+    vld1.8 {q1}, [r2]!; /* load ciphertext */ \
+    veor q2, q2, q0; \
+    veor q3, q3, q1; \
+    vld1.8 {q0}, [r2]!; /* load ciphertext */ \
+    vst1.8 {q2}, [r1]!; /* store plaintext */ \
+    veor q4, q4, q0; \
+    vld1.8 {q0}, [r3]; /* reload IV */ \
+    vst1.8 {q3-q4}, [r1]!; /* store plaintext */ \
+    \
+    bhs .Lctr32le_enc_loop4_##bits; \
+    cmp r4, #0; \
+    beq .Lctr32le_enc_done; \
+    \
+  .Lctr32le_enc_loop_##bits: \
+    \
+    veor q2, q2; \
+    vmov q1, q0; \
+    vmov.i64 d4, #0xffffffff; /* q2 <= -1:0:0:0 */ \
+    subs r4, r4, #1; \
+    vsub.u32 q0, q0, q2; \
+    vld1.8 {q2}, [r2]!; /* load ciphertext */ \
+    \
+    do_aes_one##bits(e, mc, q1, q1, ##__VA_ARGS__); \
+    \
+    veor q1, q2, q1; \
+    vst1.8 {q1}, [r1]!; /* store plaintext */ \
+    \
+    bne .Lctr32le_enc_loop_##bits; \
+    b .Lctr32le_enc_done;
+
+  CTR_ENC(128)
+  CTR_ENC(192, r0, r6)
+  CTR_ENC(256, r0, r6)
+
+#undef CTR_ENC
+
+.Lctr32le_enc_done:
+  vst1.8 {q0}, [r3] /* store IV */
+
+  CLEAR_REG(q0)
+  CLEAR_REG(q1)
+  CLEAR_REG(q2)
+  CLEAR_REG(q3)
+  CLEAR_REG(q8)
+  CLEAR_REG(q9)
+  CLEAR_REG(q10)
+  CLEAR_REG(q11)
+  CLEAR_REG(q12)
+  CLEAR_REG(q13)
+  CLEAR_REG(q14)
+
+.Lctr32le_enc_skip:
+  pop {r4-r12,lr}
+  vpop {q4-q7}
+  bx lr
+.size _gcry_aes_ctr32le_enc_armv8_ce,.-_gcry_aes_ctr32le_enc_armv8_ce;
+
+
+/*
  * void _gcry_aes_ocb_enc_armv8_ce (const void *keysched,
  *                                  unsigned char *outbuf,
  *                                  const unsigned char *inbuf,
