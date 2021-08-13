@@ -86,6 +86,9 @@ extern void _gcry_aes_aesni_cbc_enc (void *context, unsigned char *iv,
 extern void _gcry_aes_aesni_ctr_enc (void *context, unsigned char *ctr,
                                      void *outbuf_arg, const void *inbuf_arg,
                                      size_t nblocks);
+extern void _gcry_aes_aesni_ctr32le_enc (void *context, unsigned char *ctr,
+					 void *outbuf_arg,
+					 const void *inbuf_arg, size_t nblocks);
 extern void _gcry_aes_aesni_cfb_dec (void *context, unsigned char *iv,
                                      void *outbuf_arg, const void *inbuf_arg,
                                      size_t nblocks);
@@ -114,6 +117,9 @@ extern void _gcry_aes_vaes_cbc_dec (void *context, unsigned char *iv,
 extern void _gcry_aes_vaes_ctr_enc (void *context, unsigned char *ctr,
 				    void *outbuf_arg, const void *inbuf_arg,
 				    size_t nblocks);
+extern void _gcry_aes_vaes_ctr32le_enc (void *context, unsigned char *ctr,
+					void *outbuf_arg, const void *inbuf_arg,
+					size_t nblocks);
 extern size_t _gcry_aes_vaes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 					const void *inbuf_arg, size_t nblocks,
 					int encrypt);
@@ -497,6 +503,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->cbc_enc = _gcry_aes_aesni_cbc_enc;
       bulk_ops->cbc_dec = _gcry_aes_aesni_cbc_dec;
       bulk_ops->ctr_enc = _gcry_aes_aesni_ctr_enc;
+      bulk_ops->ctr32le_enc = _gcry_aes_aesni_ctr32le_enc;
       bulk_ops->ocb_crypt = _gcry_aes_aesni_ocb_crypt;
       bulk_ops->ocb_auth = _gcry_aes_aesni_ocb_auth;
       bulk_ops->xts_crypt = _gcry_aes_aesni_xts_crypt;
@@ -509,6 +516,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 	  bulk_ops->cfb_dec = _gcry_aes_vaes_cfb_dec;
 	  bulk_ops->cbc_dec = _gcry_aes_vaes_cbc_dec;
 	  bulk_ops->ctr_enc = _gcry_aes_vaes_ctr_enc;
+	  bulk_ops->ctr32le_enc = _gcry_aes_vaes_ctr32le_enc;
 	  bulk_ops->ocb_crypt = _gcry_aes_vaes_ocb_crypt;
 	  bulk_ops->xts_crypt = _gcry_aes_vaes_xts_crypt;
 	}
@@ -516,7 +524,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
     }
 #endif
 #ifdef USE_PADLOCK
-  else if (hwfeatures & HWF_PADLOCK_AES && keylen == 128/8)
+  else if ((hwfeatures & HWF_PADLOCK_AES) && keylen == 128/8)
     {
       ctx->encrypt_fn = _gcry_aes_padlock_encrypt;
       ctx->decrypt_fn = _gcry_aes_padlock_decrypt;

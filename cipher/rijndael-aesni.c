@@ -1854,6 +1854,198 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
 }
 
 
+void ASM_FUNC_ATTR
+_gcry_aes_aesni_ctr32le_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
+			     unsigned char *outbuf, const unsigned char *inbuf,
+			     size_t nblocks)
+{
+  static const byte le_addd_const[8][16] __attribute__ ((aligned (16))) =
+    {
+      { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+      { 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+      { 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+      { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+      { 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+      { 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+      { 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+      { 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+    };
+  aesni_prepare_2_7_variable;
+
+  aesni_prepare ();
+  aesni_prepare_2_7();
+
+  asm volatile ("movdqa %[ctr], %%xmm5\n\t"  /* Preload CTR */
+		: /* No output */
+		: [ctr] "m" (*ctr)
+		: "memory");
+
+#ifdef __x86_64__
+  if (nblocks >= 8)
+    {
+      aesni_prepare_8_15_variable;
+
+      aesni_prepare_8_15();
+
+      for ( ;nblocks >= 8 ; nblocks -= 8 )
+	{
+	  asm volatile
+	    ("movdqa (%[key]), %%xmm0\n\t"
+
+	     "movdqa %%xmm5,         %%xmm1\n\t" /* load input blocks */
+	     "movdqa %%xmm5,         %%xmm2\n\t"
+	     "movdqa %%xmm5,         %%xmm3\n\t"
+	     "movdqa %%xmm5,         %%xmm4\n\t"
+	     "movdqa %%xmm5,         %%xmm8\n\t"
+	     "movdqa %%xmm5,         %%xmm9\n\t"
+	     "movdqa %%xmm5,         %%xmm10\n\t"
+	     "movdqa %%xmm5,         %%xmm11\n\t"
+
+	     "paddd 0*16(%[addd]),   %%xmm2\n\t"
+	     "paddd 1*16(%[addd]),   %%xmm3\n\t"
+	     "paddd 2*16(%[addd]),   %%xmm4\n\t"
+	     "paddd 3*16(%[addd]),   %%xmm8\n\t"
+	     "paddd 4*16(%[addd]),   %%xmm9\n\t"
+	     "paddd 5*16(%[addd]),   %%xmm10\n\t"
+	     "paddd 6*16(%[addd]),   %%xmm11\n\t"
+
+	     "pxor   %%xmm0, %%xmm1\n\t"     /* xmm1 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm2\n\t"     /* xmm2 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm3\n\t"     /* xmm3 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm4\n\t"     /* xmm4 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm8\n\t"     /* xmm8 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm9\n\t"     /* xmm9 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm10\n\t"    /* xmm10 ^= key[0] */
+	     "pxor   %%xmm0, %%xmm11\n\t"    /* xmm11 ^= key[0] */
+
+	     "movdqu 0*16(%[inbuf]), %%xmm6\n\t"
+	     "movdqu 1*16(%[inbuf]), %%xmm7\n\t"
+	     "movdqu 2*16(%[inbuf]), %%xmm12\n\t"
+	     "movdqu 3*16(%[inbuf]), %%xmm13\n\t"
+	     "movdqu 4*16(%[inbuf]), %%xmm14\n\t"
+	     "movdqu 5*16(%[inbuf]), %%xmm15\n\t"
+
+	     "paddd 7*16(%[addd]),   %%xmm5\n\t"
+	     : /* No output */
+	     : [addd] "r" (&le_addd_const[0][0]),
+	       [inbuf] "r" (inbuf),
+	       [key] "r" (ctx->keyschenc)
+	     : "memory");
+
+	  do_aesni_enc_vec8 (ctx);
+
+	  asm volatile
+	    ("pxor %%xmm0, %%xmm6\n\t"
+	     "pxor %%xmm0, %%xmm7\n\t"
+	     "pxor %%xmm0, %%xmm12\n\t"
+	     "pxor %%xmm0, %%xmm13\n\t"
+	     "pxor %%xmm0, %%xmm14\n\t"
+	     "pxor %%xmm0, %%xmm15\n\t"
+	     "aesenclast %%xmm6, %%xmm1\n\t"
+	     "aesenclast %%xmm7, %%xmm2\n\t"
+	     "movdqu 6*16(%[inbuf]), %%xmm6\n\t"
+	     "movdqu 7*16(%[inbuf]), %%xmm7\n\t"
+	     "aesenclast %%xmm12, %%xmm3\n\t"
+	     "aesenclast %%xmm13, %%xmm4\n\t"
+	     "pxor %%xmm0, %%xmm6\n\t"
+	     "pxor %%xmm0, %%xmm7\n\t"
+	     "aesenclast %%xmm14, %%xmm8\n\t"
+	     "aesenclast %%xmm15, %%xmm9\n\t"
+	     "aesenclast %%xmm6, %%xmm10\n\t"
+	     "aesenclast %%xmm7, %%xmm11\n\t"
+	     "movdqu %%xmm1, 0*16(%[outbuf])\n\t"
+	     "movdqu %%xmm2, 1*16(%[outbuf])\n\t"
+	     "movdqu %%xmm3, 2*16(%[outbuf])\n\t"
+	     "movdqu %%xmm4, 3*16(%[outbuf])\n\t"
+	     "movdqu %%xmm8, 4*16(%[outbuf])\n\t"
+	     "movdqu %%xmm9, 5*16(%[outbuf])\n\t"
+	     "movdqu %%xmm10, 6*16(%[outbuf])\n\t"
+	     "movdqu %%xmm11, 7*16(%[outbuf])\n\t"
+	     : /* No output */
+	     : [inbuf] "r" (inbuf),
+	       [outbuf] "r" (outbuf)
+	     : "memory");
+
+	  outbuf += 8*BLOCKSIZE;
+	  inbuf  += 8*BLOCKSIZE;
+	}
+
+      aesni_cleanup_8_15();
+    }
+#endif
+
+  for ( ;nblocks >= 4 ; nblocks -= 4 )
+    {
+      asm volatile
+	("movdqa %%xmm5,         %%xmm1\n\t" /* load input blocks */
+	 "movdqa %%xmm5,         %%xmm2\n\t"
+	 "movdqa %%xmm5,         %%xmm3\n\t"
+	 "movdqa %%xmm5,         %%xmm4\n\t"
+	 "paddd 0*16(%[addd]),   %%xmm2\n\t"
+	 "paddd 1*16(%[addd]),   %%xmm3\n\t"
+	 "paddd 2*16(%[addd]),   %%xmm4\n\t"
+	 "paddd 3*16(%[addd]),   %%xmm5\n\t"
+	 "movdqu 0*16(%[inbuf]), %%xmm6\n\t"
+	 "movdqu 1*16(%[inbuf]), %%xmm7\n\t"
+	 : /* No output */
+	 : [addd] "r" (&le_addd_const[0][0]),
+	   [inbuf] "r" (inbuf)
+	 : "memory");
+
+      do_aesni_enc_vec4 (ctx);
+
+      asm volatile
+	("pxor %%xmm6, %%xmm1\n\t"
+	 "pxor %%xmm7, %%xmm2\n\t"
+	 "movdqu 2*16(%[inbuf]), %%xmm6\n\t"
+	 "movdqu 3*16(%[inbuf]), %%xmm7\n\t"
+	 "movdqu %%xmm1, 0*16(%[outbuf])\n\t"
+	 "movdqu %%xmm2, 1*16(%[outbuf])\n\t"
+	 "pxor %%xmm6, %%xmm3\n\t"
+	 "pxor %%xmm7, %%xmm4\n\t"
+	 "movdqu %%xmm3, 2*16(%[outbuf])\n\t"
+	 "movdqu %%xmm4, 3*16(%[outbuf])\n\t"
+	 : /* No output */
+	 : [inbuf] "r" (inbuf),
+	   [outbuf] "r" (outbuf)
+	 : "memory");
+
+      outbuf += 4*BLOCKSIZE;
+      inbuf  += 4*BLOCKSIZE;
+    }
+
+  for ( ;nblocks; nblocks-- )
+    {
+      asm volatile ("movdqa %%xmm5, %%xmm0\n\t"
+		    "paddd %[add_one], %%xmm5\n\t"
+		    "movdqu %[inbuf], %%xmm6\n\t"
+		    :
+		    : [add_one] "m" (*le_addd_const[0]),
+		      [inbuf] "m" (*inbuf)
+		    : "memory" );
+
+      do_aesni_enc (ctx);
+
+      asm volatile ("pxor %%xmm0, %%xmm6\n\t"
+		    "movdqu %%xmm6, %[outbuf]\n\t"
+		    : [outbuf] "=m" (*outbuf)
+		    :
+		    : "memory" );
+
+      outbuf += BLOCKSIZE;
+      inbuf  += BLOCKSIZE;
+    }
+
+  asm volatile ("movdqa %%xmm5, %[ctr]\n\t"
+                : [ctr] "=m" (*ctr)
+                :
+                : "memory" );
+
+  aesni_cleanup ();
+  aesni_cleanup_2_7 ();
+}
+
+
 unsigned int ASM_FUNC_ATTR
 _gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)

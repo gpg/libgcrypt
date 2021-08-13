@@ -178,12 +178,21 @@ do_ctr_le32 (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
   gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
   unsigned char tmp[GCRY_SIV_BLOCK_LEN];
   unsigned int burn = 0, nburn;
-  size_t n;
+  size_t nblocks;
 
   if (inbuflen == 0)
     return;
 
-  n = GCRY_SIV_BLOCK_LEN;
+  /* Use a bulk method if available.  */
+  nblocks = inbuflen / GCRY_SIV_BLOCK_LEN;
+  if (nblocks && c->bulk.ctr32le_enc)
+    {
+      c->bulk.ctr32le_enc (c->context.c, c->u_ctr.ctr, outbuf, inbuf, nblocks);
+      inbuf  += nblocks * GCRY_SIV_BLOCK_LEN;
+      outbuf += nblocks * GCRY_SIV_BLOCK_LEN;
+      inbuflen -= nblocks * GCRY_SIV_BLOCK_LEN;
+    }
+
   do
     {
       nburn = enc_fn (c->context.c, tmp, c->u_ctr.ctr);
@@ -195,20 +204,19 @@ do_ctr_le32 (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 	break;
       cipher_block_xor(outbuf, inbuf, tmp, GCRY_SIV_BLOCK_LEN);
 
-      inbuflen -= n;
-      outbuf += n;
-      inbuf += n;
+      inbuflen -= GCRY_SIV_BLOCK_LEN;
+      outbuf += GCRY_SIV_BLOCK_LEN;
+      inbuf += GCRY_SIV_BLOCK_LEN;
     }
   while (inbuflen);
 
   if (inbuflen)
     {
-      n = inbuflen;
       buf_xor(outbuf, inbuf, tmp, inbuflen);
 
-      inbuflen -= n;
-      outbuf += n;
-      inbuf += n;
+      outbuf += inbuflen;
+      inbuf += inbuflen;
+      inbuflen -= inbuflen;
     }
 
   wipememory (tmp, sizeof(tmp));
