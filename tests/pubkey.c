@@ -527,14 +527,6 @@ get_dsa_key_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
   rc = gcry_pk_genkey (&key, key_spec);
   gcry_sexp_release (key_spec);
-  if (in_fips_mode)
-    {
-      if (!rc)
-        die ("generating DSA key should fail in FIPS mode\n");
-      *pkey = NULL;
-      *skey = NULL;
-      return;
-    }
   if (rc)
     die ("error generating DSA key: %s\n", gcry_strerror (rc));
 
