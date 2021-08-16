@@ -564,15 +564,7 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 
   /* Any non-FIPS algorithm should go this way */
   if (!err && !spec->flags.fips && fips_mode ())
-    {
-      /* Do not drop from FIPS enforced mode if non-approved algorithm used */
-      if (_gcry_enforced_fips_mode () )
-        {
-          /* We will get here from constructed operations using non-FIPS
-           * approved algorithms */
-          err = GPG_ERR_DIGEST_ALGO;
-        }
-    }
+    err = GPG_ERR_DIGEST_ALGO;
 
   if (!err && h->flags.hmac && spec->read == NULL)
     {
