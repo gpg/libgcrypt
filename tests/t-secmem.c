@@ -42,14 +42,15 @@ static int in_fips_mode = 0;
 static void
 test_secmem (void)
 {
-  void *a[28];
+  void *a[26];
   void *b;
   int i;
 
   memset (a, 0, sizeof a);
 
-  /* Allocating 28*512=14k should work in the default 16k pool even
-   * with extra alignment requirements.  */
+  /* Allocating 26*512=14k should work in the default 16k pool even
+   * with extra alignment requirements and use by RNG.
+   */
   for (i=0; i < DIM(a); i++)
     a[i] = gcry_xmalloc_secure (chunk_size);
 

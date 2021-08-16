@@ -699,8 +699,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     case GCRYCTL_FIPS_MODE_P:
       if (fips_mode ()
-          && !_gcry_is_fips_mode_inactive ()
-          && !no_secure_memory)
+          && !_gcry_is_fips_mode_inactive ())
 	rc = GPG_ERR_GENERAL; /* Used as TRUE value */
       break;
 
