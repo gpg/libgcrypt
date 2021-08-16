@@ -33,6 +33,9 @@
 
 static int repetitions;
 
+/* Whether fips mode was active at startup.  */
+static int in_fips_mode;
+
 
 
 static void
@@ -54,6 +57,7 @@ static struct
   int algo;
   const char *key;
   const unsigned char grip[20];
+  int skip_when_fips;
 } key_grips[] =
   {
     {
@@ -155,7 +159,8 @@ static struct
       /*   */"436DD11A1756AFE56CD93408410FCDA9"
       /*   */"BA95024EB613BD481A14FCFEC27A448A#)))",
       "\x52\xBA\xD4\xB4\xA3\x2D\x32\xA1\xDD\x06"
-      "\x5E\x99\x0B\xF1\xAB\xC1\x13\x3D\x84\xD4"
+      "\x5E\x99\x0B\xF1\xAB\xC1\x13\x3D\x84\xD4",
+      1
     },
     { /* Compressed form of above.  */
       GCRY_PK_ECC,
@@ -165,7 +170,8 @@ static struct
       " (q #022ECD8679930BE2DB4AD42B8600BA3F80"
       /*   */"2D4D539BFF2F69B83EC9B7BBAA7F3406#)))",
       "\x52\xBA\xD4\xB4\xA3\x2D\x32\xA1\xDD\x06"
-      "\x5E\x99\x0B\xF1\xAB\xC1\x13\x3D\x84\xD4"
+      "\x5E\x99\x0B\xF1\xAB\xC1\x13\x3D\x84\xD4",
+      1
     },
     {
       GCRY_PK_ECC,
@@ -177,7 +183,8 @@ static struct
       /*   */"9EBBA41915313417BA54218EB0569C59"
       /*   */"0B156C76DBCAB6E84575E6EF68CE7B87#)))",
       "\x99\x38\x6A\x82\x41\x96\x29\x9C\x89\x74"
-      "\xD6\xE1\xBF\x43\xAC\x9B\x9A\x12\xE7\x3F"
+      "\xD6\xE1\xBF\x43\xAC\x9B\x9A\x12\xE7\x3F",
+      1
     },
     { /* Compressed form of above.  */
       GCRY_PK_ECC,
@@ -187,7 +194,8 @@ static struct
       " (q #035B784CA008EE64AB3D85017EE0D2BE87"
       /*   */"558762C7300E0C8E06B1F9AF7C031458#)))",
       "\x99\x38\x6A\x82\x41\x96\x29\x9C\x89\x74"
-      "\xD6\xE1\xBF\x43\xAC\x9B\x9A\x12\xE7\x3F"
+      "\xD6\xE1\xBF\x43\xAC\x9B\x9A\x12\xE7\x3F",
+      1
     },
     { /* Ed25519 standard */
       GCRY_PK_ECC,
@@ -199,7 +207,8 @@ static struct
       "     47BD24842905C049257673B3F5249524E0A41FAA17B25B818D0F97E625F1A1D0#)"
       "     ))",
       "\x0C\xCA\xB2\xFD\x48\x9A\x33\x40\x2C\xE8"
-      "\xE0\x4A\x1F\xB2\x45\xEA\x80\x3D\x0A\xF1"
+      "\xE0\x4A\x1F\xB2\x45\xEA\x80\x3D\x0A\xF1",
+      1
     },
     { /* Ed25519+EdDSA */
       GCRY_PK_ECC,
@@ -209,7 +218,8 @@ static struct
       " (q #773E72848C1FD5F9652B29E2E7AF79571A04990E96F2016BF4E0EC1890C2B7DB#)"
       " ))",
       "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
-      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
+      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47",
+      1
     },
     { /* Ed25519+EdDSA (with compression prefix) */
       GCRY_PK_ECC,
@@ -220,7 +230,8 @@ static struct
       "     773E72848C1FD5F9652B29E2E7AF79571A04990E96F2016BF4E0EC1890C2B7DB#)"
       " ))",
       "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
-      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
+      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47",
+      1
     },
     { /* Ed25519+EdDSA  (same but uncompressed)*/
       GCRY_PK_ECC,
@@ -232,7 +243,8 @@ static struct
       "     5bb7c29018ece0f46b01f2960e99041a5779afe7e2292b65f9d51f8c84723e77#)"
       " ))",
       "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
-      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
+      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47",
+      1
     },
     { /* Cv25519 */
       GCRY_PK_ECC,
@@ -243,7 +255,8 @@ static struct
       "     918C1733127F6BF2646FAE3D081A18AE77111C903B906310B077505EFFF12740#)"
       " ))",
       "\x0F\x89\xA5\x65\xD3\xEA\x18\x7C\xE8\x39"
-      "\x33\x23\x98\xF5\xD4\x80\x67\x7D\xF4\x9C"
+      "\x33\x23\x98\xF5\xD4\x80\x67\x7D\xF4\x9C",
+      1
     },
     { /* Random key  */
       GCRY_PK_RSA,
@@ -280,6 +293,9 @@ check (void)
 
   for (i = 0; i < (sizeof (key_grips) / sizeof (*key_grips)); i++)
     {
+      if (in_fips_mode && key_grips[i].skip_when_fips)
+        continue;
+
       if (gcry_pk_test_algo (key_grips[i].algo))
         {
           if (verbose)
@@ -378,6 +394,9 @@ main (int argc, char **argv)
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
   if (debug)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
+
+  if (gcry_fips_mode_active ())
+    in_fips_mode = 1;
 
   check ();
 
