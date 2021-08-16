@@ -530,7 +530,7 @@ get_dsa_key_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   if (in_fips_mode)
     {
       if (!rc)
-        die ("generating DSA key should fail in FIPS mode: %s\n", gcry_strerror (rc));
+        die ("generating DSA key should fail in FIPS mode\n");
       *pkey = NULL;
       *skey = NULL;
       return;
