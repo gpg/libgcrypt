@@ -246,14 +246,6 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   if (nbits < 2*qbits || nbits > 15360)
     return GPG_ERR_INV_VALUE;
 
-  if (fips_mode ())
-    {
-      if (nbits < 1024)
-        return GPG_ERR_INV_VALUE;
-      if (transient_key)
-        return GPG_ERR_INV_VALUE;
-    }
-
   if (domain->p && domain->q && domain->g)
     {
       /* Domain parameters are given; use them.  */
