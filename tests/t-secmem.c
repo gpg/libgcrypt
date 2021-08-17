@@ -42,16 +42,25 @@ static int in_fips_mode = 0;
 static void
 test_secmem (void)
 {
-  void *a[26];
+  void *a[28];
   void *b;
   int i;
+  int i_max;
 
   memset (a, 0, sizeof a);
 
-  /* Allocating 26*512=14k should work in the default 16k pool even
-   * with extra alignment requirements and use by RNG.
+  /* Allocating 28*512=14k should work in the default 16k pool even
+   * with extra alignment requirements.
    */
-  for (i=0; i < DIM(a); i++)
+  i_max = DIM(a);
+  /*
+   * When FIPS is enabled, it uses some secure memory for DRBG.
+   * Thus, tweaking for the number of allocation.
+   */
+  if (in_fips_mode)
+    i_max -= 2;
+
+  for (i=0; i < i_max; i++)
     a[i] = gcry_xmalloc_secure (chunk_size);
 
   /* Allocating another 2k should fail for the default 16k pool.  */
