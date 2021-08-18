@@ -261,14 +261,14 @@ typedef struct gcry_md_list
 struct gcry_md_context
 {
   int  magic;
-  size_t actual_handle_size;     /* Allocated size of this handle. */
-  FILE  *debug;
   struct {
     unsigned int secure:1;
     unsigned int finalized:1;
     unsigned int bugemu1:1;
     unsigned int hmac:1;
   } flags;
+  size_t actual_handle_size;     /* Allocated size of this handle. */
+  FILE  *debug;
   GcryDigestEntry *list;
 };
 
