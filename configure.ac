@@ -600,7 +600,9 @@ AC_MSG_RESULT($use_hmac_binary_check)
 if test "$use_hmac_binary_check" = yes ; then
     AC_DEFINE(ENABLE_HMAC_BINARY_CHECK,1,
               [Define to support an HMAC based integrity check])
+    AC_CHECK_TOOL(OBJCOPY, [objcopy])
 fi
+AM_CONDITIONAL(USE_HMAC_BINARY_CHECK, test x$use_hmac_binary_check = xyes)
 
 
 # Implementation of the --disable-jent-support switch.

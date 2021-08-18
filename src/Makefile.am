@@ -135,6 +135,7 @@ dumpsexp_LDADD = $(arch_gpg_error_libs)
 mpicalc_SOURCES = mpicalc.c
 mpicalc_CFLAGS = $(GPG_ERROR_CFLAGS)
 mpicalc_LDADD = libgcrypt.la $(GPG_ERROR_LIBS)
+EXTRA_mpicalc_DEPENDENCIES = libgcrypt.la.done
 
 hmac256_SOURCES = hmac256.c
 hmac256_CFLAGS = -DSTANDALONE $(arch_gpg_error_cflags)
@@ -148,15 +149,24 @@ gcryptrnd_LDADD = libgcrypt.la $(GPG_ERROR_LIBS) $(PTH_LIBS)
 getrandom_SOURCES = getrandom.c
 endif USE_RANDOM_DAEMON
 
+CLEANFILES = libgcrypt.la.done
+if USE_HMAC_BINARY_CHECK
+CLEANFILES += libgcrypt.so.hmac
+
+libgcrypt.la.done: libgcrypt.so.hmac
+	$(OBJCOPY) --add-section .hmac=libgcrypt.so.hmac \
+	  --set-section-flags .hmac=noload,readonly .libs/libgcrypt.so \
+	  .libs/libgcrypt.so.new
+	mv -f .libs/libgcrypt.so.new .libs/libgcrypt.so.*.*
+	@touch libgcrypt.la.done
+
+libgcrypt.so.hmac: hmac256 libgcrypt.la
+	./hmac256 --stdkey --binary  < .libs/libgcrypt.so > $@
+else !USE_HMAC_BINARY_CHECK
+libgcrypt.la.done: libgcrypt.la
+	@touch libgcrypt.la.done
+endif !USE_HMAC_BINARY_CHECK
 
 install-data-local: install-def-file
 
 uninstall-local: uninstall-def-file
-
-# FIXME: We need to figure out how to get the actual name (parsing
-# libgcrypt.la?) and how to create the hmac file already at link time
-# so that it can be used without installing libgcrypt first.
-#install-exec-hook:
-#	./hmac256 "What am I, a doctor or a moonshuttle conductor?" \
-#          < $(DESTDIR)$(libdir)/libgcrypt.so.11.5.0 \
-#          > $(DESTDIR)$(libdir)/.libgcrypt.so.11.5.0.hmac
