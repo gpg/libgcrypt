@@ -707,9 +707,9 @@ main (int argc, char **argv)
         }
     }
 
-  if (argc < 1)
+  if (argc < 1 && !use_stdkey)
     {
-      fprintf (stderr, "usage: %s [--binary] [--stdkey] key [filename]\n", pgm);
+      fprintf (stderr, "usage: %s [--binary] [--stdkey|key] [filename]\n", pgm);
       exit (1);
     }
 
@@ -718,8 +718,13 @@ main (int argc, char **argv)
     setmode (fileno (stdout), O_BINARY);
 #endif
 
-  key = use_stdkey? "What am I, a doctor or a moonshuttle conductor?" : *argv;
-  argc--, argv++;
+  if (use_stdkey)
+    key = "What am I, a doctor or a moonshuttle conductor?";
+  else
+    {
+      key = *argv;
+      argc--, argv++;
+    }
   keylen = strlen (key);
   use_stdin = !argc;
 
