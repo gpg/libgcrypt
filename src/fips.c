@@ -25,6 +25,7 @@
 #include <string.h>
 #ifdef ENABLE_HMAC_BINARY_CHECK
 # include <dlfcn.h>
+# include <link.h>
 #endif
 #ifdef HAVE_SYSLOG
 # include <syslog.h>
@@ -35,7 +36,6 @@
 
 #include "g10lib.h"
 #include "cipher-proto.h"
-#include "hmac256.h"
 
 
 /* The states of the finite state machine used in fips mode.  */
@@ -598,34 +598,113 @@ run_random_selftests (void)
 static const unsigned char __attribute__ ((section (".rodata1")))
 hmac_for_the_implementation[HMAC_LEN];
 
+static gpg_error_t
+hmac256_check (const char *filename, const char *key, struct link_map *lm)
+{
+  gpg_error_t err;
+  FILE *fp;
+  gcry_md_hd_t hd;
+  size_t buffer_size, nread;
+  char *buffer;
+  unsigned long paddr;
+  unsigned long off = 0;
+
+  paddr = (unsigned long)hmac_for_the_implementation - lm->l_addr;
+
+  fp = fopen (filename, "rb");
+  if (!fp)
+    return gpg_error (GPG_ERR_INV_OBJ);
+
+  err = _gcry_md_open (&hd, GCRY_MD_SHA256, GCRY_MD_FLAG_HMAC);
+  if (err)
+    {
+      fclose (fp);
+      return err;
+    }
+
+  err = _gcry_md_setkey (hd, key, strlen (key));
+  if (err)
+    {
+      fclose (fp);
+      _gcry_md_close (hd);
+      return err;
+    }
+
+  buffer_size = 32768;
+  buffer = xtrymalloc (buffer_size + HMAC_LEN);
+  if (!buffer)
+    {
+      err = gpg_error_from_syserror ();
+      fclose (fp);
+      _gcry_md_close (hd);
+      return err;
+    }
+
+  nread = fread (buffer, 1, HMAC_LEN, fp);
+  off += nread;
+  if (nread < HMAC_LEN)
+    {
+      xfree (buffer);
+      fclose (fp);
+      _gcry_md_close (hd);
+      return gpg_error (GPG_ERR_TOO_SHORT);
+    }
+
+  while (1)
+    {
+      nread = fread (buffer+HMAC_LEN, 1, buffer_size, fp);
+      if (nread < buffer_size)
+        {
+          if (off - HMAC_LEN <= paddr && paddr <= off + nread)
+            memset (buffer + HMAC_LEN + paddr - off, 0, HMAC_LEN);
+          _gcry_md_write (hd, buffer, nread+HMAC_LEN);
+          off += nread;
+          break;
+        }
+
+      if (off - HMAC_LEN <= paddr && paddr <= off + nread)
+        memset (buffer + HMAC_LEN + paddr - off, 0, HMAC_LEN);
+      _gcry_md_write (hd, buffer, nread);
+      memcpy (buffer, buffer+buffer_size, HMAC_LEN);
+      off += nread;
+    }
+
+  if (ferror (fp))
+    err = gpg_error (GPG_ERR_INV_HANDLE);
+  else
+    {
+      unsigned char *digest;
+
+      digest = _gcry_md_read (hd, 0);
+      if (!memcmp (digest, hmac_for_the_implementation, HMAC_LEN))
+        /* Success.  */
+        err = 0;
+      else
+        err = gpg_error (GPG_ERR_CHECKSUM);
+    }
+
+  _gcry_md_close (hd);
+  xfree (buffer);
+  fclose (fp);
+
+  return err;
+}
+
 /* Run an integrity check on the binary.  Returns 0 on success.  */
 static int
 check_binary_integrity (void)
 {
   gpg_error_t err;
   Dl_info info;
-  unsigned char digest[HMAC_LEN];
-  int dlen;
-  const char key[] = KEY_FOR_BINARY_CHECK;
+  const char *key = KEY_FOR_BINARY_CHECK;
+  void *extra_info;
 
-  if (!dladdr (gcry_check_version, &info))
+  if (!dladdr1 (hmac_for_the_implementation,
+                &info, &extra_info, RTLD_DL_LINKMAP))
     err = gpg_error_from_syserror ();
   else
-    {
-      dlen = _gcry_hmac256_file (digest, sizeof digest, info.dli_fname,
-                                 key, strlen (key));
-      if (dlen < 0)
-        err = gpg_error_from_syserror ();
-      else if (dlen != HMAC_LEN)
-        err = gpg_error (GPG_ERR_INTERNAL);
-      else
-        {
-          if (memcmp (digest, hmac_for_the_implementation, HMAC_LEN))
-            err = gpg_error (GPG_ERR_SELFTEST_FAILED);
-          else
-            err = 0;
-        }
-    }
+    err = hmac256_check (info.dli_fname, key, extra_info);
+
   reporter ("binary", 0, NULL, err? gpg_strerror (err):NULL);
 #ifdef HAVE_SYSLOG
   if (err)
