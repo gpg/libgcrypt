@@ -591,17 +591,22 @@ run_random_selftests (void)
   return !!err;
 }
 
+#ifdef ENABLE_HMAC_BINARY_CHECK
+#define KEY_FOR_BINARY_CHECK "What am I, a doctor or a moonshuttle conductor?"
+#define HMAC_LEN 32
+
+static const unsigned char __attribute__ ((section (".rodata1")))
+hmac_for_the_implementation[HMAC_LEN];
+
 /* Run an integrity check on the binary.  Returns 0 on success.  */
 static int
 check_binary_integrity (void)
 {
-#ifdef ENABLE_HMAC_BINARY_CHECK
   gpg_error_t err;
   Dl_info info;
-  unsigned char digest[32];
+  unsigned char digest[HMAC_LEN];
   int dlen;
-  char *fname = NULL;
-  const char key[] = "What am I, a doctor or a moonshuttle conductor?";
+  const char key[] = KEY_FOR_BINARY_CHECK;
 
   if (!dladdr (gcry_check_version, &info))
     err = gpg_error_from_syserror ();
@@ -611,78 +616,26 @@ check_binary_integrity (void)
                                  key, strlen (key));
       if (dlen < 0)
         err = gpg_error_from_syserror ();
-      else if (dlen != 32)
+      else if (dlen != HMAC_LEN)
         err = gpg_error (GPG_ERR_INTERNAL);
       else
         {
-          fname = xtrymalloc (strlen (info.dli_fname) + 1 + 5 + 1 );
-          if (!fname)
-            err = gpg_error_from_syserror ();
+          if (memcmp (digest, hmac_for_the_implementation, HMAC_LEN))
+            err = gpg_error (GPG_ERR_SELFTEST_FAILED);
           else
-            {
-              FILE *fp;
-              char *p;
-
-              /* Prefix the basename with a dot.  */
-              strcpy (fname, info.dli_fname);
-              p = strrchr (fname, '/');
-              if (p)
-                p++;
-              else
-                p = fname;
-              memmove (p+1, p, strlen (p)+1);
-              *p = '.';
-              strcat (fname, ".hmac");
-
-              /* Open the file.  */
-              fp = fopen (fname, "r");
-              if (!fp)
-                err = gpg_error_from_syserror ();
-              else
-                {
-                  /* A buffer of 64 bytes plus one for a LF and one to
-                     detect garbage.  */
-                  unsigned char buffer[64+1+1];
-                  const unsigned char *s;
-                  int n;
-
-                  /* The HMAC files consists of lowercase hex digits
-                     with an optional trailing linefeed or optional
-                     with two trailing spaces.  The latter format
-                     allows the use of the usual sha1sum format.  Fail
-                     if there is any garbage.  */
-                  err = gpg_error (GPG_ERR_SELFTEST_FAILED);
-                  n = fread (buffer, 1, sizeof buffer, fp);
-                  if (n == 64
-                      || (n == 65 && buffer[64] == '\n')
-                      || (n == 66 && buffer[64] == ' ' && buffer[65] == ' '))
-                    {
-                      buffer[64] = 0;
-                      for (n=0, s= buffer;
-                           n < 32 && loxdigit_p (s) && loxdigit_p (s+1);
-                           n++, s += 2)
-                        buffer[n] = loxtoi_2 (s);
-                      if ( n == 32 && !memcmp (digest, buffer, 32) )
-                        err = 0;
-                    }
-                  fclose (fp);
-                }
-            }
+            err = 0;
         }
     }
-  reporter ("binary", 0, fname, err? gpg_strerror (err):NULL);
+  reporter ("binary", 0, NULL, err? gpg_strerror (err):NULL);
 #ifdef HAVE_SYSLOG
   if (err)
     syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
-            "integrity check using `%s' failed: %s",
-            fname? fname:"[?]", gpg_strerror (err));
+            "integrity check failed: %s",
+            gpg_strerror (err));
 #endif /*HAVE_SYSLOG*/
-  xfree (fname);
   return !!err;
-#else
-  return 0;
-#endif
 }
+#endif
 
 
 /* Run the self-tests.  If EXTENDED is true, extended versions of the
@@ -716,6 +669,7 @@ _gcry_fips_run_selftests (int extended)
   if (run_pubkey_selftests (extended))
     goto leave;
 
+#ifdef ENABLE_HMAC_BINARY_CHECK
   if (fips_mode ())
     {
       /* Now check the integrity of the binary.  We do this this after
@@ -723,6 +677,7 @@ _gcry_fips_run_selftests (int extended)
       if (check_binary_integrity ())
         goto leave;
     }
+#endif
 
   /* All selftests passed.  */
   result = STATE_OPERATIONAL;

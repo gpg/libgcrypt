@@ -154,9 +154,8 @@ if USE_HMAC_BINARY_CHECK
 CLEANFILES += libgcrypt.so.hmac
 
 libgcrypt.la.done: libgcrypt.so.hmac
-	$(OBJCOPY) --add-section .hmac=libgcrypt.so.hmac \
-	  --set-section-flags .hmac=noload,readonly .libs/libgcrypt.so \
-	  .libs/libgcrypt.so.new
+	$(OBJCOPY) --update-section .rodata1=libgcrypt.so.hmac \
+	  .libs/libgcrypt.so .libs/libgcrypt.so.new
 	mv -f .libs/libgcrypt.so.new .libs/libgcrypt.so.*.*
 	@touch libgcrypt.la.done
 
