@@ -28,7 +28,6 @@
 #include "./mac-internal.h"
 #include "bufhelp.h"
 #include "cipher.h"
-#include "hmac256.h"
 
 
 static int
@@ -559,10 +558,6 @@ selftests_sha256 (int extended, selftest_report_func_t report)
 
   for (tvidx=0; tv[tvidx].desc; tvidx++)
     {
-      hmac256_context_t hmachd;
-      const unsigned char *digest;
-      size_t dlen;
-
       what = tv[tvidx].desc;
       errtxt = check_one (GCRY_MD_SHA256,
                           tv[tvidx].data, strlen (tv[tvidx].data),
@@ -570,30 +565,6 @@ selftests_sha256 (int extended, selftest_report_func_t report)
                           tv[tvidx].expect, DIM (tv[tvidx].expect), 0);
       if (errtxt)
         goto failed;
-
-      hmachd = _gcry_hmac256_new (tv[tvidx].key, strlen (tv[tvidx].key));
-      if (!hmachd)
-        {
-          errtxt = "_gcry_hmac256_new failed";
-          goto failed;
-        }
-      _gcry_hmac256_update (hmachd, tv[tvidx].data, strlen (tv[tvidx].data));
-      digest = _gcry_hmac256_finalize (hmachd, &dlen);
-      if (!digest)
-        {
-          errtxt = "_gcry_hmac256_finalize failed";
-          _gcry_hmac256_release (hmachd);
-          goto failed;
-        }
-      if (dlen != DIM (tv[tvidx].expect)
-          || memcmp (digest, tv[tvidx].expect, DIM (tv[tvidx].expect)))
-        {
-          errtxt = "does not match in second implementation";
-          _gcry_hmac256_release (hmachd);
-          goto failed;
-        }
-      _gcry_hmac256_release (hmachd);
-
       if (!extended)
         break;
     }
