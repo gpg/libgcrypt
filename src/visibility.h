@@ -298,12 +298,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
    between a public and an internal version is that the internal
    version use gpg_err_code_t and the public version gpg_error_t.  */
 
-#if defined(FIPS_FORCE_FILE)
-/* It's valid use in src/fips.c to get the address of gcry_check_version.  */
-#else
 #define gcry_check_version          _gcry_USE_THE_UNDERSCORED_FUNCTION
-#endif
-
 #define gcry_control                _gcry_USE_THE_UNDERSCORED_FUNCTION
 
 #define gcry_set_allocation_handler _gcry_USE_THE_UNDERSCORED_FUNCTION
