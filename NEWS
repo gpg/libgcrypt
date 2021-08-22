@@ -1,8 +1,20 @@
-Noteworthy changes in version 1.9.4 (unreleased)  [C23/A3/R_]
+Noteworthy changes in version 1.9.4 (2021-08-22)  [C23/A3/R4]
 ------------------------------------------------
 
  * Bug fixes:
 
+   - Fix Elgamal encryption for other implementations.
+     [#5328,CVE-2021-33560]
+
+   - Fix alignment problem on macOS.  [#5440]
+
+   - Check the input length of the point in ECDH.  [#5423]
+
+   - Fix an abort in gcry_pk_get_param for "Curve25519".  [#5490]
+
+ * Other features:
+
+   - Add GCM and CCM to OID mapping table for AES. [a83fb13a3b]
 
  Release-info: https://dev.gnupg.org/T5402
 
