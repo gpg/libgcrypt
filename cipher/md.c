@@ -452,7 +452,6 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
   int secure = !!(flags & GCRY_MD_FLAG_SECURE);
   int hmac =   !!(flags & GCRY_MD_FLAG_HMAC);
   int bufsize = secure ? 512 : 1024;
-  struct gcry_md_context *ctx;
   gcry_md_hd_t hd;
   size_t n;
 
@@ -470,7 +469,7 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
    *
    * We have to make sure that private is well aligned.
    */
-  n = sizeof (struct gcry_md_handle) + bufsize;
+  n = offsetof (struct gcry_md_handle, buf) + bufsize;
   n = ((n + sizeof (PROPERLY_ALIGNED_TYPE) - 1)
        / sizeof (PROPERLY_ALIGNED_TYPE)) * sizeof (PROPERLY_ALIGNED_TYPE);
 
@@ -485,13 +484,16 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
   if (! err)
     {
-      hd->ctx = ctx = (void *) ((char *) hd + n);
+      struct gcry_md_context *ctx;
+
+      ctx = (void *) (hd->buf - offsetof (struct gcry_md_handle, buf) + n);
       /* Setup the globally visible data (bctl in the diagram).*/
-      hd->bufsize = n - sizeof (struct gcry_md_handle) + 1;
+      hd->ctx = ctx;
+      hd->bufsize = n - offsetof (struct gcry_md_handle, buf);
       hd->bufpos = 0;
 
       /* Initialize the private data. */
-      memset (hd->ctx, 0, sizeof *hd->ctx);
+      memset (ctx, 0, sizeof *ctx);
       ctx->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
       ctx->actual_handle_size = n + sizeof (struct gcry_md_context);
       ctx->flags.secure = secure;
@@ -637,7 +639,7 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 
   bhd->ctx = b = (void *) ((char *) bhd + n);
   /* No need to copy the buffer due to the write above. */
-  gcry_assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
+  gcry_assert (ahd->bufsize == (n - offsetof (struct gcry_md_handle, buf)));
   bhd->bufsize = ahd->bufsize;
   bhd->bufpos = 0;
   gcry_assert (! ahd->bufpos);
