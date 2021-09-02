@@ -1212,6 +1212,20 @@ gcry_sexp_t gcry_pk_get_param (int algo, const char *name);
 gcry_error_t gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp,
                                    int mode, gcry_ctx_t ctx);
 
+/* The data object used to hold a handle to a public key object.  */
+struct gcry_pkey_handle;
+typedef struct gcry_pkey_handle *gcry_pkey_hd_t;
+
+/* Algorithm IDs for the public key functions we know about.  */
+enum gcry_pkey_algos
+  {
+    GCRY_PKEY_NONE               = 0,
+    GCRY_PKEY_RSA                = 1,
+    GCRY_PKEY_DSA                = 17,
+    GCRY_PKEY_ECC                = 18,
+    GCRY_PKEY_ELG                = 20
+  };
+
 /************************************
  *                                  *
  *    Modern ECC Functions          *
