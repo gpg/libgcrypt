@@ -114,13 +114,13 @@ gpg_error_t _gcry_ecc_mul_point (int algo, unsigned char *result,
                                  const unsigned char *scalar,
                                  const unsigned char *point);
 
-gcry_error_t _gcry_pkey_open (gcry_pkey_hd_t *h, int algo, ...);
+gcry_error_t _gcry_pkey_vopen (gcry_pkey_hd_t *h, int algo, va_list arg_ptr);
 gcry_error_t _gcry_pkey_ctl (gcry_pkey_hd_t h, int cmd,
                              void *buffer, size_t buflen);
 gcry_error_t _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                             int num_in, const unsigned char *in[], size_t in_len[],
                             int num_out, unsigned char *out[], size_t *out_len[]);
-gcry_error_t _gcry_pkey_close (gcry_pkey_hd_t h);
+void _gcry_pkey_close (gcry_pkey_hd_t h);
 
 gpg_err_code_t _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags);
 void _gcry_md_close (gcry_md_hd_t hd);

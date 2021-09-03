@@ -57,6 +57,7 @@ libcipher_la_SOURCES = \
 	cipher-gcm-siv.c \
 	cipher-selftest.c cipher-selftest.h \
 	pubkey.c pubkey-internal.h pubkey-util.c \
+	pkey.c \
 	md.c \
 	mac.c mac-internal.h \
 	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
