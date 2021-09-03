@@ -289,4 +289,9 @@ EXPORTS
       gcry_ecc_get_algo_keylen  @249
       gcry_ecc_mul_point        @250
 
+      gcry_pkey_open            @251
+      gcry_pkey_ctl             @252
+      gcry_pkey_op              @253
+      gcry_pkey_close           @254
+
 ;; end of file with public symbols for Windows.

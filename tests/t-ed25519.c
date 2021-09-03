@@ -32,10 +32,12 @@
 #define PGM "t-ed25519"
 #include "t-common.h"
 #define N_TESTS 1026
+#define N_TESTS2 10
 
 static int sign_with_pk;
 static int no_verify;
 static int custom_data_file;
+static int custom_data_file2;
 static int in_fips_mode = 0;
 
 
@@ -414,11 +416,246 @@ check_ed25519 (const char *fname)
 }
 
 
+static void
+one_test_using_new_api (int testno, const char *alg,
+                        const char *sk, const char *pk,
+                        const char *msg,  const char *ctx, const char *sig)
+{
+  gpg_error_t err;
+  int i;
+  char *p;
+  void *buffer = NULL;
+  void *buffer2 = NULL;
+  size_t buflen, buflen2;
+  gcry_pkey_hd_t h0 = NULL;
+  gcry_pkey_hd_t h1 = NULL;
+  char *sig_rs_string = NULL;
+  const unsigned char * in[4];
+  size_t in_len[4];
+  unsigned char *out[2] = { NULL, NULL };
+  size_t out_len[2] = { 0, 0 };
+  unsigned int flags;
+
+  if (verbose > 1)
+    info ("Running test %d\n", testno);
+
+  if (alg == NULL || !strcmp (alg, "Ed25519"))
+    flags = 0;
+  else if (!strcmp (alg, "Ed25519ph"))
+    flags = GCRY_PKEY_FLAG_PREHASH;
+  else if (!strcmp (alg, "Ed25519ctx"))
+    flags = GCRY_PKEY_FLAG_CONTEXT;
+  else
+    {
+      fail ("error parsing for test %d, %s: %s",
+            testno, "alg", "invalid algo string");
+      goto leave;
+    }
+
+  if (!(buffer = hex2buffer (sk, &buflen)))
+    {
+      fail ("error parsing for test %d, %s: %s",
+            testno, "sk", "invalid hex string");
+      goto leave;
+    }
+  if (!(buffer2 = hex2buffer (pk, &buflen2)))
+    {
+      fail ("error parsing for test %d, %s: %s",
+            testno, "pk", "invalid hex string");
+      goto leave;
+    }
+  if (sign_with_pk)
+    err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags,
+                          GCRY_PKEY_CURVE_ED25519,
+                          buffer2, buflen2,
+                          buffer, buflen);
+  else
+    err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags,
+                          GCRY_PKEY_CURVE_ED25519,
+                          NULL, 0,
+                          buffer, buflen);
+  if (err)
+    {
+      fail ("error opening PKEY for test %d, %s: %s",
+            testno, "sk", gpg_strerror (err));
+      goto leave;
+    }
+
+  err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags,
+                        GCRY_PKEY_CURVE_ED25519,
+                        buffer2, buflen2);
+  if (err)
+    {
+      fail ("error opening PKEY for test %d, %s: %s",
+            testno, "pk", gpg_strerror (err));
+      goto leave;
+    }
+
+  xfree (buffer);
+  xfree (buffer2);
+
+  if (!(buffer = hex2buffer (msg, &buflen)))
+    {
+      fail ("error parsing for test %d, %s: %s",
+            testno, "msg", "invalid hex string");
+      goto leave;
+    }
+
+  in[0] = buffer;
+  in_len[0] = buflen;
+
+  if (ctx)
+    {
+      if (!(buffer2 = hex2buffer (ctx, &buflen2)))
+        {
+          fail ("error parsing for test %d, %s: %s",
+                testno, "ctx", "invalid hex string");
+          goto leave;
+        }
+    }
+  else
+    {
+      buffer2 = NULL;
+      buflen2 = 0;
+    }
+
+  in[1] = buffer2;
+  in_len[1] = buflen2;
+
+  err = gcry_pkey_op (h0, GCRY_PKEY_OP_SIGN,
+                      ctx? 2: 1, in, in_len,
+                      2, out, out_len);
+  if (in_fips_mode)
+    {
+      if (!err)
+        fail ("gcry_pkey_op is not expected to work in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      goto leave;
+    }
+  if (err)
+    fail ("gcry_pkey_op failed for test %d: %s", testno, gpg_strerror (err));
+
+  sig_rs_string = xmalloc (2*(out_len[0] + out_len[1])+1);
+  p = sig_rs_string;
+  *p = 0;
+  for (i=0; i < out_len[0]; i++, p += 2)
+    snprintf (p, 3, "%02x", out[0][i]);
+  for (i=0; i < out_len[1]; i++, p += 2)
+    snprintf (p, 3, "%02x", out[1][i]);
+  if (strcmp (sig_rs_string, sig))
+    {
+      fail ("gcry_pkey_op failed for test %d: %s",
+            testno, "wrong value returned");
+      info ("  expected: '%s'", sig);
+      info ("       got: '%s'", sig_rs_string);
+    }
+
+  if (!no_verify)
+    {
+      in[1] = out[0];
+      in_len[1] = out_len[0];
+      in[2] = out[1];
+      in_len[2] = out_len[1];
+      if (ctx)
+        {
+          in[3] = buffer2;
+          in_len[3] = buflen2;
+        }
+
+      if ((err = gcry_pkey_op (h1, GCRY_PKEY_OP_VERIFY,
+                               ctx? 4: 3, in, in_len, 0, NULL, 0)))
+        fail ("GCRY_PKEY_OP_VERIFY failed for test %d: %s",
+              testno, gpg_strerror (err));
+    }
+
+ leave:
+  xfree (buffer);
+  xfree (buffer2);
+  xfree (out[0]);
+  xfree (out[1]);
+  xfree (sig_rs_string);
+  gcry_pkey_close (h0);
+  gcry_pkey_close (h1);
+}
+
+
+static void
+check_ed25519_using_new_api (const char *fname)
+{
+  FILE *fp;
+  int lineno, ntests;
+  char *line;
+  int testno;
+  char *alg, *sk, *pk, *msg, *ctx, *sig;
+
+  info ("Checking Ed25519 with new API.\n");
+
+  fp = fopen (fname, "r");
+  if (!fp)
+    die ("error opening '%s': %s\n", fname, strerror (errno));
+
+  testno = 0;
+  alg = sk = pk = msg = ctx = sig = NULL;
+  lineno = ntests = 0;
+  while ((line = read_textline (fp, &lineno)))
+    {
+      if (!strncmp (line, "TST:", 4))
+        testno = atoi (line+4);
+      else if (!strncmp (line, "ALG:", 3))
+        copy_data (&alg, line, lineno);
+      else if (!strncmp (line, "SK:", 3))
+        copy_data (&sk, line, lineno);
+      else if (!strncmp (line, "PK:", 3))
+        copy_data (&pk, line, lineno);
+      else if (!strncmp (line, "MSG:", 4))
+        copy_data (&msg, line, lineno);
+      else if (!strncmp (line, "CTX:", 3))
+        copy_data (&ctx, line, lineno);
+      else if (!strncmp (line, "SIG:", 4))
+        copy_data (&sig, line, lineno);
+      else
+        fail ("unknown tag at input line %d", lineno);
+
+      xfree (line);
+      if (testno && sk && pk && msg && sig)
+        {
+          one_test_using_new_api (testno, alg, sk, pk, msg, ctx, sig);
+          ntests++;
+          if (!(ntests % 256))
+            show_note ("%d of %d tests done\n", ntests, N_TESTS2);
+          xfree (alg); alg = NULL;
+          xfree (sk);  sk = NULL;
+          xfree (pk);  pk = NULL;
+          xfree (msg); msg = NULL;
+          xfree (ctx); ctx = NULL;
+          xfree (sig); sig = NULL;
+        }
+
+    }
+  xfree (alg);
+  xfree (sk);
+  xfree (pk);
+  xfree (msg);
+  xfree (ctx);
+  xfree (sig);
+
+  if (ntests != N_TESTS2 && !custom_data_file2)
+    fail ("did %d tests but expected %d", ntests, N_TESTS2);
+  else if ((ntests % 256))
+    show_note ("%d tests done\n", ntests);
+
+  fclose (fp);
+}
+
+
 int
 main (int argc, char **argv)
 {
   int last_argc = -1;
   char *fname = NULL;
+  char *fname2 = NULL;
 
   if (argc)
     { argc--; argv++; }
@@ -439,7 +676,8 @@ main (int argc, char **argv)
                  "  --debug         flyswatter\n"
                  "  --sign-with-pk  also use the public key for signing\n"
                  "  --no-verify     skip the verify test\n"
-                 "  --data FNAME    take test data from file FNAME\n",
+                 "  --data FNAME    take test data from file FNAME\n"
+                 "  --data2 FNAME2  take test data2 from file FNAME2\n",
                  stdout);
           exit (0);
         }
@@ -474,6 +712,16 @@ main (int argc, char **argv)
               argc--; argv++;
             }
         }
+      else if (!strcmp (*argv, "--data1"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              xfree (fname2);
+              fname2 = xstrdup (*argv);
+              argc--; argv++;
+            }
+        }
       else if (!strncmp (*argv, "--", 2))
         die ("unknown option '%s'", *argv);
 
@@ -483,6 +731,11 @@ main (int argc, char **argv)
     fname = prepend_srcdir ("t-ed25519.inp");
   else
     custom_data_file = 1;
+
+  if (!fname2)
+    fname2 = prepend_srcdir ("t-ed25519-rfc8032.inp");
+  else
+    custom_data_file2 = 1;
 
   xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
   if (!gcry_check_version (GCRYPT_VERSION))
@@ -497,9 +750,11 @@ main (int argc, char **argv)
 
   start_timer ();
   check_ed25519 (fname);
+  check_ed25519_using_new_api (fname2);
   stop_timer ();
 
   xfree (fname);
+  xfree (fname2);
 
   info ("All tests completed in %s.  Errors: %d\n",
         elapsed_time (1), error_count);

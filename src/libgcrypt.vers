@@ -122,6 +122,7 @@ GCRYPT_1.6 {
 
     gcry_ctx_release;
 
+    gcry_pkey_open; gcry_pkey_ctl; gcry_pkey_op; gcry_pkey_close;
   local:
     *;
 

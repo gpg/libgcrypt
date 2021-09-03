@@ -1151,13 +1151,13 @@ gcry_ecc_mul_point (int curveid, unsigned char *result,
 }
 
 gcry_error_t
-gcry_pkey_open (gcry_pkey_hd_t *h_p, int algo, ...)
+gcry_pkey_open (gcry_pkey_hd_t *h_p, int algo, unsigned int flags, ...)
 {
   gcry_error_t err;
   va_list arg_ptr;
 
-  va_start (arg_ptr, algo);
-  err = _gcry_pkey_vopen  (h_p, algo, arg_ptr);
+  va_start (arg_ptr, flags);
+  err = _gcry_pkey_vopen  (h_p, algo, flags, arg_ptr);
   va_end (arg_ptr);
   return err;
 }
@@ -1171,8 +1171,9 @@ gcry_pkey_ctl (gcry_pkey_hd_t h, int cmd,
 
 gcry_error_t
 gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
-              int num_in, const unsigned char *in[], size_t in_len[],
-              int num_out, unsigned char *out[], size_t *out_len[])
+              int num_in, const unsigned char *const in[],
+              const size_t in_len[],
+              int num_out, unsigned char *out[], size_t out_len[])
 {
   return _gcry_pkey_op (h, cmd, num_in, in, in_len, num_out, out, out_len);
 }
@@ -1180,7 +1181,7 @@ gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
 void
 gcry_pkey_close (gcry_pkey_hd_t h)
 {
-  gcry_pkey_close (h);
+  _gcry_pkey_close (h);
 }
 
 gcry_error_t

@@ -1226,12 +1226,27 @@ enum gcry_pkey_algos
     GCRY_PKEY_ELG                = 20
   };
 
-gcry_error_t gcry_pkey_open (gcry_pkey_hd_t *h_p, int algo, ...);
+#define GCRY_PKEY_FLAG_PREHASH (1 << 0)
+#define GCRY_PKEY_FLAG_CONTEXT (1 << 1)
+
+enum gcry_pkey_curves
+  {
+    GCRY_PKEY_CURVE_ED25519
+  };
+
+enum gcry_pkey_ops
+  {
+    GCRY_PKEY_OP_VERIFY,
+    GCRY_PKEY_OP_SIGN
+  };
+
+gcry_error_t gcry_pkey_open (gcry_pkey_hd_t *h_p, int algo, unsigned int flags, ...);
 gcry_error_t gcry_pkey_ctl (gcry_pkey_hd_t h, int cmd,
                             void *buffer, size_t buflen);
 gcry_error_t gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
-                           int num_in, const unsigned char *in[], size_t in_len[],
-                           int num_out, unsigned char *out[], size_t *out_len[]);
+                           int num_in, const unsigned char *const in[],
+                           const size_t in_len[],
+                           int num_out, unsigned char *out[], size_t out_len[]);
 void gcry_pkey_close (gcry_pkey_hd_t h);
 
 /************************************
