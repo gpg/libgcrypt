@@ -430,7 +430,7 @@ one_test_using_new_api (int testno, const char *alg,
   gcry_pkey_hd_t h0 = NULL;
   gcry_pkey_hd_t h1 = NULL;
   char *sig_rs_string = NULL;
-  const unsigned char * in[4];
+  const unsigned char *in[4];
   size_t in_len[4];
   unsigned char *out[2] = { NULL, NULL };
   size_t out_len[2] = { 0, 0 };
@@ -467,13 +467,11 @@ one_test_using_new_api (int testno, const char *alg,
 
   flags |= GCRY_PKEY_FLAG_SECRET;
   if (sign_with_pk)
-    err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags,
-                          GCRY_PKEY_CURVE_ED25519,
+    err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags, GCRY_PKEY_CURVE_ED25519,
                           buffer2, buflen2,
                           buffer, buflen);
   else
-    err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags,
-                          GCRY_PKEY_CURVE_ED25519,
+    err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags, GCRY_PKEY_CURVE_ED25519,
                           NULL, 0,
                           buffer, buflen);
   if (err)
@@ -484,8 +482,7 @@ one_test_using_new_api (int testno, const char *alg,
     }
 
   flags &= ~GCRY_PKEY_FLAG_SECRET;
-  err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags,
-                        GCRY_PKEY_CURVE_ED25519,
+  err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags, GCRY_PKEY_CURVE_ED25519,
                         buffer2, buflen2);
   if (err)
     {

@@ -51,11 +51,11 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
   gcry_pkey_hd_t h;
   int curve;
   unsigned char *pk;
-  size_t pk_len;
   unsigned char *sk;
-  size_t sk_len;
 
-  if (algo == GCRY_PKEY_RSA)
+  if (algo == GCRY_PKEY_ECC)
+    ;
+  else if (algo == GCRY_PKEY_RSA)
     err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
   else if (algo == GCRY_PKEY_DSA)
     err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
@@ -89,19 +89,16 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
   if (!(flags & GCRY_PKEY_FLAG_SECRET))
     {
       pk = va_arg (arg_ptr, unsigned char *);
-      pk_len = va_arg (arg_ptr, size_t);
+      h->pk_len = va_arg (arg_ptr, size_t);
       h->sk = sk = NULL;
-      h->sk_len = sk_len = 0;
+      h->sk_len = 0;
     }
   else
     {
       pk = va_arg (arg_ptr, unsigned char *);
-      pk_len = va_arg (arg_ptr, size_t);
+      h->pk_len = va_arg (arg_ptr, size_t);
       sk = va_arg (arg_ptr, unsigned char *);
-      sk_len = va_arg (arg_ptr, size_t);
-      /* FIXME: PK is required for now.  */
-      if (!pk)
-        err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      h->sk_len = va_arg (arg_ptr, size_t);
     }
 
   if (err)
@@ -110,26 +107,31 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
       return err;
     }
 
-  h->pk = xtrymalloc (pk_len);
-  if (h->pk)
+  if (pk)
     {
-      err = gpg_err_code_from_syserror ();
-      xfree (h);
-      return err;
+      h->pk = xtrymalloc (h->pk_len);
+      if (!h->pk)
+        {
+          err = gpg_err_code_from_syserror ();
+          xfree (h);
+          return err;
+        }
+      memcpy (h->pk, pk, h->pk_len);
     }
-  memcpy (h->pk, pk, pk_len);
+  else
+    h->pk = NULL;
 
   if (sk)
     {
-      h->sk = xtrymalloc_secure (pk_len);
-      if (h->sk)
+      h->sk = xtrymalloc_secure (h->sk_len);
+      if (!h->sk)
         {
           err = gpg_err_code_from_syserror ();
           xfree (h->pk);
           xfree (h);
           return err;
         }
-      memcpy (h->sk, sk, sk_len);
+      memcpy (h->sk, sk, h->sk_len);
     }
 
   return err;
@@ -140,11 +142,13 @@ _gcry_pkey_ctl (gcry_pkey_hd_t h, int cmd, void *buffer, size_t buflen)
 {
   gcry_error_t err = 0;
 
-  (void)h;   (void)buffer;  (void)buflen;
+  (void)h;  (void)cmd;  (void)buffer;  (void)buflen;
   /* FIXME: Not yet implemented anything.  */
   return err;
 }
 
+/* For now, it uses SEXP implementation, because the purpose is
+   to test the API, but the implementation.  Will be rewritten soon.  */
 gcry_error_t
 _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                int num_in, const unsigned char *const in[],
@@ -152,6 +156,142 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                int num_out, unsigned char *out[], size_t out_len[])
 {
   gcry_error_t err = 0;
+  gcry_sexp_t s_sk = NULL;
+  gcry_sexp_t s_pk = NULL;
+  gcry_sexp_t s_msg= NULL;
+  gcry_sexp_t s_sig= NULL;
+
+  if (cmd == GCRY_PKEY_OP_SIGN)
+    {
+      gcry_sexp_t s_tmp, s_tmp2;
+
+      if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
+        return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+
+      if ((h->flags & GCRY_PKEY_FLAG_CONTEXT))
+        return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+
+      if (num_in != 1)
+        return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+
+      if (num_out != 2)
+        return gpg_error (GPG_ERR_INV_ARG);
+
+      if (h->pk)
+        err = sexp_build (&s_sk, NULL,
+                          "(private-key"
+                          " (ecc"
+                          "  (curve \"Ed25519\")"
+                          "  (flags eddsa)"
+                          "  (q %b)"
+                          "  (d %b)))",
+                          (int)h->pk_len, h->pk,
+                          (int)h->sk_len, h->sk);
+      else
+        err = sexp_build (&s_sk, NULL,
+                          "(private-key"
+                          " (ecc"
+                          "  (curve \"Ed25519\")"
+                          "  (flags eddsa)"
+                          "  (d %b)))",
+                          (int)h->sk_len, h->sk);
+      if (err)
+        return err;
+
+      err = sexp_build (&s_msg, NULL,
+                        "(data"
+                        " (flags eddsa)"
+                        " (hash-algo sha512)"
+                        " (value %b))", (int)in_len[0], in[0]);
+      if (err)
+        {
+          sexp_release (s_sk);
+          return err;
+        }
+
+      err = _gcry_pk_sign (&s_sig, s_msg, s_sk);
+      sexp_release (s_sk);
+      sexp_release (s_msg);
+      if (err)
+        return err;
+
+      out[0] = out[1] = NULL;
+      s_tmp2 = NULL;
+      s_tmp = sexp_find_token (s_sig, "sig-val", 0);
+      if (s_tmp)
+        {
+          s_tmp2 = s_tmp;
+          s_tmp = sexp_find_token (s_tmp2, "eddsa", 0);
+          if (s_tmp)
+            {
+              sexp_release (s_tmp2);
+              s_tmp2 = s_tmp;
+              s_tmp = sexp_find_token (s_tmp2, "r", 0);
+              if (s_tmp)
+                {
+                  out[0] = sexp_nth_buffer (s_tmp, 1, &out_len[0]);
+                  sexp_release (s_tmp);
+                }
+              s_tmp = sexp_find_token (s_tmp2, "s", 0);
+              if (s_tmp)
+                {
+                  out[1] = sexp_nth_buffer (s_tmp, 1, &out_len[1]);
+                  sexp_release (s_tmp);
+                }
+            }
+        }
+      sexp_release (s_tmp2);
+
+      if (out[0] == NULL || out[1] == NULL)
+        err = gpg_error (GPG_ERR_BAD_SIGNATURE);
+
+      sexp_release (s_sig);
+    }
+  else if (cmd == GCRY_PKEY_OP_VERIFY)
+    {
+      if (num_in != 3)
+        return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+
+      err = sexp_build (&s_pk, NULL,
+                        "(public-key"
+                        " (ecc"
+                        "  (curve \"Ed25519\")"
+                        "  (flags eddsa)"
+                        "  (q %b)))",
+                        (int)h->pk_len, h->pk);
+      if (err)
+        return err;
+
+      err = sexp_build (&s_msg, NULL,
+                        "(data"
+                        " (flags eddsa)"
+                        " (hash-algo sha512)"
+                        " (value %b))", (int)in_len[0], in[0]);
+      if (err)
+        {
+          sexp_release (s_pk);
+          return err;
+        }
+
+      err = sexp_build (&s_sig, NULL,
+                        "(sig-val(eddsa(r %b)(s %b)))",
+                        (int)in_len[1], in[1],
+                        (int)in_len[2], in[2]);
+      if (err)
+        {
+          sexp_release (s_msg);
+          sexp_release (s_pk);
+          return err;
+        }
+
+      err = _gcry_pk_verify (s_sig, s_msg, s_pk);
+
+      sexp_release (s_sig);
+      sexp_release (s_msg);
+      sexp_release (s_pk);
+    }
+  else
+    err = gpg_error (GPG_ERR_INV_OP);
 
   return err;
 }
@@ -159,7 +299,10 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
 void
 _gcry_pkey_close (gcry_pkey_hd_t h)
 {
-  xfree (h->sk);
-  xfree (h->pk);
-  xfree (h);
+  if (h)
+    {
+      xfree (h->sk);
+      xfree (h->pk);
+      xfree (h);
+    }
 }
