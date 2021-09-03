@@ -1226,8 +1226,9 @@ enum gcry_pkey_algos
     GCRY_PKEY_ELG                = 20
   };
 
-#define GCRY_PKEY_FLAG_PREHASH (1 << 0)
-#define GCRY_PKEY_FLAG_CONTEXT (1 << 1)
+#define GCRY_PKEY_FLAG_SECRET  (1 << 0) /* It has secret part.  */
+#define GCRY_PKEY_FLAG_PREHASH (1 << 1)
+#define GCRY_PKEY_FLAG_CONTEXT (1 << 2)
 
 enum gcry_pkey_curves
   {

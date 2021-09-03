@@ -464,6 +464,8 @@ one_test_using_new_api (int testno, const char *alg,
             testno, "pk", "invalid hex string");
       goto leave;
     }
+
+  flags |= GCRY_PKEY_FLAG_SECRET;
   if (sign_with_pk)
     err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags,
                           GCRY_PKEY_CURVE_ED25519,
@@ -481,6 +483,7 @@ one_test_using_new_api (int testno, const char *alg,
       goto leave;
     }
 
+  flags &= ~GCRY_PKEY_FLAG_SECRET;
   err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags,
                         GCRY_PKEY_CURVE_ED25519,
                         buffer2, buflen2);
