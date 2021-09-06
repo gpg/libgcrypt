@@ -149,7 +149,26 @@ _gcry_pkey_ctl (gcry_pkey_hd_t h, int cmd, void *buffer, size_t buflen)
 
 /* For now, it uses SEXP implementation, because the purpose is
    to test the API (but not the implementation).
-   Will be rewritten soon.  */
+   Will be rewritten soon.
+
+  Currently, it's like:
+
+  [ gcry_pkey_op API (with binary data) ]
+          |
+  [ gcry_pk_ API (with SEXP) ]
+          |
+  [ lower level public key implementations (with SEXP) ]
+
+  It will be like:
+
+  [ gcry_pk_ API with SEXP ]    [ gcry_pkey_op API with binary data ]
+          |                                    |
+        [ lower level public key implementations ]
+
+  That is, lower level public key implementations won't have any
+  (direct) handling of SEXP.
+
+  */
 gcry_error_t
 _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                int num_in, const unsigned char *const in[],
