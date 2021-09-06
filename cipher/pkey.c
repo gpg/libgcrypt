@@ -162,15 +162,21 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
   gcry_sexp_t s_msg= NULL;
   gcry_sexp_t s_sig= NULL;
 
+  /* Just for Ed25519 for now.  Will support more...  */
   if (cmd == GCRY_PKEY_OP_SIGN)
     {
       gcry_sexp_t s_tmp, s_tmp2;
 
       if ((h->flags & GCRY_PKEY_FLAG_CONTEXT))
-        return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
-
-      if (num_in != 1)
-        return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+        {
+          if (num_in != 2 || (h->flags & GCRY_PKEY_FLAG_PREHASH))
+            return gpg_error (GPG_ERR_INV_ARG);
+        }
+      else
+        {
+          if (num_in != 1)
+            return gpg_error (GPG_ERR_INV_ARG);
+        }
 
       if (num_out != 2)
         return gpg_error (GPG_ERR_INV_ARG);
@@ -196,7 +202,16 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
       if (err)
         return err;
 
-      if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
+      if ((h->flags & GCRY_PKEY_FLAG_CONTEXT))
+        err = sexp_build (&s_msg, NULL,
+                          "(data"
+                          " (flags eddsa)"
+                          " (hash-algo sha512)"
+                          " (value %b)"
+                          " (label %b))",
+                          (int)in_len[0], in[0],
+                          (int)in_len[1], in[1]);
+      else if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
         err = sexp_build (&s_msg, NULL,
                           "(data"
                           " (flags eddsa prehash)"
@@ -254,8 +269,16 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
     }
   else if (cmd == GCRY_PKEY_OP_VERIFY)
     {
-      if (num_in != 3)
-        return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      if ((h->flags & GCRY_PKEY_FLAG_CONTEXT))
+        {
+          if (num_in != 4 || (h->flags & GCRY_PKEY_FLAG_PREHASH))
+            return gpg_error (GPG_ERR_INV_ARG);
+        }
+      else
+        {
+          if (num_in != 3)
+            return gpg_error (GPG_ERR_INV_ARG);
+        }
 
       err = sexp_build (&s_pk, NULL,
                         "(public-key"
@@ -267,7 +290,16 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
       if (err)
         return err;
 
-      if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
+      if (h->flags & GCRY_PKEY_FLAG_CONTEXT)
+        err = sexp_build (&s_msg, NULL,
+                          "(data"
+                          " (flags eddsa)"
+                          " (hash-algo sha512)"
+                          " (value %b)"
+                          " (label %b))",
+                          (int)in_len[0], in[0],
+                          (int)in_len[3], in[3]);
+      else if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
         err = sexp_build (&s_msg, NULL,
                           "(data"
                           " (flags eddsa prehash)"
