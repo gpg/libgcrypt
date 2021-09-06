@@ -148,7 +148,8 @@ _gcry_pkey_ctl (gcry_pkey_hd_t h, int cmd, void *buffer, size_t buflen)
 }
 
 /* For now, it uses SEXP implementation, because the purpose is
-   to test the API, but the implementation.  Will be rewritten soon.  */
+   to test the API (but not the implementation).
+   Will be rewritten soon.  */
 gcry_error_t
 _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                int num_in, const unsigned char *const in[],
@@ -164,9 +165,6 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
   if (cmd == GCRY_PKEY_OP_SIGN)
     {
       gcry_sexp_t s_tmp, s_tmp2;
-
-      if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
-        return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
 
       if ((h->flags & GCRY_PKEY_FLAG_CONTEXT))
         return gpg_error (GPG_ERR_NOT_IMPLEMENTED);
@@ -198,11 +196,18 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
       if (err)
         return err;
 
-      err = sexp_build (&s_msg, NULL,
-                        "(data"
-                        " (flags eddsa)"
-                        " (hash-algo sha512)"
-                        " (value %b))", (int)in_len[0], in[0]);
+      if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
+        err = sexp_build (&s_msg, NULL,
+                          "(data"
+                          " (flags eddsa prehash)"
+                          " (hash-algo sha512)"
+                          " (value %b))", (int)in_len[0], in[0]);
+      else
+        err = sexp_build (&s_msg, NULL,
+                          "(data"
+                          " (flags eddsa)"
+                          " (hash-algo sha512)"
+                          " (value %b))", (int)in_len[0], in[0]);
       if (err)
         {
           sexp_release (s_sk);
@@ -262,11 +267,18 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
       if (err)
         return err;
 
-      err = sexp_build (&s_msg, NULL,
-                        "(data"
-                        " (flags eddsa)"
-                        " (hash-algo sha512)"
-                        " (value %b))", (int)in_len[0], in[0]);
+      if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
+        err = sexp_build (&s_msg, NULL,
+                          "(data"
+                          " (flags eddsa prehash)"
+                          " (hash-algo sha512)"
+                          " (value %b))", (int)in_len[0], in[0]);
+      else
+        err = sexp_build (&s_msg, NULL,
+                          "(data"
+                          " (flags eddsa)"
+                          " (hash-algo sha512)"
+                          " (value %b))", (int)in_len[0], in[0]);
       if (err)
         {
           sexp_release (s_pk);
