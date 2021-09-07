@@ -384,6 +384,163 @@ one_test (int testno, int ph, const char *sk, const char *pk,
 
 
 static void
+one_test_using_new_api (int testno, int ph,
+                        const char *sk, const char *pk,
+                        const char *msg,  const char *ctx, const char *sig)
+{
+  gpg_error_t err;
+  int i;
+  char *p;
+  void *buffer = NULL;
+  void *buffer2 = NULL;
+  size_t buflen, buflen2;
+  gcry_pkey_hd_t h0 = NULL;
+  gcry_pkey_hd_t h1 = NULL;
+  char *sig_rs_string = NULL;
+  const unsigned char *in[4];
+  size_t in_len[4];
+  unsigned char *out[2] = { NULL, NULL };
+  size_t out_len[2] = { 0, 0 };
+  unsigned int flags = 0;
+
+  if (verbose > 1)
+    info ("Running test %d %d\n", testno, ph);
+
+  if (ph)
+    flags |= GCRY_PKEY_FLAG_PREHASH;
+  if (ctx)
+    flags |= GCRY_PKEY_FLAG_CONTEXT;
+
+  if (!(buffer = hex2buffer (sk, &buflen)))
+    {
+      fail ("error parsing for test %d, %s: %s",
+            testno, "sk", "invalid hex string");
+      goto leave;
+    }
+  if (!(buffer2 = hex2buffer (pk, &buflen2)))
+    {
+      fail ("error parsing for test %d, %s: %s",
+            testno, "pk", "invalid hex string");
+      goto leave;
+    }
+
+  flags |= GCRY_PKEY_FLAG_SECRET;
+  if (sign_with_pk)
+    err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags, GCRY_PKEY_CURVE_ED448,
+                          buffer2, buflen2,
+                          buffer, buflen);
+  else
+    err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags, GCRY_PKEY_CURVE_ED448,
+                          NULL, 0,
+                          buffer, buflen);
+  if (err)
+    {
+      fail ("error opening PKEY for test %d, %s: %s",
+            testno, "sk", gpg_strerror (err));
+      goto leave;
+    }
+
+  flags &= ~GCRY_PKEY_FLAG_SECRET;
+  err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags, GCRY_PKEY_CURVE_ED448,
+                        buffer2, buflen2);
+  if (err)
+    {
+      fail ("error opening PKEY for test %d, %s: %s",
+            testno, "pk", gpg_strerror (err));
+      goto leave;
+    }
+
+  xfree (buffer);
+  xfree (buffer2);
+
+  if (!(buffer = hex2buffer (msg, &buflen)))
+    {
+      fail ("error parsing for test %d, %s: %s",
+            testno, "msg", "invalid hex string");
+      goto leave;
+    }
+
+  in[0] = buffer;
+  in_len[0] = buflen;
+
+  if (ctx)
+    {
+      if (!(buffer2 = hex2buffer (ctx, &buflen2)))
+        {
+          fail ("error parsing for test %d, %s: %s",
+                testno, "ctx", "invalid hex string");
+          goto leave;
+        }
+    }
+  else
+    {
+      buffer2 = NULL;
+      buflen2 = 0;
+    }
+
+  in[1] = buffer2;
+  in_len[1] = buflen2;
+
+  err = gcry_pkey_op (h0, GCRY_PKEY_OP_SIGN,
+                      ctx? 2: 1, in, in_len,
+                      2, out, out_len);
+  if (in_fips_mode)
+    {
+      if (!err)
+        fail ("gcry_pkey_op is not expected to work in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      goto leave;
+    }
+  if (err)
+    fail ("gcry_pkey_op failed for test %d: %s", testno, gpg_strerror (err));
+
+  sig_rs_string = xmalloc (2*(out_len[0] + out_len[1])+1);
+  p = sig_rs_string;
+  *p = 0;
+  for (i=0; i < out_len[0]; i++, p += 2)
+    snprintf (p, 3, "%02x", out[0][i]);
+  for (i=0; i < out_len[1]; i++, p += 2)
+    snprintf (p, 3, "%02x", out[1][i]);
+  if (strcmp (sig_rs_string, sig))
+    {
+      fail ("gcry_pkey_op failed for test %d: %s",
+            testno, "wrong value returned");
+      info ("  expected: '%s'", sig);
+      info ("       got: '%s'", sig_rs_string);
+    }
+
+  if (!no_verify)
+    {
+      in[1] = out[0];
+      in_len[1] = out_len[0];
+      in[2] = out[1];
+      in_len[2] = out_len[1];
+      if (ctx)
+        {
+          in[3] = buffer2;
+          in_len[3] = buflen2;
+        }
+
+      if ((err = gcry_pkey_op (h1, GCRY_PKEY_OP_VERIFY,
+                               ctx? 4: 3, in, in_len, 0, NULL, 0)))
+        fail ("GCRY_PKEY_OP_VERIFY failed for test %d: %s",
+              testno, gpg_strerror (err));
+    }
+
+ leave:
+  xfree (buffer);
+  xfree (buffer2);
+  xfree (out[0]);
+  xfree (out[1]);
+  xfree (sig_rs_string);
+  gcry_pkey_close (h0);
+  gcry_pkey_close (h1);
+}
+
+
+static void
 check_ed448 (const char *fname)
 {
   FILE *fp;
@@ -427,6 +584,7 @@ check_ed448 (const char *fname)
         {
           hexdowncase (sig);
           one_test (testno, ph, sk, pk, msg, ctx, sig);
+          one_test_using_new_api (testno, ph, sk, pk, msg, ctx, sig);
           ntests++;
           if (!(ntests % 256))
             show_note ("%d of %d tests done\n", ntests, N_TESTS);

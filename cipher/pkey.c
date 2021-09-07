@@ -58,9 +58,13 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
   h->algo = algo;
   h->flags = flags;
 
-  /* For now, it's GCRY_PKEY_ECC.  */
+  /* For now, it's GCRY_PKEY_ECC only.  */
   curve = va_arg (arg_ptr, int);
-  if (curve != GCRY_PKEY_CURVE_ED25519)
+  if (curve == GCRY_PKEY_CURVE_ED25519)
+    ;
+  else if (curve == GCRY_PKEY_CURVE_ED448)
+    ;
+  else
     err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
   if (err)
     {
@@ -163,13 +167,34 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
 {
   gcry_error_t err = 0;
 
-  /* Just for Ed25519 for now.  Will support more...  */
-  if (cmd == GCRY_PKEY_OP_SIGN)
-    err = _gcry_pkey_ed25519_sign (h, num_in, in, in_len, num_out, out, out_len);
-  else if (cmd == GCRY_PKEY_OP_VERIFY)
-    err = _gcry_pkey_ed25519_verify (h, num_in, in, in_len);
+  /* Just for Ed25519 and Ed448 for now.  Will support more...  */
+  if (h->algo == GCRY_PKEY_ECC)
+    {
+      if (h->curve == GCRY_PKEY_CURVE_ED25519)
+        {
+          if (cmd == GCRY_PKEY_OP_SIGN)
+            err = _gcry_pkey_ed25519_sign (h, num_in, in, in_len,
+                                           num_out, out, out_len);
+          else if (cmd == GCRY_PKEY_OP_VERIFY)
+            err = _gcry_pkey_ed25519_verify (h, num_in, in, in_len);
+          else
+            err = gpg_error (GPG_ERR_INV_OP);
+        }
+      else if (h->curve == GCRY_PKEY_CURVE_ED448)
+        {
+          if (cmd == GCRY_PKEY_OP_SIGN)
+            err = _gcry_pkey_ed448_sign (h, num_in, in, in_len,
+                                         num_out, out, out_len);
+          else if (cmd == GCRY_PKEY_OP_VERIFY)
+            err = _gcry_pkey_ed448_verify (h, num_in, in, in_len);
+          else
+            err = gpg_error (GPG_ERR_INV_OP);
+        }
+      else
+        err = gpg_error (GPG_ERR_INV_OP);
+    }
   else
-    err = gpg_error (GPG_ERR_INV_OP);
+    err = gpg_error (GPG_ERR_WRONG_PUBKEY_ALGO);
 
   return err;
 }

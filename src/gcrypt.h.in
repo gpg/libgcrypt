@@ -1232,7 +1232,8 @@ enum gcry_pkey_algos
 
 enum gcry_pkey_curves
   {
-    GCRY_PKEY_CURVE_ED25519
+    GCRY_PKEY_CURVE_ED25519,
+    GCRY_PKEY_CURVE_ED448
   };
 
 enum gcry_pkey_ops
