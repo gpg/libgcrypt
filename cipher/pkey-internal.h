@@ -38,13 +38,17 @@ gcry_error_t _gcry_pkey_ed448_verify (gcry_pkey_hd_t h,
                                       int num_in, const unsigned char *const in[],
                                       const size_t in_len[]);
 
+gcry_error_t _gcry_pkey_rsapss_sign (gcry_pkey_hd_t h,
+                                     int num_in, const unsigned char *const in[],
+                                     const size_t in_len[],
+                                     int num_out, unsigned char *out[],
+                                     size_t out_len[]);
 
-struct gcry_pkey_handle {
-  int algo;
-  unsigned int flags;
+gcry_error_t _gcry_pkey_rsapss_verify (gcry_pkey_hd_t h,
+                                       int num_in, const unsigned char *const in[],
+                                       const size_t in_len[]);
 
-  /* FIXME: Use of union would be better, here.  */
-
+struct pkey_ecc {
   int curve;
 
   unsigned char *pk;
@@ -52,4 +56,29 @@ struct gcry_pkey_handle {
 
   unsigned char *sk;
   size_t sk_len;
+};
+
+struct pkey_rsa {
+  int scheme;
+
+  int md_algo;
+
+  unsigned char *n;
+  size_t n_len;
+
+  unsigned char *e;
+  size_t e_len;
+
+  unsigned char *d;
+  size_t d_len;
+};
+
+struct gcry_pkey_handle {
+  int algo;
+  unsigned int flags;
+
+  union {
+    struct pkey_ecc ecc;
+    struct pkey_rsa rsa;
+  };
 };

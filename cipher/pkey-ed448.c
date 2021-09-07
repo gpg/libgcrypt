@@ -31,9 +31,9 @@
 
 gcry_error_t
 _gcry_pkey_ed448_sign (gcry_pkey_hd_t h,
-                         int num_in, const unsigned char *const in[],
-                         const size_t in_len[],
-                         int num_out, unsigned char *out[], size_t out_len[])
+                       int num_in, const unsigned char *const in[],
+                       const size_t in_len[],
+                       int num_out, unsigned char *out[], size_t out_len[])
 {
   gcry_error_t err = 0;
   gcry_sexp_t s_sk = NULL;
@@ -56,22 +56,22 @@ _gcry_pkey_ed448_sign (gcry_pkey_hd_t h,
   if (num_out != 2)
     return gpg_error (GPG_ERR_INV_ARG);
 
-  if (h->pk)
+  if (h->ecc.pk)
     err = sexp_build (&s_sk, NULL,
                       "(private-key"
                       " (ecc"
                       "  (curve \"Ed448\")"
                       "  (q %b)"
                       "  (d %b)))",
-                      (int)h->pk_len, h->pk,
-                      (int)h->sk_len, h->sk);
+                      (int)h->ecc.pk_len, h->ecc.pk,
+                      (int)h->ecc.sk_len, h->ecc.sk);
   else
     err = sexp_build (&s_sk, NULL,
                       "(private-key"
                       " (ecc"
                       "  (curve \"Ed448\")"
                       "  (d %b)))",
-                      (int)h->sk_len, h->sk);
+                      (int)h->ecc.sk_len, h->ecc.sk);
   if (err)
     return err;
 
@@ -151,8 +151,8 @@ _gcry_pkey_ed448_sign (gcry_pkey_hd_t h,
 
 gcry_error_t
 _gcry_pkey_ed448_verify (gcry_pkey_hd_t h,
-                           int num_in, const unsigned char *const in[],
-                           const size_t in_len[])
+                         int num_in, const unsigned char *const in[],
+                         const size_t in_len[])
 {
   gcry_error_t err = 0;
   gcry_sexp_t s_pk = NULL;
@@ -175,7 +175,7 @@ _gcry_pkey_ed448_verify (gcry_pkey_hd_t h,
                     " (ecc"
                     "  (curve \"Ed448\")"
                     "  (q %b)))",
-                    (int)h->pk_len, h->pk);
+                    (int)h->ecc.pk_len, h->ecc.pk);
   if (err)
     return err;
 

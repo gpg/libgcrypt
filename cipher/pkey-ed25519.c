@@ -56,7 +56,7 @@ _gcry_pkey_ed25519_sign (gcry_pkey_hd_t h,
   if (num_out != 2)
     return gpg_error (GPG_ERR_INV_ARG);
 
-  if (h->pk)
+  if (h->ecc.pk)
     err = sexp_build (&s_sk, NULL,
                       "(private-key"
                       " (ecc"
@@ -64,8 +64,8 @@ _gcry_pkey_ed25519_sign (gcry_pkey_hd_t h,
                       "  (flags eddsa)"
                       "  (q %b)"
                       "  (d %b)))",
-                      (int)h->pk_len, h->pk,
-                      (int)h->sk_len, h->sk);
+                      (int)h->ecc.pk_len, h->ecc.pk,
+                      (int)h->ecc.sk_len, h->ecc.sk);
   else
     err = sexp_build (&s_sk, NULL,
                       "(private-key"
@@ -73,7 +73,7 @@ _gcry_pkey_ed25519_sign (gcry_pkey_hd_t h,
                       "  (curve \"Ed25519\")"
                       "  (flags eddsa)"
                       "  (d %b)))",
-                      (int)h->sk_len, h->sk);
+                      (int)h->ecc.sk_len, h->ecc.sk);
   if (err)
     return err;
 
@@ -172,7 +172,7 @@ _gcry_pkey_ed25519_verify (gcry_pkey_hd_t h,
                     "  (curve \"Ed25519\")"
                     "  (flags eddsa)"
                     "  (q %b)))",
-                    (int)h->pk_len, h->pk);
+                    (int)h->ecc.pk_len, h->ecc.pk);
   if (err)
     return err;
 
