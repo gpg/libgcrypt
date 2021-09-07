@@ -27,21 +27,7 @@
 
 #include "g10lib.h"
 #include "gcrypt-int.h"
-
-struct gcry_pkey_handle {
-  int algo;
-  unsigned int flags;
-
-  /* FIXME: Use of union would be better, here.  */
-
-  int curve;
-
-  unsigned char *pk;
-  size_t pk_len;
-
-  unsigned char *sk;
-  size_t sk_len;
-};
+#include "pkey-internal.h"
 
 gcry_error_t
 _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
@@ -176,183 +162,12 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                int num_out, unsigned char *out[], size_t out_len[])
 {
   gcry_error_t err = 0;
-  gcry_sexp_t s_sk = NULL;
-  gcry_sexp_t s_pk = NULL;
-  gcry_sexp_t s_msg= NULL;
-  gcry_sexp_t s_sig= NULL;
 
   /* Just for Ed25519 for now.  Will support more...  */
   if (cmd == GCRY_PKEY_OP_SIGN)
-    {
-      gcry_sexp_t s_tmp, s_tmp2;
-
-      if ((h->flags & GCRY_PKEY_FLAG_CONTEXT))
-        {
-          if (num_in != 2 || (h->flags & GCRY_PKEY_FLAG_PREHASH))
-            return gpg_error (GPG_ERR_INV_ARG);
-        }
-      else
-        {
-          if (num_in != 1)
-            return gpg_error (GPG_ERR_INV_ARG);
-        }
-
-      if (num_out != 2)
-        return gpg_error (GPG_ERR_INV_ARG);
-
-      if (h->pk)
-        err = sexp_build (&s_sk, NULL,
-                          "(private-key"
-                          " (ecc"
-                          "  (curve \"Ed25519\")"
-                          "  (flags eddsa)"
-                          "  (q %b)"
-                          "  (d %b)))",
-                          (int)h->pk_len, h->pk,
-                          (int)h->sk_len, h->sk);
-      else
-        err = sexp_build (&s_sk, NULL,
-                          "(private-key"
-                          " (ecc"
-                          "  (curve \"Ed25519\")"
-                          "  (flags eddsa)"
-                          "  (d %b)))",
-                          (int)h->sk_len, h->sk);
-      if (err)
-        return err;
-
-      if ((h->flags & GCRY_PKEY_FLAG_CONTEXT))
-        err = sexp_build (&s_msg, NULL,
-                          "(data"
-                          " (flags eddsa)"
-                          " (hash-algo sha512)"
-                          " (value %b)"
-                          " (label %b))",
-                          (int)in_len[0], in[0],
-                          (int)in_len[1], in[1]);
-      else if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
-        err = sexp_build (&s_msg, NULL,
-                          "(data"
-                          " (flags eddsa prehash)"
-                          " (hash-algo sha512)"
-                          " (value %b))", (int)in_len[0], in[0]);
-      else
-        err = sexp_build (&s_msg, NULL,
-                          "(data"
-                          " (flags eddsa)"
-                          " (hash-algo sha512)"
-                          " (value %b))", (int)in_len[0], in[0]);
-      if (err)
-        {
-          sexp_release (s_sk);
-          return err;
-        }
-
-      err = _gcry_pk_sign (&s_sig, s_msg, s_sk);
-      sexp_release (s_sk);
-      sexp_release (s_msg);
-      if (err)
-        return err;
-
-      out[0] = out[1] = NULL;
-      s_tmp2 = NULL;
-      s_tmp = sexp_find_token (s_sig, "sig-val", 0);
-      if (s_tmp)
-        {
-          s_tmp2 = s_tmp;
-          s_tmp = sexp_find_token (s_tmp2, "eddsa", 0);
-          if (s_tmp)
-            {
-              sexp_release (s_tmp2);
-              s_tmp2 = s_tmp;
-              s_tmp = sexp_find_token (s_tmp2, "r", 0);
-              if (s_tmp)
-                {
-                  out[0] = sexp_nth_buffer (s_tmp, 1, &out_len[0]);
-                  sexp_release (s_tmp);
-                }
-              s_tmp = sexp_find_token (s_tmp2, "s", 0);
-              if (s_tmp)
-                {
-                  out[1] = sexp_nth_buffer (s_tmp, 1, &out_len[1]);
-                  sexp_release (s_tmp);
-                }
-            }
-        }
-      sexp_release (s_tmp2);
-
-      if (out[0] == NULL || out[1] == NULL)
-        err = gpg_error (GPG_ERR_BAD_SIGNATURE);
-
-      sexp_release (s_sig);
-    }
+    err = _gcry_pkey_ed25519_sign (h, num_in, in, in_len, num_out, out, out_len);
   else if (cmd == GCRY_PKEY_OP_VERIFY)
-    {
-      if ((h->flags & GCRY_PKEY_FLAG_CONTEXT))
-        {
-          if (num_in != 4 || (h->flags & GCRY_PKEY_FLAG_PREHASH))
-            return gpg_error (GPG_ERR_INV_ARG);
-        }
-      else
-        {
-          if (num_in != 3)
-            return gpg_error (GPG_ERR_INV_ARG);
-        }
-
-      err = sexp_build (&s_pk, NULL,
-                        "(public-key"
-                        " (ecc"
-                        "  (curve \"Ed25519\")"
-                        "  (flags eddsa)"
-                        "  (q %b)))",
-                        (int)h->pk_len, h->pk);
-      if (err)
-        return err;
-
-      if (h->flags & GCRY_PKEY_FLAG_CONTEXT)
-        err = sexp_build (&s_msg, NULL,
-                          "(data"
-                          " (flags eddsa)"
-                          " (hash-algo sha512)"
-                          " (value %b)"
-                          " (label %b))",
-                          (int)in_len[0], in[0],
-                          (int)in_len[3], in[3]);
-      else if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
-        err = sexp_build (&s_msg, NULL,
-                          "(data"
-                          " (flags eddsa prehash)"
-                          " (hash-algo sha512)"
-                          " (value %b))", (int)in_len[0], in[0]);
-      else
-        err = sexp_build (&s_msg, NULL,
-                          "(data"
-                          " (flags eddsa)"
-                          " (hash-algo sha512)"
-                          " (value %b))", (int)in_len[0], in[0]);
-      if (err)
-        {
-          sexp_release (s_pk);
-          return err;
-        }
-
-      err = sexp_build (&s_sig, NULL,
-                        "(sig-val(eddsa(r %b)(s %b)))",
-                        (int)in_len[1], in[1],
-                        (int)in_len[2], in[2]);
-      if (err)
-        {
-          sexp_release (s_msg);
-          sexp_release (s_pk);
-          return err;
-        }
-
-      err = _gcry_pk_verify (s_sig, s_msg, s_pk);
-
-      sexp_release (s_sig);
-      sexp_release (s_msg);
-      sexp_release (s_pk);
-    }
+    err = _gcry_pkey_ed25519_verify (h, num_in, in, in_len);
   else
     err = gpg_error (GPG_ERR_INV_OP);
 
