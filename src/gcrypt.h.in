@@ -1236,6 +1236,13 @@ enum gcry_pkey_curves
     GCRY_PKEY_CURVE_ED448
   };
 
+enum gcry_pkey_rsa_schemes
+  {
+    GCRY_PKEY_RSA_PSS,
+    GCRY_PKEY_RSA_931,
+    GCRY_PKEY_RSA_15
+  };
+
 enum gcry_pkey_ops
   {
     GCRY_PKEY_OP_VERIFY,
