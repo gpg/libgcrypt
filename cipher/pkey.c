@@ -1,4 +1,4 @@
-/* pkey.c  -	pubric key cryptography API
+/* pkey.c  -    Pubric key cryptography API
  * Copyright (C) 2021 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
@@ -50,7 +50,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
     return err;
 
   if (!(h = xtrycalloc (1, sizeof (struct gcry_pkey_handle))))
-    return gpg_err_code_from_syserror ();
+    return gpg_error_from_syserror ();
 
   h->algo = algo;
   h->flags = flags;
@@ -102,7 +102,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
           h->ecc.pk = xtrymalloc (h->ecc.pk_len);
           if (!h->ecc.pk)
             {
-              err = gpg_err_code_from_syserror ();
+              err = gpg_error_from_syserror ();
               xfree (h);
               return err;
             }
@@ -116,7 +116,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
           h->ecc.sk = xtrymalloc_secure (h->ecc.sk_len);
           if (!h->ecc.sk)
             {
-              err = gpg_err_code_from_syserror ();
+              err = gpg_error_from_syserror ();
               xfree (h->ecc.pk);
               xfree (h);
               return err;
@@ -138,7 +138,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
       else if (scheme == GCRY_PKEY_RSA_15)
         ;
       else if (scheme == GCRY_PKEY_RSA_931)
-        err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+        ;
       else
         err = gpg_error (GPG_ERR_INV_ARG);
       if (err)
@@ -182,7 +182,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
           h->rsa.n = xtrymalloc (h->rsa.n_len);
           if (!h->rsa.n)
             {
-              err = gpg_err_code_from_syserror ();
+              err = gpg_error_from_syserror ();
               xfree (h);
               return err;
             }
@@ -196,7 +196,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
           h->rsa.e = xtrymalloc (h->rsa.e_len);
           if (!h->rsa.e)
             {
-              err = gpg_err_code_from_syserror ();
+              err = gpg_error_from_syserror ();
               xfree (h);
               return err;
             }
@@ -210,7 +210,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
           h->rsa.d = xtrymalloc (h->rsa.d_len);
           if (!h->rsa.d)
             {
-              err = gpg_err_code_from_syserror ();
+              err = gpg_error_from_syserror ();
               xfree (h);
               return err;
             }
@@ -308,6 +308,16 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                                          num_out, out, out_len);
           else if (cmd == GCRY_PKEY_OP_VERIFY)
             err = _gcry_pkey_rsa15_verify (h, num_in, in, in_len);
+          else
+            err = gpg_error (GPG_ERR_INV_OP);
+        }
+      else if (h->rsa.scheme == GCRY_PKEY_RSA_931)
+        {
+          if (cmd == GCRY_PKEY_OP_SIGN)
+            err = _gcry_pkey_rsa931_sign (h, num_in, in, in_len,
+                                          num_out, out, out_len);
+          else if (cmd == GCRY_PKEY_OP_VERIFY)
+            err = _gcry_pkey_rsa931_verify (h, num_in, in, in_len);
           else
             err = gpg_error (GPG_ERR_INV_OP);
         }
