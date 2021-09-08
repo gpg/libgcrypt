@@ -133,6 +133,20 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
       unsigned char *d;
 
       scheme = va_arg (arg_ptr, int);
+      if (scheme == GCRY_PKEY_RSA_PSS)
+        ;
+      else if (scheme == GCRY_PKEY_RSA_15)
+        ;
+      else if (scheme == GCRY_PKEY_RSA_931)
+        err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      else
+        err = gpg_error (GPG_ERR_INV_ARG);
+      if (err)
+        {
+          xfree (h);
+          return err;
+        }
+
       h->rsa.scheme = scheme;
 
       md_algo = va_arg (arg_ptr, int);
@@ -249,9 +263,9 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
 {
   gcry_error_t err = 0;
 
-  /* Just for Ed25519 and Ed448 for now.  Will support more...  */
   if (h->algo == GCRY_PKEY_ECC)
     {
+      /* Just for Ed25519 and Ed448 for now.  Will support more...  */
       if (h->ecc.curve == GCRY_PKEY_CURVE_ED25519)
         {
           if (cmd == GCRY_PKEY_OP_SIGN)
@@ -284,6 +298,16 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                                           num_out, out, out_len);
           else if (cmd == GCRY_PKEY_OP_VERIFY)
             err = _gcry_pkey_rsapss_verify (h, num_in, in, in_len);
+          else
+            err = gpg_error (GPG_ERR_INV_OP);
+        }
+      else if (h->rsa.scheme == GCRY_PKEY_RSA_15)
+        {
+          if (cmd == GCRY_PKEY_OP_SIGN)
+            err = _gcry_pkey_rsa15_sign (h, num_in, in, in_len,
+                                         num_out, out, out_len);
+          else if (cmd == GCRY_PKEY_OP_VERIFY)
+            err = _gcry_pkey_rsa15_verify (h, num_in, in, in_len);
           else
             err = gpg_error (GPG_ERR_INV_OP);
         }
