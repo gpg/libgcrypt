@@ -939,29 +939,81 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
           xfree (random_override);
         }
     }
-  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lhash
+  else if (ctx->encoding == PUBKEY_ENC_PKCS1
+           && (lhash || (lvalue && (parsed_flags & PUBKEY_FLAG_PREHASH)))
 	   && (ctx->op == PUBKEY_OP_SIGN || ctx->op == PUBKEY_OP_VERIFY))
     {
-      if (sexp_length (lhash) != 3)
-        rc = GPG_ERR_INV_OBJ;
-      else if ( !(s=sexp_nth_data (lhash, 1, &n)) || !n )
-        rc = GPG_ERR_INV_OBJ;
-      else
+      if (lvalue && (parsed_flags & PUBKEY_FLAG_PREHASH))
         {
-          const void * value;
+          void * value;
           size_t valuelen;
+          gcry_sexp_t list;
 
-	  ctx->hash_algo = get_hash_algo (s, n);
+          /* Get HASH-ALGO. */
+          list = sexp_find_token (ldata, "hash-algo", 0);
+          if (list)
+            {
+              s = sexp_nth_data (list, 1, &n);
+              if (!s)
+                rc = GPG_ERR_NO_OBJ;
+              else
+                {
+                  ctx->hash_algo = get_hash_algo (s, n);
+                  if (!ctx->hash_algo)
+                    rc = GPG_ERR_DIGEST_ALGO;
+                }
+              sexp_release (list);
+              if (rc)
+                goto leave;
+            }
 
-          if (!ctx->hash_algo)
-            rc = GPG_ERR_DIGEST_ALGO;
-          else if ( !(value=sexp_nth_data (lhash, 2, &valuelen))
-                    || !valuelen )
+          if ( !(value=sexp_nth_buffer (lvalue, 1, &valuelen)) || !valuelen )
+            rc = GPG_ERR_INV_OBJ;
+          else if ((valuelen * 8) < valuelen)
+            {
+              xfree (value);
+              rc = GPG_ERR_TOO_LARGE;
+            }
+          else
+            {
+              void *hash;
+
+              n = _gcry_md_get_algo_dlen (ctx->hash_algo);
+              hash = xtrymalloc (n);
+              if (!hash)
+                rc = gpg_err_code_from_syserror ();
+              else
+                {
+                  _gcry_md_hash_buffer (ctx->hash_algo, hash, value, valuelen);
+                  rc = _gcry_rsa_pkcs1_encode_for_sig (ret_mpi, ctx->nbits,
+                                                       hash, n, ctx->hash_algo);
+                  xfree (hash);
+                }
+            }
+        }
+      else if (lhash)
+        {
+          if (sexp_length (lhash) != 3)
+            rc = GPG_ERR_INV_OBJ;
+          else if ( !(s=sexp_nth_data (lhash, 1, &n)) || !n )
             rc = GPG_ERR_INV_OBJ;
           else
-	    rc = _gcry_rsa_pkcs1_encode_for_sig (ret_mpi, ctx->nbits,
-                                                 value, valuelen,
-                                                 ctx->hash_algo);
+            {
+              const void * value;
+              size_t valuelen;
+
+              ctx->hash_algo = get_hash_algo (s, n);
+
+              if (!ctx->hash_algo)
+                rc = GPG_ERR_DIGEST_ALGO;
+              else if ( !(value=sexp_nth_data (lhash, 2, &valuelen))
+                        || !valuelen )
+                rc = GPG_ERR_INV_OBJ;
+              else
+                rc = _gcry_rsa_pkcs1_encode_for_sig (ret_mpi, ctx->nbits,
+                                                     value, valuelen,
+                                                     ctx->hash_algo);
+            }
         }
     }
   else if (ctx->encoding == PUBKEY_ENC_PKCS1_RAW && lvalue
