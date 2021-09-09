@@ -147,6 +147,8 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
         case 8:
           if (!memcmp (s, "use-x931", 8))
             flags |= PUBKEY_FLAG_USE_X931;
+          else if (!memcmp (s, "fixedlen", 8))
+            flags |= PUBKEY_FLAG_FIXEDLEN;
           else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
