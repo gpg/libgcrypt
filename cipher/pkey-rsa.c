@@ -111,27 +111,7 @@ _gcry_pkey_rsapss_sign (gcry_pkey_hd_t h,
           s_tmp = sexp_find_token (s_tmp2, "s", 0);
           if (s_tmp)
             {
-              const char *p;
-              size_t n;
-
-              out_len[0] = h->rsa.n_len;
-              out[0] = xtrymalloc (h->rsa.n_len);
-              if (! out[0])
-                {
-                  err = gpg_error_from_syserror ();
-                  sexp_release (s_tmp);
-                  sexp_release (s_tmp2);
-                  return err;
-                }
-
-              p = sexp_nth_data (s_tmp, 1, &n);
-              if (n == h->rsa.n_len)
-                memcpy (out[0], p, h->rsa.n_len);
-              else
-                {
-                  memset (out[0], 0, h->rsa.n_len - n);
-                  memcpy (out[0] + h->rsa.n_len - n, p, n);
-                }
+              out[0] = sexp_nth_buffer (s_tmp, 1, &out_len[0]);
               sexp_release (s_tmp);
             }
         }
@@ -300,27 +280,7 @@ _gcry_pkey_rsa15_sign (gcry_pkey_hd_t h,
           s_tmp = sexp_find_token (s_tmp2, "s", 0);
           if (s_tmp)
             {
-              const char *p;
-              size_t n;
-
-              out_len[0] = h->rsa.n_len;
-              out[0] = xtrymalloc (h->rsa.n_len);
-              if (! out[0])
-                {
-                  err = gpg_error_from_syserror ();
-                  sexp_release (s_tmp);
-                  sexp_release (s_tmp2);
-                  return err;
-                }
-
-              p = sexp_nth_data (s_tmp, 1, &n);
-              if (n == h->rsa.n_len)
-                memcpy (out[0], p, h->rsa.n_len);
-              else
-                {
-                  memset (out[0], 0, h->rsa.n_len - n);
-                  memcpy (out[0] + h->rsa.n_len - n, p, n);
-                }
+              out[0] = sexp_nth_buffer (s_tmp, 1, &out_len[0]);
               sexp_release (s_tmp);
             }
         }
@@ -519,7 +479,7 @@ _gcry_pkey_rsa931_sign (gcry_pkey_hd_t h,
 
   err = sexp_build (&s_msg, NULL,
                     "(data"
-                    " (flags raw)"
+                    " (flags raw fixedlen)"
                     " (value %b))",
                     (int)h->rsa.n_len, frame);
   if (err)
@@ -552,28 +512,7 @@ _gcry_pkey_rsa931_sign (gcry_pkey_hd_t h,
           s_tmp = sexp_find_token (s_tmp2, "s", 0);
           if (s_tmp)
             {
-              const char *p;
-              size_t n;
-
-              out_len[0] = h->rsa.n_len;
-              out[0] = xtrymalloc (h->rsa.n_len);
-              if (! out[0])
-                {
-                  err = gpg_error_from_syserror ();
-                  xfree (frame);
-                  sexp_release (s_tmp);
-                  sexp_release (s_tmp2);
-                  return err;
-                }
-
-              p = sexp_nth_data (s_tmp, 1, &n);
-              if (n == h->rsa.n_len)
-                memcpy (out[0], p, h->rsa.n_len);
-              else
-                {
-                  memset (out[0], 0, h->rsa.n_len - n);
-                  memcpy (out[0] + h->rsa.n_len - n, p, n);
-                }
+              out[0] = sexp_nth_buffer (s_tmp, 1, &out_len[0]);
               sexp_release (s_tmp);
             }
         }
@@ -646,7 +585,7 @@ _gcry_pkey_rsa931_verify (gcry_pkey_hd_t h,
 
   err = sexp_build (&s_msg, NULL,
                     "(data"
-                    " (flags raw)"
+                    " (flags raw fixedlen)"
                     " (value %b))",
                     (int)h->rsa.n_len, frame);
   xfree (frame);
@@ -665,6 +604,11 @@ _gcry_pkey_rsa931_verify (gcry_pkey_hd_t h,
       sexp_release (s_pk);
       return err;
     }
+
+  /* We check two possible signature;
+   * This allows invalid signature (by another value).
+   * We should support X9.31 signature scheme in lower level.
+   */
 
   err = _gcry_pk_verify (s_sig, s_msg, s_pk);
 
