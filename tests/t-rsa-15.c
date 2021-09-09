@@ -31,7 +31,7 @@
 
 #define PGM "t-rsa-15"
 #include "t-common.h"
-#define N_TESTS 80
+#define N_TESTS 120
 
 static int no_verify;
 static int custom_data_file;
@@ -184,6 +184,10 @@ one_test (const char *n, const char *e, const char *d,
     md_algo = GCRY_MD_SHA384;
   else if (!strcmp (sha_alg, "SHA512"))
     md_algo = GCRY_MD_SHA512;
+  else if (!strcmp (sha_alg, "SHA512224"))
+    md_algo = GCRY_MD_SHA512_224;
+  else if (!strcmp (sha_alg, "SHA512256"))
+    md_algo = GCRY_MD_SHA512_256;
   else
     {
       fail ("error for test, %s: %s",
