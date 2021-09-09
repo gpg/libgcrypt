@@ -42,7 +42,7 @@ _gcry_pkey_rsapss_sign (gcry_pkey_hd_t h,
   const char *md_name;
   gcry_sexp_t s_tmp, s_tmp2;
 
-  if (num_in != 2)
+  if (num_in != 1 && num_in != 2)
     return gpg_error (GPG_ERR_INV_ARG);
 
   if (num_out != 1)
@@ -80,17 +80,27 @@ _gcry_pkey_rsapss_sign (gcry_pkey_hd_t h,
   if (err)
     return err;
 
-  err = sexp_build (&s_msg, NULL,
-                    "(data"
-                    " (flags pss)"
-                    " (hash-algo %s)"
-                    " (value %b)"
-                    " (salt-length %d)"
-                    " (random-override %b))",
-                    md_name,
-                    (int)in_len[0], in[0],
-                    (int)in_len[1],
-                    (int)in_len[1], in[1]);
+  if (num_in == 1)
+    err = sexp_build (&s_msg, NULL,
+		      "(data"
+		      " (flags pss)"
+		      " (hash-algo %s)"
+		      " (value %b)"
+		      " (salt-length %d))",
+		      md_name,
+		      (int)in_len[0], in[0], 0);
+  else
+    err = sexp_build (&s_msg, NULL,
+		      "(data"
+		      " (flags pss)"
+		      " (hash-algo %s)"
+		      " (value %b)"
+		      " (salt-length %d)"
+		      " (random-override %b))",
+		      md_name,
+		      (int)in_len[0], in[0],
+		      (int)in_len[1],
+		      (int)in_len[1], in[1]);
   if (err)
     {
       sexp_release (s_sk);
@@ -143,7 +153,7 @@ _gcry_pkey_rsapss_verify (gcry_pkey_hd_t h,
   gcry_sexp_t s_msg= NULL;
   gcry_sexp_t s_sig= NULL;
 
-  if (num_in != 3)
+  if (num_in != 2 && num_in != 3)
     return gpg_error (GPG_ERR_INV_ARG);
 
   switch (h->rsa.md_algo)
@@ -177,17 +187,27 @@ _gcry_pkey_rsapss_verify (gcry_pkey_hd_t h,
   if (err)
     return err;
 
-  err = sexp_build (&s_msg, NULL,
-                    "(data"
-                    " (flags pss)"
-                    " (hash-algo %s)"
-                    " (value %b)"
-                    " (salt-length %d)"
-                    " (random-override %b))",
-                    md_name,
-                    (int)in_len[0], in[0],
-                    (int)in_len[1],
-                    (int)in_len[1], in[1]);
+  if (num_in == 2)
+    err = sexp_build (&s_msg, NULL,
+		      "(data"
+		      " (flags pss)"
+		      " (hash-algo %s)"
+		      " (value %b)"
+		      " (salt-length %d))",
+		      md_name,
+		      (int)in_len[0], in[0], 0);
+  else
+    err = sexp_build (&s_msg, NULL,
+		      "(data"
+		      " (flags pss)"
+		      " (hash-algo %s)"
+		      " (value %b)"
+		      " (salt-length %d)"
+		      " (random-override %b))",
+		      md_name,
+		      (int)in_len[0], in[0],
+		      (int)in_len[1],
+		      (int)in_len[1], in[1]);
   if (err)
     {
       sexp_release (s_pk);
@@ -196,7 +216,7 @@ _gcry_pkey_rsapss_verify (gcry_pkey_hd_t h,
 
   err = sexp_build (&s_sig, NULL,
                     "(sig-val(rsa(s %b)))",
-                    (int)in_len[2], in[2]);
+                    (int)in_len[num_in-1], in[num_in-1]);
   if (err)
     {
       sexp_release (s_msg);

@@ -172,6 +172,7 @@ one_test (const char *n, const char *e, const char *d,
   size_t out_len[1] = { 0 };
   unsigned int flags = 0;
   int md_algo;
+  int num_in;
 
   if (verbose > 1)
     info ("Running test %s\n", sha_alg);
@@ -259,7 +260,13 @@ one_test (const char *n, const char *e, const char *d,
   in[1] = buffer2;
   in_len[1] = buflen2;
 
-  err = gcry_pkey_op (h0, GCRY_PKEY_OP_SIGN, 2, in, in_len, 1, out, out_len);
+  /* SaltVal = 00 means no salt.  */
+  if (buflen2 == 1 && ((char *)buffer2)[0] == 0)
+    num_in = 1;
+  else
+    num_in = 2;
+
+  err = gcry_pkey_op (h0, GCRY_PKEY_OP_SIGN, num_in, in, in_len, 1, out, out_len);
   if (err)
     fail ("gcry_pkey_op failed: %s", gpg_strerror (err));
 
@@ -278,11 +285,11 @@ one_test (const char *n, const char *e, const char *d,
 
   if (!no_verify)
     {
-      in[2] = out[0];
-      in_len[2] = out_len[0];
+      in[num_in] = out[0];
+      in_len[num_in] = out_len[0];
 
       if ((err = gcry_pkey_op (h1, GCRY_PKEY_OP_VERIFY,
-                               3, in, in_len, 0, NULL, 0)))
+                               num_in+1, in, in_len, 0, NULL, 0)))
         fail ("GCRY_PKEY_OP_VERIFY failed for test: %s",
               gpg_strerror (err));
     }
