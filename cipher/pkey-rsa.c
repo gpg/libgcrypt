@@ -62,6 +62,12 @@ _gcry_pkey_rsapss_sign (gcry_pkey_hd_t h,
     case GCRY_MD_SHA512:
       md_name = "sha512";
       break;
+    case GCRY_MD_SHA512_224:
+      md_name = "sha512-224";
+      break;
+    case GCRY_MD_SHA512_256:
+      md_name = "sha512-256";
+      break;
     default:
       return gpg_error (GPG_ERR_INV_ARG);
     }
@@ -153,6 +159,12 @@ _gcry_pkey_rsapss_verify (gcry_pkey_hd_t h,
       break;
     case GCRY_MD_SHA512:
       md_name = "sha512";
+      break;
+    case GCRY_MD_SHA512_224:
+      md_name = "sha512-224";
+      break;
+    case GCRY_MD_SHA512_256:
+      md_name = "sha512-256";
       break;
     default:
       return gpg_error (GPG_ERR_INV_ARG);
