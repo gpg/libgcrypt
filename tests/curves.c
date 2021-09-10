@@ -32,7 +32,7 @@
 #define PGM "curves"
 #include "t-common.h"
 
-/* Number of curves defined in ../cipger/ecc-curves.c */
+/* Number of curves defined in ../cipher/ecc-curves.c */
 #define N_CURVES 27
 
 /* A real world sample public key.  */
