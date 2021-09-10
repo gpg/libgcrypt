@@ -68,6 +68,16 @@ gcry_error_t _gcry_pkey_rsa931_verify (gcry_pkey_hd_t h,
                                        int num_in, const unsigned char *const in[],
                                        const size_t in_len[]);
 
+gcry_error_t _gcry_pkey_dsa_sign (gcry_pkey_hd_t h,
+                                  int num_in, const unsigned char *const in[],
+                                  const size_t in_len[],
+                                  int num_out, unsigned char *out[],
+                                  size_t out_len[]);
+
+gcry_error_t _gcry_pkey_dsa_verify (gcry_pkey_hd_t h,
+                                    int num_in, const unsigned char *const in[],
+                                    const size_t in_len[]);
+
 struct pkey_ecc {
   int curve;
 
@@ -93,6 +103,25 @@ struct pkey_rsa {
   size_t d_len;
 };
 
+struct pkey_dsa {
+  int md_algo;
+
+  unsigned char *p;
+  size_t p_len;
+
+  unsigned char *q;
+  size_t q_len;
+
+  unsigned char *g;
+  size_t g_len;
+
+  unsigned char *x;             /* Private key.  */
+  size_t x_len;
+
+  unsigned char *y;             /* Public key.  */
+  size_t y_len;
+};
+
 struct gcry_pkey_handle {
   int algo;
   unsigned int flags;
@@ -100,5 +129,6 @@ struct gcry_pkey_handle {
   union {
     struct pkey_ecc ecc;
     struct pkey_rsa rsa;
+    struct pkey_dsa dsa;
   };
 };

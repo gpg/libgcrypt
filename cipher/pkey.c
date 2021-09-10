@@ -36,12 +36,8 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
   gcry_error_t err = 0;
   gcry_pkey_hd_t h;
 
-  if (algo == GCRY_PKEY_ECC)
+  if (algo == GCRY_PKEY_ECC || algo == GCRY_PKEY_RSA || algo == GCRY_PKEY_DSA)
     ;
-  else if (algo == GCRY_PKEY_RSA)
-    ;
-  else if (algo == GCRY_PKEY_DSA)
-    err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
   else if (algo == GCRY_PKEY_ELG)
     err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
   else
@@ -76,17 +72,15 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
 
       h->ecc.curve = curve;
 
+      pk = va_arg (arg_ptr, unsigned char *);
+      h->ecc.pk_len = va_arg (arg_ptr, size_t);
       if (!(flags & GCRY_PKEY_FLAG_SECRET))
         {
-          pk = va_arg (arg_ptr, unsigned char *);
-          h->ecc.pk_len = va_arg (arg_ptr, size_t);
           h->ecc.sk = sk = NULL;
           h->ecc.sk_len = 0;
         }
       else
         {
-          pk = va_arg (arg_ptr, unsigned char *);
-          h->ecc.pk_len = va_arg (arg_ptr, size_t);
           sk = va_arg (arg_ptr, unsigned char *);
           h->ecc.sk_len = va_arg (arg_ptr, size_t);
         }
@@ -152,21 +146,18 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
       md_algo = va_arg (arg_ptr, int);
       h->rsa.md_algo = md_algo;
 
+      n = va_arg (arg_ptr, unsigned char *);
+      h->rsa.n_len = va_arg (arg_ptr, size_t);
+      e = va_arg (arg_ptr, unsigned char *);
+      h->rsa.e_len = va_arg (arg_ptr, size_t);
+
       if (!(flags & GCRY_PKEY_FLAG_SECRET))
         {
-          n = va_arg (arg_ptr, unsigned char *);
-          h->rsa.n_len = va_arg (arg_ptr, size_t);
-          e = va_arg (arg_ptr, unsigned char *);
-          h->rsa.e_len = va_arg (arg_ptr, size_t);
           h->rsa.d = d = NULL;
           h->rsa.d_len = 0;
         }
       else
         {
-          n = va_arg (arg_ptr, unsigned char *);
-          h->rsa.n_len = va_arg (arg_ptr, size_t);
-          e = va_arg (arg_ptr, unsigned char *);
-          h->rsa.e_len = va_arg (arg_ptr, size_t);
           d = va_arg (arg_ptr, unsigned char *);
           h->rsa.d_len = va_arg (arg_ptr, size_t);
         }
@@ -215,6 +206,112 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
               return err;
             }
           memcpy (h->rsa.d, d, h->rsa.d_len);
+        }
+    }
+  else if (algo == GCRY_PKEY_DSA)
+    {
+      int md_algo;
+      unsigned char *p;
+      unsigned char *q;
+      unsigned char *g;
+      unsigned char *x;
+      unsigned char *y;
+
+      md_algo = va_arg (arg_ptr, int);
+      h->dsa.md_algo = md_algo;
+
+      p = va_arg (arg_ptr, unsigned char *);
+      h->dsa.p_len = va_arg (arg_ptr, size_t);
+      q = va_arg (arg_ptr, unsigned char *);
+      h->dsa.q_len = va_arg (arg_ptr, size_t);
+      g = va_arg (arg_ptr, unsigned char *);
+      h->dsa.g_len = va_arg (arg_ptr, size_t);
+
+      y = va_arg (arg_ptr, unsigned char *);
+      h->dsa.y_len = va_arg (arg_ptr, size_t);
+      if (!(flags & GCRY_PKEY_FLAG_SECRET))
+        {
+          h->dsa.x = x = NULL;
+          h->dsa.x_len = 0;
+        }
+      else
+        {
+          x = va_arg (arg_ptr, unsigned char *);
+          h->dsa.x_len = va_arg (arg_ptr, size_t);
+        }
+
+      if (err)
+        {
+          xfree (h);
+          return err;
+        }
+
+      if (p)
+        {
+          h->dsa.p = xtrymalloc (h->dsa.p_len);
+          if (!h->dsa.p)
+            {
+              err = gpg_error_from_syserror ();
+              xfree (h);
+              return err;
+            }
+          memcpy (h->dsa.p, p, h->dsa.p_len);
+        }
+      else
+        h->dsa.p = NULL;
+
+      if (q)
+        {
+          h->dsa.q = xtrymalloc (h->dsa.q_len);
+          if (!h->dsa.q)
+            {
+              err = gpg_error_from_syserror ();
+              xfree (h);
+              return err;
+            }
+          memcpy (h->dsa.q, q, h->dsa.q_len);
+        }
+      else
+        h->dsa.q = NULL;
+
+      if (g)
+        {
+          h->dsa.g = xtrymalloc (h->dsa.g_len);
+          if (!h->dsa.g)
+            {
+              err = gpg_error_from_syserror ();
+              xfree (h);
+              return err;
+            }
+          memcpy (h->dsa.g, g, h->dsa.g_len);
+        }
+      else
+        h->dsa.g = NULL;
+
+      if (y)
+        {
+          h->dsa.y = xtrymalloc (h->dsa.y_len);
+          if (!h->dsa.y)
+            {
+              err = gpg_error_from_syserror ();
+              xfree (h);
+              return err;
+            }
+          memcpy (h->dsa.y, y, h->dsa.y_len);
+        }
+      else
+        h->dsa.y = NULL;
+
+      if (x)
+        {
+          h->dsa.x = xtrymalloc (h->dsa.x_len);
+          if (!h->dsa.x)
+            {
+              err = gpg_error_from_syserror ();
+              xfree (h);
+              return err;
+            }
+          memcpy (h->dsa.x, x, h->dsa.x_len);
         }
     }
 
@@ -324,6 +421,16 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
       else
         err = gpg_error (GPG_ERR_INV_OP);
     }
+  else if (h->algo == GCRY_PKEY_DSA)
+    {
+      if (cmd == GCRY_PKEY_OP_SIGN)
+        err = _gcry_pkey_dsa_sign (h, num_in, in, in_len,
+                                   num_out, out, out_len);
+      else if (cmd == GCRY_PKEY_OP_VERIFY)
+        err = _gcry_pkey_dsa_verify (h, num_in, in, in_len);
+      else
+        err = gpg_error (GPG_ERR_INV_OP);
+    }
   else
     err = gpg_error (GPG_ERR_WRONG_PUBKEY_ALGO);
 
@@ -345,6 +452,14 @@ _gcry_pkey_close (gcry_pkey_hd_t h)
           xfree (h->rsa.n);
           xfree (h->rsa.e);
           xfree (h->rsa.d);
+        }
+      else if (h->algo == GCRY_PKEY_DSA)
+        {
+          xfree (h->dsa.p);
+          xfree (h->dsa.q);
+          xfree (h->dsa.g);
+          xfree (h->dsa.x);
+          xfree (h->dsa.y);
         }
 
       xfree (h);
