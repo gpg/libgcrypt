@@ -348,6 +348,7 @@ one_test (const char *sha_alg, const char *p, const char *q, const char *g,
   xfree (buffer4);
   xfree (buffer5);
   xfree (out[0]);
+  xfree (out[1]);
   xfree (sig_r_string);
   xfree (sig_s_string);
   gcry_pkey_close (h0);
