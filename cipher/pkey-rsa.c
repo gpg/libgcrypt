@@ -501,6 +501,12 @@ _gcry_pkey_rsa931_sign (gcry_pkey_hd_t h,
     case GCRY_MD_SHA512:
       md_number = 0x35;
       break;
+    case GCRY_MD_SHA512_224:
+      md_number = 0x39;
+      break;
+    case GCRY_MD_SHA512_256:
+      md_number = 0x40;
+      break;
     default:
       return gpg_error (GPG_ERR_INV_ARG);
     }
@@ -607,6 +613,12 @@ _gcry_pkey_rsa931_verify (gcry_pkey_hd_t h,
       break;
     case GCRY_MD_SHA512:
       md_number = 0x35;
+      break;
+    case GCRY_MD_SHA512_224:
+      md_number = 0x39;
+      break;
+    case GCRY_MD_SHA512_256:
+      md_number = 0x40;
       break;
     default:
       return gpg_error (GPG_ERR_INV_ARG);
