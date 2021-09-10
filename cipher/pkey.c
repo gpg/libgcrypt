@@ -58,10 +58,13 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
       unsigned char *sk;
 
       curve = va_arg (arg_ptr, int);
-      if (curve == GCRY_PKEY_CURVE_ED25519)
-        ;
-      else if (curve == GCRY_PKEY_CURVE_ED448)
-        ;
+      if (curve == GCRY_PKEY_CURVE_ED25519 || curve == GCRY_PKEY_CURVE_ED448)
+        h->ecc.md_algo = 0;
+      else if (curve == GCRY_PKEY_CURVE_NIST_P224
+	       || curve == GCRY_PKEY_CURVE_NIST_P256
+	       || curve == GCRY_PKEY_CURVE_NIST_P384
+	       || curve == GCRY_PKEY_CURVE_NIST_P521)
+	h->ecc.md_algo = va_arg (arg_ptr, int);
       else
         err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
       if (err)
@@ -72,8 +75,54 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
 
       h->ecc.curve = curve;
 
-      pk = va_arg (arg_ptr, unsigned char *);
-      h->ecc.pk_len = va_arg (arg_ptr, size_t);
+      if (h->ecc.md_algo)
+	{	/* NIST curves */
+	  unsigned char *x, *y;
+	  size_t x_len, y_len;
+
+	  x = va_arg (arg_ptr, unsigned char *);
+	  x_len = va_arg (arg_ptr, size_t);
+	  y = va_arg (arg_ptr, unsigned char *);
+	  y_len = va_arg (arg_ptr, size_t);
+
+	  if (x && y)
+	    {
+	      h->ecc.pk_len = 1 + x_len + y_len;
+	      h->ecc.pk = xtrymalloc (h->ecc.pk_len);
+	      if (!h->ecc.pk)
+		{
+		  err = gpg_error_from_syserror ();
+		  xfree (h);
+		  return err;
+		}
+
+	      h->ecc.pk[0] = 0x04;
+	      memcpy (h->ecc.pk+1, x, x_len);
+	      memcpy (h->ecc.pk+1+x_len, y, y_len);
+	    }
+	  else
+	    h->ecc.pk = NULL;
+	}
+      else
+	{	/* Modern curves */
+	  pk = va_arg (arg_ptr, unsigned char *);
+	  h->ecc.pk_len = va_arg (arg_ptr, size_t);
+
+	  if (pk)
+	    {
+	      h->ecc.pk = xtrymalloc (h->ecc.pk_len);
+	      if (!h->ecc.pk)
+		{
+		  err = gpg_error_from_syserror ();
+		  xfree (h);
+		  return err;
+		}
+	      memcpy (h->ecc.pk, pk, h->ecc.pk_len);
+	    }
+	  else
+	    h->ecc.pk = NULL;
+	}
+
       if (!(flags & GCRY_PKEY_FLAG_SECRET))
         {
           h->ecc.sk = sk = NULL;
@@ -84,26 +133,6 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
           sk = va_arg (arg_ptr, unsigned char *);
           h->ecc.sk_len = va_arg (arg_ptr, size_t);
         }
-
-      if (err)
-        {
-          xfree (h);
-          return err;
-        }
-
-      if (pk)
-        {
-          h->ecc.pk = xtrymalloc (h->ecc.pk_len);
-          if (!h->ecc.pk)
-            {
-              err = gpg_error_from_syserror ();
-              xfree (h);
-              return err;
-            }
-          memcpy (h->ecc.pk, pk, h->ecc.pk_len);
-        }
-      else
-        h->ecc.pk = NULL;
 
       if (sk)
         {
@@ -362,7 +391,6 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
 
   if (h->algo == GCRY_PKEY_ECC)
     {
-      /* Just for Ed25519 and Ed448 for now.  Will support more...  */
       if (h->ecc.curve == GCRY_PKEY_CURVE_ED25519)
         {
           if (cmd == GCRY_PKEY_OP_SIGN)
@@ -380,6 +408,19 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
                                          num_out, out, out_len);
           else if (cmd == GCRY_PKEY_OP_VERIFY)
             err = _gcry_pkey_ed448_verify (h, num_in, in, in_len);
+          else
+            err = gpg_error (GPG_ERR_INV_OP);
+        }
+      else if (h->ecc.curve == GCRY_PKEY_CURVE_NIST_P224
+	       || h->ecc.curve == GCRY_PKEY_CURVE_NIST_P256
+	       || h->ecc.curve == GCRY_PKEY_CURVE_NIST_P384
+	       || h->ecc.curve == GCRY_PKEY_CURVE_NIST_P521)
+        {
+          if (cmd == GCRY_PKEY_OP_SIGN)
+            err = _gcry_pkey_nist_sign (h, num_in, in, in_len,
+					num_out, out, out_len);
+          else if (cmd == GCRY_PKEY_OP_VERIFY)
+            err = _gcry_pkey_nist_verify (h, num_in, in, in_len);
           else
             err = gpg_error (GPG_ERR_INV_OP);
         }

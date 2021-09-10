@@ -210,7 +210,7 @@ one_test (const char *curvename, const char *sha_alg,
   size_t in_len[4];
   unsigned char *out[2] = { NULL, NULL };
   size_t out_len[2] = { 0, 0 };
-  unsigned int flags = 0;
+  unsigned int flags = GCRY_PKEY_FLAG_PREHASH;
   int curve;
   int md_algo;
 
