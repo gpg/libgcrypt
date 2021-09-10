@@ -1233,7 +1233,11 @@ enum gcry_pkey_algos
 enum gcry_pkey_curves
   {
     GCRY_PKEY_CURVE_ED25519,
-    GCRY_PKEY_CURVE_ED448
+    GCRY_PKEY_CURVE_ED448,
+    GCRY_PKEY_CURVE_NIST_P224,
+    GCRY_PKEY_CURVE_NIST_P256,
+    GCRY_PKEY_CURVE_NIST_P384,
+    GCRY_PKEY_CURVE_NIST_P521
   };
 
 enum gcry_pkey_rsa_schemes
