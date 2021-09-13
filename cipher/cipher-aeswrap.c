@@ -187,6 +187,7 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
           memcpy (r+(i-1)*8, b+8, 8);
         }
    }
+  wipememory (b, 16);  /* Clear scratch area.  */
 
   /* If an IV has been set we compare against this Alternative Initial
      Value; if it has not been set we compare against the standard IV.  */
