@@ -175,14 +175,28 @@ hex2buffer (const char *string, size_t *r_length)
   const char *s;
   unsigned char *buffer;
   size_t length;
+  int odd;
 
-  buffer = xmalloc (strlen(string)/2+1);
-  length = 0;
-  for (s=string; *s; s +=2 )
+  odd = ((strlen (string) & 1));
+
+  buffer = xmalloc (strlen (string)/2 + odd + 1);
+  if (odd)
+    {
+      length = 1;
+      s = string;
+      buffer[0] = xtoi_1 (s);
+      s++;
+    }
+  else
+    {
+      length = 0;
+      s = string;
+    }
+  for (; *s; s +=2 )
     {
       if (!hexdigitp (s) || !hexdigitp (s+1))
         return NULL;           /* Invalid hex digits. */
-      ((unsigned char*)buffer)[length++] = xtoi_2 (s);
+      buffer[length++] = xtoi_2 (s);
     }
   *r_length = length;
   return buffer;
@@ -331,7 +345,8 @@ one_test (const char *curvename, const char *sha_alg,
   for (i=0; i < out_len[0]; i++, p0 += 2)
     snprintf (p0, 3, "%02x", out[1][i]);
 
-  if (strcmp (sig_r_string, r) || strcmp (sig_s_string, s))
+  if (strcmp (sig_r_string + (curve == GCRY_PKEY_CURVE_NIST_P521), r)
+      || strcmp (sig_s_string + (curve == GCRY_PKEY_CURVE_NIST_P521), s))
     {
       fail ("gcry_pkey_op failed: %s",
             "wrong value returned");

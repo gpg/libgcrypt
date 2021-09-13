@@ -92,7 +92,7 @@ _gcry_pkey_nist_sign (gcry_pkey_hd_t h,
   if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
     err = sexp_build (&s_msg, NULL,
                       "(data"
-                      " (flags prehash)"
+                      " (flags raw prehash)"
                       " (label %b)"
                       " (hash-algo %s)"
                       " (value %b))",
@@ -130,13 +130,53 @@ _gcry_pkey_nist_sign (gcry_pkey_hd_t h,
           s_tmp = sexp_find_token (s_tmp2, "r", 0);
           if (s_tmp)
             {
-              out[0] = sexp_nth_buffer (s_tmp, 1, &out_len[0]);
+              const char *p;
+              size_t n;
+
+              out_len[0] = h->ecc.sk_len;
+              out[0] = xtrymalloc (h->ecc.sk_len);
+              if (!out[0])
+                {
+                  err = gpg_error_from_syserror ();
+                  sexp_release (s_tmp);
+                  sexp_release (s_tmp2);
+                  return err;
+                }
+
+              p = sexp_nth_data (s_tmp, 1, &n);
+              if (n == h->ecc.sk_len)
+                memcpy (out[0], p, h->ecc.sk_len);
+              else
+                {
+                  memset (out[0], 0, h->ecc.sk_len - n);
+                  memcpy (out[0] + h->ecc.sk_len - n, p, n);
+                }
               sexp_release (s_tmp);
             }
           s_tmp = sexp_find_token (s_tmp2, "s", 0);
           if (s_tmp)
             {
-              out[1] = sexp_nth_buffer (s_tmp, 1, &out_len[1]);
+              const char *p;
+              size_t n;
+
+              out_len[1] = h->ecc.sk_len;
+              out[1] = xtrymalloc (h->ecc.sk_len);
+              if (!out[1])
+                {
+                  err = gpg_error_from_syserror ();
+                  sexp_release (s_tmp);
+                  sexp_release (s_tmp2);
+                  return err;
+                }
+
+              p = sexp_nth_data (s_tmp, 1, &n);
+              if (n == h->ecc.sk_len)
+                memcpy (out[1], p, h->ecc.sk_len);
+              else
+                {
+                  memset (out[1], 0, h->ecc.sk_len - n);
+                  memcpy (out[1] + h->ecc.sk_len - n, p, n);
+                }
               sexp_release (s_tmp);
             }
         }
@@ -181,7 +221,7 @@ _gcry_pkey_nist_verify (gcry_pkey_hd_t h,
   if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
     err = sexp_build (&s_msg, NULL,
                       "(data"
-                      " (flags prehash)"
+                      " (flags raw prehash)"
                       " (label %b)"
                       " (hash-algo %s)"
                       " (value %b))",
