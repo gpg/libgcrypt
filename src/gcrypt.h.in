@@ -1160,6 +1160,19 @@ gcry_error_t gcry_pk_decrypt (gcry_sexp_t *result,
 gcry_error_t gcry_pk_sign (gcry_sexp_t *result,
                            gcry_sexp_t data, gcry_sexp_t skey);
 
+/* Variant of gcry_pk_sign which takes as additional parameter a HASH
+ * handle and an optional context.  The hash algorithm used by the
+ * handle needs to have the algorithm given by the DATA parameter
+ * enabled.  The hash handle must not yet been finalized; the function
+ * takes a copy of the state and does a finalize on the copy.  This
+ * function shall be used if a policy requires that hashing and signing
+ * is done by the same function.  CTX is currently not used and should
+ * be passed as NULL.  */
+gcry_error_t gcry_pk_hash_sign (gcry_sexp_t *result,
+                                gcry_sexp_t data, gcry_sexp_t skey,
+                                gcry_md_hd_t hash,
+                                gcry_ctx_t ctx);
+
 /* Check the signature SIGVAL on DATA using the public key PKEY. */
 gcry_error_t gcry_pk_verify (gcry_sexp_t sigval,
                              gcry_sexp_t data, gcry_sexp_t pkey);
