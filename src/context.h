@@ -22,7 +22,7 @@
 
 /* Context types as used in struct gcry_context.  */
 #define CONTEXT_TYPE_EC 1  /* The context is used with EC functions.  */
-
+#define CONTEXT_TYPE_RANDOM_OVERRIDE 2  /* Used with pubkey functions.  */
 
 gcry_ctx_t _gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*));
 void *_gcry_ctx_get_pointer (gcry_ctx_t ctx, int type);

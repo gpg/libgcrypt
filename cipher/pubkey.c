@@ -1085,3 +1085,48 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 
   return gpg_error (ec);
 }
+
+
+struct pk_random_override {
+  size_t len;
+  unsigned char area[];
+};
+
+gpg_err_code_t
+_gcry_pk_random_override_new (gcry_ctx_t *r_ctx,
+                              const unsigned char *p, size_t len)
+{
+  gcry_ctx_t ctx;
+  struct pk_random_override *pro;
+
+  *r_ctx = NULL;
+  if (!p)
+    return GPG_ERR_EINVAL;
+
+  ctx = _gcry_ctx_alloc (CONTEXT_TYPE_RANDOM_OVERRIDE,
+                         sizeof (size_t) + len, NULL);
+  if (!ctx)
+    return gpg_err_code_from_syserror ();
+  pro = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_RANDOM_OVERRIDE);
+  pro->len = len;
+  memcpy (pro->area, p, len);
+
+  *r_ctx = ctx;
+  return 0;
+}
+
+gpg_err_code_t
+_gcry_pk_get_random_override (gcry_ctx_t ctx,
+                              const unsigned char **r_p, size_t *r_len)
+{
+  struct pk_random_override *pro;
+
+  pro = _gcry_ctx_find_pointer (ctx, CONTEXT_TYPE_RANDOM_OVERRIDE);
+  if (!pro)
+    return GPG_ERR_EINVAL;
+
+  *r_p = pro->area;
+  *r_len = pro->len;
+
+  return 0;
+}
