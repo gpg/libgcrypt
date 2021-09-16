@@ -1160,19 +1160,6 @@ gcry_error_t gcry_pk_decrypt (gcry_sexp_t *result,
 gcry_error_t gcry_pk_sign (gcry_sexp_t *result,
                            gcry_sexp_t data, gcry_sexp_t skey);
 
-/* Variant of gcry_pk_sign which takes as additional parameter a HASH
- * handle and an optional context.  The hash algorithm used by the
- * handle needs to have the algorithm given by the DATA parameter
- * enabled.  The hash handle must not yet been finalized; the function
- * takes a copy of the state and does a finalize on the copy.  This
- * function shall be used if a policy requires that hashing and signing
- * is done by the same function.  CTX is currently not used and should
- * be passed as NULL.  */
-gcry_error_t gcry_pk_hash_sign (gcry_sexp_t *result,
-                                gcry_sexp_t data, gcry_sexp_t skey,
-                                gcry_md_hd_t hash,
-                                gcry_ctx_t ctx);
-
 /* Check the signature SIGVAL on DATA using the public key PKEY. */
 gcry_error_t gcry_pk_verify (gcry_sexp_t sigval,
                              gcry_sexp_t data, gcry_sexp_t pkey);
@@ -1904,6 +1891,24 @@ int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
 /* Return true if Libgcrypt is in FIPS mode.  */
 #define gcry_fips_mode_active()  !!gcry_control (GCRYCTL_FIPS_MODE_P, 0)
 
+/* Variant of gcry_pk_sign which takes as additional parameter a HD
+ * handle for hash and an optional context.  The hash algorithm used by the
+ * handle needs to be enabled and input needs to be supplied beforehand.
+ * DATA-TMPL specifies a template to compose an S-expression to be signed.
+ * The hash handle must not yet been finalized; the function
+ * takes a copy of the state and does a finalize on the copy.  This
+ * function shall be used if a policy requires that hashing and signing
+ * is done by the same function.  CTX is currently not used and should
+ * be passed as NULL.  */
+gcry_error_t gcry_pk_hash_sign (gcry_sexp_t *result,
+                                const char *data_tmpl, gcry_sexp_t skey,
+                                gcry_md_hd_t hd, gcry_ctx_t ctx);
+
+/* Variant of gcry_pk_verify which takes as additional parameter a HD
+ * handle for hash and an optional context.  Similar to gcry_pk_hash_sign.  */
+gcry_error_t gcry_pk_hash_verify (gcry_sexp_t sigval,
+                                  const char *data_tmpl, gcry_sexp_t pkey,
+                                  gcry_md_hd_t hd, gcry_ctx_t ctx);
 
 #if 0 /* (Keep Emacsens' auto-indent happy.) */
 {

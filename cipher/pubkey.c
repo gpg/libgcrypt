@@ -438,6 +438,59 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 }
 
 
+gcry_err_code_t
+_gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
+                  gcry_sexp_t s_skey)
+{
+  gcry_err_code_t rc;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms = NULL;
+  gcry_sexp_t s_hash = NULL;
+  int algo;
+  const unsigned char *digest;
+  gcry_error_t err;
+  gcry_md_hd_t hd;
+
+  *r_sig = NULL;
+
+  err = _gcry_md_copy (&hd, hd_orig);
+  if (err)
+    return gpg_err_code (err);
+
+  algo = _gcry_md_get_algo (hd);
+
+  digest = _gcry_md_read (hd, 0);
+  if (!digest)
+    {
+      _gcry_md_close (hd);
+      return GPG_ERR_DIGEST_ALGO;
+    }
+
+  rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+                         _gcry_md_algo_name (algo),
+                         (int) _gcry_md_get_algo_dlen (algo),
+                         digest);
+
+  _gcry_md_close (hd);
+  if (rc)
+    goto leave;
+
+  rc = spec_from_sexp (s_skey, 1, &spec, &keyparms);
+  if (rc)
+    goto leave;
+
+  if (spec->sign)
+    rc = spec->sign (r_sig, s_hash, keyparms);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
+
+ leave:
+  sexp_release (s_hash);
+  sexp_release (keyparms);
+  return rc;
+}
+
+
 /*
    Verify a signature.
 
@@ -462,6 +515,57 @@ _gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
     rc = GPG_ERR_NOT_IMPLEMENTED;
 
  leave:
+  sexp_release (keyparms);
+  return rc;
+}
+
+
+gcry_err_code_t
+_gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
+                    gcry_sexp_t s_pkey)
+{
+  gcry_err_code_t rc;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms = NULL;
+  gcry_sexp_t s_hash = NULL;
+  int algo;
+  const unsigned char *digest;
+  gcry_error_t err;
+  gcry_md_hd_t hd;
+
+  err = _gcry_md_copy (&hd, hd_orig);
+  if (err)
+    return gpg_err_code (err);
+
+  algo = _gcry_md_get_algo (hd);
+
+  digest = _gcry_md_read (hd, 0);
+  if (!digest)
+    {
+      _gcry_md_close (hd);
+      return GPG_ERR_DIGEST_ALGO;
+    }
+
+  rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+                         _gcry_md_algo_name (algo),
+                         (int) _gcry_md_get_algo_dlen (algo),
+                         digest);
+
+  _gcry_md_close (hd);
+  if (rc)
+    goto leave;
+
+  rc = spec_from_sexp (s_pkey, 1, &spec, &keyparms);
+  if (rc)
+    goto leave;
+
+  if (spec->verify)
+    rc = spec->verify (s_sig, s_hash, keyparms);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
+
+ leave:
+  sexp_release (s_hash);
   sexp_release (keyparms);
   return rc;
 }
