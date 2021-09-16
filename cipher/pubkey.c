@@ -473,13 +473,26 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
                            digest);
   else
     {
-      _gcry_md_close (hd);
-      return GPG_ERR_DIGEST_ALGO;
+      const unsigned char *p;
+      size_t len;
+
+      rc = _gcry_pk_get_random_override (ctx, &p, &len);
+      if (rc)
+        {
+          _gcry_md_close (hd);
+          return rc;
+        }
+
+      rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+                             _gcry_md_algo_name (algo),
+                             (int) _gcry_md_get_algo_dlen (algo),
+                             digest,
+                             (int) len, p);
     }
 
   _gcry_md_close (hd);
   if (rc)
-    goto leave;
+    return rc;
 
   rc = spec_from_sexp (s_skey, 1, &spec, &keyparms);
   if (rc)
@@ -559,13 +572,26 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
                            digest);
   else
     {
-      _gcry_md_close (hd);
-      return GPG_ERR_NOT_IMPLEMENTED;
+      const unsigned char *p;
+      size_t len;
+
+      rc = _gcry_pk_get_random_override (ctx, &p, &len);
+      if (rc)
+        {
+          _gcry_md_close (hd);
+          return rc;
+        }
+
+      rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+                             _gcry_md_algo_name (algo),
+                             (int) _gcry_md_get_algo_dlen (algo),
+                             digest,
+                             (int) len, p);
     }
 
   _gcry_md_close (hd);
   if (rc)
-    goto leave;
+    return rc;
 
   rc = spec_from_sexp (s_pkey, 1, &spec, &keyparms);
   if (rc)
