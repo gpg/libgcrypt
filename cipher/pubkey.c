@@ -440,7 +440,7 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 
 gcry_err_code_t
 _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
-                  gcry_sexp_t s_skey)
+                  gcry_sexp_t s_skey, gcry_ctx_t ctx)
 {
   gcry_err_code_t rc;
   gcry_pk_spec_t *spec;
@@ -463,13 +463,19 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (!digest)
     {
       _gcry_md_close (hd);
-      return GPG_ERR_DIGEST_ALGO;
+      return GPG_ERR_NOT_IMPLEMENTED;
     }
 
-  rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-                         _gcry_md_algo_name (algo),
-                         (int) _gcry_md_get_algo_dlen (algo),
-                         digest);
+  if (!ctx)
+    rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+                           _gcry_md_algo_name (algo),
+                           (int) _gcry_md_get_algo_dlen (algo),
+                           digest);
+  else
+    {
+      _gcry_md_close (hd);
+      return GPG_ERR_DIGEST_ALGO;
+    }
 
   _gcry_md_close (hd);
   if (rc)
@@ -522,7 +528,7 @@ _gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 
 gcry_err_code_t
 _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
-                    gcry_sexp_t s_pkey)
+                    gcry_sexp_t s_pkey, gcry_ctx_t ctx)
 {
   gcry_err_code_t rc;
   gcry_pk_spec_t *spec;
@@ -546,10 +552,16 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
       return GPG_ERR_DIGEST_ALGO;
     }
 
-  rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-                         _gcry_md_algo_name (algo),
-                         (int) _gcry_md_get_algo_dlen (algo),
-                         digest);
+  if (!ctx)
+    rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+                           _gcry_md_algo_name (algo),
+                           (int) _gcry_md_get_algo_dlen (algo),
+                           digest);
+  else
+    {
+      _gcry_md_close (hd);
+      return GPG_ERR_NOT_IMPLEMENTED;
+    }
 
   _gcry_md_close (hd);
   if (rc)

@@ -114,9 +114,10 @@ gpg_error_t _gcry_ecc_mul_point (int algo, unsigned char *result,
                                  const unsigned char *scalar,
                                  const unsigned char *point);
 gcry_err_code_t _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl,
-                                  gcry_md_hd_t hd, gcry_sexp_t s_skey);
+                                  gcry_md_hd_t hd, gcry_sexp_t s_skey, gcry_ctx_t ctx);
 gcry_err_code_t _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl,
-                                    gcry_md_hd_t hd, gcry_sexp_t s_pkey);
+                                    gcry_md_hd_t hd, gcry_sexp_t s_pkey,
+                                    gcry_ctx_t ctx);
 
 gcry_error_t _gcry_pkey_vopen (gcry_pkey_hd_t *h, int algo, unsigned int flags,
                                va_list arg_ptr);
