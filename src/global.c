@@ -698,8 +698,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_FIPS_MODE_P:
-      if (fips_mode ()
-          && !_gcry_is_fips_mode_inactive ())
+      if (fips_mode ())
 	rc = GPG_ERR_GENERAL; /* Used as TRUE value */
       break;
 
@@ -862,10 +861,11 @@ _gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
 
   if (fips_mode ())
     {
-      /* We do not want to enforce the fips mode, but merely set a
-         flag so that the application may check whether it is still in
-         fips mode.  */
-      _gcry_inactivate_fips_mode ("custom allocation handler");
+      /* In FIPS mode, we can not use custom allocation handlers because
+       * fips requires explicit zeroization and we can not guarantee that
+       * with custom free functions (and we can not do it transparently as
+       * in free we do not know the zize). */
+      return;
     }
 
   alloc_func = new_alloc_func;

@@ -439,9 +439,6 @@ int _gcry_enforced_fips_mode (void);
 
 void _gcry_set_enforced_fips_mode (void);
 
-void _gcry_inactivate_fips_mode (const char *text);
-int _gcry_is_fips_mode_inactive (void);
-
 
 void _gcry_fips_signal_error (const char *srcfile,
                               int srcline,

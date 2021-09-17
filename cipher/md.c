@@ -1189,17 +1189,6 @@ _gcry_md_hash_buffer (int algo, void *digest,
       return;
     }
 
-  if (algo == GCRY_MD_MD5 && fips_mode ())
-    {
-      _gcry_inactivate_fips_mode ("MD5 used");
-      if (_gcry_enforced_fips_mode () )
-        {
-          /* We should never get to here because we do not register
-             MD5 in enforced fips mode.  */
-          _gcry_fips_noreturn ();
-        }
-    }
-
   if (spec->hash_buffers != NULL)
     {
       gcry_buffer_t iov;
@@ -1269,17 +1258,6 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
     {
       log_debug ("md_hash_buffers: algorithm %d not available\n", algo);
       return GPG_ERR_DIGEST_ALGO;
-    }
-
-  if (algo == GCRY_MD_MD5 && fips_mode ())
-    {
-      _gcry_inactivate_fips_mode ("MD5 used");
-      if (_gcry_enforced_fips_mode () )
-        {
-          /* We should never get to here because we do not register
-             MD5 in enforced fips mode.  */
-          _gcry_fips_noreturn ();
-        }
     }
 
   if (spec->mdlen > 0 && digestlen != -1 && digestlen != spec->mdlen)

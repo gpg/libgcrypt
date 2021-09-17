@@ -61,11 +61,6 @@ int _gcry_no_fips_mode_required;
 /* Flag to indicate that we are in the enforced FIPS mode.  */
 static int enforced_fips_mode;
 
-/* If this flag is set, the application may no longer assume that the
-   process is running in FIPS mode.  This flag is protected by the
-   FSM_LOCK.  */
-static int inactive_fips_mode;
-
 /* This is the lock we use to protect the FSM.  */
 GPGRT_LOCK_DEFINE (fsm_lock);
 
@@ -269,53 +264,6 @@ _gcry_set_enforced_fips_mode (void)
 {
   enforced_fips_mode = 1;
 }
-
-/* If we do not want to enforce the fips mode, we can set a flag so
-   that the application may check whether it is still in fips mode.
-   TEXT will be printed as part of a syslog message.  This function
-   may only be be called if in fips mode. */
-void
-_gcry_inactivate_fips_mode (const char *text)
-{
-  gcry_assert (fips_mode ());
-
-  if (_gcry_enforced_fips_mode () )
-    {
-      /* Get us into the error state. */
-      fips_signal_error (text);
-      return;
-    }
-
-  lock_fsm ();
-  if (!inactive_fips_mode)
-    {
-      inactive_fips_mode = 1;
-      unlock_fsm ();
-#ifdef HAVE_SYSLOG
-      syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s - FIPS mode inactivated", text);
-#endif /*HAVE_SYSLOG*/
-    }
-  else
-    unlock_fsm ();
-}
-
-
-/* Return the FIPS mode inactive flag.  If it is true the FIPS mode is
-   not anymore active.  */
-int
-_gcry_is_fips_mode_inactive (void)
-{
-  int flag;
-
-  if (!fips_mode ())
-    return 0;
-  lock_fsm ();
-  flag = inactive_fips_mode;
-  unlock_fsm ();
-  return flag;
-}
-
 
 
 static const char *
