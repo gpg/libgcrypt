@@ -593,7 +593,7 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (rc)
     return rc;
 
-  rc = spec_from_sexp (s_pkey, 1, &spec, &keyparms);
+  rc = spec_from_sexp (s_pkey, 0, &spec, &keyparms);
   if (rc)
     goto leave;
 

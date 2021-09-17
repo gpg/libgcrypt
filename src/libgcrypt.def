@@ -294,4 +294,8 @@ EXPORTS
       gcry_pkey_op              @253
       gcry_pkey_close           @254
 
+      gcry_pk_hash_sign         @255
+      gcry_pk_hash_verify       @256
+      gcry_pk_random_override_new @257
+
 ;; end of file with public symbols for Windows.
