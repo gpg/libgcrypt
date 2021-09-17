@@ -882,6 +882,31 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
         }
       else if (lhash)
         {
+          /* Get optional LABEL.  */
+          list = sexp_find_token (ldata, "label", 0);
+          if (list)
+            {
+              s = sexp_nth_data (list, 1, &n);
+              if (!s)
+                rc = GPG_ERR_NO_OBJ;
+              else if (n > 0)
+                {
+                  ctx->label = xtrymalloc (n);
+                  if (!ctx->label)
+                    rc = gpg_err_code_from_syserror ();
+                  else
+                    {
+                      memcpy (ctx->label, s, n);
+                      ctx->labellen = n;
+                    }
+                }
+              else
+                rc = GPG_ERR_INV_ARG;
+              sexp_release (list);
+              if (rc)
+                goto leave;
+            }
+
           if (sexp_length (lhash) != 3)
             rc = GPG_ERR_INV_OBJ;
           else if ( !(s=sexp_nth_data (lhash, 1, &n)) || !n )
