@@ -369,9 +369,19 @@ print_config (const char *what, gpgrt_stream_t fp)
     {
       /* We use y/n instead of 1/0 for the stupid reason that
        * Emacsen's compile error parser would accidentally flag that
-       * line when printed during "make check" as an error.  */
-      gpgrt_fprintf (fp, "fips-mode:%c:\n",
-                     fips_mode ()? 'y':'n' );
+       * line when printed during "make check" as an error.  The
+       * second field is obsolete and thus empty (used to be used for
+       * a so-called enforced-fips-mode).  The third field has an
+       * option static string describing the module versions; this is
+       * an optional configure option.  */
+      gpgrt_fprintf (fp, "fips-mode:%c::%s:\n",
+                     fips_mode ()? 'y':'n',
+#ifdef FIPS_MODULE_VERSION
+                     fips_mode () ? FIPS_MODULE_VERSION : ""
+#else
+                     ""
+#endif /* FIPS_MODULE_VERSION */
+                     );
     }
 
   if (!what || !strcmp (what, "rng-type"))

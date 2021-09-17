@@ -604,6 +604,12 @@ if test "$use_hmac_binary_check" = yes ; then
 fi
 AM_CONDITIONAL(USE_HMAC_BINARY_CHECK, test x$use_hmac_binary_check = xyes)
 
+# Implementation of the --with-fips-module-version.
+AC_ARG_WITH(fips-module-version,
+    [  --with-fips-module-version=VERSION)],
+            fips_module_version="$withval", fips_module_version="" )
+AC_DEFINE_UNQUOTED(FIPS_MODULE_VERSION, "$fips_module_version",
+                   [Define FIPS module version for certification])
 
 # Implementation of the --disable-jent-support switch.
 AC_MSG_CHECKING([whether jitter entropy support is requested])
@@ -3271,6 +3277,7 @@ GCRY_MSG_WRAP([Enabled pubkey algorithms:],[$enabled_pubkey_ciphers])
 GCRY_MSG_SHOW([Random number generator:  ],[$random])
 GCRY_MSG_SHOW([Try using jitter entropy: ],[$jentsupport])
 GCRY_MSG_SHOW([Using linux capabilities: ],[$use_capabilities])
+GCRY_MSG_SHOW([FIPS module version:      ],[$fips_module_version])
 GCRY_MSG_SHOW([Try using Padlock crypto: ],[$padlocksupport])
 GCRY_MSG_SHOW([Try using AES-NI crypto:  ],[$aesnisupport])
 GCRY_MSG_SHOW([Try using Intel SHAEXT:   ],[$shaextsupport])

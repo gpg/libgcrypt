@@ -165,6 +165,10 @@
                      against a HMAC checksum.  This works only in FIPS
                      mode and on systems providing the dladdr function.
 
+     --with-fips-module-version=version
+                     Specify a string used as a module version for FIPS
+                     certification purposes.
+
      --disable-padlock-support
                      Disable support for the PadLock engine of VIA
                      processors.  The default is to use PadLock if
