@@ -383,6 +383,289 @@ one_test (const char *curvename, const char *sha_alg,
 
 
 static void
+one_test_sexp (const char *curvename, const char *sha_alg,
+	       const char *x, const char *y, const char *d,
+	       const char *msg, const char *k,
+	       const char *r, const char *s)
+{
+  gpg_error_t err;
+  int i;
+  char *p0;
+  void *buffer = NULL;
+  void *buffer2 = NULL;
+  void *buffer3 = NULL;
+  size_t buflen, buflen2, buflen3;
+  unsigned char *pkbuffer = NULL;
+  size_t pkbuflen;
+  char curvename_gcrypt[11];
+  gcry_ctx_t ctx = NULL;
+  int md_algo;
+  const char *data_tmpl;
+  gcry_md_hd_t hd = NULL;
+  gcry_sexp_t s_pk = NULL;
+  gcry_sexp_t s_sk = NULL;
+  gcry_sexp_t s_sig= NULL;
+  gcry_sexp_t s_tmp, s_tmp2;
+  unsigned char *out_r = NULL;
+  unsigned char *out_s = NULL;
+  size_t out_r_len, out_s_len;
+  char *sig_r_string = NULL;
+  char *sig_s_string = NULL;
+
+  if (verbose > 1)
+    info ("Running test %s\n", sha_alg);
+
+  if (!strcmp (curvename, "P-224")
+      || !strcmp (curvename, "P-256")
+      || !strcmp (curvename, "P-384")
+      || !strcmp (curvename, "P-521"))
+    {
+      memcpy (curvename_gcrypt, "NIST ", 5);
+      strcpy (curvename_gcrypt+5, curvename);
+    }
+  else
+    {
+      fail ("error for test, %s: %s: %s",
+            "ECC curve", "invalid", curvename);
+      goto leave;
+    }
+
+  if (!strcmp (sha_alg, "SHA-224"))
+    md_algo = GCRY_MD_SHA224;
+  else if (!strcmp (sha_alg, "SHA-256"))
+    md_algo = GCRY_MD_SHA256;
+  else if (!strcmp (sha_alg, "SHA-384"))
+    md_algo = GCRY_MD_SHA384;
+  else if (!strcmp (sha_alg, "SHA-512"))
+    md_algo = GCRY_MD_SHA512;
+  else if (!strcmp (sha_alg, "SHA-512224"))
+    md_algo = GCRY_MD_SHA512_224;
+  else if (!strcmp (sha_alg, "SHA-512256"))
+    md_algo = GCRY_MD_SHA512_256;
+  else
+    {
+      fail ("error for test, %s: %s: %s",
+            "SHA algo", "invalid", sha_alg);
+      goto leave;
+    }
+
+  err = gcry_md_open (&hd, md_algo, 0);
+  if (err)
+    {
+      fail ("algo %d, gcry_md_open failed: %s\n", md_algo, gpg_strerror (err));
+      return;
+    }
+
+  if (!(buffer = hex2buffer (x, &buflen)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "Qx", "invalid hex string");
+      goto leave;
+    }
+  if (!(buffer2 = hex2buffer (y, &buflen2)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "Qy", "invalid hex string");
+      goto leave;
+    }
+  if (!(buffer3 = hex2buffer (d, &buflen3)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "d", "invalid hex string");
+      goto leave;
+    }
+
+  pkbuflen = buflen + buflen2 + 1;
+  pkbuffer = xmalloc (pkbuflen);
+  pkbuffer[0] = 0x04;
+  memcpy (pkbuffer+1, buffer, buflen);
+  memcpy (pkbuffer+1+buflen, buffer2, buflen2);
+
+  err = gcry_sexp_build (&s_sk, NULL,
+                         "(private-key (ecc (curve %s)(q %b)(d %b)))",
+			 curvename_gcrypt,
+                         (int)pkbuflen, pkbuffer,
+                         (int)buflen3, buffer3);
+  if (err)
+    {
+      fail ("error building SEXP for test, %s: %s",
+            "sk", gpg_strerror (err));
+      goto leave;
+    }
+
+  err = gcry_sexp_build (&s_pk, NULL,
+                         "(public-key (ecc (curve %s)(q %b)(d %b)))",
+			 curvename_gcrypt,
+                         (int)pkbuflen, pkbuffer);
+  if (err)
+    {
+      fail ("error building SEXP for test, %s: %s",
+            "pk", gpg_strerror (err));
+      goto leave;
+    }
+
+  xfree (buffer);
+  xfree (buffer2);
+  xfree (buffer3);
+  buffer = buffer2 = buffer3 = NULL;
+  xfree (pkbuffer);
+  pkbuffer = NULL;
+
+  if (!(buffer = hex2buffer (msg, &buflen)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "msg", "invalid hex string");
+      goto leave;
+    }
+
+  gcry_md_write (hd, buffer, buflen);
+  xfree (buffer);
+  buffer = NULL;
+
+  if (!(buffer2 = hex2buffer (k, &buflen2)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "salt_val", "invalid hex string");
+      goto leave;
+    }
+
+  err = gcry_pk_random_override_new (&ctx, buffer2, buflen2);
+  if (err)
+    {
+      fail ("error setting salt for test: %s",
+	    gpg_strerror (err));
+      goto leave;
+    }
+
+  xfree (buffer2);
+  buffer2 = NULL;
+
+  data_tmpl = "(data(flags raw)(hash %s %b)(label %b))";
+
+  err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, hd, ctx);
+  if (err)
+    {
+      fail ("gcry_pkey_hash_sign failed: %s", gpg_strerror (err));
+      goto leave;
+    }
+
+  out_r_len = out_s_len = 0;
+  out_s = out_r = NULL;
+  s_tmp2 = NULL;
+  s_tmp = gcry_sexp_find_token (s_sig, "sig-val", 0);
+  if (s_tmp)
+    {
+      s_tmp2 = s_tmp;
+      s_tmp = gcry_sexp_find_token (s_tmp2, "ecdsa", 0);
+      if (s_tmp)
+        {
+          gcry_sexp_release (s_tmp2);
+          s_tmp2 = s_tmp;
+          s_tmp = gcry_sexp_find_token (s_tmp2, "r", 0);
+          if (s_tmp)
+            {
+              const char *p;
+              size_t n;
+
+              out_r_len = buflen3;
+              out_r = xmalloc (out_r_len);
+              if (!out_r)
+                {
+                  err = gpg_error_from_syserror ();
+                  gcry_sexp_release (s_tmp);
+                  gcry_sexp_release (s_tmp2);
+		  goto leave;
+                }
+
+              p = gcry_sexp_nth_data (s_tmp, 1, &n);
+              if (n == out_r_len)
+                memcpy (out_r, p, out_r_len);
+              else
+                {
+                  memset (out_r, 0, out_r_len - n);
+                  memcpy (out_r + out_r_len - n, p, n);
+                }
+              gcry_sexp_release (s_tmp);
+            }
+          s_tmp = gcry_sexp_find_token (s_tmp2, "s", 0);
+          if (s_tmp)
+            {
+              const char *p;
+              size_t n;
+
+              out_s_len = out_r_len;
+              out_s = xmalloc (out_s_len);
+              if (!out_s)
+                {
+                  err = gpg_error_from_syserror ();
+                  gcry_sexp_release (s_tmp);
+                  gcry_sexp_release (s_tmp2);
+		  goto leave;
+                }
+
+              p = gcry_sexp_nth_data (s_tmp, 1, &n);
+              if (n == out_s_len)
+                memcpy (out_s, p, out_s_len);
+              else
+                {
+                  memset (out_s, 0, out_s_len - n);
+                  memcpy (out_s + out_s_len - n, p, n);
+                }
+              gcry_sexp_release (s_tmp);
+            }
+        }
+    }
+  gcry_sexp_release (s_tmp2);
+
+  sig_r_string = xmalloc (2*out_r_len+1);
+  p0 = sig_r_string;
+  *p0 = 0;
+  for (i=0; i < out_r_len; i++, p0 += 2)
+    snprintf (p0, 3, "%02x", out_r[i]);
+
+  sig_s_string = xmalloc (2*out_s_len+1);
+  p0 = sig_s_string;
+  *p0 = 0;
+  for (i=0; i < out_s_len; i++, p0 += 2)
+    snprintf (p0, 3, "%02x", out_s[i]);
+
+  if (strcmp (sig_r_string + (strcmp (curvename, "P-521") == 0), r)
+      || strcmp (sig_s_string + (strcmp (curvename, "P-521") == 0), s))
+    {
+      fail ("gcry_pkey_op failed: %s",
+            "wrong value returned");
+      info ("  expected: '%s'", r);
+      info ("       got: '%s'", sig_r_string);
+      info ("  expected: '%s'", s);
+      info ("       got: '%s'", sig_s_string);
+    }
+
+  if (!no_verify)
+    {
+      err = gcry_pk_hash_verify (s_sig, data_tmpl, s_pk, hd, ctx);
+      if (err)
+        fail ("gcry_pk_hash_verify failed for test: %s",
+              gpg_strerror (err));
+    }
+
+ leave:
+  gcry_ctx_release (ctx);
+  gcry_sexp_release (s_sig);
+  gcry_sexp_release (s_sk);
+  gcry_sexp_release (s_pk);
+  if (hd)
+    gcry_md_close (hd);
+  xfree (buffer);
+  xfree (buffer2);
+  xfree (buffer3);
+  xfree (out_r);
+  xfree (out_s);
+  xfree (sig_r_string);
+  xfree (sig_s_string);
+}
+
+
+static void
 check_ecdsa (const char *fname)
 {
   FILE *fp;
@@ -429,6 +712,7 @@ check_ecdsa (const char *fname)
       if (curve && sha_alg && x && y && d && msg && k && r && s)
         {
           one_test (curve, sha_alg, x, y, d, msg, k, r, s);
+          one_test_sexp (curve, sha_alg, x, y, d, msg, k, r, s);
           ntests++;
           if (!(ntests % 256))
             show_note ("%d of %d tests done\n", ntests, N_TESTS);

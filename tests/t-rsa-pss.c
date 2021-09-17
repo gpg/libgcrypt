@@ -506,6 +506,7 @@ one_test_sexp (const char *n, const char *e, const char *d,
     }
 
  leave:
+  gcry_ctx_release (ctx);
   gcry_sexp_release (s_sig);
   gcry_sexp_release (s_sk);
   gcry_sexp_release (s_pk);
