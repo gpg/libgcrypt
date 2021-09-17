@@ -370,9 +370,8 @@ print_config (const char *what, gpgrt_stream_t fp)
       /* We use y/n instead of 1/0 for the stupid reason that
        * Emacsen's compile error parser would accidentally flag that
        * line when printed during "make check" as an error.  */
-      gpgrt_fprintf (fp, "fips-mode:%c:%c:\n",
-                     fips_mode ()? 'y':'n',
-                     _gcry_enforced_fips_mode ()? 'y':'n' );
+      gpgrt_fprintf (fp, "fips-mode:%c:\n",
+                     fips_mode ()? 'y':'n' );
     }
 
   if (!what || !strcmp (what, "rng-type"))
@@ -768,14 +767,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_SET_ENFORCED_FIPS_FLAG:
-      if (!_gcry_global_any_init_done)
-        {
-          /* Not yet initialized at all.  Set the enforced fips mode flag */
-          _gcry_set_preferred_rng_type (0);
-          _gcry_set_enforced_fips_mode ();
-        }
-      else
-        rc = GPG_ERR_GENERAL;
+      /* Obsolete - ignore  */
       break;
 
     case GCRYCTL_SET_PREFERRED_RNG_TYPE:
@@ -912,7 +904,7 @@ get_no_secure_memory (void)
 {
   if (!no_secure_memory)
     return 0;
-  if (_gcry_enforced_fips_mode ())
+  if (fips_mode ())
     {
       no_secure_memory = 0;
       return 0;

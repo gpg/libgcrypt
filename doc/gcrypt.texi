@@ -535,21 +535,6 @@ initialization (i.e. before @code{gcry_check_version}).
 
 @end itemize
 
-@cindex Enforced FIPS mode
-
-In addition to the standard FIPS mode, Libgcrypt may also be put into
-an Enforced FIPS mode by writing a non-zero value into the file
-@file{/etc/gcrypt/fips_enabled} or by using the control command
-@code{GCRYCTL_SET_ENFORCED_FIPS_FLAG} before any other calls to
-libgcrypt.  The Enforced FIPS mode helps to detect applications
-which don't fulfill all requirements for using
-Libgcrypt in FIPS mode (@pxref{FIPS Mode}).
-
-Once Libgcrypt has been put into FIPS mode, it is not possible to
-switch back to standard mode without terminating the process first.
-If the logging verbosity level of Libgcrypt has been set to at least
-2, the state transitions and the self-tests are logged.
-
 @node Hardware features
 @section How to disable hardware features
 @cindex hardware features
@@ -677,10 +662,8 @@ to disable secure memory is to use @code{GCRYCTL_DISABLE_SECMEM} right
 after initialization.
 
 @item GCRYCTL_DISABLE_SECMEM; Arguments: none
-This command disables the use of secure memory.  If this command is
-used in FIPS mode, FIPS mode will be disabled and the function
-@code{gcry_fips_mode_active} returns false.  However, in Enforced FIPS
-mode this command has no effect at all.
+This command disables the use of secure memory.  In FIPS mode this command
+has no effect at all.
 
 Many applications do not require secure memory, so they should disable
 it right away.  This command should be executed right after
@@ -889,13 +872,7 @@ application switch the library into FIPS mode.  Note that Libgcrypt will
 reject an attempt to switch to fips mode during or after the initialization.
 
 @item GCRYCTL_SET_ENFORCED_FIPS_FLAG; Arguments: none
-Running this command sets the internal flag that puts the library into
-the enforced FIPS mode during the FIPS mode initialization.  This command
-does not affect the library if the library is not put into the FIPS mode and
-it must be used before any other libgcrypt library calls that initialize
-the library such as @code{gcry_check_version}. Note that Libgcrypt will
-reject an attempt to switch to the enforced fips mode during or after
-the initialization.
+This command is obsolete and has no effect; do not use it.
 
 @item GCRYCTL_SET_PREFERRED_RNG_TYPE; Arguments: int
 These are advisory commands to select a certain random number
@@ -6771,18 +6748,15 @@ On-the-fly self-tests are not performed, instead self-tests are run
 before entering operational state.
 
 @item
-The function @code{gcry_set_allocation_handler} may not be used.  If
-it is used Libgcrypt disables FIPS mode unless Enforced FIPS mode is
-enabled, in which case Libgcrypt will enter the error state.
+The function @code{gcry_set_allocation_handler} may not be used. In FIPS mode
+this function does not have any effect, because FIPS has a requirements for
+memory zeroization.
 
 @item
-The digest algorithm MD5 may not be used.  If it is used Libgcrypt
-disables FIPS mode unless Enforced FIPS mode is enabled, in which case
-Libgcrypt will enter the error state.
+The digest algorithm MD5 may not be used.
 
 @item
-In Enforced FIPS mode the command @code{GCRYCTL_DISABLE_SECMEM} is
-ignored.  In standard FIPS mode it disables FIPS mode.
+In FIPS mode the command @code{GCRYCTL_DISABLE_SECMEM} is ignored.
 
 @item
 A handler set by @code{gcry_set_outofcore_handler} is ignored.

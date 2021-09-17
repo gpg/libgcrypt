@@ -58,9 +58,6 @@ enum module_states
    fips_mode()! */
 int _gcry_no_fips_mode_required;
 
-/* Flag to indicate that we are in the enforced FIPS mode.  */
-static int enforced_fips_mode;
-
 /* This is the lock we use to protect the FSM.  */
 GPGRT_LOCK_DEFINE (fsm_lock);
 
@@ -171,7 +168,6 @@ _gcry_initialize_fips_mode (int force)
   if (!_gcry_no_fips_mode_required)
     {
       /* Yes, we are in FIPS mode.  */
-      FILE *fp;
 
       /* Intitialize the lock to protect the FSM.  */
       err = gpgrt_lock_init (&fsm_lock);
@@ -188,19 +184,6 @@ _gcry_initialize_fips_mode (int force)
                   gpg_strerror (err));
 #endif /*HAVE_SYSLOG*/
           abort ();
-        }
-
-
-      /* If the FIPS force files exists, is readable and has a number
-         != 0 on its first line, we enable the enforced fips mode.  */
-      fp = fopen (FIPS_FORCE_FILE, "r");
-      if (fp)
-        {
-          char line[256];
-
-          if (fgets (line, sizeof line, fp) && atoi (line))
-            enforced_fips_mode = 1;
-          fclose (fp);
         }
 
       /* Now get us into the INIT state.  */
@@ -246,23 +229,6 @@ unlock_fsm (void)
 #endif /*HAVE_SYSLOG*/
       abort ();
     }
-}
-
-
-/* Return a flag telling whether we are in the enforced fips mode.  */
-int
-_gcry_enforced_fips_mode (void)
-{
-  if (!fips_mode ())
-    return 0;
-  return enforced_fips_mode;
-}
-
-/* Set a flag telling whether we are in the enforced fips mode.  */
-void
-_gcry_set_enforced_fips_mode (void)
-{
-  enforced_fips_mode = 1;
 }
 
 

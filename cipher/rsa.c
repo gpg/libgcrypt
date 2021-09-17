@@ -381,7 +381,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
 
   if (nbits <= 1024 || (nbits & 0x1FF))
     return GPG_ERR_INV_VALUE;
-  if (_gcry_enforced_fips_mode() && nbits != 2048 && nbits != 3072)
+  if (fips_mode() && nbits != 2048 && nbits != 3072)
       return GPG_ERR_INV_VALUE;
 
   /* The random quality depends on the transient_key flag.  */
