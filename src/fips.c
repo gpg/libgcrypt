@@ -630,6 +630,20 @@ check_binary_integrity (void)
 #endif /*HAVE_SYSLOG*/
   return !!err;
 }
+
+
+/* Run self-tests for HMAC-SHA256 algorithm before verifying library integrity.
+ * Return 0 on success. */
+static int
+run_hmac_sha256_selftests (void)
+{
+  gpg_error_t err;
+
+  err = _gcry_mac_selftest (GCRY_MAC_HMAC_SHA256, 0, reporter);
+  reporter ("mac", GCRY_MAC_HMAC_SHA256, NULL,
+            err? gpg_strerror (err):NULL);
+  return err ? 1 : 0;
+}
 #endif
 
 
@@ -643,6 +657,19 @@ _gcry_fips_run_selftests (int extended)
 
   if (fips_mode ())
     fips_new_state (STATE_SELFTEST);
+
+#ifdef ENABLE_HMAC_BINARY_CHECK
+  if (fips_mode ())
+    {
+      if (run_hmac_sha256_selftests (extended))
+        goto leave;
+
+      /* Now check the integrity of the binary.  We do this this after
+         having checked the HMAC code.  */
+      if (check_binary_integrity ())
+        goto leave;
+    }
+#endif
 
   if (run_cipher_selftests (extended))
     goto leave;
@@ -663,16 +690,6 @@ _gcry_fips_run_selftests (int extended)
 
   if (run_pubkey_selftests (extended))
     goto leave;
-
-#ifdef ENABLE_HMAC_BINARY_CHECK
-  if (fips_mode ())
-    {
-      /* Now check the integrity of the binary.  We do this this after
-         having checked the HMAC code.  */
-      if (check_binary_integrity ())
-        goto leave;
-    }
-#endif
 
   /* All selftests passed.  */
   result = STATE_OPERATIONAL;
