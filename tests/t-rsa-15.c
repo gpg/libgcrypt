@@ -289,6 +289,178 @@ one_test (const char *n, const char *e, const char *d,
 
 
 static void
+one_test_sexp (const char *n, const char *e, const char *d,
+               const char *sha_alg, const char *msg, const char *s)
+{
+  gpg_error_t err;
+  int i;
+  char *p;
+  void *buffer = NULL;
+  void *buffer2 = NULL;
+  void *buffer3 = NULL;
+  size_t buflen, buflen2, buflen3;
+  int md_algo;
+  const char *data_tmpl;
+  gcry_md_hd_t hd = NULL;
+  gcry_sexp_t s_pk = NULL;
+  gcry_sexp_t s_sk = NULL;
+  gcry_sexp_t s_sig= NULL;
+  gcry_sexp_t s_tmp, s_tmp2;
+  unsigned char *out = NULL;
+  size_t out_len;
+  char *sig_string = NULL;
+
+  if (verbose > 1)
+    info ("Running test %s\n", sha_alg);
+
+  if (!strcmp (sha_alg, "SHA224"))
+    md_algo = GCRY_MD_SHA224;
+  else if (!strcmp (sha_alg, "SHA256"))
+    md_algo = GCRY_MD_SHA256;
+  else if (!strcmp (sha_alg, "SHA384"))
+    md_algo = GCRY_MD_SHA384;
+  else if (!strcmp (sha_alg, "SHA512"))
+    md_algo = GCRY_MD_SHA512;
+  else if (!strcmp (sha_alg, "SHA512224"))
+    md_algo = GCRY_MD_SHA512_224;
+  else if (!strcmp (sha_alg, "SHA512256"))
+    md_algo = GCRY_MD_SHA512_256;
+  else
+    {
+      fail ("error for test, %s: %s",
+            "d", "invalid hex string");
+      goto leave;
+    }
+
+  err = gcry_md_open (&hd, md_algo, 0);
+  if (err)
+    {
+      fail ("algo %d, gcry_md_open failed: %s\n", md_algo, gpg_strerror (err));
+      return;
+    }
+
+  if (!(buffer = hex2buffer (n, &buflen)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "n", "invalid hex string");
+      goto leave;
+    }
+  if (!(buffer2 = hex2buffer (e, &buflen2)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "e", "invalid hex string");
+      goto leave;
+    }
+  if (!(buffer3 = hex2buffer (d, &buflen3)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "d", "invalid hex string");
+      goto leave;
+    }
+
+  err = gcry_sexp_build (&s_sk, NULL,
+                         "(private-key (rsa (n %b)(e %b)(d %b)))",
+                         (int)buflen, buffer,
+                         (int)buflen2, buffer2,
+                         (int)buflen3, buffer3);
+  if (err)
+    {
+      fail ("error building SEXP for test, %s: %s",
+            "sk", gpg_strerror (err));
+      goto leave;
+    }
+
+  err = gcry_sexp_build (&s_pk, NULL,
+                         "(public-key (rsa (n %b)(e %b)))",
+                         (int)buflen, buffer,
+                         (int)buflen2, buffer2);
+  if (err)
+    {
+      fail ("error building SEXP for test, %s: %s",
+            "pk", gpg_strerror (err));
+      goto leave;
+    }
+
+  xfree (buffer);
+  xfree (buffer2);
+  xfree (buffer3);
+  buffer = buffer2 = buffer3 = NULL;
+
+  if (!(buffer = hex2buffer (msg, &buflen)))
+    {
+      fail ("error parsing for test, %s: %s",
+            "msg", "invalid hex string");
+      goto leave;
+    }
+
+  gcry_md_write (hd, buffer, buflen);
+  xfree (buffer);
+  buffer = NULL;
+
+  data_tmpl = "(data(flags pkcs1)(hash %s %b))";
+  err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, hd, NULL);
+  if (err)
+    {
+      fail ("gcry_pkey_op failed: %s", gpg_strerror (err));
+      goto leave;
+    }
+
+  s_tmp2 = NULL;
+  s_tmp = gcry_sexp_find_token (s_sig, "sig-val", 0);
+  if (s_tmp)
+    {
+      s_tmp2 = s_tmp;
+      s_tmp = gcry_sexp_find_token (s_tmp2, "rsa", 0);
+      if (s_tmp)
+        {
+          gcry_sexp_release (s_tmp2);
+          s_tmp2 = s_tmp;
+          s_tmp = gcry_sexp_find_token (s_tmp2, "s", 0);
+          if (s_tmp)
+            {
+              out = gcry_sexp_nth_buffer (s_tmp, 1, &out_len);
+              gcry_sexp_release (s_tmp);
+            }
+        }
+    }
+  gcry_sexp_release (s_tmp2);
+
+  sig_string = gcry_xmalloc (2*out_len+1);
+  p = sig_string;
+  *p = 0;
+  for (i=0; i < out_len; i++, p += 2)
+    snprintf (p, 3, "%02x", out[i]);
+  if (strcmp (sig_string, s))
+    {
+      fail ("gcry_pkey_op failed: %s",
+            "wrong value returned");
+      info ("  expected: '%s'", s);
+      info ("       got: '%s'", sig_string);
+    }
+
+  if (!no_verify)
+    {
+      err = gcry_pk_hash_verify (s_sig, data_tmpl, s_pk, hd, NULL);
+      if (err)
+        fail ("gcry_pk_hash_verify failed for test: %s",
+              gpg_strerror (err));
+    }
+
+ leave:
+  gcry_sexp_release (s_sig);
+  gcry_sexp_release (s_sk);
+  gcry_sexp_release (s_pk);
+  if (hd)
+    gcry_md_close (hd);
+  xfree (buffer);
+  xfree (buffer2);
+  xfree (buffer3);
+  xfree (out);
+  xfree (sig_string);
+}
+
+
+static void
 check_rsa_15 (const char *fname)
 {
   FILE *fp;
@@ -330,6 +502,7 @@ check_rsa_15 (const char *fname)
       if (n && e && d && sha_alg && msg && s)
         {
           one_test (n, e, d, sha_alg, msg, s);
+          one_test_sexp (n, e, d, sha_alg, msg, s);
           ntests++;
           if (!(ntests % 256))
             show_note ("%d of %d tests done\n", ntests, N_TESTS);
