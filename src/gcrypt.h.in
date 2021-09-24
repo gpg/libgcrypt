@@ -1234,6 +1234,7 @@ enum gcry_pkey_curves
   {
     GCRY_PKEY_CURVE_ED25519,
     GCRY_PKEY_CURVE_ED448,
+    GCRY_PKEY_CURVE_NIST_P192,
     GCRY_PKEY_CURVE_NIST_P224,
     GCRY_PKEY_CURVE_NIST_P256,
     GCRY_PKEY_CURVE_NIST_P384,
@@ -1250,7 +1251,8 @@ enum gcry_pkey_rsa_schemes
 enum gcry_pkey_ops
   {
     GCRY_PKEY_OP_VERIFY,
-    GCRY_PKEY_OP_SIGN
+    GCRY_PKEY_OP_SIGN,
+    GCRY_PKEY_OP_ECDH
   };
 
 gcry_error_t gcry_pkey_open (gcry_pkey_hd_t *h_p, int algo, unsigned int flags, ...);

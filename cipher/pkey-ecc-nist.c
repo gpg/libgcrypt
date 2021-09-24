@@ -26,7 +26,14 @@
 #include <errno.h>
 
 #include "g10lib.h"
+#include "mpi.h"
+#include "mpi-internal.h"
+#include "ec-context.h"
 #include "gcrypt-int.h"
+#include "cipher.h"
+#include "context.h"
+#include "pubkey-internal.h"
+#include "ecc-common.h"
 #include "pkey-internal.h"
 
 static const char *
@@ -34,6 +41,8 @@ get_curve_name (int curve)
 {
   switch (curve)
     {
+    case GCRY_PKEY_CURVE_NIST_P192:
+      return "nistp192";
     case GCRY_PKEY_CURVE_NIST_P224:
       return "nistp224";
     case GCRY_PKEY_CURVE_NIST_P256:
@@ -257,4 +266,150 @@ _gcry_pkey_nist_verify (gcry_pkey_hd_t h,
   sexp_release (s_pk);
 
   return err;
+}
+
+
+gcry_error_t
+_gcry_pkey_nist_ecdh (gcry_pkey_hd_t h,
+		      int num_in, const unsigned char *const in[],
+		      const size_t in_len[],
+		      int num_out, unsigned char *out[], size_t out_len[])
+{
+  gpg_err_code_t errc;
+  gcry_error_t err = 0;
+  const char *curve;
+  int flags = 0;
+  unsigned int nbits;
+  elliptic_curve_t E;
+  mpi_ec_t ec;
+  mpi_point_struct kG;
+  mpi_point_struct R;
+  gcry_mpi_t x, y;
+  size_t n;
+
+  if (num_in != 2)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+  if (num_out != 1 && num_out != 2)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+  curve = get_curve_name (h->ecc.curve);
+
+  memset (&E, 0, sizeof E);
+  errc = _gcry_ecc_fill_in_curve (0, curve, &E, &nbits);
+  if (errc)
+    return gpg_error (errc);
+
+  ec = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, flags, E.p, E.a, E.b);
+  if (!ec)
+    {
+      _gcry_ecc_curve_free (&E);
+      return gpg_error (GPG_ERR_INV_CURVE);
+    }
+
+  ec->G = mpi_point_snatch_set (NULL, E.G.x, E.G.y, E.G.z);
+  E.G.x = NULL;
+  E.G.y = NULL;
+  E.G.z = NULL;
+  ec->n = E.n;
+  E.n = NULL;
+  ec->h = E.h;
+  ec->name = E.name;
+  ec->Q = _gcry_mpi_point_new (nbits);
+  _gcry_mpi_scan (&ec->d, GCRYMPI_FMT_USG, h->ecc.sk, h->ecc.sk_len, NULL);
+  _gcry_ecc_curve_free (&E);
+
+  if (h->ecc.pk)
+    {
+      size_t n = h->ecc.pk_len;
+
+      if (n < 1 || h->ecc.pk[0] != 0x04 || ((n - 1) % 2))
+	{
+	  _gcry_mpi_ec_free (ec);
+	  return gpg_error (GPG_ERR_INV_OBJ);
+	}
+
+      n = (n - 1)/2;
+      mpi_free (ec->Q->x);
+      ec->Q->x = NULL;
+      mpi_free (ec->Q->y);
+      ec->Q->y = NULL;
+      _gcry_mpi_scan (&ec->Q->x, GCRYMPI_FMT_USG, h->ecc.pk+1, n, NULL);
+      _gcry_mpi_scan (&ec->Q->y, GCRYMPI_FMT_USG, h->ecc.pk+1+n, n, NULL);
+      mpi_set_ui (ec->Q->z, 1);
+    }
+  else
+    {
+      /* FIXME: compute ec->Q by [ec->d] ec->G.  */
+      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+    }
+
+  if (err)
+    {
+      _gcry_mpi_ec_free (ec);
+      return err;
+    }
+
+  _gcry_mpi_scan (&kG.x, GCRYMPI_FMT_USG, in[0], in_len[0], NULL);
+  _gcry_mpi_scan (&kG.y, GCRYMPI_FMT_USG, in[1], in_len[1], NULL);
+  kG.z = mpi_new (0);
+  mpi_set_ui (kG.z, 1);
+
+  if (DBG_CIPHER)
+    log_printpnt ("ecdh    kG", &kG, NULL);
+
+  if (!_gcry_mpi_ec_curve_point (&kG, ec))
+    {
+      point_free (&kG);
+      _gcry_mpi_ec_free (ec);
+      return gpg_error (GPG_ERR_INV_DATA);
+    }
+
+  point_init (&R);
+
+  /* R = dkG */
+  _gcry_mpi_ec_mul_point (&R, ec->d, &kG, ec);
+
+  point_free (&kG);
+
+  x = mpi_new (0);
+  y = mpi_new (0);
+  if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
+    {
+      mpi_free (x);
+      mpi_free (y);
+      point_free (&R);
+      _gcry_mpi_ec_free (ec);
+      return gpg_error (GPG_ERR_INV_DATA);
+    }
+
+  point_free (&R);
+  _gcry_mpi_ec_free (ec);
+
+  out[0] = xmalloc (h->ecc.sk_len);
+  errc = _gcry_mpi_print (GCRYMPI_FMT_USG, out[0], h->ecc.sk_len, &n, x);
+  if (n < h->ecc.sk_len)
+    {
+      memmove (out[0] + h->ecc.sk_len - n, out[0], n);
+      memset (out[0], 0, h->ecc.sk_len - n);
+    }
+  out_len[0] = h->ecc.sk_len;
+
+  mpi_free (x);
+
+  if (num_out == 2)
+    {
+      out[1] = xmalloc (h->ecc.sk_len);
+      errc = _gcry_mpi_print (GCRYMPI_FMT_USG, out[1], h->ecc.sk_len, &n, y);
+      if (n < h->ecc.sk_len)
+	{
+	  memmove (out[1] + h->ecc.sk_len - n, out[1], n);
+	  memset (out[1], 0, h->ecc.sk_len - n);
+	}
+      out_len[1] = h->ecc.sk_len;
+    }
+
+  mpi_free (y);
+
+  return 0;
 }

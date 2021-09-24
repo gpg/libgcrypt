@@ -28,7 +28,7 @@ tests_bin = \
 	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 \
 	t-ed25519 t-cv25519 t-x448 t-ed448 \
 	t-rsa-pss t-rsa-15 t-rsa-931 \
-	t-dsa t-ecdsa
+	t-dsa t-ecdsa t-ecc-cdh
 
 tests_bin_last = benchmark bench-slope
 
@@ -66,7 +66,7 @@ CLEANFILES = testdrv-build
 EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
 	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h \
 	     t-rsa-pss.inp t-rsa-15.inp t-rsa-931.inp \
-	     t-dsa.inp t-ecdsa.inp \
+	     t-dsa.inp t-ecdsa.inp t-ecc-cdh.inp \
 	     t-ed25519.inp t-ed25519-rfc8032.inp \
 	     t-ed448.inp stopwatch.h hashtest-256g.in \
 	     sha3-224.h sha3-256.h sha3-384.h sha3-512.h \

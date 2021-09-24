@@ -60,7 +60,8 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
       curve = va_arg (arg_ptr, int);
       if (curve == GCRY_PKEY_CURVE_ED25519 || curve == GCRY_PKEY_CURVE_ED448)
         h->ecc.md_algo = 0;
-      else if (curve == GCRY_PKEY_CURVE_NIST_P224
+      else if (curve == GCRY_PKEY_CURVE_NIST_P192
+	       || curve == GCRY_PKEY_CURVE_NIST_P224
 	       || curve == GCRY_PKEY_CURVE_NIST_P256
 	       || curve == GCRY_PKEY_CURVE_NIST_P384
 	       || curve == GCRY_PKEY_CURVE_NIST_P521)
@@ -411,7 +412,8 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
           else
             err = gpg_error (GPG_ERR_INV_OP);
         }
-      else if (h->ecc.curve == GCRY_PKEY_CURVE_NIST_P224
+      else if (h->ecc.curve == GCRY_PKEY_CURVE_NIST_P192
+	       || h->ecc.curve == GCRY_PKEY_CURVE_NIST_P224
 	       || h->ecc.curve == GCRY_PKEY_CURVE_NIST_P256
 	       || h->ecc.curve == GCRY_PKEY_CURVE_NIST_P384
 	       || h->ecc.curve == GCRY_PKEY_CURVE_NIST_P521)
@@ -421,6 +423,9 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
 					num_out, out, out_len);
           else if (cmd == GCRY_PKEY_OP_VERIFY)
             err = _gcry_pkey_nist_verify (h, num_in, in, in_len);
+          else if (cmd == GCRY_PKEY_OP_ECDH)
+            err = _gcry_pkey_nist_ecdh (h, num_in, in, in_len,
+					num_out, out, out_len);
           else
             err = gpg_error (GPG_ERR_INV_OP);
         }
