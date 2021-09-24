@@ -137,7 +137,7 @@ mpicalc_CFLAGS = $(GPG_ERROR_CFLAGS)
 mpicalc_LDADD = libgcrypt.la $(GPG_ERROR_LIBS)
 EXTRA_mpicalc_DEPENDENCIES = libgcrypt.la.done
 
-hmac256_SOURCES = hmac256.c
+hmac256_SOURCES = hmac256.c hmac256.h
 hmac256_CFLAGS = -DSTANDALONE $(arch_gpg_error_cflags)
 hmac256_LDADD = $(arch_gpg_error_libs)
 
