@@ -61,7 +61,7 @@ noinst_HEADERS = t-common.h
 
 CLEANFILES = testdrv-build
 
-EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
+EXTRA_DIST = README rsa-16k.key \
 	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h \
 	     t-ed25519.inp t-ed448.inp stopwatch.h hashtest-256g.in \
 	     sha3-224.h sha3-256.h sha3-384.h sha3-512.h \
