@@ -212,6 +212,12 @@
 
     Specific problems on some machines:
 
+      * AArch64 (GCC 11.1 and 11.2)
+
+	Because of the bug in GCC (fixed in 11.3), with the option
+	-O3, vectorization results wrong code for the function
+	buf_eq_const.  Please use -O2 or -fno-tree-loop-vectorize.
+
       * IBM RS/6000 running AIX
 
 	Due to a change in gcc (since version 2.8) the MPI stuff may
