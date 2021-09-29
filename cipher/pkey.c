@@ -434,38 +434,47 @@ _gcry_pkey_op (gcry_pkey_hd_t h, int cmd,
     }
   else if (h->algo == GCRY_PKEY_RSA)
     {
-      if (h->rsa.scheme == GCRY_PKEY_RSA_PSS)
-        {
-          if (cmd == GCRY_PKEY_OP_SIGN)
-            err = _gcry_pkey_rsapss_sign (h, num_in, in, in_len,
-                                          num_out, out, out_len);
-          else if (cmd == GCRY_PKEY_OP_VERIFY)
-            err = _gcry_pkey_rsapss_verify (h, num_in, in, in_len);
-          else
-            err = gpg_error (GPG_ERR_INV_OP);
-        }
-      else if (h->rsa.scheme == GCRY_PKEY_RSA_15)
-        {
-          if (cmd == GCRY_PKEY_OP_SIGN)
-            err = _gcry_pkey_rsa15_sign (h, num_in, in, in_len,
-                                         num_out, out, out_len);
-          else if (cmd == GCRY_PKEY_OP_VERIFY)
-            err = _gcry_pkey_rsa15_verify (h, num_in, in, in_len);
-          else
-            err = gpg_error (GPG_ERR_INV_OP);
-        }
-      else if (h->rsa.scheme == GCRY_PKEY_RSA_931)
-        {
-          if (cmd == GCRY_PKEY_OP_SIGN)
-            err = _gcry_pkey_rsa931_sign (h, num_in, in, in_len,
-                                          num_out, out, out_len);
-          else if (cmd == GCRY_PKEY_OP_VERIFY)
-            err = _gcry_pkey_rsa931_verify (h, num_in, in, in_len);
-          else
-            err = gpg_error (GPG_ERR_INV_OP);
-        }
+      if (cmd == GCRY_PKEY_OP_DECRYPT)
+	{
+	  /* FIXME: For now, only support raw encoding.  */
+	  err = _gcry_pkey_rsa_dec (h, num_in, in, in_len,
+				    num_out, out, out_len);
+	}
       else
-        err = gpg_error (GPG_ERR_INV_OP);
+	{
+	  if (h->rsa.scheme == GCRY_PKEY_RSA_PSS)
+	    {
+	      if (cmd == GCRY_PKEY_OP_SIGN)
+		err = _gcry_pkey_rsapss_sign (h, num_in, in, in_len,
+					      num_out, out, out_len);
+	      else if (cmd == GCRY_PKEY_OP_VERIFY)
+		err = _gcry_pkey_rsapss_verify (h, num_in, in, in_len);
+	      else
+		err = gpg_error (GPG_ERR_INV_OP);
+	    }
+	  else if (h->rsa.scheme == GCRY_PKEY_RSA_15)
+	    {
+	      if (cmd == GCRY_PKEY_OP_SIGN)
+		err = _gcry_pkey_rsa15_sign (h, num_in, in, in_len,
+					     num_out, out, out_len);
+	      else if (cmd == GCRY_PKEY_OP_VERIFY)
+		err = _gcry_pkey_rsa15_verify (h, num_in, in, in_len);
+	      else
+		err = gpg_error (GPG_ERR_INV_OP);
+	    }
+	  else if (h->rsa.scheme == GCRY_PKEY_RSA_931)
+	    {
+	      if (cmd == GCRY_PKEY_OP_SIGN)
+		err = _gcry_pkey_rsa931_sign (h, num_in, in, in_len,
+					      num_out, out, out_len);
+	      else if (cmd == GCRY_PKEY_OP_VERIFY)
+		err = _gcry_pkey_rsa931_verify (h, num_in, in, in_len);
+	      else
+		err = gpg_error (GPG_ERR_INV_OP);
+	    }
+	  else
+	    err = gpg_error (GPG_ERR_INV_OP);
+	}
     }
   else if (h->algo == GCRY_PKEY_DSA)
     {

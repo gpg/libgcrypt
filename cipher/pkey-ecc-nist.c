@@ -321,8 +321,7 @@ _gcry_pkey_nist_ecdh (gcry_pkey_hd_t h,
 
   if (h->ecc.pk)
     {
-      size_t n = h->ecc.pk_len;
-
+      n = h->ecc.pk_len;
       if (n < 1 || h->ecc.pk[0] != 0x04 || ((n - 1) % 2))
 	{
 	  _gcry_mpi_ec_free (ec);

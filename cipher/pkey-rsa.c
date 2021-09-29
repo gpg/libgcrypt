@@ -702,3 +702,66 @@ _gcry_pkey_rsa931_verify (gcry_pkey_hd_t h,
 
   return err;
 }
+
+gcry_error_t
+_gcry_pkey_rsa_dec (gcry_pkey_hd_t h,
+		    int num_in, const unsigned char *const in[],
+		    const size_t in_len[],
+		    int num_out, unsigned char *out[], size_t out_len[])
+{
+  gpg_err_code_t errc;
+  gcry_error_t err = 0;
+  gcry_mpi_t n, d;
+  gcry_mpi_t c, k;
+  size_t n0;
+
+  if (num_in != 1)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+  if (num_out != 1)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+  _gcry_mpi_scan (&n, GCRYMPI_FMT_USG, h->rsa.n, h->rsa.n_len, NULL);
+  _gcry_mpi_scan (&c, GCRYMPI_FMT_USG, in[0], in_len[0], NULL);
+
+  if (mpi_cmp (c, n) >= 0)
+    {
+      _gcry_mpi_release (c);
+      _gcry_mpi_release (n);
+      return gpg_error (GPG_ERR_INV_VALUE);
+    }
+
+  k = mpi_snew (h->rsa.n_len * 8);
+  _gcry_mpi_scan (&d, GCRYMPI_FMT_USG, h->rsa.d, h->rsa.d_len, NULL);
+
+
+  /* FIXME: For now, no blinding.  */
+  mpi_powm (k, c, d, n);
+
+  out[0] = xmalloc (h->rsa.n_len);
+  errc = _gcry_mpi_print (GCRYMPI_FMT_USG, out[0], h->rsa.n_len, &n0, k);
+  if (errc)
+    {
+      xfree (out[0]);
+      out[0] = NULL;
+      _gcry_mpi_release (d);
+      _gcry_mpi_release (k);
+      _gcry_mpi_release (c);
+      _gcry_mpi_release (n);
+      return gpg_error (errc);
+    }
+
+  if (n0 < h->rsa.n_len)
+    {
+      memmove (out[0] + h->rsa.n_len - n0, out[0], n0);
+      memset (out[0], 0, h->rsa.n_len - n0);
+    }
+  out_len[0] = h->rsa.n_len;
+
+  _gcry_mpi_release (d);
+  _gcry_mpi_release (k);
+  _gcry_mpi_release (c);
+  _gcry_mpi_release (n);
+
+  return err;
+}

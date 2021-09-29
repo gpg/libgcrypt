@@ -27,7 +27,7 @@ tests_bin = \
 	prime basic keygen pubkey hmac hashtest t-kdf keygrip \
 	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 \
 	t-ed25519 t-cv25519 t-x448 t-ed448 \
-	t-rsa-pss t-rsa-15 t-rsa-931 \
+	t-rsa-pss t-rsa-15 t-rsa-931 t-rsa-dec \
 	t-dsa t-ecdsa t-ecc-cdh
 
 tests_bin_last = benchmark bench-slope

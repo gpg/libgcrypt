@@ -94,6 +94,12 @@ gcry_error_t _gcry_pkey_nist_ecdh (gcry_pkey_hd_t h,
 				   int num_out, unsigned char *out[],
 				   size_t out_len[]);
 
+gcry_error_t _gcry_pkey_rsa_dec (gcry_pkey_hd_t h,
+				 int num_in, const unsigned char *const in[],
+				 const size_t in_len[],
+				 int num_out, unsigned char *out[],
+				 size_t out_len[]);
+
 struct pkey_ecc {
   int curve;
   int md_algo;			/* Only used for NIST cuves.  */
