@@ -29,6 +29,10 @@
 #include "gcrypt-int.h"
 #include "pkey-internal.h"
 
+/*
+ * GCRY_PKEY_ECC, classic_curve, Qx, x_len, Qy, y_len [, sk, sk_len]
+ * GCRY_PKEY_ECC, modern_curve, pk, pk_len [, sk, sk_len]
+ */
 gcry_error_t
 _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
                   va_list arg_ptr)
@@ -56,6 +60,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
       int curve;
       unsigned char *pk;
       unsigned char *sk;
+      int is_classic = 0;
 
       curve = va_arg (arg_ptr, int);
       if (curve == GCRY_PKEY_CURVE_ED25519 || curve == GCRY_PKEY_CURVE_ED448)
@@ -65,7 +70,11 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
 	       || curve == GCRY_PKEY_CURVE_NIST_P256
 	       || curve == GCRY_PKEY_CURVE_NIST_P384
 	       || curve == GCRY_PKEY_CURVE_NIST_P521)
-	h->ecc.md_algo = va_arg (arg_ptr, int);
+        {
+          is_classic = 1;
+          h->flags |= GCRY_PKEY_FLAG_CLASSIC_CURVE;
+          h->ecc.md_algo = -1;
+        }
       else
         err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
       if (err)
@@ -76,7 +85,7 @@ _gcry_pkey_vopen (gcry_pkey_hd_t *h_p, int algo, unsigned int flags,
 
       h->ecc.curve = curve;
 
-      if (h->ecc.md_algo)
+      if (is_classic)
 	{	/* NIST curves */
 	  unsigned char *x, *y;
 	  size_t x_len, y_len;
@@ -355,8 +364,18 @@ _gcry_pkey_ctl (gcry_pkey_hd_t h, int cmd, void *buffer, size_t buflen)
 {
   gcry_error_t err = 0;
 
-  (void)h;  (void)cmd;  (void)buffer;  (void)buflen;
-  /* FIXME: Not yet implemented anything.  */
+  /* FIXME: Only implemented md_algo setting for classic ECC.  */
+
+  if (h->algo == GCRY_PKEY_ECC)
+    if ((h->flags & GCRY_PKEY_FLAG_CLASSIC_CURVE))
+      if (cmd == GCRY_PKEY_CTL_DIGEST)
+        {
+          (void)buflen;
+          h->ecc.md_algo = (int)(uintptr_t)buffer;
+          return err;
+        }
+
+  err = gpg_error (GPG_ERR_INV_OP);
   return err;
 }
 

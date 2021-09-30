@@ -252,7 +252,7 @@ one_test (int testno, const char *curvename,
     }
 
   flags |= GCRY_PKEY_FLAG_SECRET;
-  err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags, curve, GCRY_MD_SHA256,
+  err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags, curve,
                         buffer, buflen, buffer2, buflen2, buffer3, buflen3);
   if (err)
     {
@@ -262,7 +262,7 @@ one_test (int testno, const char *curvename,
     }
 
   flags &= ~GCRY_PKEY_FLAG_SECRET;
-  err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags, curve, GCRY_MD_SHA256,
+  err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags, curve,
                         buffer, buflen, buffer2, buflen2);
   if (err)
     {

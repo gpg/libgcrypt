@@ -285,7 +285,7 @@ one_test (const char *curvename, const char *sha_alg,
     }
 
   flags |= GCRY_PKEY_FLAG_SECRET;
-  err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags, curve, md_algo,
+  err = gcry_pkey_open (&h0, GCRY_PKEY_ECC, flags, curve,
                         buffer, buflen, buffer2, buflen2, buffer3, buflen3);
   if (err)
     {
@@ -295,12 +295,26 @@ one_test (const char *curvename, const char *sha_alg,
     }
 
   flags &= ~GCRY_PKEY_FLAG_SECRET;
-  err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags, curve, md_algo,
+  err = gcry_pkey_open (&h1, GCRY_PKEY_ECC, flags, curve,
                         buffer, buflen, buffer2, buflen2);
   if (err)
     {
       fail ("error opening PKEY for test, %s: %s",
             "pk", gpg_strerror (err));
+      goto leave;
+    }
+
+  err = gcry_pkey_ctl (h0, GCRY_PKEY_CTL_DIGEST, (void *)md_algo, 0);
+  if (err)
+    {
+      fail ("error setting digest for PKEY: %s", gpg_strerror (err));
+      goto leave;
+    }
+
+  err = gcry_pkey_ctl (h1, GCRY_PKEY_CTL_DIGEST, (void *)md_algo, 0);
+  if (err)
+    {
+      fail ("error setting digest for PKEY: %s", gpg_strerror (err));
       goto leave;
     }
 

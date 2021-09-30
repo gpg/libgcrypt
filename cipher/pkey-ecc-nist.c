@@ -56,6 +56,24 @@ get_curve_name (int curve)
     }
 }
 
+static int
+select_md_algo (int curve)
+{
+  switch (curve)
+    {
+    case GCRY_PKEY_CURVE_NIST_P224:
+      return GCRY_MD_SHA224;
+    case GCRY_PKEY_CURVE_NIST_P256:
+      return GCRY_MD_SHA256;
+    case GCRY_PKEY_CURVE_NIST_P384:
+      return GCRY_MD_SHA384;
+    case GCRY_PKEY_CURVE_NIST_P521:
+      return GCRY_MD_SHA512;
+    default:
+      return GCRY_MD_SHA512;
+    }
+}
+
 gcry_error_t
 _gcry_pkey_nist_sign (gcry_pkey_hd_t h,
 		      int num_in, const unsigned char *const in[],
@@ -68,6 +86,7 @@ _gcry_pkey_nist_sign (gcry_pkey_hd_t h,
   gcry_sexp_t s_sig= NULL;
   gcry_sexp_t s_tmp, s_tmp2;
   const char *curve;
+  int md_algo;
   const char *md_name;
 
   if (num_in != 2)  /* For now, k should be specified by the caller.  */
@@ -96,7 +115,12 @@ _gcry_pkey_nist_sign (gcry_pkey_hd_t h,
   if (err)
     return err;
 
-  md_name = _gcry_md_algo_name (h->ecc.md_algo);
+  if (h->ecc.md_algo < 0)
+    md_algo = select_md_algo (h->ecc.curve);
+  else
+    md_algo = h->ecc.md_algo;
+
+  md_name = _gcry_md_algo_name (md_algo);
 
   if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
     err = sexp_build (&s_msg, NULL,
@@ -210,6 +234,7 @@ _gcry_pkey_nist_verify (gcry_pkey_hd_t h,
   gcry_sexp_t s_msg= NULL;
   gcry_sexp_t s_sig= NULL;
   const char *curve;
+  int md_algo;
   const char *md_name;
 
   if (num_in != 4)  /* For now, k should be specified by the caller.  */
@@ -225,7 +250,12 @@ _gcry_pkey_nist_verify (gcry_pkey_hd_t h,
   if (err)
     return err;
 
-  md_name = _gcry_md_algo_name (h->ecc.md_algo);
+  if (h->ecc.md_algo < 0)
+    md_algo = select_md_algo (h->ecc.curve);
+  else
+    md_algo = h->ecc.md_algo;
+
+  md_name = _gcry_md_algo_name (md_algo);
 
   if ((h->flags & GCRY_PKEY_FLAG_PREHASH))
     err = sexp_build (&s_msg, NULL,
