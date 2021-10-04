@@ -122,7 +122,7 @@ typedef struct
 {
   const char *desc;           /* Description of the curve.  */
   unsigned int nbits;         /* Number of bits.  */
-  unsigned int fips:1;        /* True if this is a FIPS140-2 approved curve. */
+  unsigned int fips:1;        /* True if this is a FIPS140-3 approved curve. */
 
   /* The model describing this curve.  This is mainly used to select
      the group equation. */

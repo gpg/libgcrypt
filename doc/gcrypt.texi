@@ -506,8 +506,8 @@ Just like the function @code{gpg_strerror}, the function
 @cindex FIPS 140
 
 @anchor{enabling fips mode}
-Libgcrypt may be used in a FIPS 140-2 mode.  Note, that this does not
-necessary mean that Libcgrypt is an appoved FIPS 140-2 module.  Check the
+Libgcrypt may be used in a FIPS 140-3 mode.  Note, that this does not
+necessary mean that Libcgrypt is an appoved FIPS 140-3 module.  Check the
 NIST database at @url{http://csrc.nist.gov/groups/STM/cmvp/} to see what
 versions of Libgcrypt are approved.
 
