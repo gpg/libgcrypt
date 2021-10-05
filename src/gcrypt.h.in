@@ -32,18 +32,11 @@
 #include <sys/types.h>
 
 #if defined _WIN32 || defined __WIN32__
-# include <winsock2.h>
-# include <ws2tcpip.h>
-# include <time.h>
 # ifndef __GNUC__
   typedef long ssize_t;
   typedef int  pid_t;
 # endif /*!__GNUC__*/
-#else
-# include <sys/socket.h>
-#endif /*!_WIN32*/
-
-@FALLBACK_SOCKLEN_T@
+#endif /*_WIN32*/
 
 /* This is required for error code compatibility. */
 #define _GCRY_ERR_SOURCE_DEFAULT GPG_ERR_SOURCE_GCRYPT

@@ -858,21 +858,6 @@ AC_TYPE_PID_T
 AC_CHECK_TYPES([byte, ushort, u16, u32, u64])
 
 gl_TYPE_SOCKLEN_T
-case "${host}" in
-  *-*-mingw32*)
-    # socklen_t may or may not be defined depending on what headers
-    # are included.  To be safe we use int as this is the actual type.
-    FALLBACK_SOCKLEN_T="typedef int gcry_socklen_t;"
-    ;;
-  *)
-    if test ".$gl_cv_socklen_t_equiv" = "."; then
-      FALLBACK_SOCKLEN_T="typedef socklen_t gcry_socklen_t;"
-    else
-      FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} gcry_socklen_t;"
-    fi
-esac
-AC_SUBST(FALLBACK_SOCKLEN_T)
-
 
 #
 # Check for __builtin_bswap32 intrinsic.
