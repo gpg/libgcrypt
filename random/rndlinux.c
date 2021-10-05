@@ -23,15 +23,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#include <sys/stat.h>
-#ifdef HAVE_GETTIMEOFDAY
-# include <sys/times.h>
-#endif
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 #if defined(__APPLE__) && defined(__MACH__)
 #include <Availability.h>
 #ifdef __MAC_10_11
@@ -88,12 +84,8 @@ open_device (const char *name, int retry)
   fd = open (name, O_RDONLY);
   if (fd == -1 && retry)
     {
-      struct timeval tv;
-
-      tv.tv_sec = 5;
-      tv.tv_usec = 0;
-      _gcry_random_progress ("wait_dev_random", 'X', 0, (int)tv.tv_sec);
-      select (0, NULL, NULL, NULL, &tv);
+      _gcry_random_progress ("wait_dev_random", 'X', 0, 5);
+      poll (NULL, 0, 5000);
       goto again;
     }
   if (fd == -1)
@@ -249,9 +241,8 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
                  return with something we will actually use 100ms. */
   while (length)
     {
-      fd_set rfds;
-      struct timeval tv;
       int rc;
+      struct pollfd pfd;
 
       /* If we have a modern operating system, we first try to use the new
        * getentropy function.  That call guarantees that the kernel's
@@ -299,7 +290,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
 #endif
 
       /* If we collected some bytes update the progress indicator.  We
-         do this always and not just if the select timed out because
+         do this always and not just if the poll timed out because
          often just a few bytes are gathered within the timeout
          period.  */
       if (any_need_entropy || last_so_far != (want - length) )
@@ -310,36 +301,25 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
           any_need_entropy = 1;
         }
 
-      /* If the system has no limit on the number of file descriptors
-         and we encounter an fd which is larger than the fd_set size,
-         we don't use the select at all.  The select code is only used
-         to emit progress messages.  A better solution would be to
-         fall back to poll() if available.  */
-#ifdef FD_SETSIZE
-      if (fd < FD_SETSIZE)
-#endif
+      pfd.fd = fd;
+      pfd.events = POLLIN;
+
+      _gcry_pre_syscall ();
+      rc = poll (&pfd, 1, delay);
+      _gcry_post_syscall ();
+      if (!rc)
         {
-          FD_ZERO(&rfds);
-          FD_SET(fd, &rfds);
-          tv.tv_sec = delay;
-          tv.tv_usec = delay? 0 : 100000;
-          _gcry_pre_syscall ();
-          rc = select (fd+1, &rfds, NULL, NULL, &tv);
-          _gcry_post_syscall ();
-          if (!rc)
-            {
-              any_need_entropy = 1;
-              delay = 3; /* Use 3 seconds henceforth.  */
-              continue;
-            }
-          else if( rc == -1 )
-            {
-              log_error ("select() error: %s\n", strerror(errno));
-              if (!delay)
-                delay = 1; /* Use 1 second if we encounter an error before
-                              we have ever blocked.  */
-              continue;
-            }
+          any_need_entropy = 1;
+          delay = 3000; /* Use 3 seconds henceforth.  */
+          continue;
+        }
+      else if( rc == -1 )
+        {
+          log_error ("poll() error: %s\n", strerror (errno));
+          if (!delay)
+            delay = 1000; /* Use 1 second if we encounter an error before
+                             we have ever blocked.  */
+          continue;
         }
 
       do
