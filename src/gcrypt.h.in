@@ -1905,6 +1905,11 @@ int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
  * handle for hash and an optional context.  The hash algorithm used by the
  * handle needs to be enabled and input needs to be supplied beforehand.
  * DATA-TMPL specifies a template to compose an S-expression to be signed.
+ * A template should include '(hash %s %b)' or '(hash ALGONAME %b)'.
+ * For the former case, '%s' is substituted by the string of algorithm
+ * of gcry_md_get_algo (HD) and when gcry_md_read is called, ALGO=0 is
+ * used internally.  For the latter case, hash algorithm by ALGONAME
+ * is used when gcry_md_read is called internally.
  * The hash handle must not yet been finalized; the function
  * takes a copy of the state and does a finalize on the copy.  This
  * function shall be used if a policy requires that hashing and signing
