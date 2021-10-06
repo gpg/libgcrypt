@@ -460,7 +460,7 @@ one_test_sexp (const char *n, const char *e, const char *d,
   err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, hd, ctx);
   if (err)
     {
-      fail ("gcry_pkey_op failed: %s", gpg_strerror (err));
+      fail ("gcry_pk_hash_sign failed: %s", gpg_strerror (err));
       goto leave;
     }
 
@@ -491,7 +491,7 @@ one_test_sexp (const char *n, const char *e, const char *d,
     snprintf (p, 3, "%02x", out[i]);
   if (strcmp (sig_string, s))
     {
-      fail ("gcry_pkey_op failed: %s",
+      fail ("gcry_pkhash_sign failed: %s",
             "wrong value returned");
       info ("  expected: '%s'", s);
       info ("       got: '%s'", sig_string);
