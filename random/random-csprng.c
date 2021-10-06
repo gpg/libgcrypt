@@ -55,6 +55,9 @@
 #ifdef __MINGW32__
 #include <process.h>
 #endif
+#ifdef HAVE_W32_SYSTEM
+#include <windows.h>
+#endif
 #include "g10lib.h"
 #include "random.h"
 #include "rand-internal.h"

@@ -25,6 +25,9 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <time.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #ifdef _GCRYPT_IN_LIBGCRYPT
 # include "../src/gcrypt-int.h"
