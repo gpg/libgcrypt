@@ -285,7 +285,7 @@ test_keys (mpi_ec_t ec, unsigned int nbits)
 
   _gcry_mpi_randomize (test, nbits, GCRY_WEAK_RANDOM);
 
-  if (_gcry_ecc_ecdsa_sign (test, ec, r, s, 0, 0) )
+  if (_gcry_ecc_ecdsa_sign (test, NULL, ec, r, s, 0, 0) )
     log_fatal ("ECDSA operation: sign failed\n");
 
   if (_gcry_ecc_ecdsa_verify (test, ec, r, s, 0, 0))
@@ -683,6 +683,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_err_code_t rc;
   struct pk_encoding_ctx ctx;
   gcry_mpi_t data = NULL;
+  gcry_mpi_t k = NULL;
   gcry_mpi_t sig_r = NULL;
   gcry_mpi_t sig_s = NULL;
   mpi_ec_t ec = NULL;
@@ -715,6 +716,11 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     goto leave;
   if (DBG_CIPHER)
     log_mpidump ("ecc_sign   data", data);
+
+  if (ctx.label)
+    rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, ctx.label, ctx.labellen, NULL);
+  if (rc)
+    goto leave;
 
   /* Hash algo is determined by curve in EdDSA.  Fill it if not specified.  */
   if ((ctx.flags & PUBKEY_FLAG_EDDSA) && !ctx.hash_algo)
@@ -752,7 +758,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
   else
     {
-      rc = _gcry_ecc_ecdsa_sign (data, ec, sig_r, sig_s,
+      rc = _gcry_ecc_ecdsa_sign (data, k, ec, sig_r, sig_s,
                                  ctx.flags, ctx.hash_algo);
       if (!rc)
         rc = sexp_build (r_sig, NULL,
@@ -763,6 +769,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (sig_r);
   _gcry_mpi_release (sig_s);
   _gcry_mpi_release (data);
+  _gcry_mpi_release (k);
   _gcry_mpi_ec_free (ec);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)

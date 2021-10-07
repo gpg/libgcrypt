@@ -133,7 +133,8 @@ static gpg_err_code_t generate (DSA_secret_key *sk,
                                 int transient_key,
                                 dsa_domain_t *domain,
                                 gcry_mpi_t **ret_factors);
-static gpg_err_code_t sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
+static gpg_err_code_t sign (gcry_mpi_t r, gcry_mpi_t s,
+                            gcry_mpi_t input, gcry_mpi_t k,
                             DSA_secret_key *skey, int flags, int hashalgo);
 static gpg_err_code_t verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                               DSA_public_key *pkey, int flags, int hashalgo);
@@ -182,7 +183,7 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
   _gcry_mpi_randomize (data, qbits, GCRY_WEAK_RANDOM);
 
   /* Sign DATA using the secret key.  */
-  sign (sig_a, sig_b, data, sk, 0, 0);
+  sign (sig_a, sig_b, data, NULL, sk, 0, 0);
 
   /* Verify the signature using the public key.  */
   if ( verify (sig_a, sig_b, data, &pk, 0, 0) )
@@ -580,13 +581,16 @@ check_secret_key( DSA_secret_key *sk )
    internally converted to a plain MPI.  FLAGS and HASHALGO may both
    be 0 for standard operation mode.
 
+   The random value, K_SUPPLIED, may be supplied externally.  If not,
+   it is generated internally.
+
    The return value is 0 on success or an error code.  Note that for
    backward compatibility the function will not return any error if
    FLAGS and HASHALGO are both 0 and INPUT is a plain MPI.
  */
 static gpg_err_code_t
-sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
-      int flags, int hashalgo)
+sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, gcry_mpi_t k_supplied,
+      DSA_secret_key *skey, int flags, int hashalgo)
 {
   gpg_err_code_t rc;
   gcry_mpi_t hash;
@@ -617,8 +621,10 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
     }
 
  again:
+  if (k_supplied)
+    k = k_supplied;
   /* Create the K value.  */
-  if ((flags & PUBKEY_FLAG_RFC6979) && hashalgo)
+  else if ((flags & PUBKEY_FLAG_RFC6979) && hashalgo)
     {
       /* Use Pornin's method for deterministic DSA.  If this flag is
          set, it is expected that HASH is an opaque MPI with the to be
@@ -657,12 +663,19 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
   mpi_add( tmp, tmp, hash );
   mpi_mulm( s , kinv, tmp, skey->q );
 
-  mpi_free(k);
+  if (!k_supplied)
+    mpi_free(k);
   mpi_free(kinv);
   mpi_free(tmp);
 
   if (!mpi_cmp_ui (r, 0))
     {
+      if (k_supplied)
+        {
+          rc = GPG_ERR_INV_VALUE;
+          goto leave;
+        }
+
       /* This is a highly unlikely code path.  */
       extraloops++;
       goto again;
@@ -1049,6 +1062,7 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_err_code_t rc;
   struct pk_encoding_ctx ctx;
   gcry_mpi_t data = NULL;
+  gcry_mpi_t k = NULL;
   DSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL};
   gcry_mpi_t sig_r = NULL;
   gcry_mpi_t sig_s = NULL;
@@ -1062,6 +1076,11 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     goto leave;
   if (DBG_CIPHER)
     log_mpidump ("dsa_sign   data", data);
+
+  if (ctx.label)
+    rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, ctx.label, ctx.labellen, NULL);
+  if (rc)
+    goto leave;
 
   /* Extract the key.  */
   rc = _gcry_sexp_extract_param (keyparms, NULL, "pqgyx",
@@ -1080,7 +1099,7 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   sig_r = mpi_new (0);
   sig_s = mpi_new (0);
-  rc = sign (sig_r, sig_s, data, &sk, ctx.flags, ctx.hash_algo);
+  rc = sign (sig_r, sig_s, data, k, &sk, ctx.flags, ctx.hash_algo);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1099,6 +1118,7 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (sk.y);
   _gcry_mpi_release (sk.x);
   _gcry_mpi_release (data);
+  _gcry_mpi_release (k);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
     log_debug ("dsa_sign      => %s\n", gpg_strerror (rc));
