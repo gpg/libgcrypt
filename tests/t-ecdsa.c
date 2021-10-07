@@ -559,7 +559,7 @@ one_test_sexp (const char *curvename, const char *sha_alg,
   err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, hd, ctx);
   if (err)
     {
-      fail ("gcry_pkey_hash_sign failed: %s", gpg_strerror (err));
+      fail ("gcry_pk_hash_sign failed: %s", gpg_strerror (err));
       goto leave;
     }
 
