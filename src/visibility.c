@@ -1028,11 +1028,31 @@ gcry_pk_sign (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey)
 }
 
 gcry_error_t
+gcry_pk_hash_sign (gcry_sexp_t *result, const char *data_tmpl, gcry_sexp_t skey,
+                   gcry_md_hd_t hd, gcry_ctx_t ctx)
+{
+  return gpg_error (_gcry_pk_sign_md (result, data_tmpl, hd, skey, ctx));
+}
+
+gcry_error_t
 gcry_pk_verify (gcry_sexp_t sigval, gcry_sexp_t data, gcry_sexp_t pkey)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
   return gpg_error (_gcry_pk_verify (sigval, data, pkey));
+}
+
+gcry_error_t
+gcry_pk_hash_verify (gcry_sexp_t sigval, const char *data_tmpl, gcry_sexp_t pkey,
+                     gcry_md_hd_t hd, gcry_ctx_t ctx)
+{
+  return gpg_error (_gcry_pk_verify_md (sigval, data_tmpl, hd, pkey, ctx));
+}
+
+gcry_error_t
+gcry_pk_random_override_new (gcry_ctx_t *r_ctx, const unsigned char *p, size_t len)
+{
+  return gpg_error (_gcry_pk_random_override_new (r_ctx, p, len));
 }
 
 gcry_error_t

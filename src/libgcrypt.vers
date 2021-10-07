@@ -122,6 +122,7 @@ GCRYPT_1.6 {
 
     gcry_ctx_release;
 
+    gcry_pk_hash_sign; gcry_pk_hash_verify; gcry_pk_random_override_new;
   local:
     *;
 

@@ -438,6 +438,135 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 }
 
 
+gcry_err_code_t
+_gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
+                  gcry_sexp_t s_skey, gcry_ctx_t ctx)
+{
+  gcry_err_code_t rc;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms = NULL;
+  gcry_sexp_t s_hash = NULL;
+  int algo;
+  const unsigned char *digest;
+  gcry_error_t err;
+  gcry_md_hd_t hd;
+  char *s;
+  char *hash_name;
+
+  *r_sig = NULL;
+
+  /* Check if it has fixed hash name or %s */
+  s = strstr (tmpl, "(hash ");
+  if (s == NULL)
+    return gpg_err_code (GPG_ERR_DIGEST_ALGO);
+
+  s += 6;
+  if (!strncmp (s, "%s", 2))
+    hash_name = NULL;
+  else
+    {
+      char *p;
+
+      for (p = s; *p && *p != ' '; p++)
+	;
+
+      hash_name = xtrymalloc (p - s + 1);
+      if (!hash_name)
+	return gpg_error_from_syserror ();
+      memcpy (hash_name, s, p - s);
+      hash_name[p - s] = 0;
+    }
+
+  err = _gcry_md_copy (&hd, hd_orig);
+  if (err)
+    {
+      xfree (hash_name);
+      return gpg_err_code (err);
+    }
+
+  if (hash_name)
+    {
+      algo = _gcry_md_map_name (hash_name);
+      if (algo == 0)
+	{
+	  xfree (hash_name);
+	  _gcry_md_close (hd);
+	  return gpg_err_code (GPG_ERR_DIGEST_ALGO);
+	}
+
+      digest = _gcry_md_read (hd, algo);
+    }
+  else
+    {
+      algo = _gcry_md_get_algo (hd);
+      digest = _gcry_md_read (hd, 0);
+    }
+
+  if (!digest)
+    {
+      xfree (hash_name);
+      _gcry_md_close (hd);
+      return GPG_ERR_NOT_IMPLEMENTED;
+    }
+
+  if (!ctx)
+    {
+      if (hash_name)
+	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+			       (int) _gcry_md_get_algo_dlen (algo),
+			       digest);
+      else
+	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+			       _gcry_md_algo_name (algo),
+			       (int) _gcry_md_get_algo_dlen (algo),
+			       digest);
+    }
+  else
+    {
+      const unsigned char *p;
+      size_t len;
+
+      rc = _gcry_pk_get_random_override (ctx, &p, &len);
+      if (rc)
+        {
+          _gcry_md_close (hd);
+          return rc;
+        }
+
+      if (hash_name)
+	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+			       (int) _gcry_md_get_algo_dlen (algo),
+			       digest,
+			       (int) len, p);
+      else
+	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+			       _gcry_md_algo_name (algo),
+			       (int) _gcry_md_get_algo_dlen (algo),
+			       digest,
+			       (int) len, p);
+    }
+
+  xfree (hash_name);
+  _gcry_md_close (hd);
+  if (rc)
+    return rc;
+
+  rc = spec_from_sexp (s_skey, 1, &spec, &keyparms);
+  if (rc)
+    goto leave;
+
+  if (spec->sign)
+    rc = spec->sign (r_sig, s_hash, keyparms);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
+
+ leave:
+  sexp_release (s_hash);
+  sexp_release (keyparms);
+  return rc;
+}
+
+
 /*
    Verify a signature.
 
@@ -462,6 +591,76 @@ _gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
     rc = GPG_ERR_NOT_IMPLEMENTED;
 
  leave:
+  sexp_release (keyparms);
+  return rc;
+}
+
+
+gcry_err_code_t
+_gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
+                    gcry_sexp_t s_pkey, gcry_ctx_t ctx)
+{
+  gcry_err_code_t rc;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms = NULL;
+  gcry_sexp_t s_hash = NULL;
+  int algo;
+  const unsigned char *digest;
+  gcry_error_t err;
+  gcry_md_hd_t hd;
+
+  err = _gcry_md_copy (&hd, hd_orig);
+  if (err)
+    return gpg_err_code (err);
+
+  algo = _gcry_md_get_algo (hd);
+
+  digest = _gcry_md_read (hd, 0);
+  if (!digest)
+    {
+      _gcry_md_close (hd);
+      return GPG_ERR_DIGEST_ALGO;
+    }
+
+  if (!ctx)
+    rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+                           _gcry_md_algo_name (algo),
+                           (int) _gcry_md_get_algo_dlen (algo),
+                           digest);
+  else
+    {
+      const unsigned char *p;
+      size_t len;
+
+      rc = _gcry_pk_get_random_override (ctx, &p, &len);
+      if (rc)
+        {
+          _gcry_md_close (hd);
+          return rc;
+        }
+
+      rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
+                             _gcry_md_algo_name (algo),
+                             (int) _gcry_md_get_algo_dlen (algo),
+                             digest,
+                             (int) len, p);
+    }
+
+  _gcry_md_close (hd);
+  if (rc)
+    return rc;
+
+  rc = spec_from_sexp (s_pkey, 0, &spec, &keyparms);
+  if (rc)
+    goto leave;
+
+  if (spec->verify)
+    rc = spec->verify (s_sig, s_hash, keyparms);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
+
+ leave:
+  sexp_release (s_hash);
   sexp_release (keyparms);
   return rc;
 }
@@ -968,4 +1167,49 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
     }
 
   return gpg_error (ec);
+}
+
+
+struct pk_random_override {
+  size_t len;
+  unsigned char area[];
+};
+
+gpg_err_code_t
+_gcry_pk_random_override_new (gcry_ctx_t *r_ctx,
+                              const unsigned char *p, size_t len)
+{
+  gcry_ctx_t ctx;
+  struct pk_random_override *pro;
+
+  *r_ctx = NULL;
+  if (!p)
+    return GPG_ERR_EINVAL;
+
+  ctx = _gcry_ctx_alloc (CONTEXT_TYPE_RANDOM_OVERRIDE,
+                         sizeof (size_t) + len, NULL);
+  if (!ctx)
+    return gpg_err_code_from_syserror ();
+  pro = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_RANDOM_OVERRIDE);
+  pro->len = len;
+  memcpy (pro->area, p, len);
+
+  *r_ctx = ctx;
+  return 0;
+}
+
+gpg_err_code_t
+_gcry_pk_get_random_override (gcry_ctx_t ctx,
+                              const unsigned char **r_p, size_t *r_len)
+{
+  struct pk_random_override *pro;
+
+  pro = _gcry_ctx_find_pointer (ctx, CONTEXT_TYPE_RANDOM_OVERRIDE);
+  if (!pro)
+    return GPG_ERR_EINVAL;
+
+  *r_p = pro->area;
+  *r_len = pro->len;
+
+  return 0;
 }
