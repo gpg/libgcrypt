@@ -119,9 +119,9 @@
 
 typedef struct {
   gcry_md_block_ctx_t bctx;
-  u32  h0,h1,h2,h3,h4,h5,h6,h7;
+  u32  h[8];
 #ifdef USE_S390X_CRYPTO
-  u32  final_len_msb, final_len_lsb; /* needs to be right after h7. */
+  u32  final_len_msb, final_len_lsb; /* needs to be right after h[7]. */
   int  use_s390x_crypto;
 #endif
 } SHA256_CONTEXT;
@@ -153,7 +153,7 @@ do_sha256_transform_amd64_ssse3(void *ctx, const unsigned char *data,
                                 size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
-  return _gcry_sha256_transform_amd64_ssse3 (data, &hd->h0, nblks)
+  return _gcry_sha256_transform_amd64_ssse3 (data, hd->h, nblks)
          + ASM_EXTRA_STACK;
 }
 #endif
@@ -168,7 +168,7 @@ do_sha256_transform_amd64_avx(void *ctx, const unsigned char *data,
                               size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
-  return _gcry_sha256_transform_amd64_avx (data, &hd->h0, nblks)
+  return _gcry_sha256_transform_amd64_avx (data, hd->h, nblks)
          + ASM_EXTRA_STACK;
 }
 #endif
@@ -183,7 +183,7 @@ do_sha256_transform_amd64_avx2(void *ctx, const unsigned char *data,
                                size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
-  return _gcry_sha256_transform_amd64_avx2 (data, &hd->h0, nblks)
+  return _gcry_sha256_transform_amd64_avx2 (data, hd->h, nblks)
          + ASM_EXTRA_STACK;
 }
 #endif
@@ -200,7 +200,7 @@ do_sha256_transform_intel_shaext(void *ctx, const unsigned char *data,
                                  size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
-  return _gcry_sha256_transform_intel_shaext (&hd->h0, data, nblks);
+  return _gcry_sha256_transform_intel_shaext (hd->h, data, nblks);
 }
 #endif
 
@@ -214,7 +214,7 @@ do_sha256_transform_armv8_ce(void *ctx, const unsigned char *data,
                              size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
-  return _gcry_sha256_transform_armv8_ce (&hd->h0, data, nblks);
+  return _gcry_sha256_transform_armv8_ce (hd->h, data, nblks);
 }
 #endif
 
@@ -231,14 +231,14 @@ static unsigned int
 do_sha256_transform_ppc8(void *ctx, const unsigned char *data, size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
-  return _gcry_sha256_transform_ppc8 (&hd->h0, data, nblks);
+  return _gcry_sha256_transform_ppc8 (hd->h, data, nblks);
 }
 
 static unsigned int
 do_sha256_transform_ppc9(void *ctx, const unsigned char *data, size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
-  return _gcry_sha256_transform_ppc9 (&hd->h0, data, nblks);
+  return _gcry_sha256_transform_ppc9 (hd->h, data, nblks);
 }
 #endif
 
@@ -250,7 +250,7 @@ do_sha256_transform_s390x (void *ctx, const unsigned char *data, size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
 
-  kimd_execute (KMID_FUNCTION_SHA256, &hd->h0, data, nblks * 64);
+  kimd_execute (KMID_FUNCTION_SHA256, hd->h, data, nblks * 64);
   return 0;
 }
 
@@ -261,18 +261,18 @@ do_sha256_final_s390x (void *ctx, const unsigned char *data, size_t datalen,
   SHA256_CONTEXT *hd = ctx;
 
   /* Make sure that 'final_len' is positioned at correct offset relative
-   * to 'h0'. This is because we are passing 'h0' pointer as start of
+   * to 'h[0]'. This is because we are passing 'h[0]' pointer as start of
    * parameter block to 'klmd' instruction. */
 
   gcry_assert (offsetof (SHA256_CONTEXT, final_len_msb)
-	       - offsetof (SHA256_CONTEXT, h0) == 8 * sizeof(u32));
+	       - offsetof (SHA256_CONTEXT, h[0]) == 8 * sizeof(u32));
   gcry_assert (offsetof (SHA256_CONTEXT, final_len_lsb)
 	       - offsetof (SHA256_CONTEXT, final_len_msb) == 1 * sizeof(u32));
 
   hd->final_len_msb = len_msb;
   hd->final_len_lsb = len_lsb;
 
-  klmd_execute (KMID_FUNCTION_SHA256, &hd->h0, data, datalen);
+  klmd_execute (KMID_FUNCTION_SHA256, hd->h, data, datalen);
   return 0;
 }
 #endif
@@ -347,14 +347,14 @@ sha256_init (void *context, unsigned int flags)
 
   (void)flags;
 
-  hd->h0 = 0x6a09e667;
-  hd->h1 = 0xbb67ae85;
-  hd->h2 = 0x3c6ef372;
-  hd->h3 = 0xa54ff53a;
-  hd->h4 = 0x510e527f;
-  hd->h5 = 0x9b05688c;
-  hd->h6 = 0x1f83d9ab;
-  hd->h7 = 0x5be0cd19;
+  hd->h[0] = 0x6a09e667;
+  hd->h[1] = 0xbb67ae85;
+  hd->h[2] = 0x3c6ef372;
+  hd->h[3] = 0xa54ff53a;
+  hd->h[4] = 0x510e527f;
+  hd->h[5] = 0x9b05688c;
+  hd->h[6] = 0x1f83d9ab;
+  hd->h[7] = 0x5be0cd19;
 
   sha256_common_init (hd);
 }
@@ -367,14 +367,14 @@ sha224_init (void *context, unsigned int flags)
 
   (void)flags;
 
-  hd->h0 = 0xc1059ed8;
-  hd->h1 = 0x367cd507;
-  hd->h2 = 0x3070dd17;
-  hd->h3 = 0xf70e5939;
-  hd->h4 = 0xffc00b31;
-  hd->h5 = 0x68581511;
-  hd->h6 = 0x64f98fa7;
-  hd->h7 = 0xbefa4fa4;
+  hd->h[0] = 0xc1059ed8;
+  hd->h[1] = 0x367cd507;
+  hd->h[2] = 0x3070dd17;
+  hd->h[3] = 0xf70e5939;
+  hd->h[4] = 0xffc00b31;
+  hd->h[5] = 0x68581511;
+  hd->h[6] = 0x64f98fa7;
+  hd->h[7] = 0xbefa4fa4;
 
   sha256_common_init (hd);
 }
@@ -441,14 +441,14 @@ do_transform_generic (void *ctx, const unsigned char *data, size_t nblks)
       u32 a,b,c,d,e,f,g,h,t1,t2;
       u32 w[16];
 
-      a = hd->h0;
-      b = hd->h1;
-      c = hd->h2;
-      d = hd->h3;
-      e = hd->h4;
-      f = hd->h5;
-      g = hd->h6;
-      h = hd->h7;
+      a = hd->h[0];
+      b = hd->h[1];
+      c = hd->h[2];
+      d = hd->h[3];
+      e = hd->h[4];
+      f = hd->h[5];
+      g = hd->h[6];
+      h = hd->h[7];
 
       R(a, b, c, d, e, f, g, h, K[0], I(0));
       R(h, a, b, c, d, e, f, g, K[1], I(1));
@@ -518,14 +518,14 @@ do_transform_generic (void *ctx, const unsigned char *data, size_t nblks)
       R(c, d, e, f, g, h, a, b, K[62], W(62));
       R(b, c, d, e, f, g, h, a, K[63], W(63));
 
-      hd->h0 += a;
-      hd->h1 += b;
-      hd->h2 += c;
-      hd->h3 += d;
-      hd->h4 += e;
-      hd->h5 += f;
-      hd->h6 += g;
-      hd->h7 += h;
+      hd->h[0] += a;
+      hd->h[1] += b;
+      hd->h[2] += c;
+      hd->h[3] += d;
+      hd->h[4] += e;
+      hd->h[5] += f;
+      hd->h[6] += g;
+      hd->h[7] += h;
 
       data += 64;
     }
@@ -603,7 +603,7 @@ sha256_final(void *context)
     }
 
   p = hd->bctx.buf;
-#define X(a) do { buf_put_be32(p, hd->h##a); p += 4; } while(0)
+#define X(a) do { buf_put_be32(p, hd->h[a]); p += 4; } while(0)
   X(0);
   X(1);
   X(2);
