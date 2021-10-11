@@ -46,6 +46,9 @@
  */
 
 #ifdef STANDALONE
+# ifndef KEY_FOR_BINARY_CHECK
+# define KEY_FOR_BINARY_CHECK "What am I, a doctor or a moonshuttle conductor?"
+# endif
 #include <stdint.h>
 #define HAVE_TYPE_U32 1
 typedef uint32_t u32;
@@ -719,7 +722,7 @@ main (int argc, char **argv)
 #endif
 
   if (use_stdkey)
-    key = "What am I, a doctor or a moonshuttle conductor?";
+    key = KEY_FOR_BINARY_CHECK;
   else
     {
       key = *argv;

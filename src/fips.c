@@ -506,7 +506,9 @@ run_random_selftests (void)
 }
 
 #ifdef ENABLE_HMAC_BINARY_CHECK
-#define KEY_FOR_BINARY_CHECK "What am I, a doctor or a moonshuttle conductor?"
+# ifndef KEY_FOR_BINARY_CHECK
+# define KEY_FOR_BINARY_CHECK "What am I, a doctor or a moonshuttle conductor?"
+# endif
 #define HMAC_LEN 32
 
 static const unsigned char __attribute__ ((section (".rodata1")))
