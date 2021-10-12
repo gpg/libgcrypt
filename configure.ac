@@ -594,15 +594,21 @@ AC_MSG_CHECKING([whether a HMAC binary check is requested])
 AC_ARG_ENABLE(hmac-binary-check,
               AS_HELP_STRING([--enable-hmac-binary-check],
                              [Enable library integrity check]),
-              [use_hmac_binary_check=$enableval],
+              [use_hmac_binary_check="$enableval"],
               [use_hmac_binary_check=no])
 AC_MSG_RESULT($use_hmac_binary_check)
-if test "$use_hmac_binary_check" = yes ; then
+if test "$use_hmac_binary_check" = no ; then
+    DEF_HMAC_BINARY_CHECK=''
+else
     AC_DEFINE(ENABLE_HMAC_BINARY_CHECK,1,
               [Define to support an HMAC based integrity check])
     AC_CHECK_TOOL(OBJCOPY, [objcopy])
+    if test "$use_hmac_binary_check" != yes ; then
+        DEF_HMAC_BINARY_CHECK=-DKEY_FOR_BINARY_CHECK="'\"""$use_hmac_binary_check""\"'"
+    fi
 fi
-AM_CONDITIONAL(USE_HMAC_BINARY_CHECK, test x$use_hmac_binary_check = xyes)
+AM_CONDITIONAL(USE_HMAC_BINARY_CHECK, test "x$use_hmac_binary_check" != xno)
+AC_SUBST(DEF_HMAC_BINARY_CHECK)
 
 # Implementation of the --with-fips-module-version.
 AC_ARG_WITH(fips-module-version,
@@ -2199,7 +2205,7 @@ AC_REPLACE_FUNCS([getpid clock])
 # Check whether it is necessary to link against libdl.
 #
 DL_LIBS=""
-if test "$use_hmac_binary_check" = yes ; then
+if test "$use_hmac_binary_check" != no ; then
   _gcry_save_libs="$LIBS"
   LIBS=""
   AC_SEARCH_LIBS(dlopen, c dl,,,)
