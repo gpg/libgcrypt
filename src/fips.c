@@ -385,7 +385,9 @@ run_digest_selftests (int extended)
     {
       GCRY_MD_SHA1,
       GCRY_MD_SHA224,
+#ifndef ENABLE_HMAC_BINARY_CHECK
       GCRY_MD_SHA256,
+#endif
       GCRY_MD_SHA384,
       GCRY_MD_SHA512,
       0
@@ -414,7 +416,9 @@ run_mac_selftests (int extended)
     {
       GCRY_MAC_HMAC_SHA1,
       GCRY_MAC_HMAC_SHA224,
+#ifndef ENABLE_HMAC_BINARY_CHECK
       GCRY_MAC_HMAC_SHA256,
+#endif
       GCRY_MAC_HMAC_SHA384,
       GCRY_MAC_HMAC_SHA512,
       GCRY_MAC_HMAC_SHA3_224,
@@ -638,11 +642,21 @@ static int
 run_hmac_sha256_selftests (int extended)
 {
   gpg_error_t err;
+  int anyerr = 0;
+
+  err = _gcry_md_selftest (GCRY_MD_SHA256, extended, reporter);
+  reporter ("digest", GCRY_MD_SHA256, NULL,
+            err? gpg_strerror (err):NULL);
+  if (err)
+    anyerr = 1;
 
   err = _gcry_mac_selftest (GCRY_MAC_HMAC_SHA256, extended, reporter);
   reporter ("mac", GCRY_MAC_HMAC_SHA256, NULL,
             err? gpg_strerror (err):NULL);
-  return err ? 1 : 0;
+  if (err)
+    anyerr = 1;
+
+  return anyerr;
 }
 #endif
 
@@ -659,11 +673,11 @@ _gcry_fips_run_selftests (int extended)
     fips_new_state (STATE_SELFTEST);
 
 #ifdef ENABLE_HMAC_BINARY_CHECK
+  if (run_hmac_sha256_selftests (extended))
+    goto leave;
+
   if (fips_mode ())
     {
-      if (run_hmac_sha256_selftests (extended))
-        goto leave;
-
       /* Now check the integrity of the binary.  We do this this after
          having checked the HMAC code.  */
       if (check_binary_integrity ())
