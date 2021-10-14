@@ -635,11 +635,11 @@ check_binary_integrity (void)
 /* Run self-tests for HMAC-SHA256 algorithm before verifying library integrity.
  * Return 0 on success. */
 static int
-run_hmac_sha256_selftests (void)
+run_hmac_sha256_selftests (int extended)
 {
   gpg_error_t err;
 
-  err = _gcry_mac_selftest (GCRY_MAC_HMAC_SHA256, 0, reporter);
+  err = _gcry_mac_selftest (GCRY_MAC_HMAC_SHA256, extended, reporter);
   reporter ("mac", GCRY_MAC_HMAC_SHA256, NULL,
             err? gpg_strerror (err):NULL);
   return err ? 1 : 0;
