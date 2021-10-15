@@ -2832,6 +2832,58 @@ to indicate that the signature does not match the provided data.
 @end deftypefun
 @c end gcry_pk_verify
 
+Additionally, libgcrypt provides three functions for digital
+signatures.  Those functions are useful when hashing computation
+should be closely combined with signature computation.
+
+@deftypefun gcry_error_t gcry_pk_hash_sign (@w{gcry_sexp_t *@var{result},} @w{const char *@var{data_tmpl},} @w{gcry_sexp_t @var{skey},} @w{gcry_md_hd_t @var{hd},} @w{gcry_ctx_t @var{ctx}})
+
+This function is a variant of @code{gcry_pk_sign} which takes as
+additional parameter @var{hd}, handle for hash, and an optional
+context @var{ctx}.  @var{skey} is a private key in S-expression.  The
+hash algorithm used by the handle needs to be enabled and input needs
+to be supplied beforehand.  @var{data-tmpl} specifies a template to
+compose an S-expression to be signed.  A template should include
+@code{"(hash %s %b)"} or @code{"(hash ALGONAME %b)"}.  For the former
+case, "%s" is substituted by the string of algorithm of
+@code{gcry_md_get_algo (}@var{hd}@code{)} and when @code{gcry_md_read}
+is called, @code{ALGO=0} is used internally.  For the latter case,
+hash algorithm by @code{ALGONAME} is used when @code{gcry_md_read} is
+called internally.  The hash handle must not yet been finalized; the
+function takes a copy of the state and does a finalize on the copy.
+The last argument, @var{ctx}, may be used for supplying nonce
+externally.  If no need, @var{ctx} should be passed as @code{NULL}.
+
+@end deftypefun
+@c end gcry_pk_hash_sign
+
+@deftypefun gcry_error_t gcry_pk_hash_verify (@w{gcry_sexp_t @var{sigval},} @w{const char *@var{data_tmpl}}, @w{gcry_sexp_t @var{pkey},} @w{gcry_md_hd_t @var{hd},} @w{gcry_ctx_t @var{ctx}})
+
+This function is a variant of @code{gcry_pk_verify} which takes as
+additional parameter @var{hd}, handle for hash, and an optional
+context @var{ctx}.  @var{pkey} is a public key in S-expression.  See
+@code{gcry_pk_hash_sign}, for the explanation of handle for hash,
+@var{data-tmpl} and @var{ctx}.
+
+@end deftypefun
+@c end gcry_pk_hash_verify
+
+@deftypefun gcry_error_t gcry_pk_random_override_new (@w{gcry_ctx_t *@var{r_ctx},} @w{const unsigned char *@var{p},} @w{size_t @var{len}})
+
+This function is used to allocate a new context for nonce, by memory
+area pointed to by @var{p} to @var{len} bytes.  This context can be
+used when calling @code{gcry_pk_hash_sign} or
+@code{gcry_pk_hash_verify} to supply nonce externally, instead of
+generating internally.
+
+On success the function returns 0 and stores the new context object at
+@var{r_ctx}; this object eventually needs to be released
+(@pxref{gcry_ctx_release}).  On error the function stores @code{NULL} at
+@var{r_ctx} and returns an error code.
+
+@end deftypefun
+@c end gcry_pk_random_override_new
+
 
 @node Dedicated ECC Functions
 @section Dedicated functions for elliptic curves.
