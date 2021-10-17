@@ -23,7 +23,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include <assert.h>
+#include <float.h>
 #include <time.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -253,7 +255,28 @@ struct bench_ops
 };
 
 
-double
+static double
+safe_div (double x, double y)
+{
+  union
+  {
+    double d;
+    char buf[sizeof(double)];
+  } u_neg_zero, u_y;
+
+  if (y != 0)
+    return x / y;
+
+  u_neg_zero.d = -0.0;
+  u_y.d = y;
+  if (memcmp(u_neg_zero.buf, u_y.buf, sizeof(double)) == 0)
+    return -DBL_MAX;
+
+  return DBL_MAX;
+}
+
+
+static double
 get_slope (double (*const get_x) (unsigned int idx, void *priv),
 	   void *get_x_priv, double y_points[], unsigned int npoints,
 	   double *overhead)
@@ -264,12 +287,18 @@ get_slope (double (*const get_x) (unsigned int idx, void *priv),
 
   sumx = sumy = sumx2 = sumy2 = sumxy = 0;
 
+  if (npoints <= 1)
+    {
+      /* No slope with zero or one point. */
+      return 0;
+    }
+
   for (i = 0; i < npoints; i++)
     {
       double x, y;
 
       x = get_x (i, get_x_priv);	/* bytes */
-      y = y_points[i];		/* nsecs */
+      y = y_points[i];			/* nsecs */
 
       sumx += x;
       sumy += y;
@@ -278,11 +307,13 @@ get_slope (double (*const get_x) (unsigned int idx, void *priv),
       sumxy += x * y;
     }
 
-  b = (npoints * sumxy - sumx * sumy) / (npoints * sumx2 - sumx * sumx);
-  a = (sumy - b * sumx) / npoints;
+  b = safe_div(npoints * sumxy - sumx * sumy, npoints * sumx2 - sumx * sumx);
 
   if (overhead)
-    *overhead = a;		/* nsecs */
+    {
+      a = safe_div(sumy - b * sumx, npoints);
+      *overhead = a;		/* nsecs */
+    }
 
   return b;			/* nsecs per byte */
 }
@@ -590,20 +621,25 @@ get_auto_ghz (void)
 
   /* Adjust CPU Ghz so that cycles per iteration would give '1024.0'. */
 
-  return cpu_ghz * 1024 / cycles_per_iteration;
+  return safe_div(cpu_ghz * 1024, cycles_per_iteration);
 }
 
 
 double
 do_slope_benchmark (struct bench_obj *obj)
 {
+  unsigned int try_count = 0;
   double ret;
 
   if (!auto_ghz)
     {
       /* Perform measurement without autodetection of CPU frequency. */
 
-      ret = slope_benchmark (obj);
+      do
+        {
+	  ret = slope_benchmark (obj);
+        }
+      while (ret <= 0 && try_count++ <= 4);
 
       bench_ghz = cpu_ghz;
       bench_ghz_diff = 0;
@@ -615,7 +651,6 @@ do_slope_benchmark (struct bench_obj *obj)
       double cpu_auto_ghz_after;
       double nsecs_per_iteration;
       double diff;
-      unsigned int try_count = 0;
 
       /* Perform measurement with CPU frequency autodetection. */
 
@@ -623,12 +658,10 @@ do_slope_benchmark (struct bench_obj *obj)
         {
           /* Repeat measurement until CPU turbo frequency has stabilized. */
 
-	  if (try_count++ > 4)
+	  if ((++try_count % 4) == 0)
 	    {
 	      /* Too much frequency instability on the system, relax target
 	       * accuracy. */
-
-	      try_count = 0;
 	      target_diff *= 2;
 	    }
 
@@ -638,10 +671,11 @@ do_slope_benchmark (struct bench_obj *obj)
 
           cpu_auto_ghz_after = get_auto_ghz ();
 
-          diff = 1.0 - (cpu_auto_ghz_before / cpu_auto_ghz_after);
+          diff = 1.0 - safe_div(cpu_auto_ghz_before, cpu_auto_ghz_after);
           diff = diff < 0 ? -diff : diff;
         }
-      while (diff > target_diff);
+      while ((nsecs_per_iteration <= 0 || diff > target_diff)
+	     && try_count < 1000);
 
       ret = nsecs_per_iteration;
 
@@ -702,7 +736,7 @@ bench_print_result_csv (double nsecs_per_byte)
     }
 
   mbytes_per_sec =
-    (1000.0 * 1000.0 * 1000.0) / (nsecs_per_byte * 1024 * 1024);
+      safe_div(1000.0 * 1000.0 * 1000.0, nsecs_per_byte * 1024 * 1024);
   double_to_str (mbpsec_buf, sizeof (mbpsec_buf), mbytes_per_sec);
 
   /* We print two empty fields to allow for future enhancements.  */
@@ -763,7 +797,7 @@ bench_print_result_std (double nsecs_per_byte)
     }
 
   mbytes_per_sec =
-    (1000.0 * 1000.0 * 1000.0) / (nsecs_per_byte * 1024 * 1024);
+      safe_div(1000.0 * 1000.0 * 1000.0, nsecs_per_byte * 1024 * 1024);
   double_to_str (mbpsec_buf, sizeof (mbpsec_buf), mbytes_per_sec);
 
   if (auto_ghz)
