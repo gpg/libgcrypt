@@ -493,7 +493,7 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
       hd->bufpos = 0;
 
       /* Initialize the private data. */
-      memset (ctx, 0, sizeof *ctx);
+      wipememory2 (ctx, 0, sizeof *ctx);
       ctx->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
       ctx->actual_handle_size = n + sizeof (struct gcry_md_context);
       ctx->flags.secure = secure;
