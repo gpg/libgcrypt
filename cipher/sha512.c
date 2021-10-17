@@ -134,7 +134,7 @@
 
 typedef struct
 {
-  u64 h0, h1, h2, h3, h4, h5, h6, h7;
+  u64 h[8];
 } SHA512_STATE;
 
 typedef struct
@@ -142,7 +142,7 @@ typedef struct
   gcry_md_block_ctx_t bctx;
   SHA512_STATE state;
 #ifdef USE_S390X_CRYPTO
-  u64 final_len_msb, final_len_lsb; /* needs to be right after state.h7. */
+  u64 final_len_msb, final_len_lsb; /* needs to be right after state.h[7]. */
   int use_s390x_crypto;
 #endif
 } SHA512_CONTEXT;
@@ -277,7 +277,7 @@ do_sha512_transform_i386_ssse3(void *ctx, const unsigned char *data,
 			       size_t nblks)
 {
   SHA512_CONTEXT *hd = ctx;
-  return _gcry_sha512_transform_i386_ssse3 (&hd->state.h0, data, nblks);
+  return _gcry_sha512_transform_i386_ssse3 (hd->state.h, data, nblks);
 }
 #endif
 
@@ -312,14 +312,14 @@ static unsigned int
 do_sha512_transform_ppc8(void *ctx, const unsigned char *data, size_t nblks)
 {
   SHA512_CONTEXT *hd = ctx;
-  return _gcry_sha512_transform_ppc8 (&hd->state.h0, data, nblks);
+  return _gcry_sha512_transform_ppc8 (hd->state.h, data, nblks);
 }
 
 static unsigned int
 do_sha512_transform_ppc9(void *ctx, const unsigned char *data, size_t nblks)
 {
   SHA512_CONTEXT *hd = ctx;
-  return _gcry_sha512_transform_ppc9 (&hd->state.h0, data, nblks);
+  return _gcry_sha512_transform_ppc9 (hd->state.h, data, nblks);
 }
 #endif
 
@@ -332,7 +332,7 @@ do_sha512_transform_s390x (void *ctx, const unsigned char *data, size_t nblks)
 {
   SHA512_CONTEXT *hd = ctx;
 
-  kimd_execute (KMID_FUNCTION_SHA512, &hd->state.h0, data, nblks * 128);
+  kimd_execute (KMID_FUNCTION_SHA512, hd->state.h, data, nblks * 128);
   return 0;
 }
 
@@ -343,18 +343,18 @@ do_sha512_final_s390x (void *ctx, const unsigned char *data, size_t datalen,
   SHA512_CONTEXT *hd = ctx;
 
   /* Make sure that 'final_len' is positioned at correct offset relative
-   * to 'state.h0'. This is because we are passing 'state.h0' pointer as start of
-   * parameter block to 'klmd' instruction. */
+   * to 'state.h[0]'. This is because we are passing 'state.h[0]' pointer as
+   * start of parameter block to 'klmd' instruction. */
 
   gcry_assert (offsetof (SHA512_CONTEXT, final_len_msb)
-	       - offsetof (SHA512_CONTEXT, state.h0) == 8 * sizeof(u64));
+	       - offsetof (SHA512_CONTEXT, state.h[0]) == 8 * sizeof(u64));
   gcry_assert (offsetof (SHA512_CONTEXT, final_len_lsb)
 	       - offsetof (SHA512_CONTEXT, final_len_msb) == 1 * sizeof(u64));
 
   hd->final_len_msb = len_msb;
   hd->final_len_lsb = len_lsb;
 
-  klmd_execute (KMID_FUNCTION_SHA512, &hd->state.h0, data, datalen);
+  klmd_execute (KMID_FUNCTION_SHA512, hd->state.h, data, datalen);
   return 0;
 }
 #endif
@@ -425,14 +425,14 @@ sha512_init (void *context, unsigned int flags)
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
 
-  hd->h0 = U64_C(0x6a09e667f3bcc908);
-  hd->h1 = U64_C(0xbb67ae8584caa73b);
-  hd->h2 = U64_C(0x3c6ef372fe94f82b);
-  hd->h3 = U64_C(0xa54ff53a5f1d36f1);
-  hd->h4 = U64_C(0x510e527fade682d1);
-  hd->h5 = U64_C(0x9b05688c2b3e6c1f);
-  hd->h6 = U64_C(0x1f83d9abfb41bd6b);
-  hd->h7 = U64_C(0x5be0cd19137e2179);
+  hd->h[0] = U64_C(0x6a09e667f3bcc908);
+  hd->h[1] = U64_C(0xbb67ae8584caa73b);
+  hd->h[2] = U64_C(0x3c6ef372fe94f82b);
+  hd->h[3] = U64_C(0xa54ff53a5f1d36f1);
+  hd->h[4] = U64_C(0x510e527fade682d1);
+  hd->h[5] = U64_C(0x9b05688c2b3e6c1f);
+  hd->h[6] = U64_C(0x1f83d9abfb41bd6b);
+  hd->h[7] = U64_C(0x5be0cd19137e2179);
 
   sha512_init_common (ctx, flags);
 }
@@ -443,14 +443,14 @@ sha384_init (void *context, unsigned int flags)
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
 
-  hd->h0 = U64_C(0xcbbb9d5dc1059ed8);
-  hd->h1 = U64_C(0x629a292a367cd507);
-  hd->h2 = U64_C(0x9159015a3070dd17);
-  hd->h3 = U64_C(0x152fecd8f70e5939);
-  hd->h4 = U64_C(0x67332667ffc00b31);
-  hd->h5 = U64_C(0x8eb44a8768581511);
-  hd->h6 = U64_C(0xdb0c2e0d64f98fa7);
-  hd->h7 = U64_C(0x47b5481dbefa4fa4);
+  hd->h[0] = U64_C(0xcbbb9d5dc1059ed8);
+  hd->h[1] = U64_C(0x629a292a367cd507);
+  hd->h[2] = U64_C(0x9159015a3070dd17);
+  hd->h[3] = U64_C(0x152fecd8f70e5939);
+  hd->h[4] = U64_C(0x67332667ffc00b31);
+  hd->h[5] = U64_C(0x8eb44a8768581511);
+  hd->h[6] = U64_C(0xdb0c2e0d64f98fa7);
+  hd->h[7] = U64_C(0x47b5481dbefa4fa4);
 
   sha512_init_common (ctx, flags);
 }
@@ -462,14 +462,14 @@ sha512_256_init (void *context, unsigned int flags)
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
 
-  hd->h0 = U64_C(0x22312194fc2bf72c);
-  hd->h1 = U64_C(0x9f555fa3c84c64c2);
-  hd->h2 = U64_C(0x2393b86b6f53b151);
-  hd->h3 = U64_C(0x963877195940eabd);
-  hd->h4 = U64_C(0x96283ee2a88effe3);
-  hd->h5 = U64_C(0xbe5e1e2553863992);
-  hd->h6 = U64_C(0x2b0199fc2c85b8aa);
-  hd->h7 = U64_C(0x0eb72ddc81c52ca2);
+  hd->h[0] = U64_C(0x22312194fc2bf72c);
+  hd->h[1] = U64_C(0x9f555fa3c84c64c2);
+  hd->h[2] = U64_C(0x2393b86b6f53b151);
+  hd->h[3] = U64_C(0x963877195940eabd);
+  hd->h[4] = U64_C(0x96283ee2a88effe3);
+  hd->h[5] = U64_C(0xbe5e1e2553863992);
+  hd->h[6] = U64_C(0x2b0199fc2c85b8aa);
+  hd->h[7] = U64_C(0x0eb72ddc81c52ca2);
 
   sha512_init_common (ctx, flags);
 }
@@ -481,14 +481,14 @@ sha512_224_init (void *context, unsigned int flags)
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
 
-  hd->h0 = U64_C(0x8c3d37c819544da2);
-  hd->h1 = U64_C(0x73e1996689dcd4d6);
-  hd->h2 = U64_C(0x1dfab7ae32ff9c82);
-  hd->h3 = U64_C(0x679dd514582f9fcf);
-  hd->h4 = U64_C(0x0f6d2b697bd44da8);
-  hd->h5 = U64_C(0x77e36f7304c48942);
-  hd->h6 = U64_C(0x3f9d85a86a1d36c8);
-  hd->h7 = U64_C(0x1112e6ad91d692a1);
+  hd->h[0] = U64_C(0x8c3d37c819544da2);
+  hd->h[1] = U64_C(0x73e1996689dcd4d6);
+  hd->h[2] = U64_C(0x1dfab7ae32ff9c82);
+  hd->h[3] = U64_C(0x679dd514582f9fcf);
+  hd->h[4] = U64_C(0x0f6d2b697bd44da8);
+  hd->h[5] = U64_C(0x77e36f7304c48942);
+  hd->h[6] = U64_C(0x3f9d85a86a1d36c8);
+  hd->h[7] = U64_C(0x1112e6ad91d692a1);
 
   sha512_init_common (ctx, flags);
 }
@@ -543,14 +543,14 @@ do_transform_generic (void *context, const unsigned char *data, size_t nblks)
       int t;
 
       /* get values from the chaining vars */
-      a = hd->h0;
-      b = hd->h1;
-      c = hd->h2;
-      d = hd->h3;
-      e = hd->h4;
-      f = hd->h5;
-      g = hd->h6;
-      h = hd->h7;
+      a = hd->h[0];
+      b = hd->h[1];
+      c = hd->h[2];
+      d = hd->h[3];
+      e = hd->h[4];
+      f = hd->h[5];
+      g = hd->h[6];
+      h = hd->h[7];
 
       for ( t = 0; t < 16; t++ )
         w[t] = buf_get_be64(data + t * 8);
@@ -749,14 +749,14 @@ do_transform_generic (void *context, const unsigned char *data, size_t nblks)
         }
 
       /* Update chaining vars.  */
-      hd->h0 += a;
-      hd->h1 += b;
-      hd->h2 += c;
-      hd->h3 += d;
-      hd->h4 += e;
-      hd->h5 += f;
-      hd->h6 += g;
-      hd->h7 += h;
+      hd->h[0] += a;
+      hd->h[1] += b;
+      hd->h[2] += c;
+      hd->h[3] += d;
+      hd->h[4] += e;
+      hd->h[5] += f;
+      hd->h[6] += g;
+      hd->h[7] += h;
 
       data += 128;
     }
@@ -836,7 +836,7 @@ sha512_final (void *context)
     }
 
   p = hd->bctx.buf;
-#define X(a) do { buf_put_be64(p, hd->state.h##a); p += 8; } while (0)
+#define X(a) do { buf_put_be64(p, hd->state.h[a]); p += 8; } while (0)
   X (0);
   X (1);
   X (2);
