@@ -458,7 +458,7 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   /* Check if it has fixed hash name or %s */
   s = strstr (tmpl, "(hash ");
   if (s == NULL)
-    return gpg_err_code (GPG_ERR_DIGEST_ALGO);
+    return GPG_ERR_DIGEST_ALGO;
 
   s += 6;
   if (!strncmp (s, "%s", 2))
@@ -487,11 +487,12 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (hash_name)
     {
       algo = _gcry_md_map_name (hash_name);
-      if (algo == 0)
+      if (algo == 0
+          || (fips_mode () && algo == GCRY_MD_SHA1))
 	{
 	  xfree (hash_name);
 	  _gcry_md_close (hd);
-	  return gpg_err_code (GPG_ERR_DIGEST_ALGO);
+	  return GPG_ERR_DIGEST_ALGO;
 	}
 
       digest = _gcry_md_read (hd, algo);
@@ -499,6 +500,10 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else
     {
       algo = _gcry_md_get_algo (hd);
+
+      if (fips_mode () && algo == GCRY_MD_SHA1)
+        return GPG_ERR_DIGEST_ALGO;
+
       digest = _gcry_md_read (hd, 0);
     }
 
@@ -614,6 +619,9 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
     return gpg_err_code (err);
 
   algo = _gcry_md_get_algo (hd);
+
+  if (fips_mode () && algo == GCRY_MD_SHA1)
+    return GPG_ERR_DIGEST_ALGO;
 
   digest = _gcry_md_read (hd, 0);
   if (!digest)
