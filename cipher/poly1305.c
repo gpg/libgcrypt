@@ -298,15 +298,37 @@ static unsigned int poly1305_final (poly1305_context_t *ctx,
 	       : "0" (HI), "1" (LO), "r" (A), "r" (B) )
 
 /* A += B (arm) */
-#define ADD_1305_32(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0) \
+#ifdef __GCC_ASM_FLAG_OUTPUTS__
+#  define ADD_1305_32(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0) do { \
+      u32 __carry; \
       __asm__ ("adds %0, %0, %5\n" \
 	       "adcs %1, %1, %6\n" \
 	       "adcs %2, %2, %7\n" \
 	       "adcs %3, %3, %8\n" \
-	       "adc %4, %4, %9\n" \
-	       : "+r" (A0), "+r" (A1), "+r" (A2), "+r" (A3), "+r" (A4) \
-	       : "r" (B0), "r" (B1), "r" (B2), "r" (B3), "r" (B4) \
-	       : "cc" )
+	       : "+r" (A0), "+r" (A1), "+r" (A2), "+r" (A3), \
+	         "=@cccs" (__carry) \
+	       : "r" (B0), "r" (B1), "r" (B2), "r" (B3) \
+	       : ); \
+      (A4) += (B4) + __carry; \
+    } while (0)
+#else
+#  define ADD_1305_32(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0) do { \
+      u32 __carry = (B0); \
+      __asm__ ("adds %0, %0, %2\n" \
+	       "adcs %1, %1, %3\n" \
+	       "rrx %2, %2\n" /* carry to 31th bit */ \
+	       : "+r" (A0), "+r" (A1), "+r" (__carry) \
+	       : "r" (B1), "r" (0) \
+	       : "cc" ); \
+      __asm__ ("lsls %0, %0, #1\n" /* carry from 31th bit */ \
+	       "adcs %1, %1, %4\n" \
+	       "adcs %2, %2, %5\n" \
+	       "adc  %3, %3, %6\n" \
+	       : "+r" (__carry), "+r" (A2), "+r" (A3), "+r" (A4) \
+	       : "r" (B2), "r" (B3), "r" (B4) \
+	       : "cc" ); \
+    } while (0)
+#endif
 
 #endif /* HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS */
 
