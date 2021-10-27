@@ -350,6 +350,9 @@ struct gcry_cipher_handle
       /* GHASH implementation in use. */
       ghash_fn_t ghash_fn;
 
+      /* POLYVAL implementation in use (GCM-SIV). */
+      ghash_fn_t polyval_fn;
+
       /* Key length used for GCM-SIV key generating key. */
       unsigned int siv_keylen;
     } gcm;

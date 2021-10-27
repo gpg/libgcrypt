@@ -96,6 +96,7 @@ do_polyval_buf(gcry_cipher_hd_t c, byte *hash, const byte *buf,
   unsigned int blocksize = GCRY_SIV_BLOCK_LEN;
   unsigned int unused = c->u_mode.gcm.mac_unused;
   ghash_fn_t ghash_fn = c->u_mode.gcm.ghash_fn;
+  ghash_fn_t polyval_fn = c->u_mode.gcm.polyval_fn;
   byte tmp_blocks[16][GCRY_SIV_BLOCK_LEN];
   size_t nblocks, n;
   unsigned int burn = 0, nburn;
@@ -137,9 +138,17 @@ do_polyval_buf(gcry_cipher_hd_t c, byte *hash, const byte *buf,
           gcry_assert (unused == blocksize);
 
           /* Process one block from macbuf.  */
-          cipher_block_bswap (c->u_mode.gcm.macbuf, c->u_mode.gcm.macbuf,
-			      blocksize);
-          nburn = ghash_fn (c, hash, c->u_mode.gcm.macbuf, 1);
+          if (polyval_fn)
+            {
+              nburn = polyval_fn (c, hash, c->u_mode.gcm.macbuf, 1);
+            }
+          else
+            {
+              cipher_block_bswap (c->u_mode.gcm.macbuf, c->u_mode.gcm.macbuf,
+                                  blocksize);
+              nburn = ghash_fn (c, hash, c->u_mode.gcm.macbuf, 1);
+            }
+
           burn = nburn > burn ? nburn : burn;
           unused = 0;
         }
@@ -148,12 +157,22 @@ do_polyval_buf(gcry_cipher_hd_t c, byte *hash, const byte *buf,
 
       while (nblocks)
         {
-	  for (n = 0; n < (nblocks > 16 ? 16 : nblocks); n++)
-	    cipher_block_bswap (tmp_blocks[n], buf + n * blocksize, blocksize);
+          if (polyval_fn)
+            {
+              n = nblocks;
+              nburn = polyval_fn (c, hash, buf, n);
+            }
+          else
+            {
+              for (n = 0; n < (nblocks > 16 ? 16 : nblocks); n++)
+                cipher_block_bswap (tmp_blocks[n], buf + n * blocksize,
+                                    blocksize);
 
-	  num_blks_used = n > num_blks_used ? n : num_blks_used;
+              num_blks_used = n > num_blks_used ? n : num_blks_used;
 
-          nburn = ghash_fn (c, hash, tmp_blocks[0], n);
+              nburn = ghash_fn (c, hash, tmp_blocks[0], n);
+            }
+
           burn = nburn > burn ? nburn : burn;
           buf += n * blocksize;
           buflen -= n * blocksize;
