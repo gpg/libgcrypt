@@ -106,12 +106,13 @@ static void jent_hash_time(struct rand_data *ec, uint64_t time,
 	HASH_CTX_ON_STACK(ctx);
 	uint8_t itermediary[SHA3_256_SIZE_DIGEST];
 	uint64_t j = 0;
+	uint64_t hash_loop_cnt;
 #define MAX_HASH_LOOP 3
 #define MIN_HASH_LOOP 0
 
 	/* Ensure that macros cannot overflow jent_loop_shuffle() */
 	BUILD_BUG_ON((MAX_HASH_LOOP + MIN_HASH_LOOP) > 63);
-	uint64_t hash_loop_cnt =
+	hash_loop_cnt =
 		jent_loop_shuffle(ec, MAX_HASH_LOOP, MIN_HASH_LOOP);
 
 	sha3_256_init(&ctx);
@@ -189,10 +190,11 @@ static void jent_memaccess(struct rand_data *ec, uint64_t loop_cnt)
 		uint8_t b[sizeof(uint32_t) * 4];
 	} prngState = { .u = {0x8e93eec0, 0xce65608a, 0xa8d46b46, 0xe83cef69} };
 	uint32_t addressMask = ec->memmask;
+        uint64_t acc_loop_cnt;
 
 	/* Ensure that macros cannot overflow jent_loop_shuffle() */
 	BUILD_BUG_ON((MAX_ACC_LOOP_BIT + MIN_ACC_LOOP_BIT) > 63);
-	uint64_t acc_loop_cnt =
+	acc_loop_cnt =
 		jent_loop_shuffle(ec, MAX_ACC_LOOP_BIT, MIN_ACC_LOOP_BIT);
 
 	if (NULL == ec || NULL == ec->mem)

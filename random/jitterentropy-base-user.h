@@ -131,4 +131,171 @@ jent_fips_enabled(void)
 }
 
 
+static inline void jent_memset_secure(void *s, size_t n)
+{
+	memset(s, 0, n);
+	__asm__ __volatile__("" : : "r" (s) : "memory");
+}
+
+static inline long jent_ncpu(void)
+{
+#ifdef _POSIX_SOURCE
+	long ncpu = sysconf(_SC_NPROCESSORS_ONLN);
+
+	if (ncpu == -1)
+		return -errno;
+
+	if (ncpu == 0)
+		return -EFAULT;
+
+	return ncpu;
+#else
+	return 1;
+#endif
+}
+
+#ifdef __linux__
+
+# if defined(_SC_LEVEL1_DCACHE_SIZE) &&					\
+     defined(_SC_LEVEL2_CACHE_SIZE) &&					\
+     defined(_SC_LEVEL3_CACHE_SIZE)
+
+static inline void jent_get_cachesize(long *l1, long *l2, long *l3)
+{
+	*l1 = sysconf(_SC_LEVEL1_DCACHE_SIZE);
+	*l2 = sysconf(_SC_LEVEL2_CACHE_SIZE);
+	*l3 = sysconf(_SC_LEVEL3_CACHE_SIZE);
+}
+
+# else
+
+static inline void jent_get_cachesize(long *l1, long *l2, long *l3)
+{
+#define JENT_SYSFS_CACHE_DIR "/sys/devices/system/cpu/cpu0/cache"
+	long val;
+	unsigned int i;
+	char buf[10], file[50];
+	int fd = 0;
+
+	/* Iterate over all caches */
+	for (i = 0; i < 4; i++) {
+		unsigned int shift = 0;
+		char *ext;
+
+		/*
+		 * Check the cache type - we are only interested in Unified
+		 * and Data caches.
+		 */
+		memset(buf, 0, sizeof(buf));
+		snprintf(file, sizeof(file), "%s/index%u/type",
+			 JENT_SYSFS_CACHE_DIR, i);
+		fd = open(file, O_RDONLY);
+		if (fd < 0)
+			continue;
+		while (read(fd, buf, sizeof(buf)) < 0 && errno == EINTR);
+		close(fd);
+		buf[sizeof(buf) - 1] = '\0';
+
+		if (strncmp(buf, "Data", 4) && strncmp(buf, "Unified", 7))
+			continue;
+
+		/* Get size of cache */
+		memset(buf, 0, sizeof(buf));
+		snprintf(file, sizeof(file), "%s/index%u/size",
+			 JENT_SYSFS_CACHE_DIR, i);
+
+		fd = open(file, O_RDONLY);
+		if (fd < 0)
+			continue;
+		while (read(fd, buf, sizeof(buf)) < 0 && errno == EINTR);
+		close(fd);
+		buf[sizeof(buf) - 1] = '\0';
+
+		ext = strstr(buf, "K");
+		if (ext) {
+			shift = 10;
+			ext = '\0';
+		} else {
+			ext = strstr(buf, "M");
+			if (ext) {
+				shift = 20;
+				ext = '\0';
+			}
+		}
+
+		val = strtol(buf, NULL, 10);
+		if (val == LONG_MAX)
+			continue;
+		val <<= shift;
+
+		if (!*l1)
+			*l1 = val;
+		else if (!*l2)
+			*l2 = val;
+		else {
+			*l3 = val;
+			break;
+		}
+	}
+#undef JENT_SYSFS_CACHE_DIR
+}
+
+# endif
+
+static inline uint32_t jent_cache_size_roundup(void)
+{
+	static int checked = 0;
+	static uint32_t cache_size = 0;
+
+	if (!checked) {
+		long l1 = 0, l2 = 0, l3 = 0;
+
+		jent_get_cachesize(&l1, &l2, &l3);
+		checked = 1;
+
+		/* Cache size reported by system */
+		if (l1 > 0)
+			cache_size += (uint32_t)l1;
+		if (l2 > 0)
+			cache_size += (uint32_t)l2;
+		if (l3 > 0)
+			cache_size += (uint32_t)l3;
+
+		/*
+		 * Force the output_size to be of the form
+		 * (bounding_power_of_2 - 1).
+		 */
+		cache_size |= (cache_size >> 1);
+		cache_size |= (cache_size >> 2);
+		cache_size |= (cache_size >> 4);
+		cache_size |= (cache_size >> 8);
+		cache_size |= (cache_size >> 16);
+
+		if (cache_size == 0)
+			return 0;
+
+		/*
+		 * Make the output_size the smallest power of 2 strictly
+		 * greater than cache_size.
+		 */
+		cache_size++;
+	}
+
+	return cache_size;
+}
+
+#else /* __linux__ */
+
+static inline uint32_t jent_cache_size_roundup(void)
+{
+	return 0;
+}
+
+#endif /* __linux__ */
+
+static inline void jent_yield(void)
+{
+	sched_yield();
+}
+
 #endif /* GCRYPT_JITTERENTROPY_BASE_USER_H */
