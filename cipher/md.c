@@ -1198,6 +1198,10 @@ _gcry_md_hash_buffer (int algo, void *digest,
       iov.off = 0;
       iov.len = length;
 
+      if (!spec->flags.fips && fips_mode ())
+        log_bug ("gcry_md_hash_buffer failed for algo %d: %s",
+                algo, gpg_strerror (gcry_error (GPG_ERR_DIGEST_ALGO)));
+
       spec->hash_buffers (digest, spec->mdlen, &iov, 1);
     }
   else
@@ -1267,6 +1271,9 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 
   if (!hmac && spec->hash_buffers)
     {
+      if (!spec->flags.fips && fips_mode ())
+        return GPG_ERR_DIGEST_ALGO;
+
       spec->hash_buffers (digest, digestlen, iov, iovcnt);
     }
   else
