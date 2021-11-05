@@ -1156,7 +1156,7 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       printf ("RSA %3d bit    ", nbits);
       fflush (stdout);
 
-      if (in_fips_mode && !(nbits == 2048 || nbits == 3072))
+      if (in_fips_mode && nbits < 2048)
         {
           puts ("[skipped in fips mode]");
           continue;
