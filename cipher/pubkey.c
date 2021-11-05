@@ -224,7 +224,7 @@ check_pubkey_algo (int algo, unsigned use)
   gcry_pk_spec_t *spec;
 
   spec = spec_from_algo (algo);
-  if (spec)
+  if (spec && !spec->flags.disabled)
     {
       if (((use & GCRY_PK_USAGE_SIGN)
 	   && (! (spec->use & GCRY_PK_USAGE_SIGN)))
