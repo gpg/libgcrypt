@@ -55,9 +55,10 @@ typedef struct test_spec_pubkey
 }
 test_spec_pubkey_t;
 
-#define FLAG_CRYPT (1 << 0)
-#define FLAG_SIGN  (1 << 1)
-#define FLAG_GRIP  (1 << 2)
+#define FLAG_CRYPT  (1 << 0)
+#define FLAG_SIGN   (1 << 1)
+#define FLAG_GRIP   (1 << 2)
+#define FLAG_NOFIPS (1 << 3)
 
 static int in_fips_mode;
 
@@ -15022,7 +15023,8 @@ verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
 /* Test the public key sign function using the private key SKEY. PKEY
    is used for verification. */
 static void
-check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
+check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
+                   int flags)
 {
   gcry_error_t rc;
   gcry_sexp_t sig, badhash, hash;
@@ -15112,6 +15114,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
   if (rc)
     die ("converting data failed: %s\n", gpg_strerror (rc));
 
+  sig = NULL;
   for (dataidx = 0; datas[dataidx].data; dataidx++)
     {
       if (datas[dataidx].algo && datas[dataidx].algo != algo)
@@ -15127,12 +15130,19 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	die ("converting data failed: %s\n", gpg_strerror (rc));
 
       rc = gcry_pk_sign (&sig, hash, skey);
+      if (in_fips_mode && (flags & FLAG_NOFIPS))
+        {
+          if (!rc)
+            fail ("gcry_pk_sign did not fail as expected in FIPS mode\n");
+          goto next;
+        }
       if (gcry_err_code (rc) != datas[dataidx].expected_rc)
 	fail ("gcry_pk_sign failed: %s\n", gpg_strerror (rc));
 
       if (!rc)
 	verify_one_signature (pkey, hash, badhash, sig);
 
+    next:
       gcry_sexp_release (sig);
       sig = NULL;
       gcry_sexp_release (hash);
@@ -15146,7 +15156,8 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 /* Test the public key sign function using the private key SKEY. PKEY
    is used for verification.  This variant is only used for ECDSA.  */
 static void
-check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
+check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
+                         int flags)
 {
   gcry_error_t rc;
   gcry_sexp_t sig, badhash, hash;
@@ -15228,6 +15239,7 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 
   nbits = gcry_pk_get_nbits (skey);
 
+  sig = NULL;
   for (dataidx = 0; datas[dataidx].data; dataidx++)
     {
       if (datas[dataidx].nbits != nbits)
@@ -15247,6 +15259,12 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
         die ("converting data failed: %s\n", gpg_strerror (rc));
 
       rc = gcry_pk_sign (&sig, hash, skey);
+      if (in_fips_mode && (flags & FLAG_NOFIPS))
+        {
+          if (!rc)
+            fail ("gcry_pk_sign did not fail as expected in FIPS mode\n");
+          goto next;
+        }
       if (gcry_err_code (rc) != datas[dataidx].expected_rc)
 	fail ("gcry_pk_sign failed: %s\n", gpg_strerror (rc));
 
@@ -15256,6 +15274,7 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
       if (!rc)
         verify_one_signature (pkey, hash, badhash, sig);
 
+    next:
       gcry_sexp_release (sig);
       sig = NULL;
       gcry_sexp_release (badhash);
@@ -15267,7 +15286,8 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 
 
 static void
-check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
+check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
+                    int flags)
 {
   gcry_error_t rc;
   gcry_sexp_t plain = NULL;
@@ -15400,6 +15420,12 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	die ("converting data failed: %s\n", gpg_strerror (rc));
 
       rc = gcry_pk_encrypt (&ciph, data, pkey);
+      if (in_fips_mode && (flags & FLAG_NOFIPS))
+        {
+          if (!rc)
+            fail ("gcry_pk_encrypt did not fail as expected in FIPS mode\n");
+          goto next;
+        }
       if (gcry_err_code (rc) != datas[dataidx].encrypt_expected_rc)
 	fail ("gcry_pk_encrypt failed: %s\n", gpg_strerror (rc));
 
@@ -15498,6 +15524,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	    }
 	}
 
+    next:
       gcry_sexp_release (plain);
       plain = NULL;
       gcry_sexp_release (ciph);
@@ -15529,17 +15556,17 @@ static void
 do_check_one_pubkey (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
 		     const unsigned char *grip, int algo, int flags)
 {
- if (flags & FLAG_SIGN)
+  if ((flags & FLAG_SIGN))
    {
      if (algo == GCRY_PK_ECDSA)
-       check_pubkey_sign_ecdsa (n, skey, pkey);
+       check_pubkey_sign_ecdsa (n, skey, pkey, flags);
      else
-       check_pubkey_sign (n, skey, pkey, algo);
+       check_pubkey_sign (n, skey, pkey, algo, flags);
    }
- if (flags & FLAG_CRYPT)
-   check_pubkey_crypt (n, skey, pkey, algo);
- if (grip && (flags & FLAG_GRIP))
-   check_pubkey_grip (n, grip, skey, pkey, algo);
+  if ((flags & FLAG_CRYPT))
+    check_pubkey_crypt (n, skey, pkey, algo, flags);
+  if (grip && (flags & FLAG_GRIP))
+    check_pubkey_grip (n, grip, skey, pkey, algo);
 }
 
 static void
@@ -15613,7 +15640,7 @@ check_pubkey (void)
 {
   static const test_spec_pubkey_t pubkeys[] = {
   {
-    GCRY_PK_RSA, FLAG_CRYPT | FLAG_SIGN | FLAG_GRIP,
+    GCRY_PK_RSA, FLAG_CRYPT | FLAG_SIGN | FLAG_GRIP | FLAG_NOFIPS, /* 1k RSA */
     {
       "(private-key\n"
       " (rsa\n"
@@ -15651,7 +15678,7 @@ check_pubkey (void)
       "\xa2\x5d\x3d\x69\xf8\x6d\x37\xa4\xf9\x39"}
   },
   {
-    GCRY_PK_DSA, FLAG_SIGN | FLAG_GRIP,
+    GCRY_PK_DSA, FLAG_SIGN | FLAG_GRIP | FLAG_NOFIPS, /* 1k DSA */
     {
       "(private-key\n"
       " (DSA\n"
@@ -15696,7 +15723,7 @@ check_pubkey (void)
       "\x4a\xa6\xf9\xeb\x23\xbf\xa9\x12\x2d\x5b" }
   },
   {
-    GCRY_PK_ELG, FLAG_SIGN | FLAG_CRYPT | FLAG_GRIP,
+    GCRY_PK_ELG, FLAG_SIGN | FLAG_CRYPT | FLAG_GRIP | FLAG_NOFIPS,
     {
       "(private-key\n"
       " (ELG\n"
@@ -15828,7 +15855,7 @@ check_pubkey (void)
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
   },
   { /* GOST R 34.10-2001/2012 test 256 bit.  */
-    GCRY_PK_ECDSA, FLAG_SIGN,
+    GCRY_PK_ECDSA, FLAG_SIGN | FLAG_NOFIPS,
     {
       "(private-key\n"
       " (ecc\n"
@@ -15850,7 +15877,7 @@ check_pubkey (void)
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
   },
   { /* GOST R 34.10-2012 test 512 bit.  */
-    GCRY_PK_ECDSA, FLAG_SIGN,
+    GCRY_PK_ECDSA, FLAG_SIGN | FLAG_NOFIPS,
     {
       "(private-key\n"
       " (ecc\n"
@@ -15901,7 +15928,7 @@ check_pubkey (void)
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
   },
   { /* sm2 test */
-    GCRY_PK_ECDSA, FLAG_SIGN,
+    GCRY_PK_ECDSA, FLAG_SIGN | FLAG_NOFIPS,
     {
       "(private-key\n"
       " (ecc\n"
