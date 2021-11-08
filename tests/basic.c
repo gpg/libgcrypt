@@ -15944,21 +15944,10 @@ check_pubkey (void)
     fprintf (stderr, "Completed public key checks.\n");
 
   if (verbose)
-    fprintf (stderr, "Starting additional public key checks.\n");
-  for (i = 0; i < sizeof (pubkeys) / sizeof (*pubkeys); i++)
-    if (pubkeys[i].id)
-      {
-        if (gcry_pk_test_algo (pubkeys[i].id) && in_fips_mode)
-          {
-            if (verbose)
-              fprintf (stderr, "  algorithm %d not available in fips mode\n",
-                       pubkeys[i].id);
-            continue;
-          }
-        check_one_pubkey_new (i);
-      }
+    fprintf (stderr, "Starting additional public key check.\n");
+  check_one_pubkey_new (i);
   if (verbose)
-    fprintf (stderr, "Completed additional public key checks.\n");
+    fprintf (stderr, "Completed additional public key check.\n");
 
 }
 
