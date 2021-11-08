@@ -564,7 +564,9 @@ main (int argc, char **argv)
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
 
 
-  check_dsa_gen_186_2 ();
+  if ( !gcry_fips_mode_active () )
+    check_dsa_gen_186_2 ();
+
   check_dsa_gen_186_3 ();
 
 

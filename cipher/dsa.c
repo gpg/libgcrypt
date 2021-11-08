@@ -145,6 +145,17 @@ static void (*progress_cb) (void *,const char *, int, int, int );
 static void *progress_cb_data;
 
 
+/* Check the DSA key length is acceptable for key generation or usage */
+static gpg_err_code_t
+dsa_check_keysize (unsigned int nbits)
+{
+  if (fips_mode () && nbits < 2048)
+    return GPG_ERR_INV_VALUE;
+
+  return 0;
+}
+
+
 void
 _gcry_register_pk_dsa_progress (void (*cb) (void *, const char *,
                                             int, int, int),
@@ -418,6 +429,10 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
     ;
   else
     return GPG_ERR_INV_VALUE;
+
+  ec = dsa_check_keysize (nbits);
+  if (ec)
+    return ec;
 
   if (domain->p && domain->q && domain->g)
     {
@@ -1066,9 +1081,13 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   DSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL};
   gcry_mpi_t sig_r = NULL;
   gcry_mpi_t sig_s = NULL;
+  unsigned int nbits = dsa_get_nbits (keyparms);
 
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
-                                   dsa_get_nbits (keyparms));
+  rc = dsa_check_keysize (nbits);
+  if (rc)
+    return rc;
+
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, nbits);
 
   /* Extract the data.  */
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
@@ -1136,9 +1155,13 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   gcry_mpi_t sig_s = NULL;
   gcry_mpi_t data = NULL;
   DSA_public_key pk = { NULL, NULL, NULL, NULL };
+  unsigned int nbits = dsa_get_nbits (s_keyparms);
 
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
-                                   dsa_get_nbits (s_keyparms));
+  rc = dsa_check_keysize (nbits);
+  if (rc)
+    return rc;
+
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY, nbits);
 
   /* Extract the data.  */
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
