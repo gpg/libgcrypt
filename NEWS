@@ -22,7 +22,7 @@ Noteworthy changes in version 1.8.8 (2021-06-02)  [C22/A2/R9]
      work correctly.  [3f48e3ea37]
 
    - Fix Elgamal encryption for other implementations.
-     [#5328,CVE-2021-33560]
+     [#5328,CVE-2021-40528]
 
    - Fix alignment problem on macOS.  [#5440]
 
