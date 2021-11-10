@@ -11,7 +11,7 @@ Noteworthy changes in version 1.9.4 (2021-08-22)  [C23/A3/R4]
  * Bug fixes:
 
    - Fix Elgamal encryption for other implementations.
-     [#5328,CVE-2021-33560]
+     [#5328,CVE-2021-40528]
 
    - Fix alignment problem on macOS.  [#5440]
 
