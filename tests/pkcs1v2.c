@@ -36,6 +36,8 @@
 #include "t-common.h"
 
 
+static int in_fips_mode;
+
 static void
 show_sexp (const char *prefix, gcry_sexp_t a)
 {
@@ -147,6 +149,18 @@ check_oaep (void)
       gcry_free (rsa_e);
       gcry_free (rsa_d);
 
+      if (in_fips_mode)
+        {
+          unsigned int nbits = gcry_pk_get_nbits (pub_key);
+
+          if (nbits < 2048)
+            {
+              if (verbose > 1)
+                info ("... skipped\n");
+              goto next;
+            }
+        }
+
       for (mno = 0; mno < DIM (tbl[0].m); mno++)
         {
           void *mesg, *seed, *encr;
@@ -225,6 +239,7 @@ check_oaep (void)
           ciph = NULL;
         }
 
+    next:
       gcry_sexp_release (sec_key);
       gcry_sexp_release (pub_key);
     }
@@ -268,6 +283,18 @@ check_pss (void)
       gcry_free (rsa_n);
       gcry_free (rsa_e);
       gcry_free (rsa_d);
+
+      if (in_fips_mode)
+        {
+          unsigned int nbits = gcry_pk_get_nbits (pub_key);
+
+          if (nbits < 2048)
+            {
+              if (verbose > 1)
+                info ("... skipped\n");
+              goto next;
+            }
+        }
 
       for (mno = 0; mno < DIM (tbl[0].m); mno++)
         {
@@ -347,6 +374,7 @@ check_pss (void)
           sigtmpl = NULL;
         }
 
+    next:
       gcry_sexp_release (sec_key);
       gcry_sexp_release (pub_key);
     }
@@ -390,6 +418,18 @@ check_v15crypt (void)
       gcry_free (rsa_n);
       gcry_free (rsa_e);
       gcry_free (rsa_d);
+
+      if (in_fips_mode)
+        {
+          unsigned int nbits = gcry_pk_get_nbits (pub_key);
+
+          if (nbits < 2048)
+            {
+              if (verbose > 1)
+                info ("... skipped\n");
+              goto next;
+            }
+        }
 
       for (mno = 0; mno < DIM (tbl[0].m); mno++)
         {
@@ -469,6 +509,7 @@ check_v15crypt (void)
           ciph = NULL;
         }
 
+    next:
       gcry_sexp_release (sec_key);
       gcry_sexp_release (pub_key);
     }
@@ -512,6 +553,18 @@ check_v15sign (void)
       gcry_free (rsa_n);
       gcry_free (rsa_e);
       gcry_free (rsa_d);
+
+      if (in_fips_mode)
+        {
+          unsigned int nbits = gcry_pk_get_nbits (pub_key);
+
+          if (nbits < 2048)
+            {
+              if (verbose > 1)
+                info ("... skipped\n");
+              goto next;
+            }
+        }
 
       for (mno = 0; mno < DIM (tbl[0].m); mno++)
         {
@@ -583,6 +636,7 @@ check_v15sign (void)
           sigtmpl = NULL;
         }
 
+    next:
       gcry_sexp_release (sec_key);
       gcry_sexp_release (pub_key);
     }
@@ -597,6 +651,7 @@ main (int argc, char **argv)
   int run_pss = 0;
   int run_v15c = 0;
   int run_v15s = 0;
+  int use_fips = 0;
 
   if (argc)
     { argc--; argv++; }
@@ -625,6 +680,11 @@ main (int argc, char **argv)
           die_on_error = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--fips"))
+        {
+          use_fips = 1;
+          argc--; argv++;
+        }
       else if (!strcmp (*argv, "--oaep"))
         {
           run_oaep = 1;
@@ -651,9 +711,21 @@ main (int argc, char **argv)
     run_oaep = run_pss = run_v15c = run_v15s = 1;
 
   xgcry_control ((GCRYCTL_SET_VERBOSITY, (int)verbose));
-  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
-  if (!gcry_check_version ("1.5.0"))
-    die ("version mismatch\n");
+
+  if (use_fips)
+    xgcry_control ((GCRYCTL_FORCE_FIPS_MODE, 0));
+
+  /* Check that we test exactly our version - including the patchlevel.  */
+  if (strcmp (GCRYPT_VERSION, gcry_check_version (NULL)))
+    die ("version mismatch; pgm=%s, library=%s\n",
+         GCRYPT_VERSION,gcry_check_version (NULL));
+
+  if ( gcry_fips_mode_active () )
+    in_fips_mode = 1;
+
+  if (!in_fips_mode)
+    xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
+
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
   if (debug)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
