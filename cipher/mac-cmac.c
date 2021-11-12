@@ -458,7 +458,7 @@ gcry_mac_spec_t _gcry_mac_type_spec_cmac_blowfish = {
 #endif
 #if USE_DES
 gcry_mac_spec_t _gcry_mac_type_spec_cmac_tripledes = {
-  GCRY_MAC_CMAC_3DES, {0, 1}, "CMAC_3DES",
+  GCRY_MAC_CMAC_3DES, {0, 0}, "CMAC_3DES",
   &cmac_ops
 };
 #endif

@@ -389,7 +389,6 @@ run_cipher_selftests (int extended)
 {
   static int algos[] =
     {
-      GCRY_CIPHER_3DES,
       GCRY_CIPHER_AES128,
       GCRY_CIPHER_AES192,
       GCRY_CIPHER_AES256,
@@ -460,7 +459,6 @@ run_mac_selftests (int extended)
       GCRY_MAC_HMAC_SHA3_256,
       GCRY_MAC_HMAC_SHA3_384,
       GCRY_MAC_HMAC_SHA3_512,
-      GCRY_MAC_CMAC_3DES,
       GCRY_MAC_CMAC_AES,
       0
     };
