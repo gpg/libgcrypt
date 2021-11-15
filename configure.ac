@@ -230,7 +230,7 @@ available_kdfs="s2k pkdf2 scrypt"
 enabled_kdfs=""
 
 # Definitions for random modules.
-available_random_modules="linux egd unix"
+available_random_modules="getentropy linux egd unix"
 auto_random_modules="$available_random_modules"
 
 # Supported thread backends.
@@ -2263,7 +2263,9 @@ fi
 if test "$random" = "default"; then
 
     # Select default value.
-    if test "$ac_cv_have_dev_random" = yes; then
+    if test "$ac_cv_func_getentropy" = yes; then
+        random_modules="getentropy"
+    elif test "$ac_cv_have_dev_random" = yes; then
         # Try Linuxish random device.
         random_modules="linux"
     else
@@ -3082,6 +3084,12 @@ LIST_MEMBER(scrypt, $enabled_kdfs)
 if test "$found" = "1" ; then
    GCRYPT_KDFS="$GCRYPT_KDFS scrypt.lo"
    AC_DEFINE(USE_SCRYPT, 1, [Defined if this module should be included])
+fi
+
+LIST_MEMBER(getentropy, $random_modules)
+if test "$found" = "1" ; then
+   GCRYPT_RANDOM="$GCRYPT_RANDOM rndgetentropy.lo"
+   AC_DEFINE(USE_RNDGETENTROPY, 1, [Defined if the getentropy RNG should be used.])
 fi
 
 LIST_MEMBER(linux, $random_modules)

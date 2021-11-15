@@ -45,6 +45,7 @@ endif USE_RANDOM_DAEMON
 
 
 EXTRA_librandom_la_SOURCES = \
+rndgetentropy.c \
 rndlinux.c \
 rndegd.c \
 rndunix.c \
