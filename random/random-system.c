@@ -147,7 +147,9 @@ get_random (void *buffer, size_t length, int level)
   read_cb_size   = length;
   read_cb_len    = 0;
 
-#if USE_RNDLINUX
+#if USE_RNDGETENTROPY
+  rc = _gcry_rndgetentropy_gather_random (read_cb, 0, length, level);
+#elif USE_RNDLINUX
   rc = _gcry_rndlinux_gather_random (read_cb, 0, length, level);
 #elif USE_RNDUNIX
   rc = _gcry_rndunix_gather_random (read_cb, 0, length, level);
@@ -193,7 +195,9 @@ void
 _gcry_rngsystem_close_fds (void)
 {
   lock_rng ();
-#if USE_RNDLINUX
+#if USE_RNDGETENTROPY
+  _gcry_rndgetentropy_gather_random (NULL, 0, 0, 0);
+#elif USE_RNDLINUX
   _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
 #endif
   unlock_rng ();

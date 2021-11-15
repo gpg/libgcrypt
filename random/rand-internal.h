@@ -89,6 +89,12 @@ void _gcry_rngsystem_randomize (void *buffer, size_t length,
 
 
 
+/*-- rndgetentropy.c --*/
+int _gcry_rndgetentropy_gather_random (void (*add) (const void *, size_t,
+                                                    enum random_origins),
+                                       enum random_origins origin,
+                                       size_t length, int level);
+
 /*-- rndlinux.c --*/
 int _gcry_rndlinux_gather_random (void (*add) (const void *, size_t,
                                                enum random_origins),

@@ -352,10 +352,12 @@ void
 _gcry_rngcsprng_close_fds (void)
 {
   lock_pool ();
-#if USE_RNDLINUX
+#if USE_RNDGETENTROPY
+  _gcry_rndgetentropy_gather_random (NULL, 0, 0, 0);
+#elif USE_RNDLINUX
   _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
-  pool_filled = 0; /* Force re-open on next use.  */
 #endif
+  pool_filled = 0; /* Force re-open on next use.  */
   unlock_pool ();
 }
 
@@ -1203,6 +1205,11 @@ getfnc_gather_random (void))(void (*)(const void*, size_t,
 {
   int (*fnc)(void (*)(const void*, size_t, enum random_origins),
              enum random_origins, size_t, int);
+
+#if USE_RNDGETENTROPY
+  fnc = _gcry_rndgetentropy_gather_random;
+  return fnc;
+#endif
 
 #if USE_RNDLINUX
   if ( !access (NAME_OF_DEV_RANDOM, R_OK)

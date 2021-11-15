@@ -554,7 +554,11 @@ get_entropy (size_t nbytes)
   entropy_collect_buffer_size = nbytes;
   entropy_collect_buffer_len = 0;
 
-#if USE_RNDLINUX
+#if USE_RNDGETENTROPY
+  rc = _gcry_rndgetentropy_gather_random (entropy_collect_cb, 0,
+                                          X931_AES_KEYLEN,
+                                          GCRY_VERY_STRONG_RANDOM);
+#elif USE_RNDLINUX
   rc = _gcry_rndlinux_gather_random (entropy_collect_cb, 0,
                                      X931_AES_KEYLEN,
                                      GCRY_VERY_STRONG_RANDOM);
@@ -781,7 +785,9 @@ void
 _gcry_rngfips_close_fds (void)
 {
   lock_rng ();
-#if USE_RNDLINUX
+#if USE_RNDGETENTROPY
+  _gcry_rndgetentropy_gather_random (NULL, 0, 0, 0);
+#elif USE_RNDLINUX
   _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
 #endif
   unlock_rng ();
@@ -1000,7 +1006,7 @@ _gcry_rngfips_selftest (selftest_report_func_t report)
 {
   gcry_err_code_t ec;
 
-#if defined(USE_RNDLINUX) || defined(USE_RNDW32)
+#if defined(USE_RNDGETENTROPY) || defined(USE_RNDLINUX) || defined(USE_RNDW32)
   {
     char buffer[8];
 
@@ -1013,7 +1019,7 @@ _gcry_rngfips_selftest (selftest_report_func_t report)
 
   ec = selftest_kat (report);
 
-#else /*!(USE_RNDLINUX||USE_RNDW32)*/
+#else /*!(USE_RNDGETENTROPY||USE_RNDLINUX||USE_RNDW32)*/
   report ("random", 0, "setup", "no entropy gathering module");
   ec = GPG_ERR_SELFTEST_FAILED;
 #endif

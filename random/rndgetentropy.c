@@ -41,6 +41,8 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
 {
   byte buffer[256];
 
+  (void)level;
+
   if (!add)
     {
       /* Special mode to release resouces.  */

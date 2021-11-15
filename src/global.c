@@ -317,6 +317,9 @@ print_config (const char *what, gpgrt_stream_t fp)
 #if USE_RNDEGD
                      "egd:"
 #endif
+#if USE_RNDGETENTROPY
+                     "getentropy:"
+#endif
 #if USE_RNDLINUX
                      "linux:"
 #endif
