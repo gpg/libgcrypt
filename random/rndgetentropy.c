@@ -61,28 +61,25 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
        * non-blocking semantics, return data even if the kernel has
        * not been properly seeded.  And it differs from /dev/random by
        * never blocking once the kernel is seeded.  */
-      if (1)
+      do
         {
-          do
-            {
-              nbytes = length < sizeof (buffer)? length : sizeof (buffer);
-              _gcry_pre_syscall ();
-              ret = getentropy (buffer, nbytes);
-              _gcry_post_syscall ();
-            }
-          while (ret == -1 && errno == EINTR);
+          nbytes = length < sizeof (buffer)? length : sizeof (buffer);
+          _gcry_pre_syscall ();
+          ret = getentropy (buffer, nbytes);
+          _gcry_post_syscall ();
+        }
+      while (ret == -1 && errno == EINTR);
 
-          if (ret == -1 && errno == ENOSYS)
-            log_fatal ("getentropy is not supported: %s\n", strerror (errno));
-          else
-            { /* getentropy is supported.  Some sanity checks.  */
-              if (ret == -1)
-                log_fatal ("unexpected error from getentropy: %s\n",
-                           strerror (errno));
+      if (ret == -1 && errno == ENOSYS)
+        log_fatal ("getentropy is not supported: %s\n", strerror (errno));
+      else
+        { /* getentropy is supported.  Some sanity checks.  */
+          if (ret == -1)
+            log_fatal ("unexpected error from getentropy: %s\n",
+                       strerror (errno));
 
-              (*add)(buffer, nbytes, origin);
-              length -= nbytes;
-            }
+          (*add) (buffer, nbytes, origin);
+          length -= nbytes;
         }
     }
   wipememory (buffer, sizeof buffer);
