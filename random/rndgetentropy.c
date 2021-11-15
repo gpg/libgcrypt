@@ -39,7 +39,7 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
                                    enum random_origins origin,
                                    size_t length, int level)
 {
-  byte buffer[768];
+  byte buffer[256];
 
   if (!add)
     {
@@ -65,9 +65,7 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
         {
           do
             {
-              nbytes = length < sizeof(buffer)? length : sizeof(buffer);
-              if (nbytes > 256)
-                nbytes = 256;
+              nbytes = length < sizeof (buffer)? length : sizeof (buffer);
               _gcry_pre_syscall ();
               ret = getentropy (buffer, nbytes);
               _gcry_post_syscall ();
