@@ -301,7 +301,7 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
               size_t n = length < sizeof(buffer)? length : sizeof (buffer);
 
               jent_rng_totalcalls++;
-              rc = jent_read_entropy (jent_rng_collector, buffer, n);
+              rc = jent_read_entropy_safe (&jent_rng_collector, buffer, n);
               if (rc < 0)
                 break;
               /* We need to hash the output to conform to the BSI

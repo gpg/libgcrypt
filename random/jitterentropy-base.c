@@ -725,8 +725,10 @@ int jent_entropy_init_ex(unsigned int osr, unsigned int flags)
 	return jent_entropy_init_common_post(ret);
 }
 
+#ifdef JENT_CONF_ENABLE_INTERNAL_TIMER
 JENT_PRIVATE_STATIC
 int jent_entropy_switch_notime_impl(struct jent_notime_thread *new_thread)
 {
 	return jent_notime_switch(new_thread);
 }
+#endif
