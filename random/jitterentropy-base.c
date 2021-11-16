@@ -221,7 +221,7 @@ ssize_t jent_read_entropy(struct rand_data *ec, char *data, size_t len)
 	 * memory protects the entropy pool. Moreover, note that using this
 	 * call reduces the speed of the RNG by up to half
 	 */
-#ifndef CONFIG_CRYPTO_CPU_JITTERENTROPY_SECURE_MEMORY
+#ifndef JENT_CPU_JITTERENTROPY_SECURE_MEMORY
 	jent_random_data(ec);
 #endif
 
