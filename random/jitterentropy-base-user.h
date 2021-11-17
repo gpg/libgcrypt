@@ -293,9 +293,13 @@ static inline uint32_t jent_cache_size_roundup(void)
 
 #endif /* __linux__ */
 
+#ifdef JENT_CONF_ENABLE_INTERNAL_TIMER
+#include <sched.h>
+
 static inline void jent_yield(void)
 {
 	sched_yield();
 }
+#endif
 
 #endif /* GCRYPT_JITTERENTROPY_BASE_USER_H */

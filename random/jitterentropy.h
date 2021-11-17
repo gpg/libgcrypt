@@ -59,7 +59,7 @@
  * must offer POSIX threads. If this option is disabled, no linking
  * with the POSIX threads library is needed.
  */
-#define JENT_CONF_ENABLE_INTERNAL_TIMER
+#undef JENT_CONF_ENABLE_INTERNAL_TIMER
 
 /*
  * Disable the loop shuffle operation
@@ -382,9 +382,11 @@ int jent_entropy_init_ex(unsigned int osr, unsigned int flags);
 JENT_PRIVATE_STATIC
 unsigned int jent_version(void);
 
+#ifdef JENT_CONF_ENABLE_INTERNAL_TIMER
 /* Set a different thread handling logic for the notimer support */
 JENT_PRIVATE_STATIC
 int jent_entropy_switch_notime_impl(struct jent_notime_thread *new_thread);
+#endif
 
 /* -- END of Main interface functions -- */
 
