@@ -43,6 +43,8 @@
 #ifdef HAVE_STDINT_H
 # include <stdint.h>
 #endif
+#include <unistd.h>
+#include <errno.h>
 
 #include "types.h"
 #include "g10lib.h"
@@ -84,7 +86,14 @@
 #define JENT_PRIVATE_COMPILE 1
 
 #include "jitterentropy-base.c"
-
+#ifdef JENT_CONF_ENABLE_INTERNAL_TIMER
+#include <pthread.h>
+#endif /* JENT_CONF_ENABLE_INTERNAL_TIMER */
+#include "jitterentropy-gcd.c"
+#include "jitterentropy-health.c"
+#include "jitterentropy-noise.c"
+#include "jitterentropy-sha3.c"
+#include "jitterentropy-timer.c"
 
 /* This is the lock we use to serialize access to this RNG.  The extra
  * integer variable is only used to check the locking state; that is,
