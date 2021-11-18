@@ -53,12 +53,6 @@ test_secmem (void)
    * with extra alignment requirements.
    */
   i_max = DIM(a);
-  /*
-   * When FIPS is enabled, it uses some secure memory for DRBG.
-   * Thus, tweaking for the number of allocation.
-   */
-  if (in_fips_mode)
-    i_max -= 2;
 
   for (i=0; i < i_max; i++)
     a[i] = gcry_xmalloc_secure (chunk_size);
