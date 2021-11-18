@@ -133,8 +133,7 @@ jent_fips_enabled(void)
 
 static inline void jent_memset_secure(void *s, size_t n)
 {
-	memset(s, 0, n);
-	__asm__ __volatile__("" : : "r" (s) : "memory");
+	wipememory (s, n);
 }
 
 static inline long jent_ncpu(void)
