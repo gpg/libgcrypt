@@ -3074,6 +3074,13 @@ case "${host}" in
   ;;
 esac
 
+# Arch specific MAC implementations
+case "${host}" in
+  s390x-*-*)
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS poly1305-s390x.lo"
+  ;;
+esac
+
 LIST_MEMBER(sm3, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sm3.lo"

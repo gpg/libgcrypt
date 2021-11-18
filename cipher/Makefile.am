@@ -61,7 +61,6 @@ libcipher_la_SOURCES = \
 	mac.c mac-internal.h \
 	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
 	poly1305.c poly1305-internal.h \
-	poly1305-s390x.S \
 	kdf.c kdf-internal.h \
 	bithelp.h  \
 	bufhelp.h  \
@@ -99,6 +98,7 @@ EXTRA_libcipher_la_SOURCES = \
 	gostr3411-94.c \
 	md4.c \
 	md5.c \
+	poly1305-s390x.S \
 	rijndael.c rijndael-internal.h rijndael-tables.h   \
 	rijndael-aesni.c rijndael-padlock.c                \
 	rijndael-amd64.S rijndael-arm.S                    \
