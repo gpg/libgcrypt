@@ -604,7 +604,7 @@ else
               [Define to support an HMAC based integrity check])
     AC_CHECK_TOOL(OBJCOPY, [objcopy])
     if test "$use_hmac_binary_check" != yes ; then
-        DEF_HMAC_BINARY_CHECK=-DKEY_FOR_BINARY_CHECK="'\"""$use_hmac_binary_check""\"'"
+        DEF_HMAC_BINARY_CHECK=-DKEY_FOR_BINARY_CHECK="'\"$use_hmac_binary_check\"'"
     fi
 fi
 AM_CONDITIONAL(USE_HMAC_BINARY_CHECK, test "x$use_hmac_binary_check" != xno)
