@@ -407,7 +407,7 @@ static struct rand_data
 	if (!(flags & JENT_DISABLE_MEMORY_ACCESS)) {
 		uint32_t memsize = jent_memsize(flags);
 
-		entropy_collector->mem = (unsigned char *)jent_zalloc(memsize);
+		entropy_collector->mem = _gcry_calloc (1, memsize);
 
 #ifdef JENT_RANDOM_MEMACCESS
 		/*
