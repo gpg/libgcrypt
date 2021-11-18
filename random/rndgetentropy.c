@@ -41,13 +41,25 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
 {
   byte buffer[256];
 
-  (void)level;
-
   if (!add)
     {
       /* Special mode to release resouces.  */
       _gcry_rndjent_fini ();
       return 0;
+    }
+
+  /* When using a blocking random generator try to get some entropy
+   * from the jitter based RNG.  In this case we take up to 50% of the
+   * remaining requested bytes.  */
+  if (level >= GCRY_VERY_STRONG_RANDOM)
+    {
+      size_t n;
+
+      n = _gcry_rndjent_poll (add, origin, length/2);
+      if (n > length/2)
+        n = length/2;
+      if (length > 1)
+        length -= n;
     }
 
   /* Enter the loop.  */

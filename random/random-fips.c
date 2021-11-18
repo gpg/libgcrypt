@@ -787,7 +787,8 @@ _gcry_rngfips_close_fds (void)
   lock_rng ();
 #if USE_RNDGETENTROPY
   _gcry_rndgetentropy_gather_random (NULL, 0, 0, 0);
-#elif USE_RNDLINUX
+#endif
+#if USE_RNDLINUX
   _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
 #endif
   unlock_rng ();
