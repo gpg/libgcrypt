@@ -358,7 +358,17 @@ _gcry_rngcsprng_close_fds (void)
 #if USE_RNDLINUX
   _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
 #endif
-  pool_filled = 0; /* Force re-open on next use.  */
+  pool_writepos = 0;
+  pool_readpos = 0;
+  pool_filled = 0;
+  pool_filled_counter = 0;
+  did_initial_extra_seeding = 0;
+  pool_balance = 0;
+  just_mixed = 0;
+  xfree (rndpool);
+  xfree (keypool);
+  rndpool = NULL;
+  keypool = NULL;
   unlock_pool ();
 }
 

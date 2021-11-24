@@ -1875,6 +1875,11 @@ _gcry_rngdrbg_close_fds (void)
 #if USE_RNDLINUX
   _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
 #endif
+  if (drbg_state)
+    {
+      drbg_uninstantiate (drbg_state);
+      drbg_state = NULL;
+    }
   drbg_unlock ();
 }
 
