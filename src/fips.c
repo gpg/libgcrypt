@@ -36,7 +36,7 @@
 
 #include "g10lib.h"
 #include "cipher-proto.h"
-
+#include "../random/random.h"
 
 /* The states of the finite state machine used in fips mode.  */
 enum module_states
@@ -280,6 +280,9 @@ _gcry_fips_is_operational (void)
              our FSM make sure that we won't oversee any error. */
           unlock_fsm ();
           _gcry_fips_run_selftests (0);
+
+          /* Release resources for random.  */
+          _gcry_random_close_fds ();
           lock_fsm ();
         }
 
