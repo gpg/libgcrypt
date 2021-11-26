@@ -312,6 +312,38 @@ _gcry_fips_test_operational (void)
   return result;
 }
 
+int
+_gcry_fips_indicator (va_list arg_ptr)
+{
+  enum gcry_cipher_algos alg = va_arg (arg_ptr, enum gcry_cipher_algos);
+  enum gcry_cipher_modes mode;
+
+  switch (alg)
+    {
+    case GCRY_CIPHER_AES:
+    case GCRY_CIPHER_AES192:
+    case GCRY_CIPHER_AES256:
+      mode = va_arg (arg_ptr, enum gcry_cipher_modes);
+      switch (mode)
+        {
+        case GCRY_CIPHER_MODE_ECB:
+        case GCRY_CIPHER_MODE_CBC:
+        case GCRY_CIPHER_MODE_CFB:
+        case GCRY_CIPHER_MODE_CFB8:
+        case GCRY_CIPHER_MODE_OFB:
+        case GCRY_CIPHER_MODE_CTR:
+        case GCRY_CIPHER_MODE_CCM:
+        case GCRY_CIPHER_MODE_GCM:
+        case GCRY_CIPHER_MODE_XTS:
+          return GPG_ERR_NO_ERROR;
+        default:
+          return GPG_ERR_NOT_SUPPORTED;
+        }
+    default:
+      return GPG_ERR_NOT_SUPPORTED;
+    }
+}
+
 
 /* This is a test on whether the library is in the error or
    operational state. */

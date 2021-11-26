@@ -747,6 +747,13 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       rc = _gcry_fips_run_selftests (1);
       break;
 
+    case GCRYCTL_FIPS_SERVICE_INDICATOR:
+      /* Get FIPS Service Indicator for a given algorithm and optional mode.
+       * Returns GPG_ERR_NO_ERROR if algorithm is allowed or
+       * GPG_ERR_NOT_SUPPORTED otherwise */
+      rc = _gcry_fips_indicator (arg_ptr);
+      break;
+
     case PRIV_CTL_INIT_EXTRNG_TEST:  /* Init external random test.  */
       rc = GPG_ERR_NOT_SUPPORTED;
       break;

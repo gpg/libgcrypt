@@ -453,6 +453,8 @@ void _gcry_fips_signal_error (const char *srcfile,
            _gcry_fips_signal_error (__FILE__, __LINE__, NULL, 1, (a))
 #endif
 
+int _gcry_fips_indicator (va_list arg_ptr);
+
 int _gcry_fips_is_operational (void);
 
 /* Return true if the library is in the operational state.  */

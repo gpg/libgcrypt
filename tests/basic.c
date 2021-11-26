@@ -7935,6 +7935,16 @@ do_check_ocb_cipher (int inplace)
       assert (tv[tidx].taglen <= ciphlen);
       assert (tv[tidx].taglen <= sizeof tag);
 
+      /* Verify the FIPS indicator marks this as non-approved */
+      if (in_fips_mode)
+        {
+          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+                              tv[tidx].algo, GCRY_CIPHER_MODE_OCB);
+          if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
+            fail ("cipher-ocb, gcry_control did not fail as expected (tv %d): %s\n",
+                  tidx, gpg_strerror (err));
+        }
+
       err = gcry_cipher_open (&hde, tv[tidx].algo, GCRY_CIPHER_MODE_OCB, 0);
       if (!err)
         err = gcry_cipher_open (&hdd, tv[tidx].algo, GCRY_CIPHER_MODE_OCB, 0);
@@ -8204,6 +8214,16 @@ check_ocb_cipher_largebuf_split (int algo, int keylen, const char *tagexpect,
       goto out_free;
     }
 
+  /* Verify the FIPS indicator marks this as non-approved */
+  if (in_fips_mode)
+    {
+      err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+                          algo, GCRY_CIPHER_MODE_OCB);
+      if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
+        fail ("cipher-ocb, gcry_control did not fail as expected (large, algo %d): %s\n",
+              algo, gpg_strerror (err));
+    }
+
   err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
   if (!err)
     err = gcry_cipher_open (&hdd, algo, GCRY_CIPHER_MODE_OCB, 0);
@@ -8408,6 +8428,16 @@ check_ocb_cipher_checksum (int algo, int keylen)
         fprintf (stderr, "  algorithm %d not available in fips mode\n",
                  algo);
       goto out_free;
+    }
+
+  /* Verify the FIPS indicator marks this as non-approved */
+  if (in_fips_mode)
+    {
+      err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+                          algo, GCRY_CIPHER_MODE_OCB);
+      if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
+        fail ("cipher-ocb, gcry_control did not fail as expected (checksum, algo %d): %s\n",
+              algo, gpg_strerror (err));
     }
 
   err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
@@ -8677,6 +8707,16 @@ check_ocb_cipher_splitaad (void)
       aad[1] = tv[tidx].aad1? hex2buffer (tv[tidx].aad1, aadlen+1) : NULL;
       aad[2] = tv[tidx].aad2? hex2buffer (tv[tidx].aad2, aadlen+2) : NULL;
       aad[3] = tv[tidx].aad3? hex2buffer (tv[tidx].aad3, aadlen+3) : NULL;
+
+      /* Verify the FIPS indicator marks this as non-approved */
+      if (in_fips_mode)
+        {
+          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+                              GCRY_CIPHER_AES, GCRY_CIPHER_MODE_OCB);
+          if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
+            fail ("cipher-ocb-splitaad, gcry_control did not fail as expected: %s\n",
+                  gpg_strerror (err));
+        }
 
       err = gcry_cipher_open (&hde, GCRY_CIPHER_AES, GCRY_CIPHER_MODE_OCB, 0);
       if (err)
@@ -10646,6 +10686,17 @@ check_bulk_cipher_modes (void)
         fprintf (stderr, "    checking bulk encryption for %s [%i], mode %d\n",
 		 gcry_cipher_algo_name (tv[i].algo),
 		 tv[i].algo, tv[i].mode);
+
+      /* Verify the FIPS indicator marks approved cipher/modes combinations */
+      if (in_fips_mode)
+        {
+          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+                              tv[i].algo, tv[i].mode);
+          if (gpg_err_code (err) != GPG_ERR_NO_ERROR)
+            fail ("gcry_control unexpectedly failed for algo = %s, mode = %d : %s\n",
+		  gcry_cipher_algo_name (tv[i].algo), tv[i].mode, gpg_strerror (err));
+        }
+
       err = gcry_cipher_open (&hde, tv[i].algo, tv[i].mode, 0);
       if (!err)
         err = gcry_cipher_open (&hdd, tv[i].algo, tv[i].mode, 0);
