@@ -191,6 +191,7 @@ _gcry_mpi_sub_ui(gcry_mpi_t w, gcry_mpi_t u, unsigned long v )
 	cy = _gcry_mpih_add_1(wp, up, usize, v);
 	wp[usize] = cy;
 	wsize = usize + cy;
+	wsign = 1;
     }
     else {  /* The signs are different.  Need exact comparison to determine
 	     * which operand to subtract from which.  */
