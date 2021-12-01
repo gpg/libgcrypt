@@ -2166,7 +2166,7 @@ check_ctr_cipher (void)
       if (!tv[i].algo)
         continue;
 
-      if (gcry_cipher_test_algo (tv[i].algo))
+      if ((err = gcry_cipher_test_algo (tv[i].algo)))
         {
           if (in_fips_mode && (tv[i].flags & FLAG_NOFIPS))
             {
@@ -5065,7 +5065,7 @@ check_siv_cipher (void)
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
       /* The AES algorithm is allowed in FIPS mode */
-      if (gcry_cipher_test_algo (tv[i].algo))
+      if ((err = gcry_cipher_test_algo (tv[i].algo)))
         {
           fail ("aes-siv, gcry_cipher_test_algo failed: %s\n", gpg_strerror (err));
           continue;
@@ -7269,7 +7269,7 @@ check_ccm_cipher (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
-      if (gcry_cipher_test_algo (tv[i].algo))
+      if ((err = gcry_cipher_test_algo (tv[i].algo)))
         {
           if (in_fips_mode && (tv[i].flags & FLAG_NOFIPS))
             {
@@ -15770,7 +15770,7 @@ do_check_one_pubkey (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
 static void
 check_one_pubkey (int n, test_spec_pubkey_t spec)
 {
-  gcry_error_t err = GPG_ERR_NO_ERROR;
+  gcry_error_t err = 0;
   gcry_sexp_t skey, pkey;
 
   err = gcry_sexp_sscan (&skey, NULL, spec.key.secret,
@@ -16205,7 +16205,7 @@ check_pubkey (void)
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
     }
   };
-  gcry_error_t err = GPG_ERR_NO_ERROR;
+  gcry_error_t err = 0;
   int i;
 
   if (verbose)
