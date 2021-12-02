@@ -862,6 +862,7 @@ check_ecb_cipher (void)
 	  { }
 	}
       },
+#if USE_SM4
       { GCRY_CIPHER_SM4,
 	"\x01\x23\x45\x67\x89\xab\xcd\xef\xfe\xdc\xba\x98\x76\x54\x32\x10",
 	0, FLAG_NOFIPS,
@@ -886,6 +887,7 @@ check_ecb_cipher (void)
 	  { }
 	}
       },
+#endif /* USE_SM4 */
     };
   gcry_cipher_hd_t hde, hdd;
   unsigned char out[MAX_DATA_LEN];
@@ -2113,6 +2115,7 @@ check_ctr_cipher (void)
 	}
       },
 #endif /*USE_CAST5*/
+#if USE_SM4
       {	GCRY_CIPHER_SM4, FLAG_NOFIPS,
         "\x01\x23\x45\x67\x89\xab\xcd\xef\xfe\xdc\xba\x98\x76\x54\x32\x10",
         "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
@@ -2145,6 +2148,7 @@ check_ctr_cipher (void)
           { "", 0, "" }
         }
       },
+#endif /* USE_SM4 */
       {	0, 0,
 	"",
 	"",
@@ -2657,6 +2661,7 @@ check_cfb_cipher (void)
 	"1.2.643.2.2.31.2"
       },
 #endif
+#if USE_SM4
       { GCRY_CIPHER_SM4, FLAG_NOFIPS,
         "\x01\x23\x45\x67\x89\xab\xcd\xef\xfe\xdc\xba\x98\x76\x54\x32\x10",
         "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
@@ -2677,6 +2682,7 @@ check_cfb_cipher (void)
             "\x0d\x9b\x86\xff\x20\xc3\xbf\xe1\x15\xff\xa0\x2c\xa6\x19\x2c\xc5" },
 	}
       },
+#endif /* USE_SM4 */
     };
   gcry_cipher_hd_t hde, hdd;
   unsigned char out[MAX_DATA_LEN];
@@ -2885,6 +2891,7 @@ check_ofb_cipher (void)
             "\x01\x26\x14\x1d\x67\xf3\x7b\xe8\x53\x8f\x5a\x8b\xe7\x40\xe4\x84" }
         }
       },
+#if USE_SM4
       { GCRY_CIPHER_SM4, FLAG_NOFIPS,
         "\x01\x23\x45\x67\x89\xab\xcd\xef\xfe\xdc\xba\x98\x76\x54\x32\x10",
         "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f",
@@ -2905,6 +2912,7 @@ check_ofb_cipher (void)
             "\x33\xfa\x16\xbd\x5c\xd9\xc8\x56\xca\xca\xa1\xe1\x01\x89\x7a\x97" },
         }
       }
+#endif /* USE_SM4 */
     };
   gcry_cipher_hd_t hde, hdd;
   unsigned char out[MAX_DATA_LEN];
@@ -8858,8 +8866,10 @@ check_ocb_cipher (void)
     "\x1e\x33\x0e\x06\xc8\x27\x6a\x0b\x41\x5e\x93\xae\x39\xf4\x50\x12");
   check_ocb_cipher_largebuf(GCRY_CIPHER_SERPENT256, 32,
     "\x6b\x4c\x3f\x8f\x77\x75\xf2\x4d\xaf\xde\x2c\x5f\x1a\x80\xb8\x4d");
+#if USE_SM4
   check_ocb_cipher_largebuf(GCRY_CIPHER_SM4, 16,
     "\x3c\x32\x54\x5d\xc5\x17\xa1\x16\x3f\x8e\xc7\x1d\x8d\x8b\x2d\xb0");
+#endif /* USE_SM4 */
 
   /* Check that the AAD data is correctly buffered.  */
   check_ocb_cipher_splitaad ();
