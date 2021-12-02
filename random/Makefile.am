@@ -56,6 +56,7 @@ jitterentropy-health.c jitterentropy-health.h \
 jitterentropy-noise.c jitterentropy-noise.h \
 jitterentropy-sha3.c jitterentropy-sha3.h \
 jitterentropy-timer.c jitterentropy-timer.h \
+jitterentropy-base.h \
 jitterentropy-base.c jitterentropy.h jitterentropy-base-user.h
 
 # The rndjent module needs to be compiled without optimization.  */
