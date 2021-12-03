@@ -700,7 +700,9 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
 
   *swapped = 0;
 
-  if (e_value == 1)   /* Alias for a secure value. */
+  if (e_value == 0)        /* 65537 is the libgcrypt's selection. */
+    e_value = 65537;
+  else if (e_value == 1)   /* Alias for a secure value. */
     e_value = 65537;
 
   /* Point 1 of section 4.1:  k = 1024 + 256s with S >= 0  */
