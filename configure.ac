@@ -3026,6 +3026,19 @@ if test "$found" = "1" ; then
    esac
 fi
 
+LIST_MEMBER(sm3, $enabled_digests)
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS sm3.lo"
+   AC_DEFINE(USE_SM3, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-avx-bmi2-amd64.lo"
+      ;;
+   esac
+fi
+
 # SHA-1 needs to be included always for example because it is used by
 # random-csprng.c.
 GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1.lo"
@@ -3080,12 +3093,6 @@ case "${host}" in
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS poly1305-s390x.lo"
   ;;
 esac
-
-LIST_MEMBER(sm3, $enabled_digests)
-if test "$found" = "1" ; then
-   GCRYPT_DIGESTS="$GCRYPT_DIGESTS sm3.lo"
-   AC_DEFINE(USE_SM3, 1, [Defined if this module should be included])
-fi
 
 LIST_MEMBER(scrypt, $enabled_kdfs)
 if test "$found" = "1" ; then
