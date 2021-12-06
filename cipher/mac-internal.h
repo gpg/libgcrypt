@@ -155,11 +155,11 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_256;
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_384;
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_512;
 #endif
-#ifdef USE_GOST_R_3411_94
+#if USE_GOST_R_3411_94
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_gost3411_94;
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_gost3411_cp;
 #endif
-#ifdef USE_GOST_R_3411_12
+#if USE_GOST_R_3411_12
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_stribog256;
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_stribog512;
 #endif
@@ -222,7 +222,7 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_seed;
 #if USE_CAMELLIA
 extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_camellia;
 #endif
-#ifdef USE_IDEA
+#if USE_IDEA
 extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_idea;
 #endif
 #if USE_GOST28147

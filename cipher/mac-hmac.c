@@ -1367,7 +1367,7 @@ gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_512 = {
   &hmac_ops
 };
 #endif
-#ifdef USE_GOST_R_3411_94
+#if USE_GOST_R_3411_94
 gcry_mac_spec_t _gcry_mac_type_spec_hmac_gost3411_94 = {
   GCRY_MAC_HMAC_GOSTR3411_94, {0, 0}, "HMAC_GOSTR3411_94",
   &hmac_ops
@@ -1377,7 +1377,7 @@ gcry_mac_spec_t _gcry_mac_type_spec_hmac_gost3411_cp = {
   &hmac_ops
 };
 #endif
-#ifdef USE_GOST_R_3411_12
+#if USE_GOST_R_3411_12
 gcry_mac_spec_t _gcry_mac_type_spec_hmac_stribog256 = {
   GCRY_MAC_HMAC_STRIBOG256, {0, 0}, "HMAC_STRIBOG256",
   &hmac_ops

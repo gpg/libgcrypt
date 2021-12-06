@@ -1806,7 +1806,7 @@ check_ctr_cipher (void)
 	  { "", 0, "" }
 	}
       },
-#ifdef USE_CAMELLIA
+#if USE_CAMELLIA
       { GCRY_CIPHER_CAMELLIA256, FLAG_NOFIPS,
 	"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
 	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
@@ -2528,7 +2528,7 @@ check_cfb_cipher (void)
 	}
       },
 #endif /* USE_DES */
-#ifdef USE_GOST28147
+#if USE_GOST28147
       { GCRY_CIPHER_GOST28147_MESH, FLAG_NOFIPS,
 	"\x48\x0c\x74\x1b\x02\x6b\x55\xd5\xb6\x6d\xd7\x1d\x40\x48\x05\x6b"
 	"\x6d\xeb\x3c\x29\x0f\x84\x80\x23\xee\x0d\x47\x77\xe3\xfe\x61\xc9",
@@ -9439,7 +9439,7 @@ check_stream_cipher (void)
       const char *out;
     } data[MAX_DATA_LEN];
   } tv[] = {
-#ifdef USE_SALSA20
+#if USE_SALSA20
     {
       "Salsa20 128 bit, test 1",
       GCRY_CIPHER_SALSA20, 16, 8,
@@ -9611,7 +9611,7 @@ check_stream_cipher (void)
       }
     },
 #endif /*USE_SALSA20*/
-#ifdef USE_CHACHA20
+#if USE_CHACHA20
     /* From draft-strombergson-chacha-test-vectors-01 */
     {
       "ChaCha20 128 bit, TC1",
@@ -10120,7 +10120,7 @@ check_stream_cipher_large_block (void)
       const char *result;
     } data[MAX_DATA_LEN];
   } tv[] = {
-#ifdef USE_SALSA20
+#if USE_SALSA20
     {
       "Salsa20 256 bit, ecrypt verified, set 6, vector 0",
       GCRY_CIPHER_SALSA20, 32, 8,
@@ -15180,7 +15180,7 @@ check_mac (void)
         "\x9d\xeb\xb0\xcd\x24\x90\xd3\x9b\x47\x78\x37\x0a\x81\xf2\x83\x2a",
         "\x61\xee\x09\x21\x8d\x29\xb0\xaa\xed\x7e\x15\x4a\x2c\x55\x09\xcc",
         0, 32 },
-#ifdef USE_GOST28147
+#if USE_GOST28147
       { GCRY_MAC_GOST28147_IMIT,
         "\xb5\xa1\xf0\xe3\xce\x2f\x02\x1d\x67\x61\x94\x34\x5c\x41\xe3\x6e",
 	"\x9d\x05\xb7\x9e\x90\xca\xd0\x0a\x2c\xda\xd2\x2e\xf4\xe8\x6f\x5c"

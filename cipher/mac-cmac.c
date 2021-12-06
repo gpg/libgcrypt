@@ -504,7 +504,7 @@ gcry_mac_spec_t _gcry_mac_type_spec_cmac_camellia = {
   &cmac_ops
 };
 #endif
-#ifdef USE_IDEA
+#if USE_IDEA
 gcry_mac_spec_t _gcry_mac_type_spec_cmac_idea = {
   GCRY_MAC_CMAC_IDEA, {0, 0}, "CMAC_IDEA",
   &cmac_ops

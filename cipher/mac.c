@@ -49,11 +49,11 @@ static gcry_mac_spec_t * const mac_list[] = {
   &_gcry_mac_type_spec_hmac_sha3_384,
   &_gcry_mac_type_spec_hmac_sha3_512,
 #endif
-#ifdef USE_GOST_R_3411_94
+#if USE_GOST_R_3411_94
   &_gcry_mac_type_spec_hmac_gost3411_94,
   &_gcry_mac_type_spec_hmac_gost3411_cp,
 #endif
-#ifdef USE_GOST_R_3411_12
+#if USE_GOST_R_3411_12
   &_gcry_mac_type_spec_hmac_stribog256,
   &_gcry_mac_type_spec_hmac_stribog512,
 #endif
@@ -122,7 +122,7 @@ static gcry_mac_spec_t * const mac_list[] = {
   &_gcry_mac_type_spec_gmac_camellia,
   &_gcry_mac_type_spec_poly1305mac_camellia,
 #endif
-#ifdef USE_IDEA
+#if USE_IDEA
   &_gcry_mac_type_spec_cmac_idea,
 #endif
 #if USE_GOST28147
@@ -183,12 +183,12 @@ static gcry_mac_spec_t * const mac_list_algo101[] =
 #else
     NULL,
 #endif
-#ifdef USE_GOST_R_3411_94
+#if USE_GOST_R_3411_94
     &_gcry_mac_type_spec_hmac_gost3411_94,
 #else
     NULL,
 #endif
-#ifdef USE_GOST_R_3411_12
+#if USE_GOST_R_3411_12
     &_gcry_mac_type_spec_hmac_stribog256,
     &_gcry_mac_type_spec_hmac_stribog512,
 #else
@@ -211,7 +211,7 @@ static gcry_mac_spec_t * const mac_list_algo101[] =
     NULL,
     NULL,
 #endif
-#ifdef USE_GOST_R_3411_94
+#if USE_GOST_R_3411_94
     &_gcry_mac_type_spec_hmac_gost3411_cp,
 #else
     NULL,
@@ -297,7 +297,7 @@ static gcry_mac_spec_t * const mac_list_algo201[] =
 #else
     NULL,
 #endif
-#ifdef USE_IDEA
+#if USE_IDEA
     &_gcry_mac_type_spec_cmac_idea,
 #else
     NULL,
@@ -412,7 +412,7 @@ spec_from_algo (int algo)
     spec = mac_list_algo401[algo - 401];
   else if (algo >= 501 && algo < 501 + DIM(mac_list_algo501))
     spec = mac_list_algo501[algo - 501];
-#ifdef USE_GOST28147
+#if USE_GOST28147
   else if (algo == GCRY_MAC_GOST28147_IMIT)
     spec = &_gcry_mac_type_spec_gost28147_imit;
 #endif

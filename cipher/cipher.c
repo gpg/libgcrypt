@@ -74,7 +74,7 @@ static gcry_cipher_spec_t * const cipher_list[] =
      &_gcry_cipher_spec_camellia192,
      &_gcry_cipher_spec_camellia256,
 #endif
-#ifdef USE_IDEA
+#if USE_IDEA
      &_gcry_cipher_spec_idea,
 #endif
 #if USE_SALSA20
@@ -98,7 +98,7 @@ static gcry_cipher_spec_t * const cipher_list[] =
 static gcry_cipher_spec_t * const cipher_list_algo0[] =
   {
     NULL, /* GCRY_CIPHER_NONE */
-#ifdef USE_IDEA
+#if USE_IDEA
     &_gcry_cipher_spec_idea,
 #else
     NULL,
