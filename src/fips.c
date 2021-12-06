@@ -82,6 +82,60 @@ static void fips_new_state (enum module_states new_state);
 
 
 
+static int
+check_fips_system_setting (void)
+{
+  /* Do we have the environment variable set?  */
+  if (getenv ("LIBGCRYPT_FORCE_FIPS_MODE"))
+    return 1;
+
+  /* For testing the system it is useful to override the system
+     provided detection of the FIPS mode and force FIPS mode using a
+     file.  The filename is hardwired so that there won't be any
+     confusion on whether /etc/gcrypt/ or /usr/local/etc/gcrypt/ is
+     actually used.  The file itself may be empty.  */
+  if ( !access (FIPS_FORCE_FILE, F_OK) )
+    return 1;
+
+  /* Checking based on /proc file properties.  */
+  {
+    static const char procfname[] = "/proc/sys/crypto/fips_enabled";
+    FILE *fp;
+    int saved_errno;
+
+    fp = fopen (procfname, "r");
+    if (fp)
+      {
+        char line[256];
+
+        if (fgets (line, sizeof line, fp) && atoi (line))
+          {
+            /* System is in fips mode.  */
+            fclose (fp);
+            return 1;
+          }
+        fclose (fp);
+      }
+    else if ((saved_errno = errno) != ENOENT
+             && saved_errno != EACCES
+             && !access ("/proc/version", F_OK) )
+      {
+        /* Problem reading the fips file despite that we have the proc
+           file system.  We better stop right away. */
+        log_info ("FATAL: error reading `%s' in libgcrypt: %s\n",
+                  procfname, strerror (saved_errno));
+#ifdef HAVE_SYSLOG
+        syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
+                "reading `%s' failed: %s - abort",
+                procfname, strerror (saved_errno));
+#endif /*HAVE_SYSLOG*/
+        abort ();
+      }
+  }
+
+  return 0;
+}
+
 /* Check whether the OS is in FIPS mode and record that in a module
    local variable.  If FORCE is passed as true, fips mode will be
    enabled anyway. Note: This function is not thread-safe and should
@@ -107,59 +161,18 @@ _gcry_initialize_fips_mode (int force)
   done = 1;
 
   /* If the calling application explicitly requested fipsmode, do so.  */
-  if (force || getenv ("LIBGCRYPT_FORCE_FIPS_MODE"))
+  if (force)
     {
       gcry_assert (!_gcry_no_fips_mode_required);
       goto leave;
     }
 
-  /* For testing the system it is useful to override the system
-     provided detection of the FIPS mode and force FIPS mode using a
-     file.  The filename is hardwired so that there won't be any
-     confusion on whether /etc/gcrypt/ or /usr/local/etc/gcrypt/ is
-     actually used.  The file itself may be empty.  */
-  if ( !access (FIPS_FORCE_FILE, F_OK) )
+  /* If the system explicitly requested fipsmode, do so.  */
+  if (check_fips_system_setting ())
     {
       gcry_assert (!_gcry_no_fips_mode_required);
       goto leave;
     }
-
-  /* Checking based on /proc file properties.  */
-  {
-    static const char procfname[] = "/proc/sys/crypto/fips_enabled";
-    FILE *fp;
-    int saved_errno;
-
-    fp = fopen (procfname, "r");
-    if (fp)
-      {
-        char line[256];
-
-        if (fgets (line, sizeof line, fp) && atoi (line))
-          {
-            /* System is in fips mode.  */
-            fclose (fp);
-            gcry_assert (!_gcry_no_fips_mode_required);
-            goto leave;
-          }
-        fclose (fp);
-      }
-    else if ((saved_errno = errno) != ENOENT
-             && saved_errno != EACCES
-             && !access ("/proc/version", F_OK) )
-      {
-        /* Problem reading the fips file despite that we have the proc
-           file system.  We better stop right away. */
-        log_info ("FATAL: error reading `%s' in libgcrypt: %s\n",
-                  procfname, strerror (saved_errno));
-#ifdef HAVE_SYSLOG
-        syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
-                "reading `%s' failed: %s - abort",
-                procfname, strerror (saved_errno));
-#endif /*HAVE_SYSLOG*/
-        abort ();
-      }
-  }
 
   /* Fips not not requested, set flag.  */
   _gcry_no_fips_mode_required = 1;
@@ -188,8 +201,8 @@ _gcry_initialize_fips_mode (int force)
 
       /* Now get us into the INIT state.  */
       fips_new_state (STATE_INIT);
-
     }
+
   return;
 }
 
