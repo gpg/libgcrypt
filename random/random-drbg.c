@@ -1863,8 +1863,9 @@ _gcry_rngdrbg_reinit (const char *flagstr, gcry_buffer_t *pers, int npers)
   return ret;
 }
 
-/* Try to close the FDs of the random gather module.  This is
- * currently only implemented for rndlinux. */
+/* Release resources used by this DRBG module.  That is, close the FDs
+ * of the random gather module (if any), and release memory used.
+ */
 void
 _gcry_rngdrbg_close_fds (void)
 {
@@ -1878,6 +1879,7 @@ _gcry_rngdrbg_close_fds (void)
   if (drbg_state)
     {
       drbg_uninstantiate (drbg_state);
+      xfree (drbg_state);
       drbg_state = NULL;
     }
   drbg_unlock ();
