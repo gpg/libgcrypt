@@ -16258,8 +16258,10 @@ check_pubkey (void)
                            pubkeys[i].id);
               }
             else
-              fail ("gcry_pk_test_algo failed: %s\n", gpg_strerror (err));
-            continue;
+              {
+                fail ("gcry_pk_test_algo failed: %s\n", gpg_strerror (err));
+                continue;
+              }
           }
         check_one_pubkey (i, pubkeys[i]);
       }

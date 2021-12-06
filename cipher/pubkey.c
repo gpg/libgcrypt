@@ -322,7 +322,9 @@ _gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   if (rc)
     goto leave;
 
-  if (spec->encrypt)
+  if (spec->flags.disabled)
+    rc = GPG_ERR_CIPHER_ALGO;
+  else if (spec->encrypt)
     rc = spec->encrypt (r_ciph, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -374,7 +376,9 @@ _gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  if (spec->decrypt)
+  if (spec->flags.disabled)
+    rc = GPG_ERR_CIPHER_ALGO;
+  else if (spec->decrypt)
     rc = spec->decrypt (r_plain, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -427,7 +431,9 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  if (spec->sign)
+  if (spec->flags.disabled)
+    rc = GPG_ERR_CIPHER_ALGO;
+  else if (spec->sign)
     rc = spec->sign (r_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -560,7 +566,9 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (rc)
     goto leave;
 
-  if (spec->sign)
+  if (spec->flags.disabled)
+    rc = GPG_ERR_CIPHER_ALGO;
+  else if (spec->sign)
     rc = spec->sign (r_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -590,7 +598,9 @@ _gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
   if (rc)
     goto leave;
 
-  if (spec->verify)
+  if (spec->flags.disabled)
+    rc = GPG_ERR_CIPHER_ALGO;
+  else if (spec->verify)
     rc = spec->verify (s_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -662,7 +672,9 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (rc)
     goto leave;
 
-  if (spec->verify)
+  if (spec->flags.disabled)
+    rc = GPG_ERR_CIPHER_ALGO;
+  else if (spec->verify)
     rc = spec->verify (s_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -694,7 +706,9 @@ _gcry_pk_testkey (gcry_sexp_t s_key)
   if (rc)
     goto leave;
 
-  if (spec->check_secret_key)
+  if (spec->flags.disabled)
+    rc = GPG_ERR_CIPHER_ALGO;
+  else if (spec->check_secret_key)
     rc = spec->check_secret_key (keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -816,6 +830,8 @@ _gcry_pk_get_nbits (gcry_sexp_t key)
 
   if (spec_from_sexp (key, 0, &spec, &parms))
     return 0; /* Error - 0 is a suitable indication for that.  */
+  if (spec->flags.disabled)
+    return 0;
 
   nbits = spec->get_nbits (parms);
   sexp_release (parms);
@@ -949,6 +965,8 @@ _gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
         return NULL;
     }
 
+  if (spec->flags.disabled)
+    return NULL;
   if (spec->get_curve)
     result = spec->get_curve (keyparms, iterator, r_nbits);
 
