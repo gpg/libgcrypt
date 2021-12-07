@@ -564,7 +564,7 @@ md_enable (gcry_md_hd_t hd, int algorithm)
     }
 
   /* Any non-FIPS algorithm should go this way */
-  if (!err && spec->disabled)
+  if (!err && spec->flags.disabled)
     err = GPG_ERR_DIGEST_ALGO;
 
   if (!err && h->flags.hmac && spec->read == NULL)
