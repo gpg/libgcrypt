@@ -16251,7 +16251,7 @@ check_pubkey (void)
       {
         if ((err = gcry_pk_test_algo (pubkeys[i].id)))
           {
-            if (in_fips_mode && pubkeys[i].flags & FLAG_NOFIPS)
+            if (in_fips_mode && (pubkeys[i].flags & FLAG_NOFIPS))
               {
                 if (verbose)
                   fprintf (stderr, "  algorithm %d not available in fips mode\n",
