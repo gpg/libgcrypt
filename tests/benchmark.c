@@ -1759,7 +1759,6 @@ main( int argc, char **argv )
 {
   int last_argc = -1;
   int no_blinding = 0;
-  int use_random_daemon = 0;
   int use_secmem = 0;
   int pk_count = 100;
 
@@ -1803,11 +1802,6 @@ main( int argc, char **argv )
         {
           verbose += 2;
           debug++;
-          argc--; argv++;
-        }
-      else if (!strcmp (*argv, "--use-random-daemon"))
-        {
-          use_random_daemon = 1;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--use-secmem"))
@@ -1940,9 +1934,6 @@ main( int argc, char **argv )
     in_fips_mode = 1;
   else if (!use_secmem)
     xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
-
-  if (use_random_daemon)
-    xgcry_control ((GCRYCTL_USE_RANDOM_DAEMON, 1));
 
   if (with_progress)
     gcry_set_progress_handler (progress_cb, NULL);

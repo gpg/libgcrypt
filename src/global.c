@@ -664,16 +664,11 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_SET_RANDOM_DAEMON_SOCKET:
-      _gcry_set_preferred_rng_type (0);
-      _gcry_set_random_daemon_socket (va_arg (arg_ptr, const char *));
+      rc = GPG_ERR_NOT_SUPPORTED;
       break;
 
     case GCRYCTL_USE_RANDOM_DAEMON:
-      /* We need to do make sure that the random pool is really
-         initialized so that the poll function is not a NOP. */
-      _gcry_set_preferred_rng_type (0);
-      _gcry_random_initialize (1);
-      _gcry_use_random_daemon (!! va_arg (arg_ptr, int));
+      rc = GPG_ERR_NOT_SUPPORTED;
       break;
 
     case GCRYCTL_CLOSE_RANDOM_DEVICE:

@@ -39,11 +39,6 @@ random-system.c \
 rndjent.c \
 rndhw.c
 
-if USE_RANDOM_DAEMON
-librandom_la_SOURCES += random-daemon.c
-endif USE_RANDOM_DAEMON
-
-
 EXTRA_librandom_la_SOURCES = \
 rndgetentropy.c \
 rndlinux.c \

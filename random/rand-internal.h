@@ -51,8 +51,6 @@ void _gcry_rngcsprng_close_fds (void);
 void _gcry_rngcsprng_dump_stats (void);
 void _gcry_rngcsprng_secure_alloc (void);
 void _gcry_rngcsprng_enable_quick_gen (void);
-void _gcry_rngcsprng_set_daemon_socket (const char *socketname);
-int  _gcry_rngcsprng_use_daemon (int onoff);
 int  _gcry_rngcsprng_is_faked (void);
 gcry_error_t _gcry_rngcsprng_add_bytes (const void *buf, size_t buflen,
                                         int quality);

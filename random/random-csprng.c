@@ -204,26 +204,6 @@ static struct
 
 
 
-/* --- Stuff pertaining to the random daemon support. --- */
-#ifdef USE_RANDOM_DAEMON
-
-/* If ALLOW_DAEMON is true, the module will try to use the random
-   daemon first.  If the daemon has failed, this variable is set to
-   back to false and the code continues as normal.  Note, we don't
-   test this flag in a locked state because a wrong value does not
-   harm and the trhead will find out itself that the daemon does not
-   work and set it (again) to false.  */
-static int allow_daemon;
-
-/* During initialization, the user may set a non-default socket name
-   for accessing the random daemon.  If this value is NULL, the
-   default name will be used. */
-static char *daemon_socket_name;
-
-#endif /*USE_RANDOM_DAEMON*/
-
-
-
 /* ---  Prototypes  --- */
 static void read_pool (byte *buffer, size_t length, int level );
 static void add_randomness (const void *buffer, size_t length,
@@ -409,45 +389,6 @@ _gcry_rngcsprng_enable_quick_gen (void)
 }
 
 
-void
-_gcry_rngcsprng_set_daemon_socket (const char *socketname)
-{
-#ifdef USE_RANDOM_DAEMON
-  if (daemon_socket_name)
-    BUG ();
-
-  daemon_socket_name = gcry_xstrdup (socketname);
-#else /*!USE_RANDOM_DAEMON*/
-  (void)socketname;
-#endif /*!USE_RANDOM_DAEMON*/
-}
-
-/* With ONOFF set to 1, enable the use of the daemon.  With ONOFF set
-   to 0, disable the use of the daemon.  With ONOF set to -1, return
-   whether the daemon has been enabled. */
-int
-_gcry_rngcsprng_use_daemon (int onoff)
-{
-#ifdef USE_RANDOM_DAEMON
-  int last;
-
-  /* This is not really thread safe.  However it is expected that this
-     function is being called during initialization and at that point
-     we are for other reasons not really thread safe.  We do not want
-     to lock it because we might eventually decide that this function
-     may even be called prior to gcry_check_version.  */
-  last = allow_daemon;
-  if (onoff != -1)
-    allow_daemon = onoff;
-
-  return last;
-#else /*!USE_RANDOM_DAEMON*/
-  (void)onoff;
-  return 0;
-#endif /*!USE_RANDOM_DAEMON*/
-}
-
-
 /* This function returns true if no real RNG is available or the
    quality of the RNG has been degraded for test purposes.  */
 int
@@ -522,13 +463,6 @@ _gcry_rngcsprng_randomize (void *buffer, size_t length,
 
   /* Make sure the level is okay. */
   level &= 3;
-
-#ifdef USE_RANDOM_DAEMON
-  if (allow_daemon
-      && !_gcry_daemon_randomize (daemon_socket_name, buffer, length, level))
-    return; /* The daemon succeeded. */
-  allow_daemon = 0; /* Daemon failed - switch off. */
-#endif /*USE_RANDOM_DAEMON*/
 
   /* Acquire the pool lock. */
   lock_pool ();

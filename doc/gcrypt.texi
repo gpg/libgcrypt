@@ -7016,13 +7016,4 @@ memory and thus also the encryption contexts with these keys.
 
 @bye
 
-GCRYCTL_SET_RANDOM_DAEMON_SOCKET
-GCRYCTL_USE_RANDOM_DAEMON
-The random daemon is still a bit experimental, thus we do not document
-them.  Note that they should be used during initialization and that
-these functions are not really thread safe.
-
-
-
-
 @c  LocalWords:  int HD

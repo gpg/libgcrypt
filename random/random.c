@@ -307,28 +307,6 @@ _gcry_enable_quick_random_gen (void)
 }
 
 
-void
-_gcry_set_random_daemon_socket (const char *socketname)
-{
-  if (fips_mode ())
-    ;  /* Not used.  */
-  else
-    _gcry_rngcsprng_set_daemon_socket (socketname);
-}
-
-/* With ONOFF set to 1, enable the use of the daemon.  With ONOFF set
-   to 0, disable the use of the daemon.  With ONOF set to -1, return
-   whether the daemon has been enabled. */
-int
-_gcry_use_random_daemon (int onoff)
-{
-  if (fips_mode ())
-    return 0; /* Never enabled in fips mode.  */
-  else
-    return _gcry_rngcsprng_use_daemon (onoff);
-}
-
-
 /* This function returns true if no real RNG is available or the
    quality of the RNG has been degraded for test purposes.  */
 int
