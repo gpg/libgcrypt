@@ -563,9 +563,8 @@ md_enable (gcry_md_hd_t hd, int algorithm)
       err = GPG_ERR_DIGEST_ALGO;
     }
 
-
   /* Any non-FIPS algorithm should go this way */
-  if (!err && !spec->flags.fips && fips_mode ())
+  if (!err && spec->disabled)
     err = GPG_ERR_DIGEST_ALGO;
 
   if (!err && h->flags.hmac && spec->read == NULL)
@@ -1198,7 +1197,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
       iov.off = 0;
       iov.len = length;
 
-      if (!spec->flags.fips && fips_mode ())
+      if (spec->flags.disabled)
         log_bug ("gcry_md_hash_buffer failed for algo %d: %s",
                 algo, gpg_strerror (gcry_error (GPG_ERR_DIGEST_ALGO)));
 
@@ -1271,7 +1270,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 
   if (!hmac && spec->hash_buffers)
     {
-      if (!spec->flags.fips && fips_mode ())
+      if (spec->flags.disabled)
         return GPG_ERR_DIGEST_ALGO;
 
       spec->hash_buffers (digest, digestlen, iov, iovcnt);
