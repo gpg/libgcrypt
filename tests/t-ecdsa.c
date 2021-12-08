@@ -508,7 +508,7 @@ one_test_sexp (const char *curvename, const char *sha_alg,
     }
 
   err = gcry_sexp_build (&s_pk, NULL,
-                         "(public-key (ecc (curve %s)(q %b)(d %b)))",
+                         "(public-key (ecc (curve %s)(q %b)))",
 			 curvename_gcrypt,
                          (int)pkbuflen, pkbuffer);
   if (err)
