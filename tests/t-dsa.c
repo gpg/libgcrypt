@@ -332,7 +332,13 @@ one_test_sexp (const char *sha_alg,
   err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, hd, ctx);
   if (err)
     {
-      fail ("gcry_pkey_hash_sign failed: %s", gpg_strerror (err));
+      if (in_fips_mode)
+        {
+          if (verbose)
+            show_note ("DSA is not allowed in FIPS mode\n");
+        }
+      else
+        fail ("gcry_pkey_hash_sign failed: %s", gpg_strerror (err));
       goto leave;
     }
 

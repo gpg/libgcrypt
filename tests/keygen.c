@@ -269,8 +269,10 @@ check_elg_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating Elgamal key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    die ("generating Elgamal key must not work in FIPS mode.");
   if (verbose > 1)
     show_sexp ("1024 bit Elgamal key:\n", key);
   gcry_sexp_release (key);
@@ -302,7 +304,7 @@ check_dsa_keys (void)
       if (rc && !in_fips_mode)
         die ("error generating DSA key: %s\n", gpg_strerror (rc));
       else if (!rc && in_fips_mode)
-        die ("generating 1024 bit DSA key must not work!");
+        die ("generating 1024 bit DSA key must not work in FIPS mode!");
       if (!i && verbose > 1)
         show_sexp ("1024 bit DSA key:\n", key);
       gcry_sexp_release (key);
@@ -323,7 +325,7 @@ check_dsa_keys (void)
   if (rc && !in_fips_mode)
     die ("error generating DSA key: %s\n", gpg_strerror (rc));
   else if (!rc && in_fips_mode)
-    die ("generating 1536 bit DSA key must not work!");
+    die ("generating 1536 bit DSA key must not work in FIPS mode!");
   if (verbose > 1)
     show_sexp ("1536 bit DSA key:\n", key);
   gcry_sexp_release (key);
@@ -340,8 +342,10 @@ check_dsa_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating DSA key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    die ("generating DSA key must not work in FIPS mode!");
   if (verbose > 1)
     show_sexp ("3072 bit DSA key:\n", key);
   gcry_sexp_release (key);
@@ -358,8 +362,10 @@ check_dsa_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating DSA key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    die ("generating DSA key must not work in FIPS mode!");
   if (verbose > 1)
     show_sexp ("2048 bit DSA key:\n", key);
   gcry_sexp_release (key);
@@ -376,8 +382,10 @@ check_dsa_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating DSA key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    die ("generating DSA key must not work in FIPS mode!");
   if (verbose > 1)
     show_sexp ("2048 bit DSA key:\n", key);
   gcry_sexp_release (key);

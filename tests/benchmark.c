@@ -1319,6 +1319,12 @@ elg_bench (int iterations, int print_header)
       printf ("ELG %d bit             -", p_sizes[i]);
       fflush (stdout);
 
+      if (in_fips_mode)
+        {
+          puts ("[skipped in fips mode]");
+          goto next;
+        }
+
       start_timer ();
       for (j=0; j < iterations; j++)
         {
@@ -1354,6 +1360,7 @@ elg_bench (int iterations, int print_header)
       printf ("   %s  %s\n", elapsed_time (1), timerbuf1);
       fflush (stdout);
 
+    next:
       gcry_sexp_release (plain);
       plain = NULL;
       gcry_sexp_release (enc);
@@ -1427,7 +1434,7 @@ dsa_bench (int iterations, int print_header)
       printf ("DSA %d/%d             -", p_sizes[i], q_sizes[i]);
       fflush (stdout);
 
-      if (in_fips_mode && !(p_sizes[i] == 2048 || p_sizes[i] == 3072))
+      if (in_fips_mode)
         {
           puts ("[skipped in fips mode]");
           goto next;

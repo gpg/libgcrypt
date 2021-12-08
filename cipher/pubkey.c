@@ -790,7 +790,7 @@ _gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   spec = spec_from_name (name);
   xfree (name);
   name = NULL;
-  if (!spec)
+  if (!spec || spec->flags.disabled)
     {
       rc = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
       goto leave;
