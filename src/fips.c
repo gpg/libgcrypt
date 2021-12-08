@@ -522,7 +522,6 @@ run_pubkey_selftests (int extended)
   static int algos[] =
     {
       GCRY_PK_RSA,
-      GCRY_PK_DSA,
       GCRY_PK_ECC,
       0
     };

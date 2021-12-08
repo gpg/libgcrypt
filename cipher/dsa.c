@@ -1441,7 +1441,7 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 gcry_pk_spec_t _gcry_pubkey_spec_dsa =
   {
-    GCRY_PK_DSA, { 0, 1 },
+    GCRY_PK_DSA, { 0, 0 },
     GCRY_PK_USAGE_SIGN,
     "DSA", dsa_names,
     "pqgy", "pqgyx", "", "rs", "pqgy",
