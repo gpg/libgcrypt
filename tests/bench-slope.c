@@ -75,7 +75,7 @@ static double bench_ghz;
 /* Current accuracy of auto-detected CPU Ghz. */
 static double bench_ghz_diff;
 
-static int in_fips_mode = 0;
+static int in_fips_mode;
 
 /*************************************** Default parameters for measurements. */
 

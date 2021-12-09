@@ -69,7 +69,7 @@ static char const sample_key_2[] =
 static char const sample_key_2_curve[] = "brainpoolP160r1";
 static unsigned int sample_key_2_nbits = 160;
 
-static int in_fips_mode = 0;
+static int in_fips_mode;
 
 static void
 list_curves (void)

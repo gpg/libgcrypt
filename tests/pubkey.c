@@ -728,6 +728,7 @@ check_run (void)
   gcry_sexp_t pkey, skey;
   int variant;
 
+  pkey = skey = NULL;
   for (variant=0; variant < 3; variant++)
     {
       if (verbose)
@@ -742,6 +743,7 @@ check_run (void)
       check_keys (pkey, skey, 800, variant == 2? GPG_ERR_NO_OBJ : 0);
       gcry_sexp_release (pkey);
       gcry_sexp_release (skey);
+      pkey = skey = NULL;
     }
 
   if (verbose)
@@ -750,6 +752,7 @@ check_run (void)
   check_keys (pkey, skey, 800, 0);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
+  pkey = skey = NULL;
 
   if (verbose)
     fprintf (stderr, "Checking generated RSA key (X9.31).\n");
@@ -757,26 +760,25 @@ check_run (void)
   check_keys (pkey, skey, 800, 0);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
+  pkey = skey = NULL;
 
   if (verbose)
     fprintf (stderr, "Checking generated Elgamal key.\n");
   get_elg_key_new (&pkey, &skey, 0);
   if (!in_fips_mode)
-    {
-      check_keys (pkey, skey, 400, 0);
-      gcry_sexp_release (pkey);
-      gcry_sexp_release (skey);
-    }
+    check_keys (pkey, skey, 400, 0);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+  pkey = skey = NULL;
 
   if (verbose)
     fprintf (stderr, "Checking passphrase generated Elgamal key.\n");
   get_elg_key_new (&pkey, &skey, 1);
   if (!in_fips_mode)
-    {
-      check_keys (pkey, skey, 800, 0);
-      gcry_sexp_release (pkey);
-      gcry_sexp_release (skey);
-    }
+    check_keys (pkey, skey, 800, 0);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+  pkey = skey = NULL;
 
   if (verbose)
     fprintf (stderr, "Generating DSA key.\n");
@@ -784,9 +786,12 @@ check_run (void)
   if (!in_fips_mode)
     {
       /* Fixme:  Add a check function for DSA keys.  */
-      gcry_sexp_release (pkey);
-      gcry_sexp_release (skey);
+      ;
     }
+
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+  pkey = skey = NULL;
 
   if (verbose)
     fprintf (stderr, "Generating transient DSA key.\n");
@@ -794,9 +799,11 @@ check_run (void)
   if (!in_fips_mode)
     {
       /* Fixme:  Add a check function for DSA keys.  */
-      gcry_sexp_release (pkey);
-      gcry_sexp_release (skey);
+      ;
     }
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+  pkey = skey = NULL;
 
   if (verbose)
     fprintf (stderr, "Generating DSA key (FIPS 186).\n");
@@ -804,9 +811,11 @@ check_run (void)
   if (!in_fips_mode)
     {
       /* Fixme:  Add a check function for DSA keys.  */
-      gcry_sexp_release (pkey);
-      gcry_sexp_release (skey);
+      ;
     }
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+  pkey = skey = NULL;
 
   if (verbose)
     fprintf (stderr, "Generating DSA key with given domain.\n");
@@ -814,9 +823,11 @@ check_run (void)
   if (!in_fips_mode)
     {
       /* Fixme:  Add a check function for DSA keys.  */
-      gcry_sexp_release (pkey);
-      gcry_sexp_release (skey);
+      ;
     }
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+  pkey = skey = NULL;
 
   /* We need new test vectors for get_dsa_key_fips186_with_domain_new.  */
   if (verbose)
@@ -833,9 +844,11 @@ check_run (void)
   if (!in_fips_mode)
     {
       /* Fixme:  Add a check function for DSA keys.  */
-      gcry_sexp_release (pkey);
-      gcry_sexp_release (skey);
+      ;
     }
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+  pkey = skey = NULL;
 }
 
 

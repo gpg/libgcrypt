@@ -33,7 +33,7 @@
 #define PGM "dsa-rfc6979"
 #include "t-common.h"
 
-static int in_fips_mode = 0;
+static int in_fips_mode;
 
 static void
 show_sexp (const char *prefix, gcry_sexp_t a)

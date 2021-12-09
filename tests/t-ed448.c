@@ -36,7 +36,7 @@
 static int sign_with_pk;
 static int no_verify;
 static int custom_data_file;
-static int in_fips_mode = 0;
+static int in_fips_mode;
 
 
 static void

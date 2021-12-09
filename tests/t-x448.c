@@ -34,7 +34,7 @@
 #include "t-common.h"
 #define N_TESTS 9
 
-static int in_fips_mode = 0;
+static int in_fips_mode;
 
 static void
 print_mpi (const char *text, gcry_mpi_t a)

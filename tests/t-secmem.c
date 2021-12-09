@@ -37,7 +37,7 @@
 #define MINIMUM_POOL_SIZE 16384
 static size_t pool_size;
 static size_t chunk_size;
-static int in_fips_mode = 0;
+static int in_fips_mode;
 
 static void
 test_secmem (void)
