@@ -305,6 +305,10 @@ extern void _gcry_aes_ppc9le_xts_crypt (void *context, unsigned char *tweak,
 					void *outbuf_arg,
 					const void *inbuf_arg,
 					size_t nblocks, int encrypt);
+
+extern size_t _gcry_aes_p10le_gcm_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+					 const void *inbuf_arg,
+					 size_t nblocks, int encrypt);
 #endif /*USE_PPC_CRYPTO_WITH_PPC9LE*/
 
 #ifdef USE_S390X_CRYPTO
@@ -599,6 +603,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->ocb_crypt = _gcry_aes_ppc9le_ocb_crypt;
       bulk_ops->ocb_auth = _gcry_aes_ppc9le_ocb_auth;
       bulk_ops->xts_crypt = _gcry_aes_ppc9le_xts_crypt;
+      if (hwfeatures & HWF_PPC_ARCH_3_10)  /* for P10 */
+        bulk_ops->gcm_crypt = _gcry_aes_p10le_gcm_crypt;
     }
 #endif
 #ifdef USE_PPC_CRYPTO

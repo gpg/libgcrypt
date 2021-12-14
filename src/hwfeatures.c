@@ -72,6 +72,7 @@ static struct
     { HWF_PPC_VCRYPTO,         "ppc-vcrypto" },
     { HWF_PPC_ARCH_3_00,       "ppc-arch_3_00" },
     { HWF_PPC_ARCH_2_07,       "ppc-arch_2_07" },
+    { HWF_PPC_ARCH_3_10,       "ppc-arch_3_10" },
 #elif defined(HAVE_CPU_ARCH_S390X)
     { HWF_S390X_MSA,           "s390x-msa" },
     { HWF_S390X_MSA_4,         "s390x-msa-4" },

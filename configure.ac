@@ -2586,6 +2586,13 @@ if test "$found" = "1" ; then
          # Build with the crypto extension implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-ppc.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-ppc9le.lo"
+
+         if test "$gcry_cv_gcc_inline_asm_ppc_altivec" = "yes" &&
+            test "$gcry_cv_gcc_inline_asm_ppc_arch_3_00" = "yes" ; then
+            # Build with AES-GCM bulk implementation for P10
+            GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-gcm-p10le.lo"
+            GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-p10le.lo"
+         fi
       ;;
       powerpc64-*-*)
          # Big-Endian.

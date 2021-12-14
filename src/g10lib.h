@@ -252,6 +252,7 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_PPC_VCRYPTO         (1 << 0)
 #define HWF_PPC_ARCH_3_00       (1 << 1)
 #define HWF_PPC_ARCH_2_07       (1 << 2)
+#define HWF_PPC_ARCH_3_10       (1 << 3)
 
 #elif defined(HAVE_CPU_ARCH_S390X)
 

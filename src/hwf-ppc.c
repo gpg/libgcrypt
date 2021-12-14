@@ -92,6 +92,9 @@ struct feature_map_s
 #ifndef PPC_FEATURE2_ARCH_3_00
 # define PPC_FEATURE2_ARCH_3_00     0x00800000
 #endif
+#ifndef PPC_FEATURE2_ARCH_3_10
+# define PPC_FEATURE2_ARCH_3_10     0x00040000
+#endif
 
 static const struct feature_map_s ppc_features[] =
   {

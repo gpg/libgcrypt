@@ -107,6 +107,7 @@ EXTRA_libcipher_la_SOURCES = \
 	rijndael-armv8-ce.c rijndael-armv8-aarch32-ce.S    \
 	rijndael-armv8-aarch64-ce.S rijndael-aarch64.S     \
 	rijndael-ppc.c rijndael-ppc9le.c                   \
+	rijndael-p10le.c rijndael-gcm-p10le.s             \
 	rijndael-ppc-common.h rijndael-ppc-functions.h     \
 	rijndael-s390x.c                                   \
 	rmd160.c \
@@ -236,6 +237,12 @@ rijndael-ppc9le.o: $(srcdir)/rijndael-ppc9le.c Makefile
 	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
 
 rijndael-ppc9le.lo: $(srcdir)/rijndael-ppc9le.c Makefile
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+rijndael-p10le.o: $(srcdir)/rijndael-p10le.c Makefile
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+rijndael-p10le.lo: $(srcdir)/rijndael-p10le.c Makefile
 	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
 
 sha256-ppc.o: $(srcdir)/sha256-ppc.c Makefile
