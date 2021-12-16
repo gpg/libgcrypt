@@ -538,7 +538,9 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     case GCRYCTL_DISABLE_SECMEM:
       global_init ();
-      no_secure_memory = 1;
+      /* When FIPS enabled, no effect at all.  */
+      if (!fips_mode ())
+        no_secure_memory = 1;
       break;
 
     case GCRYCTL_INIT_SECMEM:
@@ -913,20 +915,6 @@ _gcry_set_outofcore_handler (int (*f)(void*, size_t, unsigned int), void *value)
   outofcore_handler_value = value;
 }
 
-/* Return the no_secure_memory flag.  */
-static int
-get_no_secure_memory (void)
-{
-  if (!no_secure_memory)
-    return 0;
-  if (fips_mode ())
-    {
-      no_secure_memory = 0;
-      return 0;
-    }
-  return no_secure_memory;
-}
-
 
 static gcry_err_code_t
 do_malloc (size_t n, unsigned int flags, void **mem)
@@ -934,7 +922,7 @@ do_malloc (size_t n, unsigned int flags, void **mem)
   gcry_err_code_t err = 0;
   void *m;
 
-  if ((flags & GCRY_ALLOC_FLAG_SECURE) && !get_no_secure_memory ())
+  if ((flags & GCRY_ALLOC_FLAG_SECURE) && !no_secure_memory)
     {
       if (alloc_secure_func)
 	m = (*alloc_secure_func) (n);
@@ -993,7 +981,7 @@ _gcry_malloc_secure (size_t n)
 int
 _gcry_is_secure (const void *a)
 {
-  if (get_no_secure_memory ())
+  if (no_secure_memory)
     return 0;
   if (is_secure_func)
     return is_secure_func (a) ;
