@@ -527,7 +527,7 @@ AC_DEFINE_UNQUOTED(EGD_SOCKET_NAME, "$egd_socket_name",
 AC_MSG_CHECKING([whether the experimental random daemon is requested])
 AC_ARG_ENABLE([random-daemon],
               AS_HELP_STRING([--enable-random-daemon],
-                             [Build and support the experimental gcryptrnd]),
+                             [Build the experimental gcryptrnd]),
               [use_random_daemon=$enableval],
               [use_random_daemon=no])
 AC_MSG_RESULT($use_random_daemon)
