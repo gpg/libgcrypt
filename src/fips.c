@@ -82,6 +82,12 @@ static void fips_new_state (enum module_states new_state);
 
 
 
+/*
+ * Returns 1 if the FIPS mode is to be activated based on the
+ * environment variable LIBGCRYPT_FORCE_FIPS_MODE, the file defined by
+ * FIPS_FORCE_FILE, or /proc/sys/crypto/fips_enabled.
+ * This function aborts on misconfigured filesystems.
+ */
 static int
 check_fips_system_setting (void)
 {
@@ -135,6 +141,17 @@ check_fips_system_setting (void)
 
   return 0;
 }
+
+/*
+ * Initial check if the FIPS mode should be activated on startup.
+ * Called by the constructor at the initialization of the library.
+ */
+int
+_gcry_fips_to_activate (void)
+{
+  return check_fips_system_setting ();
+}
+
 
 /* Check whether the OS is in FIPS mode and record that in a module
    local variable.  If FORCE is passed as true, fips mode will be

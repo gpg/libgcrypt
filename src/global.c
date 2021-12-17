@@ -140,6 +140,25 @@ global_init (void)
   BUG ();
 }
 
+#ifdef ENABLE_HMAC_BINARY_CHECK
+# if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 7 )
+# define GCC_ATTR_CONSTRUCTOR  __attribute__ ((__constructor__))
+
+static void GCC_ATTR_CONSTRUCTOR
+_gcry_global_constructor (void)
+{
+  force_fips_mode = _gcry_fips_to_activate ();
+  if (force_fips_mode)
+    {
+      no_secure_memory = 1;
+      global_init ();
+      _gcry_fips_run_selftests (0);
+      _gcry_random_close_fds ();
+      no_secure_memory = 0;
+    }
+}
+# endif
+#endif /* ENABLE_HMAC_BINARY_CHECK */
 
 /* This function is called by the macro fips_is_operational and makes
    sure that the minimal initialization has been done.  This is far

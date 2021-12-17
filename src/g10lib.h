@@ -425,6 +425,7 @@ gpg_err_code_t _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
 extern int _gcry_no_fips_mode_required;
 
 void _gcry_initialize_fips_mode (int force);
+int _gcry_fips_to_activate (void);
 
 /* This macro returns true if fips mode is enabled.  This is
    independent of the fips required finite state machine and only used
