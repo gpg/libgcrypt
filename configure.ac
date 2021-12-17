@@ -528,14 +528,10 @@ AC_MSG_CHECKING([whether the experimental random daemon is requested])
 AC_ARG_ENABLE([random-daemon],
               AS_HELP_STRING([--enable-random-daemon],
                              [Build the experimental gcryptrnd]),
-              [use_random_daemon=$enableval],
-              [use_random_daemon=no])
-AC_MSG_RESULT($use_random_daemon)
-if test x$use_random_daemon = xyes ; then
-    AC_DEFINE(USE_RANDOM_DAEMON,1,
-              [Define to support the experimental random daemon])
-fi
-AM_CONDITIONAL(USE_RANDOM_DAEMON, test x$use_random_daemon = xyes)
+              [enable_random_daemon=$enableval],
+              [enable_random_daemon=no])
+AC_MSG_RESULT($enable_random_daemon)
+AM_CONDITIONAL(ENABLE_RANDOM_DAEMON, test x$enable_random_daemon = xyes)
 
 
 # Implementation of --disable-asm.
@@ -799,7 +795,7 @@ AC_ARG_WITH(pth-prefix,
 if test x$pth_config_prefix != x ; then
    PTH_CONFIG="$pth_config_prefix/bin/pth-config"
 fi
-if test "$use_random_daemon" = "yes"; then
+if test "$enable_random_daemon" = "yes"; then
   AC_PATH_PROG(PTH_CONFIG, pth-config, no)
   if test "$PTH_CONFIG" = "no"; then
     AC_MSG_WARN([[
