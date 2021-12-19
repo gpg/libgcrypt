@@ -3035,10 +3035,14 @@ if test "$found" = "1" ; then
    AC_DEFINE(USE_SM3, 1, [Defined if this module should be included])
 
    case "${host}" in
-      x86_64-*-*)
-         # Build with the assembly implementation
-         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-avx-bmi2-amd64.lo"
-      ;;
+     x86_64-*-*)
+        # Build with the assembly implementation
+        GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-avx-bmi2-amd64.lo"
+     ;;
+     aarch64-*-*)
+        # Build with the assembly implementation
+        GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-aarch64.lo"
+     ;;
    esac
 fi
 

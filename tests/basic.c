@@ -16285,6 +16285,7 @@ main (int argc, char **argv)
   int selftest_only = 0;
   int pubkey_only = 0;
   int cipher_modes_only = 0;
+  int hash_only = 0;
   int loop = 0;
   unsigned int loopcount = 0;
 
@@ -16328,6 +16329,11 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--cipher-modes"))
         {
           cipher_modes_only = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--hash"))
+        {
+          hash_only = 1;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--die"))
@@ -16394,6 +16400,12 @@ main (int argc, char **argv)
         {
           check_ciphers ();
           check_cipher_modes ();
+        }
+      else if (hash_only)
+        {
+          check_digests ();
+          check_hmac ();
+          check_mac ();
         }
       else if (!selftest_only)
         {

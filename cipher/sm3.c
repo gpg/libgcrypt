@@ -56,6 +56,17 @@
 # define USE_AVX_BMI2 1
 #endif
 
+/* USE_AARCH64_SIMD indicates whether to enable ARMv8 SIMD assembly
+ * code. */
+#undef USE_AARCH64_SIMD
+#ifdef ENABLE_NEON_SUPPORT
+# if defined(__AARCH64EL__) \
+       && defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) \
+       && defined(HAVE_GCC_INLINE_ASM_AARCH64_NEON)
+#  define USE_AARCH64_SIMD 1
+# endif
+#endif
+
 
 typedef struct {
   gcry_md_block_ctx_t bctx;
@@ -94,6 +105,18 @@ do_sm3_transform_amd64_avx_bmi2(void *context, const unsigned char *data,
 }
 #endif /* USE_AVX_BMI2 */
 
+#ifdef USE_AARCH64_SIMD
+unsigned int _gcry_sm3_transform_aarch64(void *state, const void *input_data,
+                                         size_t num_blks);
+
+static unsigned int
+do_sm3_transform_aarch64(void *context, const unsigned char *data, size_t nblks)
+{
+  SM3_CONTEXT *hd = context;
+  return _gcry_sm3_transform_aarch64 (hd->h, data, nblks);
+}
+#endif /* USE_AARCH64_SIMD */
+
 
 static unsigned int
 transform (void *c, const unsigned char *data, size_t nblks);
@@ -125,6 +148,10 @@ sm3_init (void *context, unsigned int flags)
 #ifdef USE_AVX_BMI2
   if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
     hd->bctx.bwrite = do_sm3_transform_amd64_avx_bmi2;
+#endif
+#ifdef USE_AARCH64_SIMD
+  if (features & HWF_ARM_NEON)
+    hd->bctx.bwrite = do_sm3_transform_aarch64;
 #endif
 
   (void)features;
