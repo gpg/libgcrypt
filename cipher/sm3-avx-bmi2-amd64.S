@@ -51,70 +51,70 @@ ELF(.size _gcry_sm3_avx2_consts,.-_gcry_sm3_avx2_consts)
 
 /* Round constant macros */
 
-#define K0  0x79cc4519
-#define K1  0xf3988a32
-#define K2  0xe7311465
-#define K3  0xce6228cb
-#define K4  0x9cc45197
-#define K5  0x3988a32f
-#define K6  0x7311465e
-#define K7  0xe6228cbc
-#define K8  0xcc451979
-#define K9  0x988a32f3
-#define K10 0x311465e7
-#define K11 0x6228cbce
-#define K12 0xc451979c
-#define K13 0x88a32f39
-#define K14 0x11465e73
-#define K15 0x228cbce6
-#define K16 0x9d8a7a87
-#define K17 0x3b14f50f
-#define K18 0x7629ea1e
-#define K19 0xec53d43c
-#define K20 0xd8a7a879
-#define K21 0xb14f50f3
-#define K22 0x629ea1e7
-#define K23 0xc53d43ce
-#define K24 0x8a7a879d
-#define K25 0x14f50f3b
-#define K26 0x29ea1e76
-#define K27 0x53d43cec
-#define K28 0xa7a879d8
-#define K29 0x4f50f3b1
-#define K30 0x9ea1e762
-#define K31 0x3d43cec5
-#define K32 0x7a879d8a
-#define K33 0xf50f3b14
-#define K34 0xea1e7629
-#define K35 0xd43cec53
-#define K36 0xa879d8a7
-#define K37 0x50f3b14f
-#define K38 0xa1e7629e
-#define K39 0x43cec53d
-#define K40 0x879d8a7a
-#define K41 0x0f3b14f5
-#define K42 0x1e7629ea
-#define K43 0x3cec53d4
-#define K44 0x79d8a7a8
-#define K45 0xf3b14f50
-#define K46 0xe7629ea1
-#define K47 0xcec53d43
-#define K48 0x9d8a7a87
-#define K49 0x3b14f50f
-#define K50 0x7629ea1e
-#define K51 0xec53d43c
-#define K52 0xd8a7a879
-#define K53 0xb14f50f3
-#define K54 0x629ea1e7
-#define K55 0xc53d43ce
-#define K56 0x8a7a879d
-#define K57 0x14f50f3b
-#define K58 0x29ea1e76
-#define K59 0x53d43cec
-#define K60 0xa7a879d8
-#define K61 0x4f50f3b1
-#define K62 0x9ea1e762
-#define K63 0x3d43cec5
+#define K0   2043430169  /* 0x79cc4519 */
+#define K1   -208106958  /* 0xf3988a32 */
+#define K2   -416213915  /* 0xe7311465 */
+#define K3   -832427829  /* 0xce6228cb */
+#define K4  -1664855657  /* 0x9cc45197 */
+#define K5    965255983  /* 0x3988a32f */
+#define K6   1930511966  /* 0x7311465e */
+#define K7   -433943364  /* 0xe6228cbc */
+#define K8   -867886727  /* 0xcc451979 */
+#define K9  -1735773453  /* 0x988a32f3 */
+#define K10   823420391  /* 0x311465e7 */
+#define K11  1646840782  /* 0x6228cbce */
+#define K12 -1001285732  /* 0xc451979c */
+#define K13 -2002571463  /* 0x88a32f39 */
+#define K14   289824371  /* 0x11465e73 */
+#define K15   579648742  /* 0x228cbce6 */
+#define K16 -1651869049  /* 0x9d8a7a87 */
+#define K17   991229199  /* 0x3b14f50f */
+#define K18  1982458398  /* 0x7629ea1e */
+#define K19  -330050500  /* 0xec53d43c */
+#define K20  -660100999  /* 0xd8a7a879 */
+#define K21 -1320201997  /* 0xb14f50f3 */
+#define K22  1654563303  /* 0x629ea1e7 */
+#define K23  -985840690  /* 0xc53d43ce */
+#define K24 -1971681379  /* 0x8a7a879d */
+#define K25   351604539  /* 0x14f50f3b */
+#define K26   703209078  /* 0x29ea1e76 */
+#define K27  1406418156  /* 0x53d43cec */
+#define K28 -1482130984  /* 0xa7a879d8 */
+#define K29  1330705329  /* 0x4f50f3b1 */
+#define K30 -1633556638  /* 0x9ea1e762 */
+#define K31  1027854021  /* 0x3d43cec5 */
+#define K32  2055708042  /* 0x7a879d8a */
+#define K33  -183551212  /* 0xf50f3b14 */
+#define K34  -367102423  /* 0xea1e7629 */
+#define K35  -734204845  /* 0xd43cec53 */
+#define K36 -1468409689  /* 0xa879d8a7 */
+#define K37  1358147919  /* 0x50f3b14f */
+#define K38 -1578671458  /* 0xa1e7629e */
+#define K39  1137624381  /* 0x43cec53d */
+#define K40 -2019718534  /* 0x879d8a7a */
+#define K41   255530229  /* 0x0f3b14f5 */
+#define K42   511060458  /* 0x1e7629ea */
+#define K43  1022120916  /* 0x3cec53d4 */
+#define K44  2044241832  /* 0x79d8a7a8 */
+#define K45  -206483632  /* 0xf3b14f50 */
+#define K46  -412967263  /* 0xe7629ea1 */
+#define K47  -825934525  /* 0xcec53d43 */
+#define K48 -1651869049  /* 0x9d8a7a87 */
+#define K49   991229199  /* 0x3b14f50f */
+#define K50  1982458398  /* 0x7629ea1e */
+#define K51  -330050500  /* 0xec53d43c */
+#define K52  -660100999  /* 0xd8a7a879 */
+#define K53 -1320201997  /* 0xb14f50f3 */
+#define K54  1654563303  /* 0x629ea1e7 */
+#define K55  -985840690  /* 0xc53d43ce */
+#define K56 -1971681379  /* 0x8a7a879d */
+#define K57   351604539  /* 0x14f50f3b */
+#define K58   703209078  /* 0x29ea1e76 */
+#define K59  1406418156  /* 0x53d43cec */
+#define K60 -1482130984  /* 0xa7a879d8 */
+#define K61  1330705329  /* 0x4f50f3b1 */
+#define K62 -1633556638  /* 0x9ea1e762 */
+#define K63  1027854021  /* 0x3d43cec5 */
 
 /* Register macros */
 
@@ -175,9 +175,6 @@ ELF(.size _gcry_sm3_avx2_consts,.-_gcry_sm3_avx2_consts)
 
 #define addl2(a, out) \
         leal (a, out), out;
-
-#define addl3(a, b, out) \
-        leal (b, a), out;
 
 /* Round function macros. */
 
