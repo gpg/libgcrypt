@@ -20,7 +20,7 @@
 
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
-AC_PREREQ([2.60])
+AC_PREREQ([2.69])
 min_automake_version="1.14"
 
 # To build a release you need to create a tag with the version number
@@ -77,7 +77,7 @@ NEED_GPG_ERROR_VERSION=1.27
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
 AM_INIT_AUTOMAKE([serial-tests dist-bzip2])
-AC_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_LIBOBJ_DIR([compat])
 AC_CANONICAL_HOST
@@ -843,7 +843,6 @@ AC_SEARCH_LIBS(setsockopt, [nsl])
 #### Checks for header files. ####
 ##################################
 
-AC_HEADER_STDC
 AC_CHECK_HEADERS(unistd.h sys/auxv.h)
 
 
