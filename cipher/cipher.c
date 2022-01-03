@@ -518,7 +518,8 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 		     | GCRY_CIPHER_SECURE
 		     | GCRY_CIPHER_ENABLE_SYNC
 		     | GCRY_CIPHER_CBC_CTS
-		     | GCRY_CIPHER_CBC_MAC))
+		     | GCRY_CIPHER_CBC_MAC
+                     | GCRY_CIPHER_EXTENDED))
 	  || ((flags & GCRY_CIPHER_CBC_CTS) && (flags & GCRY_CIPHER_CBC_MAC))))
     err = GPG_ERR_CIPHER_ALGO;
 
@@ -1356,8 +1357,16 @@ _gcry_cipher_setup_mode_ops(gcry_cipher_hd_t c, int mode)
       break;
 
     case GCRY_CIPHER_MODE_AESWRAP:
-      c->mode_ops.encrypt = _gcry_cipher_aeswrap_encrypt;
-      c->mode_ops.decrypt = _gcry_cipher_aeswrap_decrypt;
+      if (!(c->flags & GCRY_CIPHER_EXTENDED))
+        {
+          c->mode_ops.encrypt = _gcry_cipher_keywrap_encrypt;
+          c->mode_ops.decrypt = _gcry_cipher_keywrap_decrypt;
+        }
+      else
+        {
+          c->mode_ops.encrypt = _gcry_cipher_keywrap_encrypt_padding;
+          c->mode_ops.decrypt = _gcry_cipher_keywrap_decrypt_padding;
+        }
       break;
 
     case GCRY_CIPHER_MODE_CCM:

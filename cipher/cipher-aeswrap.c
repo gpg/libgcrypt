@@ -28,14 +28,10 @@
 #include "bufhelp.h"
 #include "./cipher-internal.h"
 
-
-/* Perform the AES-Wrap algorithm as specified by RFC3394.  We
-   implement this as a mode usable with any cipher algorithm of
-   blocksize 128.  */
-gcry_err_code_t
-_gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
-                              byte *outbuf, size_t outbuflen,
-                              const byte *inbuf, size_t inbuflen )
+/* Perform the wrap algorithm W as specified by NIST SP 800-38F.
+   Cipher block size must be 128-bit.  */
+static gcry_err_code_t
+wrap (gcry_cipher_hd_t c, byte *outbuf, size_t inbuflen)
 {
   int j, x;
   size_t n, i;
@@ -46,6 +42,66 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
 #if MAX_BLOCKSIZE < 8
 #error Invalid block size
 #endif
+  /* We require a cipher with a 128 bit block length.  */
+  if (c->spec->blocksize != 16)
+    return GPG_ERR_INV_LENGTH;
+
+  /* Input data must be multiple of 64 bits.  */
+  if (inbuflen % 8)
+    return GPG_ERR_INV_ARG;
+
+  n = inbuflen / 8;
+
+  /* We need at least three 64 bit blocks.  */
+  if (n < 3)
+    return GPG_ERR_INV_ARG;
+
+  burn = 0;
+
+  r = outbuf;
+  a = outbuf;  /* We store A directly in OUTBUF.  */
+  b = c->u_ctr.ctr;  /* B is also used to concatenate stuff.  */
+
+  memset (t, 0, sizeof t); /* t := 0.  */
+
+  for (j = 0; j <= 5; j++)
+    {
+      for (i = 1; i < n; i++)
+        {
+          /* B := CIPH_k( A | R[i] ) */
+          memcpy (b, a, 8);
+          memcpy (b+8, r+i*8, 8);
+          nburn = c->spec->encrypt (&c->context.c, b, b);
+          burn = nburn > burn ? nburn : burn;
+          /* t := t + 1  */
+          for (x = 7; x >= 0; x--)
+            if (++t[x])
+              break;
+          /* A := MSB_64(B) ^ t */
+          cipher_block_xor (a, b, t, 8);
+          /* R[i] := LSB_64(B) */
+          memcpy (r+i*8, b+8, 8);
+        }
+   }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
+
+  return 0;
+}
+
+
+/* Perform the Key Wrap algorithm as specified by RFC3394.  We
+   implement this as a mode usable with any cipher algorithm of
+   blocksize 128.  */
+gcry_err_code_t
+_gcry_cipher_keywrap_encrypt (gcry_cipher_hd_t c,
+                              byte *outbuf, size_t outbuflen,
+                              const byte *inbuf, size_t inbuflen)
+{
+  gcry_err_code_t err;
+  unsigned char *r = outbuf;
+
   /* We require a cipher with a 128 bit block length.  */
   if (c->spec->blocksize != 16)
     return GPG_ERR_INV_LENGTH;
@@ -58,17 +114,9 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
   if (inbuflen % 8)
     return GPG_ERR_INV_ARG;
 
-  n = inbuflen / 8;
-
   /* We need at least two 64 bit blocks.  */
-  if (n < 2)
+  if ((inbuflen / 8) < 2)
     return GPG_ERR_INV_ARG;
-
-  burn = 0;
-
-  r = outbuf;
-  a = outbuf;  /* We store A directly in OUTBUF.  */
-  b = c->u_ctr.ctr;  /* B is also used to concatenate stuff.  */
 
   /* Copy the inbuf to the outbuf. */
   memmove (r+8, inbuf, inbuflen);
@@ -76,48 +124,71 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
   /* If an IV has been set we use that IV as the Alternative Initial
      Value; if it has not been set we use the standard value.  */
   if (c->marks.iv)
-    memcpy (a, c->u_iv.iv, 8);
+    memcpy (r, c->u_iv.iv, 8);
   else
-    memset (a, 0xa6, 8);
+    memset (r, 0xa6, 8);
 
-  memset (t, 0, sizeof t); /* t := 0.  */
+  err = wrap (c, r, inbuflen + 8);
 
-  for (j = 0; j <= 5; j++)
-    {
-      for (i = 1; i <= n; i++)
-        {
-          /* B := AES_k( A | R[i] ) */
-          memcpy (b, a, 8);
-          memcpy (b+8, r+i*8, 8);
-          nburn = c->spec->encrypt (&c->context.c, b, b);
-          burn = nburn > burn ? nburn : burn;
-          /* t := t + 1  */
-	  for (x = 7; x >= 0; x--)
-	    {
-	      t[x]++;
-	      if (t[x])
-		break;
-	    }
-          /* A := MSB_64(B) ^ t */
-	  cipher_block_xor(a, b, t, 8);
-          /* R[i] := LSB_64(B) */
-          memcpy (r+i*8, b+8, 8);
-        }
-   }
-
-  if (burn > 0)
-    _gcry_burn_stack (burn + 4 * sizeof(void *));
-
-  return 0;
+  return err;
 }
 
-/* Perform the AES-Unwrap algorithm as specified by RFC3394.  We
-   implement this as a mode usable with any cipher algorithm of
-   blocksize 128.  */
+
+static const unsigned char icv2[] = { 0xA6, 0x59, 0x59, 0xA6 };
+
+/* Perform the Key Wrap algorithm as specified by RFC5649.  */
 gcry_err_code_t
-_gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
-                              byte *outbuf, size_t outbuflen,
-                              const byte *inbuf, size_t inbuflen)
+_gcry_cipher_keywrap_encrypt_padding (gcry_cipher_hd_t c,
+                                      byte *outbuf, size_t outbuflen,
+                                      const byte *inbuf, size_t inbuflen)
+{
+  gcry_err_code_t err;
+  unsigned char *r = outbuf;
+  unsigned int padlen;
+
+  /* We require a cipher with a 128 bit block length.  */
+  if (c->spec->blocksize != 16)
+    return GPG_ERR_INV_LENGTH;
+
+  /* The output buffer must be able to hold the input data plus one
+     additional block and padding.  */
+  if (outbuflen < ((inbuflen + 7)/8)*8 + 8)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  if (inbuflen % 8)
+    padlen = 8 - (inbuflen % 8);
+  else
+    padlen = 0;
+
+  memcpy (r, icv2, 4);
+  r[4] = ((inbuflen >> 24) & 0xff);
+  r[5] = ((inbuflen >> 16) & 0xff);
+  r[6] = ((inbuflen >> 8) & 0xff);
+  r[7] = (inbuflen & 0xff);
+  memcpy (r+8, inbuf, inbuflen);
+  if (padlen)
+    memset (r+8+inbuflen, 0, padlen);
+
+  if (inbuflen <= 8)
+    {
+      unsigned int burn;
+
+      burn = c->spec->encrypt (&c->context.c, r, r);
+      if (burn > 0)
+        _gcry_burn_stack (burn + 4 * sizeof(void *));
+      err = 0;
+    }
+  else
+    err = wrap (c, r, ((inbuflen + 7)/8)*8 + 8);
+
+  return err;
+}
+
+
+/* Perform the unwrap algorithm W^-1 as specified by NIST SP 800-38F.
+   Cipher block size must be 128-bit.  */
+static gcry_err_code_t
+unwrap (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf, size_t inbuflen)
 {
   int j, x;
   size_t n, i;
@@ -132,11 +203,6 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
   if (c->spec->blocksize != 16)
     return GPG_ERR_INV_LENGTH;
 
-  /* The output buffer must be able to hold the input data minus one
-     additional block.  Fixme: The caller has more restrictive checks
-     - we may want to fix them for this mode.  */
-  if (outbuflen + 8  < inbuflen)
-    return GPG_ERR_BUFFER_TOO_SHORT;
   /* Input data must be multiple of 64 bits.  */
   if (inbuflen % 8)
     return GPG_ERR_INV_ARG;
@@ -169,18 +235,15 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
     {
       for (i = n; i >= 1; i--)
         {
-          /* B := AES_k^1( (A ^ t)| R[i] ) */
-	  cipher_block_xor(b, a, t, 8);
+          /* B := CIPH_k^-1( (A ^ t)| R[i] ) */
+          cipher_block_xor (b, a, t, 8);
           memcpy (b+8, r+(i-1)*8, 8);
           nburn = c->spec->decrypt (&c->context.c, b, b);
           burn = nburn > burn ? nburn : burn;
           /* t := t - 1  */
-	  for (x = 7; x >= 0; x--)
-	    {
-	      t[x]--;
-	      if (t[x] != 0xff)
-		break;
-	    }
+          for (x = 7; x >= 0; x--)
+            if (--t[x] != 0xff)
+              break;
           /* A := MSB_64(B) */
           memcpy (a, b, 8);
           /* R[i] := LSB_64(B) */
@@ -189,22 +252,159 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
    }
   wipememory (b, 16);  /* Clear scratch area.  */
 
-  /* If an IV has been set we compare against this Alternative Initial
-     Value; if it has not been set we compare against the standard IV.  */
-  if (c->marks.iv)
-    j = memcmp (a, c->u_iv.iv, 8);
-  else
-    {
-      for (j=0, x=0; x < 8; x++)
-        if (a[x] != 0xa6)
-          {
-            j=1;
-            break;
-          }
-    }
-
   if (burn > 0)
     _gcry_burn_stack (burn + 4 * sizeof(void *));
 
-  return j? GPG_ERR_CHECKSUM : 0;
+  return 0;
+}
+
+
+/* Perform the Key Unwrap algorithm as specified by RFC3394.  We
+   implement this as a mode usable with any cipher algorithm of
+   blocksize 128.  */
+gcry_err_code_t
+_gcry_cipher_keywrap_decrypt (gcry_cipher_hd_t c,
+                              byte *outbuf, size_t outbuflen,
+                              const byte *inbuf, size_t inbuflen)
+{
+  gcry_err_code_t err;
+
+  /* We require a cipher with a 128 bit block length.  */
+  if (c->spec->blocksize != 16)
+    return GPG_ERR_INV_LENGTH;
+
+  /* The output buffer must be able to hold the input data minus one
+     additional block.  Fixme: The caller has more restrictive checks
+     - we may want to fix them for this mode.  */
+  if (outbuflen + 8 < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+  /* Input data must be multiple of 64 bits.  */
+  if (inbuflen % 8)
+    return GPG_ERR_INV_ARG;
+
+  /* We need at least three 64 bit blocks.  */
+  if ((inbuflen / 8) < 3)
+    return GPG_ERR_INV_ARG;
+
+  err = unwrap (c, outbuf, inbuf, inbuflen);
+  if (!err)
+    {
+      int j, x;
+      unsigned char *a;
+
+      a = c->lastiv;  /* We use c->LASTIV as buffer for A.  */
+
+      /* If an IV has been set we compare against this Alternative Initial
+         Value; if it has not been set we compare against the standard IV.  */
+      if (c->marks.iv)
+        j = memcmp (a, c->u_iv.iv, 8);
+      else
+        {
+          for (j=0, x=0; x < 8; x++)
+            if (a[x] != 0xa6)
+              {
+                j=1;
+                break;
+              }
+        }
+
+      if (j)
+        err = GPG_ERR_CHECKSUM;
+    }
+
+  return err;
+}
+
+/* Perform the Key Unwrap algorithm as specified by RFC5649.  */
+gcry_err_code_t
+_gcry_cipher_keywrap_decrypt_padding (gcry_cipher_hd_t c,
+                                      byte *outbuf, size_t outbuflen,
+                                      const byte *inbuf, size_t inbuflen)
+{
+  gcry_err_code_t err;
+
+  /* We require a cipher with a 128 bit block length.  */
+  if (c->spec->blocksize != 16)
+    return GPG_ERR_INV_LENGTH;
+
+  /* The output buffer must be able to hold the input data minus one
+     additional block.  Fixme: The caller has more restrictive checks
+     - we may want to fix them for this mode.  */
+  if (outbuflen + 8 < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+  /* Input data must be multiple of 64 bits.  */
+  if (inbuflen % 8)
+    return GPG_ERR_INV_ARG;
+
+  if (inbuflen == 16)
+    {
+      unsigned int burn;
+      unsigned char t[16];
+
+      burn = c->spec->decrypt (&c->context.c, t, inbuf);
+      if (burn > 0)
+        _gcry_burn_stack (burn + 4 * sizeof(void *));
+
+      if (memcmp (t, icv2, 4))
+        err = GPG_ERR_CHECKSUM;
+      else
+        {
+          unsigned int plen = (t[4]<<24) | (t[5]<<16) | (t[6]<<8) | t[7];
+
+          err = 0;
+          if (plen > 8)
+            err = GPG_ERR_CHECKSUM;
+          else if (plen)
+            {
+              int i;
+
+              for (i = 0; i < 16 - (8+plen); i++)
+                if (t[8+plen+i])
+                  {
+                    err = GPG_ERR_CHECKSUM;
+                    break;
+                  }
+              if (!err)
+                memcpy (outbuf, t+8, plen);
+            }
+        }
+    }
+  else
+    {
+      /* We need at least three 64 bit blocks.  */
+      if ((inbuflen / 8) < 3)
+        return GPG_ERR_INV_ARG;
+
+      err = unwrap (c, outbuf, inbuf, inbuflen);
+      if (!err)
+        {
+          unsigned char *a;
+
+          a = c->lastiv;  /* We use c->LASTIV as buffer for A.  */
+
+          if (memcmp (a, icv2, 4))
+            err = GPG_ERR_CHECKSUM;
+          else
+            {
+              unsigned int plen = (a[4]<<24) | (a[5]<<16) | (a[6]<<8) | a[7];
+              int padlen = inbuflen - 8 - plen;
+
+              if (padlen < 0 || padlen > 7)
+                err = GPG_ERR_CHECKSUM;
+              else if (padlen)
+                {
+                  int i;
+
+                  for (i = 0; i < padlen; i++)
+                    if (outbuf[plen+i])
+                      {
+                        err = GPG_ERR_CHECKSUM;
+                        break;
+                      }
+                }
+            }
+        }
+    }
+
+  return err;
 }

@@ -498,11 +498,20 @@ gcry_err_code_t _gcry_cipher_ctr_encrypt
 
 
 /*-- cipher-aeswrap.c --*/
-gcry_err_code_t _gcry_cipher_aeswrap_encrypt
+gcry_err_code_t _gcry_cipher_keywrap_encrypt
 /*           */   (gcry_cipher_hd_t c,
                    byte *outbuf, size_t outbuflen,
                    const byte *inbuf, size_t inbuflen);
-gcry_err_code_t _gcry_cipher_aeswrap_decrypt
+gcry_err_code_t _gcry_cipher_keywrap_decrypt
+/*           */   (gcry_cipher_hd_t c,
+                   byte *outbuf, size_t outbuflen,
+                   const byte *inbuf, size_t inbuflen);
+gcry_err_code_t
+_gcry_cipher_keywrap_encrypt_padding
+/*           */   (gcry_cipher_hd_t c,
+                   byte *outbuf, size_t outbuflen,
+                   const byte *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_keywrap_decrypt_padding
 /*           */   (gcry_cipher_hd_t c,
                    byte *outbuf, size_t outbuflen,
                    const byte *inbuf, size_t inbuflen);

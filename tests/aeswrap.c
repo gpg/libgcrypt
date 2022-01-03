@@ -197,6 +197,140 @@ check (int algo,
 
 
 static void
+check_one_with_padding (int algo,
+                        const void *kek, size_t keklen,
+                        const void *data, size_t datalen,
+                        const void *expected, size_t expectedlen)
+{
+  gcry_error_t err;
+  gcry_cipher_hd_t hd;
+  unsigned char outbuf[4*16];
+  size_t outbuflen;
+
+  err = gcry_cipher_open (&hd, algo, GCRY_CIPHER_MODE_AESWRAP,
+                          GCRY_CIPHER_EXTENDED);
+  if (err)
+    {
+      fail ("gcry_cipher_open failed: %s\n", gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_cipher_setkey (hd, kek, keklen);
+  if (err)
+    {
+      fail ("gcry_cipher_setkey failed: %s\n", gpg_strerror (err));
+      return;
+    }
+
+  outbuflen = ((datalen+7)/8) * 8 + 8;
+  if (outbuflen > sizeof outbuf)
+    {
+      err = gpg_error (GPG_ERR_INTERNAL);
+    }
+  else
+    {
+      err = gcry_cipher_encrypt (hd, outbuf, outbuflen, data, datalen);
+    }
+
+  if (err)
+    {
+      fail ("gcry_cipher_encrypt failed: %s\n", gpg_strerror (err));
+      return;
+    }
+
+  if (outbuflen != expectedlen || memcmp (outbuf, expected, expectedlen))
+    {
+      const unsigned char *s;
+      int i;
+
+      fail ("mismatch at encryption!(padding)\n");
+      fprintf (stderr, "computed: ");
+      for (i = 0; i < outbuflen; i++)
+	fprintf (stderr, "%02x ", outbuf[i]);
+      fprintf (stderr, "\nexpected: ");
+      for (s = expected, i = 0; i < expectedlen; s++, i++)
+        fprintf (stderr, "%02x ", *s);
+      putc ('\n', stderr);
+    }
+
+  outbuflen = ((datalen+7)/8) * 8 + 8;
+  if (outbuflen > sizeof outbuf)
+    {
+      err = gpg_error (GPG_ERR_INTERNAL);
+    }
+  else
+    {
+      err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
+    }
+
+  if (err)
+    {
+      fail ("gcry_cipher_decrypt failed: %s\n", gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (outbuf, data, datalen))
+    {
+      const unsigned char *s;
+      int i;
+
+      fail ("mismatch at decryption!(padding)\n");
+      fprintf (stderr, "computed: ");
+      for (i = 0; i < outbuflen; i++)
+	fprintf (stderr, "%02x ", outbuf[i]);
+      fprintf (stderr, "\nexpected: ");
+      for (s = data, i = 0; i < datalen; s++, i++)
+        fprintf (stderr, "%02x ", *s);
+      putc ('\n', stderr);
+    }
+
+  /* Now the last step again with a key reset. */
+  gcry_cipher_reset (hd);
+
+  outbuflen = ((datalen+7)/8) * 8 + 8;
+  if (outbuflen > sizeof outbuf)
+    {
+      err = gpg_error (GPG_ERR_INTERNAL);
+    }
+  else
+    {
+      err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
+    }
+
+  if (err)
+    {
+      fail ("gcry_cipher_decrypt(2) failed: %s\n", gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (outbuf, data, datalen))
+    fail ("mismatch at decryption(2)(padding)!\n");
+
+  /* And once more without a key reset. */
+  outbuflen = ((datalen+7)/8) * 8 + 8;
+  if (outbuflen > sizeof outbuf)
+    {
+      err = gpg_error (GPG_ERR_INTERNAL);
+    }
+  else
+    {
+      err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
+    }
+
+  if (err)
+    {
+      fail ("gcry_cipher_decrypt(3) failed: %s\n", gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (outbuf, data, datalen))
+    fail ("mismatch at decryption(3)(padding)!\n");
+
+  gcry_cipher_close (hd);
+}
+
+
+static void
 check_all (void)
 {
   if (verbose)
@@ -261,6 +395,26 @@ check_all (void)
      "\x28\xC9\xF4\x04\xC4\xB8\x10\xF4\xCB\xCC\xB3\x5C\xFB\x87\xF8\x26"
      "\x3F\x57\x86\xE2\xD8\x0E\xD3\x26\xCB\xC7\xF0\xE7\x1A\x99\xF4\x3B"
      "\xFB\x98\x8B\x9B\x7A\x02\xDD\x21", 40);
+
+  if (verbose)
+    fprintf (stderr, "6 Wrap 160 bits of Key Data with a 192-bit KEK\n");
+  check_one_with_padding
+    (GCRY_CIPHER_AES192,
+     "\x58\x40\xdf\x6e\x29\xb0\x2a\xf1\xab\x49\x3b\x70\x5b\xf1\x6e\xa1"
+     "\xae\x83\x38\xf4\xdc\xc1\x76\xa8", 24,
+     "\xc3\x7b\x7e\x64\x92\x58\x43\x40\xbe\xd1\x22\x07\x80\x89\x41\x15"
+     "\x50\x68\xf7\x38", 20,
+     "\x13\x8b\xde\xaa\x9b\x8f\xa7\xfc\x61\xf9\x77\x42\xe7\x22\x48\xee"
+     "\x5a\xe6\xae\x53\x60\xd1\xae\x6a\x5f\x54\xf3\x73\xfa\x54\x3b\x6a", 32);
+
+  if (verbose)
+    fprintf (stderr, "6 Wrap 56 bits of Key Data with a 192-bit KEK\n");
+  check_one_with_padding
+    (GCRY_CIPHER_AES192,
+     "\x58\x40\xdf\x6e\x29\xb0\x2a\xf1\xab\x49\x3b\x70\x5b\xf1\x6e\xa1"
+     "\xae\x83\x38\xf4\xdc\xc1\x76\xa8", 24,
+     "\x46\x6f\x72\x50\x61\x73\x69", 7,
+     "\xaf\xbe\xb0\xf0\x7d\xfb\xf5\x41\x92\x00\xf2\xcc\xb5\x0b\xb2\x4f", 16);
 }
 
 int
