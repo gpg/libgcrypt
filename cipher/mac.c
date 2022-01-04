@@ -382,27 +382,16 @@ static gcry_mac_spec_t * const mac_list_algo501[] =
 gcry_err_code_t
 _gcry_mac_init (void)
 {
-  if (fips_mode())
-    {
-      /* disable algorithms that are disallowed in fips */
-      int idx;
-      gcry_mac_spec_t *spec;
-
-      for (idx = 0; (spec = mac_list[idx]); idx++)
-        if (!spec->flags.fips)
-          spec->flags.disabled = 1;
-    }
-
   return 0;
 }
 
 
 /* Return the spec structure for the MAC algorithm ALGO.  For an
    unknown algorithm NULL is returned.  */
-static gcry_mac_spec_t *
+static const gcry_mac_spec_t *
 spec_from_algo (int algo)
 {
-  gcry_mac_spec_t *spec = NULL;
+  const gcry_mac_spec_t *spec = NULL;
 
   if (algo >= 101 && algo < 101 + DIM(mac_list_algo101))
     spec = mac_list_algo101[algo - 101];
@@ -478,10 +467,10 @@ _gcry_mac_algo_name (int algorithm)
 static gcry_err_code_t
 check_mac_algo (int algorithm)
 {
-  gcry_mac_spec_t *spec;
+  const gcry_mac_spec_t *spec;
 
   spec = spec_from_algo (algorithm);
-  if (spec && !spec->flags.disabled)
+  if (spec && !spec->flags.disabled && (spec->flags.fips || !fips_mode ()))
     return 0;
 
   return GPG_ERR_MAC_ALGO;
@@ -502,6 +491,8 @@ mac_open (gcry_mac_hd_t * hd, int algo, int secure, gcry_ctx_t ctx)
   if (!spec)
     return GPG_ERR_MAC_ALGO;
   else if (spec->flags.disabled)
+    return GPG_ERR_MAC_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
     return GPG_ERR_MAC_ALGO;
   else if (!spec->ops)
     return GPG_ERR_MAC_ALGO;
@@ -788,17 +779,20 @@ gpg_error_t
 _gcry_mac_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_err_code_t ec;
-  gcry_mac_spec_t *spec;
+  const gcry_mac_spec_t *spec;
 
   spec = spec_from_algo (algo);
-  if (spec && !spec->flags.disabled && spec->ops && spec->ops->selftest)
+  if (spec && !spec->flags.disabled
+      && (spec->flags.fips || !fips_mode ())
+      && spec->ops && spec->ops->selftest)
     ec = spec->ops->selftest (algo, extended, report);
   else
     {
       ec = GPG_ERR_MAC_ALGO;
       if (report)
         report ("mac", algo, "module",
-                spec && !spec->flags.disabled?
+                spec && !spec->flags.disabled
+                && (spec->flags.fips || !fips_mode ())?
                 "no selftest available" :
                 spec? "algorithm disabled" :
                 "algorithm not found");

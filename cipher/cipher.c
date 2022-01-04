@@ -412,7 +412,7 @@ check_cipher_algo (int algorithm)
   gcry_cipher_spec_t *spec;
 
   spec = spec_from_algo (algorithm);
-  if (spec && !spec->flags.disabled)
+  if (spec && !spec->flags.disabled && (spec->flags.fips || !fips_mode ()))
     return 0;
 
   return GPG_ERR_CIPHER_ALGO;
@@ -508,6 +508,8 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
   if (!spec)
     err = GPG_ERR_CIPHER_ALGO;
   else if (spec->flags.disabled)
+    err = GPG_ERR_CIPHER_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
     err = GPG_ERR_CIPHER_ALGO;
   else
     err = 0;
@@ -1864,17 +1866,6 @@ _gcry_cipher_get_algo_blklen (int algo)
 gcry_err_code_t
 _gcry_cipher_init (void)
 {
-  if (fips_mode())
-    {
-      /* disable algorithms that are disallowed in fips */
-      int idx;
-      gcry_cipher_spec_t *spec;
-
-      for (idx = 0; (spec = cipher_list[idx]); idx++)
-        if (!spec->flags.fips)
-          spec->flags.disabled = 1;
-    }
-
   return 0;
 }
 
@@ -1888,14 +1879,17 @@ _gcry_cipher_selftest (int algo, int extended, selftest_report_func_t report)
   gcry_cipher_spec_t *spec;
 
   spec = spec_from_algo (algo);
-  if (spec && !spec->flags.disabled && spec->selftest)
+  if (spec && !spec->flags.disabled
+      && (spec->flags.fips || !fips_mode ())
+      && spec->selftest)
     ec = spec->selftest (algo, extended, report);
   else
     {
       ec = GPG_ERR_CIPHER_ALGO;
       if (report)
         report ("cipher", algo, "module",
-                (spec && !spec->flags.disabled)?
+                spec && !spec->flags.disabled
+                && (spec->flags.fips || !fips_mode ())?
                 "no selftest available" :
                 spec? "algorithm disabled" : "algorithm not found");
     }

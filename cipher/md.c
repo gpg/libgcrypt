@@ -429,10 +429,10 @@ _gcry_md_algo_name (int algorithm)
 static gcry_err_code_t
 check_digest_algo (int algorithm)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
 
   spec = spec_from_algo (algorithm);
-  if (spec && !spec->flags.disabled)
+  if (spec && !spec->flags.disabled && (spec->flags.fips || !fips_mode ()))
     return 0;
 
   return GPG_ERR_DIGEST_ALGO;
@@ -563,8 +563,11 @@ md_enable (gcry_md_hd_t hd, int algorithm)
       err = GPG_ERR_DIGEST_ALGO;
     }
 
-  /* Any non-FIPS algorithm should go this way */
   if (!err && spec->flags.disabled)
+    err = GPG_ERR_DIGEST_ALGO;
+
+  /* Any non-FIPS algorithm should go this way */
+  if (!err && !spec->flags.fips && fips_mode ())
     err = GPG_ERR_DIGEST_ALGO;
 
   if (!err && h->flags.hmac && spec->read == NULL)
@@ -1197,7 +1200,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
       iov.off = 0;
       iov.len = length;
 
-      if (spec->flags.disabled)
+      if (spec->flags.disabled || (!spec->flags.fips && fips_mode ()))
         log_bug ("gcry_md_hash_buffer failed for algo %d: %s",
                 algo, gpg_strerror (gcry_error (GPG_ERR_DIGEST_ALGO)));
 
@@ -1270,7 +1273,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 
   if (!hmac && spec->hash_buffers)
     {
-      if (spec->flags.disabled)
+      if (spec->flags.disabled || (!spec->flags.fips && fips_mode ()))
         return GPG_ERR_DIGEST_ALGO;
 
       spec->hash_buffers (digest, digestlen, iov, iovcnt);
@@ -1576,17 +1579,6 @@ _gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
 gcry_err_code_t
 _gcry_md_init (void)
 {
-  if (fips_mode())
-    {
-      /* disable algorithms that are disallowed in fips */
-      int idx;
-      gcry_md_spec_t *spec;
-
-      for (idx = 0; (spec = digest_list[idx]); idx++)
-        if (!spec->flags.fips)
-          spec->flags.disabled = 1;
-    }
-
   return 0;
 }
 
@@ -1621,10 +1613,12 @@ gpg_error_t
 _gcry_md_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_err_code_t ec = 0;
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
 
   spec = spec_from_algo (algo);
-  if (spec && !spec->flags.disabled && spec->selftest)
+  if (spec && !spec->flags.disabled
+      && (spec->flags.fips || !fips_mode ())
+      && spec->selftest)
     ec = spec->selftest (algo, extended, report);
   else
     {
@@ -1632,7 +1626,8 @@ _gcry_md_selftest (int algo, int extended, selftest_report_func_t report)
         /* */                       : GPG_ERR_NOT_IMPLEMENTED;
       if (report)
         report ("digest", algo, "module",
-                (spec && !spec->flags.disabled)?
+                spec && !spec->flags.disabled
+                && (spec->flags.fips || !fips_mode ())?
                 "no selftest available" :
                 spec? "algorithm disabled" : "algorithm not found");
     }
