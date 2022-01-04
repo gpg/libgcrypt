@@ -765,8 +765,8 @@ reduce the "up to 16 bytes" above to 0.  Then the dependencies of the
 initial states of the pools are completely known.  Note that this is not
 an issue if random of @code{GCRY_VERY_STRONG_RANDOM} quality is
 requested as in this case enough extra entropy gets mixed.  It is also
-not an issue when using Linux (rndlinux driver), because this one
-guarantees to read full 16 bytes from /dev/urandom and thus there is no
+not an issue when using rndgetentropy or rndlinux module, because the
+module guarantees to read full 16 bytes and thus there is no
 way for an attacker without kernel access to control these 16 bytes.
 
 @item GCRYCTL_CLOSE_RANDOM_DEVICE; Arguments: none
@@ -6186,7 +6186,7 @@ for weaker usages like nonces.  There is also a level
 multi-precision-integer using the @code{gcry_create_nonce} function.
 
 @noindent
-There are two distinct random generators available:
+There are three distinct random generators available:
 
 @itemize
 @item
@@ -6194,14 +6194,24 @@ The Continuously Seeded Pseudo Random Number Generator (CSPRNG), which
 is based on the classic GnuPG derived big pool implementation.
 Implemented in @code{random/random-csprng.c} and used by default.
 @item
-A FIPS approved ANSI X9.31 PRNG using AES with a 128 bit key. Implemented in
-@code{random/random-fips.c} and used if Libgcrypt is in FIPS mode.
+The Deterministic Random Bits Generator (DRBG), based on the
+specification by NIST SP800-90A.  Implemented in
+@code{random/random-drbg.c} and used if Libgcrypt is in FIPS mode,
+or Libgcrypt is configured by GCRYCTL_SET_PREFERRED_RNG_TYPE with
+GCRY_RNG_TYPE_FIPS.
+@item
+Direct access to native RNG on the system.  Implemented in
+@code{random/random-system.c} and used if Libgcrypt is configured by
+GCRYCTL_SET_PREFERRED_RNG_TYPE with GCRY_RNG_TYPE_SYSTEM.
 @end itemize
 
 @noindent
-Both generators make use of so-called entropy gathering modules:
+All generators make use of so-called entropy gathering modules:
 
 @table @asis
+@item rndgetentropy
+Uses the operating system provided @code{getentropy} function.
+
 @item rndlinux
 Uses the operating system provided @file{/dev/random} and
 @file{/dev/urandom} devices.  The @file{/dev/gcrypt/random.conf}
@@ -6211,7 +6221,7 @@ the blocking @file{/dev/random} device.
 @item rndunix
 Runs several operating system commands to collect entropy from sources
 like virtual machine and process statistics.  It is a kind of
-poor-man's @code{/dev/random} implementation. It is not available in
+poor-man's @code{/dev/random} implementation.  It is not available in
 FIPS mode.
 
 @item rndegd
@@ -6219,8 +6229,7 @@ Uses the operating system provided Entropy Gathering Daemon (EGD).
 The EGD basically uses the same algorithms as rndunix does.  However
 as a system daemon it keeps on running and thus can serve several
 processes requiring entropy input and does not waste collected entropy
-if the application does not need all the collected entropy. It is not
-available in FIPS mode.
+if the application does not need all the collected entropy.
 
 @item rndw32
 Targeted for the Microsoft Windows OS.  It uses certain properties of
@@ -6230,12 +6239,11 @@ that system and is the only gathering module available for that OS.
 Extra module to collect additional entropy by utilizing a hardware
 random number generator.  As of now the supported hardware RNG is
 the Padlock engine of VIA (Centaur) CPUs and x86 CPUs with the RDRAND
-instruction.  It is not available in FIPS mode.
+instruction.
 
 @item rndjent
 Extra module to collect additional entropy using a CPU jitter based
-approach.  This is only used on X86 hardware where the RDTSC opcode is
-available.  The @file{/dev/gcrypt/random.conf} config option
+approach.  The @file{/dev/gcrypt/random.conf} config option
 @option{disable-jent} can be used to inhibit the use of this module.
 
 @end table
@@ -6281,14 +6289,14 @@ created by hashing all the 28 bytes with SHA-1 and saving that again
 in the first 20 bytes.  The hash is also returned as result.
 
 
-@node FIPS PRNG Description
-@subsection Description of the FIPS X9.31 PRNG
+@node DRBG Description
+@subsection Description of the DRBG
 
 The core of this deterministic random number generator is implemented
-according to the document ``NIST-Recommended Random Number Generator
-Based on ANSI X9.31 Appendix A.2.4 Using the 3-Key Triple DES and AES
-Algorithms'', dated 2005-01-31.  This implementation uses the AES
-variant.
+according to the document ``NIST Recommended DRBG Based on ANSI NIST
+SP800-90A''.  By default, this implementation uses the
+DRBG_NOPR_HMACSHA256 variant (HMAC DRBG with DF with SHA256, without
+prediction resistance.
 
 The generator is based on contexts to utilize the same core functions
 for all random levels as required by the high-level interface.  All
@@ -6300,27 +6308,17 @@ output blocks.
 
 On Unix like systems the @code{GCRY_VERY_STRONG_RANDOM} and
 @code{GCRY_STRONG_RANDOM} generators are keyed and seeded using the
-rndlinux module with the @file{/dev/random} device. Thus these
+rndgetentropy or rndlinux module.  With rndlinux module, these
 generators may block until the OS kernel has collected enough entropy.
 When used with Microsoft Windows the rndw32 module is used instead.
 
 The generator used for @code{gcry_create_nonce} is keyed and seeded
-from the @code{GCRY_STRONG_RANDOM} generator.  Thus is may also block
-if the @code{GCRY_STRONG_RANDOM} generator has not yet been used
-before and thus gets initialized on the first use by
-@code{gcry_create_nonce}.  This special treatment is justified by the
-weaker requirements for a nonce generator and to save precious kernel
-entropy for use by the ``real'' random generators.
-
-A self-test facility uses a separate context to check the
-functionality of the core X9.31 functions using a known answers test.
-During runtime each output block is compared to the previous one to
-detect a stuck generator.
-
-The DT value for the generator is made up of the current time down to
-microseconds (if available) and a free running 64 bit counter.  When
-used with the test context the DT value is taken from the context and
-incremented on each use.
+from the @code{GCRY_STRONG_RANDOM} generator.  Thus, with rndlinux
+module, it may also block if the @code{GCRY_STRONG_RANDOM} generator
+has not yet been used before and thus gets initialized on the first
+use by @code{gcry_create_nonce}.  This special treatment is justified
+by the weaker requirements for a nonce generator and to save precious
+kernel entropy for use by the ``real'' random generators.
 
 @c @node Helper Subsystems Architecture
 @c @section Helper Subsystems Architecture
@@ -6594,18 +6592,6 @@ No code is loaded at runtime.
 @subsection Manual Key Entry Tests
 
 A manual key entry feature is not implemented in Libgcrypt.
-
-
-@subsection Continuous RNG Tests
-
-The continuous random number test is only used in FIPS mode.  The RNG
-generates blocks of 128 bit size; the first block generated per
-context is saved in the context and another block is generated to be
-returned to the caller.  Each block is compared against the saved
-block and then stored in the context.  If a duplicated block is
-detected an error is signaled and the library is put into the
-``Fatal-Error'' state.
-(@code{random/@/random-fips.c:@/x931_aes_driver})
 
 
 
