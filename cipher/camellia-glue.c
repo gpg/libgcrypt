@@ -1146,7 +1146,7 @@ selftest(void)
    <http://info.isl.ntt.co.jp/crypt/eng/camellia/specifications_oid.html>,
    retrieved May 1, 2007. */
 
-static gcry_cipher_oid_spec_t camellia128_oids[] =
+static const gcry_cipher_oid_spec_t camellia128_oids[] =
   {
     {"1.2.392.200011.61.1.1.1.2", GCRY_CIPHER_MODE_CBC},
     {"0.3.4401.5.3.1.9.1", GCRY_CIPHER_MODE_ECB},
@@ -1155,7 +1155,7 @@ static gcry_cipher_oid_spec_t camellia128_oids[] =
     { NULL }
   };
 
-static gcry_cipher_oid_spec_t camellia192_oids[] =
+static const gcry_cipher_oid_spec_t camellia192_oids[] =
   {
     {"1.2.392.200011.61.1.1.1.3", GCRY_CIPHER_MODE_CBC},
     {"0.3.4401.5.3.1.9.21", GCRY_CIPHER_MODE_ECB},
@@ -1164,7 +1164,7 @@ static gcry_cipher_oid_spec_t camellia192_oids[] =
     { NULL }
   };
 
-static gcry_cipher_oid_spec_t camellia256_oids[] =
+static const gcry_cipher_oid_spec_t camellia256_oids[] =
   {
     {"1.2.392.200011.61.1.1.1.4", GCRY_CIPHER_MODE_CBC},
     {"0.3.4401.5.3.1.9.41", GCRY_CIPHER_MODE_ECB},

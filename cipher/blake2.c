@@ -958,13 +958,13 @@ gcry_err_code_t _gcry_blake2_init_with_key(void *ctx, unsigned int flags,
     blake2##bs##_final (&hd); \
     memcpy (outbuf, blake2##bs##_read (&hd), dbits / 8); \
   } \
-  static byte blake2##bs##_##dbits##_asn[] = { 0x30 }; \
-  static gcry_md_oid_spec_t oid_spec_blake2##bs##_##dbits[] = \
+  static const byte blake2##bs##_##dbits##_asn[] = { 0x30 }; \
+  static const gcry_md_oid_spec_t oid_spec_blake2##bs##_##dbits[] = \
     { \
       { " 1.3.6.1.4.1.1722.12.2." oid_branch }, \
       { NULL } \
     }; \
-  gcry_md_spec_t _gcry_digest_spec_blake2##bs##_##dbits = \
+  const gcry_md_spec_t _gcry_digest_spec_blake2##bs##_##dbits = \
     { \
       GCRY_MD_BLAKE2##BS##_##dbits, {0, 0}, \
       "BLAKE2" #BS "_" #dbits, blake2##bs##_##dbits##_asn, \

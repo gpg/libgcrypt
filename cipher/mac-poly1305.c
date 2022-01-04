@@ -328,36 +328,36 @@ static gcry_mac_spec_ops_t poly1305mac_ops = {
 };
 
 
-gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac = {
+const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac = {
   GCRY_MAC_POLY1305, {0, 0}, "POLY1305",
   &poly1305mac_ops
 };
 #if USE_AES
-gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_aes = {
+const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_aes = {
   GCRY_MAC_POLY1305_AES, {0, 0}, "POLY1305_AES",
   &poly1305mac_ops
 };
 #endif
 #if USE_CAMELLIA
-gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_camellia = {
+const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_camellia = {
   GCRY_MAC_POLY1305_CAMELLIA, {0, 0}, "POLY1305_CAMELLIA",
   &poly1305mac_ops
 };
 #endif
 #if USE_TWOFISH
-gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_twofish = {
+const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_twofish = {
   GCRY_MAC_POLY1305_TWOFISH, {0, 0}, "POLY1305_TWOFISH",
   &poly1305mac_ops
 };
 #endif
 #if USE_SERPENT
-gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_serpent = {
+const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_serpent = {
   GCRY_MAC_POLY1305_SERPENT, {0, 0}, "POLY1305_SERPENT",
   &poly1305mac_ops
 };
 #endif
 #if USE_SEED
-gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_seed = {
+const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_seed = {
   GCRY_MAC_POLY1305_SEED, {0, 0}, "POLY1305_SEED",
   &poly1305mac_ops
 };

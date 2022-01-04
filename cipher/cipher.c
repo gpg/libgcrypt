@@ -274,7 +274,7 @@ static gcry_cipher_spec_t *
 spec_from_oid (const char *oid)
 {
   gcry_cipher_spec_t *spec;
-  gcry_cipher_oid_spec_t *oid_specs;
+  const gcry_cipher_oid_spec_t *oid_specs;
   int idx, j;
 
   for (idx=0; (spec = cipher_list[idx]); idx++)

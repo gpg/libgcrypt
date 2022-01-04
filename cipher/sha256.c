@@ -788,25 +788,25 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 
 
-static byte asn224[19] = /* Object ID is 2.16.840.1.101.3.4.2.4 */
+static const byte asn224[19] = /* Object ID is 2.16.840.1.101.3.4.2.4 */
   { 0x30, 0x2D, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
     0x01, 0x65, 0x03, 0x04, 0x02, 0x04, 0x05, 0x00, 0x04,
     0x1C
   };
 
-static gcry_md_oid_spec_t oid_spec_sha224[] =
+static const gcry_md_oid_spec_t oid_spec_sha224[] =
   {
     /* From RFC3874, Section 4 */
     { "2.16.840.1.101.3.4.2.4" },
     { NULL },
   };
 
-static byte asn256[19] = /* Object ID is  2.16.840.1.101.3.4.2.1 */
+static const byte asn256[19] = /* Object ID is  2.16.840.1.101.3.4.2.1 */
   { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
     0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05,
     0x00, 0x04, 0x20 };
 
-static gcry_md_oid_spec_t oid_spec_sha256[] =
+static const gcry_md_oid_spec_t oid_spec_sha256[] =
   {
     /* According to the OpenPGP draft rfc2440-bis06 */
     { "2.16.840.1.101.3.4.2.1" },
@@ -816,7 +816,7 @@ static gcry_md_oid_spec_t oid_spec_sha256[] =
     { NULL },
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha224 =
+const gcry_md_spec_t _gcry_digest_spec_sha224 =
   {
     GCRY_MD_SHA224, {0, 1},
     "SHA224", asn224, DIM (asn224), oid_spec_sha224, 28,
@@ -826,7 +826,7 @@ gcry_md_spec_t _gcry_digest_spec_sha224 =
     run_selftests
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha256 =
+const gcry_md_spec_t _gcry_digest_spec_sha256 =
   {
     GCRY_MD_SHA256, {0, 1},
     "SHA256", asn256, DIM (asn256), oid_spec_sha256, 32,

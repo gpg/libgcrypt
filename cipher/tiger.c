@@ -814,7 +814,7 @@ tiger_read( void *context )
 /* This is the old TIGER variant based on the unfixed reference
    implementation.  IT was used in GnupG up to 1.3.2.  We don't provide
    an OID anymore because that would not be correct.  */
-gcry_md_spec_t _gcry_digest_spec_tiger =
+const gcry_md_spec_t _gcry_digest_spec_tiger =
   {
     GCRY_MD_TIGER, {0, 0},
     "TIGER192", NULL, 0, NULL, 24,
@@ -826,19 +826,19 @@ gcry_md_spec_t _gcry_digest_spec_tiger =
 
 
 /* This is the fixed TIGER implementation.  */
-static byte asn1[19] = /* Object ID is 1.3.6.1.4.1.11591.12.2 */
+static const byte asn1[19] = /* Object ID is 1.3.6.1.4.1.11591.12.2 */
   { 0x30, 0x29, 0x30, 0x0d, 0x06, 0x09, 0x2b, 0x06,
     0x01, 0x04, 0x01, 0xda, 0x47, 0x0c, 0x02,
     0x05, 0x00, 0x04, 0x18 };
 
-static gcry_md_oid_spec_t oid_spec_tiger1[] =
+static const gcry_md_oid_spec_t oid_spec_tiger1[] =
   {
     /* GNU.digestAlgorithm TIGER */
     { "1.3.6.1.4.1.11591.12.2" },
     { NULL }
   };
 
-gcry_md_spec_t _gcry_digest_spec_tiger1 =
+const gcry_md_spec_t _gcry_digest_spec_tiger1 =
   {
     GCRY_MD_TIGER1, {0, 0},
     "TIGER", asn1, DIM (asn1), oid_spec_tiger1, 24,
@@ -850,7 +850,7 @@ gcry_md_spec_t _gcry_digest_spec_tiger1 =
 
 
 /* This is TIGER2 which usues a changed padding algorithm.  */
-gcry_md_spec_t _gcry_digest_spec_tiger2 =
+const gcry_md_spec_t _gcry_digest_spec_tiger2 =
   {
     GCRY_MD_TIGER2, {0, 0},
     "TIGER2", NULL, 0, NULL, 24,

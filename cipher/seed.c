@@ -461,7 +461,7 @@ selftest (void)
 
 
 
-static gcry_cipher_oid_spec_t seed_oids[] =
+static const gcry_cipher_oid_spec_t seed_oids[] =
   {
     { "1.2.410.200004.1.3", GCRY_CIPHER_MODE_ECB },
     { "1.2.410.200004.1.4", GCRY_CIPHER_MODE_CBC },

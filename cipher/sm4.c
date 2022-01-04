@@ -1230,7 +1230,7 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 }
 
 
-static gcry_cipher_oid_spec_t sm4_oids[] =
+static const gcry_cipher_oid_spec_t sm4_oids[] =
   {
     { "1.2.156.10197.1.104.1", GCRY_CIPHER_MODE_ECB },
     { "1.2.156.10197.1.104.2", GCRY_CIPHER_MODE_CBC },

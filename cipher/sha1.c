@@ -738,11 +738,11 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 
 
-static unsigned char asn[15] = /* Object ID is 1.3.14.3.2.26 */
+static const unsigned char asn[15] = /* Object ID is 1.3.14.3.2.26 */
   { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03,
     0x02, 0x1a, 0x05, 0x00, 0x04, 0x14 };
 
-static gcry_md_oid_spec_t oid_spec_sha1[] =
+static const gcry_md_oid_spec_t oid_spec_sha1[] =
   {
     /* iso.member-body.us.rsadsi.pkcs.pkcs-1.5 (sha1WithRSAEncryption) */
     { "1.2.840.113549.1.1.5" },
@@ -757,7 +757,7 @@ static gcry_md_oid_spec_t oid_spec_sha1[] =
     { NULL },
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha1 =
+const gcry_md_spec_t _gcry_digest_spec_sha1 =
   {
     GCRY_MD_SHA1, {0, 1},
     "SHA1", asn, DIM (asn), oid_spec_sha1, 20,

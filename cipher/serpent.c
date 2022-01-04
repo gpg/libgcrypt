@@ -1742,7 +1742,7 @@ serpent_test (void)
 }
 
 
-static gcry_cipher_oid_spec_t serpent128_oids[] =
+static const gcry_cipher_oid_spec_t serpent128_oids[] =
   {
     {"1.3.6.1.4.1.11591.13.2.1", GCRY_CIPHER_MODE_ECB },
     {"1.3.6.1.4.1.11591.13.2.2", GCRY_CIPHER_MODE_CBC },
@@ -1751,7 +1751,7 @@ static gcry_cipher_oid_spec_t serpent128_oids[] =
     { NULL }
   };
 
-static gcry_cipher_oid_spec_t serpent192_oids[] =
+static const gcry_cipher_oid_spec_t serpent192_oids[] =
   {
     {"1.3.6.1.4.1.11591.13.2.21", GCRY_CIPHER_MODE_ECB },
     {"1.3.6.1.4.1.11591.13.2.22", GCRY_CIPHER_MODE_CBC },
@@ -1760,7 +1760,7 @@ static gcry_cipher_oid_spec_t serpent192_oids[] =
     { NULL }
   };
 
-static gcry_cipher_oid_spec_t serpent256_oids[] =
+static const gcry_cipher_oid_spec_t serpent256_oids[] =
   {
     {"1.3.6.1.4.1.11591.13.2.41", GCRY_CIPHER_MODE_ECB },
     {"1.3.6.1.4.1.11591.13.2.42", GCRY_CIPHER_MODE_CBC },

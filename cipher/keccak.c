@@ -1456,48 +1456,48 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 
 
-static byte sha3_224_asn[] = { 0x30 };
-static gcry_md_oid_spec_t oid_spec_sha3_224[] =
+static const byte sha3_224_asn[] = { 0x30 };
+static const gcry_md_oid_spec_t oid_spec_sha3_224[] =
   {
     { "2.16.840.1.101.3.4.2.7" },
     /* PKCS#1 sha3_224WithRSAEncryption */
     { "?" },
     { NULL }
   };
-static byte sha3_256_asn[] = { 0x30 };
-static gcry_md_oid_spec_t oid_spec_sha3_256[] =
+static const byte sha3_256_asn[] = { 0x30 };
+static const gcry_md_oid_spec_t oid_spec_sha3_256[] =
   {
     { "2.16.840.1.101.3.4.2.8" },
     /* PKCS#1 sha3_256WithRSAEncryption */
     { "?" },
     { NULL }
   };
-static byte sha3_384_asn[] = { 0x30 };
-static gcry_md_oid_spec_t oid_spec_sha3_384[] =
+static const byte sha3_384_asn[] = { 0x30 };
+static const gcry_md_oid_spec_t oid_spec_sha3_384[] =
   {
     { "2.16.840.1.101.3.4.2.9" },
     /* PKCS#1 sha3_384WithRSAEncryption */
     { "?" },
     { NULL }
   };
-static byte sha3_512_asn[] = { 0x30 };
-static gcry_md_oid_spec_t oid_spec_sha3_512[] =
+static const byte sha3_512_asn[] = { 0x30 };
+static const gcry_md_oid_spec_t oid_spec_sha3_512[] =
   {
     { "2.16.840.1.101.3.4.2.10" },
     /* PKCS#1 sha3_512WithRSAEncryption */
     { "?" },
     { NULL }
   };
-static byte shake128_asn[] = { 0x30 };
-static gcry_md_oid_spec_t oid_spec_shake128[] =
+static const byte shake128_asn[] = { 0x30 };
+static const gcry_md_oid_spec_t oid_spec_shake128[] =
   {
     { "2.16.840.1.101.3.4.2.11" },
     /* PKCS#1 shake128WithRSAEncryption */
     { "?" },
     { NULL }
   };
-static byte shake256_asn[] = { 0x30 };
-static gcry_md_oid_spec_t oid_spec_shake256[] =
+static const byte shake256_asn[] = { 0x30 };
+static const gcry_md_oid_spec_t oid_spec_shake256[] =
   {
     { "2.16.840.1.101.3.4.2.12" },
     /* PKCS#1 shake256WithRSAEncryption */
@@ -1505,7 +1505,7 @@ static gcry_md_oid_spec_t oid_spec_shake256[] =
     { NULL }
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha3_224 =
+const gcry_md_spec_t _gcry_digest_spec_sha3_224 =
   {
     GCRY_MD_SHA3_224, {0, 1},
     "SHA3-224", sha3_224_asn, DIM (sha3_224_asn), oid_spec_sha3_224, 28,
@@ -1514,7 +1514,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_224 =
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
-gcry_md_spec_t _gcry_digest_spec_sha3_256 =
+const gcry_md_spec_t _gcry_digest_spec_sha3_256 =
   {
     GCRY_MD_SHA3_256, {0, 1},
     "SHA3-256", sha3_256_asn, DIM (sha3_256_asn), oid_spec_sha3_256, 32,
@@ -1523,7 +1523,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_256 =
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
-gcry_md_spec_t _gcry_digest_spec_sha3_384 =
+const gcry_md_spec_t _gcry_digest_spec_sha3_384 =
   {
     GCRY_MD_SHA3_384, {0, 1},
     "SHA3-384", sha3_384_asn, DIM (sha3_384_asn), oid_spec_sha3_384, 48,
@@ -1532,7 +1532,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_384 =
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
-gcry_md_spec_t _gcry_digest_spec_sha3_512 =
+const gcry_md_spec_t _gcry_digest_spec_sha3_512 =
   {
     GCRY_MD_SHA3_512, {0, 1},
     "SHA3-512", sha3_512_asn, DIM (sha3_512_asn), oid_spec_sha3_512, 64,
@@ -1541,7 +1541,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_512 =
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
-gcry_md_spec_t _gcry_digest_spec_shake128 =
+const gcry_md_spec_t _gcry_digest_spec_shake128 =
   {
     GCRY_MD_SHAKE128, {0, 1},
     "SHAKE128", shake128_asn, DIM (shake128_asn), oid_spec_shake128, 0,
@@ -1550,7 +1550,7 @@ gcry_md_spec_t _gcry_digest_spec_shake128 =
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
-gcry_md_spec_t _gcry_digest_spec_shake256 =
+const gcry_md_spec_t _gcry_digest_spec_shake256 =
   {
     GCRY_MD_SHAKE256, {0, 1},
     "SHAKE256", shake256_asn, DIM (shake256_asn), oid_spec_shake256, 0,

@@ -31,7 +31,7 @@
 
 /* This is the list of the digest implementations included in
    libgcrypt.  */
-static gcry_md_spec_t * const digest_list[] =
+static const gcry_md_spec_t * const digest_list[] =
   {
 #if USE_CRC
      &_gcry_digest_spec_crc32,
@@ -104,7 +104,7 @@ static gcry_md_spec_t * const digest_list[] =
   };
 
 /* Digest implementations starting with index 0 (enum gcry_md_algos) */
-static gcry_md_spec_t * const digest_list_algo0[] =
+static const gcry_md_spec_t * const digest_list_algo0[] =
   {
     NULL, /* GCRY_MD_NONE */
 #if USE_MD5
@@ -154,7 +154,7 @@ static gcry_md_spec_t * const digest_list_algo0[] =
   };
 
 /* Digest implementations starting with index 301 (enum gcry_md_algos) */
-static gcry_md_spec_t * const digest_list_algo301[] =
+static const gcry_md_spec_t * const digest_list_algo301[] =
   {
 #if USE_MD4
     &_gcry_digest_spec_md4,
@@ -250,7 +250,7 @@ static gcry_md_spec_t * const digest_list_algo301[] =
 
 typedef struct gcry_md_list
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
   struct gcry_md_list *next;
   size_t actual_struct_size;     /* Allocated size of this structure. */
   PROPERLY_ALIGNED_TYPE context[1];
@@ -296,10 +296,10 @@ map_algo (int algo)
 
 /* Return the spec structure for the hash algorithm ALGO.  For an
    unknown algorithm NULL is returned.  */
-static gcry_md_spec_t *
+static const gcry_md_spec_t *
 spec_from_algo (int algo)
 {
-  gcry_md_spec_t *spec = NULL;
+  const gcry_md_spec_t *spec = NULL;
 
   algo = map_algo (algo);
 
@@ -316,10 +316,10 @@ spec_from_algo (int algo)
 
 
 /* Lookup a hash's spec by its name.  */
-static gcry_md_spec_t *
+static const gcry_md_spec_t *
 spec_from_name (const char *name)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
   int idx;
 
   for (idx=0; (spec = digest_list[idx]); idx++)
@@ -333,11 +333,11 @@ spec_from_name (const char *name)
 
 
 /* Lookup a hash's spec by its OID.  */
-static gcry_md_spec_t *
+static const gcry_md_spec_t *
 spec_from_oid (const char *oid)
 {
-  gcry_md_spec_t *spec;
-  gcry_md_oid_spec_t *oid_specs;
+  const gcry_md_spec_t *spec;
+  const gcry_md_oid_spec_t *oid_specs;
   int idx, j;
 
   for (idx=0; (spec = digest_list[idx]); idx++)
@@ -355,10 +355,10 @@ spec_from_oid (const char *oid)
 }
 
 
-static gcry_md_spec_t *
+static const gcry_md_spec_t *
 search_oid (const char *oid, gcry_md_oid_spec_t *oid_spec)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
   int i;
 
   if (!oid)
@@ -389,7 +389,7 @@ search_oid (const char *oid, gcry_md_oid_spec_t *oid_spec)
 int
 _gcry_md_map_name (const char *string)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
 
   if (!string)
     return 0;
@@ -419,7 +419,7 @@ _gcry_md_map_name (const char *string)
 const char *
 _gcry_md_algo_name (int algorithm)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
 
   spec = spec_from_algo (algorithm);
   return spec ? spec->name : "?";
@@ -548,7 +548,7 @@ static gcry_err_code_t
 md_enable (gcry_md_hd_t hd, int algorithm)
 {
   struct gcry_md_context *h = hd->ctx;
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
   GcryDigestEntry *entry;
   gcry_err_code_t err = 0;
 
@@ -1182,7 +1182,7 @@ void
 _gcry_md_hash_buffer (int algo, void *digest,
                       const void *buffer, size_t length)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
 
   spec = spec_from_algo (algo);
   if (!spec)
@@ -1247,7 +1247,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 			       int digestlen, const gcry_buffer_t *iov,
 			       int iovcnt)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
   int hmac;
 
   if (!iov || iovcnt < 0)
@@ -1364,7 +1364,7 @@ _gcry_md_get_algo (gcry_md_hd_t hd)
 static int
 md_digest_length (int algorithm)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
 
   spec = spec_from_algo (algorithm);
   return spec? spec->mdlen : 0;
@@ -1387,7 +1387,7 @@ _gcry_md_get_algo_dlen (int algorithm)
 static const byte *
 md_asn_oid (int algorithm, size_t *asnlen, size_t *mdlen)
 {
-  gcry_md_spec_t *spec;
+  const gcry_md_spec_t *spec;
   const byte *asnoid = NULL;
 
   spec = spec_from_algo (algorithm);

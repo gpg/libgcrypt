@@ -156,31 +156,31 @@ static gcry_mac_spec_ops_t gmac_ops = {
 
 
 #if USE_AES
-gcry_mac_spec_t _gcry_mac_type_spec_gmac_aes = {
+const gcry_mac_spec_t _gcry_mac_type_spec_gmac_aes = {
   GCRY_MAC_GMAC_AES, {0, 0}, "GMAC_AES",
   &gmac_ops
 };
 #endif
 #if USE_TWOFISH
-gcry_mac_spec_t _gcry_mac_type_spec_gmac_twofish = {
+const gcry_mac_spec_t _gcry_mac_type_spec_gmac_twofish = {
   GCRY_MAC_GMAC_TWOFISH, {0, 0}, "GMAC_TWOFISH",
   &gmac_ops
 };
 #endif
 #if USE_SERPENT
-gcry_mac_spec_t _gcry_mac_type_spec_gmac_serpent = {
+const gcry_mac_spec_t _gcry_mac_type_spec_gmac_serpent = {
   GCRY_MAC_GMAC_SERPENT, {0, 0}, "GMAC_SERPENT",
   &gmac_ops
 };
 #endif
 #if USE_SEED
-gcry_mac_spec_t _gcry_mac_type_spec_gmac_seed = {
+const gcry_mac_spec_t _gcry_mac_type_spec_gmac_seed = {
   GCRY_MAC_GMAC_SEED, {0, 0}, "GMAC_SEED",
   &gmac_ops
 };
 #endif
 #if USE_CAMELLIA
-gcry_mac_spec_t _gcry_mac_type_spec_gmac_camellia = {
+const gcry_mac_spec_t _gcry_mac_type_spec_gmac_camellia = {
   GCRY_MAC_GMAC_CAMELLIA, {0, 0}, "GMAC_CAMELLIA",
   &gmac_ops
 };

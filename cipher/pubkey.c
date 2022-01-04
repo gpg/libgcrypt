@@ -195,6 +195,8 @@ _gcry_pk_map_name (const char *string)
     return 0;
   if (spec->flags.disabled)
     return 0;
+  if (!spec->flags.fips && fips_mode ())
+    return 0;
   return spec->algo;
 }
 
@@ -224,7 +226,7 @@ check_pubkey_algo (int algo, unsigned use)
   gcry_pk_spec_t *spec;
 
   spec = spec_from_algo (algo);
-  if (spec && !spec->flags.disabled)
+  if (spec && !spec->flags.disabled && (spec->flags.fips || !fips_mode ()))
     {
       if (((use & GCRY_PK_USAGE_SIGN)
 	   && (! (spec->use & GCRY_PK_USAGE_SIGN)))
@@ -323,7 +325,9 @@ _gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_CIPHER_ALGO;
+    rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->encrypt)
     rc = spec->encrypt (r_ciph, s_data, keyparms);
   else
@@ -377,7 +381,9 @@ _gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_CIPHER_ALGO;
+    rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->decrypt)
     rc = spec->decrypt (r_plain, s_data, keyparms);
   else
@@ -432,7 +438,9 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_CIPHER_ALGO;
+    rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->sign)
     rc = spec->sign (r_sig, s_hash, keyparms);
   else
@@ -567,7 +575,9 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_CIPHER_ALGO;
+    rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->sign)
     rc = spec->sign (r_sig, s_hash, keyparms);
   else
@@ -599,7 +609,9 @@ _gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_CIPHER_ALGO;
+    rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->verify)
     rc = spec->verify (s_sig, s_hash, keyparms);
   else
@@ -673,7 +685,9 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_CIPHER_ALGO;
+    rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->verify)
     rc = spec->verify (s_sig, s_hash, keyparms);
   else
@@ -707,7 +721,9 @@ _gcry_pk_testkey (gcry_sexp_t s_key)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_CIPHER_ALGO;
+    rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->check_secret_key)
     rc = spec->check_secret_key (keyparms);
   else
@@ -790,7 +806,7 @@ _gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   spec = spec_from_name (name);
   xfree (name);
   name = NULL;
-  if (!spec || spec->flags.disabled)
+  if (!spec || spec->flags.disabled || (!spec->flags.fips && fips_mode ()))
     {
       rc = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
       goto leave;
@@ -831,6 +847,8 @@ _gcry_pk_get_nbits (gcry_sexp_t key)
   if (spec_from_sexp (key, 0, &spec, &parms))
     return 0; /* Error - 0 is a suitable indication for that.  */
   if (spec->flags.disabled)
+    return 0;
+  if (!spec->flags.fips && fips_mode ())
     return 0;
 
   nbits = spec->get_nbits (parms);
@@ -966,6 +984,8 @@ _gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
     }
 
   if (spec->flags.disabled)
+    return NULL;
+  if (!spec->flags.fips && fips_mode ())
     return NULL;
   if (spec->get_curve)
     result = spec->get_curve (keyparms, iterator, r_nbits);
@@ -1152,17 +1172,6 @@ _gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp, int mode, gcry_ctx_t ctx)
 gcry_err_code_t
 _gcry_pk_init (void)
 {
-  if (fips_mode())
-    {
-      /* disable algorithms that are disallowed in fips */
-      int idx;
-      gcry_pk_spec_t *spec;
-
-      for (idx = 0; (spec = pubkey_list[idx]); idx++)
-        if (!spec->flags.fips)
-          spec->flags.disabled = 1;
-    }
-
   return 0;
 }
 
@@ -1177,7 +1186,9 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 
   algo = map_algo (algo);
   spec = spec_from_algo (algo);
-  if (spec && !spec->flags.disabled && spec->selftest)
+  if (spec && !spec->flags.disabled
+      && (spec->flags.fips || !fips_mode ())
+      && spec->selftest)
     ec = spec->selftest (algo, extended, report);
   else
     {
@@ -1186,7 +1197,8 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
          of an encryption mode (e.g. pkcs1, ecdsa, or ecdh).  */
       if (report)
         report ("pubkey", algo, "module",
-                spec && !spec->flags.disabled?
+                spec && !spec->flags.disabled
+                && (spec->flags.fips || !fips_mode ())?
                 "no selftest available" :
                 spec? "algorithm disabled" :
                 "algorithm not found");

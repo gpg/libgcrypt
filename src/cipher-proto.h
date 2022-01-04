@@ -184,7 +184,7 @@ typedef struct gcry_cipher_spec
   } flags;
   const char *name;
   const char **aliases;
-  gcry_cipher_oid_spec_t *oids;
+  const gcry_cipher_oid_spec_t *oids;
   size_t blocksize;
   size_t keylen;
   size_t contextsize;
@@ -240,9 +240,9 @@ typedef struct gcry_md_spec
     unsigned int fips:1;
   } flags;
   const char *name;
-  unsigned char *asnoid;
+  const unsigned char *asnoid;
   int asnlen;
-  gcry_md_oid_spec_t *oids;
+  const gcry_md_oid_spec_t *oids;
   int mdlen;
   gcry_md_init_t init;
   gcry_md_write_t write;

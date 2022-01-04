@@ -497,11 +497,11 @@ _gcry_rmd160_hash_buffers (void *outbuf, size_t nbytes,
 }
 
 
-static byte asn[15] = /* Object ID is 1.3.36.3.2.1 */
+static const byte asn[15] = /* Object ID is 1.3.36.3.2.1 */
   { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x24, 0x03,
     0x02, 0x01, 0x05, 0x00, 0x04, 0x14 };
 
-static gcry_md_oid_spec_t oid_spec_rmd160[] =
+static const gcry_md_oid_spec_t oid_spec_rmd160[] =
   {
     /* rsaSignatureWithripemd160 */
     { "1.3.36.3.3.1.2" },
@@ -510,7 +510,7 @@ static gcry_md_oid_spec_t oid_spec_rmd160[] =
     { NULL }
   };
 
-gcry_md_spec_t _gcry_digest_spec_rmd160 =
+const gcry_md_spec_t _gcry_digest_spec_rmd160 =
   {
     GCRY_MD_RMD160, {0, 0},
     "RIPEMD160", asn, DIM (asn), oid_spec_rmd160, 20,

@@ -1178,14 +1178,14 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 
 
-static byte sha512_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.3 */
+static const byte sha512_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.3 */
   {
     0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
     0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05,
     0x00, 0x04, 0x40
   };
 
-static gcry_md_oid_spec_t oid_spec_sha512[] =
+static const gcry_md_oid_spec_t oid_spec_sha512[] =
   {
     { "2.16.840.1.101.3.4.2.3" },
 
@@ -1195,7 +1195,7 @@ static gcry_md_oid_spec_t oid_spec_sha512[] =
     { NULL }
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha512 =
+const gcry_md_spec_t _gcry_digest_spec_sha512 =
   {
     GCRY_MD_SHA512, {0, 1},
     "SHA512", sha512_asn, DIM (sha512_asn), oid_spec_sha512, 64,
@@ -1205,14 +1205,14 @@ gcry_md_spec_t _gcry_digest_spec_sha512 =
     run_selftests
   };
 
-static byte sha384_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.2 */
+static const byte sha384_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.2 */
   {
     0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
     0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02, 0x05,
     0x00, 0x04, 0x30
   };
 
-static gcry_md_oid_spec_t oid_spec_sha384[] =
+static const gcry_md_oid_spec_t oid_spec_sha384[] =
   {
     { "2.16.840.1.101.3.4.2.2" },
 
@@ -1225,7 +1225,7 @@ static gcry_md_oid_spec_t oid_spec_sha384[] =
     { NULL },
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha384 =
+const gcry_md_spec_t _gcry_digest_spec_sha384 =
   {
     GCRY_MD_SHA384, {0, 1},
     "SHA384", sha384_asn, DIM (sha384_asn), oid_spec_sha384, 48,
@@ -1235,21 +1235,21 @@ gcry_md_spec_t _gcry_digest_spec_sha384 =
     run_selftests
   };
 
-static byte sha512_256_asn[] =
+static const byte sha512_256_asn[] =
   {
     0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
     0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x06, 0x05,
     0x00, 0x04, 0x20
   };
 
-static gcry_md_oid_spec_t oid_spec_sha512_256[] =
+static const gcry_md_oid_spec_t oid_spec_sha512_256[] =
   {
     { "2.16.840.1.101.3.4.2.6" },
 
     { NULL },
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha512_256 =
+const gcry_md_spec_t _gcry_digest_spec_sha512_256 =
   {
     GCRY_MD_SHA512_256, {0, 1},
     "SHA512_256", sha512_256_asn, DIM (sha512_256_asn), oid_spec_sha512_256, 32,
@@ -1259,21 +1259,21 @@ gcry_md_spec_t _gcry_digest_spec_sha512_256 =
     run_selftests
   };
 
-static byte sha512_224_asn[] =
+static const byte sha512_224_asn[] =
   {
     0x30, 0x2d, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
     0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x05, 0x05,
     0x00, 0x04, 0x1c
   };
 
-static gcry_md_oid_spec_t oid_spec_sha512_224[] =
+static const gcry_md_oid_spec_t oid_spec_sha512_224[] =
   {
     { "2.16.840.1.101.3.4.2.5" },
 
     { NULL },
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha512_224 =
+const gcry_md_spec_t _gcry_digest_spec_sha512_224 =
   {
     GCRY_MD_SHA512_224, {0, 1},
     "SHA512_224", sha512_224_asn, DIM (sha512_224_asn), oid_spec_sha512_224, 28,

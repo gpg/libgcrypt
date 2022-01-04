@@ -2022,7 +2022,7 @@ static const char *rijndael_names[] =
     NULL
   };
 
-static gcry_cipher_oid_spec_t rijndael_oids[] =
+static const gcry_cipher_oid_spec_t rijndael_oids[] =
   {
     { "2.16.840.1.101.3.4.1.1", GCRY_CIPHER_MODE_ECB },
     { "2.16.840.1.101.3.4.1.2", GCRY_CIPHER_MODE_CBC },
@@ -2051,7 +2051,7 @@ static const char *rijndael192_names[] =
     NULL
   };
 
-static gcry_cipher_oid_spec_t rijndael192_oids[] =
+static const gcry_cipher_oid_spec_t rijndael192_oids[] =
   {
     { "2.16.840.1.101.3.4.1.21", GCRY_CIPHER_MODE_ECB },
     { "2.16.840.1.101.3.4.1.22", GCRY_CIPHER_MODE_CBC },
@@ -2080,7 +2080,7 @@ static const char *rijndael256_names[] =
     NULL
   };
 
-static gcry_cipher_oid_spec_t rijndael256_oids[] =
+static const gcry_cipher_oid_spec_t rijndael256_oids[] =
   {
     { "2.16.840.1.101.3.4.1.41", GCRY_CIPHER_MODE_ECB },
     { "2.16.840.1.101.3.4.1.42", GCRY_CIPHER_MODE_CBC },

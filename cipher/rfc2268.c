@@ -349,7 +349,7 @@ selftest (void)
 
 
 
-static gcry_cipher_oid_spec_t oids_rfc2268_40[] =
+static const gcry_cipher_oid_spec_t oids_rfc2268_40[] =
   {
     /*{ "1.2.840.113549.3.2", GCRY_CIPHER_MODE_CBC },*/
     /* pbeWithSHAAnd40BitRC2_CBC */
@@ -357,7 +357,7 @@ static gcry_cipher_oid_spec_t oids_rfc2268_40[] =
     { NULL }
   };
 
-static gcry_cipher_oid_spec_t oids_rfc2268_128[] =
+static const gcry_cipher_oid_spec_t oids_rfc2268_128[] =
   {
     /* pbeWithSHAAnd128BitRC2_CBC */
     { "1.2.840.113549.1.12.1.5", GCRY_CIPHER_MODE_CBC },

@@ -1486,7 +1486,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_des =
     do_des_setkey, do_des_encrypt, do_des_decrypt
   };
 
-static gcry_cipher_oid_spec_t oids_tripledes[] =
+static const gcry_cipher_oid_spec_t oids_tripledes[] =
   {
     { "1.2.840.113549.3.7", GCRY_CIPHER_MODE_CBC },
     /* Teletrust specific OID for 3DES. */

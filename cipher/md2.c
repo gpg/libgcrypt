@@ -160,18 +160,18 @@ md2_read (void *context)
   return hd->X;
 }
 
-static byte asn[18] = /* Object ID is 1.2.840.113549.2.2 */
+static const byte asn[18] = /* Object ID is 1.2.840.113549.2.2 */
   { 0x30, 0x20, 0x30, 0x0c, 0x06, 0x08, 0x2a, 0x86,0x48,
     0x86, 0xf7, 0x0d, 0x02, 0x02, 0x05, 0x00, 0x04, 0x10 };
 
-static gcry_md_oid_spec_t oid_spec_md2[] =
+static const gcry_md_oid_spec_t oid_spec_md2[] =
   {
     /* iso.member-body.us.rsadsi.digestAlgorithm.md2 */
     { "1.2.840.113549.2.2" },
     { NULL },
   };
 
-gcry_md_spec_t _gcry_digest_spec_md2 =
+const gcry_md_spec_t _gcry_digest_spec_md2 =
   {
     GCRY_MD_MD2, {0, 0},
     "MD2", asn, DIM (asn), oid_spec_md2, 16,

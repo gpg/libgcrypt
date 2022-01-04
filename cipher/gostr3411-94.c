@@ -353,10 +353,10 @@ gost3411_read (void *context)
   return hd->result;
 }
 
-static unsigned char asn[6] = /* Object ID is 1.2.643.2.2.3 */
+static const unsigned char asn[6] = /* Object ID is 1.2.643.2.2.3 */
   { 0x2a, 0x85, 0x03, 0x02, 0x02, 0x03 };
 
-static gcry_md_oid_spec_t oid_spec_gostr3411[] =
+static const gcry_md_oid_spec_t oid_spec_gostr3411[] =
   {
     /* iso.member-body.ru.rans.cryptopro.3 (gostR3411-94-with-gostR3410-2001) */
     { "1.2.643.2.2.3" },
@@ -365,7 +365,7 @@ static gcry_md_oid_spec_t oid_spec_gostr3411[] =
     {NULL},
   };
 
-gcry_md_spec_t _gcry_digest_spec_gost3411_94 =
+const gcry_md_spec_t _gcry_digest_spec_gost3411_94 =
   {
     GCRY_MD_GOSTR3411_94, {0, 0},
     "GOSTR3411_94", NULL, 0, NULL, 32,
@@ -373,7 +373,7 @@ gcry_md_spec_t _gcry_digest_spec_gost3411_94 =
     NULL,
     sizeof (GOSTR3411_CONTEXT)
   };
-gcry_md_spec_t _gcry_digest_spec_gost3411_cp =
+const gcry_md_spec_t _gcry_digest_spec_gost3411_cp =
   {
     GCRY_MD_GOSTR3411_CP, {0, 0},
     "GOSTR3411_CP", asn, DIM (asn), oid_spec_gostr3411, 32,

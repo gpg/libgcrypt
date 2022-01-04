@@ -277,7 +277,7 @@ gost_encrypt_block_mesh (void *c, byte *outbuf, const byte *inbuf)
   return /* burn_stack */ burn + 6*sizeof(void*) /* func call */;
 }
 
-static gcry_cipher_oid_spec_t oids_gost28147_mesh[] =
+static const gcry_cipher_oid_spec_t oids_gost28147_mesh[] =
   {
     { "1.2.643.2.2.21", GCRY_CIPHER_MODE_CFB },
     /* { "1.2.643.2.2.31.0", GCRY_CIPHER_MODE_CNTGOST }, */
@@ -546,7 +546,7 @@ static gcry_mac_spec_ops_t gost_imit_ops = {
   NULL
 };
 
-gcry_mac_spec_t _gcry_mac_type_spec_gost28147_imit =
+const gcry_mac_spec_t _gcry_mac_type_spec_gost28147_imit =
   {
     GCRY_MAC_GOST28147_IMIT, {0, 0}, "GOST28147_IMIT",
     &gost_imit_ops
