@@ -6251,7 +6251,7 @@ approach.  The @file{/dev/gcrypt/random.conf} config option
 
 @menu
 * CSPRNG Description::      Description of the CSPRNG.
-* FIPS PRNG Description::   Description of the FIPS X9.31 PRNG.
+* DRBG Description::   Description of the DRBG.
 @end menu
 
 
