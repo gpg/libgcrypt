@@ -1359,16 +1359,11 @@ _gcry_cipher_setup_mode_ops(gcry_cipher_hd_t c, int mode)
       break;
 
     case GCRY_CIPHER_MODE_AESWRAP:
+      c->mode_ops.decrypt = _gcry_cipher_keywrap_decrypt_auto;
       if (!(c->flags & GCRY_CIPHER_EXTENDED))
-        {
-          c->mode_ops.encrypt = _gcry_cipher_keywrap_encrypt;
-          c->mode_ops.decrypt = _gcry_cipher_keywrap_decrypt;
-        }
+        c->mode_ops.encrypt = _gcry_cipher_keywrap_encrypt;
       else
-        {
-          c->mode_ops.encrypt = _gcry_cipher_keywrap_encrypt_padding;
-          c->mode_ops.decrypt = _gcry_cipher_keywrap_decrypt_padding;
-        }
+        c->mode_ops.encrypt = _gcry_cipher_keywrap_encrypt_padding;
       break;
 
     case GCRY_CIPHER_MODE_CCM:
@@ -1690,6 +1685,12 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
  *      BUFFER must be given as NULL.  On success the result is stored
  *      at NBYTES.  The taglen is returned in bytes.
  *
+ *  GCRYCTL_GET_KEYLEN:
+ *      Return the length of the key wrapped for AES-WRAP mode.  The
+ *      length is encoded in big-endian 4 bytes, when the key is
+ *      unwrapped with KWP.  Return 00 00 00 00, when the key is
+ *      unwrapped with KW.
+ *
  * The function returns 0 on success or an error code.
  */
 gcry_err_code_t
@@ -1732,6 +1733,25 @@ _gcry_cipher_info (gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
 
             case GCRY_CIPHER_MODE_GCM_SIV:
               *nbytes = GCRY_SIV_BLOCK_LEN;
+              break;
+
+            default:
+              rc = GPG_ERR_INV_CIPHER_MODE;
+              break;
+            }
+        }
+      break;
+
+    case GCRYCTL_GET_KEYLEN:
+      if (!h || !buffer || !nbytes)
+	rc = GPG_ERR_INV_ARG;
+      else
+        {
+          switch (h->mode)
+            {
+            case GCRY_CIPHER_MODE_AESWRAP:
+              *nbytes = 4;
+              memcpy (buffer, h->u_mode.wrap.plen, 4);
               break;
 
             default:

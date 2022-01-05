@@ -431,6 +431,11 @@ struct gcry_cipher_handle
        * cipher context. */
       char *ctr_context;
     } siv;
+
+    /* Mode specific storage for WRAP mode. */
+    struct {
+      unsigned char plen[4];
+    } wrap;
   } u_mode;
 
   /* What follows are two contexts of the cipher in use.  The first
@@ -502,16 +507,11 @@ gcry_err_code_t _gcry_cipher_keywrap_encrypt
 /*           */   (gcry_cipher_hd_t c,
                    byte *outbuf, size_t outbuflen,
                    const byte *inbuf, size_t inbuflen);
-gcry_err_code_t _gcry_cipher_keywrap_decrypt
+gcry_err_code_t _gcry_cipher_keywrap_encrypt_padding
 /*           */   (gcry_cipher_hd_t c,
                    byte *outbuf, size_t outbuflen,
                    const byte *inbuf, size_t inbuflen);
-gcry_err_code_t
-_gcry_cipher_keywrap_encrypt_padding
-/*           */   (gcry_cipher_hd_t c,
-                   byte *outbuf, size_t outbuflen,
-                   const byte *inbuf, size_t inbuflen);
-gcry_err_code_t _gcry_cipher_keywrap_decrypt_padding
+gcry_err_code_t _gcry_cipher_keywrap_decrypt_auto
 /*           */   (gcry_cipher_hd_t c,
                    byte *outbuf, size_t outbuflen,
                    const byte *inbuf, size_t inbuflen);

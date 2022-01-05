@@ -259,67 +259,12 @@ unwrap (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf, size_t inbuflen)
 }
 
 
-/* Perform the Key Unwrap algorithm as specified by RFC3394.  We
-   implement this as a mode usable with any cipher algorithm of
-   blocksize 128.  */
+/* Perform the Key Unwrap algorithm as specified by RFC3394 and
+   RFC5649.  */
 gcry_err_code_t
-_gcry_cipher_keywrap_decrypt (gcry_cipher_hd_t c,
-                              byte *outbuf, size_t outbuflen,
-                              const byte *inbuf, size_t inbuflen)
-{
-  gcry_err_code_t err;
-
-  /* We require a cipher with a 128 bit block length.  */
-  if (c->spec->blocksize != 16)
-    return GPG_ERR_INV_LENGTH;
-
-  /* The output buffer must be able to hold the input data minus one
-     additional block.  Fixme: The caller has more restrictive checks
-     - we may want to fix them for this mode.  */
-  if (outbuflen + 8 < inbuflen)
-    return GPG_ERR_BUFFER_TOO_SHORT;
-  /* Input data must be multiple of 64 bits.  */
-  if (inbuflen % 8)
-    return GPG_ERR_INV_ARG;
-
-  /* We need at least three 64 bit blocks.  */
-  if ((inbuflen / 8) < 3)
-    return GPG_ERR_INV_ARG;
-
-  err = unwrap (c, outbuf, inbuf, inbuflen);
-  if (!err)
-    {
-      int j, x;
-      unsigned char *a;
-
-      a = c->lastiv;  /* We use c->LASTIV as buffer for A.  */
-
-      /* If an IV has been set we compare against this Alternative Initial
-         Value; if it has not been set we compare against the standard IV.  */
-      if (c->marks.iv)
-        j = memcmp (a, c->u_iv.iv, 8);
-      else
-        {
-          for (j=0, x=0; x < 8; x++)
-            if (a[x] != 0xa6)
-              {
-                j=1;
-                break;
-              }
-        }
-
-      if (j)
-        err = GPG_ERR_CHECKSUM;
-    }
-
-  return err;
-}
-
-/* Perform the Key Unwrap algorithm as specified by RFC5649.  */
-gcry_err_code_t
-_gcry_cipher_keywrap_decrypt_padding (gcry_cipher_hd_t c,
-                                      byte *outbuf, size_t outbuflen,
-                                      const byte *inbuf, size_t inbuflen)
+_gcry_cipher_keywrap_decrypt_auto (gcry_cipher_hd_t c,
+                                   byte *outbuf, size_t outbuflen,
+                                   const byte *inbuf, size_t inbuflen)
 {
   gcry_err_code_t err;
 
@@ -365,7 +310,10 @@ _gcry_cipher_keywrap_decrypt_padding (gcry_cipher_hd_t c,
                     break;
                   }
               if (!err)
-                memcpy (outbuf, t+8, plen);
+                {
+                  memcpy (outbuf, t+8, 8);
+                  memcpy (c->u_mode.wrap.plen, t+4, 4);
+                }
             }
         }
     }
@@ -382,9 +330,11 @@ _gcry_cipher_keywrap_decrypt_padding (gcry_cipher_hd_t c,
 
           a = c->lastiv;  /* We use c->LASTIV as buffer for A.  */
 
-          if (memcmp (a, icv2, 4))
-            err = GPG_ERR_CHECKSUM;
-          else
+          /* If an IV has been set we compare against this Alternative Initial
+             Value; if it has not been set we compare against the standard IV.  */
+          if (c->marks.iv && !memcmp (a, c->u_iv.iv, 8))
+            memset (c->u_mode.wrap.plen, 0, 4);
+          else if (!memcmp (a, icv2, 4)) /* It's a packet wrapped by KWP.  */
             {
               unsigned int plen = (a[4]<<24) | (a[5]<<16) | (a[6]<<8) | a[7];
               int padlen = inbuflen - 8 - plen;
@@ -402,6 +352,21 @@ _gcry_cipher_keywrap_decrypt_padding (gcry_cipher_hd_t c,
                         break;
                       }
                 }
+              if (!err)
+                memcpy (c->u_mode.wrap.plen, a+4, 4);
+            }
+          else                  /* It's a packet wrapped by KW.  */
+            {
+              int i;
+
+              for (i = 0; i < 8; i++)
+                if (a[i] != 0xa6)
+                  {
+                    err = GPG_ERR_CHECKSUM;
+                    break;
+                  }
+              if (!err)
+                memset (c->u_mode.wrap.plen, 0, 4);
             }
         }
     }

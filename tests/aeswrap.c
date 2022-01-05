@@ -261,6 +261,15 @@ check_one_with_padding (int algo,
   else
     {
       err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
+      if (!err)
+        {
+          unsigned char plen[4];
+          size_t nbytes;
+          err = gcry_cipher_info (hd, GCRYCTL_GET_KEYLEN, plen, &nbytes);
+          if (!err)
+            outbuflen = (plen[0] << 24) | (plen[1] << 16)
+              | (plen[2] << 8) | plen[3];
+        }
     }
 
   if (err)
@@ -269,7 +278,7 @@ check_one_with_padding (int algo,
       return;
     }
 
-  if (memcmp (outbuf, data, datalen))
+  if (outbuflen != datalen || memcmp (outbuf, data, datalen))
     {
       const unsigned char *s;
       int i;
@@ -295,6 +304,15 @@ check_one_with_padding (int algo,
   else
     {
       err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
+      if (!err)
+        {
+          unsigned char plen[4];
+          size_t nbytes;
+          err = gcry_cipher_info (hd, GCRYCTL_GET_KEYLEN, plen, &nbytes);
+          if (!err)
+            outbuflen = (plen[0] << 24) | (plen[1] << 16)
+              | (plen[2] << 8) | plen[3];
+        }
     }
 
   if (err)
@@ -303,7 +321,7 @@ check_one_with_padding (int algo,
       return;
     }
 
-  if (memcmp (outbuf, data, datalen))
+  if (outbuflen != datalen || memcmp (outbuf, data, datalen))
     fail ("mismatch at decryption(2)(padding)!\n");
 
   /* And once more without a key reset. */
@@ -315,6 +333,15 @@ check_one_with_padding (int algo,
   else
     {
       err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
+      if (!err)
+        {
+          unsigned char plen[4];
+          size_t nbytes;
+          err = gcry_cipher_info (hd, GCRYCTL_GET_KEYLEN, plen, &nbytes);
+          if (!err)
+            outbuflen = (plen[0] << 24) | (plen[1] << 16)
+              | (plen[2] << 8) | plen[3];
+        }
     }
 
   if (err)
@@ -323,7 +350,7 @@ check_one_with_padding (int algo,
       return;
     }
 
-  if (memcmp (outbuf, data, datalen))
+  if (outbuflen != datalen || memcmp (outbuf, data, datalen))
     fail ("mismatch at decryption(3)(padding)!\n");
 
   gcry_cipher_close (hd);
