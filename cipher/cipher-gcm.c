@@ -57,6 +57,11 @@ extern unsigned int _gcry_ghash_armv8_ce_pmull (void *gcm_key, byte *result,
                                                 const byte *buf, size_t nblocks,
                                                 void *gcm_table);
 
+extern unsigned int _gcry_polyval_armv8_ce_pmull (void *gcm_key, byte *result,
+                                                  const byte *buf,
+                                                  size_t nblocks,
+                                                  void *gcm_table);
+
 static void
 ghash_setup_armv8_ce_pmull (gcry_cipher_hd_t c)
 {
@@ -70,6 +75,14 @@ ghash_armv8_ce_pmull (gcry_cipher_hd_t c, byte *result, const byte *buf,
 {
   return _gcry_ghash_armv8_ce_pmull(c->u_mode.gcm.u_ghash_key.key, result, buf,
                                     nblocks, c->u_mode.gcm.gcm_table);
+}
+
+static unsigned int
+polyval_armv8_ce_pmull (gcry_cipher_hd_t c, byte *result, const byte *buf,
+                        size_t nblocks)
+{
+  return _gcry_polyval_armv8_ce_pmull(c->u_mode.gcm.u_ghash_key.key, result,
+                                      buf, nblocks, c->u_mode.gcm.gcm_table);
 }
 #endif /* GCM_USE_ARM_PMULL */
 
@@ -591,6 +604,7 @@ setupM (gcry_cipher_hd_t c)
   else if (features & HWF_ARM_PMULL)
     {
       c->u_mode.gcm.ghash_fn = ghash_armv8_ce_pmull;
+      c->u_mode.gcm.polyval_fn = polyval_armv8_ce_pmull;
       ghash_setup_armv8_ce_pmull (c);
     }
 #endif

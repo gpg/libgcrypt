@@ -371,6 +371,234 @@ ELF(.size _gcry_ghash_armv8_ce_pmull,.-_gcry_ghash_armv8_ce_pmull;)
 
 
 /*
+ * unsigned int _gcry_polyval_armv8_ce_pmull (void *gcm_key, byte *result,
+ *                                            const byte *buf, size_t nblocks,
+ *                                            void *gcm_table);
+ */
+.align 3
+.globl _gcry_polyval_armv8_ce_pmull
+ELF(.type  _gcry_polyval_armv8_ce_pmull,%function;)
+_gcry_polyval_armv8_ce_pmull:
+  /* input:
+   *    x0: gcm_key
+   *    x1: result/hash
+   *    x2: buf
+   *    x3: nblocks
+   *    x4: gcm_table
+   */
+  CFI_STARTPROC();
+
+  cbz x3, .Lpolyval_do_nothing;
+
+  GET_DATA_POINTER(x5, .Lrconst)
+
+  eor vZZ.16b, vZZ.16b, vZZ.16b
+  ld1 {rhash.16b}, [x1]
+  ld1 {rh1.16b}, [x0]
+
+  rbit rhash.16b, rhash.16b /* bit-swap */
+  ld1r {rrconst.2d}, [x5]
+
+  cmp x3, #6
+  b.lo .Lpolyval_less_than_6
+
+  add x6, x4, #64
+  VPUSH_ABI
+
+  ld1 {rh2.16b-rh5.16b}, [x4]
+  ld1 {rh6.16b}, [x6]
+
+  sub x3, x3, #6
+
+  ld1 {rbuf.16b-rbuf2.16b}, [x2], #(3*16)
+  ld1 {rbuf3.16b-rbuf5.16b}, [x2], #(3*16)
+  rev64 rbuf.16b, rbuf.16b /* byte-swap */
+  rev64 rbuf1.16b, rbuf1.16b /* byte-swap */
+  rev64 rbuf2.16b, rbuf2.16b /* byte-swap */
+  rev64 rbuf3.16b, rbuf3.16b /* byte-swap */
+  rev64 rbuf4.16b, rbuf4.16b /* byte-swap */
+  rev64 rbuf5.16b, rbuf5.16b /* byte-swap */
+  ext rbuf.16b, rbuf.16b, rbuf.16b, #8 /* byte-swap */
+  ext rbuf1.16b, rbuf1.16b, rbuf1.16b, #8 /* byte-swap */
+  ext rbuf2.16b, rbuf2.16b, rbuf2.16b, #8 /* byte-swap */
+  ext rbuf3.16b, rbuf3.16b, rbuf3.16b, #8 /* byte-swap */
+  ext rbuf4.16b, rbuf4.16b, rbuf4.16b, #8 /* byte-swap */
+  ext rbuf5.16b, rbuf5.16b, rbuf5.16b, #8 /* byte-swap */
+  rbit rbuf.16b, rbuf.16b /* bit-swap */
+  rbit rbuf1.16b, rbuf1.16b /* bit-swap */
+  rbit rbuf2.16b, rbuf2.16b /* bit-swap */
+  rbit rbuf3.16b, rbuf3.16b /* bit-swap */
+  rbit rbuf4.16b, rbuf4.16b /* bit-swap */
+  rbit rbuf5.16b, rbuf5.16b /* bit-swap */
+  eor rhash.16b, rhash.16b, rbuf.16b
+
+  cmp x3, #6
+  b.lo .Lpolyval_end_6
+
+.Lpolyval_loop_6:
+
+  /* (in1) * H⁵ => rr0:rr1 */
+  /* (in2) * H⁴ => rr2:rr3 */
+  /* (in0 ^ hash) * H⁶ => rr4:rr5 */
+  PMUL_128x128_3(rr0, rr1, rbuf1, rh5, t0, t1,
+                 rr2, rr3, rbuf2, rh4, t2, t3,
+                 rr4, rr5, rhash, rh6, t4, t5,
+                 _(sub x3, x3, #6))
+
+  ld1 {rbuf.16b-rbuf2.16b}, [x2], #(3*16)
+  cmp x3, #6
+
+  eor rr0.16b, rr0.16b, rr2.16b
+  eor rr1.16b, rr1.16b, rr3.16b
+
+  /* (in3) * H³ => rr2:rr3 */
+  /* (in4) * H² => rr6:rr7 */
+  /* (in5) * H¹ => rr8:rr9 */
+  PMUL_128x128_3(rr2, rr3, rbuf3, rh3, t0, t1,
+                 rr6, rr7, rbuf4, rh2, t2, t3,
+                 rr8, rr9, rbuf5, rh1, t4, t5,
+                 _(eor rr0.16b, rr0.16b, rr4.16b;
+                   eor rr1.16b, rr1.16b, rr5.16b))
+
+  rev64 rbuf.16b, rbuf.16b /* byte-swap */
+  rev64 rbuf1.16b, rbuf1.16b /* byte-swap */
+  rev64 rbuf2.16b, rbuf2.16b /* byte-swap */
+  ext rbuf.16b, rbuf.16b, rbuf.16b, #8 /* byte-swap */
+  ext rbuf1.16b, rbuf1.16b, rbuf1.16b, #8 /* byte-swap */
+  ext rbuf2.16b, rbuf2.16b, rbuf2.16b, #8 /* byte-swap */
+
+  eor rr0.16b, rr0.16b, rr2.16b
+  eor rr1.16b, rr1.16b, rr3.16b
+  rbit rbuf.16b, rbuf.16b /* bit-swap */
+  eor rr0.16b, rr0.16b, rr6.16b
+  eor rr1.16b, rr1.16b, rr7.16b
+  rbit rbuf1.16b, rbuf1.16b /* bit-swap */
+  eor rr0.16b, rr0.16b, rr8.16b
+  eor rr1.16b, rr1.16b, rr9.16b
+  ld1 {rbuf3.16b-rbuf5.16b}, [x2], #(3*16)
+
+  REDUCTION(rhash, rr0, rr1, rrconst, t0, t1,
+            _(rbit rbuf2.16b, rbuf2.16b), /* bit-swap */
+            _(rev64 rbuf3.16b, rbuf3.16b), /* byte-swap */
+            _(rev64 rbuf4.16b, rbuf4.16b)) /* byte-swap */
+
+  rev64 rbuf5.16b, rbuf5.16b /* byte-swap */
+  ext rbuf3.16b, rbuf3.16b, rbuf3.16b, #8 /* byte-swap */
+
+  eor rhash.16b, rhash.16b, rbuf.16b
+
+  ext rbuf4.16b, rbuf4.16b, rbuf4.16b, #8 /* byte-swap */
+  ext rbuf5.16b, rbuf5.16b, rbuf5.16b, #8 /* byte-swap */
+  rbit rbuf3.16b, rbuf3.16b /* bit-swap */
+  rbit rbuf4.16b, rbuf4.16b /* bit-swap */
+  rbit rbuf5.16b, rbuf5.16b /* bit-swap */
+
+  b.hs .Lpolyval_loop_6
+
+.Lpolyval_end_6:
+
+  /* (in1) * H⁵ => rr0:rr1 */
+  /* (in0 ^ hash) * H⁶ => rr2:rr3 */
+  /* (in2) * H⁴ => rr4:rr5 */
+  PMUL_128x128_3(rr0, rr1, rbuf1, rh5, t0, t1,
+                 rr2, rr3, rhash, rh6, t2, t3,
+                 rr4, rr5, rbuf2, rh4, t4, t5,
+                 __)
+  eor rr0.16b, rr0.16b, rr2.16b
+  eor rr1.16b, rr1.16b, rr3.16b
+  eor rr0.16b, rr0.16b, rr4.16b
+  eor rr1.16b, rr1.16b, rr5.16b
+
+  /* (in3) * H³ => rhash:rbuf */
+  /* (in4) * H² => rr6:rr7 */
+  /* (in5) * H¹ => rr8:rr9 */
+  PMUL_128x128_3(rhash, rbuf, rbuf3, rh3, t0, t1,
+                 rr6, rr7, rbuf4, rh2, t2, t3,
+                 rr8, rr9, rbuf5, rh1, t4, t5,
+                 _(CLEAR_REG(rh4);
+                   CLEAR_REG(rh5);
+                   CLEAR_REG(rh6)))
+  eor rr0.16b, rr0.16b, rhash.16b
+  eor rr1.16b, rr1.16b, rbuf.16b
+  eor rr0.16b, rr0.16b, rr6.16b
+  eor rr1.16b, rr1.16b, rr7.16b
+  eor rr0.16b, rr0.16b, rr8.16b
+  eor rr1.16b, rr1.16b, rr9.16b
+
+  REDUCTION(rhash, rr0, rr1, rrconst, t0, t1,
+            _(CLEAR_REG(rh2);
+              CLEAR_REG(rh3);
+              CLEAR_REG(rr2);
+              CLEAR_REG(rbuf2);
+              CLEAR_REG(rbuf3)),
+            _(CLEAR_REG(rr3);
+              CLEAR_REG(rr4);
+              CLEAR_REG(rr5);
+              CLEAR_REG(rr6);
+              CLEAR_REG(rr7)),
+            _(CLEAR_REG(rr8);
+              CLEAR_REG(rr9);
+              CLEAR_REG(rbuf1);
+              CLEAR_REG(rbuf2)))
+
+  CLEAR_REG(rbuf4)
+  CLEAR_REG(rbuf5)
+  CLEAR_REG(t2)
+  CLEAR_REG(t3)
+  CLEAR_REG(t4)
+  CLEAR_REG(t5)
+
+  VPOP_ABI
+
+  cbz x3, .Lpolyval_done
+
+.Lpolyval_less_than_6:
+  /* Handle remaining blocks. */
+
+  ld1 {rbuf.16b}, [x2], #16
+  sub x3, x3, #1
+
+  rev64 rbuf.16b, rbuf.16b /* byte-swap */
+  ext rbuf.16b, rbuf.16b, rbuf.16b, #8 /* byte-swap */
+  rbit rbuf.16b, rbuf.16b /* bit-swap */
+
+  eor rhash.16b, rhash.16b, rbuf.16b
+
+  cbz x3, .Lpolyval_end
+
+.Lpolyval_loop:
+  PMUL_128x128(rr0, rr1, rh1, rhash, t0, t1, _(ld1 {rbuf.16b}, [x2], #16))
+  REDUCTION(rhash, rr0, rr1, rrconst, t0, t1,
+            _(sub x3, x3, #1;
+              rev64 rbuf.16b, rbuf.16b), /* byte-swap */
+            _(ext rbuf.16b, rbuf.16b, rbuf.16b, #8), /* byte-swap */
+            _(rbit rbuf.16b, rbuf.16b)) /* bit-swap */
+  eor rhash.16b, rhash.16b, rbuf.16b
+
+  cbnz x3, .Lpolyval_loop
+
+.Lpolyval_end:
+  PMUL_128x128(rr0, rr1, rh1, rhash, t0, t1, _(CLEAR_REG(rbuf)))
+  REDUCTION(rhash, rr0, rr1, rrconst, t0, t1, __, _(CLEAR_REG(rh1)), __)
+
+.Lpolyval_done:
+  CLEAR_REG(rr1)
+  CLEAR_REG(rr0)
+  rbit rhash.16b, rhash.16b /* bit-swap */
+  CLEAR_REG(t0)
+  CLEAR_REG(t1)
+
+  st1 {rhash.2d}, [x1]
+  CLEAR_REG(rhash)
+
+.Lpolyval_do_nothing:
+  mov x0, #0
+  ret
+  CFI_ENDPROC()
+ELF(.size _gcry_polyval_armv8_ce_pmull,.-_gcry_polyval_armv8_ce_pmull;)
+
+
+/*
  * void _gcry_ghash_setup_armv8_ce_pmull (void *gcm_key, void *gcm_table);
  */
 .align 3

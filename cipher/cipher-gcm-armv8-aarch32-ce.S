@@ -359,6 +359,161 @@ _gcry_ghash_armv8_ce_pmull:
 
 
 /*
+ * unsigned int _gcry_polyval_armv8_ce_pmull (void *gcm_key, byte *result,
+ *                                            const byte *buf, size_t nblocks,
+ *                                            void *gcm_table);
+ */
+.align 3
+.globl _gcry_polyval_armv8_ce_pmull
+.type  _gcry_polyval_armv8_ce_pmull,%function;
+_gcry_polyval_armv8_ce_pmull:
+  /* input:
+   *    r0: gcm_key
+   *    r1: result/hash
+   *    r2: buf
+   *    r3: nblocks
+   *    %st+0: gcm_table
+   */
+  push {r4-r6, lr}
+
+  cmp r3, #0
+  beq .Lpolyval_do_nothing
+
+  GET_DATA_POINTER(r4, .Lrconst64, lr)
+
+  vld1.64 {rhash}, [r1]
+  vld1.64 {rh1}, [r0]
+
+  vrev64.8 rhash, rhash /* byte-swap */
+  vld1.64 {rrconst_h}, [r4]
+  vext.8 rhash, rhash, rhash, #8
+
+  cmp r3, #4
+  blo .Lpolyval_less_than_4
+
+  /* Bulk processing of 4 blocks per loop iteration. */
+
+  ldr r5, [sp, #(4*4)];
+  add r6, r5, #32
+
+  vpush {q4-q7}
+
+  vld1.64 {rh2-rh3}, [r5]
+  vld1.64 {rh4}, [r6]
+
+  vld1.64 {rbuf-rbuf1}, [r2]!
+  sub r3, r3, #4
+  vld1.64 {rbuf2-rbuf3}, [r2]!
+
+  cmp r3, #4
+  veor rhash, rhash, rbuf /* in0 ^ hash */
+
+  blo .Lpolyval_end_4
+
+.Lpolyval_loop_4:
+  /* (in0 ^ hash) * H⁴ => rr2:rr3 */
+  /* (in1) * H³ => rr0:rr1 */
+  PMUL_128x128_2(rr0, rr1, rbuf1, rh3, rr2, rr3, rhash, rh4, rt1, rt0, __)
+
+  vld1.64 {rbuf-rbuf1}, [r2]!
+  sub r3, r3, #4
+  veor rr0, rr0, rr2
+  veor rr1, rr1, rr3
+
+  /* (in2) * H² => rr2:rr3 */
+  /* (in3) * H¹ => rhash:rbuf3 */
+  PMUL_128x128_2(rr2, rr3, rbuf2, rh2, rhash, rbuf3, rbuf3, rh1, rt0, rt1, __)
+
+  vld1.64 {rbuf2}, [r2]!
+
+  veor rr0, rr0, rr2
+  veor rr1, rr1, rr3
+
+  cmp r3, #4
+
+  veor rr0, rr0, rhash
+  veor rr1, rr1, rbuf3
+
+  vld1.64 {rbuf3}, [r2]!
+
+  REDUCTION(rhash, rr0, rr1, rrconst_h, rt1, __)
+
+  veor rhash, rhash, rbuf /* in0 ^ hash */
+
+  bhs .Lpolyval_loop_4
+
+.Lpolyval_end_4:
+  /* (in0 ^ hash) * H⁴ => rr2:rr3 */
+  /* (in1) * H³ => rr0:rr1 */
+  PMUL_128x128_2(rr0, rr1, rbuf1, rh3, rr2, rr3, rhash, rh4, rt1, rt0, __)
+
+  /* (in2) * H² => rhash:rbuf */
+  /* (in3) * H¹ => rbuf1:rbuf2 */
+  PMUL_128x128_2(rhash, rbuf, rbuf2, rh2, rbuf1, rbuf2, rbuf3, rh1, rt0, rt1,
+                 _(veor rr0, rr0, rr2;
+                   veor rr1, rr1, rr3))
+
+  veor rr0, rr0, rhash
+  veor rr1, rr1, rbuf
+
+  veor rr0, rr0, rbuf1
+  veor rr1, rr1, rbuf2
+
+  REDUCTION(rhash, rr0, rr1, rrconst_h, rt1,
+            _(CLEAR_REG(rr2);
+              CLEAR_REG(rr3);
+              CLEAR_REG(rbuf1);
+              CLEAR_REG(rbuf2);
+              CLEAR_REG(rbuf3);
+              CLEAR_REG(rh2);
+              CLEAR_REG(rh3);
+              CLEAR_REG(rh4)))
+
+  vpop {q4-q7}
+
+  cmp r3, #0
+  beq .Lpolyval_done
+
+.Lpolyval_less_than_4:
+  /* Handle remaining blocks. */
+
+  vld1.64 {rbuf}, [r2]!
+  subs r3, r3, #1
+
+  veor rhash, rhash, rbuf
+
+  beq .Lpolyval_end
+
+.Lpolyval_loop:
+  vld1.64 {rbuf}, [r2]!
+  subs r3, r3, #1
+  PMUL_128x128(rr0, rr1, rhash, rh1, rt0, __)
+  REDUCTION(rhash, rr0, rr1, rrconst_h, rt0, __)
+  veor rhash, rhash, rbuf
+
+  bne .Lpolyval_loop
+
+.Lpolyval_end:
+  PMUL_128x128(rr0, rr1, rhash, rh1, rt0, _(CLEAR_REG(rbuf)))
+  REDUCTION(rhash, rr0, rr1, rrconst_h, rt0, _(CLEAR_REG(rh1)))
+
+.Lpolyval_done:
+  CLEAR_REG(rr1)
+  vrev64.8 rhash, rhash /* byte-swap */
+  CLEAR_REG(rt0)
+  CLEAR_REG(rr0)
+  vext.8 rhash, rhash, rhash, #8
+  CLEAR_REG(rt1)
+  vst1.64 {rhash}, [r1]
+  CLEAR_REG(rhash)
+
+.Lpolyval_do_nothing:
+  mov r0, #0
+  pop {r4-r6, pc}
+.size _gcry_polyval_armv8_ce_pmull,.-_gcry_polyval_armv8_ce_pmull;
+
+
+/*
  * void _gcry_ghash_setup_armv8_ce_pmull (void *gcm_key, void *gcm_table);
  */
 .align 3
