@@ -98,7 +98,7 @@ gcry_sha256_aarch64_ce_K:
 
 /* Other functional macros */
 
-#define CLEAR_REG(reg) eor reg.16b, reg.16b, reg.16b;
+#define CLEAR_REG(reg) movi reg.16b, #0;
 
 
 /*

@@ -88,7 +88,7 @@ gcry_sha1_aarch64_ce_K_VEC:
 
 /* Other functional macros */
 
-#define CLEAR_REG(reg) eor reg.16b, reg.16b, reg.16b;
+#define CLEAR_REG(reg) movi reg.16b, #0;
 
 
 /*

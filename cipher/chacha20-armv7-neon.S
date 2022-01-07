@@ -132,7 +132,7 @@
 	vswp _q0##h, _q2##l;			\
 	vswp _q1##h, _q3##l;
 
-#define clear(x) veor x,x,x;
+#define clear(x) vmov.i8 x, #0;
 
 /**********************************************************************
   4-way chacha20

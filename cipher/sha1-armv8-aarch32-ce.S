@@ -100,7 +100,7 @@ gcry_sha1_aarch32_ce_K_VEC:
 
 /* Other functional macros */
 
-#define CLEAR_REG(reg) veor reg, reg;
+#define CLEAR_REG(reg) vmov.i8 reg, #0;
 
 
 /*

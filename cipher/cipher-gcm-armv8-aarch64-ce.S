@@ -149,7 +149,7 @@ gcry_gcm_reduction_constant:
 #define _(...) __VA_ARGS__
 #define __ _()
 
-#define CLEAR_REG(reg) eor reg.16b, reg.16b, reg.16b;
+#define CLEAR_REG(reg) movi reg.16b, #0;
 
 #define VPUSH_ABI \
         stp d8, d9, [sp, #-16]!; \

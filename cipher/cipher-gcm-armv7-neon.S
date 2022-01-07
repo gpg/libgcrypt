@@ -210,7 +210,7 @@ gcry_gcm_reduction_constant:
 
 /* Other functional macros */
 
-#define CLEAR_REG(reg) veor reg, reg;
+#define CLEAR_REG(reg) vmov.i8 reg, #0;
 
 
 /*

@@ -91,6 +91,8 @@
 #define RW1213q q14
 #define RW1415q q15
 
+#define CLEAR_REG(reg) vmov.i8 reg, #0;
+
 /***********************************************************************
  * ARM assembly implementation of sha512 transform
  ***********************************************************************/
@@ -426,22 +428,22 @@ _gcry_sha512_transform_armv7_neon:
 
 	/* Clear used registers */
 	/* d16-d31 */
-	veor.u64 RW01q, RW01q;
-	veor.u64 RW23q, RW23q;
-	veor.u64 RW45q, RW45q;
-	veor.u64 RW67q, RW67q;
+	CLEAR_REG(RW01q);
+	CLEAR_REG(RW23q);
+	CLEAR_REG(RW45q);
+	CLEAR_REG(RW67q);
 	vst1.64 {RE-RH}, [%r0]; /* Store the last half of context */
-	veor.u64 RW89q, RW89q;
-	veor.u64 RW1011q, RW1011q;
-	veor.u64 RW1213q, RW1213q;
-	veor.u64 RW1415q, RW1415q;
+	CLEAR_REG(RW89q);
+	CLEAR_REG(RW1011q);
+	CLEAR_REG(RW1213q);
+	CLEAR_REG(RW1415q);
 	/* d8-d15 */
 	vpop {RT0-RT7};
 	/* d0-d7 (q0-q3) */
-	veor.u64 %q0, %q0;
-	veor.u64 %q1, %q1;
-	veor.u64 %q2, %q2;
-	veor.u64 %q3, %q3;
+	CLEAR_REG(%q0);
+	CLEAR_REG(%q1);
+	CLEAR_REG(%q2);
+	CLEAR_REG(%q3);
 
 	eor %r0, %r0;
 	pop {%pc};
