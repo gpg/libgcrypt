@@ -106,6 +106,6 @@ C_SYMBOL_NAME(_gcry_mpih_addmul_1):
 
 .Lend:
 	mov	x0, x6;
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC()
 ELF(.size C_SYMBOL_NAME(_gcry_mpih_addmul_1),.-C_SYMBOL_NAME(_gcry_mpih_addmul_1);)

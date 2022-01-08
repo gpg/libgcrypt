@@ -650,7 +650,7 @@ _gcry_sm3_transform_aarch64:
   CFI_ADJUST_CFA_OFFSET(-16);
   CFI_RESTORE(x28);
   CFI_RESTORE(x29);
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_sm3_transform_aarch64, .-_gcry_sm3_transform_aarch64;)
 

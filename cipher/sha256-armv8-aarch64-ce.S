@@ -208,7 +208,7 @@ _gcry_sha256_transform_armv8_ce:
 
 .Ldo_nothing:
   mov x0, #0
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_sha256_transform_armv8_ce,.-_gcry_sha256_transform_armv8_ce;)
 

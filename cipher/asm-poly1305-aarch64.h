@@ -237,7 +237,7 @@ _gcry_poly1305_aarch64_blocks1:
 	mov x0, #0;
 
 	POLY1305_POP_REGS();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC()
 ELF(.size _gcry_poly1305_aarch64_blocks1, .-_gcry_poly1305_aarch64_blocks1;)
 #endif

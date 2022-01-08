@@ -101,4 +101,8 @@
 # define CFI_REG_ON_STACK(reg,rsp_offs)
 #endif
 
+/* 'ret' instruction replacement for straight-line speculation mitigation */
+#define ret_spec_stop \
+	ret; dsb sy; isb;
+
 #endif /* GCRY_ASM_COMMON_AARCH64_H */

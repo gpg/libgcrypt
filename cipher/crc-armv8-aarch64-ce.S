@@ -227,7 +227,7 @@ _gcry_crc32r_armv8_ce_bulk:
   /* store CRC */
   st1 {v0.s}[2], [x0]
 
-  ret
+  ret_spec_stop
   CFI_ENDPROC()
 ELF(.size _gcry_crc32r_armv8_ce_bulk,.-_gcry_crc32r_armv8_ce_bulk;)
 
@@ -260,7 +260,7 @@ _gcry_crc32r_armv8_ce_reduction_4:
 
   mov w0, v0.s[1]
 
-  ret
+  ret_spec_stop
   CFI_ENDPROC()
 ELF(.size _gcry_crc32r_armv8_ce_reduction_4,.-_gcry_crc32r_armv8_ce_reduction_4;)
 
@@ -457,7 +457,7 @@ _gcry_crc32_armv8_ce_bulk:
   rev32 v0.8b, v0.8b             /* byte swap */
   st1 {v0.s}[0], [x0]
 
-  ret
+  ret_spec_stop
   CFI_ENDPROC()
 ELF(.size _gcry_crc32_armv8_ce_bulk,.-_gcry_crc32_armv8_ce_bulk;)
 
@@ -490,7 +490,7 @@ _gcry_crc32_armv8_ce_reduction_4:
   rev32 v0.8b, v0.8b            /* Return in input endian */
   mov w0, v0.s[0]
 
-  ret
+  ret_spec_stop
   CFI_ENDPROC()
 ELF(.size _gcry_crc32_armv8_ce_reduction_4,.-_gcry_crc32_armv8_ce_reduction_4;)
 

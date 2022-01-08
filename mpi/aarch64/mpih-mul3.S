@@ -115,10 +115,10 @@ C_SYMBOL_NAME(_gcry_mpih_submul_1):
 	cbnz	w2, .Large_loop;
 
 	mov	x0, x7;
-	ret;
+	ret_spec_stop;
 
 .Loop_end:
 	cinc	x0, x7, cc;
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC()
 ELF(.size C_SYMBOL_NAME(_gcry_mpih_submul_1),.-C_SYMBOL_NAME(_gcry_mpih_submul_1);)

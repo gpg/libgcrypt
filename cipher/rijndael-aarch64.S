@@ -263,7 +263,7 @@ _gcry_aes_arm_encrypt_block:
 	stp	RC, RD, [RDST, #8];
 
 	mov     x0, #(0);
-	ret;
+	ret_spec_stop;
 
 .ltorg
 .Lenc_not_128:
@@ -486,7 +486,7 @@ _gcry_aes_arm_decrypt_block:
 	stp	RC, RD, [RDST, #8];
 
 	mov     x0, #(0);
-	ret;
+	ret_spec_stop;
 
 .ltorg
 .Ldec_256:

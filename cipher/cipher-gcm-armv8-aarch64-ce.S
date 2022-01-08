@@ -365,7 +365,7 @@ _gcry_ghash_armv8_ce_pmull:
 
 .Ldo_nothing:
   mov x0, #0
-  ret
+  ret_spec_stop
   CFI_ENDPROC()
 ELF(.size _gcry_ghash_armv8_ce_pmull,.-_gcry_ghash_armv8_ce_pmull;)
 
@@ -593,7 +593,7 @@ _gcry_polyval_armv8_ce_pmull:
 
 .Lpolyval_do_nothing:
   mov x0, #0
-  ret
+  ret_spec_stop
   CFI_ENDPROC()
 ELF(.size _gcry_polyval_armv8_ce_pmull,.-_gcry_polyval_armv8_ce_pmull;)
 
@@ -645,7 +645,7 @@ _gcry_ghash_setup_armv8_ce_pmull:
   st1 {rh2.16b-rh4.16b}, [x1], #(3*16)
   st1 {rh5.16b-rh6.16b}, [x1]
 
-  ret
+  ret_spec_stop
   CFI_ENDPROC()
 ELF(.size _gcry_ghash_setup_armv8_ce_pmull,.-_gcry_ghash_setup_armv8_ce_pmull;)
 

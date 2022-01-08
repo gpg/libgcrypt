@@ -356,7 +356,7 @@ _gcry_chacha20_aarch64_blocks4:
 	clear(X15);
 
 	eor x0, x0, x0
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 ELF(.size _gcry_chacha20_aarch64_blocks4, .-_gcry_chacha20_aarch64_blocks4;)
 
@@ -641,7 +641,7 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 
 	eor x0, x0, x0
 	POLY1305_POP_REGS()
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 ELF(.size _gcry_chacha20_poly1305_aarch64_blocks4, .-_gcry_chacha20_poly1305_aarch64_blocks4;)
 

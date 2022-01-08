@@ -301,7 +301,7 @@ _gcry_aes_enc_armv8_ce:
   CLEAR_REG(v0)
 
   mov x0, #0
-  ret
+  ret_spec_stop
 
 .Lenc1_192:
   do_aes_one192(e, mc, v0, v0, vk0);
@@ -365,7 +365,7 @@ _gcry_aes_dec_armv8_ce:
   CLEAR_REG(v0)
 
   mov x0, #0
-  ret
+  ret_spec_stop
 
 .Ldec1_192:
   do_aes_one192(d, imc, v0, v0, vk0);
@@ -463,7 +463,7 @@ _gcry_aes_cbc_enc_armv8_ce:
   CLEAR_REG(v0)
 
 .Lcbc_enc_skip:
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_cbc_enc_armv8_ce,.-_gcry_aes_cbc_enc_armv8_ce;)
 
@@ -584,7 +584,7 @@ _gcry_aes_cbc_dec_armv8_ce:
   CFI_ADJUST_CFA_OFFSET(-64);
 
 .Lcbc_dec_skip:
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_cbc_dec_armv8_ce,.-_gcry_aes_cbc_dec_armv8_ce;)
 
@@ -777,7 +777,7 @@ _gcry_aes_ctr_enc_armv8_ce:
   CFI_ADJUST_CFA_OFFSET(-128);
 
 .Lctr_enc_skip:
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_ctr_enc_armv8_ce,.-_gcry_aes_ctr_enc_armv8_ce;)
 
@@ -924,7 +924,7 @@ _gcry_aes_ctr32le_enc_armv8_ce:
   CFI_ADJUST_CFA_OFFSET(-128);
 
 .Lctr32le_enc_skip:
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_ctr32le_enc_armv8_ce,.-_gcry_aes_ctr32le_enc_armv8_ce;)
 
@@ -1006,7 +1006,7 @@ _gcry_aes_cfb_enc_armv8_ce:
   CLEAR_REG(v4)
 
 .Lcfb_enc_skip:
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_cfb_enc_armv8_ce,.-_gcry_aes_cfb_enc_armv8_ce;)
 
@@ -1130,7 +1130,7 @@ _gcry_aes_cfb_dec_armv8_ce:
   CFI_ADJUST_CFA_OFFSET(-64);
 
 .Lcfb_dec_skip:
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_cfb_dec_armv8_ce,.-_gcry_aes_cfb_dec_armv8_ce;)
 
@@ -1379,7 +1379,7 @@ _gcry_aes_ocb_enc_armv8_ce:
   add sp, sp, #128;
   CFI_ADJUST_CFA_OFFSET(-128);
 
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_ocb_enc_armv8_ce,.-_gcry_aes_ocb_enc_armv8_ce;)
 
@@ -1458,7 +1458,7 @@ _gcry_aes_ocb_dec_armv8_ce:
   add sp, sp, #128;
   CFI_ADJUST_CFA_OFFSET(-128);
 
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_ocb_dec_armv8_ce,.-_gcry_aes_ocb_dec_armv8_ce;)
 
@@ -1605,7 +1605,7 @@ _gcry_aes_ocb_auth_armv8_ce:
   CLEAR_REG(v2)
   CLEAR_REG(v16)
 
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_ocb_auth_armv8_ce,.-_gcry_aes_ocb_auth_armv8_ce;)
 
@@ -1806,7 +1806,7 @@ _gcry_aes_xts_enc_armv8_ce:
   CFI_ADJUST_CFA_OFFSET(-128);
 
 .Lxts_enc_skip:
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_xts_enc_armv8_ce,.-_gcry_aes_xts_enc_armv8_ce;)
 
@@ -1874,7 +1874,7 @@ _gcry_aes_xts_dec_armv8_ce:
   CFI_ADJUST_CFA_OFFSET(-128);
 
 .Lxts_dec_skip:
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_xts_dec_armv8_ce,.-_gcry_aes_xts_dec_armv8_ce;)
 
@@ -1897,7 +1897,7 @@ _gcry_aes_sbox4_armv8_ce:
   addv s0, v0.4s
   mov w0, v0.S[0]
   CLEAR_REG(v0)
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_sbox4_armv8_ce,.-_gcry_aes_sbox4_armv8_ce;)
 
@@ -1914,7 +1914,7 @@ _gcry_aes_invmixcol_armv8_ce:
   aesimc v0.16b, v0.16b
   st1 {v0.16b}, [x0]
   CLEAR_REG(v0)
-  ret
+  ret_spec_stop
   CFI_ENDPROC();
 ELF(.size _gcry_aes_invmixcol_armv8_ce,.-_gcry_aes_invmixcol_armv8_ce;)
 

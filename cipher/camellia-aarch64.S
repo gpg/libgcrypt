@@ -238,7 +238,7 @@ _gcry_camellia_arm_encrypt_block:
 	CFI_ADJUST_CFA_OFFSET(-16)
 	CFI_RESTORE(x19)
 	CFI_RESTORE(x30)
-	ret;
+	ret_spec_stop;
 	CFI_RESTORE_STATE()
 .ltorg
 
@@ -252,7 +252,7 @@ _gcry_camellia_arm_encrypt_block:
 	CFI_ADJUST_CFA_OFFSET(-16)
 	CFI_RESTORE(x19)
 	CFI_RESTORE(x30)
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC()
 .ltorg
 ELF(.size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;)
@@ -299,7 +299,7 @@ _gcry_camellia_arm_decrypt_block:
 	CFI_ADJUST_CFA_OFFSET(-16)
 	CFI_RESTORE(x19)
 	CFI_RESTORE(x30)
-	ret;
+	ret_spec_stop;
 	CFI_RESTORE_STATE()
 .ltorg
 

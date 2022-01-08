@@ -262,7 +262,7 @@ _gcry_twofish_arm_encrypt_block:
 
 	str_output_le(RDST, RC, RD, RA, RB, RT0, RT1);
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 .ltorg
 ELF(.size _gcry_twofish_arm_encrypt_block,.-_gcry_twofish_arm_encrypt_block;)
@@ -313,7 +313,7 @@ _gcry_twofish_arm_decrypt_block:
 
 	str_output_le(RDST, RA, RB, RC, RD, RT0, RT1);
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_arm_decrypt_block,.-_gcry_twofish_arm_decrypt_block;)
 
