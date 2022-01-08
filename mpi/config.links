@@ -73,7 +73,7 @@ case "${host}" in
     pentiumpro-*-netbsd*)
        echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
        cat  $srcdir/mpi/i386/syntax.h	   >>./mpi/asm-syntax.h
-       path="i586 i386"
+       path="i386"
        mpi_cpu_arch="x86"
        ;;
     i[34]86*-*-bsdi4*)
@@ -97,7 +97,7 @@ case "${host}" in
 	echo '#define BSD_SYNTAX' >>./mpi/asm-syntax.h
 	echo '#define X86_BROKEN_ALIGN' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
-	path="i586 i386"
+	path="i386"
         mpi_cpu_arch="x86"
 	;;
     i[3467]86*-msdosdjgpp* | \
@@ -111,7 +111,7 @@ case "${host}" in
     i[567]86*-apple-darwin*)
 	echo '#define BSD_SYNTAX'        >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	 >>./mpi/asm-syntax.h
-	path="i586 i386"
+	path="i386"
         mpi_cpu_arch="x86"
 	;;
     i[3467]86*-*-*)
@@ -125,7 +125,7 @@ case "${host}" in
     pentiumpro-*-*)
 	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
-	path="i586 i386"
+	path="i386"
         mpi_cpu_arch="x86"
 	;;
     x86_64-apple-darwin*)
