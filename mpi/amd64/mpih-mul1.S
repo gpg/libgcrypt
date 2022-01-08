@@ -64,4 +64,3 @@ C_SYMBOL_NAME(_gcry_mpih_mul_1:)
 
 	movq	%r8, %rax
 	FUNC_EXIT()
-	ret

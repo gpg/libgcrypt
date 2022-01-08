@@ -60,4 +60,3 @@ C_SYMBOL_NAME(_gcry_mpih_sub_n:)
 	movq	%rcx, %rax		/* zero %rax */
 	adcq	%rax, %rax
 	FUNC_EXIT()
-	ret

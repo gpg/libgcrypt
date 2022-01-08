@@ -79,4 +79,3 @@ C_SYMBOL_NAME(_gcry_mpih_rshift:)
 .Lende:	psrlq	%xmm1, %xmm2
 	movq	%xmm2, -8(%rdi)
 	FUNC_EXIT()
-	ret
