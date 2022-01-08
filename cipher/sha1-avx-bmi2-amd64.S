@@ -432,7 +432,7 @@ _gcry_sha1_transform_amd64_avx_bmi2:
   xorl %eax, %eax;
 
 .Lret:
-  ret;
+  ret_spec_stop;
   CFI_ENDPROC();
 ELF(.size _gcry_sha1_transform_amd64_avx_bmi2,
     .-_gcry_sha1_transform_amd64_avx_bmi2;)

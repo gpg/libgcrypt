@@ -431,7 +431,7 @@ __twofish_enc_blk16:
 	outunpack_enc16(RA, RB, RC, RD);
 	transpose4x4_16(RA, RB, RC, RD);
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __twofish_enc_blk16,.-__twofish_enc_blk16;)
 
@@ -464,7 +464,7 @@ __twofish_dec_blk16:
 	outunpack_dec16(RA, RB, RC, RD);
 	transpose4x4_16(RA, RB, RC, RD);
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __twofish_dec_blk16,.-__twofish_dec_blk16;)
 
@@ -582,7 +582,7 @@ _gcry_twofish_avx2_ctr_enc:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ctr_enc,.-_gcry_twofish_avx2_ctr_enc;)
 
@@ -635,7 +635,7 @@ _gcry_twofish_avx2_cbc_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_cbc_dec,.-_gcry_twofish_avx2_cbc_dec;)
 
@@ -690,7 +690,7 @@ _gcry_twofish_avx2_cfb_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_cfb_dec,.-_gcry_twofish_avx2_cfb_dec;)
 
@@ -804,7 +804,7 @@ _gcry_twofish_avx2_ocb_enc:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_enc,.-_gcry_twofish_avx2_ocb_enc;)
 
@@ -929,7 +929,7 @@ _gcry_twofish_avx2_ocb_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_dec,.-_gcry_twofish_avx2_ocb_dec;)
 
@@ -1032,7 +1032,7 @@ _gcry_twofish_avx2_ocb_auth:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_auth,.-_gcry_twofish_avx2_ocb_auth;)
 

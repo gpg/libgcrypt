@@ -487,7 +487,7 @@ __serpent_enc_blk16:
 	transpose_4x4(RA4, RA1, RA2, RA0, RA3, RTMP0, RTMP1);
 	transpose_4x4(RB4, RB1, RB2, RB0, RB3, RTMP0, RTMP1);
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __serpent_enc_blk16,.-__serpent_enc_blk16;)
 
@@ -579,7 +579,7 @@ __serpent_dec_blk16:
 	transpose_4x4(RA0, RA1, RA2, RA3, RA4, RTMP0, RTMP1);
 	transpose_4x4(RB0, RB1, RB2, RB3, RB4, RTMP0, RTMP1);
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __serpent_dec_blk16,.-__serpent_dec_blk16;)
 
@@ -697,7 +697,7 @@ _gcry_serpent_avx2_ctr_enc:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ctr_enc,.-_gcry_serpent_avx2_ctr_enc;)
 
@@ -750,7 +750,7 @@ _gcry_serpent_avx2_cbc_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_cbc_dec,.-_gcry_serpent_avx2_cbc_dec;)
 
@@ -805,7 +805,7 @@ _gcry_serpent_avx2_cfb_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_cfb_dec,.-_gcry_serpent_avx2_cfb_dec;)
 
@@ -919,7 +919,7 @@ _gcry_serpent_avx2_ocb_enc:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_enc,.-_gcry_serpent_avx2_ocb_enc;)
 
@@ -1043,7 +1043,7 @@ _gcry_serpent_avx2_ocb_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_dec,.-_gcry_serpent_avx2_ocb_dec;)
 
@@ -1146,7 +1146,7 @@ _gcry_serpent_avx2_ocb_auth:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_auth,.-_gcry_serpent_avx2_ocb_auth;)
 

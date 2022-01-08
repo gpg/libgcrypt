@@ -322,7 +322,7 @@ _gcry_chacha20_amd64_avx2_blocks8:
 	/* eax zeroed by round loop. */
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_amd64_avx2_blocks8,
 	  .-_gcry_chacha20_amd64_avx2_blocks8;)
@@ -592,7 +592,7 @@ _gcry_chacha20_poly1305_amd64_avx2_blocks8:
 	xorl %eax, %eax;
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_poly1305_amd64_avx2_blocks8,
 	  .-_gcry_chacha20_poly1305_amd64_avx2_blocks8;)

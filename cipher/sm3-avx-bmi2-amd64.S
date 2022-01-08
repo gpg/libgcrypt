@@ -544,7 +544,7 @@ _gcry_sm3_transform_amd64_avx_bmi2:
 
   leave;
   CFI_LEAVE();
-  ret;
+  ret_spec_stop;
   CFI_ENDPROC();
 ELF(.size _gcry_sm3_transform_amd64_avx_bmi2,
           .-_gcry_sm3_transform_amd64_avx_bmi2;)

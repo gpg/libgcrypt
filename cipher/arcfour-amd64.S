@@ -99,7 +99,7 @@ _gcry_arcfour_amd64:
 	pop	%rbp
 	CFI_POP(%rbp)
 	EXIT_SYSV_FUNC
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 .L__gcry_arcfour_amd64_end:
 ELF(.size _gcry_arcfour_amd64,.L__gcry_arcfour_amd64_end-_gcry_arcfour_amd64)

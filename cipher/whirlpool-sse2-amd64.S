@@ -340,7 +340,7 @@ _gcry_whirlpool_transform_amd64:
 	CFI_ADJUST_CFA_OFFSET(-STACK_MAX);
 .Lskip:
 	movl $(STACK_MAX + 8), %eax;
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_whirlpool_transform_amd64,.-_gcry_whirlpool_transform_amd64;)
 

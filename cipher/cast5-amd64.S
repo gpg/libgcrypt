@@ -219,7 +219,7 @@ _gcry_cast5_amd64_encrypt_block:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_cast5_amd64_encrypt_block,.-_gcry_cast5_amd64_encrypt_block;)
 
@@ -269,7 +269,7 @@ _gcry_cast5_amd64_decrypt_block:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_cast5_amd64_decrypt_block,.-_gcry_cast5_amd64_decrypt_block;)
 
@@ -399,7 +399,7 @@ __cast5_enc_blk4:
 	round_enc_last4(14, F4_3, F4_1);
 
 	outbswap_block4(RLR0, RLR1, RLR2, RLR3);
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __cast5_enc_blk4,.-__cast5_enc_blk4;)
 
@@ -432,7 +432,7 @@ __cast5_dec_blk4:
 
 	outbswap_block4(RLR0, RLR1, RLR2, RLR3);
 	CFI_ENDPROC();
-	ret;
+	ret_spec_stop;
 ELF(.size __cast5_dec_blk4,.-__cast5_dec_blk4;)
 
 .align 8
@@ -508,7 +508,7 @@ _gcry_cast5_amd64_ctr_enc:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_cast5_amd64_ctr_enc,.-_gcry_cast5_amd64_ctr_enc;)
 
@@ -582,7 +582,7 @@ _gcry_cast5_amd64_cbc_dec:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_cast5_amd64_cbc_dec,.-_gcry_cast5_amd64_cbc_dec;)
 
@@ -655,7 +655,7 @@ _gcry_cast5_amd64_cfb_dec:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_cast5_amd64_cfb_dec,.-_gcry_cast5_amd64_cfb_dec;)
 

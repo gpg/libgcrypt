@@ -89,6 +89,6 @@ Loop:
 	CFI_POP(%esi)
 	INSN1(pop,l	,R(edi))
 	CFI_POP(%edi)
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 

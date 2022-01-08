@@ -89,7 +89,7 @@ L2:	movl	(%esi,%edx,4),%eax
 	popl	%ebx
 	popl	%esi
 	popl	%edi
-	ret
+	ret_spec_stop
 
 Lend2:	shrl	%cl,%ebx		/* compute most significant limb */
 	movl	%ebx,(%edi)		/* store it */
@@ -100,6 +100,6 @@ Lend2:	shrl	%cl,%ebx		/* compute most significant limb */
 	CFI_POP(%esi)
 	popl	%edi
 	CFI_POP(%edi)
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 

@@ -815,7 +815,7 @@ __camellia_enc_blk32:
 		    %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
 		    %ymm15, ((key_table) + 8 * 8)(%r8), (%rax), 1 * 32(%rax));
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __camellia_enc_blk32,.-__camellia_enc_blk32;)
 
@@ -880,7 +880,7 @@ __camellia_dec_blk32:
 		    %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
 		    %ymm15, (key_table)(CTX), (%rax), 1 * 32(%rax));
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __camellia_dec_blk32,.-__camellia_dec_blk32;)
 
@@ -1084,7 +1084,7 @@ FUNC_NAME(ctr_enc):
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ctr_enc),.-FUNC_NAME(ctr_enc);)
 
@@ -1161,7 +1161,7 @@ FUNC_NAME(cbc_dec):
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(cbc_dec),.-FUNC_NAME(cbc_dec);)
 
@@ -1245,7 +1245,7 @@ FUNC_NAME(cfb_dec):
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(cfb_dec),.-FUNC_NAME(cfb_dec);)
 
@@ -1419,7 +1419,7 @@ FUNC_NAME(ocb_enc):
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ocb_enc),.-FUNC_NAME(ocb_enc);)
 
@@ -1616,7 +1616,7 @@ FUNC_NAME(ocb_dec):
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ocb_dec),.-FUNC_NAME(ocb_dec);)
 
@@ -1787,7 +1787,7 @@ FUNC_NAME(ocb_auth):
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ocb_auth),.-FUNC_NAME(ocb_auth);)
 

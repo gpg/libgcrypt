@@ -420,7 +420,7 @@ _gcry_sha1_transform_amd64_avx:
   xorl %eax, %eax;
 
 .Lret:
-  ret;
+  ret_spec_stop;
   CFI_ENDPROC();
 ELF(.size _gcry_sha1_transform_amd64_avx,
     .-_gcry_sha1_transform_amd64_avx;)

@@ -428,7 +428,7 @@ _gcry_sha1_transform_amd64_ssse3:
   xorl %eax, %eax;
 
 .Lret:
-  ret;
+  ret_spec_stop;
   CFI_ENDPROC();
 ELF(.size _gcry_sha1_transform_amd64_ssse3,
     .-_gcry_sha1_transform_amd64_ssse3;)

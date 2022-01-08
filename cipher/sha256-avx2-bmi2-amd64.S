@@ -474,7 +474,7 @@ _gcry_sha256_transform_amd64_avx2:
 	CFI_POP(rbx)
 
 .Lnowork:
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 
 .align 64

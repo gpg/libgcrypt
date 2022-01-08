@@ -61,7 +61,7 @@ _gcry_aes_ssse3_enc_preload:
 	movdqa	.Lk_sb2   (%rax), %xmm15 # sb2u
 	movdqa	.Lk_sb2+16(%rax), %xmm14 # sb2t
 	EXIT_SYSV_FUNC
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_aes_ssse3_enc_preload,.-_gcry_aes_ssse3_enc_preload)
 
@@ -83,7 +83,7 @@ _gcry_aes_ssse3_dec_preload:
 	movdqa	.Lk_dsbb   (%rax), %xmm14 # sbbu
 	movdqa	.Lk_dsbe   (%rax), %xmm8  # sbeu
 	EXIT_SYSV_FUNC
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_aes_ssse3_dec_preload,.-_gcry_aes_ssse3_dec_preload)
 
@@ -194,7 +194,7 @@ _aes_encrypt_core:
 	pxor	%xmm4,	%xmm0	# 0 = A
 	pshufb	.Lk_sr(%rsi,%rcx), %xmm0
 	EXIT_SYSV_FUNC
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _aes_encrypt_core,.-_aes_encrypt_core)
 
@@ -303,7 +303,7 @@ _aes_decrypt_core:
 	pxor	%xmm4,	%xmm0	# 0 = A
 	pshufb	.Lk_sr(%rsi,%rcx), %xmm0
 	EXIT_SYSV_FUNC
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _aes_decrypt_core,.-_aes_decrypt_core)
 
@@ -439,7 +439,7 @@ _aes_schedule_core:
 	pxor	%xmm6,	%xmm0		# -> b+c+d b+c b a
 	pshufd	$0x0E,	%xmm0,	%xmm6
 	pslldq	$8,	%xmm6		# clobber low side with zeros
-	ret
+	ret_spec_stop
 
 ##
 ##  .Laes_schedule_256
@@ -546,7 +546,7 @@ _aes_schedule_core:
 	# add in smeared stuff
 	pxor	%xmm7,	%xmm0
 	movdqa	%xmm0,	%xmm7
-	ret
+	ret_spec_stop
 
 ##
 ##  .Laes_schedule_transform
@@ -567,7 +567,7 @@ _aes_schedule_core:
 	movdqa	16(%r11), %xmm0 # hi
 	pshufb	%xmm1,	%xmm0
 	pxor	%xmm2,	%xmm0
-	ret
+	ret_spec_stop
 
 ##
 ##  .Laes_schedule_mangle
@@ -639,7 +639,7 @@ _aes_schedule_core:
 	add	$-16,	%r8
 	and	$48,	%r8
 	movdqa	%xmm3,	(%rdx)
-	ret
+	ret_spec_stop
 
 ##
 ##  .Laes_schedule_mangle_last
@@ -679,7 +679,7 @@ _aes_schedule_core:
 	pxor	%xmm7,  %xmm7
 	pxor	%xmm8,  %xmm8
 	EXIT_SYSV_FUNC
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_aes_ssse3_schedule_core,.-_gcry_aes_ssse3_schedule_core)
 

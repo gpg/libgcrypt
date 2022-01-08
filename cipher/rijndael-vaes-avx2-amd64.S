@@ -383,7 +383,7 @@ _gcry_vaes_avx2_cbc_dec_amd64:
 	vmovdqu %xmm15, (%rsi);
 
 	vzeroall;
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_vaes_avx2_cbc_dec_amd64,.-_gcry_vaes_avx2_cbc_dec_amd64)
 
@@ -691,7 +691,7 @@ _gcry_vaes_avx2_cfb_dec_amd64:
 	vmovdqu %xmm15, (%rsi);
 
 	vzeroall;
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_vaes_avx2_cfb_dec_amd64,.-_gcry_vaes_avx2_cfb_dec_amd64)
 
@@ -1103,7 +1103,7 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	vzeroall;
 	xorl %r10d, %r10d;
 	xorl %r11d, %r11d;
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_vaes_avx2_ctr_enc_amd64,.-_gcry_vaes_avx2_ctr_enc_amd64)
 
@@ -1387,7 +1387,7 @@ _gcry_vaes_avx2_ctr32le_enc_amd64:
 .Ldone_ctr32le_enc:
 	vmovdqu %xmm15, (%rsi);
 	vzeroall;
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_vaes_avx2_ctr32le_enc_amd64,.-_gcry_vaes_avx2_ctr32le_enc_amd64)
 
@@ -1535,7 +1535,7 @@ _gcry_vaes_avx2_ocb_checksum:
 .Locb_checksum_done:
 	vpxor (%rax), %xmm0, %xmm0;
 	vmovdqu %xmm0, (%rax);
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_vaes_avx2_ocb_checksum,.-_gcry_vaes_avx2_ocb_checksum)
 
@@ -2398,7 +2398,7 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 
 	leave;
 	CFI_LEAVE();
-	ret
+	ret_spec_stop
 
 #undef STACK_REGS_POS
 #undef STACK_ALLOC
@@ -2919,7 +2919,7 @@ _gcry_vaes_avx2_xts_crypt_amd64:
 	vzeroall;
 
 	xorl %eax, %eax
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size _gcry_vaes_avx2_xts_crypt_amd64,.-_gcry_vaes_avx2_xts_crypt_amd64)
 

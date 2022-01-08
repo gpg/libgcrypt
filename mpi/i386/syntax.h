@@ -92,3 +92,7 @@
 #undef ALIGN
 #define ALIGN(log) .align log,0x90
 #endif
+
+/* 'ret' instruction replacement for straight-line speculation mitigation */
+#define ret_spec_stop \
+	ret; int3;

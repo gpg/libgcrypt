@@ -276,7 +276,7 @@ __sm4_crypt_blk16:
 	vpshufb RTMP2, RB2, RB2;
 	vpshufb RTMP2, RB3, RB3;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __sm4_crypt_blk16,.-__sm4_crypt_blk16;)
 
@@ -394,7 +394,7 @@ _gcry_sm4_aesni_avx2_ctr_enc:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_aesni_avx2_ctr_enc,.-_gcry_sm4_aesni_avx2_ctr_enc;)
 
@@ -447,7 +447,7 @@ _gcry_sm4_aesni_avx2_cbc_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_aesni_avx2_cbc_dec,.-_gcry_sm4_aesni_avx2_cbc_dec;)
 
@@ -502,7 +502,7 @@ _gcry_sm4_aesni_avx2_cfb_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_aesni_avx2_cfb_dec,.-_gcry_sm4_aesni_avx2_cfb_dec;)
 
@@ -616,7 +616,7 @@ _gcry_sm4_aesni_avx2_ocb_enc:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_aesni_avx2_ocb_enc,.-_gcry_sm4_aesni_avx2_ocb_enc;)
 
@@ -740,7 +740,7 @@ _gcry_sm4_aesni_avx2_ocb_dec:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_aesni_avx2_ocb_dec,.-_gcry_sm4_aesni_avx2_ocb_dec;)
 
@@ -843,7 +843,7 @@ _gcry_sm4_aesni_avx2_ocb_auth:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_aesni_avx2_ocb_auth,.-_gcry_sm4_aesni_avx2_ocb_auth;)
 

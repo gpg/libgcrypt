@@ -151,7 +151,7 @@ __blowfish_enc_blk1:
 	movq %r11, %rbp;
 	CFI_RESTORE(%rbp)
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __blowfish_enc_blk1,.-__blowfish_enc_blk1;)
 
@@ -182,7 +182,7 @@ _gcry_blowfish_amd64_do_encrypt:
 	movl RX0d, (RX2);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_do_encrypt,.-_gcry_blowfish_amd64_do_encrypt;)
 
@@ -210,7 +210,7 @@ _gcry_blowfish_amd64_encrypt_block:
 	write_block();
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_encrypt_block,.-_gcry_blowfish_amd64_encrypt_block;)
 
@@ -253,7 +253,7 @@ _gcry_blowfish_amd64_decrypt_block:
 	CFI_RESTORE(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_decrypt_block,.-_gcry_blowfish_amd64_decrypt_block;)
 
@@ -367,7 +367,7 @@ __blowfish_enc_blk4:
 
 	outbswap_block4();
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __blowfish_enc_blk4,.-__blowfish_enc_blk4;)
 
@@ -398,7 +398,7 @@ __blowfish_dec_blk4:
 
 	outbswap_block4();
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __blowfish_dec_blk4,.-__blowfish_dec_blk4;)
 
@@ -468,7 +468,7 @@ _gcry_blowfish_amd64_ctr_enc:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_ctr_enc,.-_gcry_blowfish_amd64_ctr_enc;)
 
@@ -529,7 +529,7 @@ _gcry_blowfish_amd64_cbc_dec:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_cbc_dec,.-_gcry_blowfish_amd64_cbc_dec;)
 
@@ -593,7 +593,7 @@ _gcry_blowfish_amd64_cfb_dec:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_cfb_dec,.-_gcry_blowfish_amd64_cfb_dec;)
 

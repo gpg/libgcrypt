@@ -564,7 +564,7 @@ _gcry_sha1_transform_amd64_avx2_bmi2:
   /* stack already burned */
   xorl %eax, %eax;
 
-  ret;
+  ret_spec_stop;
   CFI_ENDPROC();
 ELF(.size _gcry_sha1_transform_amd64_avx2_bmi2,
     .-_gcry_sha1_transform_amd64_avx2_bmi2;)

@@ -270,7 +270,7 @@ _gcry_aes_amd64_encrypt_block:
 	movl $(6 * 8), %eax;
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 
 	CFI_RESTORE_STATE();
 .align 4
@@ -448,7 +448,7 @@ _gcry_aes_amd64_decrypt_block:
 	movl $(6 * 8), %eax;
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 
 	CFI_RESTORE_STATE();
 .align 4

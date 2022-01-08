@@ -157,6 +157,6 @@ Loop:	movl	(%esi),%eax
 	CFI_POP(%esi)
 	popl %edi
 	CFI_POP(%edi)
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 

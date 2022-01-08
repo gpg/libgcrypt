@@ -211,7 +211,7 @@ _gcry_twofish_amd64_encrypt_block:
 	CFI_ADJUST_CFA_OFFSET(-3 * 8);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
@@ -265,7 +265,7 @@ _gcry_twofish_amd64_decrypt_block:
 	CFI_ADJUST_CFA_OFFSET(-3 * 8);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
@@ -511,7 +511,7 @@ __twofish_enc_blk3:
 
 	outunpack_enc3();
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __twofish_enc_blk3,.-__twofish_enc_blk3;)
 
@@ -540,7 +540,7 @@ __twofish_dec_blk3:
 
 	outunpack_dec3();
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __twofish_dec_blk3,.-__twofish_dec_blk3;)
 
@@ -641,7 +641,7 @@ _gcry_twofish_amd64_ctr_enc:
 	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ctr_enc,.-_gcry_twofish_amd64_ctr_enc;)
 
@@ -726,7 +726,7 @@ _gcry_twofish_amd64_cbc_dec:
 	CFI_ADJUST_CFA_OFFSET(-9 * 8);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_cbc_dec,.-_gcry_twofish_amd64_cbc_dec;)
 
@@ -811,7 +811,7 @@ _gcry_twofish_amd64_cfb_dec:
 	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_cfb_dec,.-_gcry_twofish_amd64_cfb_dec;)
 
@@ -937,7 +937,7 @@ _gcry_twofish_amd64_ocb_enc:
 	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ocb_enc,.-_gcry_twofish_amd64_ocb_enc;)
 
@@ -1071,7 +1071,7 @@ _gcry_twofish_amd64_ocb_dec:
 	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ocb_dec,.-_gcry_twofish_amd64_ocb_dec;)
 
@@ -1176,7 +1176,7 @@ _gcry_twofish_amd64_ocb_auth:
 	CFI_ADJUST_CFA_OFFSET(-8 * 8);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ocb_auth,.-_gcry_twofish_amd64_ocb_auth;)
 

@@ -822,7 +822,7 @@ __camellia_enc_blk16:
 		    %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 		    %xmm15, ((key_table) + 8 * 8)(%r8), (%rax), 1 * 16(%rax));
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __camellia_enc_blk16,.-__camellia_enc_blk16;)
 
@@ -887,7 +887,7 @@ __camellia_dec_blk16:
 		    %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 		    %xmm15, (key_table)(CTX), (%rax), 1 * 16(%rax));
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __camellia_dec_blk16,.-__camellia_dec_blk16;)
 
@@ -1021,7 +1021,7 @@ _gcry_camellia_aesni_avx_ctr_enc:
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_ctr_enc,.-_gcry_camellia_aesni_avx_ctr_enc;)
 
@@ -1094,7 +1094,7 @@ _gcry_camellia_aesni_avx_cbc_dec:
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_cbc_dec,.-_gcry_camellia_aesni_avx_cbc_dec;)
 
@@ -1176,7 +1176,7 @@ _gcry_camellia_aesni_avx_cfb_dec:
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_cfb_dec,.-_gcry_camellia_aesni_avx_cfb_dec;)
 
@@ -1328,7 +1328,7 @@ _gcry_camellia_aesni_avx_ocb_enc:
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_ocb_enc,.-_gcry_camellia_aesni_avx_ocb_enc;)
 
@@ -1499,7 +1499,7 @@ _gcry_camellia_aesni_avx_ocb_dec:
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_ocb_dec,.-_gcry_camellia_aesni_avx_ocb_dec;)
 
@@ -1647,7 +1647,7 @@ _gcry_camellia_aesni_avx_ocb_auth:
 
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_ocb_auth,.-_gcry_camellia_aesni_avx_ocb_auth;)
 
@@ -2096,7 +2096,7 @@ __camellia_avx_setup128:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __camellia_avx_setup128,.-__camellia_avx_setup128;)
 
@@ -2576,7 +2576,7 @@ __camellia_avx_setup256:
 
 	vzeroall;
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size __camellia_avx_setup256,.-__camellia_avx_setup256;)
 

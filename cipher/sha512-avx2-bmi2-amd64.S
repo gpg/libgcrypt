@@ -439,7 +439,7 @@ _gcry_sha512_transform_amd64_avx2:
 	CFI_DEF_CFA_REGISTER(rsp)
 
 .Lnowork:
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */

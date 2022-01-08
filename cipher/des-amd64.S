@@ -285,7 +285,7 @@ _gcry_3des_amd64_crypt_block:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_crypt_block,.-_gcry_3des_amd64_crypt_block;)
 
@@ -544,7 +544,7 @@ _gcry_3des_amd64_crypt_blk3:
 
 	final_permutation3(RR, RL);
 
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_crypt_blk3,.-_gcry_3des_amd64_crypt_blk3;)
 
@@ -642,7 +642,7 @@ _gcry_3des_amd64_cbc_dec:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;)
 
@@ -740,7 +740,7 @@ _gcry_3des_amd64_ctr_enc:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;)
 
@@ -837,7 +837,7 @@ _gcry_3des_amd64_cfb_dec:
 	CFI_POP(%rbp);
 
 	EXIT_SYSV_FUNC
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_cfb_dec,.-_gcry_3des_amd64_cfb_dec;)
 

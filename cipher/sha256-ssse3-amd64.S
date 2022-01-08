@@ -493,7 +493,7 @@ _gcry_sha256_transform_amd64_ssse3:
 	pop	rbx
 	CFI_POP(rbx)
 
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 
 

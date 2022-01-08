@@ -406,7 +406,7 @@ _gcry_sha512_transform_amd64_ssse3:
 	CFI_ADJUST_CFA_OFFSET(-frame_size);
 
 .Lnowork:
-	ret
+	ret_spec_stop
 	CFI_ENDPROC()
 
 /*

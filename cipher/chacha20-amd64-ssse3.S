@@ -333,7 +333,7 @@ _gcry_chacha20_amd64_ssse3_blocks4:
 	/* eax zeroed by round loop. */
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_amd64_ssse3_blocks4,
 	  .-_gcry_chacha20_amd64_ssse3_blocks4;)
@@ -502,7 +502,7 @@ _gcry_chacha20_amd64_ssse3_blocks1:
 	clear(X13);
 
 	/* eax zeroed by round loop. */
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_amd64_ssse3_blocks1,
 	  .-_gcry_chacha20_amd64_ssse3_blocks1;)
@@ -772,7 +772,7 @@ _gcry_chacha20_poly1305_amd64_ssse3_blocks4:
 	xorl %eax, %eax;
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_poly1305_amd64_ssse3_blocks4,
 	  .-_gcry_chacha20_poly1305_amd64_ssse3_blocks4;)
@@ -1003,7 +1003,7 @@ _gcry_chacha20_poly1305_amd64_ssse3_blocks1:
 	xorl %eax, %eax;
 	leave;
 	CFI_LEAVE();
-	ret;
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_chacha20_poly1305_amd64_ssse3_blocks1,
 	  .-_gcry_chacha20_poly1305_amd64_ssse3_blocks1;)

@@ -186,4 +186,8 @@
 # define EXIT_SYSV_FUNC
 #endif
 
+/* 'ret' instruction replacement for straight-line speculation mitigation */
+#define ret_spec_stop \
+	ret; int3;
+
 #endif /* GCRY_ASM_COMMON_AMD64_H */

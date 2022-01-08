@@ -83,7 +83,7 @@ _gcry_salsa20_amd64_keysetup:
 	movl   %ecx,8(%rdi)
 	movl   %r8d,12(%rdi)
 .L_keysetupdone:
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 
 .align 8
@@ -99,7 +99,7 @@ _gcry_salsa20_amd64_ivsetup:
 	movl   %esi,44(%rdi)
 	movl   %r9d,32(%rdi)
 	movl   %eax,52(%rdi)
-	ret
+	ret_spec_stop
 	CFI_ENDPROC();
 
 .align 8
@@ -926,7 +926,7 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	CFI_DEF_CFA_REGISTER(%rsp)
 	pop %rbx
 	CFI_POP(%rbx)
-	ret
+	ret_spec_stop
 	CFI_RESTORE_STATE();
 .L_bytes_are_128_or_192:
 	sub  $64,%rdx
