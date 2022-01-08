@@ -50,26 +50,14 @@ case "${host}" in
        path=""
        mpi_cpu_arch="x86"
        ;;
-    i[3467]86*-*-openbsd*         | \
-    i[3467]86*-*-freebsd*-elf     | \
-    i[3467]86*-*-freebsd[3-9]*    | \
-    i[3467]86*-*-freebsd[12][0-9]*| \
-    i[3467]86*-*-freebsdelf*      | \
-    i[3467]86*-*-netbsd*          | \
-    i[3467]86*-*-k*bsd*)
-       echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
-       cat  $srcdir/mpi/i386/syntax.h	   >>./mpi/asm-syntax.h
-       path="i386"
-       mpi_cpu_arch="x86"
-       ;;
-    i586*-*-openbsd*         | \
-    i586*-*-freebsd*-elf     | \
-    i586*-*-freebsd[3-9]*    | \
-    i586*-*-freebsd[12][0-9]*| \
-    i586*-*-freebsdelf*      | \
-    i586*-*-netbsd*	     | \
-    i586*-*-k*bsd*	     | \
-    pentium-*-netbsd*	     | \
+    i[34567]86*-*-openbsd*         | \
+    i[34567]86*-*-freebsd*-elf     | \
+    i[34567]86*-*-freebsd[3-9]*    | \
+    i[34567]86*-*-freebsd[12][0-9]*| \
+    i[34567]86*-*-freebsdelf*      | \
+    i[34567]86*-*-netbsd*          | \
+    i[34567]86*-*-k*bsd*           | \
+    pentium-*-netbsd*	           | \
     pentiumpro-*-netbsd*)
        echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
        cat  $srcdir/mpi/i386/syntax.h	   >>./mpi/asm-syntax.h
@@ -82,46 +70,24 @@ case "${host}" in
        path="i386"
        mpi_cpu_arch="x86"
        ;;
-    i[3467]86*-*-linuxaout*  | \
-    i[3467]86*-*-linuxoldld* | \
-    i[3467]86*-*-*bsd*)
+    i[34567]86*-*-linuxaout*  | \
+    i[34567]86*-*-linuxoldld* | \
+    i[34567]86*-*-*bsd*)
 	echo '#define BSD_SYNTAX' >>./mpi/asm-syntax.h
 	echo '#define X86_BROKEN_ALIGN' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
 	path="i386"
         mpi_cpu_arch="x86"
 	;;
-    i586*-*-linuxaout*  | \
-    i586*-*-linuxoldld* | \
-    i586*-*-*bsd*)
-	echo '#define BSD_SYNTAX' >>./mpi/asm-syntax.h
-	echo '#define X86_BROKEN_ALIGN' >>./mpi/asm-syntax.h
-	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
-	path="i386"
-        mpi_cpu_arch="x86"
-	;;
-    i[3467]86*-msdosdjgpp* | \
-    i[34]86*-apple-darwin*)
+    i[34567]86*-msdosdjgpp* | \
+    i[34567]86*-apple-darwin*)
 	echo '#define BSD_SYNTAX'        >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	 >>./mpi/asm-syntax.h
 	path="i386"
         mpi_cpu_arch="x86"
 	;;
-    i586*-msdosdjgpp* | \
-    i[567]86*-apple-darwin*)
-	echo '#define BSD_SYNTAX'        >>./mpi/asm-syntax.h
-	cat  $srcdir/mpi/i386/syntax.h	 >>./mpi/asm-syntax.h
-	path="i386"
-        mpi_cpu_arch="x86"
-	;;
-    i[3467]86*-*-*)
-	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
-	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
-	path="i386"
-        mpi_cpu_arch="x86"
-	;;
-    i586*-*-*  | \
-    pentium-*-*   | \
+    i[34567]86*-*-* | \
+    pentium-*-*     | \
     pentiumpro-*-*)
 	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
