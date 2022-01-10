@@ -608,7 +608,8 @@ AC_SUBST(DEF_HMAC_BINARY_CHECK)
 
 # Implementation of the --with-fips-module-version.
 AC_ARG_WITH(fips-module-version,
-    [  --with-fips-module-version=VERSION)],
+            AS_HELP_STRING([--with-fips-module-version=VERSION],
+                           [Specify the FIPS module version for the build]),
             fips_module_version="$withval", fips_module_version="" )
 AC_DEFINE_UNQUOTED(FIPS_MODULE_VERSION, "$fips_module_version",
                    [Define FIPS module version for certification])
