@@ -1906,7 +1906,7 @@ selftest_encr_2048 (gcry_sexp_t pkey, gcry_sexp_t skey)
   ciphertext = extract_a_from_sexp (encr);
   if (!ciphertext)
     {
-      errtxt = "gcry_pk_decrypt returned garbage";
+      errtxt = "gcry_pk_encrypt returned garbage";
       goto leave;
     }
 

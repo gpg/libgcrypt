@@ -598,9 +598,11 @@ are
 @item ppc-vcrypto
 @item ppc-arch_3_00
 @item ppc-arch_2_07
+@item ppc-arch_3_10
 @item s390x-msa
 @item s390x-msa-4
 @item s390x-msa-8
+@item s390x-msa-9
 @item s390x-vx
 @end table
 
@@ -971,6 +973,19 @@ been registered with Libgpg-error and advise Libgcrypt to read the
 clamp again.  Obviously this control code may only be used before a
 second thread is started in a process.
 
+@item GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER; Arguments: enum gcry_cipher_algos [, enum gcry_cipher_modes]
+
+Check if the given symmetric cipher and optional cipher mode combination
+is approved under the current FIPS 140-3 certification. If the
+combination is approved, this function returns @code{GPG_ERR_NO_ERROR}.
+Otherwise @code{GPG_ERR_NOT_SUPPORTED} is returned.
+
+@item GCRYCTL_FIPS_SERVICE_INDICATOR_KDF; Arguments: enum gcry_kdf_algos
+
+Check if the given KDF is approved under the current FIPS 140-3
+certification. If the KDF is approved, this function returns
+@code{GPG_ERR_NO_ERROR}. Otherwise @code{GPG_ERR_NOT_SUPPORTED}
+is returned.
 
 @end table
 
@@ -990,7 +1005,7 @@ descriptive message to the user and cancelling the operation.
 
 Some error values do not indicate a system error or an error in the
 operation, but the result of an operation that failed properly.  For
-example, if you try to decrypt a tempered message, the decryption will
+example, if you try to decrypt a tampered message, the decryption will
 fail.  Another error value actually means that the end of a data
 buffer or list has been reached.  The following descriptions explain
 for many error codes what they mean usually.  Some error values have
@@ -2495,6 +2510,14 @@ The Brainpool 384 bit curve and its OID.
 @item brainpoolP512r1
 @itemx 1.3.36.3.3.2.8.1.1.13
 The Brainpool 512 bit curve and its OID.
+
+# TODO GOST curves
+
+@item secp256k1
+@itemx 1.3.132.0.10
+
+@item sm2p256v1
+@itemx 1.2.156.10197.1.301
 
 @end table
 As usual the OIDs may optionally be prefixed with the string @code{OID.}
@@ -6435,25 +6458,6 @@ The following symmetric encryption algorithm tests are run during
 power-up:
 
 @table @asis
-@item 3DES
-To test the 3DES 3-key EDE encryption in ECB mode these tests are
-run:
-@enumerate
-@item
-A known answer test is run on a 64 bit test vector processed by 64
-rounds of Single-DES block encryption and decryption using a key
-changed with each round.
-@item
-A known answer test is run on a 64 bit test vector processed by 16
-rounds of 2-key and 3-key Triple-DES block encryption and decryptions
-using a key changed with each round.
-@item
-10 known answer tests using 3-key Triple-DES EDE encryption, comparing
-the ciphertext to the known value, then running a decryption and
-comparing it to the initial plaintext.
-@end enumerate
-(@code{cipher/des.c:selftest})
-
 @item AES-128
 A known answer tests is run using one test vector and one test
 key with AES in ECB mode. (@code{cipher/rijndael.c:selftest_basic_128})
@@ -6509,6 +6513,9 @@ A known answer test using 28 byte of data and a 4 byte key is run.
 @item HMAC SHA-512
 A known answer test using 28 byte of data and a 4 byte key is run.
 (@code{cipher/hmac-tests.c:selftests_sha512})
+@item CMAC AES
+A known answer test using 40 byte of data and a 16 byte key is run.
+(@code{cipher/mac-cmac.c:selftests_cmac_aes})
 @end table
 
 @subsection Random Number Power-Up Test
@@ -6531,7 +6538,7 @@ The public key algorithms are tested during power-up:
 
 @table @asis
 @item RSA
-A pre-defined 1024 bit RSA key is used and these tests are run
+A pre-defined 2048 bit RSA key is used and these tests are run
 in turn:
 @enumerate
 @item
@@ -6541,50 +6548,24 @@ Conversion of S-expression to internal format.
 Private key consistency check.
 (@code{cipher/@/rsa.c:@/selftests_rsa})
 @item
-A pre-defined 20 byte value is signed with PKCS#1 padding for SHA-1.
+A pre-defined 20 byte value is signed with PKCS#1 padding for SHA-256.
 The result is verified using the public key against the original data
-and against modified data.  (@code{cipher/@/rsa.c:@/selftest_sign_1024})
+and against modified data.  (@code{cipher/@/rsa.c:@/selftest_sign_2048})
 @item
-A 1000 bit random value is encrypted and checked that it does not
-match the original random value.  The encrypted result is then
+A predefined 66 byte value is encrypted and checked that it matches
+reference encyrpted message.  The encrypted result is then
 decrypted and checked that it matches the original random value.
-(@code{cipher/@/rsa.c:@/selftest_encr_1024})
+(@code{cipher/@/rsa.c:@/selftest_encr_2048})
 @end enumerate
-
-@item DSA
-A pre-defined 1024 bit DSA key is used and these tests are run in turn:
-@enumerate
-@item
-Conversion of S-expression to internal format.
-(@code{cipher/@/dsa.c:@/selftests_dsa})
-@item
-Private key consistency check.
-(@code{cipher/@/dsa.c:@/selftests_dsa})
-@item
-A pre-defined 20 byte value is signed with PKCS#1 padding for
-SHA-1.  The result is verified using the public key against the
-original data and against modified data.
-(@code{cipher/@/dsa.c:@/selftest_sign_1024})
-@end enumerate
-@end table
 
 @subsection Integrity Power-Up Tests
 
 The integrity of the Libgcrypt is tested during power-up but only if
 checking has been enabled at build time.  The check works by computing
 a HMAC SHA-256 checksum over the file used to load Libgcrypt into
-memory.  That checksum is compared against a checksum stored in a file
-of the same name but with a single dot as a prefix and a suffix of
+memory.  That checksum is compared against a checksum stored inside of
+the same file as in the text in the .rodata1 section of the ELF file.
 @file{.hmac}.
-
-
-@subsection Critical Functions Power-Up Tests
-
-The 3DES weak key detection is tested during power-up by calling the
-detection function with keys taken from a table listening all weak
-keys.  The table itself is protected using a SHA-1 hash.
-(@code{cipher/@/des.c:@/selftest})
-
 
 
 @c --------------------------------
@@ -6614,12 +6595,6 @@ to test the correctness of the signing operation.  As a second signing
 test, the signature is modified by incrementing its value and then
 verified with the expected result that the verification fails.
 (@code{cipher/@/rsa.c:@/test_keys})
-@item DSA
-The test uses a random number of the size of the Q parameter to create
-a signature and then checks that the signature verifies.  As a second
-signing test, the data is modified by incrementing its value and then
-verified against the signature with the expected result that the
-verification fails.  (@code{cipher/@/dsa.c:@/test_keys})
 @end table
 
 
@@ -6728,6 +6703,8 @@ A known answer test using 152 byte of data and a 131 byte key is run.
 @end table
 
 
+#TODO other ciphers selftests outside of fips mode
+
 @c ********************************************
 @node FIPS Mode
 @appendix Description of the FIPS Mode
@@ -6748,8 +6725,6 @@ If Libgcrypt is used in FIPS mode these restrictions are effective:
 The cryptographic algorithms are restricted to this list:
 
 @table @asis
-@item GCRY_CIPHER_3DES
-3 key EDE Triple-DES symmetric encryption.
 @item GCRY_CIPHER_AES128
 AES 128 bit symmetric encryption.
 @item GCRY_CIPHER_AES192
@@ -6776,22 +6751,18 @@ HMAC using a SHA-256 message digest.
 HMAC using a SHA-384 message digest.
 @item GCRY_MD_SHA512,GCRY_MD_FLAG_HMAC
 HMAC using a SHA-512 message digest.
+@item GCRY_MAC_CMAC_AES
+CMAC using a AES key.
 @item GCRY_PK_RSA
 RSA encryption and signing.
-@item GCRY_PK_DSA
-DSA signing.
 @end table
 
 Note that the CRC algorithms are not considered cryptographic algorithms
 and thus are in addition available.
 
 @item
-RSA key generation refuses to create a key with a keysize of
-less than 1024 bits.
-
-@item
-DSA key generation refuses to create a key with a keysize other
-than 1024 bits.
+RSA key generation refuses to create and uyse ea key with a keysize of
+less than 2048 bits.
 
 @item
 The @code{transient-key} flag for RSA and DSA key generation is ignored.
@@ -6800,14 +6771,15 @@ The @code{transient-key} flag for RSA and DSA key generation is ignored.
 Support for the VIA Padlock engine is disabled.
 
 @item
-FIPS mode may only be used on systems with a /dev/random device.
-Switching into FIPS mode on other systems will fail at runtime.
+FIPS mode may only be used on systems with a /dev/random device or
+with a getentropy syscall. Switching into FIPS mode on other systems
+will fail at runtime.
 
 @item
 Saving and loading a random seed file is ignored.
 
 @item
-An X9.31 style random number generator is used in place of the
+The DRBG style random number generator is used in place of the
 large-pool-CSPRNG generator.
 
 @item
@@ -6832,10 +6804,14 @@ memory zeroization.
 The digest algorithm MD5 may not be used.
 
 @item
+The signatures using SHA-1 digest algorithm may not be used.
+
+@item
 In FIPS mode the command @code{GCRYCTL_DISABLE_SECMEM} is ignored.
 
 @item
 A handler set by @code{gcry_set_outofcore_handler} is ignored.
+
 @item
 A handler set by @code{gcry_set_fatalerror_handler} is ignored.
 
