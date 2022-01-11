@@ -754,6 +754,27 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       }
       break;
 
+    case GCRYCTL_NO_FIPS_MODE:
+      /* Performing this command puts the library into non-fips mode,
+         even if system has fips setting.  It is not possible to put
+         the libraty into non-fips mode after having passed the
+         initialization. */
+      _gcry_set_preferred_rng_type (0);
+      if (!_gcry_global_any_init_done)
+        {
+          /* Not yet initialized at all.  Set a flag so that we are put
+             into non-fips mode during initialization.  */
+          force_fips_mode = 0;
+        }
+      else if (!init_finished)
+        {
+          /* Already initialized.  */
+          _gcry_no_fips_mode_required = 1;
+        }
+      else
+	rc = GPG_ERR_GENERAL;
+      break;
+
     case GCRYCTL_SELFTEST:
       /* Run a selftest.  This works in fips mode as well as in
          standard mode.  In contrast to the power-up tests, we use an

@@ -211,6 +211,7 @@ of the library are verified.
 * Initializing the library::    How to initialize the library.
 * Multi-Threading::             How Libgcrypt can be used in a MT environment.
 * Enabling FIPS mode::          How to enable the FIPS mode.
+* Disabling FIPS mode::         How to disable the FIPS mode.
 * Hardware features::           How to disable hardware features.
 @end menu
 
@@ -513,7 +514,7 @@ versions of Libgcrypt are approved.
 
 Because FIPS 140 has certain restrictions on the use of cryptography
 which are not always wanted, Libgcrypt needs to be put into FIPS mode
-explicitly.  Three alternative mechanisms are provided to switch
+explicitly.  Four alternative mechanisms are provided to switch
 Libgcrypt into this mode:
 
 @itemize
@@ -529,11 +530,36 @@ into FIPS mode at initialization time.  Note that this filename is
 hardwired and does not depend on any configuration options.
 
 @item
+By setting the environment variable @code{LIBGCRYPT_FORCE_FIPS_MODE},
+Libgcrypt is put into FIPS mode at initialization time.
+
+@item
 If the application requests FIPS mode using the control command
 @code{GCRYCTL_FORCE_FIPS_MODE}.  This must be done prior to any
 initialization (i.e. before @code{gcry_check_version}).
 
 @end itemize
+
+
+@node Disabling FIPS mode
+@section How to disable the FIPS mode
+@cindex FIPS mode
+@cindex FIPS 140
+
+@anchor{disabling fips mode}
+When the system is configured using libgcrypt in FIPS mode (by file or
+environement variable), but an application wants to use non-FIPS
+features, Libgcrypt needs to be gotten out of FIPS mode.  A mechanism
+is provided to switch Libgcrypt into non-FIPS mode:
+
+@itemize
+@item
+If the application requests non-FIPS mode using the control command
+@code{GCRYCTL_NO_FIPS_MODE}.  This must be done prior to any
+initialization (i.e. before @code{gcry_check_version}).
+@end itemize
+
+
 
 @node Hardware features
 @section How to disable hardware features
@@ -870,6 +896,13 @@ be put into operational state.  This command may be used before a call
 to @code{gcry_check_version} and that is actually the recommended way to let an
 application switch the library into FIPS mode.  Note that Libgcrypt will
 reject an attempt to switch to fips mode during or after the initialization.
+
+@item GCRYCTL_NO_FIPS_MODE; Arguments: none
+Running this command puts the library into non-FIPS mode.  This
+command may be used before a call to @code{gcry_check_version} and
+that is actually the recommended way to let an application switch the
+library into non-FIPS mode.  Note that Libgcrypt will reject an attempt to
+switch to non-FIPS mode during or after the initialization.
 
 @item GCRYCTL_SET_ENFORCED_FIPS_FLAG; Arguments: none
 This command is obsolete and has no effect; do not use it.
@@ -5765,6 +5798,11 @@ used to change the behaviour of Libgcrypt.
 The environment variables considered by Libgcrypt are:
 
 @table @code
+
+@item LIBGCRYPT_FORCE_FIPS_MODE
+@cindex LIBGCRYPT_FORCE_FIPS_MODE
+By setting this variable to any value, Libgcrypt is put into FIPS mode
+at initialization time (@pxref{enabling fips mode}).
 
 @item GCRYPT_BARRETT
 @cindex GCRYPT_BARRETT

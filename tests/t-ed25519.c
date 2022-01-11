@@ -35,6 +35,7 @@
 
 static int sign_with_pk;
 static int no_verify;
+static int no_fips;
 static int custom_data_file;
 static int in_fips_mode;
 
@@ -474,6 +475,11 @@ main (int argc, char **argv)
               argc--; argv++;
             }
         }
+      else if (!strcmp (*argv, "--no-fips"))
+        {
+          no_fips = 1;
+          argc--; argv++;
+        }
       else if (!strncmp (*argv, "--", 2))
         die ("unknown option '%s'", *argv);
 
@@ -489,6 +495,11 @@ main (int argc, char **argv)
     die ("version mismatch\n");
   if (debug)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
+  if (no_fips)
+    {
+      xgcry_control ((GCRYCTL_NO_FIPS_MODE, 0));
+      xgcry_control ((GCRYCTL_FIPS_MODE_P, 0));
+    }
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
 
