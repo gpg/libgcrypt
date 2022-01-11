@@ -286,6 +286,9 @@ _gcry_cipher_keywrap_decrypt_auto (gcry_cipher_hd_t c,
       unsigned int burn;
       unsigned char t[16];
 
+      if (!(c->flags & GCRY_CIPHER_EXTENDED))
+        return GPG_ERR_BUFFER_TOO_SHORT;
+
       burn = c->spec->decrypt (&c->context.c, t, inbuf);
       if (burn > 0)
         _gcry_burn_stack (burn + 4 * sizeof(void *));
@@ -339,7 +342,9 @@ _gcry_cipher_keywrap_decrypt_auto (gcry_cipher_hd_t c,
               unsigned int plen = (a[4]<<24) | (a[5]<<16) | (a[6]<<8) | a[7];
               int padlen = inbuflen - 8 - plen;
 
-              if (padlen < 0 || padlen > 7)
+              if (!(c->flags & GCRY_CIPHER_EXTENDED))
+                err = GPG_ERR_CHECKSUM;
+              else if (padlen < 0 || padlen > 7)
                 err = GPG_ERR_CHECKSUM;
               else if (padlen)
                 {
