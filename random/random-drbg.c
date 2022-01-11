@@ -621,9 +621,9 @@ drbg_get_entropy (drbg_state_t drbg, unsigned char *buffer,
 #if USE_RNDGETENTROPY
   rc = _gcry_rndgetentropy_gather_random (drbg_read_cb, 0, len,
                                           GCRY_VERY_STRONG_RANDOM);
-#elif USE_RNDLINUX
-  rc = _gcry_rndlinux_gather_random (drbg_read_cb, 0, len,
-				     GCRY_VERY_STRONG_RANDOM);
+#elif USE_RNDOLDLINUX
+  rc = _gcry_rndoldlinux_gather_random (drbg_read_cb, 0, len,
+                                        GCRY_VERY_STRONG_RANDOM);
 #elif USE_RNDUNIX
   rc = _gcry_rndunix_gather_random (drbg_read_cb, 0, len,
 				    GCRY_VERY_STRONG_RANDOM);
@@ -1873,8 +1873,8 @@ _gcry_rngdrbg_close_fds (void)
 #if USE_RNDGETENTROPY
   _gcry_rndgetentropy_gather_random (NULL, 0, 0, 0);
 #endif
-#if USE_RNDLINUX
-  _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
+#if USE_RNDOLDLINUX
+  _gcry_rndoldlinux_gather_random (NULL, 0, 0, 0);
 #endif
   if (drbg_state)
     {

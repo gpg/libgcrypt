@@ -3111,8 +3111,8 @@ fi
 
 LIST_MEMBER(linux, $random_modules)
 if test "$found" = "1" ; then
-   GCRYPT_RANDOM="$GCRYPT_RANDOM rndlinux.lo"
-   AC_DEFINE(USE_RNDLINUX, 1, [Defined if the /dev/random RNG should be used.])
+   GCRYPT_RANDOM="$GCRYPT_RANDOM rndoldlinux.lo"
+   AC_DEFINE(USE_RNDOLDLINUX, 1, [Defined if the /dev/random RNG should be used.])
 fi
 
 LIST_MEMBER(unix, $random_modules)

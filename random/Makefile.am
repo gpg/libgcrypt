@@ -41,7 +41,7 @@ rndhw.c
 
 EXTRA_librandom_la_SOURCES = \
 rndgetentropy.c \
-rndlinux.c \
+rndoldlinux.c \
 rndegd.c \
 rndunix.c \
 rndw32.c  \

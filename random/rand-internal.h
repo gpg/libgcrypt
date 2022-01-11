@@ -93,11 +93,11 @@ int _gcry_rndgetentropy_gather_random (void (*add) (const void *, size_t,
                                        enum random_origins origin,
                                        size_t length, int level);
 
-/*-- rndlinux.c --*/
-int _gcry_rndlinux_gather_random (void (*add) (const void *, size_t,
-                                               enum random_origins),
-                                   enum random_origins origin,
-                                  size_t length, int level);
+/*-- rndoldlinux.c --*/
+int _gcry_rndoldlinux_gather_random (void (*add) (const void *, size_t,
+                                                  enum random_origins),
+                                     enum random_origins origin,
+                                     size_t length, int level);
 
 /*-- rndunix.c --*/
 int _gcry_rndunix_gather_random (void (*add) (const void *, size_t,

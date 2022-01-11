@@ -323,7 +323,7 @@ _gcry_rngcsprng_initialize (int full)
 
 
 /* Try to close the FDs of the random gather module.  This is
-   currently only implemented for rndlinux. */
+   currently only implemented for rndgetentropy/rndoldlinux. */
 void
 _gcry_rngcsprng_close_fds (void)
 {
@@ -331,8 +331,8 @@ _gcry_rngcsprng_close_fds (void)
 #if USE_RNDGETENTROPY
   _gcry_rndgetentropy_gather_random (NULL, 0, 0, 0);
 #endif
-#if USE_RNDLINUX
-  _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
+#if USE_RNDOLDLINUX
+  _gcry_rndoldlinux_gather_random (NULL, 0, 0, 0);
 #endif
   pool_writepos = 0;
   pool_readpos = 0;
@@ -1152,11 +1152,11 @@ getfnc_gather_random (void))(void (*)(const void*, size_t,
   return fnc;
 #endif
 
-#if USE_RNDLINUX
+#if USE_RNDOLDLINUX
   if ( !access (NAME_OF_DEV_RANDOM, R_OK)
        && !access (NAME_OF_DEV_URANDOM, R_OK))
     {
-      fnc = _gcry_rndlinux_gather_random;
+      fnc = _gcry_rndoldlinux_gather_random;
       return fnc;
     }
 #endif

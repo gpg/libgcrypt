@@ -1,4 +1,4 @@
-/* rndlinux.c  -  raw random number for OSes with /dev/random
+/* rndoldlinux.c  -  raw random number for OSes with /dev/random
  * Copyright (C) 1998, 2001, 2002, 2003, 2007,
  *               2009  Free Software Foundation, Inc.
  *
@@ -116,10 +116,10 @@ open_device (const char *name, int retry)
  * error).  This function should be entered only by one thread at a
  * time. */
 int
-_gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
-                                          enum random_origins),
-                              enum random_origins origin,
-                              size_t length, int level )
+_gcry_rndoldlinux_gather_random (void (*add)(const void*, size_t,
+                                             enum random_origins),
+                                 enum random_origins origin,
+                                 size_t length, int level )
 {
   static int fd_urandom = -1;
   static int fd_random = -1;

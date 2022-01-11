@@ -791,7 +791,7 @@ reduce the "up to 16 bytes" above to 0.  Then the dependencies of the
 initial states of the pools are completely known.  Note that this is not
 an issue if random of @code{GCRY_VERY_STRONG_RANDOM} quality is
 requested as in this case enough extra entropy gets mixed.  It is also
-not an issue when using rndgetentropy or rndlinux module, because the
+not an issue when using rndgetentropy or rndoldlinux module, because the
 module guarantees to read full 16 bytes and thus there is no
 way for an attacker without kernel access to control these 16 bytes.
 
@@ -6250,7 +6250,7 @@ All generators make use of so-called entropy gathering modules:
 @item rndgetentropy
 Uses the operating system provided @code{getentropy} function.
 
-@item rndlinux
+@item rndoldlinux
 Uses the operating system provided @file{/dev/random} and
 @file{/dev/urandom} devices.  The @file{/dev/gcrypt/random.conf}
 config option @option{only-urandom} can be used to inhibit the use of
@@ -6346,12 +6346,12 @@ output blocks.
 
 On Unix like systems the @code{GCRY_VERY_STRONG_RANDOM} and
 @code{GCRY_STRONG_RANDOM} generators are keyed and seeded using the
-rndgetentropy or rndlinux module.  With rndlinux module, these
+rndgetentropy or rndoldlinux module.  With rndoldlinux module, these
 generators may block until the OS kernel has collected enough entropy.
 When used with Microsoft Windows the rndw32 module is used instead.
 
 The generator used for @code{gcry_create_nonce} is keyed and seeded
-from the @code{GCRY_STRONG_RANDOM} generator.  Thus, with rndlinux
+from the @code{GCRY_STRONG_RANDOM} generator.  Thus, with rndoldlinux
 module, it may also block if the @code{GCRY_STRONG_RANDOM} generator
 has not yet been used before and thus gets initialized on the first
 use by @code{gcry_create_nonce}.  This special treatment is justified
