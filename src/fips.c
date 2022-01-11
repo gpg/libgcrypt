@@ -343,7 +343,7 @@ _gcry_fips_test_operational (void)
 }
 
 int
-_gcry_fips_indicator (va_list arg_ptr)
+_gcry_fips_indicator_cipher (va_list arg_ptr)
 {
   enum gcry_cipher_algos alg = va_arg (arg_ptr, enum gcry_cipher_algos);
   enum gcry_cipher_modes mode;
@@ -369,6 +369,20 @@ _gcry_fips_indicator (va_list arg_ptr)
         default:
           return GPG_ERR_NOT_SUPPORTED;
         }
+    default:
+      return GPG_ERR_NOT_SUPPORTED;
+    }
+}
+
+int
+_gcry_fips_indicator_kdf (va_list arg_ptr)
+{
+  enum gcry_cipher_algos alg = va_arg (arg_ptr, enum gcry_kdf_algos);
+
+  switch (alg)
+    {
+    case GCRY_KDF_PBKDF2:
+      return GPG_ERR_NO_ERROR;
     default:
       return GPG_ERR_NOT_SUPPORTED;
     }
