@@ -1723,34 +1723,97 @@ _gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
 {
+  unsigned int rounds = ctx->rounds;
+  aesni_prepare_2_7_variable;
+
   aesni_prepare ();
+  aesni_prepare_2_7();
 
   asm volatile ("movdqu %[iv], %%xmm0\n\t"
-                : /* No output */
-                : [iv] "m" (*iv)
-                : "memory" );
+		: /* No output */
+		: [iv] "m" (*iv)
+		: "memory" );
+
+  asm volatile ("movdqa %[key0], %%xmm2\n\t"     /* xmm2 = key[0] */
+		"movdqa %[keylast], %%xmm4\n\t"  /* xmm4 = key[last] */
+		"movdqa %%xmm0, %%xmm3\n"
+		"pxor %%xmm2, %%xmm4\n\t"        /* xmm4 = key[0] ^ key[last] */
+		"pxor %%xmm2, %%xmm0\n\t"        /* xmm0 = IV ^ key[0] */
+		: /* No output */
+		: [key0] "m" (ctx->keyschenc[0][0][0]),
+		  [keylast] "m" (ctx->keyschenc[rounds][0][0])
+		: "memory" );
 
   for ( ;nblocks; nblocks-- )
     {
-      do_aesni_enc (ctx);
+      asm volatile ("movdqu %[inbuf], %%xmm5\n\t"
+		    "movdqa %%xmm2, %%xmm3\n\t"
+		    "pxor %%xmm4, %%xmm5\n\t"  /* xmm5 = input ^ key[last] ^ key[0] */
+		    :
+		    : [inbuf] "m" (*inbuf)
+		    : "memory" );
 
-      asm volatile ("movdqu %[inbuf], %%xmm1\n\t"
-                    "pxor %%xmm1, %%xmm0\n\t"
-                    "movdqu %%xmm0, %[outbuf]\n\t"
-                    : [outbuf] "=m" (*outbuf)
-                    : [inbuf] "m" (*inbuf)
-                    : "memory" );
+#define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
+#define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
+#define aesenclast_xmm5_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc5\n\t"
+      asm volatile ("movdqa 0x10(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x20(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x30(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x40(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x50(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x60(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x70(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x80(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x90(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "cmpl $10, %[rounds]\n\t"
+		    "jz .Lenclast%=\n\t"
+		    "movdqa 0xa0(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0xb0(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "cmpl $12, %[rounds]\n\t"
+		    "jz .Lenclast%=\n\t"
+		    "movdqa 0xc0(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0xd0(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+
+		    ".Lenclast%=:\n\t"
+		    aesenclast_xmm5_xmm0
+		    :
+		    : [key] "r" (ctx->keyschenc),
+		      [rounds] "r" (rounds)
+		    : "cc", "memory");
+#undef aesenc_xmm1_xmm0
+#undef aesenclast_xmm1_xmm0
+#undef aesenclast_xmm5_xmm0
+
+      asm volatile ("pxor %%xmm0, %%xmm3\n\t"
+		    "movdqu %%xmm3, %[outbuf]\n\t"
+		    : [outbuf] "=m" (*outbuf)
+		    : [inbuf] "m" (*inbuf)
+		    : "memory" );
 
       outbuf += BLOCKSIZE;
       inbuf  += BLOCKSIZE;
     }
 
-  asm volatile ("movdqu %%xmm0, %[iv]\n\t"
-                : [iv] "=m" (*iv)
-                :
-                : "memory" );
+  asm volatile ("movdqu %%xmm3, %[iv]\n\t"
+		: [iv] "=m" (*iv)
+		:
+		: "memory" );
 
   aesni_cleanup ();
+  aesni_cleanup_2_7 ();
 }
 
 
@@ -1759,41 +1822,107 @@ _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks, int cbc_mac)
 {
+  unsigned int rounds = ctx->rounds;
   aesni_prepare_2_7_variable;
+
+  if (nblocks == 0) /* CMAC may call with nblocks 0. */
+    return;
 
   aesni_prepare ();
   aesni_prepare_2_7();
 
-  asm volatile ("movdqu %[iv], %%xmm5\n\t"
-                : /* No output */
-                : [iv] "m" (*iv)
-                : "memory" );
+  asm volatile ("movdqu %[iv], %%xmm0\n\t"
+		: /* No output */
+		: [iv] "m" (*iv)
+		: "memory" );
 
-  for ( ;nblocks; nblocks-- )
+  asm volatile ("movdqa %[key0], %%xmm2\n\t"     /* xmm2 = key[0] */
+		"movdqa %[keylast], %%xmm3\n\t"  /* xmm3 = key[last] */
+		"pxor %%xmm2, %%xmm0\n\t"        /* xmm0 = IV ^ key[0] */
+		"pxor %%xmm3, %%xmm2\n\t"        /* xmm2 = key[0] ^ key[last] */
+		: /* No output */
+		: [key0] "m" (ctx->keyschenc[0][0][0]),
+		  [keylast] "m" (ctx->keyschenc[rounds][0][0])
+		: "memory" );
+
+  asm volatile ("movdqu %[inbuf], %%xmm4\n\t"
+		"pxor %%xmm4, %%xmm0\n\t"  /* xmm0 = IV ^ key[0] ^ input */
+		:
+		: [inbuf] "m" (*inbuf)
+		: "memory" );
+  inbuf += BLOCKSIZE;
+
+  for ( ;nblocks; )
     {
-      asm volatile ("movdqu %[inbuf], %%xmm0\n\t"
-                    "pxor %%xmm5, %%xmm0\n\t"
-                    : /* No output */
-                    : [inbuf] "m" (*inbuf)
-                    : "memory" );
+      if (--nblocks)
+	{
+	  asm volatile ("movdqu %[inbuf], %%xmm4\n\t"
+			/* xmm4 = IV ^ key[0] ^ key[last] ^ input: */
+			"pxor %%xmm2, %%xmm4\n\t"
+			:
+			: [inbuf] "m" (*inbuf)
+			: "memory" );
+	  inbuf += BLOCKSIZE;
+	}
 
-      do_aesni_enc (ctx);
+#define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
+#define aesenclast_xmm4_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc4\n\t"
+#define aesenclast_xmm3_xmm5  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xeb\n\t"
+      asm volatile ("movdqa 0x10(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x20(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x30(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x40(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x50(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x60(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x70(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x80(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0x90(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "cmpl $10, %[rounds]\n\t"
+		    "jz .Lenclast%=\n\t"
+		    "movdqa 0xa0(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0xb0(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "cmpl $12, %[rounds]\n\t"
+		    "jz .Lenclast%=\n\t"
+		    "movdqa 0xc0(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
+		    "movdqa 0xd0(%[key]), %%xmm1\n\t"
+		    aesenc_xmm1_xmm0
 
-      asm volatile ("movdqa %%xmm0, %%xmm5\n\t"
-                    "movdqu %%xmm0, %[outbuf]\n\t"
-                    : [outbuf] "=m" (*outbuf)
-                    :
-                    : "memory" );
+		    ".Lenclast%=:\n\t"
+		    "movdqa %%xmm0, %%xmm5\n"
+		    aesenclast_xmm4_xmm0  /* xmm0 = IV ^ key[0] */
+		    aesenclast_xmm3_xmm5  /* xmm5 = IV */
+		    :
+		    : [key] "r" (ctx->keyschenc),
+		      [rounds] "r" (rounds)
+		    : "cc", "memory");
+#undef aesenc_xmm1_xmm0
+#undef aesenclast_xmm4_xmm0
+#undef aesenclast_xmm3_xmm5
 
-      inbuf += BLOCKSIZE;
-      if (!cbc_mac)
-        outbuf += BLOCKSIZE;
+      asm volatile ("movdqu %%xmm5, %[outbuf]\n\t"
+		    : [outbuf] "=m" (*outbuf)
+		    :
+		    : "memory" );
+
+      outbuf += -(!cbc_mac) & BLOCKSIZE;
     }
 
   asm volatile ("movdqu %%xmm5, %[iv]\n\t"
-                : [iv] "=m" (*iv)
-                :
-                : "memory" );
+		: [iv] "=m" (*iv)
+		:
+		: "memory" );
 
   aesni_cleanup ();
   aesni_cleanup_2_7 ();
