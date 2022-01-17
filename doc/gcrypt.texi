@@ -6557,6 +6557,7 @@ reference encyrpted message.  The encrypted result is then
 decrypted and checked that it matches the original random value.
 (@code{cipher/@/rsa.c:@/selftest_encr_2048})
 @end enumerate
+@end table
 
 @subsection Integrity Power-Up Tests
 

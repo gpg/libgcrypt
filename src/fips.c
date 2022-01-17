@@ -377,7 +377,7 @@ _gcry_fips_indicator_cipher (va_list arg_ptr)
 int
 _gcry_fips_indicator_kdf (va_list arg_ptr)
 {
-  enum gcry_cipher_algos alg = va_arg (arg_ptr, enum gcry_kdf_algos);
+  enum gcry_kdf_algos alg = va_arg (arg_ptr, enum gcry_kdf_algos);
 
   switch (alg)
     {

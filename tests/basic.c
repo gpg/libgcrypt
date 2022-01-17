@@ -7964,7 +7964,7 @@ do_check_ocb_cipher (int inplace)
       /* Verify the FIPS indicator marks this as non-approved */
       if (in_fips_mode)
         {
-          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER,
                               tv[tidx].algo, GCRY_CIPHER_MODE_OCB);
           if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
             fail ("cipher-ocb, gcry_control did not fail as expected (tv %d): %s\n",
@@ -8249,7 +8249,7 @@ check_ocb_cipher_largebuf_split (int algo, int keylen, const char *tagexpect,
   /* Verify the FIPS indicator marks this as non-approved */
   if (in_fips_mode)
     {
-      err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+      err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER,
                           algo, GCRY_CIPHER_MODE_OCB);
       if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
         fail ("cipher-ocb, gcry_control did not fail as expected (large, algo %d): %s\n",
@@ -8471,7 +8471,7 @@ check_ocb_cipher_checksum (int algo, int keylen)
   /* Verify the FIPS indicator marks this as non-approved */
   if (in_fips_mode)
     {
-      err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+      err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER,
                           algo, GCRY_CIPHER_MODE_OCB);
       if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
         fail ("cipher-ocb, gcry_control did not fail as expected (checksum, algo %d): %s\n",
@@ -8749,7 +8749,7 @@ check_ocb_cipher_splitaad (void)
       /* Verify the FIPS indicator marks this as non-approved */
       if (in_fips_mode)
         {
-          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER,
                               GCRY_CIPHER_AES, GCRY_CIPHER_MODE_OCB);
           if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
             fail ("cipher-ocb-splitaad, gcry_control did not fail as expected: %s\n",
@@ -10742,7 +10742,7 @@ check_bulk_cipher_modes (void)
       /* Verify the FIPS indicator marks approved cipher/modes combinations */
       if (in_fips_mode)
         {
-          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,
+          err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER,
                               tv[i].algo, tv[i].mode);
           if (gpg_err_code (err) != GPG_ERR_NO_ERROR)
             fail ("gcry_control unexpectedly failed for algo = %s, mode = %d : %s\n",
