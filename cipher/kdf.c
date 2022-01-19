@@ -355,49 +355,7 @@ selftest_pbkdf2 (int extended, selftest_report_func_t report)
     int disabled;
   } tv[] = {
 #if USE_SHA1
-#define NUM_TEST_VECTORS 9
-    /* SHA1 test vectors are from RFC-6070.  */
-    {
-      "Basic PBKDF2 SHA1 #1",
-      "password", 8,
-      "salt", 4,
-      GCRY_MD_SHA1,
-      1,
-      20,
-      "\x0c\x60\xc8\x0f\x96\x1f\x0e\x71\xf3\xa9"
-      "\xb5\x24\xaf\x60\x12\x06\x2f\xe0\x37\xa6"
-    },
-    {
-      "Basic PBKDF2 SHA1 #2",
-      "password", 8,
-      "salt", 4,
-      GCRY_MD_SHA1,
-      2,
-      20,
-      "\xea\x6c\x01\x4d\xc7\x2d\x6f\x8c\xcd\x1e"
-      "\xd9\x2a\xce\x1d\x41\xf0\xd8\xde\x89\x57"
-    },
-    {
-      "Basic PBKDF2 SHA1 #3",
-      "password", 8,
-      "salt", 4,
-      GCRY_MD_SHA1,
-      4096,
-      20,
-      "\x4b\x00\x79\x01\xb7\x65\x48\x9a\xbe\xad"
-      "\x49\xd9\x26\xf7\x21\xd0\x65\xa4\x29\xc1"
-    },
-    {
-      "Basic PBKDF2 SHA1 #4",
-      "password", 8,
-      "salt", 4,
-      GCRY_MD_SHA1,
-      16777216,
-      20,
-      "\xee\xfe\x3d\x61\xcd\x4d\xa4\xe4\xe9\x94"
-      "\x5b\x3d\x6b\xa2\x15\x8c\x26\x34\xe9\x84",
-      1 /* This test takes too long.  */
-    },
+#define NUM_TEST_VECTORS 2
     {
       "Basic PBKDF2 SHA1 #5",
       "passwordPASSWORDpassword", 24,
@@ -409,39 +367,9 @@ selftest_pbkdf2 (int extended, selftest_report_func_t report)
       "\xd8\x36\x62\xc0\xe4\x4a\x8b\x29\x1a\x96"
       "\x4c\xf2\xf0\x70\x38"
     },
-    {
-      "Basic PBKDF2 SHA1 #6",
-      "pass\0word", 9,
-      "sa\0lt", 5,
-      GCRY_MD_SHA1,
-      4096,
-      16,
-      "\x56\xfa\x6a\xa7\x55\x48\x09\x9d\xcc\x37"
-      "\xd7\xf0\x34\x25\xe0\xc3"
-    },
-    { /* empty password test, not in RFC-6070 */
-      "Basic PBKDF2 SHA1 #7",
-      "", 0,
-      "salt", 4,
-      GCRY_MD_SHA1,
-      2,
-      20,
-      "\x13\x3a\x4c\xe8\x37\xb4\xd2\x52\x1e\xe2"
-      "\xbf\x03\xe1\x1c\x71\xca\x79\x4e\x07\x97"
-    },
 #else
-#define NUM_TEST_VECTORS 2
+#define NUM_TEST_VECTORS 1
 #endif
-    {
-      "Basic PBKDF2 SHA256",
-      "password", 8,
-      "salt", 4,
-      GCRY_MD_SHA256,
-      2,
-      32,
-      "\xae\x4d\x0c\x95\xaf\x6b\x46\xd3\x2d\x0a\xdf\xf9\x28\xf0\x6d\xd0"
-      "\x2a\x30\x3f\x8e\xf3\xc2\x51\xdf\xd6\xe2\xd8\x5a\x95\x47\x4c\x43"
-    },
     {
       "Extended PBKDF2 SHA256",
       "passwordPASSWORDpassword", 24,

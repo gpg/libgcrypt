@@ -13757,7 +13757,19 @@ check_one_hmac (int algo, const char *data, int datalen,
       return;
     }
 
-  gcry_md_setkey( hd, key, keylen );
+  err = gcry_md_setkey( hd, key, keylen );
+  if (err)
+    {
+      if (in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr,
+                     "  shorter key (%d) rejected correctly in fips mode\n",
+                     keylen);
+        }
+      gcry_md_close (hd);
+      return;
+    }
 
   gcry_md_write (hd, data, datalen);
 
@@ -14161,9 +14173,18 @@ check_one_mac (int algo, const char *data, int datalen,
   clutter_vector_registers();
   err = gcry_mac_setkey (hd, key, keylen);
   if (err)
-    fail("algo %d, mac gcry_mac_setkey failed: %s\n", algo, gpg_strerror (err));
-  if (err)
-    goto out;
+    {
+      if (in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr,
+                     "  shorter key (%d) rejected correctly in fips mode\n",
+                     keylen);
+        }
+      else
+        fail("algo %d, mac gcry_mac_setkey failed: %s\n", algo, gpg_strerror (err));
+      goto out;
+    }
 
   if (ivlen && iv)
     {

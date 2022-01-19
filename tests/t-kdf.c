@@ -31,6 +31,8 @@
 #define PGM "t-kdf"
 #include "t-common.h"
 
+static int in_fips_mode;
+
 
 static void
 dummy_consumer (volatile char *buffer, size_t buflen)
@@ -858,8 +860,7 @@ check_openpgp (void)
       if (tv[tvidx].disabled)
         continue;
       /* MD5 isn't supported in fips mode */
-      if (gcry_fips_mode_active()
-          && tv[tvidx].hashalgo == GCRY_MD_MD5)
+      if (in_fips_mode && tv[tvidx].hashalgo == GCRY_MD_MD5)
         continue;
       if (verbose)
         fprintf (stderr, "checking S2K test vector %d\n", tvidx);
@@ -1104,7 +1105,7 @@ check_pbkdf2 (void)
                              GCRY_KDF_PBKDF2, tv[tvidx].hashalgo,
                              tv[tvidx].salt, tv[tvidx].saltlen,
                              tv[tvidx].c, tv[tvidx].dklen, outbuf);
-      if (gcry_fips_mode_active() && tvidx > 6)
+      if (in_fips_mode && tvidx > 6)
         {
           if (!err)
             fail ("pbkdf2 test %d unexpectedly passed in FIPS mode: %s\n",
@@ -1112,7 +1113,17 @@ check_pbkdf2 (void)
           continue;
         }
       if (err)
-        fail ("pbkdf2 test %d failed: %s\n", tvidx, gpg_strerror (err));
+        {
+          if (in_fips_mode && tv[tvidx].plen < 14)
+            {
+              if (verbose)
+                fprintf (stderr,
+                         "  shorter key (%ld) rejected correctly in fips mode\n",
+                         tv[tvidx].plen);
+            }
+          else
+            fail ("pbkdf2 test %d failed: %s\n", tvidx, gpg_strerror (err));
+        }
       else if (memcmp (outbuf, tv[tvidx].dk, tv[tvidx].dklen))
         {
           fail ("pbkdf2 test %d failed: mismatch\n", tvidx);
@@ -1209,7 +1220,17 @@ check_scrypt (void)
                              tv[tvidx].salt, tv[tvidx].saltlen,
                              tv[tvidx].parm_p, tv[tvidx].dklen, outbuf);
       if (err)
-        fail ("scrypt test %d failed: %s\n", tvidx, gpg_strerror (err));
+        {
+          if (in_fips_mode && tv[tvidx].plen < 14)
+            {
+              if (verbose)
+                fprintf (stderr,
+                         "  shorter key (%ld) rejected correctly in fips mode\n",
+                         tv[tvidx].plen);
+            }
+          else
+            fail ("scrypt test %d failed: %s\n", tvidx, gpg_strerror (err));
+        }
       else if (memcmp (outbuf, tv[tvidx].dk, tv[tvidx].dklen))
         {
           fail ("scrypt test %d failed: mismatch\n", tvidx);
@@ -1281,7 +1302,12 @@ main (int argc, char **argv)
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
 
-  xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
+  if (gcry_fips_mode_active ())
+    in_fips_mode = 1;
+
+  if (!in_fips_mode)
+    xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
+
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
   if (debug)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u, 0));
