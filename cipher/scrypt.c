@@ -309,7 +309,7 @@ _gcry_kdf_scrypt (const unsigned char *passwd, size_t passwdlen,
   for (i = 0; !ec && i < p; i++)
     scrypt_ro_mix (r, &B[i * r128], N, tmp1, tmp2);
 
-  for (i = 0; !ec && i < p; i++)
+  if (!ec)
     ec = _gcry_kdf_pkdf2 (passwd, passwdlen, GCRY_MD_SHA256, B, p * r128,
                           1 /* iterations */, dkLen, DK);
 
