@@ -1118,8 +1118,8 @@ check_pbkdf2 (void)
             {
               if (verbose)
                 fprintf (stderr,
-                         "  shorter key (%ld) rejected correctly in fips mode\n",
-                         tv[tvidx].plen);
+                         "  shorter key (%u) rejected correctly in fips mode\n",
+                         (unsigned int)tv[tvidx].plen);
             }
           else
             fail ("pbkdf2 test %d failed: %s\n", tvidx, gpg_strerror (err));
@@ -1225,8 +1225,8 @@ check_scrypt (void)
             {
               if (verbose)
                 fprintf (stderr,
-                         "  shorter key (%ld) rejected correctly in fips mode\n",
-                         tv[tvidx].plen);
+                         "  shorter key (%u) rejected correctly in fips mode\n",
+                         (unsigned int)tv[tvidx].plen);
             }
           else
             fail ("scrypt test %d failed: %s\n", tvidx, gpg_strerror (err));
