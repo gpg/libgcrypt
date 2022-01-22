@@ -582,16 +582,15 @@ ghash_internal (gcry_cipher_hd_t c, byte *result, const byte *buf,
 static void
 setupM (gcry_cipher_hd_t c)
 {
-#if defined(GCM_USE_INTEL_PCLMUL) || defined(GCM_USE_ARM_PMULL) || \
-    defined(GCM_USE_S390X_CRYPTO) || defined(GCM_USE_PPC_VPMSUM)
   unsigned int features = _gcry_get_hw_features ();
-#endif
 
   c->u_mode.gcm.ghash_fn = NULL;
   c->u_mode.gcm.polyval_fn = NULL;
 
   if (0)
-    { }
+    {
+      (void)features;
+    }
 #ifdef GCM_USE_INTEL_PCLMUL
   else if (features & HWF_INTEL_PCLMUL)
     {
