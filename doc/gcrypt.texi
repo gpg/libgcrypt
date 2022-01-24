@@ -2511,7 +2511,71 @@ The Brainpool 384 bit curve and its OID.
 @itemx 1.3.36.3.3.2.8.1.1.13
 The Brainpool 512 bit curve and its OID.
 
-# TODO GOST curves
+@item GOST2001-test
+@itemx 1.2.643.2.2.35.0
+
+@item GOST2001-CryptoPro-A
+@itemx 1.2.643.2.2.35.1
+
+@item GOST2001-CryptoPro-B
+@itemx 1.2.643.2.2.35.2
+
+@item GOST2001-CryptoPro-C
+@itemx 1.2.643.2.2.35.3
+
+@item GOST2001-CryptoPro-A
+@itemx GOST2001-CryptoPro-XchA
+
+@item GOST2001-CryptoPro-C
+@itemx GOST2001-CryptoPro-XchB
+
+@item GOST2001-CryptoPro-A
+@itemx 1.2.643.2.2.36.0
+
+@item GOST2001-CryptoPro-C
+@itemx 1.2.643.2.2.36.1
+
+@item GOST2012-256-tc26-A
+@itemx 1.2.643.7.1.2.1.1.1
+
+@item GOST2001-CryptoPro-A
+@itemx 1.2.643.7.1.2.1.1.2
+
+@item GOST2001-CryptoPro-A
+@itemx GOST2012-256-tc26-B
+
+@item GOST2001-CryptoPro-B
+@itemx 1.2.643.7.1.2.1.1.3
+
+@item GOST2001-CryptoPro-B
+@itemx GOST2012-256-tc26-C
+
+@item GOST2001-CryptoPro-C
+@itemx 1.2.643.7.1.2.1.1.4
+
+@item GOST2001-CryptoPro-C
+@itemx GOST2012-256-tc26-D
+
+@item GOST2012-512-test
+@itemx GOST2012-test
+
+@item GOST2012-512-test
+@itemx 1.2.643.7.1.2.1.2.0
+
+@item GOST2012-512-tc26-A
+@itemx GOST2012-tc26-A
+
+@item GOST2012-512-tc26-B
+@itemx GOST2012-tc26-B
+
+@item GOST2012-512-tc26-A
+@itemx 1.2.643.7.1.2.1.2.1
+
+@item GOST2012-512-tc26-B
+@itemx 1.2.643.7.1.2.1.2.2
+
+@item GOST2012-512-tc26-C
+@itemx 1.2.643.7.1.2.1.2.3
 
 @item secp256k1
 @itemx 1.3.132.0.10
@@ -6500,19 +6564,25 @@ The following MAC algorithm tests are run during power-up:
 @table @asis
 @item HMAC SHA-1
 A known answer test using 9 byte of data and a 64 byte key is run.
-(@code{cipher/hmac-tests.c:selftests_sha1})
+(@code{cipher/mac-hmac.c:selftests_sha1})
 @item HMAC SHA-224
 A known answer test using 28 byte of data and a 4 byte key is run.
-(@code{cipher/hmac-tests.c:selftests_sha224})
+(@code{cipher/mac-hmac.c:selftests_sha224})
 @item HMAC SHA-256
 A known answer test using 28 byte of data and a 4 byte key is run.
-(@code{cipher/hmac-tests.c:selftests_sha256})
+(@code{cipher/mac-hmac.c:selftests_sha256})
 @item HMAC SHA-384
 A known answer test using 28 byte of data and a 4 byte key is run.
-(@code{cipher/hmac-tests.c:selftests_sha384})
+(@code{cipher/mac-hmac.c:selftests_sha384})
 @item HMAC SHA-512
 A known answer test using 28 byte of data and a 4 byte key is run.
-(@code{cipher/hmac-tests.c:selftests_sha512})
+(@code{cipher/mac-hmac.c:selftests_sha512})
+@item HMAC SHA3-224
+@itemx HMAC SHA3-256
+@itemx HMAC SHA3-384
+@itemx HMAC SHA3-512
+A known answer test using 9 byte of data and a 20 byte key is run.
+(@code{cipher/mac-hmac.c:selftests_sha3})
 @item CMAC AES
 A known answer test using 40 byte of data and a 16 byte key is run.
 (@code{cipher/mac-cmac.c:selftests_cmac_aes})
@@ -6557,6 +6627,32 @@ reference encyrpted message.  The encrypted result is then
 decrypted and checked that it matches the original random value.
 (@code{cipher/@/rsa.c:@/selftest_encr_2048})
 @end enumerate
+
+@item ECC
+A pre-defined SEC P-256 ECDSA key is used and these tests are run
+in turn:
+@enumerate
+@item
+Conversion of S-expression to internal format.
+(@code{cipher/@/ecc.c:@/selftests_ecdsa})
+@item
+Private key consistency check.
+(@code{cipher/@/ecc.c:@/selftests_ecdsa})
+@item
+A pre-defined 32 byte value (SHA-256 digest) is signed.
+The result is verified using the public key against the original data
+and against modified data.  (@code{cipher/@/ecc.c:@/selftest_sign})
+@end enumerate
+@end table
+
+@subsection Key derivation function Power-Up Tests
+
+The key derivation functions are tested during power-up:
+
+@table @asis
+@item PBKDF2
+A known answer tests with 8 byte password and 4 byte salt and SHA-1 is used.
+(@code{cipher/@/kdf.c:@/selftest_pbkdf2})
 @end table
 
 @subsection Integrity Power-Up Tests
@@ -6566,7 +6662,6 @@ checking has been enabled at build time.  The check works by computing
 a HMAC SHA-256 checksum over the file used to load Libgcrypt into
 memory.  That checksum is compared against a checksum stored inside of
 the same file as in the text in the .rodata1 section of the ELF file.
-@file{.hmac}.
 
 
 @c --------------------------------
@@ -6680,7 +6775,7 @@ A known answer test using 9 byte of data and a 100 byte key is run.
 @item
 A known answer test using 9 byte of data and a 49 byte key is run.
 @end enumerate
-(@code{cipher/hmac-tests.c:selftests_sha1})
+(@code{cipher/mac-hmac.c:selftests_sha1})
 @item HMAC SHA-224
 @itemx HMAC SHA-256
 @itemx HMAC SHA-384
@@ -6697,14 +6792,62 @@ A known answer test using 54 byte of data and a 131 byte key is run.
 @item
 A known answer test using 152 byte of data and a 131 byte key is run.
 @end enumerate
-(@code{cipher/@/hmac-tests.c:@/selftests_sha224},
-@code{cipher/@/hmac-tests.c:@/selftests_sha256},
-@code{cipher/@/hmac-tests.c:@/selftests_sha384},
-@code{cipher/@/hmac-tests.c:@/selftests_sha512})
+(@code{cipher/@/mac-hmac.c:@/selftests_sha224},
+@code{cipher/@/mac-hmac.c:@/selftests_sha256},
+@code{cipher/@/mac-hmac.c:@/selftests_sha384},
+@code{cipher/@/mac-hmac.c:@/selftests_sha512})
 @end table
 
+@table @asis
+@item HMAC SHA3-224
+@itemx HMAC SHA3-256
+@itemx HMAC SHA3-384
+@itemx HMAC SHA3-512
+@enumerate
+@item
+A known answer test using 28 byte of data and a 4 byte key is run.
+@item
+A known answer test using 50 byte of data and a 20 byte key is run.
+@item
+A known answer test using 50 byte of data and a 25 byte key is run.
+@item
+A known answer test using 20 byte of data and a 20 byte key with truncation is run.
+@item
+A known answer test using 54 byte of data and a 131 byte key is run.
+@item
+A known answer test using 54 byte of data and a 147 byte key is run.
+@item
+A known answer test using 152 byte of data and a 131 byte key is run.
+@item
+A known answer test using 152 byte of data and a 147 byte key is run.
+@end enumerate
+(@code{cipher/@/mac-hmac.c:@/selftests_sha3},
+@end table
 
-#TODO other ciphers selftests outside of fips mode
+@table @asis
+@item CMAC AES
+@enumerate
+@item
+A known answer test using 0 byte of data and a 16 byte key is run.
+@item
+A known answer test using 24 byte of data and a 16 byte key is run.
+@item
+A known answer test using 64 byte of data and a 32 byte key is run.
+@item
+A known answer test using 16 byte of data and a 16 byte key is run.
+@item
+A known answer test using 64 byte of data and a 16 byte key is run.
+@item
+A known answer test using 0 byte of data and a 24 byte key is run.
+@item
+A known answer test using 64 byte of data and a 24 byte key is run.
+@item
+A known answer test using 0 byte of data and a 32 byte key is run.
+@item
+A known answer test using 16 byte of data and a 32 byte key is run.
+@end enumerate
+(@code{cipher/@/mac-cmac.c:@/selftests_cmac_aes},
+@end table
 
 @c ********************************************
 @node FIPS Mode
@@ -6742,6 +6885,14 @@ SHA-256 message digest.
 SHA-384 message digest.
 @item GCRY_MD_SHA512
 SHA-512 message digest.
+@item GCRY_MD_SHA3_224
+SHA3-224 message digest.
+@item GCRY_MD_SHA3_256
+SHA3-256 message digest.
+@item GCRY_MD_SHA3_384
+SHA3-384 message digest.
+@item GCRY_MD_SHA3_512
+SHA3-512 message digest.
 @item GCRY_MD_SHA1,GCRY_MD_FLAG_HMAC
 HMAC using a SHA-1 message digest.
 @item GCRY_MD_SHA224,GCRY_MD_FLAG_HMAC
@@ -6752,10 +6903,20 @@ HMAC using a SHA-256 message digest.
 HMAC using a SHA-384 message digest.
 @item GCRY_MD_SHA512,GCRY_MD_FLAG_HMAC
 HMAC using a SHA-512 message digest.
+@item GCRY_MD_SHA3_224,GCRY_MD_FLAG_HMAC
+HMAC using a SHA3-224 message digest.
+@item GCRY_MD_SHA3_256,GCRY_MD_FLAG_HMAC
+HMAC using a SHA3-256 message digest.
+@item GCRY_MD_SHA3_384,GCRY_MD_FLAG_HMAC
+HMAC using a SHA3-384 message digest.
+@item GCRY_MD_SHA3_512,GCRY_MD_FLAG_HMAC
+HMAC using a SHA3-512 message digest.
 @item GCRY_MAC_CMAC_AES
 CMAC using a AES key.
 @item GCRY_PK_RSA
 RSA encryption and signing.
+@item GCRY_PK_ECC
+ECC encryption and signing.
 @end table
 
 Note that the CRC algorithms are not considered cryptographic algorithms
@@ -6766,7 +6927,7 @@ RSA key generation refuses to create and uyse ea key with a keysize of
 less than 2048 bits.
 
 @item
-The @code{transient-key} flag for RSA and DSA key generation is ignored.
+The @code{transient-key} flag for RSA key generation is ignored.
 
 @item
 Support for the VIA Padlock engine is disabled.
