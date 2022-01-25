@@ -26,6 +26,9 @@
 #include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef HAVE_SYS_RANDOM_H
+#include <sys/random.h>
+#endif
 
 #include "types.h"
 #include "g10lib.h"

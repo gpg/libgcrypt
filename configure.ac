@@ -844,7 +844,7 @@ AC_SEARCH_LIBS(setsockopt, [nsl])
 #### Checks for header files. ####
 ##################################
 
-AC_CHECK_HEADERS(unistd.h sys/auxv.h)
+AC_CHECK_HEADERS(unistd.h sys/auxv.h sys/random.h)
 
 
 ##########################################
