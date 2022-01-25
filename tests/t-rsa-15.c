@@ -171,7 +171,7 @@ one_test_sexp (const char *n, const char *e, const char *d,
   gcry_sexp_t s_sig= NULL;
   gcry_sexp_t s_tmp, s_tmp2;
   unsigned char *out = NULL;
-  size_t out_len;
+  size_t out_len = 0;
   char *sig_string = NULL;
 
   if (verbose > 1)

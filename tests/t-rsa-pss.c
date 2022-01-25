@@ -167,7 +167,7 @@ one_test_sexp (const char *n, const char *e, const char *d,
   void *buffer2 = NULL;
   void *buffer3 = NULL;
   size_t buflen, buflen2, buflen3;
-  gcry_ctx_t ctx;
+  gcry_ctx_t ctx = NULL;
   int md_algo;
   char *data_tmpl = NULL;
   size_t len_data_tmpl;
@@ -177,7 +177,7 @@ one_test_sexp (const char *n, const char *e, const char *d,
   gcry_sexp_t s_sig= NULL;
   gcry_sexp_t s_tmp, s_tmp2;
   unsigned char *out = NULL;
-  size_t out_len;
+  size_t out_len = 0;
   char *sig_string = NULL;
 
   if (verbose > 1)
@@ -275,9 +275,7 @@ one_test_sexp (const char *n, const char *e, const char *d,
     }
 
   /* SaltVal = 00 means no salt.  */
-  if (buflen2 == 1 && ((char *)buffer2)[0] == 0)
-    ctx = NULL;
-  else
+  if (!(buflen2 == 1 && ((char *)buffer2)[0] == 0))
     {
       err = gcry_pk_random_override_new (&ctx, buffer2, buflen2);
       if (err)
