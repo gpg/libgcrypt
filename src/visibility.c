@@ -923,7 +923,7 @@ gcry_mac_get_algo_keylen (int algo)
 
 gcry_error_t
 gcry_mac_open (gcry_mac_hd_t *handle, int algo, unsigned int flags,
-	       gcry_ctx_t ctx)
+               gcry_ctx_t ctx)
 {
   if (!fips_is_operational ())
     {
@@ -1357,6 +1357,59 @@ gcry_kdf_derive (const void *passphrase, size_t passphraselen,
   return gpg_error (_gcry_kdf_derive (passphrase, passphraselen, algo, hashalgo,
                                       salt, saltlen, iterations,
                                       keysize, keybuffer));
+}
+
+gpg_error_t
+gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
+               const unsigned long *param, unsigned int paramlen,
+               const void *passphrase, size_t passphraselen,
+               const void *salt, size_t saltlen,
+               const void *key, size_t keylen,
+               const void *ad, size_t adlen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  return gpg_error (_gcry_kdf_open (hd, algo, subalgo, param, paramlen,
+                                    passphrase, passphraselen, salt, saltlen,
+                                    key, keylen, ad, adlen));
+}
+
+gcry_error_t
+gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer, size_t buflen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  return gpg_error (_gcry_kdf_ctl (h, cmd, buffer, buflen));
+}
+
+gcry_error_t
+gcry_kdf_iterator (gcry_kdf_hd_t h, int *action, void **arg_p)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  return gpg_error (_gcry_kdf_iterator (h, action, arg_p));
+}
+
+gcry_error_t
+gcry_kdf_compute_row (gcry_kdf_hd_t h, void *arg)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  return gpg_error (_gcry_kdf_compute_row (h, arg));
+}
+
+gcry_error_t
+gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  return gpg_error (_gcry_kdf_final (h, resultlen, result));
+}
+
+void
+gcry_kdf_close (gcry_kdf_hd_t h)
+{
+  _gcry_kdf_close (h);
 }
 
 void

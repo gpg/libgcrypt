@@ -65,7 +65,7 @@ openpgp_s2k (const void *passphrase, size_t passphraselen,
           _gcry_md_reset (md);
           for (i=0; i < pass; i++) /* Preset the hash context.  */
             _gcry_md_putc (md, 0);
-	}
+        }
 
       if (algo == GCRY_KDF_SALTED_S2K || algo == GCRY_KDF_ITERSALTED_S2K)
         {
@@ -305,7 +305,684 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
  leave:
   return ec;
 }
+
+#include "bufhelp.h"
 
+typedef struct argon2_context *argon2_ctx_t;
+
+/* Per thread data for Argon2.  */
+struct argon2_thread_data {
+  argon2_ctx_t a;
+  void *user_data;
+  gpg_err_code_t ec;
+
+  unsigned int pass;
+  unsigned int lane;
+  unsigned int slice;
+  unsigned int index;
+};
+
+/* Argon2 context */
+struct argon2_context {
+  int algo;
+  int hash_type;
+
+  unsigned int outlen;
+  unsigned int n_threads;
+
+  const unsigned char *password;
+  size_t passwordlen;
+
+  const unsigned char *salt;
+  size_t saltlen;
+
+  const unsigned char *key;
+  size_t keylen;
+
+  const unsigned char *ad;
+  size_t adlen;
+
+  unsigned int m_cost;
+
+  unsigned int passes;
+  unsigned int memory_blocks;
+  unsigned int segment_length;
+  unsigned int lane_length;
+  unsigned int lanes;
+
+  unsigned int step;
+
+  unsigned int r;
+  unsigned int s;
+  unsigned int l;
+  unsigned int t;
+
+  gcry_md_hd_t hd;
+  unsigned char *block;
+  struct argon2_thread_data *thread_data;
+
+  unsigned char out[1];  /* In future, we may use flexible array member.  */
+};
+
+enum argon2_iterator_step {
+  ARGON2_ITERATOR_STEP0,
+  ARGON2_ITERATOR_STEP1,
+  ARGON2_ITERATOR_STEP2,
+  ARGON2_ITERATOR_STEP3,
+  ARGON2_ITERATOR_STEP4
+};
+
+#define ARGON2_VERSION 0x13
+
+static gpg_err_code_t
+hash (gcry_md_hd_t hd, const unsigned char *input, unsigned int inputlen,
+      unsigned char *output, unsigned int outputlen)
+{
+  gpg_err_code_t ec = 0;
+  unsigned char buf[4];
+  const unsigned char *digest;
+  gcry_md_hd_t hd1;
+  int algo;
+
+  _gcry_md_reset (hd);
+
+  if (outputlen < 64)
+    {
+      if (outputlen == 48)
+        algo = GCRY_MD_BLAKE2B_384;
+      else if (outputlen == 32)
+        algo = GCRY_MD_BLAKE2B_256;
+      else if (outputlen == 20)
+        algo = GCRY_MD_BLAKE2B_160;
+      else
+        return GPG_ERR_NOT_IMPLEMENTED;
+
+      ec = _gcry_md_open (&hd1, algo, 0);
+      if (ec)
+        return ec;
+
+      buf_put_le32 (buf, outputlen);
+      _gcry_md_write (hd1, buf, 4);
+      _gcry_md_write (hd1, input, inputlen);
+      digest = _gcry_md_read (hd1, algo);
+      memcpy (output, digest, outputlen);
+      _gcry_md_close (hd1);
+    }
+  else if (outputlen == 64)
+    {
+      buf_put_le32 (buf, outputlen);
+      _gcry_md_write (hd, buf, 4);
+      _gcry_md_write (hd, input, inputlen);
+      digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
+      memcpy (output, digest, 64);
+    }
+  else
+    {
+      int i, r;
+      unsigned int remained;
+      unsigned char d[64];
+
+      i = 0;
+      r = outputlen/32;
+
+      buf_put_le32 (buf, outputlen);
+      _gcry_md_write (hd, buf, 4);
+      _gcry_md_write (hd, input, inputlen);
+
+      do
+        {
+          digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
+          memcpy (d, digest, 64);
+          memcpy (output+i*32, digest, 32);
+          i++;
+
+          _gcry_md_reset (hd);
+          _gcry_md_write (hd, d, 64);
+        }
+      while (i < r);
+
+      remained = outputlen - 32*r;
+      if (remained)
+        {
+          if (remained == 20)
+            algo = GCRY_MD_BLAKE2B_160;
+          else
+            return GPG_ERR_NOT_IMPLEMENTED;
+
+          ec = _gcry_md_open (&hd1, algo, 0);
+          if (ec)
+            return ec;
+
+          _gcry_md_write (hd1, d, 64);
+          digest = _gcry_md_read (hd1, algo);
+          memcpy (output+r*32, digest, remained);
+          _gcry_md_close (hd1);
+        }
+    }
+
+  return 0;
+}
+
+static gpg_err_code_t
+argon2_genh0_first_blocks (argon2_ctx_t a)
+{
+  gpg_err_code_t ec = 0;
+  unsigned char h0_01_i[72];
+  const unsigned char *digest;
+  unsigned char buf[4];
+  int i;
+
+  buf_put_le32 (buf, a->lanes);
+  _gcry_md_write (a->hd, buf, 4);
+
+  buf_put_le32 (buf, a->outlen);
+  _gcry_md_write (a->hd, buf, 4);
+
+  buf_put_le32 (buf, a->m_cost);
+  _gcry_md_write (a->hd, buf, 4);
+
+  buf_put_le32 (buf, a->passes);
+  _gcry_md_write (a->hd, buf, 4);
+
+  buf_put_le32 (buf, ARGON2_VERSION);
+  _gcry_md_write (a->hd, buf, 4);
+
+  buf_put_le32 (buf, a->hash_type);
+  _gcry_md_write (a->hd, buf, 4);
+
+  buf_put_le32 (buf, a->passwordlen);
+  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (a->hd, a->password, a->passwordlen);
+
+  buf_put_le32 (buf, a->saltlen);
+  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (a->hd, a->salt, a->saltlen);
+
+  buf_put_le32 (buf, a->keylen);
+  _gcry_md_write (a->hd, buf, 4);
+  if (a->key)
+    _gcry_md_write (a->hd, a->key, a->keylen);
+
+  buf_put_le32 (buf, a->adlen);
+  _gcry_md_write (a->hd, buf, 4);
+  if (a->ad)
+    _gcry_md_write (a->hd, a->ad, a->adlen);
+
+  digest = _gcry_md_read (a->hd, GCRY_MD_BLAKE2B_512);
+
+  memcpy (h0_01_i, digest, 64);
+
+  for (i = 0; i < a->lanes; i++)
+    {
+      /*FIXME*/
+      memset (h0_01_i+64, 0, 4);
+      buf_put_le32 (h0_01_i+64+4, i);
+      ec = hash (a->hd, h0_01_i, 72, a->block+1024*i, 1024);
+      if (ec)
+        break;
+
+      buf_put_le32 (h0_01_i+64, 1);
+      ec = hash (a->hd, h0_01_i, 72, a->block+1024*(i+a->lanes), 1024);
+      if (ec)
+        break;
+    }
+
+  return ec;
+}
+
+static gpg_err_code_t
+argon2_init (argon2_ctx_t a, unsigned int parallelism,
+             unsigned int m_cost, unsigned int t_cost)
+{
+  gpg_err_code_t ec = 0;
+  unsigned int memory_blocks;
+  unsigned int segment_length;
+  gcry_md_hd_t hd;
+  void *block;
+  struct argon2_thread_data *thread_data;
+
+  memory_blocks = m_cost;
+  if (memory_blocks < 8 * parallelism)
+    memory_blocks = 8 * parallelism;
+
+  segment_length = memory_blocks / (parallelism * 4);
+  memory_blocks = segment_length * parallelism * 4;
+
+  a->passes = t_cost;
+  a->memory_blocks = memory_blocks;
+  a->segment_length = segment_length;
+  a->lane_length = segment_length * 4;
+  a->lanes = parallelism;
+
+  a->r = a->s = a->l = a->t = 0;
+  a->step = ARGON2_ITERATOR_STEP0;
+
+  a->hd = NULL;
+  a->block = NULL;
+  a->thread_data = NULL;
+
+  ec = _gcry_md_open (&hd, GCRY_MD_BLAKE2B_512, 0);
+  if (ec)
+    return ec;
+
+  block = xtrymalloc (1024 * memory_blocks);
+  if (!block)
+    {
+      ec = gpg_err_code_from_errno (errno);
+      _gcry_md_close (hd);
+      return ec;
+    }
+
+  thread_data = xtrymalloc (a->n_threads * sizeof (struct argon2_thread_data));
+  if (!thread_data)
+    {
+      ec = gpg_err_code_from_errno (errno);
+      xfree (block);
+      _gcry_md_close (hd);
+      return ec;
+    }
+
+  memset (thread_data, 0, a->n_threads * sizeof (struct argon2_thread_data));
+
+  a->hd = hd;
+  a->block = block;
+  a->thread_data = thread_data;
+  return 0;
+}
+
+static gpg_err_code_t
+argon2_ctl (argon2_ctx_t a, int cmd, void *buffer, size_t buflen)
+{
+  gpg_err_code_t ec = GPG_ERR_NOT_IMPLEMENTED;
+
+  (void)a;
+  (void)cmd;
+  (void)buffer;
+  (void)buflen;
+  return ec;
+}
+
+static gpg_err_code_t
+argon2_iterator (argon2_ctx_t a, int *action, void **arg_p)
+{
+  switch (a->step)
+    {
+    case ARGON2_ITERATOR_STEP0:
+      argon2_genh0_first_blocks (a);
+      /* continue */
+      *action = 3;
+      *arg_p = NULL;
+      a->step = ARGON2_ITERATOR_STEP1;
+      return 0;
+
+    case ARGON2_ITERATOR_STEP1:
+      for (a->r = 0; a->r < a->passes; a->r++)
+        for (a->s = 0; a->s < 4; a->s++)
+          {
+            struct argon2_thread_data *thread_data;
+
+            for (a->l = 0; a->l < a->lanes; a->l++)
+              {
+                if (a->l >= a->n_threads)
+                  {
+                    /* Join a thread.  */
+                    thread_data = &a->thread_data[a->t];
+                    *action = 2;
+                    *arg_p = thread_data;
+                    a->step = ARGON2_ITERATOR_STEP2;
+                    return 0;
+
+                  case ARGON2_ITERATOR_STEP2:
+                    thread_data = &a->thread_data[a->t];
+                    if (thread_data->ec)
+                      return thread_data->ec;
+                  }
+
+                /* Create a thread.  */
+                thread_data = &a->thread_data[a->t];
+                thread_data->a = a;
+                thread_data->user_data = NULL;
+                thread_data->ec = 0;
+                thread_data->pass = a->r;
+                thread_data->lane = a->s;
+                thread_data->slice = a->l;
+                thread_data->index = a->t;
+                *action = 1;
+                *arg_p = thread_data;
+                a->step = ARGON2_ITERATOR_STEP3;
+                return 0;
+
+              case ARGON2_ITERATOR_STEP3:
+                a->t = (a->t + 1) % a->n_threads;
+              }
+
+            for (a->l = a->lanes - a->n_threads; a->l < a->lanes; a->l++)
+              {
+                thread_data = &a->thread_data[a->t];
+
+                /* Join a thread.  */
+                *action = 2;
+                *arg_p = thread_data;
+                a->step = ARGON2_ITERATOR_STEP4;
+                return 0;
+
+              case ARGON2_ITERATOR_STEP4:
+                thread_data = &a->thread_data[a->t];
+                if (thread_data->ec)
+                  return thread_data->ec;
+                a->t = (a->t + 1) % a->n_threads;
+              }
+          }
+    }
+
+  *action = 0;
+  *arg_p = NULL;
+  a->step = ARGON2_ITERATOR_STEP0;
+  return 0;
+}
+
+static gpg_err_code_t
+argon2_compute_row (argon2_ctx_t a, void *arg)
+{
+  gpg_err_code_t ec = GPG_ERR_NOT_IMPLEMENTED;
+  (void)a;
+  (void)arg;
+  return ec;
+}
+
+static gpg_err_code_t
+argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
+{
+  gpg_err_code_t ec;
+  int i, j;
+
+  if (resultlen != a->outlen)
+    return GPG_ERR_INV_VALUE;
+
+  memset (a->block, 0, 1024);
+  for (i = 0; i < a->lanes; i++)
+    {
+      unsigned char *p0;
+      unsigned char *p1;  /*FIXME*/
+
+      p0 = a->block;
+      p1 = p0 + a->lane_length * i + (a->segment_length - 1)*1024;
+
+      for (j = 0; j < 1024; j++)
+        p0[j] ^= p1[j];
+    }
+
+  ec = hash (a->hd, a->block, 1024, result, a->outlen);
+  return ec;
+}
+
+static void
+argon2_close (argon2_ctx_t a)
+{
+  size_t n;
+
+  n = offsetof (struct argon2_context, out) + a->outlen;
+
+  if (a->hd)
+    _gcry_md_close (a->hd);
+
+  if (a->block)
+    {
+      wipememory (a->block, 1024 * a->memory_blocks);
+      xfree (a->block);
+    }
+
+  if (a->thread_data)
+    xfree (a->thread_data);
+
+  wipememory (a, n);
+  xfree (a);
+}
+
+static gpg_err_code_t
+argon2_open (gcry_kdf_hd_t *hd, int subalgo,
+             const unsigned long *param, unsigned int paramlen,
+             const void *password, size_t passwordlen,
+             const void *salt, size_t saltlen,
+             const void *key, size_t keylen,
+             const void *ad, size_t adlen)
+{
+  int hash_type;
+  unsigned int taglen;
+  unsigned int t_cost;
+  unsigned int m_cost;
+  unsigned int parallelism = 1;
+  unsigned int n_threads = 1;
+  argon2_ctx_t a;
+  gpg_err_code_t ec;
+  size_t n;
+
+  if (subalgo != GCRY_KDF_ARGON2D
+      && subalgo != GCRY_KDF_ARGON2I
+      && subalgo != GCRY_KDF_ARGON2ID)
+    return GPG_ERR_INV_VALUE;
+  else
+    hash_type = subalgo;
+
+  /* param : [ tag_length, t_cost, m_cost, parallelism, n_threads ] */
+  if (paramlen < 3 || paramlen > 5)
+    return GPG_ERR_INV_VALUE;
+  else
+    {
+      taglen = (unsigned int)param[0];
+      t_cost = (unsigned int)param[1];
+      m_cost = (unsigned int)param[2];
+      if (paramlen == 4)
+        parallelism = (unsigned int)param[3];
+      if (paramlen == 5)
+        n_threads = (unsigned int)param[4];
+
+      if (!(taglen == 64 || taglen == 48
+            || taglen % 32 == 0 || taglen % 32 == 20))
+        /*
+         * FIXME: To support arbitrary taglen, we need to expose
+         * internal API of Blake2b.
+         */
+        return GPG_ERR_NOT_IMPLEMENTED;
+    }
+
+  n = offsetof (struct argon2_context, out) + taglen;
+  a = xtrymalloc (n);
+  if (!a)
+    return gpg_err_code_from_errno (errno);
+
+  a->algo = GCRY_KDF_ARGON2;
+  a->hash_type = hash_type;
+
+  a->outlen = taglen;
+  a->n_threads = n_threads;
+
+  a->password = password;
+  a->passwordlen = passwordlen;
+  a->salt = salt;
+  a->saltlen = saltlen;
+  a->key = key;
+  a->keylen = keylen;
+  a->ad = ad;
+  a->adlen = adlen;
+
+  a->block = NULL;
+  a->thread_data = NULL;
+
+  ec = argon2_init (a, parallelism, m_cost, t_cost);
+  if (ec)
+    {
+      xfree (a);
+      return ec;
+    }
+
+  *hd = (void *)a;
+  return 0;
+}
+
+
+static gpg_err_code_t
+balloon_open (gcry_kdf_hd_t *hd, int subalgo,
+              const unsigned long *param, unsigned int paramlen,
+              const void *passphrase, size_t passphraselen,
+              const void *salt, size_t saltlen)
+{
+  /*
+   * It should have space_cost and time_cost.
+   * Optionally, for parallelised version, it has parallelism.
+   */
+  if (paramlen != 2 && paramlen != 3)
+    return GPG_ERR_INV_VALUE;
+
+  (void)param;
+  (void)subalgo;
+  (void)passphrase;
+  (void)passphraselen;
+  (void)salt;
+  (void)saltlen;
+  *hd = NULL;
+  return GPG_ERR_NOT_IMPLEMENTED;
+}
+
+
+struct gcry_kdf_handle {
+  int algo;
+  /* And algo specific parts come.  */
+};
+
+gpg_err_code_t
+_gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
+                const unsigned long *param, unsigned int paramlen,
+                const void *passphrase, size_t passphraselen,
+                const void *salt, size_t saltlen,
+                const void *key, size_t keylen,
+                const void *ad, size_t adlen)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_KDF_ARGON2:
+      if (!passphraselen || !saltlen)
+        ec = GPG_ERR_INV_VALUE;
+      else
+        ec = argon2_open (hd, subalgo, param, paramlen,
+                          passphrase, passphraselen, salt, saltlen,
+                          key, keylen, ad, adlen);
+      break;
+
+    case GCRY_KDF_BALLOON:
+      if (!passphraselen || !saltlen)
+        ec = GPG_ERR_INV_VALUE;
+      else
+        {
+          (void)key;
+          (void)keylen;
+          (void)ad;
+          (void)adlen;
+          ec = balloon_open (hd, subalgo, param, paramlen,
+                             passphrase, passphraselen, salt, saltlen);
+        }
+      break;
+
+    default:
+      ec = GPG_ERR_UNKNOWN_ALGORITHM;
+      break;
+    }
+
+  return ec;
+}
+
+gpg_err_code_t
+_gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer, size_t buflen)
+{
+  gpg_err_code_t ec;
+
+  switch (h->algo)
+    {
+    case GCRY_KDF_ARGON2:
+      ec = argon2_ctl ((argon2_ctx_t)h, cmd, buffer, buflen);
+      break;
+
+    default:
+      ec = GPG_ERR_UNKNOWN_ALGORITHM;
+      break;
+    }
+
+  return ec;
+}
+
+gpg_err_code_t
+_gcry_kdf_iterator (gcry_kdf_hd_t h, int *action, void **arg_p)
+{
+  gpg_err_code_t ec;
+
+  switch (h->algo)
+    {
+    case GCRY_KDF_ARGON2:
+      ec = argon2_iterator ((argon2_ctx_t)h, action, arg_p);
+      break;
+
+    default:
+      ec = GPG_ERR_UNKNOWN_ALGORITHM;
+      break;
+    }
+
+  return ec;
+}
+
+gpg_err_code_t
+_gcry_kdf_compute_row (gcry_kdf_hd_t h, void *arg)
+{
+  gpg_err_code_t ec;
+
+  switch (h->algo)
+    {
+    case GCRY_KDF_ARGON2:
+      ec = argon2_compute_row ((argon2_ctx_t)h, arg);
+      break;
+
+    default:
+      ec = GPG_ERR_UNKNOWN_ALGORITHM;
+      break;
+    }
+
+  return ec;
+}
+
+
+gpg_err_code_t
+_gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
+{
+  gpg_err_code_t ec;
+
+  switch (h->algo)
+    {
+    case GCRY_KDF_ARGON2:
+      ec = argon2_final ((argon2_ctx_t)h, resultlen, result);
+      break;
+
+    default:
+      ec = GPG_ERR_UNKNOWN_ALGORITHM;
+      break;
+    }
+
+  return ec;
+}
+
+void
+_gcry_kdf_close (gcry_kdf_hd_t h)
+{
+  switch (h->algo)
+    {
+    case GCRY_KDF_ARGON2:
+      argon2_close ((argon2_ctx_t)h);
+      break;
+
+    default:
+      break;
+    }
+}
 
 /* Check one KDF call with ALGO and HASH_ALGO using the regular KDF
  * API. (passphrase,passphraselen) is the password to be derived,

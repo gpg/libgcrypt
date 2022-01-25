@@ -92,6 +92,8 @@ xtestsuite_driver = .libs/testdrv.exe
 else
 xtestsuite_libs = ../src/.libs/libgcrypt.so*
 xtestsuite_driver = testdrv
+t_kdf_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS) @LDADD_FOR_TESTS_KLUDGE@
+t_kdf_CFLAGS = $(GPG_ERROR_MT_CFLAGS)
 endif
 
 # xcheck uses our new testdrv instead of the automake test runner.

@@ -293,4 +293,11 @@ EXPORTS
       gcry_pk_hash_verify       @256
       gcry_pk_random_override_new @257
 
+      gcry_kdf_open             @258
+      gcry_kdf_ctl              @259
+      gcry_kdf_iterator         @260
+      gcry_kdf_compute_row      @261
+      gcry_kdf_final            @262
+      gcry_kdf_close            @263
+
 ;; end of file with public symbols for Windows.

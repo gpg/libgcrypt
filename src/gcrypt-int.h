@@ -140,9 +140,9 @@ gpg_err_code_t _gcry_md_extract (gcry_md_hd_t hd, int algo, void *buffer,
 void _gcry_md_hash_buffer (int algo, void *digest,
                            const void *buffer, size_t length);
 gpg_err_code_t _gcry_md_hash_buffers_extract (int algo, unsigned int flags,
-					      void *digest, int digestlen,
-					      const gcry_buffer_t *iov,
-					      int iovcnt);
+                                              void *digest, int digestlen,
+                                              const gcry_buffer_t *iov,
+                                              int iovcnt);
 gpg_err_code_t _gcry_md_hash_buffers (int algo, unsigned int flags,
                                       void *digest,
                                       const gcry_buffer_t *iov, int iovcnt);
@@ -206,6 +206,19 @@ gpg_err_code_t _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
                                  const void *salt, size_t saltlen,
                                  unsigned long iterations,
                                  size_t keysize, void *keybuffer);
+
+gpg_err_code_t _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
+                               const unsigned long *param, unsigned int paramlen,
+                               const void *passphrase, size_t passphraselen,
+                               const void *salt, size_t saltlen,
+                               const void *key, size_t keylen,
+                               const void *ad, size_t adlen);
+gpg_err_code_t _gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer,
+                              size_t buflen);
+gpg_err_code_t _gcry_kdf_iterator (gcry_kdf_hd_t h, int *action, void **arg_p);
+gpg_err_code_t _gcry_kdf_compute_row (gcry_kdf_hd_t h, void *arg);
+gpg_err_code_t _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result);
+void _gcry_kdf_close (gcry_kdf_hd_t h);
 
 
 gpg_err_code_t _gcry_prime_generate (gcry_mpi_t *prime,

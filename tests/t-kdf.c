@@ -1243,6 +1243,192 @@ check_scrypt (void)
 }
 
 
+#ifdef HAVE_PTHREAD
+#include <pthread.h>
+
+struct per_thread_data_head {
+  gcry_kdf_hd_t h;
+  void *user_data;
+  gpg_err_code_t ec;
+};
+
+static void *
+start_thread (void *arg)
+{
+  struct per_thread_data_head *p = arg;
+
+  p->ec = gcry_kdf_compute_row (p->h, arg);
+  pthread_exit (NULL);
+  return NULL;
+}
+
+#define MAX_THREAD 8
+#endif
+
+static gcry_error_t
+my_kdf_derive (int parallel,
+               int algo, int subalgo,
+               const unsigned long *params, unsigned int paramslen,
+               const unsigned char *pass, size_t passlen,
+               const unsigned char *salt, size_t saltlen,
+               const unsigned char *key, size_t keylen,
+               const unsigned char *ad, size_t adlen,
+               size_t outlen, unsigned char *out)
+{
+  gcry_error_t err;
+  gcry_kdf_hd_t hd;
+#ifdef HAVE_PTHREAD
+  pthread_attr_t attr;
+  pthread_t thr[MAX_THREAD];
+  int i;
+#endif
+
+  err = gcry_kdf_open (&hd, algo, subalgo, params, paramslen,
+                       pass, passlen, salt, saltlen, key, keylen,
+                       ad, adlen);
+  if (err)
+    return err;
+
+#ifdef HAVE_PTHREAD
+  if (parallel)
+    {
+      memset (thr, 0, sizeof (thr));
+
+      if (pthread_attr_init (&attr))
+	{
+	  gcry_kdf_close (hd);
+	  return gpg_error_from_syserror ();
+	}
+
+      if (pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE))
+	{
+	  pthread_attr_destroy (&attr);
+	  gcry_kdf_close (hd);
+	  return gpg_error_from_syserror ();
+	}
+    }
+#endif
+
+  i = 0;
+  while (1)
+    {
+      int action;
+      void *arg;
+
+      err = gcry_kdf_iterator (hd, &action, &arg);
+      if (err)
+        break;
+
+      if (action == 0)
+        /* DONE */
+        break;
+      else if (action == 1)
+        {                       /* request to ask creating a thread */
+#ifdef HAVE_PTHREAD
+	  struct per_thread_data_head *p = arg;
+
+          if (parallel)
+	    {
+	      pthread_create (&thr[i], &attr, start_thread, arg);
+	      p->user_data = &thr[i];
+              i++;
+	    }
+          else
+	    {
+	      gcry_kdf_compute_row (p->h, arg);
+	      p->user_data = NULL;
+	    }
+#else
+          gcry_kdf_compute_row (p->h, arg);
+          p->user_data = NULL;
+#endif
+        }
+      else if (action == 2)
+        {                       /* request to ask joining a thread */
+#ifdef HAVE_PTHREAD
+          if (parallel)
+	    {
+              struct per_thread_data_head *p = arg;
+              pthread_t *user_data = (pthread_t *)p->user_data;
+
+	      pthread_join (*user_data, NULL);
+	      memset (user_data, 0, sizeof (pthread_t));
+	      --i;
+	    }
+#endif
+        }
+    }
+
+#ifdef HAVE_PTHREAD
+  if (parallel)
+    pthread_attr_destroy (&attr);
+#endif
+
+  if (!err)
+    err = gcry_kdf_final (hd, outlen, out);
+
+  gcry_kdf_close (hd);
+  return err;
+}
+
+
+static void
+check_argon2 (void)
+{
+  gcry_error_t err;
+  const unsigned long param[5] = { 32, 3, 16, 4, 4 };
+  const unsigned char pass[32] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+  };
+  const unsigned char salt[16] = {
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  };
+  const unsigned char key[8] = { 3, 3, 3, 3, 3, 3, 3, 3 };
+  const unsigned char ad[12] = { 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 };
+  unsigned char out[32];
+  unsigned char expected[32] = {
+    0xf8, 0x7c, 0x95, 0x96, 0xbd, 0xbf, 0x75, 0x0b,
+    0xfb, 0x35, 0x3a, 0x89, 0x70, 0xe5, 0x44, 0x1a,
+    0x70, 0x24, 0x3e, 0xb4, 0x90, 0x30, 0xdf, 0xe2,
+    0x74, 0xd9, 0xad, 0x4e, 0x37, 0x0e, 0x38, 0x9b
+  };
+  int i;
+
+  err = my_kdf_derive (0,
+                       GCRY_KDF_ARGON2, GCRY_KDF_ARGON2ID, param, 4,
+                       pass, 32, salt, 16, key, 8, ad, 12,
+                       32, out);
+  if (err)
+    fail ("argon2 test %d failed: %s\n", 0, gpg_strerror (err));
+  else if (memcmp (out, expected, 32))
+    {
+      fail ("argon2 test %d failed: mismatch\n", 0);
+      fputs ("got:", stderr);
+      for (i=0; i < 32; i++)
+        fprintf (stderr, " %02x", out[i]);
+      putc ('\n', stderr);
+    }
+
+#ifdef HAVE_PTHREAD
+  err = my_kdf_derive (1,
+                       GCRY_KDF_ARGON2, GCRY_KDF_ARGON2ID, param, 5,
+                       pass, 32, salt, 16, key, 8, ad, 12,
+                       32, out);
+  if (err)
+    fail ("argon2 test %d failed: %s\n", 1, gpg_strerror (err));
+  else if (memcmp (out, expected, 32))
+    {
+      fail ("argon2 test %d failed: mismatch\n", 1);
+      fputs ("got:", stderr);
+      for (i=0; i < 32; i++)
+        fprintf (stderr, " %02x", out[i]);
+      putc ('\n', stderr);
+    }
+#endif
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -1319,6 +1505,9 @@ main (int argc, char **argv)
       check_openpgp ();
       check_pbkdf2 ();
       check_scrypt ();
+#if 0
+      check_argon2 ();
+#endif
     }
 
   return error_count ? 1 : 0;

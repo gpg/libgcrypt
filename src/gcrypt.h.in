@@ -118,7 +118,7 @@ extern "C" {
 #ifdef _GCRYPT_IN_LIBGCRYPT
 #define _GCRY_ATTR_INTERNAL
 #else
-#define _GCRY_ATTR_INTERNAL	_GCRY_GCC_ATTR_DEPRECATED
+#define _GCRY_ATTR_INTERNAL     _GCRY_GCC_ATTR_DEPRECATED
 #endif
 
 /* Wrappers for the libgpg-error library.  */
@@ -383,7 +383,7 @@ gcry_error_t gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff,
 /* Like gcry_sexp_build, but uses an array instead of variable
    function arguments.  */
 gcry_error_t gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
-				    const char *format, void **arg_list);
+                                    const char *format, void **arg_list);
 
 /* Release the S-expression object SEXP */
 void gcry_sexp_release (gcry_sexp_t sexp);
@@ -1591,7 +1591,16 @@ enum gcry_kdf_algos
     GCRY_KDF_ITERSALTED_S2K = 19,
     GCRY_KDF_PBKDF1 = 33,
     GCRY_KDF_PBKDF2 = 34,
-    GCRY_KDF_SCRYPT = 48
+    GCRY_KDF_SCRYPT = 48,
+    GCRY_KDF_ARGON2   = 64,
+    GCRY_KDF_BALLOON  = 65
+  };
+
+enum gcry_kdf_subalgo_argon2
+  {
+    GCRY_KDF_ARGON2D  = 0,
+    GCRY_KDF_ARGON2I  = 1,
+    GCRY_KDF_ARGON2ID = 2
   };
 
 /* Derive a key from a passphrase.  */
@@ -1601,8 +1610,20 @@ gpg_error_t gcry_kdf_derive (const void *passphrase, size_t passphraselen,
                              unsigned long iterations,
                              size_t keysize, void *keybuffer);
 
-
-
+/* Another API to derive a key from a passphrase.  */
+typedef struct gcry_kdf_handle *gcry_kdf_hd_t;
+gcry_error_t gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
+                            const unsigned long *param, unsigned int paramlen,
+                            const void *passphrase, size_t passphraselen,
+                            const void *salt, size_t saltlen,
+                            const void *key, size_t keylen,
+                            const void *ad, size_t adlen);
+gcry_error_t gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer,
+                           size_t buflen);
+gcry_error_t gcry_kdf_iterator (gcry_kdf_hd_t h, int *action_p, void **arg_p);
+gcry_error_t gcry_kdf_compute_row (gcry_kdf_hd_t h, void *arg);
+gcry_error_t gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result);
+void gcry_kdf_close (gcry_kdf_hd_t h);
 
 /************************************
  *                                  *
