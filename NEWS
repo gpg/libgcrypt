@@ -1,10 +1,38 @@
-Noteworthy changes in version 1.9.4 (unreleased)  [C23/A3/R_]
+Noteworthy changes in version 1.10.0 (unreleased)  [C24/A4/R0]
 ------------------------------------------------
+
+ * New and extended interfaces:
+
+
+ * Performance:
+
+   - A lot of improvements.
+
 
  * Bug fixes:
 
+   - Fix Elgamal encryption for other implementations.
+     [#5328,CVE-2021-40528]
 
- Release-info: https://dev.gnupg.org/T5402
+   - Fix alignment problem on macOS.  [#5440]
+
+   - Check the input length of the point in ECDH.  [#5423]
+
+   - Fix an abort in gcry_pk_get_param for "Curve25519".  [#5490]
+
+ * Other features:
+
+
+ * Interface changes relative to the 1.10.0 release:
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+ Release-info: https://dev.gnupg.org/T5691
+
+
+ Release dates of 1.9.x versions:
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   Version 1.9.4 (2021-08-22)
 
 
 Noteworthy changes in version 1.9.3 (2021-04-19)  [C23/A3/R3]
@@ -26,7 +54,7 @@ Noteworthy changes in version 1.9.3 (2021-04-19)  [C23/A3/R3]
 
    - Make keygrip computation work for compressed points.  [#4961]
 
-* Performance:
+ * Performance:
 
    - Add x86_64 VAES/AVX2 accelerated implementation of Camellia.
      [0e7e60241a]

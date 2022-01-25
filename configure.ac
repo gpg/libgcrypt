@@ -30,8 +30,8 @@ min_automake_version="1.14"
 # for the LT versions.
 m4_define([mym4_package],[libgcrypt])
 m4_define([mym4_major], [1])
-m4_define([mym4_minor], [9])
-m4_define([mym4_micro], [4])
+m4_define([mym4_minor], [10])
+m4_define([mym4_micro], [0])
 
 # Below is m4 magic to extract and compute the git revision number,
 # the decimalized short revision number, a beta version string and a
@@ -55,9 +55,9 @@ AC_INIT([mym4_package],[mym4_version],[https://bugs.gnupg.org])
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=23
-LIBGCRYPT_LT_AGE=3
-LIBGCRYPT_LT_REVISION=3
+LIBGCRYPT_LT_CURRENT=24
+LIBGCRYPT_LT_AGE=0
+LIBGCRYPT_LT_REVISION=0
 ################################################
 
 AC_SUBST(LIBGCRYPT_LT_CURRENT)

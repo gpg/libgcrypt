@@ -1,10 +1,10 @@
 		    Libgcrypt - The GNU Crypto Library
 		   ------------------------------------
-                             Version 1.9
+                             Version 1.10
 
        Copyright (C) 1989,1991-2018 Free Software Foundation, Inc.
-       Copyright (C) 2012-2021 g10 Code GmbH
-       Copyright (C) 2013-2021 Jussi Kivilinna
+       Copyright (C) 2012-2022 g10 Code GmbH
+       Copyright (C) 2013-2022 Jussi Kivilinna
 
     Libgcrypt is free software.  See the file AUTHORS for full copying
     notices, and LICENSES for notices about contributions that require
@@ -26,14 +26,10 @@
 
     The download canonical location for libgcrypt is:
 
-      ftp://ftp.gnupg.org/gcrypt/libgcrypt/
-    or
       https://gnupg.org/ftp/gcrypt/libgcrypt/
 
     To build libgcrypt you need libgpg-error:
 
-      ftp://ftp.gnupg.org/gcrypt/libgpg-error/
-    or
       https://gnupg.org/ftp/gcrypt/libgpg-error/
 
     You should get the latest versions of course.
@@ -271,11 +267,8 @@
     Commercial grade support for Libgcrypt is available; for a listing
     of offers see https://www.gnupg.org/service.html .
 
-    Since 2001 maintenance and development of Libgcrypt is done by g10
-    Code GmbH and mostly financed by donations.  g10 Code currently
-    employs 3 full-time developers and two contractors.  They all work
-    on GnuPG and closely related software like Libgcrypt.  Please
-    visit https://gnupg.org/donate/ to see how you can help.
+    Since 2001 maintenance and development of Libgcrypt is done by
+    g10 Code GmbH and until 2021 mostly financed by donations.
 
   This file is Free Software; as a special exception the authors gives
   unlimited permission to copy and/or distribute it, with or without
