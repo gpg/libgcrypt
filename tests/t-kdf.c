@@ -1493,9 +1493,7 @@ main (int argc, char **argv)
       check_openpgp ();
       check_pbkdf2 ();
       check_scrypt ();
-#if 0
       check_argon2 ();
-#endif
     }
 
   return error_count ? 1 : 0;

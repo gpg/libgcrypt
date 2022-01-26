@@ -702,7 +702,7 @@ argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
   if (a->hash_type == GCRY_KDF_ARGON2I
       || (a->hash_type == GCRY_KDF_ARGON2ID && t->pass == 0 && t->slice < 2))
     {
-      random_index = xtrymalloc (sizeof (u32)*a->segment_length);
+      random_index = xtrymalloc (2*sizeof (u32)*a->segment_length);
       if (!random_index)
         return gpg_err_code_from_errno (errno);
       argon2_pseudo_rand_gen (a, t, random_index);
@@ -811,7 +811,7 @@ argon2_open (gcry_kdf_hd_t *hd, int subalgo,
       taglen = (unsigned int)param[0];
       t_cost = (unsigned int)param[1];
       m_cost = (unsigned int)param[2];
-      if (paramlen == 4)
+      if (paramlen >= 4)
         parallelism = (unsigned int)param[3];
       if (paramlen == 5)
         {
@@ -848,6 +848,8 @@ argon2_open (gcry_kdf_hd_t *hd, int subalgo,
   a->keylen = keylen;
   a->ad = ad;
   a->adlen = adlen;
+
+  a->m_cost = m_cost;
 
   a->block = NULL;
   a->thread_data = NULL;
