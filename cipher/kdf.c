@@ -359,7 +359,7 @@ struct argon2_context {
   unsigned int t;
 
   gcry_md_hd_t hd;
-  unsigned char *block;
+  u64 *block;
   struct argon2_thread_data *thread_data;
 
   unsigned char out[1];  /* In future, we may use flexible array member.  */
@@ -374,6 +374,17 @@ enum argon2_iterator_step {
 };
 
 #define ARGON2_VERSION 0x13
+
+#define ARGON2_WORDS_IN_BLOCK (1024/8)
+
+static void
+xor_block (u64 *dst, const u64 *src)
+{
+  int i;
+
+  for (i = 0; i < ARGON2_WORDS_IN_BLOCK; i++)
+    dst[i] ^= src[i];
+}
 
 static gpg_err_code_t
 hash (gcry_md_hd_t hd, const unsigned char *input, unsigned int inputlen,
@@ -518,12 +529,13 @@ argon2_genh0_first_blocks (argon2_ctx_t a)
       /*FIXME*/
       memset (h0_01_i+64, 0, 4);
       buf_put_le32 (h0_01_i+64+4, i);
-      ec = hash (a->hd, h0_01_i, 72, a->block+1024*i, 1024);
+      ec = hash (a->hd, h0_01_i, 72, (unsigned char *)a->block+1024*i, 1024);
       if (ec)
         break;
 
       buf_put_le32 (h0_01_i+64, 1);
-      ec = hash (a->hd, h0_01_i, 72, a->block+1024*(i+a->lanes), 1024);
+      ec = hash (a->hd, h0_01_i, 72, (unsigned char *)a->block+1024*(i+a->lanes),
+		 1024);
       if (ec)
         break;
     }
@@ -741,17 +753,17 @@ argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
   memset (a->block, 0, 1024);
   for (i = 0; i < a->lanes; i++)
     {
-      unsigned char *p0;
-      unsigned char *p1;  /*FIXME*/
+      u64 *p0;
+      u64 *p1;  /*FIXME*/
 
       p0 = a->block;
-      p1 = p0 + a->lane_length * i + (a->segment_length - 1)*1024;
+      p1 = p0 + (a->lane_length * i + (a->segment_length - 1)*1024)/8;
 
-      for (j = 0; j < 1024; j++)
-        p0[j] ^= p1[j];
+      xor_block (p0, p1);
     }
 
-  ec = hash (a->hd, a->block, 1024, result, a->outlen);
+  ec = hash (a->hd, (unsigned char *)a->block,
+	     1024, result, a->outlen);
   return ec;
 }
 
