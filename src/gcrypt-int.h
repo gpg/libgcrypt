@@ -208,15 +208,18 @@ gpg_err_code_t _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
                                  size_t keysize, void *keybuffer);
 
 gpg_err_code_t _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
-                               const unsigned long *param, unsigned int paramlen,
+                               const unsigned long *param,
+                               unsigned int paramlen,
                                const void *passphrase, size_t passphraselen,
                                const void *salt, size_t saltlen,
                                const void *key, size_t keylen,
                                const void *ad, size_t adlen);
 gpg_err_code_t _gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer,
                               size_t buflen);
-gpg_err_code_t _gcry_kdf_iterator (gcry_kdf_hd_t h, int *action, void **arg_p);
-gpg_err_code_t _gcry_kdf_compute_row (gcry_kdf_hd_t h, void *arg);
+gpg_err_code_t _gcry_kdf_iterator (gcry_kdf_hd_t h, int *action,
+                                   struct gcry_kdf_pt_head **t_p);
+gpg_err_code_t _gcry_kdf_compute_segment (gcry_kdf_hd_t h,
+                                          const struct gcry_kdf_pt_head *t);
 gpg_err_code_t _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result);
 void _gcry_kdf_close (gcry_kdf_hd_t h);
 

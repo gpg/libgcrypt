@@ -175,7 +175,7 @@ MARK_VISIBLEX (gcry_kdf_derive)
 MARK_VISIBLEX (gcry_kdf_open)
 MARK_VISIBLEX (gcry_kdf_ctl)
 MARK_VISIBLEX (gcry_kdf_iterator)
-MARK_VISIBLEX (gcry_kdf_compute_row)
+MARK_VISIBLEX (gcry_kdf_compute_segment)
 MARK_VISIBLEX (gcry_kdf_final)
 MARK_VISIBLEX (gcry_kdf_close)
 
