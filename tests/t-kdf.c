@@ -1246,19 +1246,14 @@ check_scrypt (void)
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
 
-struct per_thread_data_head {
-  gcry_kdf_hd_t h;
-  void *user_data;
-  gpg_err_code_t ec;
-};
-
 static void *
 start_thread (void *arg)
 {
-  struct per_thread_data_head *p = arg;
+  struct gcry_kdf_pt_head *k = arg;
+  gpg_err_code_t ec;
 
-  p->ec = gcry_kdf_compute_row (p->h, arg);
-  pthread_exit (NULL);
+  ec = gcry_kdf_compute_segment (k->h, k);
+  pthread_exit ((void *)ec);
   return NULL;
 }
 
@@ -1313,9 +1308,9 @@ my_kdf_derive (int parallel,
   while (1)
     {
       int action;
-      void *arg;
+      struct gcry_kdf_pt_head *t;
 
-      err = gcry_kdf_iterator (hd, &action, &arg);
+      err = gcry_kdf_iterator (hd, &action, &t);
       if (err)
         break;
 
@@ -1325,33 +1320,26 @@ my_kdf_derive (int parallel,
       else if (action == 1)
         {                       /* request to ask creating a thread */
 #ifdef HAVE_PTHREAD
-	  struct per_thread_data_head *p = arg;
-
           if (parallel)
 	    {
-	      pthread_create (&thr[i], &attr, start_thread, arg);
-	      p->user_data = &thr[i];
+	      pthread_create (&thr[i], &attr, start_thread, (void *)t);
+	      t->u.user_data = &thr[i];
               i++;
 	    }
           else
-	    {
-	      gcry_kdf_compute_row (p->h, arg);
-	      p->user_data = NULL;
-	    }
-#else
-          gcry_kdf_compute_row (p->h, arg);
-          p->user_data = NULL;
 #endif
+            t->u.ec = gcry_kdf_compute_segment (t->h, t);
         }
       else if (action == 2)
         {                       /* request to ask joining a thread */
 #ifdef HAVE_PTHREAD
           if (parallel)
 	    {
-              struct per_thread_data_head *p = arg;
-              pthread_t *user_data = (pthread_t *)p->user_data;
+              pthread_t *user_data = t->u.user_data;
+              void *retval;
 
-	      pthread_join (*user_data, NULL);
+	      pthread_join (*user_data, &retval);
+              t->u.ec = (gpg_err_code_t)retval;
 	      memset (user_data, 0, sizeof (pthread_t));
 	      --i;
 	    }

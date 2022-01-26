@@ -313,13 +313,14 @@ typedef struct argon2_context *argon2_ctx_t;
 /* Per thread data for Argon2.  */
 struct argon2_thread_data {
   argon2_ctx_t a;
-  void *user_data;
-  gpg_err_code_t ec;
+  union {
+    void *user_data;
+    gpg_err_code_t ec;
+  } u;
 
   unsigned int pass;
-  unsigned int lane;
   unsigned int slice;
-  unsigned int index;
+  unsigned int lane;
 };
 
 /* Argon2 context */
@@ -572,6 +573,7 @@ argon2_init (argon2_ctx_t a, unsigned int parallelism,
       _gcry_md_close (hd);
       return ec;
     }
+  memset (block, 0, 1024 * memory_blocks);
 
   thread_data = xtrymalloc (a->n_threads * sizeof (struct argon2_thread_data));
   if (!thread_data)
@@ -603,15 +605,16 @@ argon2_ctl (argon2_ctx_t a, int cmd, void *buffer, size_t buflen)
 }
 
 static gpg_err_code_t
-argon2_iterator (argon2_ctx_t a, int *action, void **arg_p)
+argon2_iterator (argon2_ctx_t a, int *action_p,
+                 struct gcry_kdf_pt_head **t_p)
 {
   switch (a->step)
     {
     case ARGON2_ITERATOR_STEP0:
       argon2_genh0_first_blocks (a);
       /* continue */
-      *action = 3;
-      *arg_p = NULL;
+      *action_p = 3;
+      *t_p = NULL;
       a->step = ARGON2_ITERATOR_STEP1;
       return 0;
 
@@ -627,28 +630,26 @@ argon2_iterator (argon2_ctx_t a, int *action, void **arg_p)
                   {
                     /* Join a thread.  */
                     thread_data = &a->thread_data[a->t];
-                    *action = 2;
-                    *arg_p = thread_data;
+                    *action_p = 2;
+                    *t_p = (struct gcry_kdf_pt_head *)thread_data;
                     a->step = ARGON2_ITERATOR_STEP2;
                     return 0;
 
                   case ARGON2_ITERATOR_STEP2:
                     thread_data = &a->thread_data[a->t];
-                    if (thread_data->ec)
-                      return thread_data->ec;
+                    if (thread_data->u.ec)
+                      return thread_data->u.ec;
                   }
 
                 /* Create a thread.  */
                 thread_data = &a->thread_data[a->t];
                 thread_data->a = a;
-                thread_data->user_data = NULL;
-                thread_data->ec = 0;
+                thread_data->u.user_data = NULL;
                 thread_data->pass = a->r;
-                thread_data->lane = a->s;
-                thread_data->slice = a->l;
-                thread_data->index = a->t;
-                *action = 1;
-                *arg_p = thread_data;
+                thread_data->slice = a->s;
+                thread_data->lane = a->l;
+                *action_p = 1;
+                *t_p = (struct gcry_kdf_pt_head *)thread_data;
                 a->step = ARGON2_ITERATOR_STEP3;
                 return 0;
 
@@ -661,34 +662,72 @@ argon2_iterator (argon2_ctx_t a, int *action, void **arg_p)
                 thread_data = &a->thread_data[a->t];
 
                 /* Join a thread.  */
-                *action = 2;
-                *arg_p = thread_data;
+                *action_p = 2;
+                *t_p = (struct gcry_kdf_pt_head *)thread_data;
                 a->step = ARGON2_ITERATOR_STEP4;
                 return 0;
 
               case ARGON2_ITERATOR_STEP4:
                 thread_data = &a->thread_data[a->t];
-                if (thread_data->ec)
-                  return thread_data->ec;
+                if (thread_data->u.ec)
+                  return thread_data->u.ec;
                 a->t = (a->t + 1) % a->n_threads;
               }
           }
     }
 
-  *action = 0;
-  *arg_p = NULL;
+  *action_p = 0;
+  *t_p = NULL;
   a->step = ARGON2_ITERATOR_STEP0;
   return 0;
 }
 
-static gpg_err_code_t
-argon2_compute_row (argon2_ctx_t a, void *arg)
+static void
+argon2_pseudo_rand_gen (argon2_ctx_t a, const struct argon2_thread_data *t,
+                        u32 *random_index)
 {
-  gpg_err_code_t ec = GPG_ERR_NOT_IMPLEMENTED;
   (void)a;
-  (void)arg;
+  (void)t;
+  (void)random_index;
+}
+
+static gpg_err_code_t
+argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
+{
+  gpg_err_code_t ec = 0;
+  u32 *random_index = NULL;
+  int i;
+  int prev_offset, curr_offset;
+
+  if (a->hash_type == GCRY_KDF_ARGON2I
+      || (a->hash_type == GCRY_KDF_ARGON2ID && t->pass == 0 && t->slice < 2))
+    {
+      random_index = xtrymalloc (sizeof (u32)*a->segment_length);
+      if (!random_index)
+        return gpg_err_code_from_errno (errno);
+      argon2_pseudo_rand_gen (a, t, random_index);
+    }
+
+  if (t->pass == 0 && t->slice == 0)
+    i = 2;
+  else
+    i = 0;
+
+  curr_offset = t->lane * a->lane_length + t->slice * a->segment_length + i;
+  if ((curr_offset % a->lane_length))
+    prev_offset = curr_offset - 1;
+  else
+    prev_offset = curr_offset + a->lane_length - 1;
+
+  for (; i < a->segment_length; i++, curr_offset++, prev_offset++)
+    {
+      /* Not yet implemented.  */;
+    }
+
+  xfree (random_index);
   return ec;
 }
+
 
 static gpg_err_code_t
 argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
@@ -775,7 +814,11 @@ argon2_open (gcry_kdf_hd_t *hd, int subalgo,
       if (paramlen == 4)
         parallelism = (unsigned int)param[3];
       if (paramlen == 5)
-        n_threads = (unsigned int)param[4];
+        {
+          n_threads = (unsigned int)param[4];
+          if (n_threads > parallelism)
+            n_threads = parallelism;
+        }
 
       if (!(taglen == 64 || taglen == 48
             || taglen % 32 == 0 || taglen % 32 == 20))
@@ -913,14 +956,15 @@ _gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer, size_t buflen)
 }
 
 gpg_err_code_t
-_gcry_kdf_iterator (gcry_kdf_hd_t h, int *action, void **arg_p)
+_gcry_kdf_iterator (gcry_kdf_hd_t h, int *action_p,
+                    struct gcry_kdf_pt_head **t_p)
 {
   gpg_err_code_t ec;
 
   switch (h->algo)
     {
     case GCRY_KDF_ARGON2:
-      ec = argon2_iterator ((argon2_ctx_t)h, action, arg_p);
+      ec = argon2_iterator ((argon2_ctx_t)h, action_p, t_p);
       break;
 
     default:
@@ -932,14 +976,15 @@ _gcry_kdf_iterator (gcry_kdf_hd_t h, int *action, void **arg_p)
 }
 
 gpg_err_code_t
-_gcry_kdf_compute_row (gcry_kdf_hd_t h, void *arg)
+_gcry_kdf_compute_segment (gcry_kdf_hd_t h, const struct gcry_kdf_pt_head *t)
 {
   gpg_err_code_t ec;
 
   switch (h->algo)
     {
     case GCRY_KDF_ARGON2:
-      ec = argon2_compute_row ((argon2_ctx_t)h, arg);
+      ec = argon2_compute_segment ((argon2_ctx_t)h,
+                                   (const struct argon2_thread_data *)t);
       break;
 
     default:
