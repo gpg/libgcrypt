@@ -387,8 +387,8 @@ xor_block (u64 *dst, const u64 *src)
 }
 
 static gpg_err_code_t
-hash (gcry_md_hd_t hd, const unsigned char *input, unsigned int inputlen,
-      unsigned char *output, unsigned int outputlen)
+hash (gcry_md_hd_t hd, const void *input, unsigned int inputlen,
+      void *output, unsigned int outputlen)
 {
   gpg_err_code_t ec = 0;
   unsigned char buf[4];
@@ -441,17 +441,18 @@ hash (gcry_md_hd_t hd, const unsigned char *input, unsigned int inputlen,
       _gcry_md_write (hd, buf, 4);
       _gcry_md_write (hd, input, inputlen);
 
-      do
+      while (1)
         {
           digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
           memcpy (d, digest, 64);
-          memcpy (output+i*32, digest, 32);
-          i++;
+          memcpy ((unsigned char *)output+i*32, digest, 32);
+
+          if (++i >= r)
+            break;
 
           _gcry_md_reset (hd);
           _gcry_md_write (hd, d, 64);
         }
-      while (i < r);
 
       remained = outputlen - 32*r;
       if (remained)
@@ -467,7 +468,7 @@ hash (gcry_md_hd_t hd, const unsigned char *input, unsigned int inputlen,
 
           _gcry_md_write (hd1, d, 64);
           digest = _gcry_md_read (hd1, algo);
-          memcpy (output+r*32, digest, remained);
+          memcpy ((unsigned char *)output+r*32, digest, remained);
           _gcry_md_close (hd1);
         }
     }
@@ -476,7 +477,7 @@ hash (gcry_md_hd_t hd, const unsigned char *input, unsigned int inputlen,
 }
 
 static gpg_err_code_t
-argon2_genh0_first_blocks (argon2_ctx_t a)
+argon2_fill_first_blocks (argon2_ctx_t a)
 {
   gpg_err_code_t ec = 0;
   unsigned char h0_01_i[72];
@@ -484,6 +485,7 @@ argon2_genh0_first_blocks (argon2_ctx_t a)
   unsigned char buf[4];
   int i;
 
+  /* Generate H0.  */
   buf_put_le32 (buf, a->lanes);
   _gcry_md_write (a->hd, buf, 4);
 
@@ -526,16 +528,16 @@ argon2_genh0_first_blocks (argon2_ctx_t a)
 
   for (i = 0; i < a->lanes; i++)
     {
-      /*FIXME*/
       memset (h0_01_i+64, 0, 4);
       buf_put_le32 (h0_01_i+64+4, i);
-      ec = hash (a->hd, h0_01_i, 72, (unsigned char *)a->block+1024*i, 1024);
+      ec = hash (a->hd, h0_01_i, 72,
+                 &a->block[i*a->lane_length*ARGON2_WORDS_IN_BLOCK], 1024);
       if (ec)
         break;
 
       buf_put_le32 (h0_01_i+64, 1);
-      ec = hash (a->hd, h0_01_i, 72, (unsigned char *)a->block+1024*(i+a->lanes),
-		 1024);
+      ec = hash (a->hd, h0_01_i, 72,
+                 &a->block[(i*a->lane_length+1)*ARGON2_WORDS_IN_BLOCK], 1024);
       if (ec)
         break;
     }
@@ -623,7 +625,7 @@ argon2_iterator (argon2_ctx_t a, int *action_p,
   switch (a->step)
     {
     case ARGON2_ITERATOR_STEP0:
-      argon2_genh0_first_blocks (a);
+      argon2_fill_first_blocks (a);
       /* continue */
       *action_p = 3;
       *t_p = NULL;
@@ -703,6 +705,125 @@ argon2_pseudo_rand_gen (argon2_ctx_t a, const struct argon2_thread_data *t,
   (void)random_index;
 }
 
+static u64 fBlaMka (u64 x, u64 y)
+{
+  const u64 m = U64_C(0xFFFFFFFF);
+  return x + y + 2 * (x & m) * (y & m);
+}
+
+static u64 rotr64 (uint64_t w, unsigned int c)
+{
+  return (w >> c) | (w << (64 - c));
+}
+
+#define G(a, b, c, d)                                                          \
+    do {                                                                       \
+        a = fBlaMka(a, b);                                                     \
+        d = rotr64(d ^ a, 32);                                                 \
+        c = fBlaMka(c, d);                                                     \
+        b = rotr64(b ^ c, 24);                                                 \
+        a = fBlaMka(a, b);                                                     \
+        d = rotr64(d ^ a, 16);                                                 \
+        c = fBlaMka(c, d);                                                     \
+        b = rotr64(b ^ c, 63);                                                 \
+    } while ((void)0, 0)
+
+#define BLAKE2_ROUND_NOMSG(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11,   \
+                           v12, v13, v14, v15)                                 \
+    do {                                                                       \
+        G(v0, v4, v8, v12);                                                    \
+        G(v1, v5, v9, v13);                                                    \
+        G(v2, v6, v10, v14);                                                   \
+        G(v3, v7, v11, v15);                                                   \
+        G(v0, v5, v10, v15);                                                   \
+        G(v1, v6, v11, v12);                                                   \
+        G(v2, v7, v8, v13);                                                    \
+        G(v3, v4, v9, v14);                                                    \
+    } while ((void)0, 0)
+
+static void
+fill_block (const u64 *prev_block, const u64 *ref_block, u64 *curr_block,
+            int with_xor)
+{
+  u64 block_r[ARGON2_WORDS_IN_BLOCK];
+  u64 block_tmp[ARGON2_WORDS_IN_BLOCK];
+  int i;
+
+  memcpy (block_r, ref_block, ARGON2_WORDS_IN_BLOCK);
+  xor_block (block_r, prev_block);
+  memcpy (block_tmp, block_r, ARGON2_WORDS_IN_BLOCK);
+
+  if (with_xor)
+    xor_block (block_tmp, curr_block);
+
+  for (i = 0; i < 8; ++i)
+    BLAKE2_ROUND_NOMSG
+      (block_r[16 * i],      block_r[16 * i + 1],  block_r[16 * i + 2],
+       block_r[16 * i + 3],  block_r[16 * i + 4],  block_r[16 * i + 5],
+       block_r[16 * i + 6],  block_r[16 * i + 7],  block_r[16 * i + 8],
+       block_r[16 * i + 9],  block_r[16 * i + 10], block_r[16 * i + 11],
+       block_r[16 * i + 12], block_r[16 * i + 13], block_r[16 * i + 14],
+       block_r[16 * i + 15]);
+
+  for (i = 0; i < 8; i++)
+    BLAKE2_ROUND_NOMSG
+      (block_r[2 * i],      block_r[2 * i + 1],  block_r[2 * i + 16],
+       block_r[2 * i + 17], block_r[2 * i + 32], block_r[2 * i + 33],
+       block_r[2 * i + 48], block_r[2 * i + 49], block_r[2 * i + 64],
+       block_r[2 * i + 65], block_r[2 * i + 80], block_r[2 * i + 81],
+       block_r[2 * i + 96], block_r[2 * i + 97], block_r[2 * i + 112],
+       block_r[2 * i + 113]);
+
+  memcpy (curr_block, block_tmp, ARGON2_WORDS_IN_BLOCK);
+  xor_block (curr_block, block_r);
+}
+
+static u32
+index_alpha (argon2_ctx_t a, const struct argon2_thread_data *t,
+             int segment_index, u32 random, int same_lane)
+{
+  u32 reference_area_size;
+  u64 relative_position;
+  u32 start_position;
+
+  if (t->pass == 0)
+    {
+      if (t->slice == 0)
+        reference_area_size = segment_index - 1;
+      else
+        {
+          if (same_lane)
+            reference_area_size = t->slice * a->segment_length
+              + segment_index - 1;
+          else
+            reference_area_size = t->slice * a->segment_length +
+              ((segment_index == 0) ? -1 : 0);
+        }
+    }
+  else
+    {
+      if (same_lane)
+        reference_area_size = a->lane_length
+          - a->segment_length + segment_index - 1;
+      else
+        reference_area_size = a->lane_length
+          - a->segment_length + ((segment_index == 0) ? -1 : 0);
+    }
+
+  relative_position = (random * (u64)random) >> 32;
+  relative_position = reference_area_size - 1 -
+    ((reference_area_size * relative_position) >> 32);
+
+  if (t->pass == 0)
+    start_position = 0;
+  else
+    start_position = (t->slice == 4 - 1)
+      ? 0
+      : (t->slice + 1) * a->segment_length;
+
+  return (start_position + relative_position) % a->lane_length;
+}
+
 static gpg_err_code_t
 argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
 {
@@ -710,6 +831,7 @@ argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
   u32 *random_index = NULL;
   int i;
   int prev_offset, curr_offset;
+  u32 ref_index, ref_lane;
 
   if (a->hash_type == GCRY_KDF_ARGON2I
       || (a->hash_type == GCRY_KDF_ARGON2ID && t->pass == 0 && t->slice < 2))
@@ -733,7 +855,33 @@ argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
 
   for (; i < a->segment_length; i++, curr_offset++, prev_offset++)
     {
-      /* Not yet implemented.  */;
+      void *pseudo_rand;
+      u64 *ref_block, *curr_block;
+
+      if ((curr_offset % a->lane_length) == 1)
+        prev_offset = curr_offset - 1;
+
+      if (random_index)
+        {
+          /* not yet implemented */
+          pseudo_rand = &a->block[prev_offset*ARGON2_WORDS_IN_BLOCK];
+        }
+      else
+        pseudo_rand = &a->block[prev_offset*ARGON2_WORDS_IN_BLOCK];
+
+      if (t->pass == 0 && t->slice == 0)
+        ref_lane = t->lane;
+      else
+        ref_lane = buf_get_le32 ((unsigned char *)pseudo_rand+4) % a->lanes;
+
+      ref_index = index_alpha (a, t, i, buf_get_le32 (pseudo_rand),
+                               ref_lane == t->lane);
+      ref_block =
+        &a->block[(a->lane_length * ref_lane + ref_index)* ARGON2_WORDS_IN_BLOCK];
+
+      curr_block = &a->block[curr_offset * ARGON2_WORDS_IN_BLOCK];
+      fill_block (&a->block[prev_offset * ARGON2_WORDS_IN_BLOCK], ref_block,
+                  curr_block, t->pass != 0);
     }
 
   xfree (random_index);
@@ -745,7 +893,7 @@ static gpg_err_code_t
 argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
 {
   gpg_err_code_t ec;
-  int i, j;
+  int i;
 
   if (resultlen != a->outlen)
     return GPG_ERR_INV_VALUE;
@@ -753,17 +901,14 @@ argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
   memset (a->block, 0, 1024);
   for (i = 0; i < a->lanes; i++)
     {
-      u64 *p0;
-      u64 *p1;  /*FIXME*/
+      u64 *last_block;
 
-      p0 = a->block;
-      p1 = p0 + (a->lane_length * i + (a->segment_length - 1)*1024)/8;
-
-      xor_block (p0, p1);
+      last_block = &a->block[(a->lane_length * i + (a->lane_length - 1))
+                             * ARGON2_WORDS_IN_BLOCK];
+      xor_block (a->block, last_block);
     }
 
-  ec = hash (a->hd, (unsigned char *)a->block,
-	     1024, result, a->outlen);
+  ec = hash (a->hd, a->block, 1024, result, a->outlen);
   return ec;
 }
 
