@@ -395,21 +395,13 @@ hash (gcry_md_hd_t hd, const void *input, unsigned int inputlen,
 
   _gcry_md_reset (hd);
 
-  if (outputlen < 64)
+  if (outputlen <= 64)
     {
       buf_put_le32 (buf, outputlen);
       _gcry_md_write (hd, buf, 4);
       _gcry_md_write (hd, input, inputlen);
       digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
       memcpy (output, digest, outputlen);
-    }
-  else if (outputlen == 64)
-    {
-      buf_put_le32 (buf, outputlen);
-      _gcry_md_write (hd, buf, 4);
-      _gcry_md_write (hd, input, inputlen);
-      digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
-      memcpy (output, digest, 64);
     }
   else
     {
