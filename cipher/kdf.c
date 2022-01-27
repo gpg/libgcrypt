@@ -386,39 +386,22 @@ xor_block (u64 *dst, const u64 *src)
     dst[i] ^= src[i];
 }
 
-static gpg_err_code_t
+static void
 hash (gcry_md_hd_t hd, const void *input, unsigned int inputlen,
       void *output, unsigned int outputlen)
 {
-  gpg_err_code_t ec = 0;
   unsigned char buf[4];
   const unsigned char *digest;
-  gcry_md_hd_t hd1;
-  int algo;
 
   _gcry_md_reset (hd);
 
   if (outputlen < 64)
     {
-      if (outputlen == 48)
-        algo = GCRY_MD_BLAKE2B_384;
-      else if (outputlen == 32)
-        algo = GCRY_MD_BLAKE2B_256;
-      else if (outputlen == 20)
-        algo = GCRY_MD_BLAKE2B_160;
-      else
-        return GPG_ERR_NOT_IMPLEMENTED;
-
-      ec = _gcry_md_open (&hd1, algo, 0);
-      if (ec)
-        return ec;
-
       buf_put_le32 (buf, outputlen);
-      _gcry_md_write (hd1, buf, 4);
-      _gcry_md_write (hd1, input, inputlen);
-      digest = _gcry_md_read (hd1, algo);
+      _gcry_md_write (hd, buf, 4);
+      _gcry_md_write (hd, input, inputlen);
+      digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
       memcpy (output, digest, outputlen);
-      _gcry_md_close (hd1);
     }
   else if (outputlen == 64)
     {
@@ -435,7 +418,7 @@ hash (gcry_md_hd_t hd, const void *input, unsigned int inputlen,
       unsigned char d[64];
 
       i = 0;
-      r = outputlen/32;
+      r = (outputlen-1)/32;
 
       buf_put_le32 (buf, outputlen);
       _gcry_md_write (hd, buf, 4);
@@ -445,7 +428,7 @@ hash (gcry_md_hd_t hd, const void *input, unsigned int inputlen,
         {
           digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
           memcpy (d, digest, 64);
-          memcpy ((unsigned char *)output+i*32, digest, 32);
+          memcpy ((unsigned char *)output+i*32, d, 32);
 
           if (++i >= r)
             break;
@@ -456,30 +439,13 @@ hash (gcry_md_hd_t hd, const void *input, unsigned int inputlen,
 
       remained = outputlen - 32*r;
       if (remained)
-        {
-          if (remained == 20)
-            algo = GCRY_MD_BLAKE2B_160;
-          else
-            return GPG_ERR_NOT_IMPLEMENTED;
-
-          ec = _gcry_md_open (&hd1, algo, 0);
-          if (ec)
-            return ec;
-
-          _gcry_md_write (hd1, d, 64);
-          digest = _gcry_md_read (hd1, algo);
-          memcpy ((unsigned char *)output+r*32, digest, remained);
-          _gcry_md_close (hd1);
-        }
+	memcpy ((unsigned char *)output+r*32, d+32, remained);
     }
-
-  return 0;
 }
 
-static gpg_err_code_t
+static void
 argon2_fill_first_blocks (argon2_ctx_t a)
 {
-  gpg_err_code_t ec = 0;
   unsigned char h0_01_i[72];
   const unsigned char *digest;
   unsigned char buf[4];
@@ -530,19 +496,13 @@ argon2_fill_first_blocks (argon2_ctx_t a)
     {
       memset (h0_01_i+64, 0, 4);
       buf_put_le32 (h0_01_i+64+4, i);
-      ec = hash (a->hd, h0_01_i, 72,
-                 &a->block[i*a->lane_length*ARGON2_WORDS_IN_BLOCK], 1024);
-      if (ec)
-        break;
+      hash (a->hd, h0_01_i, 72,
+	    &a->block[i*a->lane_length*ARGON2_WORDS_IN_BLOCK], 1024);
 
       buf_put_le32 (h0_01_i+64, 1);
-      ec = hash (a->hd, h0_01_i, 72,
-                 &a->block[(i*a->lane_length+1)*ARGON2_WORDS_IN_BLOCK], 1024);
-      if (ec)
-        break;
+      hash (a->hd, h0_01_i, 72,
+	    &a->block[(i*a->lane_length+1)*ARGON2_WORDS_IN_BLOCK], 1024);
     }
-
-  return ec;
 }
 
 static gpg_err_code_t
@@ -749,9 +709,9 @@ fill_block (const u64 *prev_block, const u64 *ref_block, u64 *curr_block,
   u64 block_tmp[ARGON2_WORDS_IN_BLOCK];
   int i;
 
-  memcpy (block_r, ref_block, ARGON2_WORDS_IN_BLOCK);
+  memcpy (block_r, ref_block, 1024);
   xor_block (block_r, prev_block);
-  memcpy (block_tmp, block_r, ARGON2_WORDS_IN_BLOCK);
+  memcpy (block_tmp, block_r, 1024);
 
   if (with_xor)
     xor_block (block_tmp, curr_block);
@@ -774,7 +734,7 @@ fill_block (const u64 *prev_block, const u64 *ref_block, u64 *curr_block,
        block_r[2 * i + 96], block_r[2 * i + 97], block_r[2 * i + 112],
        block_r[2 * i + 113]);
 
-  memcpy (curr_block, block_tmp, ARGON2_WORDS_IN_BLOCK);
+  memcpy (curr_block, block_tmp, 1024);
   xor_block (curr_block, block_r);
 }
 
@@ -892,7 +852,6 @@ argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
 static gpg_err_code_t
 argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
 {
-  gpg_err_code_t ec;
   int i;
 
   if (resultlen != a->outlen)
@@ -908,8 +867,8 @@ argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
       xor_block (a->block, last_block);
     }
 
-  ec = hash (a->hd, a->block, 1024, result, a->outlen);
-  return ec;
+  hash (a->hd, a->block, 1024, result, a->outlen);
+  return 0;
 }
 
 static void
