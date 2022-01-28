@@ -36,5 +36,8 @@ _gcry_kdf_scrypt (const unsigned char *passwd, size_t passwdlen,
                   unsigned long iterations,
                   size_t dklen, unsigned char *dk);
 
+/*-- blake2.c --*/
+gcry_err_code_t
+blake2b_vl_hash (const void *in, size_t inlen, size_t outputlen, void *output);
 
 #endif /*GCRY_KDF_INTERNAL_H*/
