@@ -680,9 +680,9 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, mpi_ec_t ec,
   const void *mbuf;
   size_t mlen;
   unsigned char *rawmpi = NULL;
-  unsigned int rawmpilen;
+  unsigned int rawmpilen = 0;
   unsigned char *encpk = NULL; /* Encoded public key.  */
-  unsigned int encpklen;
+  unsigned int encpklen = 0;
   mpi_point_struct I;          /* Intermediate value.  */
   gcry_mpi_t a, x, y, r;
   const char *dom;
@@ -901,7 +901,7 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
   int b;
   unsigned int tmp;
   unsigned char *encpk = NULL; /* Encoded public key.  */
-  unsigned int encpklen;
+  unsigned int encpklen = 0;
   const void *mbuf, *rbuf;
   unsigned char *tbuf = NULL;
   size_t mlen, rlen;
