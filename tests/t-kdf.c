@@ -1257,7 +1257,7 @@ struct user_defined_threads_ctx
   pthread_t thread[MAX_THREADS];
   struct job_thread_param
   {
-    void (*job) (void *work_priv);
+    gcry_kdf_job_fn_t job;
     void *priv;
   } work[MAX_THREADS];
 };
@@ -1271,8 +1271,8 @@ job_thread (void *p)
 }
 
 static int
-pthread_jobs_launch_job (void *jobs_context,
-                         void (*job) (void *work_priv), void *work_priv)
+pthread_jobs_launch_job (void *jobs_context, gcry_kdf_job_fn_t job,
+			 void *job_priv)
 {
   struct user_defined_threads_ctx *ctx = jobs_context;
 
@@ -1286,7 +1286,7 @@ pthread_jobs_launch_job (void *jobs_context,
     }
 
   ctx->work[ctx->next_thread_idx].job = job;
-  ctx->work[ctx->next_thread_idx].priv = work_priv;
+  ctx->work[ctx->next_thread_idx].priv = job_priv;
   pthread_create (&ctx->thread[ctx->next_thread_idx], &ctx->attr,
                   job_thread, &ctx->work[ctx->next_thread_idx]);
   if (ctx->oldest_thread_idx < 0)

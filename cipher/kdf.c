@@ -719,14 +719,14 @@ argon2_compute (argon2_ctx_t a, const struct gcry_kdf_thread_ops *ops)
             thread_data->lane = l;
 
             if (ops)
-              ops->launch_job (ops->jobs_context,
-                               argon2_compute_segment, thread_data);
+              ops->dispatch_job (ops->jobs_context,
+                                 argon2_compute_segment, thread_data);
             else
               argon2_compute_segment (thread_data);
           }
 
         if (ops)
-          ops->wait_all_jobs_completion (ops->jobs_context);
+          ops->wait_all_jobs (ops->jobs_context);
       }
 
   return 0;
