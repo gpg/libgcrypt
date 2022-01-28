@@ -474,6 +474,57 @@ static gcry_err_code_t blake2b_init_ctx(void *ctx, unsigned int flags,
   return blake2b_init(c, key, keylen);
 }
 
+/* Variable-length Hash Function H'.  */
+gcry_err_code_t
+blake2b_vl_hash (const void *in, size_t inlen, size_t outputlen, void *output)
+{
+  gcry_err_code_t ec;
+  BLAKE2B_CONTEXT ctx;
+  unsigned char buf[4];
+
+  ec = blake2b_init_ctx (&ctx, 0, NULL, 0,
+                         (outputlen < 64 ? outputlen: 64)*8);
+  if (ec)
+    return ec;
+
+  buf_put_le32 (buf, outputlen);
+  blake2b_write (&ctx, buf, 4);
+  blake2b_write (&ctx, in, inlen);
+  blake2b_final (&ctx);
+
+  if (outputlen <= 64)
+    memcpy (output, ctx.buf, outputlen);
+  else
+    {
+      int r = (outputlen-1)/32;
+      unsigned int remained = outputlen - 32*r;
+      int i;
+      unsigned char d[64];
+
+      i = 0;
+      while (1)
+        {
+          memcpy (d, ctx.buf, 64);
+          memcpy ((unsigned char *)output+i*32, d, 32);
+
+          if (++i >= r)
+            break;
+
+          ec = blake2b_init_ctx (&ctx, 0, NULL, 0, 64*8);
+          if (ec)
+            return ec;
+
+          blake2b_write (&ctx, d, 64);
+          blake2b_final (&ctx);
+        }
+
+      if (remained)
+        memcpy ((unsigned char *)output+r*32, d+32, remained);
+    }
+
+  return 0;
+}
+
 static inline void blake2s_set_lastblock(BLAKE2S_STATE *S)
 {
   S->f[0] = 0xFFFFFFFFUL;

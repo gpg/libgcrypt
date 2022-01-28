@@ -1614,13 +1614,17 @@ gpg_error_t gcry_kdf_derive (const void *passphrase, size_t passphraselen,
 /* Another API to derive a key from a passphrase.  */
 typedef struct gcry_kdf_handle *gcry_kdf_hd_t;
 
-/* Head of per thread data.  */
-struct gcry_kdf_pt_head {
-  gcry_kdf_hd_t h;
-  union {
-    void *user_data;
-    gpg_err_code_t ec;
-  } u;
+
+typedef int (*gcry_kdf_lauch_job_t) (void *jobs_context,
+                                     void (*job) (void *work_priv),
+                                     void *work_priv);
+typedef int (*gcry_kdf_wait_all_jobs_completion_t) (void *jobs_context);
+
+/* Exposed structure for KDF computation to decouple thread functionality.  */
+struct gcry_kdf_thread_ops {
+  void *jobs_context;
+  gcry_kdf_lauch_job_t launch_job;
+  gcry_kdf_wait_all_jobs_completion_t wait_all_jobs_completion;
 };
 
 gcry_error_t gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
@@ -1629,12 +1633,8 @@ gcry_error_t gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
                             const void *salt, size_t saltlen,
                             const void *key, size_t keylen,
                             const void *ad, size_t adlen);
-gcry_error_t gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer,
-                           size_t buflen);
-gcry_error_t gcry_kdf_iterator (gcry_kdf_hd_t h, int *action_p,
-                                struct gcry_kdf_pt_head **t_p);
-gcry_error_t gcry_kdf_compute_segment (gcry_kdf_hd_t h,
-                                       const struct gcry_kdf_pt_head *t);
+gcry_error_t gcry_kdf_compute (gcry_kdf_hd_t h,
+                               const struct gcry_kdf_thread_ops *ops);
 gcry_error_t gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result);
 void gcry_kdf_close (gcry_kdf_hd_t h);
 
