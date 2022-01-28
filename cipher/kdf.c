@@ -367,59 +367,66 @@ xor_block (u64 *dst, const u64 *src)
 static gpg_err_code_t
 argon2_fill_first_blocks (argon2_ctx_t a)
 {
-  gpg_err_code_t ec;
   unsigned char h0_01_i[72];
-  const unsigned char *digest;
-  unsigned char buf[4];
+  unsigned char buf[10][4];
+  gcry_buffer_t iov[8];
+  unsigned int iov_count = 0;
   int i;
-  gcry_md_hd_t hd;
-
-  ec = _gcry_md_open (&hd, GCRY_MD_BLAKE2B_512, 0);
-  if (ec)
-    return ec;
 
   /* Generate H0.  */
-  buf_put_le32 (buf, a->lanes);
-  _gcry_md_write (hd, buf, 4);
+  buf_put_le32 (buf[0], a->lanes);
+  buf_put_le32 (buf[1], a->outlen);
+  buf_put_le32 (buf[2], a->m_cost);
+  buf_put_le32 (buf[3], a->passes);
+  buf_put_le32 (buf[4], ARGON2_VERSION);
+  buf_put_le32 (buf[5], a->hash_type);
+  buf_put_le32 (buf[6], a->passwordlen);
+  iov[iov_count].data = buf[0];
+  iov[iov_count].len = 4 * 7;
+  iov[iov_count].off = 0;
+  iov_count++;
+  iov[iov_count].data = (void *)a->password;
+  iov[iov_count].len = a->passwordlen;
+  iov[iov_count].off = 0;
+  iov_count++;
 
-  buf_put_le32 (buf, a->outlen);
-  _gcry_md_write (hd, buf, 4);
+  buf_put_le32 (buf[7], a->saltlen);
+  iov[iov_count].data = buf[7];
+  iov[iov_count].len = 4;
+  iov[iov_count].off = 0;
+  iov_count++;
+  iov[iov_count].data = (void *)a->salt;
+  iov[iov_count].len = a->saltlen;
+  iov[iov_count].off = 0;
+  iov_count++;
 
-  buf_put_le32 (buf, a->m_cost);
-  _gcry_md_write (hd, buf, 4);
-
-  buf_put_le32 (buf, a->passes);
-  _gcry_md_write (hd, buf, 4);
-
-  buf_put_le32 (buf, ARGON2_VERSION);
-  _gcry_md_write (hd, buf, 4);
-
-  buf_put_le32 (buf, a->hash_type);
-  _gcry_md_write (hd, buf, 4);
-
-  buf_put_le32 (buf, a->passwordlen);
-  _gcry_md_write (hd, buf, 4);
-  _gcry_md_write (hd, a->password, a->passwordlen);
-
-  buf_put_le32 (buf, a->saltlen);
-  _gcry_md_write (hd, buf, 4);
-  _gcry_md_write (hd, a->salt, a->saltlen);
-
-  buf_put_le32 (buf, a->keylen);
-  _gcry_md_write (hd, buf, 4);
+  buf_put_le32 (buf[8], a->keylen);
+  iov[iov_count].data = buf[8];
+  iov[iov_count].len = 4;
+  iov[iov_count].off = 0;
+  iov_count++;
   if (a->key)
-    _gcry_md_write (hd, a->key, a->keylen);
+    {
+      iov[iov_count].data = (void *)a->key;
+      iov[iov_count].len = a->keylen;
+      iov[iov_count].off = 0;
+      iov_count++;
+    }
 
-  buf_put_le32 (buf, a->adlen);
-  _gcry_md_write (hd, buf, 4);
+  buf_put_le32 (buf[9], a->adlen);
+  iov[iov_count].data = buf[9];
+  iov[iov_count].len = 4;
+  iov[iov_count].off = 0;
+  iov_count++;
   if (a->ad)
-    _gcry_md_write (hd, a->ad, a->adlen);
+    {
+      iov[iov_count].data = (void *)a->ad;
+      iov[iov_count].len = a->adlen;
+      iov[iov_count].off = 0;
+      iov_count++;
+    }
 
-  digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
-
-  memcpy (h0_01_i, digest, 64);
-
-  _gcry_md_close (hd);
+  _gcry_digest_spec_blake2b_512.hash_buffers (h0_01_i, 64, iov, iov_count);
 
   for (i = 0; i < a->lanes; i++)
     {
