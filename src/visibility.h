@@ -173,9 +173,7 @@ MARK_VISIBLEX (gcry_pk_random_override_new)
 
 MARK_VISIBLEX (gcry_kdf_derive)
 MARK_VISIBLEX (gcry_kdf_open)
-MARK_VISIBLEX (gcry_kdf_ctl)
-MARK_VISIBLEX (gcry_kdf_iterator)
-MARK_VISIBLEX (gcry_kdf_compute_segment)
+MARK_VISIBLEX (gcry_kdf_compute)
 MARK_VISIBLEX (gcry_kdf_final)
 MARK_VISIBLEX (gcry_kdf_close)
 
@@ -419,9 +417,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 
 #define gcry_kdf_derive             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_kdf_open               _gcry_USE_THE_UNDERSCORED_FUNCTION
-#define gcry_kdf_ctl                _gcry_USE_THE_UNDERSCORED_FUNCTION
-#define gcry_kdf_iterator           _gcry_USE_THE_UNDERSCORED_FUNCTION
-#define gcry_kdf_compute_row        _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_kdf_compute            _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_kdf_final              _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_kdf_close              _gcry_USE_THE_UNDERSCORED_FUNCTION
 

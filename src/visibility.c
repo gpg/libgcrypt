@@ -1375,29 +1375,11 @@ gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
 }
 
 gcry_error_t
-gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer, size_t buflen)
+gcry_kdf_compute (gcry_kdf_hd_t h, const struct gcry_kdf_thread_ops *ops)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
-  return gpg_error (_gcry_kdf_ctl (h, cmd, buffer, buflen));
-}
-
-gcry_error_t
-gcry_kdf_iterator (gcry_kdf_hd_t h, int *action_p,
-                   struct gcry_kdf_pt_head **t_p)
-{
-  if (!fips_is_operational ())
-    return gpg_error (fips_not_operational ());
-  return gpg_error (_gcry_kdf_iterator (h, action_p, t_p));
-}
-
-gcry_error_t
-gcry_kdf_compute_segment (gcry_kdf_hd_t h,
-                          const struct gcry_kdf_pt_head *t)
-{
-  if (!fips_is_operational ())
-    return gpg_error (fips_not_operational ());
-  return gpg_error (_gcry_kdf_compute_segment (h, t));
+  return gpg_error (_gcry_kdf_compute (h, ops));
 }
 
 gcry_error_t

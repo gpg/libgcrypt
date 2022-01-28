@@ -214,12 +214,8 @@ gpg_err_code_t _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
                                const void *salt, size_t saltlen,
                                const void *key, size_t keylen,
                                const void *ad, size_t adlen);
-gpg_err_code_t _gcry_kdf_ctl (gcry_kdf_hd_t h, int cmd, void *buffer,
-                              size_t buflen);
-gpg_err_code_t _gcry_kdf_iterator (gcry_kdf_hd_t h, int *action,
-                                   struct gcry_kdf_pt_head **t_p);
-gpg_err_code_t _gcry_kdf_compute_segment (gcry_kdf_hd_t h,
-                                          const struct gcry_kdf_pt_head *t);
+gcry_error_t _gcry_kdf_compute (gcry_kdf_hd_t h,
+                                const struct gcry_kdf_thread_ops *ops);
 gpg_err_code_t _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result);
 void _gcry_kdf_close (gcry_kdf_hd_t h);
 
