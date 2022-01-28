@@ -1376,7 +1376,7 @@ check_argon2 (void)
   const unsigned char ad[12] = { 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 };
   unsigned char out[32];
   unsigned char expected[32] = {
-#if 1
+#if 0
     0x51, 0x2b, 0x39, 0x1b, 0x6f, 0x11, 0x62, 0x97,
     0x53, 0x71, 0xd3, 0x09, 0x19, 0x73, 0x42, 0x94,
     0xf8, 0x68, 0xe3, 0xbe, 0x39, 0x84, 0xf3, 0xc1,
@@ -1396,7 +1396,7 @@ check_argon2 (void)
   int i;
 
   err = my_kdf_derive (0,
-                       GCRY_KDF_ARGON2, GCRY_KDF_ARGON2D, param, 4,
+                       GCRY_KDF_ARGON2, GCRY_KDF_ARGON2ID, param, 4,
                        pass, 32, salt, 16, key, 8, ad, 12,
                        32, out);
   if (err)
@@ -1412,7 +1412,7 @@ check_argon2 (void)
 
 #ifdef HAVE_PTHREAD
   err = my_kdf_derive (1,
-                       GCRY_KDF_ARGON2, GCRY_KDF_ARGON2D, param, 5,
+                       GCRY_KDF_ARGON2, GCRY_KDF_ARGON2ID, param, 5,
                        pass, 32, salt, 16, key, 8, ad, 12,
                        32, out);
   if (err)

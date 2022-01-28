@@ -602,15 +602,6 @@ argon2_iterator (argon2_ctx_t a, int *action_p,
   return 0;
 }
 
-static void
-argon2_pseudo_rand_gen (argon2_ctx_t a, const struct argon2_thread_data *t,
-                        u32 *random_index)
-{
-  (void)a;
-  (void)t;
-  (void)random_index;
-}
-
 static u64 fBlaMka (u64 x, u64 y)
 {
   const u64 m = U64_C(0xFFFFFFFF);
@@ -656,7 +647,8 @@ fill_block (const u64 *prev_block, const u64 *ref_block, u64 *curr_block,
   int i;
 
   memcpy (block_r, ref_block, 1024);
-  xor_block (block_r, prev_block);
+  if (prev_block)
+    xor_block (block_r, prev_block);
   memcpy (block_tmp, block_r, 1024);
 
   if (with_xor)
@@ -682,6 +674,18 @@ fill_block (const u64 *prev_block, const u64 *ref_block, u64 *curr_block,
 
   memcpy (curr_block, block_tmp, 1024);
   xor_block (curr_block, block_r);
+}
+
+static void
+pseudo_random_generate (u64 *random_block, u64 *input_block)
+{
+  u64 v;
+
+  v = buf_get_le64 (&input_block[6]);
+  buf_put_le64 (&input_block[6], ++v);
+
+  fill_block (NULL, input_block, random_block, 0);
+  fill_block (NULL, random_block, random_block, 0);
 }
 
 static u32
@@ -734,22 +738,32 @@ static gpg_err_code_t
 argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
 {
   gpg_err_code_t ec = 0;
-  u32 *random_index = NULL;
   int i;
   int prev_offset, curr_offset;
   u32 ref_index, ref_lane;
+  u64 input_block[1024/sizeof (u64)];
+  u64 address_block[1024/sizeof (u64)];
+  u64 *random_block = NULL;
 
   if (a->hash_type == GCRY_KDF_ARGON2I
       || (a->hash_type == GCRY_KDF_ARGON2ID && t->pass == 0 && t->slice < 2))
     {
-      random_index = xtrymalloc (2*sizeof (u32)*a->segment_length);
-      if (!random_index)
-        return gpg_err_code_from_errno (errno);
-      argon2_pseudo_rand_gen (a, t, random_index);
+      memset (input_block, 0, 1024);
+      buf_put_le64 ((unsigned char *)input_block+0*8, t->pass);
+      buf_put_le64 ((unsigned char *)input_block+1*8, t->lane);
+      buf_put_le64 ((unsigned char *)input_block+2*8, t->slice);
+      buf_put_le64 ((unsigned char *)input_block+3*8, a->memory_blocks);
+      buf_put_le64 ((unsigned char *)input_block+4*8, a->passes);
+      buf_put_le64 ((unsigned char *)input_block+5*8, a->hash_type);
+      random_block = address_block;
     }
 
   if (t->pass == 0 && t->slice == 0)
-    i = 2;
+    {
+      if (random_block)
+        pseudo_random_generate (random_block, input_block);
+      i = 2;
+    }
   else
     i = 0;
 
@@ -761,26 +775,28 @@ argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
 
   for (; i < a->segment_length; i++, curr_offset++, prev_offset++)
     {
-      void *pseudo_rand;
+      void *rand64_p;
       u64 *ref_block, *curr_block;
 
       if ((curr_offset % a->lane_length) == 1)
         prev_offset = curr_offset - 1;
 
-      if (random_index)
+      if (random_block)
         {
-          /* not yet implemented */
-          pseudo_rand = &a->block[prev_offset*ARGON2_WORDS_IN_BLOCK];
+          if ((i % (1024/sizeof (u64))) == 0)
+            pseudo_random_generate (random_block, input_block);
+
+          rand64_p = &random_block[(i% (1024/sizeof (u64)))];
         }
       else
-        pseudo_rand = &a->block[prev_offset*ARGON2_WORDS_IN_BLOCK];
+        rand64_p = &a->block[prev_offset*ARGON2_WORDS_IN_BLOCK];
 
       if (t->pass == 0 && t->slice == 0)
         ref_lane = t->lane;
       else
-        ref_lane = buf_get_le32 ((unsigned char *)pseudo_rand+4) % a->lanes;
+        ref_lane = buf_get_le32 ((unsigned char *)rand64_p+4) % a->lanes;
 
-      ref_index = index_alpha (a, t, i, buf_get_le32 (pseudo_rand),
+      ref_index = index_alpha (a, t, i, buf_get_le32 (rand64_p),
                                ref_lane == t->lane);
       ref_block =
         &a->block[(a->lane_length * ref_lane + ref_index)* ARGON2_WORDS_IN_BLOCK];
@@ -790,7 +806,6 @@ argon2_compute_segment (argon2_ctx_t a, const struct argon2_thread_data *t)
                   curr_block, t->pass != 0);
     }
 
-  xfree (random_index);
   return ec;
 }
 
