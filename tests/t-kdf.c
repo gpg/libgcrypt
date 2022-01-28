@@ -1255,7 +1255,8 @@ struct user_defined_threads_ctx
   int num_threads_running;
   pthread_attr_t attr;
   pthread_t thread[MAX_THREADS];
-  struct job_thread_param {
+  struct job_thread_param
+  {
     void (*job) (void *work_priv);
     void *priv;
   } work[MAX_THREADS];
@@ -1275,8 +1276,7 @@ pthread_jobs_launch_job (void *jobs_context,
 {
   struct user_defined_threads_ctx *ctx = jobs_context;
 
-  if (ctx->num_threads_running
-      && ctx->next_thread_idx == ctx->oldest_thread_idx)
+  if (ctx->next_thread_idx == ctx->oldest_thread_idx)
     {
       assert (ctx->num_threads_running == MAX_THREADS);
       /* thread limit reached, join a thread */
@@ -1289,6 +1289,8 @@ pthread_jobs_launch_job (void *jobs_context,
   ctx->work[ctx->next_thread_idx].priv = work_priv;
   pthread_create (&ctx->thread[ctx->next_thread_idx], &ctx->attr,
                   job_thread, &ctx->work[ctx->next_thread_idx]);
+  if (ctx->oldest_thread_idx < 0)
+    ctx->oldest_thread_idx = ctx->next_thread_idx;
   ctx->next_thread_idx = (ctx->next_thread_idx + 1) % MAX_THREADS;
   ctx->num_threads_running++;
   return 0;
@@ -1308,7 +1310,7 @@ wait_all_jobs_completion (void *jobs_context)
 
   /* reset context for next round of parallel work */
   ctx->num_threads_running = 0;
-  ctx->oldest_thread_idx = 0;
+  ctx->oldest_thread_idx = -1;
   ctx->next_thread_idx = 0;
 
   return 0;
@@ -1327,9 +1329,8 @@ my_kdf_derive (int parallel,
 {
   gcry_error_t err;
   gcry_kdf_hd_t hd;
-#ifdef HAVE_PTHREAD
-  struct user_defined_threads_ctx jobs_context;
-#endif
+
+  (void)parallel;
 
   err = gcry_kdf_open (&hd, algo, subalgo, params, paramslen,
                        pass, passlen, salt, saltlen, key, keylen,
@@ -1340,7 +1341,16 @@ my_kdf_derive (int parallel,
 #ifdef HAVE_PTHREAD
   if (parallel)
     {
+      struct user_defined_threads_ctx jobs_context;
+      const gcry_kdf_thread_ops_t ops =
+      {
+        &jobs_context,
+        pthread_jobs_launch_job,
+        wait_all_jobs_completion
+      };
+
       memset (&jobs_context, 0, sizeof (struct user_defined_threads_ctx));
+      jobs_context.oldest_thread_idx = -1;
 
       if (pthread_attr_init (&jobs_context.attr))
 	{
@@ -1357,26 +1367,16 @@ my_kdf_derive (int parallel,
 	  gcry_kdf_close (hd);
 	  return err;
 	}
-    }
-#endif
-
-  if (!parallel)
-    err = gcry_kdf_compute (hd, NULL);
-  else
-    {
-      struct gcry_kdf_thread_ops ops = {
-        &jobs_context,
-        pthread_jobs_launch_job,
-        wait_all_jobs_completion
-      };
 
       err = gcry_kdf_compute (hd, &ops);
-    }
 
-#ifdef HAVE_PTHREAD
-  if (parallel)
-    pthread_attr_destroy (&jobs_context. attr);
+      pthread_attr_destroy (&jobs_context. attr);
+    }
+  else
 #endif
+    {
+      err = gcry_kdf_compute (hd, NULL);
+    }
 
   if (!err)
     err = gcry_kdf_final (hd, outlen, out);
