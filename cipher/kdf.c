@@ -706,6 +706,7 @@ argon2_compute (argon2_ctx_t a, const struct gcry_kdf_thread_ops *ops)
   unsigned int r;
   unsigned int s;
   unsigned int l;
+  int ret;
 
   ec = argon2_fill_first_blocks (a);
   if (ec)
@@ -726,14 +727,22 @@ argon2_compute (argon2_ctx_t a, const struct gcry_kdf_thread_ops *ops)
             thread_data->lane = l;
 
             if (ops)
-              ops->dispatch_job (ops->jobs_context,
-                                 argon2_compute_segment, thread_data);
+	      {
+		ret = ops->dispatch_job (ops->jobs_context,
+					 argon2_compute_segment, thread_data);
+		if (ret < 0)
+		  return GPG_ERR_CANCELED;
+	      }
             else
               argon2_compute_segment (thread_data);
           }
 
         if (ops)
-          ops->wait_all_jobs (ops->jobs_context);
+	  {
+	    ret = ops->wait_all_jobs (ops->jobs_context);
+	    if (ret < 0)
+	      return GPG_ERR_CANCELED;
+	  }
       }
 
   return 0;

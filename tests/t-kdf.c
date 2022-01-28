@@ -1271,24 +1271,37 @@ job_thread (void *p)
 }
 
 static int
+wait_all_jobs_completion (void *jobs_context);
+
+static int
 pthread_jobs_launch_job (void *jobs_context, gcry_kdf_job_fn_t job,
 			 void *job_priv)
 {
   struct user_defined_threads_ctx *ctx = jobs_context;
+  int ret;
 
   if (ctx->next_thread_idx == ctx->oldest_thread_idx)
     {
       assert (ctx->num_threads_running == MAX_THREADS);
       /* thread limit reached, join a thread */
-      pthread_join (ctx->thread[ctx->oldest_thread_idx], NULL);
+      ret = pthread_join (ctx->thread[ctx->oldest_thread_idx], NULL);
+      if (ret)
+	return -1;
       ctx->oldest_thread_idx = (ctx->oldest_thread_idx + 1) % MAX_THREADS;
       ctx->num_threads_running--;
     }
 
   ctx->work[ctx->next_thread_idx].job = job;
   ctx->work[ctx->next_thread_idx].priv = job_priv;
-  pthread_create (&ctx->thread[ctx->next_thread_idx], &ctx->attr,
-                  job_thread, &ctx->work[ctx->next_thread_idx]);
+  ret = pthread_create (&ctx->thread[ctx->next_thread_idx], &ctx->attr,
+			job_thread, &ctx->work[ctx->next_thread_idx]);
+  if (ret)
+    {
+      /* could not create new thread. */
+      (void)wait_all_jobs_completion (jobs_context);
+      return -1;
+    }
+
   if (ctx->oldest_thread_idx < 0)
     ctx->oldest_thread_idx = ctx->next_thread_idx;
   ctx->next_thread_idx = (ctx->next_thread_idx + 1) % MAX_THREADS;
@@ -1301,11 +1314,14 @@ wait_all_jobs_completion (void *jobs_context)
 {
   struct user_defined_threads_ctx *ctx = jobs_context;
   int i, idx;
+  int ret;
 
   for (i = 0; i < ctx->num_threads_running; i++)
     {
       idx = (ctx->oldest_thread_idx + i) % MAX_THREADS;
-      pthread_join (ctx->thread[idx], NULL);
+      ret = pthread_join (ctx->thread[idx], NULL);
+      if (ret)
+	return -1;
     }
 
   /* reset context for next round of parallel work */
