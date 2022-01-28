@@ -358,7 +358,6 @@ struct argon2_context {
   unsigned int l;
   unsigned int t;
 
-  gcry_md_hd_t hd;
   u64 *block;
   struct argon2_thread_data *thread_data;
 
@@ -386,115 +385,75 @@ xor_block (u64 *dst, const u64 *src)
     dst[i] ^= src[i];
 }
 
-static void
-hash (gcry_md_hd_t hd, const void *input, unsigned int inputlen,
-      void *output, unsigned int outputlen)
-{
-  unsigned char buf[4];
-  const unsigned char *digest;
-
-  _gcry_md_reset (hd);
-
-  if (outputlen <= 64)
-    {
-      buf_put_le32 (buf, outputlen);
-      _gcry_md_write (hd, buf, 4);
-      _gcry_md_write (hd, input, inputlen);
-      digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
-      memcpy (output, digest, outputlen);
-    }
-  else
-    {
-      int i, r;
-      unsigned int remained;
-      unsigned char d[64];
-
-      i = 0;
-      r = (outputlen-1)/32;
-
-      buf_put_le32 (buf, outputlen);
-      _gcry_md_write (hd, buf, 4);
-      _gcry_md_write (hd, input, inputlen);
-
-      while (1)
-        {
-          digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
-          memcpy (d, digest, 64);
-          memcpy ((unsigned char *)output+i*32, d, 32);
-
-          if (++i >= r)
-            break;
-
-          _gcry_md_reset (hd);
-          _gcry_md_write (hd, d, 64);
-        }
-
-      remained = outputlen - 32*r;
-      if (remained)
-	memcpy ((unsigned char *)output+r*32, d+32, remained);
-    }
-}
-
-static void
+static gpg_err_code_t
 argon2_fill_first_blocks (argon2_ctx_t a)
 {
+  gpg_err_code_t ec;
   unsigned char h0_01_i[72];
   const unsigned char *digest;
   unsigned char buf[4];
   int i;
+  gcry_md_hd_t hd;
+
+  ec = _gcry_md_open (&hd, GCRY_MD_BLAKE2B_512, 0);
+  if (ec)
+    return ec;
 
   /* Generate H0.  */
   buf_put_le32 (buf, a->lanes);
-  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (hd, buf, 4);
 
   buf_put_le32 (buf, a->outlen);
-  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (hd, buf, 4);
 
   buf_put_le32 (buf, a->m_cost);
-  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (hd, buf, 4);
 
   buf_put_le32 (buf, a->passes);
-  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (hd, buf, 4);
 
   buf_put_le32 (buf, ARGON2_VERSION);
-  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (hd, buf, 4);
 
   buf_put_le32 (buf, a->hash_type);
-  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (hd, buf, 4);
 
   buf_put_le32 (buf, a->passwordlen);
-  _gcry_md_write (a->hd, buf, 4);
-  _gcry_md_write (a->hd, a->password, a->passwordlen);
+  _gcry_md_write (hd, buf, 4);
+  _gcry_md_write (hd, a->password, a->passwordlen);
 
   buf_put_le32 (buf, a->saltlen);
-  _gcry_md_write (a->hd, buf, 4);
-  _gcry_md_write (a->hd, a->salt, a->saltlen);
+  _gcry_md_write (hd, buf, 4);
+  _gcry_md_write (hd, a->salt, a->saltlen);
 
   buf_put_le32 (buf, a->keylen);
-  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (hd, buf, 4);
   if (a->key)
-    _gcry_md_write (a->hd, a->key, a->keylen);
+    _gcry_md_write (hd, a->key, a->keylen);
 
   buf_put_le32 (buf, a->adlen);
-  _gcry_md_write (a->hd, buf, 4);
+  _gcry_md_write (hd, buf, 4);
   if (a->ad)
-    _gcry_md_write (a->hd, a->ad, a->adlen);
+    _gcry_md_write (hd, a->ad, a->adlen);
 
-  digest = _gcry_md_read (a->hd, GCRY_MD_BLAKE2B_512);
+  digest = _gcry_md_read (hd, GCRY_MD_BLAKE2B_512);
 
   memcpy (h0_01_i, digest, 64);
+
+  _gcry_md_close (hd);
 
   for (i = 0; i < a->lanes; i++)
     {
       memset (h0_01_i+64, 0, 4);
       buf_put_le32 (h0_01_i+64+4, i);
-      hash (a->hd, h0_01_i, 72,
-	    &a->block[i*a->lane_length*ARGON2_WORDS_IN_BLOCK], 1024);
+      blake2b_vl_hash (h0_01_i, 72, 1024,
+                       &a->block[i*a->lane_length*ARGON2_WORDS_IN_BLOCK]);
 
       buf_put_le32 (h0_01_i+64, 1);
-      hash (a->hd, h0_01_i, 72,
-	    &a->block[(i*a->lane_length+1)*ARGON2_WORDS_IN_BLOCK], 1024);
+      blake2b_vl_hash (h0_01_i, 72, 1024,
+                       &a->block[(i*a->lane_length+1)*ARGON2_WORDS_IN_BLOCK]);
     }
+  return 0;
 }
 
 static gpg_err_code_t
@@ -504,7 +463,6 @@ argon2_init (argon2_ctx_t a, unsigned int parallelism,
   gpg_err_code_t ec = 0;
   unsigned int memory_blocks;
   unsigned int segment_length;
-  gcry_md_hd_t hd;
   void *block;
   struct argon2_thread_data *thread_data;
 
@@ -524,19 +482,13 @@ argon2_init (argon2_ctx_t a, unsigned int parallelism,
   a->r = a->s = a->l = a->t = 0;
   a->step = ARGON2_ITERATOR_STEP0;
 
-  a->hd = NULL;
   a->block = NULL;
   a->thread_data = NULL;
-
-  ec = _gcry_md_open (&hd, GCRY_MD_BLAKE2B_512, 0);
-  if (ec)
-    return ec;
 
   block = xtrymalloc (1024 * memory_blocks);
   if (!block)
     {
       ec = gpg_err_code_from_errno (errno);
-      _gcry_md_close (hd);
       return ec;
     }
   memset (block, 0, 1024 * memory_blocks);
@@ -546,13 +498,11 @@ argon2_init (argon2_ctx_t a, unsigned int parallelism,
     {
       ec = gpg_err_code_from_errno (errno);
       xfree (block);
-      _gcry_md_close (hd);
       return ec;
     }
 
   memset (thread_data, 0, a->n_threads * sizeof (struct argon2_thread_data));
 
-  a->hd = hd;
   a->block = block;
   a->thread_data = thread_data;
   return 0;
@@ -574,10 +524,14 @@ static gpg_err_code_t
 argon2_iterator (argon2_ctx_t a, int *action_p,
                  struct gcry_kdf_pt_head **t_p)
 {
+  gpg_err_code_t ec;
+
   switch (a->step)
     {
     case ARGON2_ITERATOR_STEP0:
-      argon2_fill_first_blocks (a);
+      ec = argon2_fill_first_blocks (a);
+      if (ec)
+        return ec;
       /* continue */
       *action_p = 3;
       *t_p = NULL;
@@ -859,7 +813,7 @@ argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
       xor_block (a->block, last_block);
     }
 
-  hash (a->hd, a->block, 1024, result, a->outlen);
+  blake2b_vl_hash (a->block, 1024, a->outlen, result);
   return 0;
 }
 
@@ -869,9 +823,6 @@ argon2_close (argon2_ctx_t a)
   size_t n;
 
   n = offsetof (struct argon2_context, out) + a->outlen;
-
-  if (a->hd)
-    _gcry_md_close (a->hd);
 
   if (a->block)
     {
@@ -927,14 +878,6 @@ argon2_open (gcry_kdf_hd_t *hd, int subalgo,
           if (n_threads > parallelism)
             n_threads = parallelism;
         }
-
-      if (!(taglen == 64 || taglen == 48
-            || taglen % 32 == 0 || taglen % 32 == 20))
-        /*
-         * FIXME: To support arbitrary taglen, we need to expose
-         * internal API of Blake2b.
-         */
-        return GPG_ERR_NOT_IMPLEMENTED;
     }
 
   n = offsetof (struct argon2_context, out) + taglen;
