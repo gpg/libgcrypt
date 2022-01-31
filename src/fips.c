@@ -654,7 +654,6 @@ hmac256_check (const char *filename, const char *key, struct link_map *lm)
           if (off - HMAC_LEN <= paddr && paddr <= off + nread)
             memset (buffer + HMAC_LEN + paddr - off, 0, HMAC_LEN);
           _gcry_md_write (hd, buffer, nread+HMAC_LEN);
-          off += nread;
           break;
         }
 

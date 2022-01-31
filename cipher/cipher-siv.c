@@ -97,8 +97,6 @@ _gcry_cipher_siv_setkey (gcry_cipher_hd_t c,
 	  GCRY_SIV_BLOCK_LEN);
   memcpy (c->u_mode.siv.s2v_d, c->u_mode.siv.s2v_zero_block,
 	  GCRY_SIV_BLOCK_LEN);
-  if (err != 0)
-    return err;
 
   return 0;
 }

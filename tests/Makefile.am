@@ -89,6 +89,8 @@ if HAVE_W32_SYSTEM
 xtestsuite_libs = ../src/.libs/libgcrypt-20.dll \
                   $(prefix)/bin/libgpg-error*-0.dll
 xtestsuite_driver = .libs/testdrv.exe
+t_kdf_LDADD = $(standard_ldadd) $(GPG_ERROR_LIBS) @LDADD_FOR_TESTS_KLUDGE@
+t_kdf_CFLAGS = $(GPG_ERROR_CFLAGS)
 else
 xtestsuite_libs = ../src/.libs/libgcrypt.so*
 xtestsuite_driver = testdrv
