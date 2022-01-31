@@ -364,6 +364,23 @@ xor_block (u64 *dst, const u64 *src)
     dst[i] ^= src[i];
 }
 
+static void
+beswap64_block (u64 *dst)
+{
+#ifdef WORDS_BIGENDIAN
+  int i;
+
+  /* Swap a block in big-endian 64-bit word into one in
+     little-endian.  */
+  for (i = 0; i < ARGON2_WORDS_IN_BLOCK; i++)
+    dst[i] = _gcry_bswap64 (dst[i]);
+#else
+  /* Nothing to do.  */
+  (void)dst;
+#endif
+}
+
+
 static gpg_err_code_t
 argon2_fill_first_blocks (argon2_ctx_t a)
 {
@@ -434,10 +451,12 @@ argon2_fill_first_blocks (argon2_ctx_t a)
       buf_put_le32 (h0_01_i+64+4, i);
       blake2b_vl_hash (h0_01_i, 72, 1024,
                        &a->block[i*a->lane_length*ARGON2_WORDS_IN_BLOCK]);
+      beswap64_block (&a->block[i*a->lane_length*ARGON2_WORDS_IN_BLOCK]);
 
       buf_put_le32 (h0_01_i+64, 1);
       blake2b_vl_hash (h0_01_i, 72, 1024,
                        &a->block[(i*a->lane_length+1)*ARGON2_WORDS_IN_BLOCK]);
+      beswap64_block (&a->block[(i*a->lane_length+1)*ARGON2_WORDS_IN_BLOCK]);
     }
   return 0;
 }
@@ -569,11 +588,7 @@ fill_block (const u64 *prev_block, const u64 *ref_block, u64 *curr_block,
 static void
 pseudo_random_generate (u64 *random_block, u64 *input_block)
 {
-  u64 v;
-
-  v = buf_get_le64 (&input_block[6]);
-  buf_put_le64 (&input_block[6], ++v);
-
+  input_block[6]++;
   fill_block (NULL, input_block, random_block, 0);
   fill_block (NULL, random_block, random_block, 0);
 }
@@ -640,12 +655,12 @@ argon2_compute_segment (void *priv)
       || (a->hash_type == GCRY_KDF_ARGON2ID && t->pass == 0 && t->slice < 2))
     {
       memset (input_block, 0, 1024);
-      buf_put_le64 ((unsigned char *)input_block+0*8, t->pass);
-      buf_put_le64 ((unsigned char *)input_block+1*8, t->lane);
-      buf_put_le64 ((unsigned char *)input_block+2*8, t->slice);
-      buf_put_le64 ((unsigned char *)input_block+3*8, a->memory_blocks);
-      buf_put_le64 ((unsigned char *)input_block+4*8, a->passes);
-      buf_put_le64 ((unsigned char *)input_block+5*8, a->hash_type);
+      input_block[0] = t->pass;
+      input_block[1] = t->lane;
+      input_block[2] = t->slice;
+      input_block[3] = a->memory_blocks;
+      input_block[4] = a->passes;
+      input_block[5] = a->hash_type;
       random_block = address_block;
     }
 
@@ -666,8 +681,8 @@ argon2_compute_segment (void *priv)
 
   for (; i < a->segment_length; i++, curr_offset++, prev_offset++)
     {
-      void *rand64_p;
       u64 *ref_block, *curr_block;
+      u64 rand64;
 
       if ((curr_offset % a->lane_length) == 1)
         prev_offset = curr_offset - 1;
@@ -677,17 +692,17 @@ argon2_compute_segment (void *priv)
           if ((i % (1024/sizeof (u64))) == 0)
             pseudo_random_generate (random_block, input_block);
 
-          rand64_p = &random_block[(i% (1024/sizeof (u64)))];
+          rand64 = random_block[(i% (1024/sizeof (u64)))];
         }
       else
-        rand64_p = &a->block[prev_offset*ARGON2_WORDS_IN_BLOCK];
+        rand64 = a->block[prev_offset*ARGON2_WORDS_IN_BLOCK];
 
       if (t->pass == 0 && t->slice == 0)
         ref_lane = t->lane;
       else
-        ref_lane = buf_get_le32 ((unsigned char *)rand64_p+4) % a->lanes;
+        ref_lane = (rand64 >> 32) % a->lanes;
 
-      ref_index = index_alpha (a, t, i, buf_get_le32 (rand64_p),
+      ref_index = index_alpha (a, t, i, (rand64 & 0xffffffff),
                                ref_lane == t->lane);
       ref_block =
         &a->block[(a->lane_length * ref_lane + ref_index)* ARGON2_WORDS_IN_BLOCK];
@@ -767,6 +782,7 @@ argon2_final (argon2_ctx_t a, size_t resultlen, void *result)
       xor_block (a->block, last_block);
     }
 
+  beswap64_block (a->block);
   blake2b_vl_hash (a->block, 1024, a->outlen, result);
   return 0;
 }
