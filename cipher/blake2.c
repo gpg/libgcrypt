@@ -522,6 +522,8 @@ blake2b_vl_hash (const void *in, size_t inlen, size_t outputlen, void *output)
         memcpy ((unsigned char *)output+r*32, d+32, remained);
     }
 
+  wipememory (buf, sizeof (buf));
+  wipememory (&ctx, sizeof (ctx));
   return 0;
 }
 
