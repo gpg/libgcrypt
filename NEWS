@@ -1,10 +1,93 @@
-Noteworthy changes in version 1.9.4 (unreleased)  [C23/A3/R_]
-------------------------------------------------
+Noteworthy changes in version 1.11.0 (unreleased)  [C25/A5/R0]
+-------------------------------------------------
+
+
+
+Noteworthy changes in version 1.10.0 (2022-02-01)  [C24/A4/R0]
+-------------------------------------------------
+
+ * New and extended interfaces:
+
+   - New control codes to check for FIPS 140-3 approved algorithms.
+
+   - New control code to switch into non-FIPS mode.
+
+   - New cipher modes SIV and GCM-SIV as specified by RFC-5297.
+
+   - Extended cipher mode AESWRAP with padding as specified by
+     RFC-5649.  [T5752]
+
+   - New set of KDF functions.
+
+   - New KDF modes Argon2 and Balloon.
+
+   - New functions for combining hashing and signing/verification.  [T4894]
+
+ * Performance:
+
+   - Improved support for PowerPC architectures.
+
+   - Improved ECC performance on zSeries/s390x by using accelerated
+     scalar multiplication.
+
+   - Many more assembler performance improvements for several
+     architectures.
 
  * Bug fixes:
 
+   - Fix Elgamal encryption for other implementations.
+     [R5328,CVE-2021-40528]
 
- Release-info: https://dev.gnupg.org/T5402
+   - Fix alignment problem on macOS.  [T5440]
+
+   - Check the input length of the point in ECDH.  [T5423]
+
+   - Fix an abort in gcry_pk_get_param for "Curve25519".  [T5490]
+
+ * Other features:
+
+   - The control code GCRYCTL_SET_ENFORCED_FIPS_FLAG is ignored
+     because it is useless with the FIPS 140-3 related changes.
+
+   - Update of the jitter entropy RNG code.  [T5523]
+
+   - Simplification of the entropy gatherer when using the getentropy
+     system call.
+
+ * Interface changes relative to the 1.10.0 release:
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   GCRYCTL_SET_DECRYPTION_TAG            NEW control code.
+   GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER NEW control code.
+   GCRYCTL_FIPS_SERVICE_INDICATOR_KDF    NEW control code.
+   GCRYCTL_NO_FIPS_MODE = 83             NEW control code.
+   GCRY_CIPHER_MODE_SIV                  NEW mode.
+   GCRY_CIPHER_MODE_GCM_SIV              NEW mode.
+   GCRY_CIPHER_EXTENDED                  NEW flag.
+   GCRY_SIV_BLOCK_LEN                    NEW macro.
+   gcry_cipher_set_decryption_tag        NEW macro.
+   GCRY_KDF_ARGON2                       NEW constant.
+   GCRY_KDF_BALLOON                      NEW constant.
+   GCRY_KDF_ARGON2D                      NEW constant.
+   GCRY_KDF_ARGON2I                      NEW constant.
+   GCRY_KDF_ARGON2ID                     NEW constant.
+   gcry_kdf_hd_t                         NEW type.
+   gcry_kdf_job_fn_t                     NEW type.
+   gcry_kdf_dispatch_job_fn_t            NEW type.
+   gcry_kdf_wait_all_jobs_fn_t           NEW type.
+   struct gcry_kdf_thread_ops            NEW struct.
+   gcry_kdf_open                         NEW function.
+   gcry_kdf_compute                      NEW function.
+   gcry_kdf_final                        NEW function.
+   gcry_kdf_close                        NEW function.
+   gcry_pk_hash_sign                     NEW function.
+   gcry_pk_hash_verify                   NEW function.
+   gcry_pk_random_override_new           NEW function.
+
+ Release-info: https://dev.gnupg.org/T5691
+
+ Release dates of 1.9.x versions:
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   Version 1.9.4 (2021-08-22)
 
 
 Noteworthy changes in version 1.9.3 (2021-04-19)  [C23/A3/R3]
