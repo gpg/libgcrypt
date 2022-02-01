@@ -388,13 +388,16 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
   unsigned int pbits = nbits/2;
   unsigned int i;
   int pqswitch;
-  gpg_err_code_t ec = GPG_ERR_NO_PRIME;
+  gpg_err_code_t ec;
 
   if (nbits <= 1024 || (nbits & 0x1FF))
     return GPG_ERR_INV_VALUE;
   ec = rsa_check_keysize (nbits);
   if (ec)
     return ec;
+
+  /* Set default error code.  */
+  ec = GPG_ERR_NO_PRIME;
 
   /* The random quality depends on the transient_key flag.  */
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
@@ -592,7 +595,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       mpi_invm (u, p, q );
     }
 
-  ec = 0;
+  ec = 0; /* Success.  */
 
   if (DBG_CIPHER)
     {
