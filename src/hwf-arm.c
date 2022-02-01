@@ -369,6 +369,71 @@ detect_arm_proc_cpuinfo(unsigned int *broken_hwfs)
 
 #endif /* __linux__ */
 
+static unsigned int
+detect_arm_hwf_by_toolchain (void)
+{
+  unsigned int ret = 0;
+
+  /* Detect CPU features required by toolchain.
+   * This allows detection of ARMv8 crypto extension support,
+   * for example, on macOS/aarch64.
+   */
+
+#if __GNUC__ >= 4
+
+#if defined(__ARM_NEON) && defined(ENABLE_NEON_SUPPORT)
+  ret |= HWF_ARM_NEON;
+
+#ifdef HAVE_GCC_INLINE_ASM_NEON
+  /* Early test for NEON instruction to detect faulty toolchain
+   * configuration. */
+  asm volatile ("veor q15, q15, q15":::"q15");
+#endif
+
+#ifdef HAVE_GCC_INLINE_ASM_AARCH64_NEON
+  /* Early test for NEON instruction to detect faulty toolchain
+   * configuration. */
+  asm volatile ("eor v31.16b, v31.16b, v31.16b":::"v31");
+#endif
+
+#endif /* __ARM_NEON */
+
+#if defined(__ARM_FEATURE_CRYPTO)
+  /* ARMv8 crypto extensions include support for PMULL, AES, SHA1 and SHA2
+   * instructions. */
+  ret |= HWF_ARM_PMULL;
+  ret |= HWF_ARM_AES;
+  ret |= HWF_ARM_SHA1;
+  ret |= HWF_ARM_SHA2;
+
+#ifdef HAVE_GCC_INLINE_ASM_AARCH32_CRYPTO
+  /* Early test for CE instructions to detect faulty toolchain
+   * configuration. */
+  asm volatile ("vmull.p64 q0, d0, d0;\n\t"
+		"aesimc.8 q7, q0;\n\t"
+		"sha1su1.32 q0, q0;\n\t"
+		"sha256su1.32 q0, q7, q15;\n\t"
+		:::
+		"q0", "q7", "q15");
+#endif
+
+#ifdef HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO
+  /* Early test for CE instructions to detect faulty toolchain
+   * configuration. */
+  asm volatile ("pmull2 v0.1q, v0.2d, v31.2d;\n\t"
+		"aesimc v15.16b, v0.16b;\n\t"
+		"sha1su1 v0.4s, v0.4s;\n\t"
+		"sha256su1 v0.4s, v15.4s, v31.4s;\n\t"
+		:::
+		"v0", "v15", "v31");
+#endif
+#endif
+
+#endif
+
+  return ret;
+}
+
 unsigned int
 _gcry_hwf_detect_arm (void)
 {
@@ -383,9 +448,7 @@ _gcry_hwf_detect_arm (void)
   ret |= detect_arm_proc_cpuinfo (&broken_hwfs);
 #endif
 
-#if defined(__ARM_NEON) && defined(ENABLE_NEON_SUPPORT)
-  ret |= HWF_ARM_NEON;
-#endif
+  ret |= detect_arm_hwf_by_toolchain ();
 
   ret &= ~broken_hwfs;
 
