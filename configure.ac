@@ -524,16 +524,6 @@ AC_DEFINE_UNQUOTED(EGD_SOCKET_NAME, "$egd_socket_name",
                    [Define if you don't want the default EGD socket name.
                     For details see cipher/rndegd.c])
 
-# Implementation of the --enable-random-daemon
-AC_MSG_CHECKING([whether the experimental random daemon is requested])
-AC_ARG_ENABLE([random-daemon],
-              AS_HELP_STRING([--enable-random-daemon],
-                             [Build the experimental gcryptrnd]),
-              [enable_random_daemon=$enableval],
-              [enable_random_daemon=no])
-AC_MSG_RESULT($enable_random_daemon)
-AM_CONDITIONAL(ENABLE_RANDOM_DAEMON, test x$enable_random_daemon = xyes)
-
 
 # Implementation of --disable-asm.
 AC_MSG_CHECKING([whether MPI and cipher assembler modules are requested])

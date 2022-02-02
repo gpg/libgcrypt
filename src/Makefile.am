@@ -33,10 +33,6 @@ nodist_include_HEADERS = gcrypt.h
 
 lib_LTLIBRARIES = libgcrypt.la
 bin_PROGRAMS = dumpsexp hmac256 mpicalc
-if ENABLE_RANDOM_DAEMON
-sbin_PROGRAMS = gcryptrnd
-bin_PROGRAMS += getrandom
-endif ENABLE_RANDOM_DAEMON
 
 # Depending on the architecture some targets require libgpg-error.
 if HAVE_W32CE_SYSTEM
@@ -141,14 +137,6 @@ hmac256_SOURCES = hmac256.c hmac256.h
 hmac256_CFLAGS = -DSTANDALONE @DEF_HMAC_BINARY_CHECK@ \
 	$(arch_gpg_error_cflags)
 hmac256_LDADD = $(arch_gpg_error_libs)
-
-if ENABLE_RANDOM_DAEMON
-gcryptrnd_SOURCES = gcryptrnd.c
-gcryptrnd_CFLAGS = $(GPG_ERROR_CFLAGS) $(PTH_CFLAGS)
-gcryptrnd_LDADD = libgcrypt.la $(GPG_ERROR_LIBS) $(PTH_LIBS)
-
-getrandom_SOURCES = getrandom.c
-endif ENABLE_RANDOM_DAEMON
 
 CLEANFILES = libgcrypt.la.done
 if USE_HMAC_BINARY_CHECK
