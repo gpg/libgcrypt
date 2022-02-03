@@ -39,6 +39,9 @@
  * DAMAGE.
  */
 
+#include <fcntl.h>
+#include <limits.h>
+
 #ifndef GCRYPT_JITTERENTROPY_BASE_USER_H
 #define GCRYPT_JITTERENTROPY_BASE_USER_H
 
