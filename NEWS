@@ -1,9 +1,17 @@
-Noteworthy changes in version 1.8.9 (unreleased)  [C22/A2/R_]
+Noteworthy changes in version 1.8.9 (2022-02-07)  [C22/A2/R10]
 ------------------------------------------------
 
  * Bug fixes:
 
- * Other features:
+   - Clear AESWRAP scratch area immediately after use.  [T5597]
+
+   - Fix the use of xfree in the hmac256 tool.  [rC709a41ef54]
+
+   - Fix libgcrypt.pc for use in non-standard build environments.
+     [T4678,rC34d773515f]
+
+   - Fix mlock support detection for the unsupported MSYS2 toolchain.
+     [rGb2b8fa5edb]
 
  Release-info: https://dev.gnupg.org/T5467
 

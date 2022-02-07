@@ -1,7 +1,7 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
 #               2007, 2008, 2009, 2011 Free Software Foundation, Inc.
-# Copyright (C) 2012-2017  g10 Code GmbH
+# Copyright (C) 2012-2022  g10 Code GmbH
 #
 # This file is part of Libgcrypt.
 #
@@ -56,7 +56,7 @@ AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=22
 LIBGCRYPT_LT_AGE=2
-LIBGCRYPT_LT_REVISION=9
+LIBGCRYPT_LT_REVISION=10
 
 
 # If the API is changed in an incompatible way: increment the next counter.
