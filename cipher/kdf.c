@@ -877,29 +877,446 @@ argon2_open (gcry_kdf_hd_t *hd, int subalgo,
   *hd = (void *)a;
   return 0;
 }
+
+typedef struct balloon_context *balloon_ctx_t;
 
+/* Per thread data for Balloon.  */
+struct balloon_thread_data {
+  balloon_ctx_t b;
+  gpg_err_code_t ec;
+  unsigned int idx;
+  unsigned char *block;
+};
+
+/* Balloon context */
+struct balloon_context {
+  int algo;
+  int hash_type;
+  int prng_type;
+
+  unsigned int blklen;
+  gcry_md_spec_t md_spec;
+
+  const unsigned char *password;
+  size_t passwordlen;
+
+  const unsigned char *salt;
+  /* Length of salt is fixed.  */
+
+  unsigned int s_cost;
+  unsigned int t_cost;
+  unsigned int parallelism;
+
+  u64 n_blocks;
+
+  unsigned char *block;
+
+  /* In future, we may use flexible array member.  */
+  struct balloon_thread_data thread_data[1];
+};
+
+/* Maximum size of underlining sigest size.  */
+#define BALLOON_SALT_LEN_MAX 64
+
+static gpg_err_code_t
+prng_aes_ctr_init (gcry_cipher_hd_t *hd_p, balloon_ctx_t b,
+                   gcry_buffer_t *iov, unsigned int iov_count)
+{
+  gpg_err_code_t ec;
+  gcry_cipher_hd_t hd;
+  unsigned char key[BALLOON_SALT_LEN_MAX];
+
+  b->md_spec.hash_buffers (key, b->blklen, iov, iov_count);
+  ec = _gcry_cipher_open (&hd, GCRY_CIPHER_AES, GCRY_CIPHER_MODE_CTR, 0);
+  if (ec)
+    return ec;
+
+  ec = _gcry_cipher_setkey (hd, key, 16);
+  if (ec)
+    {
+      _gcry_cipher_close (hd);
+      return ec;
+    }
+
+  wipememory (key, 32);
+  *hd_p = hd;
+  return ec;
+}
+
+static u64
+prng_aes_ctr_get_rand64 (gcry_cipher_hd_t hd)
+{
+  static const unsigned char zero64[8];
+  unsigned char rand64[8];
+
+  _gcry_cipher_encrypt (hd, rand64, sizeof (rand64), zero64, sizeof (zero64));
+  return buf_get_le64 (rand64);
+}
+
+static void
+prng_aes_ctr_fini (gcry_cipher_hd_t hd)
+{
+  _gcry_cipher_close (hd);
+}
+
+static size_t
+ballon_context_size (unsigned int parallelism)
+{
+  size_t n;
+
+  n = offsetof (struct balloon_context, thread_data)
+    + parallelism * sizeof (struct balloon_thread_data);
+  return n;
+}
 
 static gpg_err_code_t
 balloon_open (gcry_kdf_hd_t *hd, int subalgo,
               const unsigned long *param, unsigned int paramlen,
-              const void *passphrase, size_t passphraselen,
+              const void *password, size_t passwordlen,
               const void *salt, size_t saltlen)
 {
+  unsigned int blklen;
+  int hash_type;
+  unsigned int s_cost;
+  unsigned int t_cost;
+  unsigned int parallelism = 1;
+  balloon_ctx_t b;
+  gpg_err_code_t ec;
+  size_t n;
+  unsigned char *block;
+  unsigned int i;
+  gcry_md_spec_t md_spec;
+
+  /* For now, only SHA256 is supported.  */
+  if (subalgo != GCRY_MD_SHA256)
+    return GPG_ERR_NOT_SUPPORTED;
+  else
+    {
+      hash_type = subalgo;
+      md_spec = _gcry_digest_spec_sha256;
+    }
+
+  blklen = _gcry_md_get_algo_dlen (hash_type);
+  if (!blklen || blklen > BALLOON_SALT_LEN_MAX)
+    return GPG_ERR_NOT_SUPPORTED;
+
+  if (saltlen != blklen)
+    return GPG_ERR_NOT_SUPPORTED;
+
   /*
    * It should have space_cost and time_cost.
    * Optionally, for parallelised version, it has parallelism.
+   * Possibly (in future), it may have options for PRNG.
    */
   if (paramlen != 2 && paramlen != 3)
     return GPG_ERR_INV_VALUE;
+  else
+    {
+      s_cost = (unsigned int)param[0];
+      t_cost = (unsigned int)param[1];
+      if (paramlen >= 3)
+        parallelism = (unsigned int)param[2];
+    }
 
-  (void)param;
-  (void)subalgo;
-  (void)passphrase;
-  (void)passphraselen;
-  (void)salt;
-  (void)saltlen;
-  *hd = NULL;
-  return GPG_ERR_NOT_IMPLEMENTED;
+  if (s_cost < 1)
+    return GPG_ERR_INV_VALUE;
+
+  n = ballon_context_size (parallelism);
+  b = xtrymalloc (n);
+  if (!b)
+    return gpg_err_code_from_errno (errno);
+
+  b->algo = GCRY_KDF_BALLOON;
+  b->hash_type = hash_type;
+  b->md_spec = md_spec;
+  b->blklen = blklen;
+
+  b->password = password;
+  b->passwordlen = passwordlen;
+  b->salt = salt;
+
+  b->s_cost = s_cost;
+  b->t_cost = t_cost;
+  b->parallelism = parallelism;
+
+  b->n_blocks = (s_cost * 1024) / b->blklen;
+
+  block = xtrycalloc (parallelism * b->n_blocks, b->blklen);
+  if (!block)
+    {
+      ec = gpg_err_code_from_errno (errno);
+      xfree (b);
+      return ec;
+    }
+  b->block = block;
+
+  for (i = 0; i < parallelism; i++)
+    {
+      struct balloon_thread_data *t = &b->thread_data[i];
+
+      t->b = b;
+      t->ec = 0;
+      t->idx = i;
+      t->block = block;
+      block += b->blklen * b->n_blocks;
+    }
+
+  *hd = (void *)b;
+  return 0;
+}
+
+
+static void
+balloon_xor_block (balloon_ctx_t b, u64 *dst, const u64 *src)
+{
+  int i;
+
+  for (i = 0; i < b->blklen/8; i++)
+    dst[i] ^= src[i];
+}
+
+#define BALLOON_COMPRESS_BLOCKS 5
+
+static void
+balloon_compress (balloon_ctx_t b, u64 *counter_p, unsigned char *out,
+                  const unsigned char *blocks[BALLOON_COMPRESS_BLOCKS])
+{
+  gcry_buffer_t iov[1+BALLOON_COMPRESS_BLOCKS];
+  unsigned char octet_counter[sizeof (u64)];
+  unsigned int i;
+
+  buf_put_le64 (octet_counter, *counter_p);
+  iov[0].data = octet_counter;
+  iov[0].len = sizeof (octet_counter);
+  iov[0].off = 0;
+
+  for (i = 1; i < 1+BALLOON_COMPRESS_BLOCKS; i++)
+    {
+      iov[i].data = (void *)blocks[i-1];
+      iov[i].len = b->blklen;
+      iov[i].off = 0;
+    }
+
+  b->md_spec.hash_buffers (out, b->blklen, iov, 1+BALLOON_COMPRESS_BLOCKS);
+  *counter_p += 1;
+}
+
+static void
+balloon_expand (balloon_ctx_t b, u64 *counter_p, unsigned char *block,
+                u64 n_blocks)
+{
+  gcry_buffer_t iov[2];
+  unsigned char octet_counter[sizeof (u64)];
+  u64 i;
+
+  iov[0].data = octet_counter;
+  iov[0].len = sizeof (octet_counter);
+  iov[0].off = 0;
+  iov[1].len = b->blklen;
+  iov[1].off = 0;
+
+  for (i = 1; i < n_blocks; i++)
+    {
+      buf_put_le64 (octet_counter, *counter_p);
+      iov[1].data = block;
+      block += b->blklen;
+      b->md_spec.hash_buffers (block, b->blklen, iov, 2);
+      *counter_p += 1;
+    }
+}
+
+static void
+balloon_compute_fill (balloon_ctx_t b,
+                      struct balloon_thread_data *t,
+                      const unsigned char *salt,
+                      u64 *counter_p)
+{
+  gcry_buffer_t iov[6];
+  unsigned char octet_counter[sizeof (u64)];
+  unsigned char octet_s_cost[4];
+  unsigned char octet_t_cost[4];
+  unsigned char octet_parallelism[4];
+
+  buf_put_le64 (octet_counter, *counter_p);
+  buf_put_le32 (octet_s_cost, b->s_cost);
+  buf_put_le32 (octet_t_cost, b->t_cost);
+  buf_put_le32 (octet_parallelism, b->parallelism);
+
+  iov[0].data = octet_counter;
+  iov[0].len = sizeof (octet_counter);
+  iov[0].off = 0;
+  iov[1].data = (void *)salt;
+  iov[1].len = b->blklen;
+  iov[1].off = 0;
+  iov[2].data = (void *)b->password;
+  iov[2].len = b->passwordlen;
+  iov[2].off = 0;
+  iov[3].data = octet_s_cost;
+  iov[3].len = 4;
+  iov[3].off = 0;
+  iov[4].data = octet_t_cost;
+  iov[4].len = 4;
+  iov[4].off = 0;
+  iov[5].data = octet_parallelism;
+  iov[5].len = 4;
+  iov[5].off = 0;
+  b->md_spec.hash_buffers (t->block, b->blklen, iov, 6);
+  *counter_p += 1;
+  balloon_expand (b, counter_p, t->block, b->n_blocks);
+}
+
+static void
+balloon_compute_mix (gcry_cipher_hd_t prng,
+                     balloon_ctx_t b, struct balloon_thread_data *t,
+                     u64 *counter_p)
+{
+  u64 i;
+
+  for (i = 0; i < b->n_blocks; i++)
+    {
+      unsigned char *cur_block = t->block + (b->blklen * i);
+      const unsigned char *blocks[BALLOON_COMPRESS_BLOCKS];
+      const unsigned char *prev_block;
+      unsigned int n;
+
+      prev_block = i
+        ? cur_block - b->blklen
+        : t->block + (b->blklen * (t->b->n_blocks - 1));
+
+      n = 0;
+      blocks[n++] = prev_block;
+      blocks[n++] = cur_block;
+
+      for (; n < BALLOON_COMPRESS_BLOCKS; n++)
+        {
+          u64 rand64 = prng_aes_ctr_get_rand64 (prng);
+          blocks[n] = t->block + (b->blklen * (rand64 % b->n_blocks));
+        }
+
+      balloon_compress (b, counter_p, cur_block, blocks);
+    }
+}
+
+
+static void
+balloon_compute (void *priv)
+{
+  struct balloon_thread_data *t = (struct balloon_thread_data *)priv;
+  balloon_ctx_t b = t->b;
+  gcry_cipher_hd_t prng;
+  gcry_buffer_t iov[4];
+  unsigned char salt[BALLOON_SALT_LEN_MAX];
+  unsigned char octet_s_cost[4];
+  unsigned char octet_t_cost[4];
+  unsigned char octet_parallelism[4];
+  u32 u;
+  u64 counter;
+  unsigned int i;
+
+  counter = 0;
+
+  memcpy (salt, b->salt, b->blklen);
+  u = buf_get_le32 (b->salt) + t->idx;
+  buf_put_le32 (salt, u);
+
+  buf_put_le32 (octet_s_cost, b->s_cost);
+  buf_put_le32 (octet_t_cost, b->t_cost);
+  buf_put_le32 (octet_parallelism, b->parallelism);
+
+  iov[0].data = salt;
+  iov[0].len = b->blklen;
+  iov[0].off = 0;
+  iov[1].data = octet_s_cost;
+  iov[1].len = 4;
+  iov[1].off = 0;
+  iov[2].data = octet_t_cost;
+  iov[2].len = 4;
+  iov[2].off = 0;
+  iov[3].data = octet_parallelism;
+  iov[3].len = 4;
+  iov[3].off = 0;
+
+  t->ec = prng_aes_ctr_init (&prng, b, iov, 4);
+  if (t->ec)
+    return;
+
+  balloon_compute_fill (b, t, salt, &counter);
+
+  for (i = 0; i < b->t_cost; i++)
+    balloon_compute_mix (prng, b, t, &counter);
+
+  /* The result is now at the last block.  */
+
+  prng_aes_ctr_fini (prng);
+}
+
+static gpg_err_code_t
+balloon_compute_all (balloon_ctx_t b, const struct gcry_kdf_thread_ops *ops)
+{
+  unsigned int parallelism = b->parallelism;
+  unsigned int i;
+  int ret;
+
+  for (i = 0; i < parallelism; i++)
+    {
+      struct balloon_thread_data *t = &b->thread_data[i];
+
+      if (ops)
+        {
+          ret = ops->dispatch_job (ops->jobs_context, balloon_compute, t);
+          if (ret < 0)
+            return GPG_ERR_CANCELED;
+        }
+      else
+        balloon_compute (t);
+    }
+
+  if (ops)
+    {
+      ret = ops->wait_all_jobs (ops->jobs_context);
+      if (ret < 0)
+        return GPG_ERR_CANCELED;
+    }
+
+  return 0;
+}
+
+static gpg_err_code_t
+balloon_final (balloon_ctx_t b, size_t resultlen, void *result)
+{
+  unsigned int parallelism = b->parallelism;
+  unsigned int i;
+
+  if (resultlen != b->blklen)
+    return GPG_ERR_INV_VALUE;
+
+  memset (result, 0, b->blklen);
+  for (i = 0; i < parallelism; i++)
+    {
+      struct balloon_thread_data *t = &b->thread_data[i];
+      const unsigned char *last_block;
+
+      last_block = t->block + (b->blklen * (t->b->n_blocks - 1));
+      balloon_xor_block (b, result, (u64 *)last_block);
+    }
+
+  return 0;
+}
+
+static void
+balloon_close (balloon_ctx_t b)
+{
+  unsigned int parallelism = b->parallelism;
+  size_t n = ballon_context_size (parallelism);
+
+  if (b->block)
+    {
+      wipememory (b->block, parallelism * b->n_blocks);
+      xfree (b->block);
+    }
+
+  wipememory (b, n);
+  xfree (b);
 }
 
 
@@ -930,14 +1347,12 @@ _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
       break;
 
     case GCRY_KDF_BALLOON:
-      if (!passphraselen || !saltlen)
+      if (!passphraselen || !saltlen || keylen || adlen)
         ec = GPG_ERR_INV_VALUE;
       else
         {
           (void)key;
-          (void)keylen;
           (void)ad;
-          (void)adlen;
           ec = balloon_open (hd, subalgo, param, paramlen,
                              passphrase, passphraselen, salt, saltlen);
         }
@@ -962,6 +1377,10 @@ _gcry_kdf_compute (gcry_kdf_hd_t h, const struct gcry_kdf_thread_ops *ops)
       ec = argon2_compute ((argon2_ctx_t)h, ops);
       break;
 
+    case GCRY_KDF_BALLOON:
+      ec = balloon_compute_all ((balloon_ctx_t)h, ops);
+      break;
+
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
@@ -982,6 +1401,10 @@ _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
       ec = argon2_final ((argon2_ctx_t)h, resultlen, result);
       break;
 
+    case GCRY_KDF_BALLOON:
+      ec = balloon_final ((balloon_ctx_t)h, resultlen, result);
+      break;
+
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
@@ -997,6 +1420,10 @@ _gcry_kdf_close (gcry_kdf_hd_t h)
     {
     case GCRY_KDF_ARGON2:
       argon2_close ((argon2_ctx_t)h);
+      break;
+
+    case GCRY_KDF_BALLOON:
+      balloon_close ((balloon_ctx_t)h);
       break;
 
     default:
