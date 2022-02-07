@@ -517,7 +517,7 @@ static u64 fBlaMka (u64 x, u64 y)
   return x + y + 2 * (x & m) * (y & m);
 }
 
-static u64 rotr64 (uint64_t w, unsigned int c)
+static u64 rotr64 (u64 w, unsigned int c)
 {
   return (w >> c) | (w << (64 - c));
 }
