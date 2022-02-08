@@ -1122,12 +1122,9 @@ balloon_open (gcry_kdf_hd_t *hd, int subalgo,
 
 
 static void
-balloon_xor_block (balloon_ctx_t b, u64 *dst, const u64 *src)
+balloon_xor_block (balloon_ctx_t b, void *dst, const void *src)
 {
-  int i;
-
-  for (i = 0; i < b->blklen/8; i++)
-    dst[i] ^= src[i];
+  buf_xor (dst, dst, src, b->blklen);
 }
 
 #define BALLOON_COMPRESS_BLOCKS 5
@@ -1355,7 +1352,7 @@ balloon_final (balloon_ctx_t b, size_t resultlen, void *result)
         return t->ec;
 
       last_block = t->block + (b->blklen * (t->b->n_blocks - 1));
-      balloon_xor_block (b, result, (u64 *)last_block);
+      balloon_xor_block (b, result, last_block);
     }
 
   return 0;
