@@ -891,11 +891,10 @@ struct balloon_thread_data {
 /* Balloon context */
 struct balloon_context {
   int algo;
-  int hash_type;
   int prng_type;
 
   unsigned int blklen;
-  gcry_md_spec_t md_spec;
+  const gcry_md_spec_t *md_spec;
 
   const unsigned char *password;
   size_t passwordlen;
@@ -925,20 +924,55 @@ prng_aes_ctr_init (gcry_cipher_hd_t *hd_p, balloon_ctx_t b,
   gpg_err_code_t ec;
   gcry_cipher_hd_t hd;
   unsigned char key[BALLOON_SALT_LEN_MAX];
+  int cipher_algo;
+  unsigned int keylen, blklen;
 
-  b->md_spec.hash_buffers (key, b->blklen, iov, iov_count);
-  ec = _gcry_cipher_open (&hd, GCRY_CIPHER_AES, GCRY_CIPHER_MODE_CTR, 0);
+  switch (b->blklen)
+    {
+    case 64:
+      cipher_algo = GCRY_CIPHER_AES256;
+      break;
+
+    case 48:
+      cipher_algo = GCRY_CIPHER_AES192;
+      break;
+
+    default:
+    case 32:
+      cipher_algo = GCRY_CIPHER_AES;
+      break;
+    }
+
+  keylen = _gcry_cipher_get_algo_keylen (cipher_algo);
+  blklen = _gcry_cipher_get_algo_blklen (cipher_algo);
+
+  b->md_spec->hash_buffers (key, b->blklen, iov, iov_count);
+  ec = _gcry_cipher_open (&hd, cipher_algo, GCRY_CIPHER_MODE_CTR, 0);
   if (ec)
     return ec;
 
-  ec = _gcry_cipher_setkey (hd, key, 16);
+  ec = _gcry_cipher_setkey (hd, key, keylen);
   if (ec)
     {
       _gcry_cipher_close (hd);
       return ec;
     }
 
-  wipememory (key, 32);
+  if (cipher_algo == GCRY_CIPHER_AES
+      && b->md_spec == &_gcry_digest_spec_sha256)
+    /* Original Balloon uses zero IV.  */
+    ;
+  else
+    {
+      ec = _gcry_cipher_setiv (hd, key+keylen, blklen);
+      if (ec)
+        {
+          _gcry_cipher_close (hd);
+          return ec;
+        }
+    }
+
+  wipememory (key, BALLOON_SALT_LEN_MAX);
   *hd_p = hd;
   return ec;
 }
@@ -985,15 +1019,37 @@ balloon_open (gcry_kdf_hd_t *hd, int subalgo,
   size_t n;
   unsigned char *block;
   unsigned int i;
-  gcry_md_spec_t md_spec;
+  const gcry_md_spec_t *md_spec;
 
-  /* For now, only SHA256 is supported.  */
-  if (subalgo != GCRY_MD_SHA256)
-    return GPG_ERR_NOT_SUPPORTED;
-  else
+  hash_type = subalgo;
+  switch (hash_type)
     {
-      hash_type = subalgo;
-      md_spec = _gcry_digest_spec_sha256;
+    case GCRY_MD_SHA256:
+      md_spec = &_gcry_digest_spec_sha256;
+      break;
+
+    case GCRY_MD_SHA384:
+      md_spec = &_gcry_digest_spec_sha384;
+      break;
+
+    case GCRY_MD_SHA512:
+      md_spec = &_gcry_digest_spec_sha512;
+      break;
+
+    case GCRY_MD_SHA3_256:
+      md_spec = &_gcry_digest_spec_sha3_256;
+      break;
+
+    case GCRY_MD_SHA3_384:
+      md_spec = &_gcry_digest_spec_sha3_384;
+      break;
+
+    case GCRY_MD_SHA3_512:
+      md_spec = &_gcry_digest_spec_sha3_512;
+      break;
+
+    default:
+      return GPG_ERR_NOT_SUPPORTED;
     }
 
   blklen = _gcry_md_get_algo_dlen (hash_type);
@@ -1006,7 +1062,7 @@ balloon_open (gcry_kdf_hd_t *hd, int subalgo,
   /*
    * It should have space_cost and time_cost.
    * Optionally, for parallelised version, it has parallelism.
-   * Possibly (in future), it may have options for PRNG.
+   * Possibly (in future), it may have option to specify PRNG type.
    */
   if (paramlen != 2 && paramlen != 3)
     return GPG_ERR_INV_VALUE;
@@ -1027,7 +1083,6 @@ balloon_open (gcry_kdf_hd_t *hd, int subalgo,
     return gpg_err_code_from_errno (errno);
 
   b->algo = GCRY_KDF_BALLOON;
-  b->hash_type = hash_type;
   b->md_spec = md_spec;
   b->blklen = blklen;
 
@@ -1097,7 +1152,7 @@ balloon_compress (balloon_ctx_t b, u64 *counter_p, unsigned char *out,
       iov[i].off = 0;
     }
 
-  b->md_spec.hash_buffers (out, b->blklen, iov, 1+BALLOON_COMPRESS_BLOCKS);
+  b->md_spec->hash_buffers (out, b->blklen, iov, 1+BALLOON_COMPRESS_BLOCKS);
   *counter_p += 1;
 }
 
@@ -1120,7 +1175,7 @@ balloon_expand (balloon_ctx_t b, u64 *counter_p, unsigned char *block,
       buf_put_le64 (octet_counter, *counter_p);
       iov[1].data = block;
       block += b->blklen;
-      b->md_spec.hash_buffers (block, b->blklen, iov, 2);
+      b->md_spec->hash_buffers (block, b->blklen, iov, 2);
       *counter_p += 1;
     }
 }
@@ -1160,7 +1215,7 @@ balloon_compute_fill (balloon_ctx_t b,
   iov[5].data = octet_parallelism;
   iov[5].len = 4;
   iov[5].off = 0;
-  b->md_spec.hash_buffers (t->block, b->blklen, iov, 6);
+  b->md_spec->hash_buffers (t->block, b->blklen, iov, 6);
   *counter_p += 1;
   balloon_expand (b, counter_p, t->block, b->n_blocks);
 }
@@ -1295,6 +1350,9 @@ balloon_final (balloon_ctx_t b, size_t resultlen, void *result)
     {
       struct balloon_thread_data *t = &b->thread_data[i];
       const unsigned char *last_block;
+
+      if (t->ec)
+        return t->ec;
 
       last_block = t->block + (b->blklen * (t->b->n_blocks - 1));
       balloon_xor_block (b, result, (u64 *)last_block);
