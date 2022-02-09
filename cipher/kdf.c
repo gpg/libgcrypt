@@ -914,8 +914,8 @@ struct balloon_context {
   struct balloon_thread_data thread_data[1];
 };
 
-/* Maximum size of underlining sigest size.  */
-#define BALLOON_SALT_LEN_MAX 64
+/* Maximum size of underlining digest size.  */
+#define BALLOON_BLOCK_LEN_MAX 64
 
 static gpg_err_code_t
 prng_aes_ctr_init (gcry_cipher_hd_t *hd_p, balloon_ctx_t b,
@@ -923,7 +923,7 @@ prng_aes_ctr_init (gcry_cipher_hd_t *hd_p, balloon_ctx_t b,
 {
   gpg_err_code_t ec;
   gcry_cipher_hd_t hd;
-  unsigned char key[BALLOON_SALT_LEN_MAX];
+  unsigned char key[BALLOON_BLOCK_LEN_MAX];
   int cipher_algo;
   unsigned int keylen, blklen;
 
@@ -972,7 +972,7 @@ prng_aes_ctr_init (gcry_cipher_hd_t *hd_p, balloon_ctx_t b,
         }
     }
 
-  wipememory (key, BALLOON_SALT_LEN_MAX);
+  wipememory (key, BALLOON_BLOCK_LEN_MAX);
   *hd_p = hd;
   return ec;
 }
@@ -1053,7 +1053,7 @@ balloon_open (gcry_kdf_hd_t *hd, int subalgo,
     }
 
   blklen = _gcry_md_get_algo_dlen (hash_type);
-  if (!blklen || blklen > BALLOON_SALT_LEN_MAX)
+  if (!blklen || blklen > BALLOON_BLOCK_LEN_MAX)
     return GPG_ERR_NOT_SUPPORTED;
 
   if (saltlen != blklen)
@@ -1122,9 +1122,12 @@ balloon_open (gcry_kdf_hd_t *hd, int subalgo,
 
 
 static void
-balloon_xor_block (balloon_ctx_t b, void *dst, const void *src)
+balloon_xor_block (balloon_ctx_t b, u64 *dst, const u64 *src)
 {
-  buf_xor (dst, dst, src, b->blklen);
+  int i;
+
+  for (i = 0; i < b->blklen/8; i++)
+    dst[i] ^= src[i];
 }
 
 #define BALLOON_COMPRESS_BLOCKS 5
@@ -1257,7 +1260,7 @@ balloon_compute (void *priv)
   balloon_ctx_t b = t->b;
   gcry_cipher_hd_t prng;
   gcry_buffer_t iov[4];
-  unsigned char salt[BALLOON_SALT_LEN_MAX];
+  unsigned char salt[BALLOON_BLOCK_LEN_MAX];
   unsigned char octet_s_cost[4];
   unsigned char octet_t_cost[4];
   unsigned char octet_parallelism[4];
@@ -1338,11 +1341,12 @@ balloon_final (balloon_ctx_t b, size_t resultlen, void *result)
 {
   unsigned int parallelism = b->parallelism;
   unsigned int i;
+  u64 out[BALLOON_BLOCK_LEN_MAX/8];
 
   if (resultlen != b->blklen)
     return GPG_ERR_INV_VALUE;
 
-  memset (result, 0, b->blklen);
+  memset (out, 0, b->blklen);
   for (i = 0; i < parallelism; i++)
     {
       struct balloon_thread_data *t = &b->thread_data[i];
@@ -1352,8 +1356,10 @@ balloon_final (balloon_ctx_t b, size_t resultlen, void *result)
         return t->ec;
 
       last_block = t->block + (b->blklen * (t->b->n_blocks - 1));
-      balloon_xor_block (b, result, last_block);
+      balloon_xor_block (b, out, (u64 *)last_block);
     }
+
+  memcpy (result, out, b->blklen);
 
   return 0;
 }
