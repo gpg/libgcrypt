@@ -363,6 +363,8 @@ AC_CHECK_SIZEOF(unsigned long, 4)
 AC_CHECK_SIZEOF(unsigned long long, 0)
 AC_CHECK_SIZEOF(void *, 0)
 
+AC_CHECK_ALIGNOF(long double)
+
 AC_TYPE_UINTPTR_T
 
 if test "$ac_cv_sizeof_unsigned_short" = "0" \
