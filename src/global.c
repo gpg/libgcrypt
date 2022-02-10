@@ -1034,18 +1034,6 @@ _gcry_is_secure (const void *a)
   return _gcry_private_is_secure (a);
 }
 
-void
-_gcry_check_heap( const void *a )
-{
-  (void)a;
-
-    /* FIXME: implement this*/
-#if 0
-    if( some_handler )
-	some_handler(a)
-#endif
-}
-
 static void *
 _gcry_realloc_core (void *a, size_t n, int xhint)
 {
