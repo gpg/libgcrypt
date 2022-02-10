@@ -1,6 +1,10 @@
 Noteworthy changes in version 1.11.0 (unreleased)  [C25/A5/R0]
 -------------------------------------------------
 
+ * Other features:
+
+   - The control code GCRYCTL_ENABLE_M_GUARD is deprecated and not
+     supported any more.  Please use valgrind or other tools.
 
 
 Noteworthy changes in version 1.10.0 (2022-02-01)  [C24/A4/R0]

@@ -523,7 +523,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
   switch (cmd)
     {
     case GCRYCTL_ENABLE_M_GUARD:
-      _gcry_private_enable_m_guard ();
+      rc = GPG_ERR_NOT_SUPPORTED;
       break;
 
     case GCRYCTL_ENABLE_QUICK_RANDOM:
@@ -1043,8 +1043,6 @@ _gcry_check_heap( const void *a )
 #if 0
     if( some_handler )
 	some_handler(a)
-    else
-	_gcry_private_check_heap(a)
 #endif
 }
 

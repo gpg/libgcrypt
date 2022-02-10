@@ -363,8 +363,6 @@ AC_CHECK_SIZEOF(unsigned long, 4)
 AC_CHECK_SIZEOF(unsigned long long, 0)
 AC_CHECK_SIZEOF(void *, 0)
 
-AC_CHECK_ALIGNOF(long double)
-
 AC_TYPE_UINTPTR_T
 
 if test "$ac_cv_sizeof_unsigned_short" = "0" \
@@ -537,17 +535,6 @@ AC_ARG_ENABLE([asm],
 AC_MSG_RESULT($try_asm_modules)
 if test "$try_asm_modules" != yes ; then
     AC_DEFINE(ASM_DISABLED,1,[Defined if --disable-asm was used to configure])
-fi
-
-# Implementation of the --enable-m-guard switch.
-AC_MSG_CHECKING([whether memory guard is requested])
-AC_ARG_ENABLE(m-guard,
-              AS_HELP_STRING([--enable-m-guard],
-                             [Enable memory guard facility]),
-              [use_m_guard=$enableval], [use_m_guard=no])
-AC_MSG_RESULT($use_m_guard)
-if test "$use_m_guard" = yes ; then
-    AC_DEFINE(M_GUARD,1,[Define to use the (obsolete) malloc guarding feature])
 fi
 
 # Implementation of the --enable-large-data-tests switch.

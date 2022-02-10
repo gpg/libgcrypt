@@ -90,12 +90,6 @@
                      With this option a "make check" will take really
                      long due to extra checks for the hash algorithms.
 
-     --enable-m-guard
-                     Enable the integrated malloc checking code. Please
-                     note that this feature does not work on all CPUs
-                     (e.g. SunOS 5.7 on UltraSparc-2) and might give
-                     you a bus error.
-
      --disable-asm
                      Do not use assembler modules.  It is not possible
                      to use this on some CPU types.
