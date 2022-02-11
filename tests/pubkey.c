@@ -1035,6 +1035,7 @@ check_x931_derived_key (int what)
     if (in_fips_mode && nbits < 2048)
       {
         info("RSA key test with %d bits skipped in fips mode\n", nbits);
+        gcry_sexp_release (key_spec);
         goto leave;
       }
   }

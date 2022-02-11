@@ -11047,6 +11047,7 @@ check_one_cipher_core (int algo, int mode, int flags,
       if (!err)
         fail ("pass %d, algo %d, mode %d, gcry_cipher_encrypt is expected to "
               "fail in FIPS mode: %s\n", pass, algo, mode, gpg_strerror (err));
+      gcry_cipher_close (hd);
       goto err_out_free;
     }
   if (err)
