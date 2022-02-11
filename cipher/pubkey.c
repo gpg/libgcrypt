@@ -516,7 +516,10 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
       algo = _gcry_md_get_algo (hd);
 
       if (fips_mode () && algo == GCRY_MD_SHA1)
-        return GPG_ERR_DIGEST_ALGO;
+        {
+          _gcry_md_close (hd);
+          return GPG_ERR_DIGEST_ALGO;
+        }
 
       digest = _gcry_md_read (hd, 0);
     }

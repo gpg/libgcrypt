@@ -943,6 +943,8 @@ check_dsa_rfc6979 (void)
         {
           if (!err)
             fail ("signing should not work in FIPS mode: %s\n", gpg_strerror (err));
+          gcry_sexp_release (data);
+          gcry_sexp_release (seckey);
           continue;
         }
       if (err)
