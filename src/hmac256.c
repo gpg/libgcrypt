@@ -780,6 +780,7 @@ main (int argc, char **argv)
                        pgm, strerror (errno));
               exit (1);
             }
+          _gcry_hmac256_release (hd);
           if (use_stdin)
             break;
         }
