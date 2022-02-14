@@ -157,7 +157,8 @@
      --enable-hmac-binary-check
                      Include support to check the binary at runtime
                      against a HMAC checksum.  This works only in FIPS
-                     mode and on systems providing the dladdr function.
+                     mode on systems providing the dladdr function and using
+                     the ELF binary format.
 
      --with-fips-module-version=version
                      Specify a string used as a module version for FIPS

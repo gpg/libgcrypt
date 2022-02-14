@@ -25,6 +25,8 @@
 #include <string.h>
 #ifdef ENABLE_HMAC_BINARY_CHECK
 # include <dlfcn.h>
+# include <elf.h>
+# include <limits.h>
 # include <link.h>
 #endif
 #ifdef HAVE_SYSLOG
@@ -594,6 +596,57 @@ run_random_selftests (void)
 static const unsigned char __attribute__ ((section (".rodata1")))
 hmac_for_the_implementation[HMAC_LEN];
 
+/**
+ * Determine the offset of the given virtual address in the ELF file opened as
+ * fp and return it in offset. Rewinds fp to the beginning on success.
+ */
+static gpg_error_t
+get_file_offset (FILE *fp, unsigned long paddr, unsigned long *offset)
+{
+  ElfW (Ehdr) ehdr;
+  ElfW (Phdr) phdr;
+  uint16_t e_phidx;
+
+  // read the ELF header
+  if (0 != fseek (fp, 0, SEEK_SET))
+    return gpg_error_from_syserror ();
+  if (1 != fread (&ehdr, sizeof (ehdr), 1, fp))
+    return gpg_error_from_syserror ();
+
+  // the section header entry size should match the size of the shdr struct
+  if (ehdr.e_phentsize != sizeof (phdr))
+    return gpg_error (GPG_ERR_INV_OBJ);
+  if (ehdr.e_phoff == 0)
+    return gpg_error (GPG_ERR_INV_OBJ);
+
+  // jump to the first program header
+  if (0 != fseek (fp, ehdr.e_phoff, SEEK_SET))
+    return gpg_error_from_syserror ();
+
+  // iterate over the program headers, compare their virtual addresses with the
+  // address we are looking for, and if the program header matches, calculate
+  // the offset of the given paddr in the file using the program header's
+  // p_offset field.
+  for (e_phidx = 0; e_phidx < ehdr.e_phnum; e_phidx++)
+    {
+      if (1 != fread (&phdr, sizeof (phdr), 1, fp))
+        return gpg_error_from_syserror ();
+      if (phdr.p_type == PT_LOAD && phdr.p_vaddr <= paddr
+          && phdr.p_vaddr + phdr.p_memsz > paddr)
+        {
+          // found section, compute the offset of paddr in the file
+          *offset = phdr.p_offset + (paddr - phdr.p_vaddr);
+
+          if (0 != fseek (fp, 0, SEEK_SET))
+            return gpg_error_from_syserror ();
+          return 0;
+        }
+    }
+
+  // section not found in the file
+  return gpg_error (GPG_ERR_INV_OBJ);
+}
+
 static gpg_error_t
 hmac256_check (const char *filename, const char *key, struct link_map *lm)
 {
@@ -603,6 +656,7 @@ hmac256_check (const char *filename, const char *key, struct link_map *lm)
   size_t buffer_size, nread;
   char *buffer;
   unsigned long paddr;
+  unsigned long offset = 0;
   unsigned long off = 0;
 
   paddr = (unsigned long)hmac_for_the_implementation - lm->l_addr;
@@ -610,6 +664,13 @@ hmac256_check (const char *filename, const char *key, struct link_map *lm)
   fp = fopen (filename, "rb");
   if (!fp)
     return gpg_error (GPG_ERR_INV_OBJ);
+
+  err = get_file_offset (fp, paddr, &offset);
+  if (err)
+    {
+      fclose (fp);
+      return err;
+    }
 
   err = _gcry_md_open (&hd, GCRY_MD_SHA256, GCRY_MD_FLAG_HMAC);
   if (err)
@@ -651,14 +712,14 @@ hmac256_check (const char *filename, const char *key, struct link_map *lm)
       nread = fread (buffer+HMAC_LEN, 1, buffer_size, fp);
       if (nread < buffer_size)
         {
-          if (off - HMAC_LEN <= paddr && paddr <= off + nread)
-            memset (buffer + HMAC_LEN + paddr - off, 0, HMAC_LEN);
+          if (off - HMAC_LEN <= offset && offset <= off + nread)
+            memset (buffer + HMAC_LEN + offset - off, 0, HMAC_LEN);
           _gcry_md_write (hd, buffer, nread+HMAC_LEN);
           break;
         }
 
-      if (off - HMAC_LEN <= paddr && paddr <= off + nread)
-        memset (buffer + HMAC_LEN + paddr - off, 0, HMAC_LEN);
+      if (off - HMAC_LEN <= offset && offset <= off + nread)
+        memset (buffer + HMAC_LEN + offset - off, 0, HMAC_LEN);
       _gcry_md_write (hd, buffer, nread);
       memcpy (buffer, buffer+buffer_size, HMAC_LEN);
       off += nread;
@@ -694,8 +755,8 @@ check_binary_integrity (void)
   const char *key = KEY_FOR_BINARY_CHECK;
   void *extra_info;
 
-  if (!dladdr1 (hmac_for_the_implementation,
-                &info, &extra_info, RTLD_DL_LINKMAP))
+  if (!dladdr1 (hmac_for_the_implementation, &info, &extra_info,
+                RTLD_DL_LINKMAP))
     err = gpg_error_from_syserror ();
   else
     err = hmac256_check (info.dli_fname, key, extra_info);
