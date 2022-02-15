@@ -56,43 +56,6 @@ define([GCRY_MSG_WRAP],
   ])
 
 
-dnl GNUPG_CHECK_TYPEDEF(TYPE, HAVE_NAME)
-dnl Check whether a typedef exists and create a #define $2 if it exists
-dnl
-AC_DEFUN([GNUPG_CHECK_TYPEDEF],
-  [ AC_MSG_CHECKING(for $1 typedef)
-    AC_CACHE_VAL(gnupg_cv_typedef_$1,
-    [AC_TRY_COMPILE([#define _GNU_SOURCE 1
-    #include <stdlib.h>
-    #include <sys/types.h>], [
-    #undef $1
-    int a = sizeof($1);
-    ], gnupg_cv_typedef_$1=yes, gnupg_cv_typedef_$1=no )])
-    AC_MSG_RESULT($gnupg_cv_typedef_$1)
-    if test "$gnupg_cv_typedef_$1" = yes; then
-        AC_DEFINE($2,1,[Defined if a `]$1[' is typedef'd])
-    fi
-  ])
-
-
-dnl GNUPG_CHECK_GNUMAKE
-dnl
-AC_DEFUN([GNUPG_CHECK_GNUMAKE],
-  [
-    if ${MAKE-make} --version 2>/dev/null | grep '^GNU ' >/dev/null 2>&1; then
-        :
-    else
-        AC_MSG_WARN([[
-***
-*** It seems that you are not using GNU make.  Some make tools have serious
-*** flaws and you may not be able to build this software at all. Before you
-*** complain, please try GNU make:  GNU make is easy to build and available
-*** at all GNU archives.  It is always available from ftp.gnu.org:/gnu/make.
-***]])
-    fi
-  ])
-
-
 #
 # GNUPG_SYS_SYMBOL_UNDERSCORE
 # Does the compiler prefix global symbols with an underscore?
@@ -264,12 +227,6 @@ int main()
     fi
   ])
 
-# GNUPG_SYS_LIBTOOL_CYGWIN32 - find tools needed on cygwin32
-AC_DEFUN([GNUPG_SYS_LIBTOOL_CYGWIN32],
-[AC_CHECK_TOOL(DLLTOOL, dlltool, false)
-AC_CHECK_TOOL(AS, as, false)
-])
-
 dnl LIST_MEMBER()
 dnl Check whether an element ist contained in a list.  Set `found' to
 dnl `1' if the element is found in the list, to `0' otherwise.
@@ -284,46 +241,4 @@ for n in $list; do
     found=1
   fi
 done
-])
-
-
-dnl Check for socklen_t: historically on BSD it is an int, and in
-dnl POSIX 1g it is a type of its own, but some platforms use different
-dnl types for the argument to getsockopt, getpeername, etc.  So we
-dnl have to test to find something that will work.
-AC_DEFUN([TYPE_SOCKLEN_T],
-[
-   AC_CHECK_TYPE([socklen_t], ,[
-      AC_MSG_CHECKING([for socklen_t equivalent])
-      AC_CACHE_VAL([socklen_t_equiv],
-      [
-         # Systems have either "struct sockaddr *" or
-         # "void *" as the second argument to getpeername
-         socklen_t_equiv=
-         for arg2 in "struct sockaddr" void; do
-            for t in int size_t unsigned long "unsigned long"; do
-               AC_TRY_COMPILE([
-#include <sys/types.h>
-#include <sys/socket.h>
-
-int getpeername (int, $arg2 *, $t *);
-               ],[
-                  $t len;
-                  getpeername(0,0,&len);
-               ],[
-                  socklen_t_equiv="$t"
-                  break
-               ])
-            done
-         done
-
-         if test "x$socklen_t_equiv" = x; then
-            AC_MSG_ERROR([Cannot find a type to use in place of socklen_t])
-         fi
-      ])
-      AC_MSG_RESULT($socklen_t_equiv)
-      AC_DEFINE_UNQUOTED(socklen_t, $socklen_t_equiv,
-			[type to use in place of socklen_t if not defined])],
-      [#include <sys/types.h>
-#include <sys/socket.h>])
 ])
