@@ -766,44 +766,6 @@ AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
           [The default error source for libgcrypt.])
 
 #
-# Check whether the GNU Pth library is available.  We require this
-# to build the optional gcryptrnd program.
-#
-AC_ARG_WITH(pth-prefix,
-            AS_HELP_STRING([--with-pth-prefix=PFX],
-                           [prefix where GNU Pth is installed (optional)]),
-     pth_config_prefix="$withval", pth_config_prefix="")
-if test x$pth_config_prefix != x ; then
-   PTH_CONFIG="$pth_config_prefix/bin/pth-config"
-fi
-if test "$enable_random_daemon" = "yes"; then
-  AC_PATH_PROG(PTH_CONFIG, pth-config, no)
-  if test "$PTH_CONFIG" = "no"; then
-    AC_MSG_WARN([[
-***
-*** To build the Libgcrypt's random number daemon
-*** we need the support of the GNU Portable Threads Library.
-*** Download it from ftp://ftp.gnu.org/gnu/pth/
-*** On a Debian GNU/Linux system you might want to try
-***   apt-get install libpth-dev
-***]])
-  else
-    GNUPG_PTH_VERSION_CHECK([1.3.7])
-    if test $have_pth = yes; then
-       PTH_CFLAGS=`$PTH_CONFIG --cflags`
-       PTH_LIBS=`$PTH_CONFIG --ldflags`
-       PTH_LIBS="$PTH_LIBS `$PTH_CONFIG --libs --all`"
-       AC_DEFINE(USE_GNU_PTH, 1,
-                [Defined if the GNU Portable Thread Library should be used])
-       AC_DEFINE(HAVE_PTH, 1,
-                [Defined if the GNU Pth is available])
-    fi
-  fi
-fi
-AC_SUBST(PTH_CFLAGS)
-AC_SUBST(PTH_LIBS)
-
-#
 # Check whether pthreads is available
 #
 if test "$have_w32_system" != yes; then
