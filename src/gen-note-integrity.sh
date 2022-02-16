@@ -1,7 +1,7 @@
 #! /bin/sh
 
 #
-# genhmac.sh - Build tool to generate hmac hash
+# gen-note-integrity.sh - Build tool to generate hmac hash section
 #
 # Copyright (C) 2022  g10 Code GmbH
 #
@@ -28,7 +28,39 @@ set -e
 #
 #   READELF
 #   AWK
+#   ECHO_N
 #
+
+######## Emit ElfN_Nhdr for note.fdo.integrity ########
+
+NOTE_NAME="FDO"
+
+# n_namesz = 4 including NUL
+printf '%b' '\004'
+printf '%b' '\000'
+printf '%b' '\000'
+printf '%b' '\000'
+
+# n_descsz = 32
+printf '%b' '\040'
+printf '%b' '\000'
+printf '%b' '\000'
+printf '%b' '\000'
+
+# n_type: NT_FDO_INTEGRITY=0xCAFE2A8E
+printf '%b' '\312'
+printf '%b' '\376'
+printf '%b' '\052'
+printf '%b' '\216'
+
+# the name
+echo $ECHO_N $NOTE_NAME
+printf '%b' '\000'
+
+# Here comes the alignment.  As the size of name is 4, it's none.
+# NO PADDING HERE.
+
+######## Rest is to generate hmac hash ########
 
 AWK_VERSION_OUTPUT=$($AWK 'BEGIN { print PROCINFO["version"] }')
 if test -n "$AWK_VERSION_OUTPUT"; then

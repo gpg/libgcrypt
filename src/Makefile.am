@@ -24,7 +24,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libgcrypt.pc
 
 EXTRA_DIST = libgcrypt-config.in libgcrypt.m4 libgcrypt.vers \
-             gcrypt.h.in libgcrypt.def libgcrypt.pc.in genhmac.sh
+             gcrypt.h.in libgcrypt.def libgcrypt.pc.in gen-note-integrity.sh
 
 bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal
@@ -155,13 +155,15 @@ if USE_HMAC_BINARY_CHECK
 CLEANFILES += libgcrypt.so.hmac
 
 libgcrypt.la.done: libgcrypt.so.hmac
-	$(OBJCOPY) --update-section .rodata1=libgcrypt.so.hmac \
+	$(OBJCOPY) --add-section .note.fdo.integrity=libgcrypt.so.hmac \
+	  --set-section-flags .note.fdo.integrity=noload,readonly \
 	  .libs/libgcrypt.so .libs/libgcrypt.so.new
 	mv -f .libs/libgcrypt.so.new .libs/libgcrypt.so.*.*
 	@touch libgcrypt.la.done
 
 libgcrypt.so.hmac: hmac256 libgcrypt.la
-	READELF=$(READELF) AWK=$(AWK) $(srcdir)/genhmac.sh > $@
+	ECHO_N=$(ECHO_N) READELF=$(READELF) AWK=$(AWK) \
+	$(srcdir)/gen-note-integrity.sh > $@
 else !USE_HMAC_BINARY_CHECK
 libgcrypt.la.done: libgcrypt.la
 	@touch libgcrypt.la.done
