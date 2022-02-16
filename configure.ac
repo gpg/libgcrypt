@@ -599,6 +599,7 @@ else
     AC_DEFINE(ENABLE_HMAC_BINARY_CHECK,1,
               [Define to support an HMAC based integrity check])
     AC_CHECK_TOOL(OBJCOPY, [objcopy])
+    AC_CHECK_TOOL(READELF, [readelf])
     if test "$use_hmac_binary_check" != yes ; then
         DEF_HMAC_BINARY_CHECK=-DKEY_FOR_BINARY_CHECK="'\"$use_hmac_binary_check\"'"
     fi
