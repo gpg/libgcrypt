@@ -598,50 +598,68 @@ hmac_for_the_implementation[HMAC_LEN];
 
 /*
  * In the ELF file opened as FP, determine the offset of the given
- * virtual address ADDR and return it in OFFSET.  Rewinds FP to the
+ * virtual address ADDR and return it in R_OFFSET1.  Determine the
+ * offset of last loadable section in R_OFFSET2.  Rewinds FP to the
  * beginning on success.
  */
 static gpg_error_t
-get_file_offset (FILE *fp, unsigned long addr, unsigned long *offset)
+get_file_offsets (FILE *fp, unsigned long addr, ElfW (Ehdr) *ehdr_p,
+                  unsigned long *r_offset1, unsigned long *r_offset2)
 {
-  ElfW (Ehdr) ehdr;
   ElfW (Phdr) phdr;
   uint16_t e_phidx;
+  long pos = 0;
 
   /* Read the ELF header */
   if (fseek (fp, 0, SEEK_SET) != 0)
     return gpg_error_from_syserror ();
-  if (fread (&ehdr, sizeof (ehdr), 1, fp) != 1)
+  if (fread (ehdr_p, sizeof (*ehdr_p), 1, fp) != 1)
     return gpg_error_from_syserror ();
 
+  /* Fix up the ELF header, clean all section information.  */
+  ehdr_p->e_shoff = 0;
+  ehdr_p->e_shentsize = 0;
+  ehdr_p->e_shnum = 0;
+  ehdr_p->e_shstrndx = 0;
+
   /* The program header entry size should match the size of the phdr struct */
-  if (ehdr.e_phentsize != sizeof (phdr))
+  if (ehdr_p->e_phentsize != sizeof (phdr))
     return gpg_error (GPG_ERR_INV_OBJ);
-  if (ehdr.e_phoff == 0)
+  if (ehdr_p->e_phoff == 0)
     return gpg_error (GPG_ERR_INV_OBJ);
 
   /* Jump to the first program header */
-  if (fseek (fp, ehdr.e_phoff, SEEK_SET) != 0)
+  if (fseek (fp, ehdr_p->e_phoff, SEEK_SET) != 0)
     return gpg_error_from_syserror ();
 
   /* Iterate over the program headers, compare their virtual addresses
      with the address we are looking for, and if the program header
      matches, calculate the offset of the given ADDR in the file using
      the program header's p_offset field.  */
-  for (e_phidx = 0; e_phidx < ehdr.e_phnum; e_phidx++)
+  for (e_phidx = 0; e_phidx < ehdr_p->e_phnum; e_phidx++)
     {
       if (fread (&phdr, sizeof (phdr), 1, fp) != 1)
         return gpg_error_from_syserror ();
-      if (phdr.p_type == PT_LOAD
-          && phdr.p_vaddr <= addr && addr < phdr.p_vaddr + phdr.p_memsz)
-        {
-          /* Found segment, compute the offset of ADDR in the file */
-          *offset = phdr.p_offset + (addr - phdr.p_vaddr);
 
-          if (fseek (fp, 0, SEEK_SET) != 0)
-            return gpg_error_from_syserror ();
-          return 0;
-        }
+      if (phdr.p_type == PT_PHDR)
+        continue;
+
+      if (phdr.p_type != PT_LOAD)
+        break;
+
+      pos = phdr.p_offset + phdr.p_filesz;
+      if (phdr.p_vaddr <= addr && addr < phdr.p_vaddr + phdr.p_memsz)
+        /* Found segment, compute the offset of ADDR in the file */
+        *r_offset1 = phdr.p_offset + (addr - phdr.p_vaddr);
+    }
+
+  if (*r_offset1)
+    {
+      if (fseek (fp, 0, SEEK_SET) != 0)
+        return gpg_error_from_syserror ();
+
+      *r_offset2 = (unsigned long)pos;
+      return 0;
     }
 
   /* Segment not found in the file */
@@ -657,15 +675,17 @@ hmac256_check (const char *filename, const char *key, struct link_map *lm)
   size_t buffer_size, nread;
   char *buffer;
   unsigned long addr;
-  unsigned long offset = 0;
+  unsigned long offset1 = 0;
+  unsigned long offset2 = 0;
   unsigned long pos = 0;
+  ElfW (Ehdr) ehdr;
 
   addr = (unsigned long)hmac_for_the_implementation - lm->l_addr;
   fp = fopen (filename, "rb");
   if (!fp)
     return gpg_error (GPG_ERR_INV_OBJ);
 
-  err = get_file_offset (fp, addr, &offset);
+  err = get_file_offsets (fp, addr, &ehdr, &offset1, &offset2);
   if (err)
     {
       fclose (fp);
@@ -710,16 +730,23 @@ hmac256_check (const char *filename, const char *key, struct link_map *lm)
   while (1)
     {
       nread = fread (buffer+HMAC_LEN, 1, buffer_size, fp);
+      if (pos + nread >= offset2)
+        nread = offset2 - pos;
+
+      /* Copy, fixed ELF header at the beginning.  */
+      if (pos - HMAC_LEN == 0)
+        memcpy (buffer, &ehdr, sizeof (ehdr));
+
       if (nread < buffer_size)
         {
-          if (pos - HMAC_LEN <= offset && offset <= pos + nread)
-            memset (buffer + HMAC_LEN + offset - pos, 0, HMAC_LEN);
+          if (pos - HMAC_LEN <= offset1 && offset1 <= pos + nread)
+            memset (buffer + HMAC_LEN + offset1 - pos, 0, HMAC_LEN);
           _gcry_md_write (hd, buffer, nread+HMAC_LEN);
           break;
         }
 
-      if (pos - HMAC_LEN <= offset && offset <= pos + nread)
-        memset (buffer + HMAC_LEN + offset - pos, 0, HMAC_LEN);
+      if (pos - HMAC_LEN <= offset1 && offset1 <= pos + nread)
+        memset (buffer + HMAC_LEN + offset1 - pos, 0, HMAC_LEN);
       _gcry_md_write (hd, buffer, nread);
       memcpy (buffer, buffer+buffer_size, HMAC_LEN);
       pos += nread;

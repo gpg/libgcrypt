@@ -24,7 +24,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libgcrypt.pc
 
 EXTRA_DIST = libgcrypt-config.in libgcrypt.m4 libgcrypt.vers \
-             gcrypt.h.in libgcrypt.def libgcrypt.pc.in
+             gcrypt.h.in libgcrypt.def libgcrypt.pc.in genhmac.sh
 
 bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal
@@ -149,7 +149,7 @@ libgcrypt.la.done: libgcrypt.so.hmac
 	@touch libgcrypt.la.done
 
 libgcrypt.so.hmac: hmac256 libgcrypt.la
-	./hmac256 --stdkey --binary  < .libs/libgcrypt.so > $@
+	READELF=$(READELF) AWK=$(AWK) $(srcdir)/genhmac.sh > $@
 else !USE_HMAC_BINARY_CHECK
 libgcrypt.la.done: libgcrypt.la
 	@touch libgcrypt.la.done
