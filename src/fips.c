@@ -595,7 +595,7 @@ run_random_selftests (void)
 
 /*
  * In the ELF file opened as FP, fill the ELF header to the pointer
- * EHDR_P, determine the offset of last loadable segment in R_OFFSET.
+ * EHDR_P, determine the maximum offset of segments in R_OFFSET.
  * Also, find the section which contains the hmac value and return it
  * in HMAC.  Rewinds FP to the beginning on success.
  */
@@ -624,24 +624,22 @@ get_file_offset (FILE *fp, ElfW (Ehdr) *ehdr_p,
   if (fseek (fp, ehdr_p->e_phoff, SEEK_SET) != 0)
     return gpg_error_from_syserror ();
 
-  /* Iterate over the program headers, determine the last loadable
-     segment.  */
+  /* Iterate over the program headers, determine the last offset of
+     segments.  */
   for (i = 0; i < ehdr_p->e_phnum; i++)
     {
+      unsigned long off;
+
       if (fread (&phdr, sizeof (phdr), 1, fp) != 1)
         return gpg_error_from_syserror ();
 
-      if (phdr.p_type == PT_PHDR)
-        continue;
-
-      if (phdr.p_type != PT_LOAD)
-        break;
-
-      off_segment = phdr.p_offset + phdr.p_filesz;
+      off = phdr.p_offset + phdr.p_filesz;
+      if (off_segment < off)
+        off_segment = off;
     }
 
   if (!off_segment)
-    /* The segment not found in the file */
+    /* No segment found in the file */
     return gpg_error (GPG_ERR_INV_OBJ);
 
   /* The section header entry size should match the size of the shdr struct */
