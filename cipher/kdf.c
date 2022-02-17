@@ -959,7 +959,7 @@ _gcry_kdf_compute (gcry_kdf_hd_t h, const struct gcry_kdf_thread_ops *ops)
   switch (h->algo)
     {
     case GCRY_KDF_ARGON2:
-      ec = argon2_compute ((argon2_ctx_t)h, ops);
+      ec = argon2_compute ((argon2_ctx_t)(void *)h, ops);
       break;
 
     default:
@@ -979,7 +979,7 @@ _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
   switch (h->algo)
     {
     case GCRY_KDF_ARGON2:
-      ec = argon2_final ((argon2_ctx_t)h, resultlen, result);
+      ec = argon2_final ((argon2_ctx_t)(void *)h, resultlen, result);
       break;
 
     default:
@@ -996,7 +996,7 @@ _gcry_kdf_close (gcry_kdf_hd_t h)
   switch (h->algo)
     {
     case GCRY_KDF_ARGON2:
-      argon2_close ((argon2_ctx_t)h);
+      argon2_close ((argon2_ctx_t)(void *)h);
       break;
 
     default:
