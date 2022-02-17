@@ -73,9 +73,9 @@ FILE=.libs/libgcrypt.so
 #
 # Fixup the ELF header to clean up section information
 #
-printf '%b' '\002' > 2.bin
-dd ibs=1 skip=4 count=1 if=$FILE status=none > class-byte.bin
-if cmp class-byte.bin 2.bin; then
+BYTE002=$(printf '%b' '\002')
+CLASS_BYTE=$(dd ibs=1 skip=4 count=1 if=$FILE status=none)
+if test "$CLASS_BYTE" = "$BYTE002"; then
     CLASS=64
     HEADER_SIZE=64
 else
@@ -112,4 +112,4 @@ END { print offset}")
  dd ibs=1 skip=$HEADER_SIZE count=$OFFSET if=$FILE status=none) \
  | ./hmac256 --stdkey --binary
 
-rm -f 2.bin class-byte.bin header-fixed.bin
+rm -f header-fixed.bin
