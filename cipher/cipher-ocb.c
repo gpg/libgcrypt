@@ -548,9 +548,10 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
       nblks = nblks < nmaxblks ? nblks : nmaxblks;
 
       /* Since checksum xoring is done before/after encryption/decryption,
-	process input in 24KiB chunks to keep data loaded in L1 cache for
-	checksumming. */
-      if (nblks > 24 * 1024 / OCB_BLOCK_LEN)
+	 process input in 24KiB chunks to keep data loaded in L1 cache for
+	 checksumming.  However only do splitting if input is large enough
+	 so that last chunks does not end up being short. */
+      if (nblks > 32 * 1024 / OCB_BLOCK_LEN)
 	nblks = 24 * 1024 / OCB_BLOCK_LEN;
 
       /* Use a bulk method if available.  */

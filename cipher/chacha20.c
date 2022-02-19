@@ -969,8 +969,10 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
       size_t currlen = length;
 
       /* Since checksumming is done after encryption, process input in 24KiB
-       * chunks to keep data loaded in L1 cache for checksumming. */
-      if (currlen > 24 * 1024)
+       * chunks to keep data loaded in L1 cache for checksumming.  However
+       * only do splitting if input is large enough so that last chunks does
+       * not end up being short. */
+      if (currlen > 32 * 1024)
 	currlen = 24 * 1024;
 
       nburn = do_chacha20_encrypt_stream_tail (ctx, outbuf, inbuf, currlen);
@@ -1157,8 +1159,10 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
       size_t currlen = length;
 
       /* Since checksumming is done before decryption, process input in 24KiB
-       * chunks to keep data loaded in L1 cache for decryption. */
-      if (currlen > 24 * 1024)
+       * chunks to keep data loaded in L1 cache for decryption.  However only
+       * do splitting if input is large enough so that last chunks does not
+       * end up being short. */
+      if (currlen > 32 * 1024)
 	currlen = 24 * 1024;
 
       nburn = _gcry_poly1305_update_burn (&c->u_mode.poly1305.ctx, inbuf,

@@ -345,8 +345,10 @@ _gcry_cipher_ccm_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
       size_t currlen = inbuflen;
 
       /* Since checksumming is done before encryption, process input in 24KiB
-       * chunks to keep data loaded in L1 cache for encryption. */
-      if (currlen > 24 * 1024)
+       * chunks to keep data loaded in L1 cache for encryption.  However only
+       * do splitting if input is large enough so that last chunks does not
+       * end up being short. */
+      if (currlen > 32 * 1024)
 	currlen = 24 * 1024;
 
       c->u_mode.ccm.encryptlen -= currlen;
@@ -391,8 +393,10 @@ _gcry_cipher_ccm_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
       size_t currlen = inbuflen;
 
       /* Since checksumming is done after decryption, process input in 24KiB
-       * chunks to keep data loaded in L1 cache for checksumming. */
-      if (currlen > 24 * 1024)
+       * chunks to keep data loaded in L1 cache for checksumming.  However
+       * only do splitting if input is large enough so that last chunks
+       * does not end up being short. */
+      if (currlen > 32 * 1024)
 	currlen = 24 * 1024;
 
       err = _gcry_cipher_ctr_encrypt (c, outbuf, outbuflen, inbuf, currlen);
