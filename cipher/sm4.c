@@ -67,6 +67,15 @@
 # endif
 #endif
 
+#undef USE_AARCH64_SIMD
+#ifdef ENABLE_NEON_SUPPORT
+# if defined(__AARCH64EL__) && \
+     defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
+     defined(HAVE_GCC_INLINE_ASM_AARCH64_NEON)
+#   define USE_AARCH64_SIMD 1
+# endif
+#endif
+
 static const char *sm4_selftest (void);
 
 static void _gcry_sm4_ctr_enc (void *context, unsigned char *ctr,
@@ -93,6 +102,9 @@ typedef struct
 #endif
 #ifdef USE_AESNI_AVX2
   unsigned int use_aesni_avx2:1;
+#endif
+#ifdef USE_AARCH64_SIMD
+  unsigned int use_aarch64_simd:1;
 #endif
 } SM4_context;
 
@@ -241,6 +253,39 @@ extern void _gcry_sm4_aesni_avx2_ocb_auth(const u32 *rk_enc,
 					  const u64 Ls[16]) ASM_FUNC_ABI;
 #endif /* USE_AESNI_AVX2 */
 
+#ifdef USE_AARCH64_SIMD
+extern void _gcry_sm4_aarch64_crypt(const u32 *rk, byte *out,
+				    const byte *in,
+				    size_t num_blocks);
+
+extern void _gcry_sm4_aarch64_ctr_enc(const u32 *rk_enc, byte *out,
+				      const byte *in,
+				      byte *ctr,
+				      size_t nblocks);
+
+extern void _gcry_sm4_aarch64_cbc_dec(const u32 *rk_dec, byte *out,
+				      const byte *in,
+				      byte *iv,
+				      size_t nblocks);
+
+extern void _gcry_sm4_aarch64_cfb_dec(const u32 *rk_enc, byte *out,
+				      const byte *in,
+				      byte *iv,
+				      size_t nblocks);
+
+extern void _gcry_sm4_aarch64_crypt_blk1_8(const u32 *rk, byte *out,
+					   const byte *in,
+					   size_t num_blocks);
+
+static inline unsigned int
+sm4_aarch64_crypt_blk1_8(const u32 *rk, byte *out, const byte *in,
+			 unsigned int num_blks)
+{
+  _gcry_sm4_aarch64_crypt_blk1_8(rk, out, in, (size_t)num_blks);
+  return 0;
+}
+#endif /* USE_AARCH64_SIMD */
+
 static inline void prefetch_sbox_table(void)
 {
   const volatile byte *vtab = (void *)&sbox_table;
@@ -371,6 +416,9 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
 #endif
 #ifdef USE_AESNI_AVX2
   ctx->use_aesni_avx2 = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX2);
+#endif
+#ifdef USE_AARCH64_SIMD
+  ctx->use_aarch64_simd = !!(hwf & HWF_ARM_NEON);
 #endif
 
   /* Setup bulk encryption routines.  */
@@ -553,6 +601,23 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
     }
 #endif
 
+#ifdef USE_AARCH64_SIMD
+  if (ctx->use_aarch64_simd)
+    {
+      /* Process multiples of 8 blocks at a time. */
+      if (nblocks >= 8)
+        {
+          size_t nblks = nblocks & ~(8 - 1);
+
+          _gcry_sm4_aarch64_ctr_enc(ctx->rkey_enc, outbuf, inbuf, ctr, nblks);
+
+          nblocks -= nblks;
+          outbuf += nblks * 16;
+          inbuf += nblks * 16;
+        }
+    }
+#endif
+
   /* Process remaining blocks. */
   if (nblocks)
     {
@@ -567,6 +632,12 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_AARCH64_SIMD
+      else if (ctx->use_aarch64_simd)
+	{
+	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
 	}
 #endif
       else
@@ -654,6 +725,23 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
     }
 #endif
 
+#ifdef USE_AARCH64_SIMD
+  if (ctx->use_aarch64_simd)
+    {
+      /* Process multiples of 8 blocks at a time. */
+      if (nblocks >= 8)
+        {
+          size_t nblks = nblocks & ~(8 - 1);
+
+          _gcry_sm4_aarch64_cbc_dec(ctx->rkey_dec, outbuf, inbuf, iv, nblks);
+
+          nblocks -= nblks;
+          outbuf += nblks * 16;
+          inbuf += nblks * 16;
+        }
+    }
+#endif
+
   /* Process remaining blocks. */
   if (nblocks)
     {
@@ -668,6 +756,12 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_AARCH64_SIMD
+      else if (ctx->use_aarch64_simd)
+	{
+	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
 	}
 #endif
       else
@@ -748,6 +842,23 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
     }
 #endif
 
+#ifdef USE_AARCH64_SIMD
+  if (ctx->use_aarch64_simd)
+    {
+      /* Process multiples of 8 blocks at a time. */
+      if (nblocks >= 8)
+        {
+          size_t nblks = nblocks & ~(8 - 1);
+
+          _gcry_sm4_aarch64_cfb_dec(ctx->rkey_enc, outbuf, inbuf, iv, nblks);
+
+          nblocks -= nblks;
+          outbuf += nblks * 16;
+          inbuf += nblks * 16;
+        }
+    }
+#endif
+
   /* Process remaining blocks. */
   if (nblocks)
     {
@@ -762,6 +873,12 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_AARCH64_SIMD
+      else if (ctx->use_aarch64_simd)
+	{
+	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
 	}
 #endif
       else
@@ -918,6 +1035,12 @@ _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_AARCH64_SIMD
+      else if (ctx->use_aarch64_simd)
+	{
+	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
 	}
 #endif
       else
@@ -1078,6 +1201,12 @@ _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_AARCH64_SIMD
+      else if (ctx->use_aarch64_simd)
+	{
+	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
 	}
 #endif
       else
