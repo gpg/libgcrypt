@@ -105,4 +105,26 @@
 #define ret_spec_stop \
 	ret; dsb sy; isb;
 
+#define CLEAR_REG(reg) movi reg.16b, #0;
+
+#define VPUSH_ABI \
+	stp d8, d9, [sp, #-16]!; \
+	CFI_ADJUST_CFA_OFFSET(16); \
+	stp d10, d11, [sp, #-16]!; \
+	CFI_ADJUST_CFA_OFFSET(16); \
+	stp d12, d13, [sp, #-16]!; \
+	CFI_ADJUST_CFA_OFFSET(16); \
+	stp d14, d15, [sp, #-16]!; \
+	CFI_ADJUST_CFA_OFFSET(16);
+
+#define VPOP_ABI \
+	ldp d14, d15, [sp], #16; \
+	CFI_ADJUST_CFA_OFFSET(-16); \
+	ldp d12, d13, [sp], #16; \
+	CFI_ADJUST_CFA_OFFSET(-16); \
+	ldp d10, d11, [sp], #16; \
+	CFI_ADJUST_CFA_OFFSET(-16); \
+	ldp d8, d9, [sp], #16; \
+	CFI_ADJUST_CFA_OFFSET(-16);
+
 #endif /* GCRY_ASM_COMMON_AARCH64_H */

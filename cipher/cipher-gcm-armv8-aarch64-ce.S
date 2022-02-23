@@ -149,28 +149,6 @@ gcry_gcm_reduction_constant:
 #define _(...) __VA_ARGS__
 #define __ _()
 
-#define CLEAR_REG(reg) movi reg.16b, #0;
-
-#define VPUSH_ABI \
-        stp d8, d9, [sp, #-16]!; \
-        CFI_ADJUST_CFA_OFFSET(16); \
-        stp d10, d11, [sp, #-16]!; \
-        CFI_ADJUST_CFA_OFFSET(16); \
-        stp d12, d13, [sp, #-16]!; \
-        CFI_ADJUST_CFA_OFFSET(16); \
-        stp d14, d15, [sp, #-16]!; \
-        CFI_ADJUST_CFA_OFFSET(16);
-
-#define VPOP_ABI \
-        ldp d14, d15, [sp], #16; \
-        CFI_ADJUST_CFA_OFFSET(-16); \
-        ldp d12, d13, [sp], #16; \
-        CFI_ADJUST_CFA_OFFSET(-16); \
-        ldp d10, d11, [sp], #16; \
-        CFI_ADJUST_CFA_OFFSET(-16); \
-        ldp d8, d9, [sp], #16; \
-        CFI_ADJUST_CFA_OFFSET(-16);
-
 /*
  * unsigned int _gcry_ghash_armv8_ce_pmull (void *gcm_key, byte *result,
  *                                          const byte *buf, size_t nblocks,
