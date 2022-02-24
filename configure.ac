@@ -1909,7 +1909,7 @@ fi
 #
 # Check whether PowerPC AltiVec/VSX intrinsics
 #
-AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX intrinsics],
+AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics],
       [gcry_cv_cc_ppc_altivec],
       [if test "$mpi_cpu_arch" != "ppc" ||
 	  test "$try_asm_modules" != "yes" ; then
@@ -1920,10 +1920,16 @@ AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX intrinsics],
 	[[#include <altivec.h>
 	  typedef vector unsigned char block;
 	  typedef vector unsigned int vecu32;
+	  static inline __attribute__((always_inline)) vecu32
+	  vec_sld_u32(vecu32 a, vecu32 b, unsigned int idx)
+	  {
+	    return vec_sld (a, b, (4 * idx) & 15);
+	  }
 	  block fn(block in)
 	  {
 	    block t = vec_perm (in, in, vec_vsx_ld (0, (unsigned char*)0));
 	    vecu32 y = vec_vsx_ld (0, (unsigned int*)0);
+	    y = vec_sld_u32 (y, y, 3);
 	    return vec_cipher_be (t, in) ^ (block)y;
 	  }
 	  ]])],
@@ -1935,7 +1941,7 @@ if test "$gcry_cv_cc_ppc_altivec" = "yes" ; then
 fi
 
 _gcc_cflags_save=$CFLAGS
-CFLAGS="$CFLAGS -maltivec -mvsx -mcrypto"
+CFLAGS="$CFLAGS -O2 -maltivec -mvsx -mcrypto"
 
 if test "$gcry_cv_cc_ppc_altivec" = "no" &&
     test "$mpi_cpu_arch" = "ppc" &&
@@ -1947,10 +1953,16 @@ if test "$gcry_cv_cc_ppc_altivec" = "no" &&
       [[#include <altivec.h>
 	typedef vector unsigned char block;
 	typedef vector unsigned int vecu32;
+	static inline __attribute__((always_inline)) vecu32
+	vec_sld_u32(vecu32 a, vecu32 b, unsigned int idx)
+	{
+	  return vec_sld (a, b, (4 * idx) & 15);
+	}
 	block fn(block in)
 	{
 	  block t = vec_perm (in, in, vec_vsx_ld (0, (unsigned char*)0));
 	  vecu32 y = vec_vsx_ld (0, (unsigned int*)0);
+	  y = vec_sld_u32 (y, y, 3);
 	  return vec_cipher_be (t, in) ^ (block)y;
 	}]])],
       [gcry_cv_cc_ppc_altivec_cflags=yes])])

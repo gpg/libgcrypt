@@ -222,7 +222,7 @@ crc-intel-pclmul.lo: $(srcdir)/crc-intel-pclmul.c Makefile
 	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
 
 if ENABLE_PPC_VCRYPTO_EXTRA_CFLAGS
-ppc_vcrypto_cflags = -maltivec -mvsx -mcrypto
+ppc_vcrypto_cflags = -O2 -maltivec -mvsx -mcrypto
 else
 ppc_vcrypto_cflags =
 endif
