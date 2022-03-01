@@ -245,6 +245,10 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_ARM_SHA1            (1 << 2)
 #define HWF_ARM_SHA2            (1 << 3)
 #define HWF_ARM_PMULL           (1 << 4)
+#define HWF_ARM_SHA3            (1 << 5)
+#define HWF_ARM_SM3             (1 << 6)
+#define HWF_ARM_SM4             (1 << 7)
+#define HWF_ARM_SHA512          (1 << 8)
 
 #elif defined(HAVE_CPU_ARCH_PPC)
 

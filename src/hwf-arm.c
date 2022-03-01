@@ -137,6 +137,18 @@ static const struct feature_map_s arm_features[] =
 #ifndef HWCAP_SHA2
 # define HWCAP_SHA2  64
 #endif
+#ifndef HWCAP_SHA3
+# define HWCAP_SHA3  (1 << 17)
+#endif
+#ifndef HWCAP_SM3
+# define HWCAP_SM3   (1 << 18)
+#endif
+#ifndef HWCAP_SM4
+# define HWCAP_SM4   (1 << 19)
+#endif
+#ifndef HWCAP_SHA512
+# define HWCAP_SHA512 (1 << 21)
+#endif
 
 static const struct feature_map_s arm_features[] =
   {
@@ -148,6 +160,10 @@ static const struct feature_map_s arm_features[] =
     { HWCAP_SHA1, 0, " sha1", HWF_ARM_SHA1 },
     { HWCAP_SHA2, 0, " sha2", HWF_ARM_SHA2 },
     { HWCAP_PMULL, 0, " pmull", HWF_ARM_PMULL },
+    { HWCAP_SHA3, 0, " sha3",  HWF_ARM_SHA3 },
+    { HWCAP_SM3, 0, " sm3",  HWF_ARM_SM3 },
+    { HWCAP_SM4, 0, " sm4",  HWF_ARM_SM4 },
+    { HWCAP_SHA512, 0, " sha512",  HWF_ARM_SHA512 },
 #endif
   };
 
