@@ -76,6 +76,15 @@
 # endif
 #endif
 
+#undef USE_ARM_CE
+#ifdef ENABLE_ARM_CRYPTO_SUPPORT
+# if defined(__AARCH64EL__) && \
+     defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
+     defined(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO)
+#   define USE_ARM_CE 1
+# endif
+#endif
+
 static const char *sm4_selftest (void);
 
 static void _gcry_sm4_ctr_enc (void *context, unsigned char *ctr,
@@ -105,6 +114,9 @@ typedef struct
 #endif
 #ifdef USE_AARCH64_SIMD
   unsigned int use_aarch64_simd:1;
+#endif
+#ifdef USE_ARM_CE
+  unsigned int use_arm_ce:1;
 #endif
 } SM4_context;
 
@@ -286,6 +298,43 @@ sm4_aarch64_crypt_blk1_8(const u32 *rk, byte *out, const byte *in,
 }
 #endif /* USE_AARCH64_SIMD */
 
+#ifdef USE_ARM_CE
+extern void _gcry_sm4_armv8_ce_expand_key(const byte *key,
+					  u32 *rkey_enc, u32 *rkey_dec,
+					  const u32 *fk, const u32 *ck);
+
+extern void _gcry_sm4_armv8_ce_crypt(const u32 *rk, byte *out,
+				     const byte *in,
+				     size_t num_blocks);
+
+extern void _gcry_sm4_armv8_ce_ctr_enc(const u32 *rk_enc, byte *out,
+				       const byte *in,
+				       byte *ctr,
+				       size_t nblocks);
+
+extern void _gcry_sm4_armv8_ce_cbc_dec(const u32 *rk_dec, byte *out,
+				       const byte *in,
+				       byte *iv,
+				       size_t nblocks);
+
+extern void _gcry_sm4_armv8_ce_cfb_dec(const u32 *rk_enc, byte *out,
+				       const byte *in,
+				       byte *iv,
+				       size_t nblocks);
+
+extern void _gcry_sm4_armv8_ce_crypt_blk1_8(const u32 *rk, byte *out,
+					    const byte *in,
+					    size_t num_blocks);
+
+static inline unsigned int
+sm4_armv8_ce_crypt_blk1_8(const u32 *rk, byte *out, const byte *in,
+			 unsigned int num_blks)
+{
+  _gcry_sm4_armv8_ce_crypt_blk1_8(rk, out, in, (size_t)num_blks);
+  return 0;
+}
+#endif /* USE_ARM_CE */
+
 static inline void prefetch_sbox_table(void)
 {
   const volatile byte *vtab = (void *)&sbox_table;
@@ -363,6 +412,15 @@ sm4_expand_key (SM4_context *ctx, const byte *key)
     }
 #endif
 
+#ifdef USE_ARM_CE
+  if (ctx->use_arm_ce)
+    {
+      _gcry_sm4_armv8_ce_expand_key (key, ctx->rkey_enc, ctx->rkey_dec,
+				     fk, ck);
+      return;
+    }
+#endif
+
   rk[0] = buf_get_be32(key + 4 * 0) ^ fk[0];
   rk[1] = buf_get_be32(key + 4 * 1) ^ fk[1];
   rk[2] = buf_get_be32(key + 4 * 2) ^ fk[2];
@@ -420,6 +478,9 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
 #ifdef USE_AARCH64_SIMD
   ctx->use_aarch64_simd = !!(hwf & HWF_ARM_NEON);
 #endif
+#ifdef USE_ARM_CE
+  ctx->use_arm_ce = !!(hwf & HWF_ARM_SM4);
+#endif
 
   /* Setup bulk encryption routines.  */
   memset (bulk_ops, 0, sizeof(*bulk_ops));
@@ -465,6 +526,11 @@ sm4_encrypt (void *context, byte *outbuf, const byte *inbuf)
 {
   SM4_context *ctx = context;
 
+#ifdef USE_ARM_CE
+  if (ctx->use_arm_ce)
+    return sm4_armv8_ce_crypt_blk1_8(ctx->rkey_enc, outbuf, inbuf, 1);
+#endif
+
   prefetch_sbox_table ();
 
   return sm4_do_crypt (ctx->rkey_enc, outbuf, inbuf);
@@ -474,6 +540,11 @@ static unsigned int
 sm4_decrypt (void *context, byte *outbuf, const byte *inbuf)
 {
   SM4_context *ctx = context;
+
+#ifdef USE_ARM_CE
+  if (ctx->use_arm_ce)
+    return sm4_armv8_ce_crypt_blk1_8(ctx->rkey_dec, outbuf, inbuf, 1);
+#endif
 
   prefetch_sbox_table ();
 
@@ -601,6 +672,23 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
     }
 #endif
 
+#ifdef USE_ARM_CE
+  if (ctx->use_arm_ce)
+    {
+      /* Process multiples of 8 blocks at a time. */
+      if (nblocks >= 8)
+        {
+          size_t nblks = nblocks & ~(8 - 1);
+
+          _gcry_sm4_armv8_ce_ctr_enc(ctx->rkey_enc, outbuf, inbuf, ctr, nblks);
+
+          nblocks -= nblks;
+          outbuf += nblks * 16;
+          inbuf += nblks * 16;
+        }
+    }
+#endif
+
 #ifdef USE_AARCH64_SIMD
   if (ctx->use_aarch64_simd)
     {
@@ -632,6 +720,12 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_ARM_CE
+      else if (ctx->use_arm_ce)
+	{
+	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
 	}
 #endif
 #ifdef USE_AARCH64_SIMD
@@ -725,6 +819,23 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
     }
 #endif
 
+#ifdef USE_ARM_CE
+  if (ctx->use_arm_ce)
+    {
+      /* Process multiples of 8 blocks at a time. */
+      if (nblocks >= 8)
+        {
+          size_t nblks = nblocks & ~(8 - 1);
+
+          _gcry_sm4_armv8_ce_cbc_dec(ctx->rkey_dec, outbuf, inbuf, iv, nblks);
+
+          nblocks -= nblks;
+          outbuf += nblks * 16;
+          inbuf += nblks * 16;
+        }
+    }
+#endif
+
 #ifdef USE_AARCH64_SIMD
   if (ctx->use_aarch64_simd)
     {
@@ -756,6 +867,12 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_ARM_CE
+      else if (ctx->use_arm_ce)
+	{
+	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
 	}
 #endif
 #ifdef USE_AARCH64_SIMD
@@ -842,6 +959,23 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
     }
 #endif
 
+#ifdef USE_ARM_CE
+  if (ctx->use_arm_ce)
+    {
+      /* Process multiples of 8 blocks at a time. */
+      if (nblocks >= 8)
+        {
+          size_t nblks = nblocks & ~(8 - 1);
+
+          _gcry_sm4_armv8_ce_cfb_dec(ctx->rkey_enc, outbuf, inbuf, iv, nblks);
+
+          nblocks -= nblks;
+          outbuf += nblks * 16;
+          inbuf += nblks * 16;
+        }
+    }
+#endif
+
 #ifdef USE_AARCH64_SIMD
   if (ctx->use_aarch64_simd)
     {
@@ -873,6 +1007,12 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_ARM_CE
+      else if (ctx->use_arm_ce)
+	{
+	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
 	}
 #endif
 #ifdef USE_AARCH64_SIMD
@@ -1035,6 +1175,12 @@ _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_ARM_CE
+      else if (ctx->use_arm_ce)
+	{
+	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
 	}
 #endif
 #ifdef USE_AARCH64_SIMD
@@ -1201,6 +1347,12 @@ _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
       else if (ctx->use_aesni_avx)
 	{
 	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
+	}
+#endif
+#ifdef USE_ARM_CE
+      else if (ctx->use_arm_ce)
+	{
+	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
 	}
 #endif
 #ifdef USE_AARCH64_SIMD

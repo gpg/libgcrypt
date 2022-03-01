@@ -2755,6 +2755,7 @@ if test "$found" = "1" ; then
       aarch64-*-*)
          # Build with the assembly implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-aarch64.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-armv8-aarch64-ce.lo"
    esac
 fi
 
