@@ -72,6 +72,14 @@
 # endif
 #endif /* GCM_USE_INTEL_PCLMUL */
 
+/* GCM_USE_INTEL_VPCLMUL_AVX2 indicates whether to compile GCM with Intel
+   VPCLMUL/AVX2 code.  */
+#undef GCM_USE_INTEL_VPCLMUL_AVX2
+#if defined(__x86_64__) && defined(GCM_USE_INTEL_PCLMUL) && \
+    defined(ENABLE_AVX2_SUPPORT) && defined(HAVE_GCC_INLINE_ASM_VAES_VPCLMUL)
+# define GCM_USE_INTEL_VPCLMUL_AVX2 1
+#endif /* GCM_USE_INTEL_VPCLMUL_AVX2 */
+
 /* GCM_USE_ARM_PMULL indicates whether to compile GCM with ARMv8 PMULL code. */
 #undef GCM_USE_ARM_PMULL
 #if defined(ENABLE_ARM_CRYPTO_SUPPORT) && defined(GCM_USE_TABLES)
@@ -355,6 +363,9 @@ struct gcry_cipher_handle
 
       /* Key length used for GCM-SIV key generating key. */
       unsigned int siv_keylen;
+
+      /* Flags for accelerated implementations. */
+      unsigned int hw_impl_flags;
     } gcm;
 
     /* Mode specific storage for OCB mode. */

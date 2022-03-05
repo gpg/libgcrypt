@@ -39,15 +39,8 @@
 
 
 #ifdef GCM_USE_INTEL_PCLMUL
-extern void _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c);
-
-extern unsigned int _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result,
-                                              const byte *buf, size_t nblocks);
-
-extern unsigned int _gcry_polyval_intel_pclmul (gcry_cipher_hd_t c,
-                                                byte *result,
-                                                const byte *buf,
-                                                size_t nblocks);
+extern void _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c,
+					    unsigned int hw_features);
 #endif
 
 #ifdef GCM_USE_ARM_PMULL
@@ -594,9 +587,7 @@ setupM (gcry_cipher_hd_t c)
 #ifdef GCM_USE_INTEL_PCLMUL
   else if (features & HWF_INTEL_PCLMUL)
     {
-      c->u_mode.gcm.ghash_fn = _gcry_ghash_intel_pclmul;
-      c->u_mode.gcm.polyval_fn = _gcry_polyval_intel_pclmul;
-      _gcry_ghash_setup_intel_pclmul (c);
+      _gcry_ghash_setup_intel_pclmul (c, features);
     }
 #endif
 #ifdef GCM_USE_ARM_PMULL
