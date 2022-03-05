@@ -590,6 +590,7 @@ are
 @item intel-rdtsc
 @item intel-shaext
 @item intel-vaes-vpclmul
+@item intel-avx512
 @item arm-neon
 @item arm-aes
 @item arm-sha1

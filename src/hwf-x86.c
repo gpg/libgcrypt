@@ -182,12 +182,14 @@ detect_x86_gnuc (void)
   } vendor_id;
   unsigned int features, features2;
   unsigned int os_supports_avx_avx2_registers = 0;
+  unsigned int os_supports_avx512_registers = 0;
   unsigned int max_cpuid_level;
   unsigned int fms, family, model;
   unsigned int result = 0;
   unsigned int avoid_vpgather = 0;
 
   (void)os_supports_avx_avx2_registers;
+  (void)os_supports_avx512_registers;
 
   if (!is_cpuid_available())
     return 0;
@@ -338,13 +340,22 @@ detect_x86_gnuc (void)
   if (features & 0x02000000)
      result |= HWF_INTEL_AESNI;
 #endif /*ENABLE_AESNI_SUPPORT*/
-#if defined(ENABLE_AVX_SUPPORT) || defined(ENABLE_AVX2_SUPPORT)
-  /* Test bit 27 for OSXSAVE (required for AVX/AVX2).  */
+#if defined(ENABLE_AVX_SUPPORT) || defined(ENABLE_AVX2_SUPPORT) \
+    || defined(ENABLE_AVX512_SUPPORT)
+  /* Test bit 27 for OSXSAVE (required for AVX/AVX2/AVX512).  */
   if (features & 0x08000000)
     {
+      unsigned int xmm_ymm_mask = (1 << 2) | (1 << 1);
+      unsigned int zmm15_ymm31_k7_mask = (1 << 7) | (1 << 6) | (1 << 5);
+      unsigned int xgetbv = get_xgetbv();
+
       /* Check that OS has enabled both XMM and YMM state support.  */
-      if ((get_xgetbv() & 0x6) == 0x6)
+      if ((xgetbv & xmm_ymm_mask) == xmm_ymm_mask)
         os_supports_avx_avx2_registers = 1;
+
+      /* Check that OS has enabled full AVX512 state support.  */
+      if ((xgetbv & zmm15_ymm31_k7_mask) == zmm15_ymm31_k7_mask)
+        os_supports_avx512_registers = 1;
     }
 #endif
 #ifdef ENABLE_AVX_SUPPORT
@@ -395,6 +406,38 @@ detect_x86_gnuc (void)
       /* Test bit 9 for VAES and bit 10 for VPCLMULDQD */
       if ((features2 & 0x00000200) && (features2 & 0x00000400))
         result |= HWF_INTEL_VAES_VPCLMUL;
+#endif
+
+#ifdef ENABLE_AVX512_SUPPORT
+      /* Test for AVX512 features. List of features is selected so that
+       * supporting CPUs are new enough not to suffer from reduced clock
+       * frequencies when AVX512 is used, which was issue on early AVX512
+       * capable CPUs.
+       *  - AVX512F (features bit 16)
+       *  - AVX512DQ (features bit 17)
+       *  - AVX512IFMA (features bit 21)
+       *  - AVX512CD (features bit 28)
+       *  - AVX512BW (features bit 30)
+       *  - AVX512VL (features bit 31)
+       *  - AVX512_VBMI (features2 bit 1)
+       *  - AVX512_VBMI2 (features2 bit 6)
+       *  - AVX512_VNNI (features2 bit 11)
+       *  - AVX512_BITALG (features2 bit 12)
+       *  - AVX512_VPOPCNTDQ (features2 bit 14)
+       */
+      if (os_supports_avx512_registers
+	  && (features & (1 << 16))
+	  && (features & (1 << 17))
+	  && (features & (1 << 21))
+	  && (features & (1 << 28))
+	  && (features & (1 << 30))
+	  && (features & (1 << 31))
+	  && (features2 & (1 << 1))
+	  && (features2 & (1 << 6))
+	  && (features2 & (1 << 11))
+	  && (features2 & (1 << 12))
+	  && (features2 & (1 << 14)))
+	result |= HWF_INTEL_AVX512;
 #endif
     }
 

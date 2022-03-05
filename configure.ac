@@ -667,6 +667,14 @@ AC_ARG_ENABLE(avx2-support,
 	      avx2support=$enableval,avx2support=yes)
 AC_MSG_RESULT($avx2support)
 
+# Implementation of the --disable-avx512-support switch.
+AC_MSG_CHECKING([whether AVX512 support is requested])
+AC_ARG_ENABLE(avx512-support,
+              AS_HELP_STRING([--disable-avx512-support],
+                 [Disable support for the Intel AVX512 instructions]),
+	      avx512support=$enableval,avx512support=yes)
+AC_MSG_RESULT($avx512support)
+
 # Implementation of the --disable-neon-support switch.
 AC_MSG_CHECKING([whether NEON support is requested])
 AC_ARG_ENABLE(neon-support,
@@ -1546,6 +1554,29 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports AVX512 instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AVX512 instructions],
+       [gcry_cv_gcc_inline_asm_avx512],
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_avx512="n/a"
+        else
+          gcry_cv_gcc_inline_asm_avx512=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void a(void) {
+              __asm__("xgetbv; vpopcntq %%zmm7, %%zmm1%{%%k1%}%{z%};\n\t":::"cc");
+              __asm__("vpexpandb %%zmm3, %%zmm1;\n\t":::"cc");
+            }]], [ a(); ] )],
+          [gcry_cv_gcc_inline_asm_avx512=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_avx512" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AVX512,1,
+     [Defined if inline assembler supports AVX512 instructions])
+fi
+
+
+#
 # Check whether GCC inline assembler supports VAES and VPCLMUL instructions
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports VAES and VPCLMUL instructions],
@@ -2409,6 +2440,10 @@ if test x"$avx2support" = xyes ; then
   AC_DEFINE(ENABLE_AVX2_SUPPORT,1,
             [Enable support for Intel AVX2 instructions.])
 fi
+if test x"$avx512support" = xyes ; then
+  AC_DEFINE(ENABLE_AVX512_SUPPORT,1,
+            [Enable support for Intel AVX512 instructions.])
+fi
 if test x"$neonsupport" = xyes ; then
   AC_DEFINE(ENABLE_NEON_SUPPORT,1,
             [Enable support for ARM NEON instructions.])
@@ -3266,6 +3301,7 @@ GCRY_MSG_SHOW([Try using Intel SSE4.1:   ],[$sse41support])
 GCRY_MSG_SHOW([Try using DRNG (RDRAND):  ],[$drngsupport])
 GCRY_MSG_SHOW([Try using Intel AVX:      ],[$avxsupport])
 GCRY_MSG_SHOW([Try using Intel AVX2:     ],[$avx2support])
+GCRY_MSG_SHOW([Try using Intel AVX512:   ],[$avx512support])
 GCRY_MSG_SHOW([Try using ARM NEON:       ],[$neonsupport])
 GCRY_MSG_SHOW([Try using ARMv8 crypto:   ],[$armcryptosupport])
 GCRY_MSG_SHOW([Try using PPC crypto:     ],[$ppccryptosupport])
