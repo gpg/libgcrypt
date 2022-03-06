@@ -52,6 +52,8 @@
 #define GCM_INTEL_USE_VPCLMUL_AVX2         (1 << 0)
 #define GCM_INTEL_AGGR8_TABLE_INITIALIZED  (1 << 1)
 #define GCM_INTEL_AGGR16_TABLE_INITIALIZED (1 << 2)
+#define GCM_INTEL_USE_VPCLMUL_AVX512       (1 << 3)
+#define GCM_INTEL_AGGR32_TABLE_INITIALIZED (1 << 4)
 
 
 /*
@@ -813,7 +815,8 @@ ghash_setup_aggr16_avx2(gcry_cipher_hd_t c)
 
   gfmul_pclmul_avx2 (); /* H⁷<<<1•H⁸ => H¹⁵, H⁸<<<1•H⁸ => H¹⁶ */
 
-  asm volatile ("vmovdqu %%ymm1, 13*16(%[h_table])\n\t"
+  asm volatile ("vmovdqu %%ymm1, 14*16(%[h_table])\n\t" /* store H¹⁶ for aggr32 setup */
+                "vmovdqu %%ymm1, 13*16(%[h_table])\n\t"
 		:
 		: [h_table] "r" (c->u_mode.gcm.gcm_table)
 		: "memory");
@@ -825,6 +828,400 @@ ghash_setup_aggr16_avx2(gcry_cipher_hd_t c)
 }
 
 #endif /* GCM_USE_INTEL_VPCLMUL_AVX2 */
+
+#ifdef GCM_USE_INTEL_VPCLMUL_AVX512
+
+#define GFMUL_AGGR32_ASM_VPCMUL_AVX512(be_to_le)                                          \
+    /* perform clmul and merge results... */                                              \
+    "vmovdqu64 0*16(%[buf]), %%zmm5\n\t"                                                  \
+    "vmovdqu64 4*16(%[buf]), %%zmm2\n\t"                                                  \
+    be_to_le("vpshufb %%zmm15, %%zmm5, %%zmm5\n\t") /* be => le */                        \
+    be_to_le("vpshufb %%zmm15, %%zmm2, %%zmm2\n\t") /* be => le */                        \
+    "vpxorq %%zmm5, %%zmm1, %%zmm1\n\t"                                                   \
+                                                                                          \
+    "vpshufd $78, %%zmm0, %%zmm5\n\t"                                                     \
+    "vpshufd $78, %%zmm1, %%zmm4\n\t"                                                     \
+    "vpxorq %%zmm0, %%zmm5, %%zmm5\n\t" /* zmm5 holds 29|…|32:a0+a1 */                    \
+    "vpxorq %%zmm1, %%zmm4, %%zmm4\n\t" /* zmm4 holds 29|…|32:b0+b1 */                    \
+    "vpclmulqdq $0, %%zmm1, %%zmm0, %%zmm3\n\t"  /* zmm3 holds 29|…|32:a0*b0 */           \
+    "vpclmulqdq $17, %%zmm0, %%zmm1, %%zmm1\n\t" /* zmm1 holds 29|…|32:a1*b1 */           \
+    "vpclmulqdq $0, %%zmm5, %%zmm4, %%zmm4\n\t"  /* zmm4 holds 29|…|32:(a0+a1)*(b0+b1) */ \
+                                                                                          \
+    "vpshufd $78, %%zmm13, %%zmm14\n\t"                                                   \
+    "vpshufd $78, %%zmm2, %%zmm7\n\t"                                                     \
+    "vpxorq %%zmm13, %%zmm14, %%zmm14\n\t" /* zmm14 holds 25|…|28:a0+a1 */                \
+    "vpxorq %%zmm2, %%zmm7, %%zmm7\n\t"    /* zmm7 holds 25|…|28:b0+b1 */                 \
+    "vpclmulqdq $0, %%zmm2, %%zmm13, %%zmm17\n\t"  /* zmm17 holds 25|…|28:a0*b0 */        \
+    "vpclmulqdq $17, %%zmm13, %%zmm2, %%zmm18\n\t" /* zmm18 holds 25|…|28:a1*b1 */        \
+    "vpclmulqdq $0, %%zmm14, %%zmm7, %%zmm19\n\t"  /* zmm19 holds 25|…|28:(a0+a1)*(b0+b1) */\
+                                                                                          \
+    "vmovdqu64 8*16(%[buf]), %%zmm5\n\t"                                                  \
+    "vmovdqu64 12*16(%[buf]), %%zmm2\n\t"                                                 \
+    be_to_le("vpshufb %%zmm15, %%zmm5, %%zmm5\n\t") /* be => le */                        \
+    be_to_le("vpshufb %%zmm15, %%zmm2, %%zmm2\n\t") /* be => le */                        \
+                                                                                          \
+    "vpshufd $78, %%zmm12, %%zmm14\n\t"                                                   \
+    "vpshufd $78, %%zmm5, %%zmm7\n\t"                                                     \
+    "vpxorq %%zmm12, %%zmm14, %%zmm14\n\t" /* zmm14 holds 21|…|24:a0+a1 */                \
+    "vpxorq %%zmm5, %%zmm7, %%zmm7\n\t"    /* zmm7 holds 21|…|24:b0+b1 */                 \
+    "vpclmulqdq $0, %%zmm5, %%zmm12, %%zmm6\n\t"  /* zmm6 holds 21|…|24:a0*b0 */          \
+    "vpclmulqdq $17, %%zmm12, %%zmm5, %%zmm5\n\t" /* zmm5 holds 21|…|24:a1*b1 */          \
+    "vpclmulqdq $0, %%zmm14, %%zmm7, %%zmm7\n\t"  /* zmm7 holds 21|…|24:(a0+a1)*(b0+b1) */\
+                                                                                          \
+    "vpternlogq $0x96, %%zmm6, %%zmm17, %%zmm3\n\t" /* zmm3 holds 21+…|…|…+32:a0*b0 */    \
+    "vpternlogq $0x96, %%zmm5, %%zmm18, %%zmm1\n\t" /* zmm1 holds 21+…|…|…+32:a1*b1 */    \
+    "vpternlogq $0x96, %%zmm7, %%zmm19, %%zmm4\n\t" /* zmm4 holds 21+…|…|…+32:(a0+a1)*(b0+b1) */\
+                                                                                          \
+    "vpshufd $78, %%zmm11, %%zmm14\n\t"                                                   \
+    "vpshufd $78, %%zmm2, %%zmm7\n\t"                                                     \
+    "vpxorq %%zmm11, %%zmm14, %%zmm14\n\t" /* zmm14 holds 17|…|20:a0+a1 */                \
+    "vpxorq %%zmm2, %%zmm7, %%zmm7\n\t"    /* zmm7 holds 17|…|20:b0+b1 */                 \
+    "vpclmulqdq $0, %%zmm2, %%zmm11, %%zmm17\n\t"  /* zmm17 holds 17|…|20:a0*b0 */        \
+    "vpclmulqdq $17, %%zmm11, %%zmm2, %%zmm18\n\t" /* zmm18 holds 17|…|20:a1*b1 */        \
+    "vpclmulqdq $0, %%zmm14, %%zmm7, %%zmm19\n\t" /* zmm19 holds 17|…|20:(a0+a1)*(b0+b1) */\
+                                                                                          \
+    "vmovdqu64 16*16(%[buf]), %%zmm5\n\t"                                                 \
+    "vmovdqu64 20*16(%[buf]), %%zmm2\n\t"                                                 \
+    be_to_le("vpshufb %%zmm15, %%zmm5, %%zmm5\n\t") /* be => le */                        \
+    be_to_le("vpshufb %%zmm15, %%zmm2, %%zmm2\n\t") /* be => le */                        \
+                                                                                          \
+    "vpshufd $78, %%zmm10, %%zmm14\n\t"                                                   \
+    "vpshufd $78, %%zmm5, %%zmm7\n\t"                                                     \
+    "vpxorq %%zmm10, %%zmm14, %%zmm14\n\t" /* zmm14 holds 13|…|16:a0+a1 */                \
+    "vpxorq %%zmm5, %%zmm7, %%zmm7\n\t"    /* zmm7 holds 13|…|16:b0+b1 */                 \
+    "vpclmulqdq $0, %%zmm5, %%zmm10, %%zmm6\n\t"  /* zmm6 holds 13|…|16:a0*b0 */          \
+    "vpclmulqdq $17, %%zmm10, %%zmm5, %%zmm5\n\t" /* zmm5 holds 13|…|16:a1*b1 */          \
+    "vpclmulqdq $0, %%zmm14, %%zmm7, %%zmm7\n\t" /* zmm7 holds 13|…|16:(a0+a1)*(b0+b1) */ \
+                                                                                          \
+    "vpternlogq $0x96, %%zmm6, %%zmm17, %%zmm3\n\t" /* zmm3 holds 13+…|…|…+32:a0*b0 */    \
+    "vpternlogq $0x96, %%zmm5, %%zmm18, %%zmm1\n\t" /* zmm1 holds 13+…|…|…+32:a1*b1 */    \
+    "vpternlogq $0x96, %%zmm7, %%zmm19, %%zmm4\n\t" /* zmm4 holds 13+…|…|…+32:(a0+a1)*(b0+b1) */\
+                                                                                          \
+    "vpshufd $78, %%zmm9, %%zmm14\n\t"                                                    \
+    "vpshufd $78, %%zmm2, %%zmm7\n\t"                                                     \
+    "vpxorq %%zmm9, %%zmm14, %%zmm14\n\t" /* zmm14 holds 9|…|12:a0+a1 */                  \
+    "vpxorq %%zmm2, %%zmm7, %%zmm7\n\t"   /* zmm7 holds 9|…|12:b0+b1 */                   \
+    "vpclmulqdq $0, %%zmm2, %%zmm9, %%zmm17\n\t"  /* zmm17 holds 9|…|12:a0*b0 */          \
+    "vpclmulqdq $17, %%zmm9, %%zmm2, %%zmm18\n\t" /* zmm18 holds 9|…|12:a1*b1 */          \
+    "vpclmulqdq $0, %%zmm14, %%zmm7, %%zmm19\n\t" /* zmm19 holds 9|…|12:(a0+a1)*(b0+b1) */\
+                                                                                          \
+    "vmovdqu64 24*16(%[buf]), %%zmm5\n\t"                                                 \
+    "vmovdqu64 28*16(%[buf]), %%zmm2\n\t"                                                 \
+    be_to_le("vpshufb %%zmm15, %%zmm5, %%zmm5\n\t") /* be => le */                        \
+    be_to_le("vpshufb %%zmm15, %%zmm2, %%zmm2\n\t") /* be => le */                        \
+                                                                                          \
+    "vpshufd $78, %%zmm8, %%zmm14\n\t"                                                    \
+    "vpshufd $78, %%zmm5, %%zmm7\n\t"                                                     \
+    "vpxorq %%zmm8, %%zmm14, %%zmm14\n\t" /* zmm14 holds 5|…|8:a0+a1 */                   \
+    "vpxorq %%zmm5, %%zmm7, %%zmm7\n\t"   /* zmm7 holds 5|…|8:b0+b1 */                    \
+    "vpclmulqdq $0, %%zmm5, %%zmm8, %%zmm6\n\t"  /* zmm6 holds 5|…|8:a0*b0 */             \
+    "vpclmulqdq $17, %%zmm8, %%zmm5, %%zmm5\n\t" /* zmm5 holds 5|…|8:a1*b1 */             \
+    "vpclmulqdq $0, %%zmm14, %%zmm7, %%zmm7\n\t" /* zmm7 holds 5|…|8:(a0+a1)*(b0+b1) */   \
+                                                                                          \
+    "vpternlogq $0x96, %%zmm6, %%zmm17, %%zmm3\n\t" /* zmm3 holds 5+…|…|…+32:a0*b0 */     \
+    "vpternlogq $0x96, %%zmm5, %%zmm18, %%zmm1\n\t" /* zmm1 holds 5+…|…|…+32:a1*b1 */     \
+    "vpternlogq $0x96, %%zmm7, %%zmm19, %%zmm4\n\t" /* zmm4 holds 5+…|…|…+32:(a0+a1)*(b0+b1) */\
+                                                                                          \
+    "vpshufd $78, %%zmm16, %%zmm14\n\t"                                                   \
+    "vpshufd $78, %%zmm2, %%zmm7\n\t"                                                     \
+    "vpxorq %%zmm16, %%zmm14, %%zmm14\n\t" /* zmm14 holds 1|…|4:a0+a1 */                  \
+    "vpxorq %%zmm2, %%zmm7, %%zmm7\n\t"   /* zmm7 holds 1|2:b0+b1 */                      \
+    "vpclmulqdq $0, %%zmm2, %%zmm16, %%zmm6\n\t"  /* zmm6 holds 1|2:a0*b0 */              \
+    "vpclmulqdq $17, %%zmm16, %%zmm2, %%zmm2\n\t" /* zmm2 holds 1|2:a1*b1 */              \
+    "vpclmulqdq $0, %%zmm14, %%zmm7, %%zmm7\n\t" /* zmm7 holds 1|2:(a0+a1)*(b0+b1) */     \
+                                                                                          \
+    "vpxorq %%zmm6, %%zmm3, %%zmm3\n\t" /* zmm3 holds 1+3+…+15|2+4+…+16:a0*b0 */          \
+    "vpxorq %%zmm2, %%zmm1, %%zmm1\n\t" /* zmm1 holds 1+3+…+15|2+4+…+16:a1*b1 */          \
+    "vpxorq %%zmm7, %%zmm4, %%zmm4\n\t" /* zmm4 holds 1+3+…+15|2+4+…+16:(a0+a1)*(b0+b1) */\
+                                                                                          \
+    /* aggregated reduction... */                                                         \
+    "vpternlogq $0x96, %%zmm1, %%zmm3, %%zmm4\n\t" /* zmm4 holds                          \
+                                                    * a0*b0+a1*b1+(a0+a1)*(b0+b1) */      \
+    "vpslldq $8, %%zmm4, %%zmm5\n\t"                                                      \
+    "vpsrldq $8, %%zmm4, %%zmm4\n\t"                                                      \
+    "vpxorq %%zmm5, %%zmm3, %%zmm3\n\t"                                                   \
+    "vpxorq %%zmm4, %%zmm1, %%zmm1\n\t" /* <zmm1:zmm3> holds the result of the            \
+                                          carry-less multiplication of zmm0               \
+                                          by zmm1 */                                      \
+                                                                                          \
+    /* first phase of the reduction */                                                    \
+    "vpsllq $1, %%zmm3, %%zmm6\n\t"  /* packed right shifting << 63 */                    \
+    "vpxorq %%zmm3, %%zmm6, %%zmm6\n\t"                                                   \
+    "vpsllq $57, %%zmm3, %%zmm5\n\t"  /* packed right shifting << 57 */                   \
+    "vpsllq $62, %%zmm6, %%zmm6\n\t"  /* packed right shifting << 62 */                   \
+    "vpxorq %%zmm5, %%zmm6, %%zmm6\n\t" /* xor the shifted versions */                    \
+    "vpshufd $0x6a, %%zmm6, %%zmm5\n\t"                                                   \
+    "vpshufd $0xae, %%zmm6, %%zmm6\n\t"                                                   \
+    "vpxorq %%zmm5, %%zmm3, %%zmm3\n\t" /* first phase of the reduction complete */       \
+                                                                                          \
+    /* second phase of the reduction */                                                   \
+    "vpsrlq $1, %%zmm3, %%zmm2\n\t"    /* packed left shifting >> 1 */                    \
+    "vpsrlq $2, %%zmm3, %%zmm4\n\t"    /* packed left shifting >> 2 */                    \
+    "vpsrlq $7, %%zmm3, %%zmm5\n\t"    /* packed left shifting >> 7 */                    \
+    "vpternlogq $0x96, %%zmm3, %%zmm2, %%zmm1\n\t" /* xor the shifted versions */         \
+    "vpternlogq $0x96, %%zmm4, %%zmm5, %%zmm6\n\t"                                        \
+    "vpxorq %%zmm6, %%zmm1, %%zmm1\n\t" /* the result is in zmm1 */                       \
+                                                                                          \
+    /* merge 256-bit halves */                                                            \
+    "vextracti64x4 $1, %%zmm1, %%ymm2\n\t"                                                \
+    "vpxor %%ymm2, %%ymm1, %%ymm1\n\t"                                                    \
+    /* merge 128-bit halves */                                                            \
+    "vextracti128 $1, %%ymm1, %%xmm2\n\t"                                                 \
+    "vpxor %%xmm2, %%xmm1, %%xmm1\n\t"
+
+static ASM_FUNC_ATTR_INLINE void
+gfmul_vpclmul_avx512_aggr32(const void *buf, const void *h_table)
+{
+  /* Input:
+      Hx: ZMM0, ZMM8, ZMM9, ZMM10, ZMM11, ZMM12, ZMM13, ZMM16
+      bemask: ZMM15
+      Hash: XMM1
+    Output:
+      Hash: XMM1
+    Inputs ZMM0, ZMM8, ZMM9, ZMM10, ZMM11, ZMM12, ZMM13, ZMM16 and YMM15 stay
+    unmodified.
+  */
+  asm volatile (GFMUL_AGGR32_ASM_VPCMUL_AVX512(be_to_le)
+		:
+		: [buf] "r" (buf),
+		  [h_table] "r" (h_table)
+		: "memory" );
+}
+
+static ASM_FUNC_ATTR_INLINE void
+gfmul_vpclmul_avx512_aggr32_le(const void *buf, const void *h_table)
+{
+  /* Input:
+      Hx: ZMM0, ZMM8, ZMM9, ZMM10, ZMM11, ZMM12, ZMM13, ZMM16
+      bemask: ZMM15
+      Hash: XMM1
+    Output:
+      Hash: XMM1
+    Inputs ZMM0, ZMM8, ZMM9, ZMM10, ZMM11, ZMM12, ZMM13, ZMM16 and YMM15 stay
+    unmodified.
+  */
+  asm volatile (GFMUL_AGGR32_ASM_VPCMUL_AVX512(le_to_le)
+		:
+		: [buf] "r" (buf),
+		  [h_table] "r" (h_table)
+		: "memory" );
+}
+
+static ASM_FUNC_ATTR_INLINE
+void gfmul_pclmul_avx512(void)
+{
+  /* Input: ZMM0 and ZMM1, Output: ZMM1. Input ZMM0 stays unmodified.
+     Input must be converted to little-endian.
+   */
+  asm volatile (/* gfmul, zmm0 has operator a and zmm1 has operator b. */
+		"vpshufd $78, %%zmm0, %%zmm2\n\t"
+		"vpshufd $78, %%zmm1, %%zmm4\n\t"
+		"vpxorq %%zmm0, %%zmm2, %%zmm2\n\t" /* zmm2 holds a0+a1 */
+		"vpxorq %%zmm1, %%zmm4, %%zmm4\n\t" /* zmm4 holds b0+b1 */
+
+		"vpclmulqdq $0, %%zmm1, %%zmm0, %%zmm3\n\t"  /* zmm3 holds a0*b0 */
+		"vpclmulqdq $17, %%zmm0, %%zmm1, %%zmm1\n\t" /* zmm6 holds a1*b1 */
+		"vpclmulqdq $0, %%zmm2, %%zmm4, %%zmm4\n\t"  /* zmm4 holds (a0+a1)*(b0+b1) */
+
+		"vpternlogq $0x96, %%zmm1, %%zmm3, %%zmm4\n\t" /* zmm4 holds
+								* a0*b0+a1*b1+(a0+a1)*(b0+b1) */
+		"vpslldq $8, %%zmm4, %%zmm5\n\t"
+		"vpsrldq $8, %%zmm4, %%zmm4\n\t"
+		"vpxorq %%zmm5, %%zmm3, %%zmm3\n\t"
+		"vpxorq %%zmm4, %%zmm1, %%zmm1\n\t" /* <zmm1:zmm3> holds the result of the
+						      carry-less multiplication of zmm0
+						      by zmm1 */
+
+		/* first phase of the reduction */
+		"vpsllq $1, %%zmm3, %%zmm6\n\t"  /* packed right shifting << 63 */
+		"vpxorq %%zmm3, %%zmm6, %%zmm6\n\t"
+		"vpsllq $57, %%zmm3, %%zmm5\n\t"  /* packed right shifting << 57 */
+		"vpsllq $62, %%zmm6, %%zmm6\n\t"  /* packed right shifting << 62 */
+		"vpxorq %%zmm5, %%zmm6, %%zmm6\n\t" /* xor the shifted versions */
+		"vpshufd $0x6a, %%zmm6, %%zmm5\n\t"
+		"vpshufd $0xae, %%zmm6, %%zmm6\n\t"
+		"vpxorq %%zmm5, %%zmm3, %%zmm3\n\t" /* first phase of the reduction complete */
+
+		/* second phase of the reduction */
+		"vpsrlq $1, %%zmm3, %%zmm2\n\t"    /* packed left shifting >> 1 */
+		"vpsrlq $2, %%zmm3, %%zmm4\n\t"    /* packed left shifting >> 2 */
+		"vpsrlq $7, %%zmm3, %%zmm5\n\t"    /* packed left shifting >> 7 */
+		"vpternlogq $0x96, %%zmm3, %%zmm2, %%zmm1\n\t" /* xor the shifted versions */
+		"vpternlogq $0x96, %%zmm4, %%zmm5, %%zmm6\n\t"
+		"vpxorq %%zmm6, %%zmm1, %%zmm1\n\t" /* the result is in zmm1 */
+                ::: "memory" );
+}
+
+static ASM_FUNC_ATTR_INLINE void
+gcm_lsh_avx512(void *h, unsigned int hoffs)
+{
+  static const u64 pconst[8] __attribute__ ((aligned (64))) =
+    {
+      U64_C(0x0000000000000001), U64_C(0xc200000000000000),
+      U64_C(0x0000000000000001), U64_C(0xc200000000000000),
+      U64_C(0x0000000000000001), U64_C(0xc200000000000000),
+      U64_C(0x0000000000000001), U64_C(0xc200000000000000)
+    };
+
+  asm volatile ("vmovdqu64 %[h], %%zmm2\n\t"
+                "vpshufd $0xff, %%zmm2, %%zmm3\n\t"
+                "vpsrad $31, %%zmm3, %%zmm3\n\t"
+                "vpslldq $8, %%zmm2, %%zmm4\n\t"
+                "vpandq %[pconst], %%zmm3, %%zmm3\n\t"
+                "vpaddq %%zmm2, %%zmm2, %%zmm2\n\t"
+                "vpsrlq $63, %%zmm4, %%zmm4\n\t"
+                "vpternlogq $0x96, %%zmm4, %%zmm3, %%zmm2\n\t"
+                "vmovdqu64 %%zmm2, %[h]\n\t"
+                : [h] "+m" (*((byte *)h + hoffs))
+                : [pconst] "m" (*pconst)
+                : "memory" );
+}
+
+static ASM_FUNC_ATTR_INLINE void
+load_h1h4_to_zmm1(gcry_cipher_hd_t c)
+{
+  unsigned int key_pos =
+    offsetof(struct gcry_cipher_handle, u_mode.gcm.u_ghash_key.key);
+  unsigned int table_pos =
+    offsetof(struct gcry_cipher_handle, u_mode.gcm.gcm_table);
+
+  if (key_pos + 16 == table_pos)
+    {
+      /* Optimization: Table follows immediately after key. */
+      asm volatile ("vmovdqu64 %[key], %%zmm1\n\t"
+		    :
+		    : [key] "m" (*c->u_mode.gcm.u_ghash_key.key)
+		    : "memory");
+    }
+  else
+    {
+      asm volatile ("vmovdqu64 -1*16(%[h_table]), %%zmm1\n\t"
+		    "vinserti64x2 $0, %[key], %%zmm1, %%zmm1\n\t"
+		    :
+		    : [h_table] "r" (c->u_mode.gcm.gcm_table),
+		      [key] "m" (*c->u_mode.gcm.u_ghash_key.key)
+		    : "memory");
+    }
+}
+
+static ASM_FUNC_ATTR void
+ghash_setup_aggr8_avx512(gcry_cipher_hd_t c)
+{
+  c->u_mode.gcm.hw_impl_flags |= GCM_INTEL_AGGR8_TABLE_INITIALIZED;
+
+  asm volatile (/* load H⁴ */
+		"vbroadcasti64x2 3*16(%[h_table]), %%zmm0\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+  /* load H <<< 1, H² <<< 1, H³ <<< 1, H⁴ <<< 1 */
+  load_h1h4_to_zmm1 (c);
+
+  gfmul_pclmul_avx512 (); /* H<<<1•H⁴ => H⁵, …, H⁴<<<1•H⁴ => H⁸ */
+
+  asm volatile ("vmovdqu64 %%zmm1, 4*16(%[h_table])\n\t" /* store H⁸ for aggr16 setup */
+		"vmovdqu64 %%zmm1, 3*16(%[h_table])\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+
+  gcm_lsh_avx512 (c->u_mode.gcm.gcm_table, 3 * 16); /* H⁵ <<< 1, …, H⁸ <<< 1 */
+}
+
+static ASM_FUNC_ATTR void
+ghash_setup_aggr16_avx512(gcry_cipher_hd_t c)
+{
+  c->u_mode.gcm.hw_impl_flags |= GCM_INTEL_AGGR16_TABLE_INITIALIZED;
+
+  asm volatile (/* load H⁸ */
+		"vbroadcasti64x2 7*16(%[h_table]), %%zmm0\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+  /* load H <<< 1, H² <<< 1, H³ <<< 1, H⁴ <<< 1 */
+  load_h1h4_to_zmm1 (c);
+
+  gfmul_pclmul_avx512 (); /* H<<<1•H⁸ => H⁹, … , H⁴<<<1•H⁸ => H¹² */
+
+  asm volatile ("vmovdqu64 %%zmm1, 7*16(%[h_table])\n\t"
+		/* load H⁵ <<< 1, …, H⁸ <<< 1 */
+		"vmovdqu64 3*16(%[h_table]), %%zmm1\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+
+  gfmul_pclmul_avx512 (); /* H⁵<<<1•H⁸ => H¹¹, … , H⁸<<<1•H⁸ => H¹⁶ */
+
+  asm volatile ("vmovdqu64 %%zmm1, 12*16(%[h_table])\n\t" /* store H¹⁶ for aggr32 setup */
+                "vmovdqu64 %%zmm1, 11*16(%[h_table])\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+
+  gcm_lsh_avx512 (c->u_mode.gcm.gcm_table, 7 * 16); /* H⁹ <<< 1, …, H¹² <<< 1 */
+  gcm_lsh_avx512 (c->u_mode.gcm.gcm_table, 11 * 16); /* H¹³ <<< 1, …, H¹⁶ <<< 1 */
+}
+
+static ASM_FUNC_ATTR void
+ghash_setup_aggr32_avx512(gcry_cipher_hd_t c)
+{
+  c->u_mode.gcm.hw_impl_flags |= GCM_INTEL_AGGR32_TABLE_INITIALIZED;
+
+  asm volatile (/* load H¹⁶ */
+		"vbroadcasti64x2 15*16(%[h_table]), %%zmm0\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+  /* load H <<< 1, H² <<< 1, H³ <<< 1, H⁴ <<< 1 */
+  load_h1h4_to_zmm1 (c);
+
+  gfmul_pclmul_avx512 (); /* H<<<1•H¹⁶ => H¹⁷, …, H⁴<<<1•H¹⁶ => H²⁰ */
+
+  asm volatile ("vmovdqu64 %%zmm1, 15*16(%[h_table])\n\t"
+		/* load H⁵ <<< 1, …, H⁸ <<< 1 */
+		"vmovdqu64 3*16(%[h_table]), %%zmm1\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+
+  gfmul_pclmul_avx512 (); /* H⁵<<<1•H¹⁶ => H²¹, …, H⁹<<<1•H¹⁶ => H²⁴ */
+
+  asm volatile ("vmovdqu64 %%zmm1, 19*16(%[h_table])\n\t"
+		/* load H⁹ <<< 1, …, H¹² <<< 1 */
+		"vmovdqu64 7*16(%[h_table]), %%zmm1\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+
+  gfmul_pclmul_avx512 (); /* H⁹<<<1•H¹⁶ => H²⁵, …, H¹²<<<1•H¹⁶ => H²⁸ */
+
+  asm volatile ("vmovdqu64 %%zmm1, 23*16(%[h_table])\n\t"
+		/* load H¹³ <<< 1, …, H¹⁶ <<< 1 */
+		"vmovdqu64 11*16(%[h_table]), %%zmm1\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+
+  gfmul_pclmul_avx512 (); /* H¹³<<<1•H¹⁶ => H²⁹, …, H¹⁶<<<1•H¹⁶ => H³² */
+
+  asm volatile ("vmovdqu64 %%zmm1, 27*16(%[h_table])\n\t"
+		:
+		: [h_table] "r" (c->u_mode.gcm.gcm_table)
+		: "memory");
+
+  gcm_lsh_avx512 (c->u_mode.gcm.gcm_table, 15 * 16);
+  gcm_lsh_avx512 (c->u_mode.gcm.gcm_table, 19 * 16);
+  gcm_lsh_avx512 (c->u_mode.gcm.gcm_table, 23 * 16);
+  gcm_lsh_avx512 (c->u_mode.gcm.gcm_table, 27 * 16);
+}
+
+static const u64 swap128b_perm[8] __attribute__ ((aligned (64))) =
+  {
+    /* For swapping order of 128bit lanes in 512bit register using vpermq. */
+    6, 7, 4, 5, 2, 3, 0, 1
+  };
+
+#endif /* GCM_USE_INTEL_VPCLMUL_AVX512 */
 #endif /* __x86_64__ */
 
 static unsigned int ASM_FUNC_ATTR
@@ -920,6 +1317,11 @@ _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c, unsigned int hw_features)
            && (hw_features & HWF_INTEL_AVX2))
     {
       c->u_mode.gcm.hw_impl_flags |= GCM_INTEL_USE_VPCLMUL_AVX2;
+
+#ifdef GCM_USE_INTEL_VPCLMUL_AVX512
+      if (hw_features & HWF_INTEL_AVX512)
+	c->u_mode.gcm.hw_impl_flags |= GCM_INTEL_USE_VPCLMUL_AVX512;
+#endif
 
       asm volatile (/* H² */
 		    "vinserti128 $1, %%xmm1, %%ymm1, %%ymm1\n\t"
@@ -1104,71 +1506,126 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
 
 #if defined(GCM_USE_INTEL_VPCLMUL_AVX2)
   if (nblocks >= 16
-      && (c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX2))
+      && ((c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX2)
+          || (c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX512)))
     {
-      u64 h1_h2_h15_h16[4*2];
-
-      asm volatile ("vinserti128 $1, %%xmm7, %%ymm7, %%ymm15\n\t"
-		    "vmovdqa %%xmm1, %%xmm8\n\t"
-		    ::: "memory" );
-
-      if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR8_TABLE_INITIALIZED))
+#if defined(GCM_USE_INTEL_VPCLMUL_AVX512)
+      if (nblocks >= 32
+	  && (c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX512))
 	{
-	  ghash_setup_aggr8_avx2 (c);
+	  asm volatile ("vpopcntb %%zmm7, %%zmm15\n\t" /* spec stop for old AVX512 CPUs */
+			"vshufi64x2 $0, %%zmm7, %%zmm7, %%zmm15\n\t"
+			"vmovdqa %%xmm1, %%xmm8\n\t"
+			"vmovdqu64 %[swapperm], %%zmm14\n\t"
+			:
+			: [swapperm] "m" (swap128b_perm),
+			  [h_table] "r" (c->u_mode.gcm.gcm_table)
+			: "memory" );
+
+	  if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR32_TABLE_INITIALIZED))
+	    {
+	      if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR16_TABLE_INITIALIZED))
+		{
+		  if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR8_TABLE_INITIALIZED))
+		    ghash_setup_aggr8_avx512 (c); /* Clobbers registers XMM0-XMM7. */
+
+		  ghash_setup_aggr16_avx512 (c); /* Clobbers registers XMM0-XMM7. */
+		}
+
+	      ghash_setup_aggr32_avx512 (c); /* Clobbers registers XMM0-XMM7. */
+	    }
+
+	  /* Preload H1-H32. */
+	  load_h1h4_to_zmm1 (c);
+	  asm volatile ("vpermq %%zmm1, %%zmm14, %%zmm16\n\t" /* H1|H2|H3|H4 */
+			"vmovdqa %%xmm8, %%xmm1\n\t"
+			"vpermq 27*16(%[h_table]), %%zmm14, %%zmm0\n\t"  /* H28|H29|H31|H32 */
+			"vpermq 23*16(%[h_table]), %%zmm14, %%zmm13\n\t" /* H25|H26|H27|H28 */
+			"vpermq 19*16(%[h_table]), %%zmm14, %%zmm12\n\t" /* H21|H22|H23|H24 */
+			"vpermq 15*16(%[h_table]), %%zmm14, %%zmm11\n\t" /* H17|H18|H19|H20 */
+			"vpermq 11*16(%[h_table]), %%zmm14, %%zmm10\n\t" /* H13|H14|H15|H16 */
+			"vpermq 7*16(%[h_table]), %%zmm14, %%zmm9\n\t"   /* H9|H10|H11|H12 */
+			"vpermq 3*16(%[h_table]), %%zmm14, %%zmm8\n\t"   /* H4|H6|H7|H8 */
+			:
+			: [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key),
+			  [h_table] "r" (c->u_mode.gcm.gcm_table)
+			: "memory" );
+
+	  while (nblocks >= 32)
+	    {
+	      gfmul_vpclmul_avx512_aggr32 (buf, c->u_mode.gcm.gcm_table);
+
+	      buf += 32 * blocksize;
+	      nblocks -= 32;
+	    }
+
+	  asm volatile ("vmovdqa %%xmm15, %%xmm7\n\t"
+			"vpxorq %%zmm16, %%zmm16, %%zmm16\n\t"
+			"vpxorq %%zmm17, %%zmm17, %%zmm17\n\t"
+			"vpxorq %%zmm18, %%zmm18, %%zmm18\n\t"
+			"vpxorq %%zmm19, %%zmm19, %%zmm19\n\t"
+			:
+			:
+			: "memory" );
 	}
-      if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR16_TABLE_INITIALIZED))
+#endif /* GCM_USE_INTEL_VPCLMUL_AVX512 */
+
+      if (nblocks >= 16)
 	{
-	  ghash_setup_aggr16_avx2 (c);
+	  u64 h1_h2_h15_h16[4*2];
+
+	  asm volatile ("vinserti128 $1, %%xmm7, %%ymm7, %%ymm15\n\t"
+			"vmovdqa %%xmm1, %%xmm8\n\t"
+			::: "memory" );
+
+	  if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR16_TABLE_INITIALIZED))
+	    {
+	      if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR8_TABLE_INITIALIZED))
+		ghash_setup_aggr8_avx2 (c); /* Clobbers registers XMM0-XMM7. */
+
+	      ghash_setup_aggr16_avx2 (c); /* Clobbers registers XMM0-XMM7. */
+	    }
+
+	  /* Preload H1-H16. */
+	  load_h1h2_to_ymm1 (c);
+	  asm volatile ("vperm2i128 $0x23, %%ymm1, %%ymm1, %%ymm7\n\t" /* H1|H2 */
+			"vmovdqa %%xmm8, %%xmm1\n\t"
+			"vpxor %%xmm8, %%xmm8, %%xmm8\n\t"
+			"vperm2i128 $0x23, 13*16(%[h_table]), %%ymm8, %%ymm0\n\t"  /* H15|H16 */
+			"vperm2i128 $0x23, 11*16(%[h_table]), %%ymm8, %%ymm13\n\t" /* H13|H14 */
+			"vperm2i128 $0x23, 9*16(%[h_table]), %%ymm8, %%ymm12\n\t"  /* H11|H12 */
+			"vperm2i128 $0x23, 7*16(%[h_table]), %%ymm8, %%ymm11\n\t"  /* H9|H10 */
+			"vperm2i128 $0x23, 5*16(%[h_table]), %%ymm8, %%ymm10\n\t"  /* H7|H8 */
+			"vperm2i128 $0x23, 3*16(%[h_table]), %%ymm8, %%ymm9\n\t"   /* H5|H6 */
+			"vperm2i128 $0x23, 1*16(%[h_table]), %%ymm8, %%ymm8\n\t"   /* H3|H4 */
+			"vmovdqu %%ymm0, %[h15_h16]\n\t"
+			"vmovdqu %%ymm7, %[h1_h2]\n\t"
+			: [h1_h2] "=m" (h1_h2_h15_h16[0]),
+			  [h15_h16] "=m" (h1_h2_h15_h16[4])
+			: [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key),
+			  [h_table] "r" (c->u_mode.gcm.gcm_table)
+			: "memory" );
+
+	  while (nblocks >= 16)
+	    {
+	      gfmul_vpclmul_avx2_aggr16 (buf, c->u_mode.gcm.gcm_table,
+					h1_h2_h15_h16);
+
+	      buf += 16 * blocksize;
+	      nblocks -= 16;
+	    }
+
+	  asm volatile ("vmovdqu %%ymm15, %[h15_h16]\n\t"
+			"vmovdqu %%ymm15, %[h1_h2]\n\t"
+			"vmovdqa %%xmm15, %%xmm7\n\t"
+			:
+			  [h1_h2] "=m" (h1_h2_h15_h16[0]),
+			  [h15_h16] "=m" (h1_h2_h15_h16[4])
+			:
+			: "memory" );
 	}
 
-      /* Preload H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12. */
-      asm volatile ("vmovdqa %%xmm8, %%xmm1\n\t"
-		    "vmovdqu 0*16(%[h_table]), %%xmm7\n\t"
-		    "vpxor %%xmm8, %%xmm8, %%xmm8\n\t"
-		    "vperm2i128 $0x23, 13*16(%[h_table]), %%ymm8, %%ymm0\n\t"  /* H15|H16 */
-		    "vperm2i128 $0x23, 11*16(%[h_table]), %%ymm8, %%ymm13\n\t" /* H13|H14 */
-		    "vperm2i128 $0x23, 9*16(%[h_table]), %%ymm8, %%ymm12\n\t"  /* H11|H12 */
-		    "vperm2i128 $0x23, 7*16(%[h_table]), %%ymm8, %%ymm11\n\t"  /* H9|H10 */
-		    "vperm2i128 $0x23, 5*16(%[h_table]), %%ymm8, %%ymm10\n\t"  /* H7|H8 */
-		    "vperm2i128 $0x23, 3*16(%[h_table]), %%ymm8, %%ymm9\n\t"   /* H5|H6 */
-		    "vperm2i128 $0x23, 1*16(%[h_table]), %%ymm8, %%ymm8\n\t"   /* H3|H4 */
-		    "vinserti128 $1, %[h_1], %%ymm7, %%ymm7\n\t" /* H1|H2 */
-		    "vmovdqu %%ymm0, %[h15_h16]\n\t"
-		    "vmovdqu %%ymm7, %[h1_h2]\n\t"
-		    : [h1_h2] "=m" (h1_h2_h15_h16[0]),
-		      [h15_h16] "=m" (h1_h2_h15_h16[4])
-		    : [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key),
-		      [h_table] "r" (c->u_mode.gcm.gcm_table)
-		    : "memory" );
-
-      while (nblocks >= 16)
-	{
-	  gfmul_vpclmul_avx2_aggr16 (buf, c->u_mode.gcm.gcm_table,
-				     h1_h2_h15_h16);
-
-	  buf += 16 * blocksize;
-	  nblocks -= 16;
-	}
-
-      /* Clear used x86-64/XMM registers. */
-      asm volatile("vmovdqu %%ymm15, %[h15_h16]\n\t"
-		   "vmovdqu %%ymm15, %[h1_h2]\n\t"
-		   "vzeroupper\n\t"
-#ifndef __WIN64__
-		   "pxor %%xmm8, %%xmm8\n\t"
-		   "pxor %%xmm9, %%xmm9\n\t"
-		   "pxor %%xmm10, %%xmm10\n\t"
-		   "pxor %%xmm11, %%xmm11\n\t"
-		   "pxor %%xmm12, %%xmm12\n\t"
-		   "pxor %%xmm13, %%xmm13\n\t"
-		   "pxor %%xmm14, %%xmm14\n\t"
-		   "pxor %%xmm15, %%xmm15\n\t"
-#endif
-		   "movdqa %[be_mask], %%xmm7\n\t"
-		   : [h1_h2] "=m" (h1_h2_h15_h16[0]),
-		     [h15_h16] "=m" (h1_h2_h15_h16[4])
-		   : [be_mask] "m" (*be_mask)
-		   : "memory" );
+      asm volatile ("vzeroupper\n\t" ::: "memory" );
     }
 #endif /* GCM_USE_INTEL_VPCLMUL_AVX2 */
 
@@ -1176,22 +1633,18 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
   if (nblocks >= 8)
     {
       asm volatile ("movdqa %%xmm7, %%xmm15\n\t"
+		    "movdqa %%xmm1, %%xmm8\n\t"
 		    ::: "memory" );
 
       if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR8_TABLE_INITIALIZED))
-	{
-	  asm volatile ("movdqa %%xmm1, %%xmm8\n\t"
-			::: "memory" );
-	  ghash_setup_aggr8 (c);
-	  asm volatile ("movdqa %%xmm8, %%xmm1\n\t"
-			::: "memory" );
-	}
+	ghash_setup_aggr8 (c); /* Clobbers registers XMM0-XMM7. */
 
       /* Preload H1. */
-      asm volatile ("movdqa %[h_1], %%xmm0\n\t"
-                    :
-                    : [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key)
-                    : "memory" );
+      asm volatile ("movdqa %%xmm8, %%xmm1\n\t"
+		    "movdqa %[h_1], %%xmm0\n\t"
+		    :
+		    : [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key)
+		    : "memory" );
 
       while (nblocks >= 8)
         {
@@ -1200,19 +1653,6 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
           buf += 8 * blocksize;
           nblocks -= 8;
         }
-
-#ifndef __WIN64__
-      /* Clear used x86-64/XMM registers. */
-      asm volatile( "pxor %%xmm8, %%xmm8\n\t"
-                    "pxor %%xmm9, %%xmm9\n\t"
-                    "pxor %%xmm10, %%xmm10\n\t"
-                    "pxor %%xmm11, %%xmm11\n\t"
-                    "pxor %%xmm12, %%xmm12\n\t"
-                    "pxor %%xmm13, %%xmm13\n\t"
-                    "pxor %%xmm14, %%xmm14\n\t"
-                    "pxor %%xmm15, %%xmm15\n\t"
-                    ::: "memory" );
-#endif
     }
 #endif /* __x86_64__ */
 
@@ -1256,39 +1696,49 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
                 : [be_mask] "m" (*be_mask)
                 : "memory" );
 
-#if defined(__x86_64__) && defined(__WIN64__)
   /* Clear/restore used registers. */
-  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
-                "pxor %%xmm1, %%xmm1\n\t"
-                "pxor %%xmm2, %%xmm2\n\t"
-                "pxor %%xmm3, %%xmm3\n\t"
-                "pxor %%xmm4, %%xmm4\n\t"
-                "pxor %%xmm5, %%xmm5\n\t"
-                "movdqu 0*16(%0), %%xmm6\n\t"
-                "movdqu 1*16(%0), %%xmm7\n\t"
-                "movdqu 2*16(%0), %%xmm8\n\t"
-                "movdqu 3*16(%0), %%xmm9\n\t"
-                "movdqu 4*16(%0), %%xmm10\n\t"
-                "movdqu 5*16(%0), %%xmm11\n\t"
-                "movdqu 6*16(%0), %%xmm12\n\t"
-                "movdqu 7*16(%0), %%xmm13\n\t"
-                "movdqu 8*16(%0), %%xmm14\n\t"
-                "movdqu 9*16(%0), %%xmm15\n\t"
-                :
-                : "r" (win64tmp)
-                : "memory" );
+  asm volatile ("pxor %%xmm0, %%xmm0\n\t"
+		"pxor %%xmm1, %%xmm1\n\t"
+		"pxor %%xmm2, %%xmm2\n\t"
+		"pxor %%xmm3, %%xmm3\n\t"
+		"pxor %%xmm4, %%xmm4\n\t"
+		"pxor %%xmm5, %%xmm5\n\t"
+		"pxor %%xmm6, %%xmm6\n\t"
+		"pxor %%xmm7, %%xmm7\n\t"
+		:
+		:
+		: "memory" );
+#ifdef __x86_64__
+#ifdef __WIN64__
+  asm volatile ("movdqu 0*16(%0), %%xmm6\n\t"
+		"movdqu 1*16(%0), %%xmm7\n\t"
+		"movdqu 2*16(%0), %%xmm8\n\t"
+		"movdqu 3*16(%0), %%xmm9\n\t"
+		"movdqu 4*16(%0), %%xmm10\n\t"
+		"movdqu 5*16(%0), %%xmm11\n\t"
+		"movdqu 6*16(%0), %%xmm12\n\t"
+		"movdqu 7*16(%0), %%xmm13\n\t"
+		"movdqu 8*16(%0), %%xmm14\n\t"
+		"movdqu 9*16(%0), %%xmm15\n\t"
+		:
+		: "r" (win64tmp)
+		: "memory" );
 #else
   /* Clear used registers. */
-  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
-                "pxor %%xmm1, %%xmm1\n\t"
-                "pxor %%xmm2, %%xmm2\n\t"
-                "pxor %%xmm3, %%xmm3\n\t"
-                "pxor %%xmm4, %%xmm4\n\t"
-                "pxor %%xmm5, %%xmm5\n\t"
-                "pxor %%xmm6, %%xmm6\n\t"
-                "pxor %%xmm7, %%xmm7\n\t"
-                ::: "memory" );
-#endif
+  asm volatile (
+		"pxor %%xmm8, %%xmm8\n\t"
+		"pxor %%xmm9, %%xmm9\n\t"
+		"pxor %%xmm10, %%xmm10\n\t"
+		"pxor %%xmm11, %%xmm11\n\t"
+		"pxor %%xmm12, %%xmm12\n\t"
+		"pxor %%xmm13, %%xmm13\n\t"
+		"pxor %%xmm14, %%xmm14\n\t"
+		"pxor %%xmm15, %%xmm15\n\t"
+		:
+		:
+		: "memory" );
+#endif /* __WIN64__ */
+#endif /* __x86_64__ */
 
   return 0;
 }
@@ -1335,90 +1785,142 @@ _gcry_polyval_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
 
 #if defined(GCM_USE_INTEL_VPCLMUL_AVX2)
   if (nblocks >= 16
-      && (c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX2))
+      && ((c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX2)
+          || (c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX512)))
     {
-      u64 h1_h2_h15_h16[4*2];
-
-      asm volatile ("vmovdqa %%xmm1, %%xmm8\n\t"
-		    ::: "memory" );
-
-      if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR8_TABLE_INITIALIZED))
+#if defined(GCM_USE_INTEL_VPCLMUL_AVX512)
+      if (nblocks >= 32
+	  && (c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX512))
 	{
-	  ghash_setup_aggr8_avx2 (c);
+	  asm volatile ("vpopcntb %%zmm7, %%zmm15\n\t" /* spec stop for old AVX512 CPUs */
+			"vmovdqa %%xmm1, %%xmm8\n\t"
+			"vmovdqu64 %[swapperm], %%zmm14\n\t"
+			:
+			: [swapperm] "m" (swap128b_perm),
+			  [h_table] "r" (c->u_mode.gcm.gcm_table)
+			: "memory" );
+
+	  if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR32_TABLE_INITIALIZED))
+	    {
+	      if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR16_TABLE_INITIALIZED))
+		{
+		  if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR8_TABLE_INITIALIZED))
+		    ghash_setup_aggr8_avx512 (c); /* Clobbers registers XMM0-XMM7. */
+
+		  ghash_setup_aggr16_avx512 (c); /* Clobbers registers XMM0-XMM7. */
+		}
+
+	      ghash_setup_aggr32_avx512 (c); /* Clobbers registers XMM0-XMM7. */
+	    }
+
+	  /* Preload H1-H32. */
+	  load_h1h4_to_zmm1 (c);
+	  asm volatile ("vpermq %%zmm1, %%zmm14, %%zmm16\n\t" /* H1|H2|H3|H4 */
+			"vmovdqa %%xmm8, %%xmm1\n\t"
+			"vpermq 27*16(%[h_table]), %%zmm14, %%zmm0\n\t"  /* H28|H29|H31|H32 */
+			"vpermq 23*16(%[h_table]), %%zmm14, %%zmm13\n\t" /* H25|H26|H27|H28 */
+			"vpermq 19*16(%[h_table]), %%zmm14, %%zmm12\n\t" /* H21|H22|H23|H24 */
+			"vpermq 15*16(%[h_table]), %%zmm14, %%zmm11\n\t" /* H17|H18|H19|H20 */
+			"vpermq 11*16(%[h_table]), %%zmm14, %%zmm10\n\t" /* H13|H14|H15|H16 */
+			"vpermq 7*16(%[h_table]), %%zmm14, %%zmm9\n\t"   /* H9|H10|H11|H12 */
+			"vpermq 3*16(%[h_table]), %%zmm14, %%zmm8\n\t"   /* H4|H6|H7|H8 */
+			:
+			: [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key),
+			  [h_table] "r" (c->u_mode.gcm.gcm_table)
+			: "memory" );
+
+	  while (nblocks >= 32)
+	    {
+	      gfmul_vpclmul_avx512_aggr32_le (buf, c->u_mode.gcm.gcm_table);
+
+	      buf += 32 * blocksize;
+	      nblocks -= 32;
+	    }
+
+	  asm volatile ("vpxor %%xmm7, %%xmm7, %%xmm7\n\t"
+			"vpxorq %%zmm16, %%zmm16, %%zmm16\n\t"
+			"vpxorq %%zmm17, %%zmm17, %%zmm17\n\t"
+			"vpxorq %%zmm18, %%zmm18, %%zmm18\n\t"
+			"vpxorq %%zmm19, %%zmm19, %%zmm19\n\t"
+			:
+			:
+			: "memory" );
 	}
-      if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR16_TABLE_INITIALIZED))
-	{
-	  ghash_setup_aggr16_avx2 (c);
-	}
-
-      /* Preload H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12. */
-      asm volatile ("vmovdqa %%xmm8, %%xmm1\n\t"
-		    "vpxor %%xmm8, %%xmm8, %%xmm8\n\t"
-		    "vmovdqu 0*16(%[h_table]), %%xmm7\n\t"
-		    "vperm2i128 $0x23, 13*16(%[h_table]), %%ymm8, %%ymm0\n\t"  /* H15|H16 */
-		    "vperm2i128 $0x23, 11*16(%[h_table]), %%ymm8, %%ymm13\n\t" /* H13|H14 */
-		    "vperm2i128 $0x23, 9*16(%[h_table]), %%ymm8, %%ymm12\n\t"  /* H11|H12 */
-		    "vperm2i128 $0x23, 7*16(%[h_table]), %%ymm8, %%ymm11\n\t"  /* H9|H10 */
-		    "vperm2i128 $0x23, 5*16(%[h_table]), %%ymm8, %%ymm10\n\t"  /* H7|H8 */
-		    "vperm2i128 $0x23, 3*16(%[h_table]), %%ymm8, %%ymm9\n\t"   /* H5|H6 */
-		    "vperm2i128 $0x23, 1*16(%[h_table]), %%ymm8, %%ymm8\n\t"   /* H3|H4 */
-		    "vinserti128 $1, %[h_1], %%ymm7, %%ymm7\n\t" /* H1|H2 */
-		    "vmovdqu %%ymm0, %[h15_h16]\n\t"
-		    "vmovdqu %%ymm7, %[h1_h2]\n\t"
-		    : [h1_h2] "=m" (h1_h2_h15_h16[0]),
-		      [h15_h16] "=m" (h1_h2_h15_h16[4])
-		    : [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key),
-		      [h_table] "r" (c->u_mode.gcm.gcm_table)
-		    : "memory" );
-
-      while (nblocks >= 16)
-	{
-	  gfmul_vpclmul_avx2_aggr16_le (buf, c->u_mode.gcm.gcm_table,
-					h1_h2_h15_h16);
-
-	  buf += 16 * blocksize;
-	  nblocks -= 16;
-	}
-
-      /* Clear used x86-64/XMM registers. */
-      asm volatile("vpxor %%xmm7, %%xmm7, %%xmm7\n\t"
-		   "vmovdqu %%ymm7, %[h15_h16]\n\t"
-		   "vmovdqu %%ymm7, %[h1_h2]\n\t"
-		   "vzeroupper\n\t"
-#ifndef __WIN64__
-		   "pxor %%xmm8, %%xmm8\n\t"
-		   "pxor %%xmm9, %%xmm9\n\t"
-		   "pxor %%xmm10, %%xmm10\n\t"
-		   "pxor %%xmm11, %%xmm11\n\t"
-		   "pxor %%xmm12, %%xmm12\n\t"
-		   "pxor %%xmm13, %%xmm13\n\t"
-		   "pxor %%xmm14, %%xmm14\n\t"
 #endif
-		   : [h1_h2] "=m" (h1_h2_h15_h16[0]),
-		     [h15_h16] "=m" (h1_h2_h15_h16[4])
-		   :
-		   : "memory" );
+
+      if (nblocks >= 16)
+	{
+	  u64 h1_h2_h15_h16[4*2];
+
+	  asm volatile ("vmovdqa %%xmm1, %%xmm8\n\t"
+			::: "memory" );
+
+	  if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR16_TABLE_INITIALIZED))
+	    {
+	      if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR8_TABLE_INITIALIZED))
+		ghash_setup_aggr8_avx2 (c); /* Clobbers registers XMM0-XMM7. */
+
+	      ghash_setup_aggr16_avx2 (c); /* Clobbers registers XMM0-XMM7. */
+	    }
+
+	  /* Preload H1-H16. */
+	  load_h1h2_to_ymm1 (c);
+	  asm volatile ("vperm2i128 $0x23, %%ymm1, %%ymm1, %%ymm7\n\t" /* H1|H2 */
+			"vmovdqa %%xmm8, %%xmm1\n\t"
+			"vpxor %%xmm8, %%xmm8, %%xmm8\n\t"
+			"vperm2i128 $0x23, 13*16(%[h_table]), %%ymm8, %%ymm0\n\t"  /* H15|H16 */
+			"vperm2i128 $0x23, 11*16(%[h_table]), %%ymm8, %%ymm13\n\t" /* H13|H14 */
+			"vperm2i128 $0x23, 9*16(%[h_table]), %%ymm8, %%ymm12\n\t"  /* H11|H12 */
+			"vperm2i128 $0x23, 7*16(%[h_table]), %%ymm8, %%ymm11\n\t"  /* H9|H10 */
+			"vperm2i128 $0x23, 5*16(%[h_table]), %%ymm8, %%ymm10\n\t"  /* H7|H8 */
+			"vperm2i128 $0x23, 3*16(%[h_table]), %%ymm8, %%ymm9\n\t"   /* H5|H6 */
+			"vperm2i128 $0x23, 1*16(%[h_table]), %%ymm8, %%ymm8\n\t"   /* H3|H4 */
+			"vmovdqu %%ymm0, %[h15_h16]\n\t"
+			"vmovdqu %%ymm7, %[h1_h2]\n\t"
+			: [h1_h2] "=m" (h1_h2_h15_h16[0]),
+			  [h15_h16] "=m" (h1_h2_h15_h16[4])
+			: [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key),
+			  [h_table] "r" (c->u_mode.gcm.gcm_table)
+			: "memory" );
+
+	  while (nblocks >= 16)
+	    {
+	      gfmul_vpclmul_avx2_aggr16_le (buf, c->u_mode.gcm.gcm_table,
+					    h1_h2_h15_h16);
+
+	      buf += 16 * blocksize;
+	      nblocks -= 16;
+	    }
+
+	  asm volatile ("vpxor %%xmm7, %%xmm7, %%xmm7\n\t"
+			"vmovdqu %%ymm7, %[h15_h16]\n\t"
+			"vmovdqu %%ymm7, %[h1_h2]\n\t"
+			: [h1_h2] "=m" (h1_h2_h15_h16[0]),
+			  [h15_h16] "=m" (h1_h2_h15_h16[4])
+			:
+			: "memory" );
+	}
+
+      asm volatile ("vzeroupper\n\t" ::: "memory" );
     }
 #endif /* GCM_USE_INTEL_VPCLMUL_AVX2 */
 
 #ifdef __x86_64__
   if (nblocks >= 8)
     {
+      asm volatile ("movdqa %%xmm1, %%xmm8\n\t"
+		    ::: "memory" );
+
       if (!(c->u_mode.gcm.hw_impl_flags & GCM_INTEL_AGGR8_TABLE_INITIALIZED))
-	{
-	  asm volatile ("movdqa %%xmm1, %%xmm8\n\t"
-			::: "memory" );
-	  ghash_setup_aggr8 (c);
-	  asm volatile ("movdqa %%xmm8, %%xmm1\n\t"
-			::: "memory" );
-	}
+	ghash_setup_aggr8 (c); /* Clobbers registers XMM0-XMM7. */
 
       /* Preload H1. */
-      asm volatile ("pxor %%xmm15, %%xmm15\n\t"
-                    "movdqa %[h_1], %%xmm0\n\t"
-                    :
-                    : [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key)
-                    : "memory" );
+      asm volatile ("movdqa %%xmm8, %%xmm1\n\t"
+		    "pxor %%xmm15, %%xmm15\n\t"
+		    "movdqa %[h_1], %%xmm0\n\t"
+		    :
+		    : [h_1] "m" (*c->u_mode.gcm.u_ghash_key.key)
+		    : "memory" );
 
       while (nblocks >= 8)
         {
@@ -1427,18 +1929,6 @@ _gcry_polyval_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
           buf += 8 * blocksize;
           nblocks -= 8;
         }
-#ifndef __WIN64__
-      /* Clear used x86-64/XMM registers. */
-      asm volatile( "pxor %%xmm8, %%xmm8\n\t"
-                    "pxor %%xmm9, %%xmm9\n\t"
-                    "pxor %%xmm10, %%xmm10\n\t"
-                    "pxor %%xmm11, %%xmm11\n\t"
-                    "pxor %%xmm12, %%xmm12\n\t"
-                    "pxor %%xmm13, %%xmm13\n\t"
-                    "pxor %%xmm14, %%xmm14\n\t"
-                    "pxor %%xmm15, %%xmm15\n\t"
-                    ::: "memory" );
-#endif
     }
 #endif
 
@@ -1481,39 +1971,49 @@ _gcry_polyval_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
                 : [be_mask] "m" (*be_mask)
                 : "memory" );
 
-#if defined(__x86_64__) && defined(__WIN64__)
   /* Clear/restore used registers. */
-  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
-                "pxor %%xmm1, %%xmm1\n\t"
-                "pxor %%xmm2, %%xmm2\n\t"
-                "pxor %%xmm3, %%xmm3\n\t"
-                "pxor %%xmm4, %%xmm4\n\t"
-                "pxor %%xmm5, %%xmm5\n\t"
-                "movdqu 0*16(%0), %%xmm6\n\t"
-                "movdqu 1*16(%0), %%xmm7\n\t"
-                "movdqu 2*16(%0), %%xmm8\n\t"
-                "movdqu 3*16(%0), %%xmm9\n\t"
-                "movdqu 4*16(%0), %%xmm10\n\t"
-                "movdqu 5*16(%0), %%xmm11\n\t"
-                "movdqu 6*16(%0), %%xmm12\n\t"
-                "movdqu 7*16(%0), %%xmm13\n\t"
-                "movdqu 8*16(%0), %%xmm14\n\t"
-                "movdqu 9*16(%0), %%xmm15\n\t"
-                :
-                : "r" (win64tmp)
-                : "memory" );
+  asm volatile ("pxor %%xmm0, %%xmm0\n\t"
+		"pxor %%xmm1, %%xmm1\n\t"
+		"pxor %%xmm2, %%xmm2\n\t"
+		"pxor %%xmm3, %%xmm3\n\t"
+		"pxor %%xmm4, %%xmm4\n\t"
+		"pxor %%xmm5, %%xmm5\n\t"
+		"pxor %%xmm6, %%xmm6\n\t"
+		"pxor %%xmm7, %%xmm7\n\t"
+		:
+		:
+		: "memory" );
+#ifdef __x86_64__
+#ifdef __WIN64__
+  asm volatile ("movdqu 0*16(%0), %%xmm6\n\t"
+		"movdqu 1*16(%0), %%xmm7\n\t"
+		"movdqu 2*16(%0), %%xmm8\n\t"
+		"movdqu 3*16(%0), %%xmm9\n\t"
+		"movdqu 4*16(%0), %%xmm10\n\t"
+		"movdqu 5*16(%0), %%xmm11\n\t"
+		"movdqu 6*16(%0), %%xmm12\n\t"
+		"movdqu 7*16(%0), %%xmm13\n\t"
+		"movdqu 8*16(%0), %%xmm14\n\t"
+		"movdqu 9*16(%0), %%xmm15\n\t"
+		:
+		: "r" (win64tmp)
+		: "memory" );
 #else
   /* Clear used registers. */
-  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
-                "pxor %%xmm1, %%xmm1\n\t"
-                "pxor %%xmm2, %%xmm2\n\t"
-                "pxor %%xmm3, %%xmm3\n\t"
-                "pxor %%xmm4, %%xmm4\n\t"
-                "pxor %%xmm5, %%xmm5\n\t"
-                "pxor %%xmm6, %%xmm6\n\t"
-                "pxor %%xmm7, %%xmm7\n\t"
-                ::: "memory" );
-#endif
+  asm volatile (
+		"pxor %%xmm8, %%xmm8\n\t"
+		"pxor %%xmm9, %%xmm9\n\t"
+		"pxor %%xmm10, %%xmm10\n\t"
+		"pxor %%xmm11, %%xmm11\n\t"
+		"pxor %%xmm12, %%xmm12\n\t"
+		"pxor %%xmm13, %%xmm13\n\t"
+		"pxor %%xmm14, %%xmm14\n\t"
+		"pxor %%xmm15, %%xmm15\n\t"
+		:
+		:
+		: "memory" );
+#endif /* __WIN64__ */
+#endif /* __x86_64__ */
 
   return 0;
 }

@@ -80,6 +80,14 @@
 # define GCM_USE_INTEL_VPCLMUL_AVX2 1
 #endif /* GCM_USE_INTEL_VPCLMUL_AVX2 */
 
+/* GCM_USE_INTEL_VPCLMUL_AVX512 indicates whether to compile GCM with Intel
+   VPCLMUL/AVX512 code.  */
+#undef GCM_USE_INTEL_VPCLMUL_AVX512
+#if defined(__x86_64__) && defined(GCM_USE_INTEL_VPCLMUL_AVX2) && \
+    defined(ENABLE_AVX512_SUPPORT) && defined(HAVE_GCC_INLINE_ASM_AVX512)
+# define GCM_USE_INTEL_VPCLMUL_AVX512 1
+#endif /* GCM_USE_INTEL_VPCLMUL_AVX512 */
+
 /* GCM_USE_ARM_PMULL indicates whether to compile GCM with ARMv8 PMULL code. */
 #undef GCM_USE_ARM_PMULL
 #if defined(ENABLE_ARM_CRYPTO_SUPPORT) && defined(GCM_USE_TABLES)
