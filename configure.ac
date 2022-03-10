@@ -2942,6 +2942,7 @@ if test "$found" = "1" ; then
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-ssse3-amd64.lo"
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-avx-amd64.lo"
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-avx2-bmi2-amd64.lo"
+         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-avx512-amd64.lo"
       ;;
       i?86-*-*)
          # Build with the assembly implementation

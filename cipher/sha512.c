@@ -104,6 +104,16 @@
 #endif
 
 
+/* USE_AVX512 indicates whether to compile with Intel AVX512 code. */
+#undef USE_AVX512
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_AVX512) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+# define USE_AVX512 1
+#endif
+
+
 /* USE_SSSE3_I386 indicates whether to compile with Intel SSSE3/i386 code. */
 #undef USE_SSSE3_I386
 #if defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4 && \
@@ -197,7 +207,8 @@ static const u64 k[] =
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
 #undef ASM_EXTRA_STACK
-#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_AVX2)
+#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_AVX2) \
+    || defined(USE_AVX512)
 # ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
 #  define ASM_FUNC_ABI __attribute__((sysv_abi))
 #  define ASM_EXTRA_STACK (10 * 16 + 4 * sizeof(void *))
@@ -232,8 +243,10 @@ do_sha512_transform_amd64_ssse3(void *ctx, const unsigned char *data,
                                 size_t nblks)
 {
   SHA512_CONTEXT *hd = ctx;
-  return _gcry_sha512_transform_amd64_ssse3 (data, &hd->state, nblks)
-         + ASM_EXTRA_STACK;
+  unsigned int burn;
+  burn = _gcry_sha512_transform_amd64_ssse3 (data, &hd->state, nblks);
+  burn += burn > 0 ? ASM_EXTRA_STACK : 0;
+  return burn;
 }
 #endif
 
@@ -247,8 +260,10 @@ do_sha512_transform_amd64_avx(void *ctx, const unsigned char *data,
                               size_t nblks)
 {
   SHA512_CONTEXT *hd = ctx;
-  return _gcry_sha512_transform_amd64_avx (data, &hd->state, nblks)
-         + ASM_EXTRA_STACK;
+  unsigned int burn;
+  burn = _gcry_sha512_transform_amd64_avx (data, &hd->state, nblks);
+  burn += burn > 0 ? ASM_EXTRA_STACK : 0;
+  return burn;
 }
 #endif
 
@@ -262,8 +277,27 @@ do_sha512_transform_amd64_avx2(void *ctx, const unsigned char *data,
                                size_t nblks)
 {
   SHA512_CONTEXT *hd = ctx;
-  return _gcry_sha512_transform_amd64_avx2 (data, &hd->state, nblks)
-         + ASM_EXTRA_STACK;
+  unsigned int burn;
+  burn = _gcry_sha512_transform_amd64_avx2 (data, &hd->state, nblks);
+  burn += burn > 0 ? ASM_EXTRA_STACK : 0;
+  return burn;
+}
+#endif
+
+#ifdef USE_AVX512
+unsigned int _gcry_sha512_transform_amd64_avx512(const void *input_data,
+						 void *state,
+						 size_t num_blks) ASM_FUNC_ABI;
+
+static unsigned int
+do_sha512_transform_amd64_avx512(void *ctx, const unsigned char *data,
+                                 size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  unsigned int burn;
+  burn = _gcry_sha512_transform_amd64_avx512 (data, &hd->state, nblks);
+  burn += burn > 0 ? ASM_EXTRA_STACK : 0;
+  return burn;
 }
 #endif
 
@@ -392,6 +426,10 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 #ifdef USE_AVX2
   if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
     ctx->bctx.bwrite = do_sha512_transform_amd64_avx2;
+#endif
+#ifdef USE_AVX512
+  if ((features & HWF_INTEL_AVX512) != 0)
+    ctx->bctx.bwrite = do_sha512_transform_amd64_avx512;
 #endif
 #ifdef USE_PPC_CRYPTO
   if ((features & HWF_PPC_VCRYPTO) != 0)

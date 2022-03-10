@@ -19,6 +19,7 @@ with any binary distributions derived from the GNU C Library.
   - cipher/sha512-avx2-bmi2-amd64.S
   - cipher/sha512-ssse3-amd64.S
   - cipher/sha512-ssse3-i386.c
+  - cipher/sha512-avx512-amd64.S
 
 #+begin_quote
   Copyright (c) 2012, Intel Corporation
