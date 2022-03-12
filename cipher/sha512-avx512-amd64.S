@@ -382,13 +382,13 @@ _gcry_sha512_transform_amd64_avx512:
 	vmovdqa	[rsp + frame_XFER + 1*32], ymm0 /* burn stack */
 	vmovdqa	[rsp + frame_XFER + 2*32], ymm0 /* burn stack */
 	vmovdqa	[rsp + frame_XFER + 3*32], ymm0 /* burn stack */
-	clear_reg(%xmm16);
-	clear_reg(%xmm17);
-	clear_reg(%xmm18);
-	clear_reg(%xmm19);
-	clear_reg(%xmm20);
-	clear_reg(%xmm21);
-	clear_reg(%xmm22);
+	clear_reg(xmm16);
+	clear_reg(xmm17);
+	clear_reg(xmm18);
+	clear_reg(xmm19);
+	clear_reg(xmm20);
+	clear_reg(xmm21);
+	clear_reg(xmm22);
 
 	/* Restore Stack Pointer */
 	mov	rsp, RSP_SAVE
