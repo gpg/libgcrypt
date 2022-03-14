@@ -1229,6 +1229,8 @@ static const gcry_md_oid_spec_t oid_spec_sha512[] =
 
     /* PKCS#1 sha512WithRSAEncryption */
     { "1.2.840.113549.1.1.13" },
+    /* ANSI X9.62  ecdsaWithSHA512 */
+    { "1.2.840.10045.4.3.4" },
 
     { NULL }
   };
@@ -1258,6 +1260,9 @@ static const gcry_md_oid_spec_t oid_spec_sha384[] =
     { "1.2.840.113549.1.1.12" },
 
     /* SHA384WithECDSA: RFC 7427 (A.3.3.) */
+    { "1.2.840.10045.4.3.3" },
+
+    /* ANSI X9.62  ecdsaWithSHA384 */
     { "1.2.840.10045.4.3.3" },
 
     { NULL },

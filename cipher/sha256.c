@@ -798,6 +798,8 @@ static const gcry_md_oid_spec_t oid_spec_sha224[] =
   {
     /* From RFC3874, Section 4 */
     { "2.16.840.1.101.3.4.2.4" },
+    /* ANSI X9.62  ecdsaWithSHA224 */
+    { "1.2.840.10045.4.3.1" },
     { NULL },
   };
 
@@ -812,6 +814,8 @@ static const gcry_md_oid_spec_t oid_spec_sha256[] =
     { "2.16.840.1.101.3.4.2.1" },
     /* PKCS#1 sha256WithRSAEncryption */
     { "1.2.840.113549.1.1.11" },
+    /* ANSI X9.62  ecdsaWithSHA256 */
+    { "1.2.840.10045.4.3.2" },
 
     { NULL },
   };
