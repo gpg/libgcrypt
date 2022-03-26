@@ -81,7 +81,7 @@ EXTRA_libcipher_la_SOURCES = \
 	blowfish.c blowfish-amd64.S blowfish-arm.S \
 	cast5.c cast5-amd64.S cast5-arm.S \
 	chacha20.c chacha20-amd64-ssse3.S chacha20-amd64-avx2.S \
-	chacha20-armv7-neon.S chacha20-aarch64.S \
+	chacha20-amd64-avx512.S chacha20-armv7-neon.S chacha20-aarch64.S \
 	chacha20-ppc.c chacha20-s390x.S \
 	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c cipher-gcm-armv7-neon.S \
 	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \

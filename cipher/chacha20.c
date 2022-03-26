@@ -64,6 +64,14 @@
 # define USE_AVX2 1
 #endif
 
+/* USE_AVX512 indicates whether to compile with Intel AVX512 code. */
+#undef USE_AVX512
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_AVX512) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+# define USE_AVX512 1
+#endif
+
 /* USE_ARMV7_NEON indicates whether to enable ARMv7 NEON assembly code. */
 #undef USE_ARMV7_NEON
 #ifdef ENABLE_NEON_SUPPORT
@@ -123,6 +131,7 @@ typedef struct CHACHA20_context_s
   unsigned int unused; /* bytes in the pad.  */
   unsigned int use_ssse3:1;
   unsigned int use_avx2:1;
+  unsigned int use_avx512:1;
   unsigned int use_neon:1;
   unsigned int use_ppc:1;
   unsigned int use_s390x:1;
@@ -158,6 +167,14 @@ unsigned int _gcry_chacha20_amd64_avx2_blocks8(u32 *state, byte *dst,
 unsigned int _gcry_chacha20_poly1305_amd64_avx2_blocks8(
 		u32 *state, byte *dst, const byte *src, size_t nblks,
 		void *poly1305_state, const byte *poly1305_src) ASM_FUNC_ABI;
+
+#endif /* USE_AVX2 */
+
+#ifdef USE_AVX512
+
+unsigned int _gcry_chacha20_amd64_avx512_blocks16(u32 *state, byte *dst,
+						  const byte *src,
+						  size_t nblks) ASM_FUNC_ABI;
 
 #endif /* USE_AVX2 */
 
@@ -464,6 +481,9 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 #ifdef USE_SSSE3
   ctx->use_ssse3 = (features & HWF_INTEL_SSSE3) != 0;
 #endif
+#ifdef USE_AVX512
+  ctx->use_avx512 = (features & HWF_INTEL_AVX512) != 0;
+#endif
 #ifdef USE_AVX2
   ctx->use_avx2 = (features & HWF_INTEL_AVX2) != 0;
 #endif
@@ -509,6 +529,20 @@ do_chacha20_encrypt_stream_tail (CHACHA20_context_t *ctx, byte *outbuf,
 {
   static const unsigned char zero_pad[CHACHA20_BLOCK_SIZE] = { 0, };
   unsigned int nburn, burn = 0;
+
+#ifdef USE_AVX512
+  if (ctx->use_avx512 && length >= CHACHA20_BLOCK_SIZE * 16)
+    {
+      size_t nblocks = length / CHACHA20_BLOCK_SIZE;
+      nblocks -= nblocks % 16;
+      nburn = _gcry_chacha20_amd64_avx512_blocks16(ctx->input, outbuf, inbuf,
+						   nblocks);
+      burn = nburn > burn ? nburn : burn;
+      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+    }
+#endif
 
 #ifdef USE_AVX2
   if (ctx->use_avx2 && length >= CHACHA20_BLOCK_SIZE * 8)
@@ -703,6 +737,13 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
 
   if (0)
     { }
+#ifdef USE_AVX512
+  else if (ctx->use_avx512)
+    {
+      /* Skip stitched chacha20-poly1305 for AVX512. */
+      authptr = NULL;
+    }
+#endif
 #ifdef USE_AVX2
   else if (ctx->use_avx2 && length >= CHACHA20_BLOCK_SIZE * 8)
     {
@@ -1000,6 +1041,7 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 {
   CHACHA20_context_t *ctx = (void *) &c->context.c;
   unsigned int nburn, burn = 0;
+  int skip_stitched = 0;
 
   if (!length)
     return 0;
@@ -1035,8 +1077,16 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 
   gcry_assert (c->u_mode.poly1305.ctx.leftover == 0);
 
+#ifdef USE_AVX512
+  if (ctx->use_avx512)
+    {
+      /* Skip stitched chacha20-poly1305 for AVX512. */
+      skip_stitched = 1;
+    }
+#endif
+
 #ifdef USE_AVX2
-  if (ctx->use_avx2 && length >= 8 * CHACHA20_BLOCK_SIZE)
+  if (!skip_stitched && ctx->use_avx2 && length >= 8 * CHACHA20_BLOCK_SIZE)
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
       nblocks -= nblocks % 8;
@@ -1053,7 +1103,7 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 #endif
 
 #ifdef USE_SSSE3
-  if (ctx->use_ssse3)
+  if (!skip_stitched && ctx->use_ssse3)
     {
       if (length >= 4 * CHACHA20_BLOCK_SIZE)
 	{
@@ -1087,7 +1137,7 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 #endif
 
 #ifdef USE_AARCH64_SIMD
-  if (ctx->use_neon && length >= 4 * CHACHA20_BLOCK_SIZE)
+  if (!skip_stitched && ctx->use_neon && length >= 4 * CHACHA20_BLOCK_SIZE)
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
       nblocks -= nblocks % 4;
@@ -1104,7 +1154,7 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 #endif
 
 #ifdef USE_PPC_VEC_POLY1305
-  if (ctx->use_ppc && length >= 4 * CHACHA20_BLOCK_SIZE)
+  if (!skip_stitched && ctx->use_ppc && length >= 4 * CHACHA20_BLOCK_SIZE)
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
       nblocks -= nblocks % 4;
@@ -1121,7 +1171,7 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 #endif
 
 #ifdef USE_S390X_VX_POLY1305
-  if (ctx->use_s390x)
+  if (!skip_stitched && ctx->use_s390x)
     {
       if (length >= 8 * CHACHA20_BLOCK_SIZE)
 	{
