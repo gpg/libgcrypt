@@ -2316,6 +2316,7 @@ enum bench_ecc_algo
   ECC_ALGO_NIST_P384,
   ECC_ALGO_NIST_P521,
   ECC_ALGO_SECP256K1,
+  ECC_ALGO_BRAINP256R1,
   __MAX_ECC_ALGO
 };
 
@@ -2365,6 +2366,7 @@ ecc_algo_fips_allowed (int algo)
       case ECC_ALGO_NIST_P521:
 	return 1;
       case ECC_ALGO_SECP256K1:
+      case ECC_ALGO_BRAINP256R1:
       case ECC_ALGO_ED25519:
       case ECC_ALGO_ED448:
       case ECC_ALGO_X25519:
@@ -2400,6 +2402,8 @@ ecc_algo_name (int algo)
 	return "NIST-P521";
       case ECC_ALGO_SECP256K1:
 	return "secp256k1";
+      case ECC_ALGO_BRAINP256R1:
+	return "brainpoolP256r1";
       default:
 	return NULL;
     }
@@ -2430,6 +2434,8 @@ ecc_algo_curve (int algo)
 	return "NIST P-521";
       case ECC_ALGO_SECP256K1:
 	return "secp256k1";
+      case ECC_ALGO_BRAINP256R1:
+	return "brainpoolP256r1";
       default:
 	return NULL;
     }
@@ -2459,6 +2465,8 @@ ecc_nbits (int algo)
       case ECC_ALGO_NIST_P521:
 	return 521;
       case ECC_ALGO_SECP256K1:
+	return 256;
+      case ECC_ALGO_BRAINP256R1:
 	return 256;
       default:
 	return 0;
@@ -2652,6 +2660,14 @@ bench_ecc_init (struct bench_obj *obj)
       case ECC_ALGO_NIST_P521:
         err = gcry_sexp_build (&hd->key_spec, NULL,
                                "(genkey (ECDSA (nbits %d)))", p_size);
+	if (err)
+	  break;
+        err = gcry_sexp_build (&hd->data, NULL,
+			       "(data (flags raw) (value %m))", x);
+	break;
+      case ECC_ALGO_BRAINP256R1:
+        err = gcry_sexp_build (&hd->key_spec, NULL,
+                               "(genkey (ECDSA (curve brainpoolP256r1)))");
 	if (err)
 	  break;
         err = gcry_sexp_build (&hd->data, NULL,
