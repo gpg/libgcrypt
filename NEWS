@@ -1,5 +1,17 @@
-Noteworthy changes in version 1.10.1 (unreleased)  [C24/A4/R_]
+Noteworthy changes in version 1.10.1 (2022-03-28)  [C24/A4/R1]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix minor memory leaks in FIPS mode.
+
+   - Build fixes for MUSL libc.  [rCffaef0be61]
+
+ * Other:
+
+   - More portable integrity check in FIPS mode.  [rC9fa4c8946a,T5835]
+
+   - Add X9.62 OIDs to sha256 and sha512 modules.  [rC52fd2305ba]
 
  Release-info: https://dev.gnupg.org/T5810
 
