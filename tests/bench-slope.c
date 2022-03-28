@@ -467,7 +467,7 @@ slope_benchmark (struct bench_obj *obj)
     goto err_free;
   /* Get aligned buffer */
   buffer = real_buffer;
-  buffer += 128 - ((unsigned long)real_buffer & (128 - 1));
+  buffer += 128 - ((uintptr_t)real_buffer & (128 - 1));
   if (unaligned_mode)
     buffer += unaligned_mode; /* Make buffer unaligned */
 
