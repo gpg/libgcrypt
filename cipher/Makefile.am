@@ -28,7 +28,7 @@ AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
 EXTRA_DIST = gost-s-box.c
 
-CLEANFILES = gost-s-box
+CLEANFILES = gost-s-box$(EXEEXT_FOR_BUILD)
 DISTCLEANFILES = gost-sb.h
 
 noinst_LTLIBRARIES = libcipher.la
@@ -145,10 +145,10 @@ EXTRA_libcipher_la_SOURCES = \
 	blake2b-amd64-avx2.S blake2s-amd64-avx.S
 
 gost28147.lo: gost-sb.h
-gost-sb.h: gost-s-box
-	./gost-s-box $@
+gost-sb.h: gost-s-box$(EXEEXT_FOR_BUILD)
+	./gost-s-box$(EXEEXT_FOR_BUILD) $@
 
-gost-s-box: gost-s-box.c
+gost-s-box$(EXEEXT_FOR_BUILD): gost-s-box.c
 	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
 	    $(CPPFLAGS_FOR_BUILD) -o $@ $(srcdir)/gost-s-box.c
 

@@ -23,7 +23,7 @@ EXTRA_DIST = README.apichanges HACKING DCO \
 	     yat2m.c
 
 DISTCLEANFILES = gcrypt.cps yat2m-stamp.tmp yat2m-stamp $(myman_pages)
-CLEANFILES = yat2m
+CLEANFILES = yat2m$(EXEEXT_FOR_BUILD)
 
 BUILT_SOURCES = libgcrypt-modules.png fips-fsm.png \
                 libgcrypt-modules.pdf fips-fsm.pdf
@@ -39,7 +39,7 @@ myman_pages   = hmac256.1
 
 man_MANS = $(myman_pages)
 
-yat2m: yat2m.c
+yat2m$(EXEEXT_FOR_BUILD): yat2m.c
 	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
 	    $(CPPFLAGS_FOR_BUILD) -o $@ $(srcdir)/yat2m.c
 
@@ -59,11 +59,11 @@ yat2m-stamp: $(myman_sources)
 	@rm -f yat2m-stamp.tmp
 	@touch yat2m-stamp.tmp
 	for file in $(myman_sources) ; do \
-              ./yat2m $(YAT2M_OPTIONS) --store \
+              ./yat2m$(EXEEXT_FOR_BUILD) $(YAT2M_OPTIONS) --store \
 	          `test -f '$$file' || echo '$(srcdir)/'`$$file ; done
 	@mv -f yat2m-stamp.tmp $@
 
-yat2m-stamp: yat2m
+yat2m-stamp: yat2m$(EXEEXT_FOR_BUILD)
 
 $(myman_pages) : yat2m-stamp
 	@if test -f $@; then :; else \
