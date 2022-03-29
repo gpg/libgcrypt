@@ -1568,9 +1568,9 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AVX512 instructions],
           [[void a(void) {
               __asm__("xgetbv; vpopcntq %%zmm7, %%zmm1%{%%k1%}%{z%};\n\t":::"cc");
               __asm__("vpexpandb %%zmm3, %%zmm1;\n\t":::"cc");
-              __asm__("vpxorq %%xmm22, %%xmm22, %%xmm22;\n\t":::"cc");
-              __asm__("vpxorq %%ymm22, %%ymm22, %%ymm22;\n\t":::"cc");
-              __asm__("vpxorq %%zmm22, %%zmm22, %%zmm22;\n\t":::"cc");
+              __asm__("vpxorq %%xmm7, %%xmm7, %%xmm7;\n\t":::"cc");
+              __asm__("vpxorq %%ymm7, %%ymm7, %%ymm7;\n\t":::"cc");
+              __asm__("vpxorq (%%eax)%{1to8%}, %%zmm7, %%zmm7;\n\t":::"cc");
             }]], [ a(); ] )],
           [gcry_cv_gcc_inline_asm_avx512=yes])
         fi])
