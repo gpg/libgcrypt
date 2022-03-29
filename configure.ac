@@ -3107,6 +3107,9 @@ case "${host}" in
   s390x-*-*)
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS poly1305-s390x.lo"
   ;;
+  x86_64-*-*)
+    GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS poly1305-amd64-avx512.lo"
+  ;;
 esac
 
 LIST_MEMBER(scrypt, $enabled_kdfs)

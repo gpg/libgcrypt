@@ -60,6 +60,19 @@ static const char *selftest (void);
 #endif
 
 
+/* AMD64 Assembly implementations use SystemV ABI, ABI conversion and
+ * additional stack to store XMM6-XMM15 needed on Win64. */
+#undef ASM_FUNC_ABI
+#undef ASM_FUNC_WRAPPER_ATTR
+#if defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)
+# define ASM_FUNC_ABI __attribute__((sysv_abi))
+# define ASM_FUNC_WRAPPER_ATTR __attribute__((noinline))
+#else
+# define ASM_FUNC_ABI
+# define ASM_FUNC_WRAPPER_ATTR
+#endif
+
+
 #ifdef USE_S390X_ASM
 
 #define HAVE_ASM_POLY1305_BLOCKS 1
@@ -78,10 +91,31 @@ poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
 #endif /* USE_S390X_ASM */
 
 
+#ifdef POLY1305_USE_AVX512
+
+extern unsigned int
+_gcry_poly1305_amd64_avx512_blocks(const void *msg, const u64 msg_len,
+				   void *hash, const void *key) ASM_FUNC_ABI;
+
+ASM_FUNC_WRAPPER_ATTR static unsigned int
+poly1305_amd64_avx512_blocks(poly1305_context_t *ctx, const byte *buf,
+			     size_t len)
+{
+  POLY1305_STATE *st = &ctx->state;
+  return _gcry_poly1305_amd64_avx512_blocks(buf, len, st->h, st->r);
+}
+
+#endif /* POLY1305_USE_AVX512 */
+
+
 static void poly1305_init (poly1305_context_t *ctx,
 			   const byte key[POLY1305_KEYLEN])
 {
   POLY1305_STATE *st = &ctx->state;
+
+#ifdef POLY1305_USE_AVX512
+  ctx->use_avx512 = (_gcry_get_hw_features () & HWF_INTEL_AVX512) != 0;
+#endif
 
   ctx->leftover = 0;
 
@@ -181,8 +215,8 @@ static void poly1305_init (poly1305_context_t *ctx,
 #ifndef HAVE_ASM_POLY1305_BLOCKS
 
 static unsigned int
-poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
-		 byte high_pad)
+poly1305_blocks_generic (poly1305_context_t *ctx, const byte *buf, size_t len,
+			 byte high_pad)
 {
   POLY1305_STATE *st = &ctx->state;
   u64 r0, r1, r1_mult5;
@@ -233,6 +267,18 @@ poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
   st->h[4] = h2;
 
   return 6 * sizeof (void *) + 18 * sizeof (u64);
+}
+
+static unsigned int
+poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
+		 byte high_pad)
+{
+#ifdef POLY1305_USE_AVX512
+  if ((high_pad & ctx->use_avx512) != 0)
+    return poly1305_amd64_avx512_blocks(ctx, buf, len);
+#endif
+
+  return poly1305_blocks_generic(ctx, buf, len, high_pad);
 }
 
 #endif /* !HAVE_ASM_POLY1305_BLOCKS */

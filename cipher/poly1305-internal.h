@@ -34,6 +34,16 @@
 #define POLY1305_BLOCKSIZE 16
 
 
+/* POLY1305_USE_AVX512 indicates whether to compile with Intel AVX512 code. */
+#undef POLY1305_USE_AVX512
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_AVX512) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+# define POLY1305_USE_AVX512 1
+#endif
+
+
 typedef struct
 {
   u32 k[4];
@@ -46,6 +56,9 @@ typedef struct poly1305_context_s
   POLY1305_STATE state;
   byte buffer[POLY1305_BLOCKSIZE];
   unsigned int leftover;
+#ifdef POLY1305_USE_AVX512
+  unsigned int use_avx512:1;
+#endif
 } poly1305_context_t;
 
 

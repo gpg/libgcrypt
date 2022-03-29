@@ -98,7 +98,7 @@ EXTRA_libcipher_la_SOURCES = \
 	gostr3411-94.c \
 	md4.c \
 	md5.c \
-	poly1305-s390x.S \
+	poly1305-s390x.S poly1305-amd64-avx512.S \
 	rijndael.c rijndael-internal.h rijndael-tables.h   \
 	rijndael-aesni.c rijndael-padlock.c                \
 	rijndael-amd64.S rijndael-arm.S                    \
