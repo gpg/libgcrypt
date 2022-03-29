@@ -496,7 +496,7 @@ blake2b_vl_hash (const void *in, size_t inlen, size_t outputlen, void *output)
     memcpy (output, ctx.buf, outputlen);
   else
     {
-      int r = (outputlen-1)/32;
+      int r = (outputlen-1)/32 - 1;
       unsigned int remained = outputlen - 32*r;
       int i;
       unsigned char d[64];
@@ -518,8 +518,14 @@ blake2b_vl_hash (const void *in, size_t inlen, size_t outputlen, void *output)
           blake2b_final (&ctx);
         }
 
-      if (remained)
-        memcpy ((unsigned char *)output+r*32, d+32, remained);
+      ec = blake2b_init_ctx (&ctx, 0, NULL, 0, remained*8);
+      if (ec)
+        return ec;
+
+      blake2b_write (&ctx, d, 64);
+      blake2b_final (&ctx);
+
+      memcpy ((unsigned char *)output+r*32, ctx.buf, remained);
     }
 
   wipememory (buf, sizeof (buf));

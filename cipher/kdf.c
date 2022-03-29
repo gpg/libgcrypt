@@ -843,6 +843,9 @@ argon2_open (gcry_kdf_hd_t *hd, int subalgo,
         parallelism = (unsigned int)param[3];
     }
 
+  if (parallelism == 0)
+    return GPG_ERR_INV_VALUE;
+
   n = offsetof (struct argon2_context, out) + taglen;
   a = xtrymalloc (n);
   if (!a)
