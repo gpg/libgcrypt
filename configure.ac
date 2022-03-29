@@ -1303,6 +1303,7 @@ if test "$mpi_cpu_arch" != "x86" ; then
    sse41support="n/a"
    avxsupport="n/a"
    avx2support="n/a"
+   avx512support="n/a"
    padlocksupport="n/a"
    drngsupport="n/a"
 fi
@@ -2402,6 +2403,11 @@ fi
 if test x"$avx2support" = xyes ; then
   if test "$gcry_cv_gcc_inline_asm_avx2" != "yes" ; then
     avx2support="no (unsupported by compiler)"
+  fi
+fi
+if test x"$avx512support" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_avx512" != "yes" ; then
+    avx512support="no (unsupported by compiler)"
   fi
 fi
 if test x"$neonsupport" = xyes ; then
