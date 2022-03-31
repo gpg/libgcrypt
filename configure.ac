@@ -774,6 +774,9 @@ fi
 AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
           [The default error source for libgcrypt.])
 
+AM_CONDITIONAL(USE_GPGRT_CONFIG, [test -n "$GPGRT_CONFIG" \
+                                  -a "$ac_cv_path_GPG_ERROR_CONFIG" = no])
+
 #
 # Check whether pthreads is available
 #
