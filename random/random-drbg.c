@@ -1940,6 +1940,9 @@ _gcry_rngdrbg_randomize (void *buffer, size_t length,
    * key, either a re-init or a reseed is sufficient for a fork */
   if (drbg_state->seed_init_pid != getpid ())
     {
+      /* Update the PID recorded.  */
+      drbg_state->seed_init_pid = getpid ();
+
       /* We are in a child of us. Perform a reseeding. */
       if (drbg_reseed (drbg_state, NULL))
 	{
