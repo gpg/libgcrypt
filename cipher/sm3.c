@@ -67,6 +67,16 @@
 # endif
 #endif
 
+/* USE_ARM_CE indicates whether to enable ARMv8 Crypto Extension code. */
+#undef USE_ARM_CE
+#ifdef ENABLE_ARM_CRYPTO_SUPPORT
+# if defined(__AARCH64EL__) && \
+     defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
+     defined(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO)
+#   define USE_ARM_CE 1
+# endif
+#endif
+
 
 typedef struct {
   gcry_md_block_ctx_t bctx;
@@ -117,6 +127,20 @@ do_sm3_transform_aarch64(void *context, const unsigned char *data, size_t nblks)
 }
 #endif /* USE_AARCH64_SIMD */
 
+#ifdef USE_ARM_CE
+void _gcry_sm3_transform_armv8_ce(void *state, const void *input_data,
+                                    size_t num_blks);
+
+static unsigned int
+do_sm3_transform_armv8_ce(void *context, const unsigned char *data,
+                            size_t nblks)
+{
+  SM3_CONTEXT *hd = context;
+  _gcry_sm3_transform_armv8_ce (hd->h, data, nblks);
+  return 0;
+}
+#endif /* USE_ARM_CE */
+
 
 static unsigned int
 transform (void *c, const unsigned char *data, size_t nblks);
@@ -152,6 +176,10 @@ sm3_init (void *context, unsigned int flags)
 #ifdef USE_AARCH64_SIMD
   if (features & HWF_ARM_NEON)
     hd->bctx.bwrite = do_sm3_transform_aarch64;
+#endif
+#ifdef USE_ARM_CE
+  if (features & HWF_ARM_SM3)
+    hd->bctx.bwrite = do_sm3_transform_armv8_ce;
 #endif
 
   (void)features;

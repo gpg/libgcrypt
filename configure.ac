@@ -3049,6 +3049,7 @@ if test "$found" = "1" ; then
      aarch64-*-*)
         # Build with the assembly implementation
         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-aarch64.lo"
+        GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-armv8-aarch64-ce.lo"
      ;;
    esac
 fi
