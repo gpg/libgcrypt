@@ -55,11 +55,12 @@ typedef struct test_spec_pubkey
 }
 test_spec_pubkey_t;
 
-#define FLAG_CRYPT  (1 << 0)
-#define FLAG_SIGN   (1 << 1)
-#define FLAG_GRIP   (1 << 2)
-#define FLAG_NOFIPS (1 << 3)
-#define FLAG_CFB8   (1 << 4)
+#define FLAG_CRYPT   (1 << 0)
+#define FLAG_SIGN    (1 << 1)
+#define FLAG_GRIP    (1 << 2)
+#define FLAG_NOFIPS  (1 << 3)
+#define FLAG_CFB8    (1 << 4)
+#define FLAG_SPECIAL (1 << 5)
 
 static int in_fips_mode;
 
@@ -15558,7 +15559,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
     int unpadded;
     int encrypt_expected_rc;
     int decrypt_expected_rc;
-    int special;
+    int flags;
   } datas[] =
     {
       {	GCRY_PK_RSA,
@@ -15642,14 +15643,14 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
 	"(flags oaep)",
 	1,
 	0,
-	GPG_ERR_ENCODING_PROBLEM, 1 },
+	GPG_ERR_ENCODING_PROBLEM, FLAG_SPECIAL },
       { GCRY_PK_RSA,
         "(data\n (flags oaep)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags pkcs1)",
 	1,
 	0,
-	GPG_ERR_ENCODING_PROBLEM, 1 },
+	GPG_ERR_ENCODING_PROBLEM, FLAG_SPECIAL },
       {	0,
         "(data\n (flags pss)\n"
 	" (value #11223344556677889900AA#))\n",
@@ -15725,7 +15726,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
 	      ciph = list;
 	    }
 	  rc = gcry_pk_decrypt (&plain, ciph, skey);
-          if (!rc && datas[dataidx].special == 1)
+          if (!rc && (datas[dataidx].flags & FLAG_SPECIAL))
             {
               /* It may happen that OAEP formatted data which is
                  decrypted as pkcs#1 data returns a valid pkcs#1
