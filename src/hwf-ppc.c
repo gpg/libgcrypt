@@ -103,6 +103,7 @@ static const struct feature_map_s ppc_features[] =
     { 0, PPC_FEATURE2_VEC_CRYPTO, HWF_PPC_VCRYPTO },
 #endif
     { 0, PPC_FEATURE2_ARCH_3_00, HWF_PPC_ARCH_3_00 },
+    { 0, PPC_FEATURE2_ARCH_3_10, HWF_PPC_ARCH_3_10 },
   };
 #endif
 
