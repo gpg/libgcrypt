@@ -49,7 +49,7 @@
       .B whateever you want
       @end ifset
 
-    alternativly a special comment may be used:
+    alternatively a special comment may be used:
 
       @c man:.B whatever you want
 
@@ -141,10 +141,36 @@
 /* Number of allowed condition nestings.  */
 #define MAX_CONDITION_NESTING  10
 
+static char const default_css[] =
+  "<style type=\"text/css\">\n"
+  "  .y2m {\n"
+  "    font-family: monospace;\n"
+  "  }\n"
+  "  .y2m u {\n"
+  "    text-decoration: underline;\n"
+  "  }\n"
+  "  .y2m-sc {\n"
+  "    font-variant: small-caps;\n"
+  "  }\n"
+  "  .y2m li {\n"
+  "    margin-top: 1em;\n"
+  "  }\n"
+  "  .y2m-item {\n"
+  "     display: block;\n"
+  "     font-weight: bold;\n"
+  "  }\n"
+  "  .y2m-args {\n"
+  "     font-weight: normal;\n"
+  "  }\n"
+  "</style>\n";
+
+
+
 /* Option flags. */
 static int verbose;
 static int quiet;
 static int debug;
+static int htmlmode;
 static const char *opt_source;
 static const char *opt_release;
 static const char *opt_date;
@@ -679,6 +705,25 @@ start_page (char *name)
 }
 
 
+/* Write a character to FP.  */
+static void
+writechr (int c, FILE *fp)
+{
+  putc (c, fp);
+}
+
+
+/* Write depending on HTMLMODE either ROFF or HTML to FP.  */
+static void
+writestr (const char *roff, const char *html, FILE *fp)
+{
+  const char *s = htmlmode? html : roff;
+
+  if (s)
+    fputs (s, fp);
+}
+
+
 /* Write the .TH entry of the current page.  Return -1 if there is a
    problem with the page. */
 static int
@@ -686,7 +731,9 @@ write_th (FILE *fp)
 {
   char *name, *p;
 
-  fputs (".\\\" Created from Texinfo source by yat2m " VERSION "\n", fp);
+  writestr (".\\\" Created from Texinfo source by yat2m " VERSION "\n",
+            "<!-- Created from Texinfo source by yat2m " VERSION " -->\n",
+            fp);
 
   name = ascii_strupr (xstrdup (thepage.name));
   p = strrchr (name, '.');
@@ -697,15 +744,159 @@ write_th (FILE *fp)
       return -1;
     }
   *p++ = 0;
-  fprintf (fp, ".TH %s %s %s \"%s\" \"%s\"\n",
-           name, p, isodatestring (), opt_release, opt_source);
+
+  if (htmlmode)
+    {
+      fputs ("<html>\n"
+             "<head>\n", fp);
+      fprintf (fp, " <title>%s(%s)</title>\n", name, p);
+      fputs (default_css, fp);
+      fputs ("</head>\n"
+             "<body>\n", fp);
+      fputs ("<div class=\"y2m\">\n", fp);
+    }
+
+  /* This roff source
+   *   .TH GPG 1 2016-12-20 "GnuPG 2.1.17" "GNU Privacy Guard 2.1"
+   * is rendered by man like this:
+   *   GPG(1)         GNU Privacy Guard 2.1      GPG(1)
+   *   [...]
+   *   GnuPG 2.1.17        2016-12-20            GPG(1)
+   */
+  if (htmlmode)
+    {
+      fprintf (fp, "<p class=\"y2m y2m-top\">"
+               "<span class=\"y2m-left\">%s(%s)</span> "
+               "<span class=\"y2m-center\">%s</span> "
+               "<span class=\"y2m-right\">%s(%s)</span>"
+               "</p>\n",
+               name, p, opt_source, name, p);
+      /* Note that the HTML footer is written by write_bottom().  */
+
+    }
+  else
+    fprintf (fp, ".TH %s %s %s \"%s\" \"%s\"\n",
+             name, p, isodatestring (), opt_release, opt_source);
+
   free (name);
   return 0;
 }
 
 
+/* In HTML mode we need to render a footer.  */
+static int
+write_bottom (FILE *fp)
+{
+  char *name, *p;
+
+  if (!htmlmode)
+    return 0;
+
+  name = ascii_strupr (xstrdup (thepage.name));
+  p = strrchr (name, '.');
+  if (!p || !p[1])
+    {
+      err ("no section name in man page '%s'", thepage.name);
+      free (name);
+      return -1;
+    }
+  *p++ = 0;
+
+  /* This roff source
+   *   .TH GPG 1 2016-12-20 "GnuPG 2.1.17" "GNU Privacy Guard 2.1"
+   * is rendered by man to this footer:
+   *   GnuPG 2.1.17        2016-12-20            GPG(1)
+   */
+  fprintf (fp, "<p class=\"y2m y2m-footer\">"
+           "<span class=\"y2m-left\">%s</span> "
+           "<span class=\"y2m-center\">%s</span> "
+           "<span class=\"y2m-right\">%s(%s)</span>"
+           "</p>\n",
+           opt_release, isodatestring (), name, p);
+  fputs ("</div><!-- class y2m -->\n", fp);
+  fputs ("</body>\n"
+         "</html>\n", fp);
+
+  free (name);
+  return 0;
+}
+
+
+/* Write the .SH header.  With NULL passed for NAME just close a
+ * section in html mode if there is an open section. */
+static void
+write_sh (FILE *fp, const char *name)
+{
+  static int in_section;
+
+  if (htmlmode && in_section)
+    fprintf (fp, "</div>\n");
+  in_section = 0;
+
+  if (name)
+    {
+      if (htmlmode)
+        fprintf (fp,
+                 "<div class=\"y2m-section\">\n"
+                 "<p class=\"y2m-sh\">%s</p>\n", name);
+      else
+        fprintf (fp, ".SH %s\n", name);
+      in_section = 1;
+    }
+}
+
+/* Render a @item line to HTML.  (LINE,LEN) gives the arguments of
+ * @item.  Use NULL for LINE to close a possible open <li>.  ITEMX
+ * flags a @itemx line.  */
+static void
+write_html_item (FILE *fp, const char *line, size_t len, int itemx)
+{
+  static int in_li;
+  const char *rest;
+  size_t n, n0;
+  int eol_action = 0;
+  int table_level = 0;
+
+  if (!itemx && in_li)
+    {
+      fprintf (fp, "</li>\n");
+      in_li = 0;
+    }
+
+  if (line)
+    {
+      /* Trim the LF and skip leading spaces. */
+      if (len && line[len-1] == '\n')
+        len--;
+      for (; len && (*line == ' ' || *line == '\t'); len--, line++)
+        ;
+      if (len)
+        {
+          rest = line;
+          for (n=0; n < len && !(*rest == ' ' || *rest == '\t'); n++, rest++)
+            ;
+          n0 = n;
+          for (; n < len && (*rest == ' ' || *rest == '\t'); n++, rest++)
+            ;
+          len -= n;
+          /* Now the first word is (LINE,N0) and the args are (REST,LEN) */
+          fprintf (fp, "%s<span class=\"y2m-item\">%.*s",
+                   itemx? "    ":"<li>", (int)n0, line);
+          if (len)
+            {
+              fputs (" <span class=\"y2m-args\">", fp);
+              proc_texi_buffer (fp, rest, len, &table_level, &eol_action);
+              fputs ("</span>", fp);
+            }
+          fputs ("</span>\n", fp);
+          in_li = 1;
+        }
+    }
+}
+
+
 /* Process the texinfo command COMMAND (without the leading @) and
-   write output if needed to FP. REST is the remainer of the line
+   write output if needed to FP. REST is the remainder of the line
    which should either point to an opening brace or to a white space.
    The function returns the number of characters already processed
    from REST.  LEN is the usable length of REST.  TABLE_LEVEL is used to
@@ -719,20 +910,23 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
     int what;            /* What to do with this command. */
     const char *lead_in; /* String to print with a opening brace.  */
     const char *lead_out;/* String to print with the closing brace. */
+    const char *html_in; /* Same as LEAD_IN but for HTML.  */
+    const char *html_out;/* Same as LEAD_OUT but for HTML.  */
   } cmdtbl[] = {
-    { "command", 0, "\\fB", "\\fR" },
-    { "code",    0, "\\fB", "\\fR" },
-    { "url",     0, "\\fB", "\\fR" },
-    { "sc",      0, "\\fB", "\\fR" },
-    { "var",     0, "\\fI", "\\fR" },
-    { "samp",    0, "\\(aq", "\\(aq"  },
+    { "command", 0, "\\fB", "\\fR", "<i>", "</i>" },
+    { "code",    0, "\\fB", "\\fR", "<samp>", "</samp>" },
+    { "url",     0, "\\fB", "\\fR", "<strong>", "</strong>" },
+    { "sc",      0, "\\fB", "\\fR", "<span class=\"y2m-sc\">", "</span>" },
+    { "var",     0, "\\fI", "\\fR", "<u>", "</u>" },
+    { "samp",    0, "\\(oq", "\\(cq"  },
+    { "kbd",     0, "\\(oq", "\\(cq"  },
     { "file",    0, "\\(oq\\fI","\\fR\\(cq" },
     { "env",     0, "\\(oq\\fI","\\fR\\(cq" },
     { "acronym", 0 },
     { "dfn",     0 },
-    { "option",  0, "\\fB", "\\fR"   },
-    { "example", 1, ".RS 2\n.nf\n" },
-    { "smallexample", 1, ".RS 2\n.nf\n" },
+    { "option",  0, "\\fB", "\\fR", "<samp>", "</samp>" },
+    { "example", 1, ".RS 2\n.nf\n",      NULL, "\n<pre>\n", "\n</pre>\n" },
+    { "smallexample", 1, ".RS 2\n.nf\n", NULL, "\n<pre>\n", "\n</pre>\n" },
     { "asis",    7 },
     { "anchor",  7 },
     { "cartouche", 1 },
@@ -741,7 +935,7 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
     { "pxref",   0, "see: [", "]" },
     { "uref",    0, "(\\fB", "\\fR)" },
     { "footnote",0, " ([", "])" },
-    { "emph",    0, "\\fI", "\\fR" },
+    { "emph",    0, "\\fI", "\\fR", "<em>", "</em>" },
     { "w",       1 },
     { "c",       5 },
     { "efindex", 1 },
@@ -755,7 +949,7 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
     { "chapheading", 0},
     { "item",    2, ".TP\n.B " },
     { "itemx",   2, ".TQ\n.B " },
-    { "table",   3 },
+    { "table",   3, NULL, NULL, "<ul>\n", "</ul>\n" },
     { "itemize",   3 },
     { "bullet",  0, "* " },
     { "*",       0, "\n.br"},
@@ -769,26 +963,36 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
   int i;
   const char *s;
   const char *lead_out = NULL;
+  const char *html_out = NULL;
   int ignore_args = 0;
 
   for (i=0; cmdtbl[i].name && strcmp (cmdtbl[i].name, command); i++)
     ;
   if (cmdtbl[i].name)
     {
-      s = cmdtbl[i].lead_in;
-      if (s)
-        fputs (s, fp);
+      writestr (cmdtbl[i].lead_in, cmdtbl[i].html_in, fp);
       lead_out = cmdtbl[i].lead_out;
+      html_out = cmdtbl[i].html_out;
       switch (cmdtbl[i].what)
         {
         case 1: /* Throw away the entire line.  */
           s = memchr (rest, '\n', len);
           return s? (s-rest)+1 : len;
         case 2: /* Handle @item.  */
+          if (htmlmode)
+            {
+              s = memchr (rest, '\n', len);
+              n = s? (s-rest)+1 : len;
+              write_html_item (fp, rest, n, !strcmp(cmdtbl[i].name, "itemx"));
+              return n;
+            }
           break;
         case 3: /* Handle table.  */
           if (++(*table_level) > 1)
-            fputs (".RS\n", fp);
+            {
+              write_html_item (fp, NULL, 0, 0);
+              writestr (".RS\n", "<ul>\n", fp);
+            }
           /* Now throw away the entire line. */
           s = memchr (rest, '\n', len);
           return s? (s-rest)+1 : len;
@@ -799,25 +1003,27 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
           if (n >= 5 && !memcmp (s, "table", 5)
               && (!n || s[5] == ' ' || s[5] == '\t' || s[5] == '\n'))
             {
+              if (htmlmode)
+                write_html_item (fp, NULL, 0, 0);
               if ((*table_level)-- > 1)
-                fputs (".RE\n", fp);
+                writestr (".RE\n", "</ul>\n", fp);
               else
-                fputs (".P\n", fp);
+                writestr (".P\n", "</ul>\n", fp);
             }
           else if (n >= 7 && !memcmp (s, "example", 7)
               && (!n || s[7] == ' ' || s[7] == '\t' || s[7] == '\n'))
             {
-              fputs (".fi\n.RE\n", fp);
+              writestr (".fi\n.RE\n", "</pre>\n", fp);
             }
           else if (n >= 12 && !memcmp (s, "smallexample", 12)
               && (!n || s[12] == ' ' || s[12] == '\t' || s[12] == '\n'))
             {
-              fputs (".fi\n.RE\n", fp);
+              writestr (".fi\n.RE\n", "</pre>\n", fp);
             }
           else if (n >= 9 && !memcmp (s, "quotation", 9)
               && (!n || s[9] == ' ' || s[9] == '\t' || s[9] == '\n'))
             {
-              fputs ("\\fR\n.RE\n", fp);
+              writestr ("\\fR\n.RE\n", "xx", fp);
             }
           /* Now throw away the entire line. */
           s = memchr (rest, '\n', len);
@@ -827,9 +1033,22 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
             ;
           if (n >= 4 && !memcmp (s, "man:", 4))
             {
-              for (s+=4, n-=4; n && *s != '\n'; n--, s++)
-                putc (*s, fp);
-              putc ('\n', fp);
+              s += 4;
+              n -= 4;
+              if (htmlmode)
+                {
+                  if (!strncmp (s, ".RE\n", 4)
+                      || !strncmp (s, ".RS\n", 4))
+                    ;
+                  else
+                    inf ("unknown special comment \"man:\"");
+                }
+              else
+                {
+                  for (; n && *s != '\n'; n--, s++)
+                    writechr (*s, fp);
+                  writechr ('\n', fp);
+                }
             }
           /* Now throw away the entire line. */
           s = memchr (rest, '\n', len);
@@ -870,7 +1089,7 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
                         break;
                     }
                   if (m)
-                    fputs (m->value, fp);
+                    writestr (m->value, m->value, fp);
                   else
                     inf ("texinfo variable '%.*s' is not set",
                          (int)rlen, rest+1);
@@ -918,8 +1137,7 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
   else
     n = 0;
 
-  if (lead_out)
-    fputs (lead_out, fp);
+  writestr (lead_out, html_out, fp);
 
   return n;
 }
@@ -946,16 +1164,16 @@ proc_texi_buffer (FILE *fp, const char *line, size_t len,
               switch (*s)
                 {
                 case '@': case '{': case '}':
-                  putc (*s, fp); in_cmd = 0;
+                  writechr (*s, fp); in_cmd = 0;
                   break;
                 case ':': /* Not ending a sentence flag.  */
                   in_cmd = 0;
                   break;
                 case '.': case '!': case '?': /* Ending a sentence. */
-                  putc (*s, fp); in_cmd = 0;
+                  writechr (*s, fp); in_cmd = 0;
                   break;
                 case ' ': case '\t': case '\n': /* Non collapsing spaces.  */
-                  putc (*s, fp); in_cmd = 0;
+                  writechr (*s, fp); in_cmd = 0;
                   break;
                 default:
                   cmdidx = 0;
@@ -988,17 +1206,17 @@ proc_texi_buffer (FILE *fp, const char *line, size_t len,
           switch (*eol_action)
             {
             case 1: /* Create a dummy paragraph. */
-              fputs ("\n\\ \n", fp);
+              writestr ("\n\\ \n", "\n<-- dummy par -->\n", fp);
               break;
             default:
-              putc (*s, fp);
+              writechr (*s, fp);
             }
           *eol_action = 0;
         }
       else if (*s == '\\')
-        fputs ("\\\\", fp);
+        writestr ("\\\\", "\\\\", fp);
       else
-        putc (*s, fp);
+        writechr (*s, fp);
     }
 
   if (in_cmd > 1)
@@ -1022,12 +1240,13 @@ parse_texi_line (FILE *fp, const char *line, int *table_level)
   /* A quick test whether there are any texinfo commands.  */
   if (!strchr (line, '@'))
     {
-      fputs (line, fp);
-      putc ('\n', fp);
+      /* FIXME: In html mode escape HTML stuff. */
+      writestr (line, line, fp);
+      writechr ('\n', fp);
       return;
     }
   proc_texi_buffer (fp, line, strlen (line), table_level, &eol_action);
-  putc ('\n', fp);
+  writechr ('\n', fp);
 }
 
 
@@ -1042,8 +1261,10 @@ write_content (FILE *fp, line_buffer_t lines)
     {
       if (line->verbatim)
         {
-          fputs (line->line, fp);
-          putc ('\n', fp);
+          /* FIXME: IN HTML mode we need to employ a parser for roff
+           * markup.  */
+          writestr (line->line, line->line, fp);
+          writechr ('\n', fp);
         }
       else
         {
@@ -1102,7 +1323,8 @@ finish_page (void)
     }
   else if (opt_store)
     {
-      inf ("writing '%s'", thepage.name );
+      if (verbose)
+        inf ("writing '%s'", thepage.name );
       fp = fopen ( thepage.name, "w" );
       if (!fp)
         die ("failed to create '%s': %s\n", thepage.name, strerror (errno));
@@ -1126,7 +1348,7 @@ finish_page (void)
 
       if (sect)
         {
-          fprintf (fp, ".SH %s\n", sect->name);
+          write_sh (fp, sect->name);
           write_content (fp, sect->lines);
           /* Now continue with all non standard sections directly
              following this one. */
@@ -1137,7 +1359,7 @@ finish_page (void)
                 break;
               if (sect->name)
                 {
-                  fprintf (fp, ".SH %s\n", sect->name);
+                  write_sh (fp, sect->name);
                   write_content (fp, sect->lines);
                 }
             }
@@ -1145,6 +1367,9 @@ finish_page (void)
         }
     }
 
+  write_sh (fp, NULL);
+  if (write_bottom (fp))
+    goto leave;
 
  leave:
   if (fp != stdout)
@@ -1515,6 +1740,7 @@ main (int argc, char **argv)
           puts (
                 "Usage: " PGM " [OPTION] [FILE]\n"
                 "Extract man pages from a Texinfo source.\n\n"
+                "  --html           render output as HTML\n"
                 "  --source NAME    use NAME as source field\n"
                 "  --release STRING use STRING as the release field\n"
                 "  --date EPOCH     use EPOCH as publication date\n"
@@ -1524,7 +1750,7 @@ main (int argc, char **argv)
                 "  --debug          enable additional debug output\n"
                 "  --help           display this help and exit\n"
                 "  -I DIR           also search in include DIR\n"
-                "  -D gpgone        the only usable define\n\n"
+                "  -D MACRO         define MACRO to 1\n\n"
                 "With no FILE, or when FILE is -, read standard input.\n\n"
                 "Report bugs to <https://bugs.gnupg.org>.");
           exit (0);
@@ -1537,6 +1763,11 @@ main (int argc, char **argv)
                "This is free software, and you are welcome to redistribute it\n"
                 "under certain conditions. See the file COPYING for details.");
           exit (0);
+        }
+      else if (!strcmp (*argv, "--html"))
+        {
+          htmlmode = 1;
+          argc--; argv++;
         }
       else if (!strcmp (*argv, "--verbose"))
         {
