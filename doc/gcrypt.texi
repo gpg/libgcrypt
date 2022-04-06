@@ -596,6 +596,10 @@ are
 @item arm-sha1
 @item arm-sha2
 @item arm-pmull
+@item arm-sha3
+@item arm-sm3
+@item arm-sm4
+@item arm-sha512
 @item ppc-vcrypto
 @item ppc-arch_3_00
 @item ppc-arch_2_07
