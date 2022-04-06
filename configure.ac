@@ -2423,7 +2423,7 @@ fi
 if test x"$armcryptosupport" = xyes ; then
   if test "$gcry_cv_gcc_inline_asm_aarch32_crypto" != "yes" ; then
     if test "$gcry_cv_gcc_inline_asm_aarch64_crypto" != "yes" ; then
-      neonsupport="no (unsupported by compiler)"
+      armcryptosupport="no (unsupported by compiler)"
     fi
   fi
 fi
