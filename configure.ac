@@ -813,8 +813,6 @@ AC_TYPE_PID_T
 
 AC_CHECK_TYPES([byte, ushort, u16, u32, u64])
 
-gl_TYPE_SOCKLEN_T
-
 #
 # Check for __builtin_bswap32 intrinsic.
 #
