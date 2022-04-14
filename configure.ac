@@ -675,6 +675,14 @@ AC_ARG_ENABLE(avx512-support,
 	      avx512support=$enableval,avx512support=yes)
 AC_MSG_RESULT($avx512support)
 
+# Implementation of the --disable-gfni-support switch.
+AC_MSG_CHECKING([whether GFNI support is requested])
+AC_ARG_ENABLE(gfni-support,
+              AS_HELP_STRING([--disable-gfni-support],
+                 [Disable support for the Intel GFNI instructions]),
+	      gfnisupport=$enableval,gfnisupport=yes)
+AC_MSG_RESULT($gfnisupport)
+
 # Implementation of the --disable-neon-support switch.
 AC_MSG_CHECKING([whether NEON support is requested])
 AC_ARG_ENABLE(neon-support,
@@ -1305,6 +1313,7 @@ if test "$mpi_cpu_arch" != "x86" ; then
    avxsupport="n/a"
    avx2support="n/a"
    avx512support="n/a"
+   gfnisupport="n/a"
    padlocksupport="n/a"
    drngsupport="n/a"
 fi
@@ -1603,6 +1612,30 @@ AC_CACHE_CHECK([whether GCC inline assembler supports VAES and VPCLMUL instructi
 if test "$gcry_cv_gcc_inline_asm_vaes_vpclmul" = "yes" ; then
    AC_DEFINE(HAVE_GCC_INLINE_ASM_VAES_VPCLMUL,1,
      [Defined if inline assembler supports VAES and VPCLMUL instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports GFNI instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports GFNI instructions],
+       [gcry_cv_gcc_inline_asm_gfni],
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_gfni="n/a"
+        else
+          gcry_cv_gcc_inline_asm_gfni=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void a(void) {
+              __asm__("gf2p8affineqb \$123, %%xmm0, %%xmm0;\n\t":::"cc"); /* SSE */
+              __asm__("vgf2p8affineinvqb \$234, %%ymm1, %%ymm1, %%ymm1;\n\t":::"cc"); /* AVX */
+              __asm__("vgf2p8mulb (%%eax), %%zmm2, %%zmm2;\n\t":::"cc"); /* AVX512 */
+            }]], [ a(); ] )],
+          [gcry_cv_gcc_inline_asm_gfni=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_gfni" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_GFNI,1,
+     [Defined if inline assembler supports GFNI instructions])
 fi
 
 
@@ -2411,6 +2444,11 @@ if test x"$avx512support" = xyes ; then
     avx512support="no (unsupported by compiler)"
   fi
 fi
+if test x"$gfnisupport" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_gfni" != "yes" ; then
+    gfnisupport="no (unsupported by compiler)"
+  fi
+fi
 if test x"$neonsupport" = xyes ; then
   if test "$gcry_cv_gcc_inline_asm_neon" != "yes" ; then
     if test "$gcry_cv_gcc_inline_asm_aarch64_neon" != "yes" ; then
@@ -2453,6 +2491,10 @@ fi
 if test x"$avx512support" = xyes ; then
   AC_DEFINE(ENABLE_AVX512_SUPPORT,1,
             [Enable support for Intel AVX512 instructions.])
+fi
+if test x"$gfnisupport" = xyes ; then
+  AC_DEFINE(ENABLE_GFNI_SUPPORT,1,
+            [Enable support for Intel GFNI instructions.])
 fi
 if test x"$neonsupport" = xyes ; then
   AC_DEFINE(ENABLE_NEON_SUPPORT,1,
@@ -3318,6 +3360,7 @@ GCRY_MSG_SHOW([Try using DRNG (RDRAND):  ],[$drngsupport])
 GCRY_MSG_SHOW([Try using Intel AVX:      ],[$avxsupport])
 GCRY_MSG_SHOW([Try using Intel AVX2:     ],[$avx2support])
 GCRY_MSG_SHOW([Try using Intel AVX512:   ],[$avx512support])
+GCRY_MSG_SHOW([Try using Intel GFNI:     ],[$gfnisupport])
 GCRY_MSG_SHOW([Try using ARM NEON:       ],[$neonsupport])
 GCRY_MSG_SHOW([Try using ARMv8 crypto:   ],[$armcryptosupport])
 GCRY_MSG_SHOW([Try using PPC crypto:     ],[$ppccryptosupport])

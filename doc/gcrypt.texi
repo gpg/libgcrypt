@@ -591,6 +591,7 @@ are
 @item intel-shaext
 @item intel-vaes-vpclmul
 @item intel-avx512
+@item intel-gfni
 @item arm-neon
 @item arm-aes
 @item arm-sha1

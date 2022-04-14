@@ -403,7 +403,7 @@ detect_x86_gnuc (void)
 
 #if defined(ENABLE_AVX2_SUPPORT) && defined(ENABLE_AESNI_SUPPORT) && \
     defined(ENABLE_PCLMUL_SUPPORT)
-      /* Test bit 9 for VAES and bit 10 for VPCLMULDQD */
+      /* Test features2 bit 9 for VAES and features2 bit 10 for VPCLMULDQD */
       if ((features2 & 0x00000200) && (features2 & 0x00000400))
         result |= HWF_INTEL_VAES_VPCLMUL;
 #endif
@@ -439,6 +439,11 @@ detect_x86_gnuc (void)
 	  && (features2 & (1 << 14)))
 	result |= HWF_INTEL_AVX512;
 #endif
+
+      /* Test features2 bit 6 for GFNI (Galois field new instructions).
+       * These instructions are available for SSE/AVX/AVX2/AVX512. */
+      if (features2 & (1 << 6))
+        result |= HWF_INTEL_GFNI;
     }
 
   return result;

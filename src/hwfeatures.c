@@ -63,6 +63,7 @@ static struct
     { HWF_INTEL_SHAEXT,        "intel-shaext" },
     { HWF_INTEL_VAES_VPCLMUL,  "intel-vaes-vpclmul" },
     { HWF_INTEL_AVX512,        "intel-avx512" },
+    { HWF_INTEL_GFNI,          "intel-gfni" },
 #elif defined(HAVE_CPU_ARCH_ARM)
     { HWF_ARM_NEON,            "arm-neon" },
     { HWF_ARM_AES,             "arm-aes" },
