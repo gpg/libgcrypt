@@ -97,6 +97,12 @@
 # define USE_VAES_AVX2 1
 #endif
 
+/* USE_GFNI_AVX2 inidicates whether to compile with Intel GFNI/AVX2 code. */
+#undef USE_GFNI_AVX2
+#if defined(USE_AESNI_AVX2) && defined(ENABLE_GFNI_SUPPORT)
+# define USE_GFNI_AVX2 1
+#endif
+
 typedef struct
 {
   KEY_TABLE_TYPE keytable;
@@ -107,6 +113,7 @@ typedef struct
 #ifdef USE_AESNI_AVX2
   unsigned int use_aesni_avx2:1;/* AES-NI/AVX2 implementation shall be used.  */
   unsigned int use_vaes_avx2:1; /* VAES/AVX2 implementation shall be used.  */
+  unsigned int use_gfni_avx2:1; /* GFNI/AVX2 implementation shall be used.  */
 #endif /*USE_AESNI_AVX2*/
 } CAMELLIA_context;
 
@@ -248,6 +255,46 @@ extern void _gcry_camellia_vaes_avx2_ocb_auth(CAMELLIA_context *ctx,
 					      const u64 Ls[32]) ASM_FUNC_ABI;
 #endif
 
+#ifdef USE_GFNI_AVX2
+/* Assembler implementations of Camellia using GFNI and AVX2.  Process data
+   in 32 block same time.
+ */
+extern void _gcry_camellia_gfni_avx2_ctr_enc(CAMELLIA_context *ctx,
+					     unsigned char *out,
+					     const unsigned char *in,
+					     unsigned char *ctr) ASM_FUNC_ABI;
+
+extern void _gcry_camellia_gfni_avx2_cbc_dec(CAMELLIA_context *ctx,
+					     unsigned char *out,
+					     const unsigned char *in,
+					     unsigned char *iv) ASM_FUNC_ABI;
+
+extern void _gcry_camellia_gfni_avx2_cfb_dec(CAMELLIA_context *ctx,
+					     unsigned char *out,
+					     const unsigned char *in,
+					     unsigned char *iv) ASM_FUNC_ABI;
+
+extern void _gcry_camellia_gfni_avx2_ocb_enc(CAMELLIA_context *ctx,
+					     unsigned char *out,
+					     const unsigned char *in,
+					     unsigned char *offset,
+					     unsigned char *checksum,
+					     const u64 Ls[32]) ASM_FUNC_ABI;
+
+extern void _gcry_camellia_gfni_avx2_ocb_dec(CAMELLIA_context *ctx,
+					     unsigned char *out,
+					     const unsigned char *in,
+					     unsigned char *offset,
+					     unsigned char *checksum,
+					     const u64 Ls[32]) ASM_FUNC_ABI;
+
+extern void _gcry_camellia_gfni_avx2_ocb_auth(CAMELLIA_context *ctx,
+					      const unsigned char *abuf,
+					      unsigned char *offset,
+					      unsigned char *checksum,
+					      const u64 Ls[32]) ASM_FUNC_ABI;
+#endif
+
 static const char *selftest(void);
 
 static void _gcry_camellia_ctr_enc (void *context, unsigned char *ctr,
@@ -272,7 +319,8 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
   CAMELLIA_context *ctx=c;
   static int initialized=0;
   static const char *selftest_failed=NULL;
-#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2) || defined(USE_VAES_AVX2)
+#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2) \
+    || defined(USE_VAES_AVX2) || defined(USE_GFNI_AVX2)
   unsigned int hwf = _gcry_get_hw_features ();
 #endif
 
@@ -296,9 +344,13 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
 #ifdef USE_AESNI_AVX2
   ctx->use_aesni_avx2 = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX2);
   ctx->use_vaes_avx2 = 0;
+  ctx->use_gfni_avx2 = 0;
 #endif
 #ifdef USE_VAES_AVX2
   ctx->use_vaes_avx2 = (hwf & HWF_INTEL_VAES_VPCLMUL) && (hwf & HWF_INTEL_AVX2);
+#endif
+#ifdef USE_GFNI_AVX2
+  ctx->use_gfni_avx2 = (hwf & HWF_INTEL_GFNI) && (hwf & HWF_INTEL_AVX2);
 #endif
 
   ctx->keybitlength=keylen*8;
@@ -440,20 +492,22 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
   if (ctx->use_aesni_avx2)
     {
       int did_use_aesni_avx2 = 0;
+      typeof (&_gcry_camellia_aesni_avx2_ctr_enc) bulk_ctr_fn =
+	  _gcry_camellia_aesni_avx2_ctr_enc;
+
 #ifdef USE_VAES_AVX2
-      int use_vaes = ctx->use_vaes_avx2;
+      if (ctx->use_vaes_avx2)
+	bulk_ctr_fn =_gcry_camellia_vaes_avx2_ctr_enc;
+#endif
+#ifdef USE_GFNI_AVX2
+      if (ctx->use_gfni_avx2)
+	bulk_ctr_fn =_gcry_camellia_gfni_avx2_ctr_enc;
 #endif
 
       /* Process data in 32 block chunks. */
       while (nblocks >= 32)
         {
-#ifdef USE_VAES_AVX2
-          if (use_vaes)
-            _gcry_camellia_vaes_avx2_ctr_enc(ctx, outbuf, inbuf, ctr);
-          else
-#endif
-            _gcry_camellia_aesni_avx2_ctr_enc(ctx, outbuf, inbuf, ctr);
-
+	  bulk_ctr_fn (ctx, outbuf, inbuf, ctr);
           nblocks -= 32;
           outbuf += 32 * CAMELLIA_BLOCK_SIZE;
           inbuf  += 32 * CAMELLIA_BLOCK_SIZE;
@@ -537,20 +591,22 @@ _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
   if (ctx->use_aesni_avx2)
     {
       int did_use_aesni_avx2 = 0;
+      typeof (&_gcry_camellia_aesni_avx2_cbc_dec) bulk_cbc_fn =
+	  _gcry_camellia_aesni_avx2_cbc_dec;
+
 #ifdef USE_VAES_AVX2
-      int use_vaes = ctx->use_vaes_avx2;
+      if (ctx->use_vaes_avx2)
+	bulk_cbc_fn =_gcry_camellia_vaes_avx2_cbc_dec;
+#endif
+#ifdef USE_GFNI_AVX2
+      if (ctx->use_gfni_avx2)
+	bulk_cbc_fn =_gcry_camellia_gfni_avx2_cbc_dec;
 #endif
 
       /* Process data in 32 block chunks. */
       while (nblocks >= 32)
         {
-#ifdef USE_VAES_AVX2
-          if (use_vaes)
-            _gcry_camellia_vaes_avx2_cbc_dec(ctx, outbuf, inbuf, iv);
-          else
-#endif
-            _gcry_camellia_aesni_avx2_cbc_dec(ctx, outbuf, inbuf, iv);
-
+	  bulk_cbc_fn (ctx, outbuf, inbuf, iv);
           nblocks -= 32;
           outbuf += 32 * CAMELLIA_BLOCK_SIZE;
           inbuf  += 32 * CAMELLIA_BLOCK_SIZE;
@@ -631,20 +687,22 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
   if (ctx->use_aesni_avx2)
     {
       int did_use_aesni_avx2 = 0;
+      typeof (&_gcry_camellia_aesni_avx2_cfb_dec) bulk_cfb_fn =
+	  _gcry_camellia_aesni_avx2_cfb_dec;
+
 #ifdef USE_VAES_AVX2
-      int use_vaes = ctx->use_vaes_avx2;
+      if (ctx->use_vaes_avx2)
+	bulk_cfb_fn =_gcry_camellia_vaes_avx2_cfb_dec;
+#endif
+#ifdef USE_GFNI_AVX2
+      if (ctx->use_gfni_avx2)
+	bulk_cfb_fn =_gcry_camellia_gfni_avx2_cfb_dec;
 #endif
 
       /* Process data in 32 block chunks. */
       while (nblocks >= 32)
         {
-#ifdef USE_VAES_AVX2
-          if (use_vaes)
-            _gcry_camellia_vaes_avx2_cfb_dec(ctx, outbuf, inbuf, iv);
-          else
-#endif
-            _gcry_camellia_aesni_avx2_cfb_dec(ctx, outbuf, inbuf, iv);
-
+	  bulk_cfb_fn (ctx, outbuf, inbuf, iv);
           nblocks -= 32;
           outbuf += 32 * CAMELLIA_BLOCK_SIZE;
           inbuf  += 32 * CAMELLIA_BLOCK_SIZE;
@@ -729,10 +787,6 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   if (ctx->use_aesni_avx2)
     {
       int did_use_aesni_avx2 = 0;
-#ifdef USE_VAES_AVX2
-      int encrypt_use_vaes = encrypt && ctx->use_vaes_avx2;
-      int decrypt_use_vaes = !encrypt && ctx->use_vaes_avx2;
-#endif
       u64 Ls[32];
       unsigned int n = 32 - (blkn % 32);
       u64 *l;
@@ -740,6 +794,21 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
       if (nblocks >= 32)
 	{
+	  typeof (&_gcry_camellia_aesni_avx2_ocb_dec) bulk_ocb_fn =
+	      encrypt ? _gcry_camellia_aesni_avx2_ocb_enc
+		      : _gcry_camellia_aesni_avx2_ocb_dec;
+
+#ifdef USE_VAES_AVX2
+	  if (ctx->use_vaes_avx2)
+	    bulk_ocb_fn = encrypt ? _gcry_camellia_vaes_avx2_ocb_enc
+				  : _gcry_camellia_vaes_avx2_ocb_dec;
+#endif
+#ifdef USE_GFNI_AVX2
+	  if (ctx->use_gfni_avx2)
+	    bulk_ocb_fn = encrypt ? _gcry_camellia_gfni_avx2_ocb_enc
+				  : _gcry_camellia_gfni_avx2_ocb_dec;
+#endif
+
 	  for (i = 0; i < 32; i += 8)
 	    {
 	      /* Use u64 to store pointers for x32 support (assembly function
@@ -764,21 +833,7 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	      blkn += 32;
 	      *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 32);
 
-	      if (0) {}
-#ifdef USE_VAES_AVX2
-	      else if (encrypt_use_vaes)
-		_gcry_camellia_vaes_avx2_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
-                                                 c->u_ctr.ctr, Ls);
-	      else if (decrypt_use_vaes)
-		_gcry_camellia_vaes_avx2_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv,
-                                                 c->u_ctr.ctr, Ls);
-#endif
-	      else if (encrypt)
-		_gcry_camellia_aesni_avx2_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
-						  c->u_ctr.ctr, Ls);
-	      else
-		_gcry_camellia_aesni_avx2_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv,
-						  c->u_ctr.ctr, Ls);
+	      bulk_ocb_fn (ctx, outbuf, inbuf, c->u_iv.iv, c->u_ctr.ctr, Ls);
 
 	      nblocks -= 32;
 	      outbuf += 32 * CAMELLIA_BLOCK_SIZE;
@@ -891,9 +946,6 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   if (ctx->use_aesni_avx2)
     {
       int did_use_aesni_avx2 = 0;
-#ifdef USE_VAES_AVX2
-      int use_vaes = ctx->use_vaes_avx2;
-#endif
       u64 Ls[32];
       unsigned int n = 32 - (blkn % 32);
       u64 *l;
@@ -901,6 +953,18 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
       if (nblocks >= 32)
 	{
+	  typeof (&_gcry_camellia_aesni_avx2_ocb_auth) bulk_auth_fn =
+	      _gcry_camellia_aesni_avx2_ocb_auth;
+
+#ifdef USE_VAES_AVX2
+	  if (ctx->use_vaes_avx2)
+	    bulk_auth_fn = _gcry_camellia_vaes_avx2_ocb_auth;
+#endif
+#ifdef USE_GFNI_AVX2
+	  if (ctx->use_gfni_avx2)
+	    bulk_auth_fn = _gcry_camellia_gfni_avx2_ocb_auth;
+#endif
+
 	  for (i = 0; i < 32; i += 8)
 	    {
 	      /* Use u64 to store pointers for x32 support (assembly function
@@ -925,16 +989,8 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	      blkn += 32;
 	      *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 32);
 
-#ifdef USE_VAES_AVX2
-              if (use_vaes)
-                _gcry_camellia_vaes_avx2_ocb_auth(ctx, abuf,
-                                                  c->u_mode.ocb.aad_offset,
-                                                  c->u_mode.ocb.aad_sum, Ls);
-              else
-#endif
-                _gcry_camellia_aesni_avx2_ocb_auth(ctx, abuf,
-                                                   c->u_mode.ocb.aad_offset,
-                                                   c->u_mode.ocb.aad_sum, Ls);
+	      bulk_auth_fn (ctx, abuf, c->u_mode.ocb.aad_offset,
+			    c->u_mode.ocb.aad_sum, Ls);
 
 	      nblocks -= 32;
 	      abuf += 32 * CAMELLIA_BLOCK_SIZE;

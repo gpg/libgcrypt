@@ -2755,6 +2755,9 @@ if test "$found" = "1" ; then
 
         # Build with the VAES/AVX2 implementation
         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-vaes-avx2-amd64.lo"
+
+        # Build with the GFNI/AVX2 implementation
+        GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-gfni-avx2-amd64.lo"
       fi
    fi
 fi

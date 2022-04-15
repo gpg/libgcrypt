@@ -1,6 +1,6 @@
-/* camellia-aesni-avx2-amd64.h - AES-NI/VAES/AVX2 implementation of Camellia
+/* camellia-aesni-avx2-amd64.h - AES-NI/VAES/GFNI/AVX2 implementation of Camellia
  *
- * Copyright (C) 2013-2015,2020-2021 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2015,2020-2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -36,6 +36,8 @@
 /**********************************************************************
   helper macros
  **********************************************************************/
+
+#ifndef CAMELLIA_GFNI_BUILD
 #define filter_8bit(x, lo_t, hi_t, mask4bit, tmp0) \
 	vpand x, mask4bit, tmp0; \
 	vpandn x, mask4bit, x; \
@@ -44,6 +46,7 @@
 	vpshufb tmp0, lo_t, tmp0; \
 	vpshufb x, hi_t, x; \
 	vpxor tmp0, x, x;
+#endif
 
 #define ymm0_x xmm0
 #define ymm1_x xmm1
@@ -71,10 +74,60 @@
 #endif
 
 /**********************************************************************
+  GFNI helper macros and constants
+ **********************************************************************/
+
+#ifdef CAMELLIA_GFNI_BUILD
+
+#define BV8(a0,a1,a2,a3,a4,a5,a6,a7) \
+	( (((a0) & 1) << 0) | \
+	  (((a1) & 1) << 1) | \
+	  (((a2) & 1) << 2) | \
+	  (((a3) & 1) << 3) | \
+	  (((a4) & 1) << 4) | \
+	  (((a5) & 1) << 5) | \
+	  (((a6) & 1) << 6) | \
+	  (((a7) & 1) << 7) )
+
+#define BM8X8(l0,l1,l2,l3,l4,l5,l6,l7) \
+	( ((l7) << (0 * 8)) | \
+	  ((l6) << (1 * 8)) | \
+	  ((l5) << (2 * 8)) | \
+	  ((l4) << (3 * 8)) | \
+	  ((l3) << (4 * 8)) | \
+	  ((l2) << (5 * 8)) | \
+	  ((l1) << (6 * 8)) | \
+	  ((l0) << (7 * 8)) )
+
+/* Pre-filters and post-filters constants for Camellia sboxes s1, s2, s3 and s4.
+ *   See http://urn.fi/URN:NBN:fi:oulu-201305311409, pages 43-48.
+ *
+ * Pre-filters are directly from above source, "θ₁"/"θ₄". Post-filters are
+ * combination of function "A" (AES SubBytes affine transformation) and
+ * "ψ₁"/"ψ₂"/"ψ₃".
+ */
+
+/* Constant from "θ₁(x)" and "θ₄(x)" functions. */
+#define pre_filter_constant_s1234 BV8(1, 0, 1, 0, 0, 0, 1, 0)
+
+/* Constant from "ψ₁(A(x))" function: */
+#define post_filter_constant_s14  BV8(0, 1, 1, 1, 0, 1, 1, 0)
+
+/* Constant from "ψ₂(A(x))" function: */
+#define post_filter_constant_s2   BV8(0, 0, 1, 1, 1, 0, 1, 1)
+
+/* Constant from "ψ₃(A(x))" function: */
+#define post_filter_constant_s3   BV8(1, 1, 1, 0, 1, 1, 0, 0)
+
+#endif /* CAMELLIA_GFNI_BUILD */
+
+/**********************************************************************
   32-way camellia
  **********************************************************************/
 
-/*
+#ifdef CAMELLIA_GFNI_BUILD
+
+/* roundsm32 (GFNI version)
  * IN:
  *   x0..x7: byte-sliced AB state
  *   mem_cd: register pointer storing CD state
@@ -82,7 +135,119 @@
  * OUT:
  *   x0..x7: new byte-sliced CD state
  */
+#define roundsm32(x0, x1, x2, x3, x4, x5, x6, x7, t0, t1, t2, t3, t4, t5, \
+		  t6, t7, mem_cd, key) \
+	/* \
+	 * S-function with AES subbytes \
+	 */ \
+	vpbroadcastq .Lpre_filter_bitmatrix_s123 rRIP, t5; \
+	vpbroadcastq .Lpre_filter_bitmatrix_s4 rRIP, t2; \
+	vpbroadcastq .Lpost_filter_bitmatrix_s14 rRIP, t4; \
+	vpbroadcastq .Lpost_filter_bitmatrix_s2 rRIP, t3; \
+	vpbroadcastq .Lpost_filter_bitmatrix_s3 rRIP, t6; \
+	vpxor t7##_x, t7##_x, t7##_x; \
+	vpbroadcastq key, t0; /* higher 64-bit duplicate ignored */ \
+	\
+	/* prefilter sboxes */ \
+	vgf2p8affineqb $(pre_filter_constant_s1234), t5, x0, x0; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), t5, x7, x7; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), t2, x3, x3; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), t2, x6, x6; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), t5, x2, x2; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), t5, x5, x5; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), t5, x1, x1; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), t5, x4, x4; \
+	\
+	/* sbox GF8 inverse + postfilter sboxes 1 and 4 */ \
+	vgf2p8affineinvqb $(post_filter_constant_s14), t4, x0, x0; \
+	vgf2p8affineinvqb $(post_filter_constant_s14), t4, x7, x7; \
+	vgf2p8affineinvqb $(post_filter_constant_s14), t4, x3, x3; \
+	vgf2p8affineinvqb $(post_filter_constant_s14), t4, x6, x6; \
+	\
+	/* sbox GF8 inverse + postfilter sbox 3 */ \
+	vgf2p8affineinvqb $(post_filter_constant_s3), t6, x2, x2; \
+	vgf2p8affineinvqb $(post_filter_constant_s3), t6, x5, x5; \
+	\
+	/* sbox GF8 inverse + postfilter sbox 2 */ \
+	vgf2p8affineinvqb $(post_filter_constant_s2), t3, x1, x1; \
+	vgf2p8affineinvqb $(post_filter_constant_s2), t3, x4, x4; \
+	\
+	vpsrldq $1, t0, t1; \
+	vpsrldq $2, t0, t2; \
+	vpshufb t7, t1, t1; \
+	vpsrldq $3, t0, t3; \
+	\
+	/* P-function */ \
+	vpxor x5, x0, x0; \
+	vpxor x6, x1, x1; \
+	vpxor x7, x2, x2; \
+	vpxor x4, x3, x3; \
+	\
+	vpshufb t7, t2, t2; \
+	vpsrldq $4, t0, t4; \
+	vpshufb t7, t3, t3; \
+	vpsrldq $5, t0, t5; \
+	vpshufb t7, t4, t4; \
+	\
+	vpxor x2, x4, x4; \
+	vpxor x3, x5, x5; \
+	vpxor x0, x6, x6; \
+	vpxor x1, x7, x7; \
+	\
+	vpsrldq $6, t0, t6; \
+	vpshufb t7, t5, t5; \
+	vpshufb t7, t6, t6; \
+	\
+	vpxor x7, x0, x0; \
+	vpxor x4, x1, x1; \
+	vpxor x5, x2, x2; \
+	vpxor x6, x3, x3; \
+	\
+	vpxor x3, x4, x4; \
+	vpxor x0, x5, x5; \
+	vpxor x1, x6, x6; \
+	vpxor x2, x7, x7; /* note: high and low parts swapped */ \
+	\
+	/* Add key material and result to CD (x becomes new CD) */ \
+	\
+	vpxor t6, x1, x1; \
+	vpxor 5 * 32(mem_cd), x1, x1; \
+	\
+	vpsrldq $7, t0, t6; \
+	vpshufb t7, t0, t0; \
+	vpshufb t7, t6, t7; \
+	\
+	vpxor t7, x0, x0; \
+	vpxor 4 * 32(mem_cd), x0, x0; \
+	\
+	vpxor t5, x2, x2; \
+	vpxor 6 * 32(mem_cd), x2, x2; \
+	\
+	vpxor t4, x3, x3; \
+	vpxor 7 * 32(mem_cd), x3, x3; \
+	\
+	vpxor t3, x4, x4; \
+	vpxor 0 * 32(mem_cd), x4, x4; \
+	\
+	vpxor t2, x5, x5; \
+	vpxor 1 * 32(mem_cd), x5, x5; \
+	\
+	vpxor t1, x6, x6; \
+	vpxor 2 * 32(mem_cd), x6, x6; \
+	\
+	vpxor t0, x7, x7; \
+	vpxor 3 * 32(mem_cd), x7, x7;
 
+#else /* CAMELLIA_GFNI_BUILD */
+
+/* roundsm32 (AES-NI / VAES version)
+ * IN:
+ *   x0..x7: byte-sliced AB state
+ *   mem_cd: register pointer storing CD state
+ *   key: index for key material
+ * OUT:
+ *   x0..x7: new byte-sliced CD state
+ */
 #define roundsm32(x0, x1, x2, x3, x4, x5, x6, x7, t0, t1, t2, t3, t4, t5, \
 		  t6, t7, mem_cd, key) \
 	/* \
@@ -181,7 +346,7 @@
 	/* postfilter sbox 2 */ \
 	filter_8bit(x1, t4, t5, t7, t2); \
 	filter_8bit(x4, t4, t5, t7, t2); \
-	vpxor t7, t7, t7; \
+	vpxor t7##_x, t7##_x, t7##_x; \
 	\
 	vpsrldq $1, t0, t1; \
 	vpsrldq $2, t0, t2; \
@@ -248,6 +413,8 @@
 	\
 	vpxor t0, x7, x7; \
 	vpxor 3 * 32(mem_cd), x7, x7;
+
+#endif /* CAMELLIA_GFNI_BUILD */
 
 /*
  * IN/OUT:
@@ -623,6 +790,9 @@
 #define SHUFB_BYTES(idx) \
 	0 + (idx), 4 + (idx), 8 + (idx), 12 + (idx)
 
+FUNC_NAME(_constants):
+ELF(.type   FUNC_NAME(_constants),@object;)
+
 .Lshufb_16x16b:
 	.byte SHUFB_BYTES(0), SHUFB_BYTES(1), SHUFB_BYTES(2), SHUFB_BYTES(3)
 	.byte SHUFB_BYTES(0), SHUFB_BYTES(1), SHUFB_BYTES(2), SHUFB_BYTES(3)
@@ -634,6 +804,74 @@
 /* For CTR-mode IV byteswap */
 .Lbswap128_mask:
 	.byte 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+
+#ifdef CAMELLIA_GFNI_BUILD
+
+/* Pre-filters and post-filters bit-matrixes for Camellia sboxes s1, s2, s3
+ * and s4.
+ *   See http://urn.fi/URN:NBN:fi:oulu-201305311409, pages 43-48.
+ *
+ * Pre-filters are directly from above source, "θ₁"/"θ₄". Post-filters are
+ * combination of function "A" (AES SubBytes affine transformation) and
+ * "ψ₁"/"ψ₂"/"ψ₃".
+ */
+
+/* Bit-matrix from "θ₁(x)" function: */
+.Lpre_filter_bitmatrix_s123:
+	.quad BM8X8(BV8(1, 1, 1, 0, 1, 1, 0, 1),
+		    BV8(0, 0, 1, 1, 0, 0, 1, 0),
+		    BV8(1, 1, 0, 1, 0, 0, 0, 0),
+		    BV8(1, 0, 1, 1, 0, 0, 1, 1),
+		    BV8(0, 0, 0, 0, 1, 1, 0, 0),
+		    BV8(1, 0, 1, 0, 0, 1, 0, 0),
+		    BV8(0, 0, 1, 0, 1, 1, 0, 0),
+		    BV8(1, 0, 0, 0, 0, 1, 1, 0))
+
+/* Bit-matrix from "θ₄(x)" function: */
+.Lpre_filter_bitmatrix_s4:
+	.quad BM8X8(BV8(1, 1, 0, 1, 1, 0, 1, 1),
+		    BV8(0, 1, 1, 0, 0, 1, 0, 0),
+		    BV8(1, 0, 1, 0, 0, 0, 0, 1),
+		    BV8(0, 1, 1, 0, 0, 1, 1, 1),
+		    BV8(0, 0, 0, 1, 1, 0, 0, 0),
+		    BV8(0, 1, 0, 0, 1, 0, 0, 1),
+		    BV8(0, 1, 0, 1, 1, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 1, 1, 0, 1))
+
+/* Bit-matrix from "ψ₁(A(x))" function: */
+.Lpost_filter_bitmatrix_s14:
+	.quad BM8X8(BV8(0, 0, 0, 0, 0, 0, 0, 1),
+		    BV8(0, 1, 1, 0, 0, 1, 1, 0),
+		    BV8(1, 0, 1, 1, 1, 1, 1, 0),
+		    BV8(0, 0, 0, 1, 1, 0, 1, 1),
+		    BV8(1, 0, 0, 0, 1, 1, 1, 0),
+		    BV8(0, 1, 0, 1, 1, 1, 1, 0),
+		    BV8(0, 1, 1, 1, 1, 1, 1, 1),
+		    BV8(0, 0, 0, 1, 1, 1, 0, 0))
+
+/* Bit-matrix from "ψ₂(A(x))" function: */
+.Lpost_filter_bitmatrix_s2:
+	.quad BM8X8(BV8(0, 0, 0, 1, 1, 1, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 1),
+		    BV8(0, 1, 1, 0, 0, 1, 1, 0),
+		    BV8(1, 0, 1, 1, 1, 1, 1, 0),
+		    BV8(0, 0, 0, 1, 1, 0, 1, 1),
+		    BV8(1, 0, 0, 0, 1, 1, 1, 0),
+		    BV8(0, 1, 0, 1, 1, 1, 1, 0),
+		    BV8(0, 1, 1, 1, 1, 1, 1, 1))
+
+/* Bit-matrix from "ψ₃(A(x))" function: */
+.Lpost_filter_bitmatrix_s3:
+	.quad BM8X8(BV8(0, 1, 1, 0, 0, 1, 1, 0),
+		    BV8(1, 0, 1, 1, 1, 1, 1, 0),
+		    BV8(0, 0, 0, 1, 1, 0, 1, 1),
+		    BV8(1, 0, 0, 0, 1, 1, 1, 0),
+		    BV8(0, 1, 0, 1, 1, 1, 1, 0),
+		    BV8(0, 1, 1, 1, 1, 1, 1, 1),
+		    BV8(0, 0, 0, 1, 1, 1, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 1))
+
+#else /* CAMELLIA_GFNI_BUILD */
 
 /*
  * pre-SubByte transform
@@ -756,6 +994,9 @@
 .L0f0f0f0f:
 	.long 0x0f0f0f0f
 
+#endif /* CAMELLIA_GFNI_BUILD */
+
+ELF(.size FUNC_NAME(_constants),.-FUNC_NAME(_constants);)
 
 .align 8
 ELF(.type   __camellia_enc_blk32,@function;)
