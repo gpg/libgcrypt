@@ -482,6 +482,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       if (!testparms)
         {
           _gcry_mpi_randomize (p, pbits, random_level);
+          mpi_set_bit (p, 0);
         }
       if (mpi_cmp (p, minp) < 0)
         {
@@ -514,6 +515,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       if (!testparms)
         {
           _gcry_mpi_randomize (q, pbits, random_level);
+          mpi_set_bit (q, 0);
         }
       if (mpi_cmp (q, minp) < 0)
         {
