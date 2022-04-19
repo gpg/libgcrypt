@@ -809,7 +809,7 @@ _gcry_secmem_realloc_internal (void *p, size_t newsize, int xhint)
   void *a;
 
   mb = (memblock_t *) (void *) ((char *) p
-				- ((size_t) &((memblock_t *) 0)->aligned.c));
+				- offsetof (memblock_t, aligned.c));
   size = mb->size;
   if (newsize < size)
     {
