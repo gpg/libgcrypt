@@ -476,7 +476,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
 
  retry:
   /* generate p and q */
-  for (i = 0; i < 5 * pbits; i++)
+  for (i = 0; i < 10 * pbits; i++)
     {
     ploop:
       if (!testparms)
@@ -506,10 +506,10 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       else if (testparms)
         goto err;
     }
-  if (i >= 5 * pbits)
+  if (i >= 10 * pbits)
     goto err;
 
-  for (i = 0; i < 5 * pbits; i++)
+  for (i = 0; i < 20 * pbits; i++)
     {
     qloop:
       if (!testparms)
@@ -555,7 +555,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       else if (testparms)
         goto err;
     }
-  if (i >= 5 * pbits)
+  if (i >= 20 * pbits)
     goto err;
 
   if (testparms)
