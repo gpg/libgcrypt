@@ -47,6 +47,7 @@
 #include "bufhelp.h"
 #include "cipher-internal.h"
 #include "cipher-selftest.h"
+#include "bulkhelp.h"
 
 
 #define TWOFISH_BLOCKSIZE 16
@@ -1358,27 +1359,11 @@ _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     {
       int did_use_avx2 = 0;
       u64 Ls[16];
-      unsigned int n = 16 - (blkn % 16);
       u64 *l;
-      int i;
 
       if (nblocks >= 16)
 	{
-	  for (i = 0; i < 16; i += 8)
-	    {
-	      /* Use u64 to store pointers for x32 support (assembly function
-	       * assumes 64-bit pointers). */
-	      Ls[(i + 0 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
-	      Ls[(i + 1 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
-	      Ls[(i + 2 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
-	      Ls[(i + 3 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
-	      Ls[(i + 4 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
-	      Ls[(i + 5 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
-	      Ls[(i + 6 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
-	    }
-
-	  Ls[(7 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
-	  l = &Ls[(15 + n) % 16];
+          l = bulk_ocb_prepare_L_pointers_array_blk16 (c, Ls, blkn);
 
 	  /* Process data in 16 block chunks. */
 	  while (nblocks >= 16)
@@ -1471,27 +1456,11 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     {
       int did_use_avx2 = 0;
       u64 Ls[16];
-      unsigned int n = 16 - (blkn % 16);
       u64 *l;
-      int i;
 
       if (nblocks >= 16)
 	{
-	  for (i = 0; i < 16; i += 8)
-	    {
-	      /* Use u64 to store pointers for x32 support (assembly function
-	       * assumes 64-bit pointers). */
-	      Ls[(i + 0 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
-	      Ls[(i + 1 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
-	      Ls[(i + 2 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
-	      Ls[(i + 3 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
-	      Ls[(i + 4 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
-	      Ls[(i + 5 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
-	      Ls[(i + 6 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
-	    }
-
-	  Ls[(7 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
-	  l = &Ls[(15 + n) % 16];
+          l = bulk_ocb_prepare_L_pointers_array_blk16 (c, Ls, blkn);
 
 	  /* Process data in 16 block chunks. */
 	  while (nblocks >= 16)
