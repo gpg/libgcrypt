@@ -341,6 +341,9 @@ enum drbg_prefixes
  * Global variables
  ***************************************************************/
 
+/* The instance of the DRBG, to be refereed by drbg_state.  */
+static struct drbg_state_s drbg_instance;
+
 /* Global state variable holding the current instance of the DRBG.  */
 static drbg_state_t drbg_state;
 
@@ -1783,9 +1786,7 @@ _drbg_init_internal (u32 flags, drbg_string_t *pers)
     }
   else
     {
-      drbg_state = xtrycalloc_secure (1, sizeof *drbg_state);
-      if (!drbg_state)
-	return gpg_err_code_from_syserror ();
+      drbg_state = &drbg_instance;
     }
   if (flags & DRBG_PREDICTION_RESIST)
     pr = 1;
@@ -1879,7 +1880,6 @@ _gcry_rngdrbg_close_fds (void)
   if (drbg_state)
     {
       drbg_uninstantiate (drbg_state);
-      xfree (drbg_state);
       drbg_state = NULL;
     }
   drbg_unlock ();
