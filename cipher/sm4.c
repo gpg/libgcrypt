@@ -120,6 +120,10 @@ typedef struct
 #endif
 } SM4_context;
 
+typedef unsigned int (*crypt_blk1_8_fn_t) (const void *ctx, byte *out,
+                                           const byte *in,
+                                           unsigned int num_blks);
+
 static const u32 fk[4] =
 {
   0xa3b1bac6, 0x56aa3350, 0x677d9197, 0xb27022dc
@@ -223,7 +227,7 @@ _gcry_sm4_aesni_avx_crypt_blk1_8(const u32 *rk, byte *out, const byte *in,
 				 unsigned int num_blks) ASM_FUNC_ABI;
 
 static inline unsigned int
-sm4_aesni_avx_crypt_blk1_8(const u32 *rk, byte *out, const byte *in,
+sm4_aesni_avx_crypt_blk1_8(const void *rk, byte *out, const byte *in,
 			   unsigned int num_blks)
 {
   return _gcry_sm4_aesni_avx_crypt_blk1_8(rk, out, in, num_blks);
@@ -290,7 +294,7 @@ extern void _gcry_sm4_aarch64_crypt_blk1_8(const u32 *rk, byte *out,
 					   size_t num_blocks);
 
 static inline unsigned int
-sm4_aarch64_crypt_blk1_8(const u32 *rk, byte *out, const byte *in,
+sm4_aarch64_crypt_blk1_8(const void *rk, byte *out, const byte *in,
 			 unsigned int num_blks)
 {
   _gcry_sm4_aarch64_crypt_blk1_8(rk, out, in, (size_t)num_blks);
@@ -327,8 +331,8 @@ extern void _gcry_sm4_armv8_ce_crypt_blk1_8(const u32 *rk, byte *out,
 					    size_t num_blocks);
 
 static inline unsigned int
-sm4_armv8_ce_crypt_blk1_8(const u32 *rk, byte *out, const byte *in,
-			 unsigned int num_blks)
+sm4_armv8_ce_crypt_blk1_8(const void *rk, byte *out, const byte *in,
+			  unsigned int num_blks)
 {
   _gcry_sm4_armv8_ce_crypt_blk1_8(rk, out, in, (size_t)num_blks);
   return 0;
@@ -600,9 +604,10 @@ sm4_do_crypt_blks2 (const u32 *rk, byte *out, const byte *in)
 }
 
 static unsigned int
-sm4_crypt_blocks (const u32 *rk, byte *out, const byte *in,
+sm4_crypt_blocks (const void *ctx, byte *out, const byte *in,
 		  unsigned int num_blks)
 {
+  const u32 *rk = ctx;
   unsigned int burn_depth = 0;
   unsigned int nburn;
 
@@ -627,6 +632,36 @@ sm4_crypt_blocks (const u32 *rk, byte *out, const byte *in,
   if (burn_depth)
     burn_depth += sizeof(void *) * 5;
   return burn_depth;
+}
+
+static inline crypt_blk1_8_fn_t
+sm4_get_crypt_blk1_8_fn(SM4_context *ctx)
+{
+  if (0)
+    ;
+#ifdef USE_AESNI_AVX
+  else if (ctx->use_aesni_avx)
+    {
+      return &sm4_aesni_avx_crypt_blk1_8;
+    }
+#endif
+#ifdef USE_ARM_CE
+  else if (ctx->use_arm_ce)
+    {
+      return &sm4_armv8_ce_crypt_blk1_8;
+    }
+#endif
+#ifdef USE_AARCH64_SIMD
+  else if (ctx->use_aarch64_simd)
+    {
+      return &sm4_aarch64_crypt_blk1_8;
+    }
+#endif
+  else
+    {
+      prefetch_sbox_table ();
+      return &sm4_crypt_blocks;
+    }
 }
 
 /* Bulk encryption of complete blocks in CTR mode.  This function is only
@@ -709,36 +744,9 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned int (*crypt_blk1_8)(const u32 *rk, byte *out, const byte *in,
-				   unsigned int num_blks);
+      crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
       byte tmpbuf[16 * 8];
       unsigned int tmp_used = 16;
-
-      if (0)
-	;
-#ifdef USE_AESNI_AVX
-      else if (ctx->use_aesni_avx)
-	{
-	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_ARM_CE
-      else if (ctx->use_arm_ce)
-	{
-	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_AARCH64_SIMD
-      else if (ctx->use_aarch64_simd)
-	{
-	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
-	}
-#endif
-      else
-	{
-	  prefetch_sbox_table ();
-	  crypt_blk1_8 = sm4_crypt_blocks;
-	}
 
       /* Process remaining blocks. */
       while (nblocks)
@@ -856,36 +864,9 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned int (*crypt_blk1_8)(const u32 *rk, byte *out, const byte *in,
-				   unsigned int num_blks);
+      crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
       unsigned char savebuf[16 * 8];
       unsigned int tmp_used = 16;
-
-      if (0)
-	;
-#ifdef USE_AESNI_AVX
-      else if (ctx->use_aesni_avx)
-	{
-	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_ARM_CE
-      else if (ctx->use_arm_ce)
-	{
-	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_AARCH64_SIMD
-      else if (ctx->use_aarch64_simd)
-	{
-	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
-	}
-#endif
-      else
-	{
-	  prefetch_sbox_table ();
-	  crypt_blk1_8 = sm4_crypt_blocks;
-	}
 
       /* Process remaining blocks. */
       while (nblocks)
@@ -996,36 +977,9 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned int (*crypt_blk1_8)(const u32 *rk, byte *out, const byte *in,
-				   unsigned int num_blks);
+      crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
       unsigned char ivbuf[16 * 8];
       unsigned int tmp_used = 16;
-
-      if (0)
-	;
-#ifdef USE_AESNI_AVX
-      else if (ctx->use_aesni_avx)
-	{
-	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_ARM_CE
-      else if (ctx->use_arm_ce)
-	{
-	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_AARCH64_SIMD
-      else if (ctx->use_aarch64_simd)
-	{
-	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
-	}
-#endif
-      else
-	{
-	  prefetch_sbox_table ();
-	  crypt_blk1_8 = sm4_crypt_blocks;
-	}
 
       /* Process remaining blocks. */
       while (nblocks)
@@ -1163,37 +1117,10 @@ _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
   if (nblocks)
     {
-      unsigned int (*crypt_blk1_8)(const u32 *rk, byte *out, const byte *in,
-				   unsigned int num_blks);
+      crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
       const u32 *rk = encrypt ? ctx->rkey_enc : ctx->rkey_dec;
       unsigned char tmpbuf[16 * 8];
       unsigned int tmp_used = 16;
-
-      if (0)
-	;
-#ifdef USE_AESNI_AVX
-      else if (ctx->use_aesni_avx)
-	{
-	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_ARM_CE
-      else if (ctx->use_arm_ce)
-	{
-	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_AARCH64_SIMD
-      else if (ctx->use_aarch64_simd)
-	{
-	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
-	}
-#endif
-      else
-	{
-	  prefetch_sbox_table ();
-	  crypt_blk1_8 = sm4_crypt_blocks;
-	}
 
       while (nblocks)
 	{
@@ -1336,36 +1263,9 @@ _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
 
   if (nblocks)
     {
-      unsigned int (*crypt_blk1_8)(const u32 *rk, byte *out, const byte *in,
-				   unsigned int num_blks);
+      crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
       unsigned char tmpbuf[16 * 8];
       unsigned int tmp_used = 16;
-
-      if (0)
-	;
-#ifdef USE_AESNI_AVX
-      else if (ctx->use_aesni_avx)
-	{
-	  crypt_blk1_8 = sm4_aesni_avx_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_ARM_CE
-      else if (ctx->use_arm_ce)
-	{
-	  crypt_blk1_8 = sm4_armv8_ce_crypt_blk1_8;
-	}
-#endif
-#ifdef USE_AARCH64_SIMD
-      else if (ctx->use_aarch64_simd)
-	{
-	  crypt_blk1_8 = sm4_aarch64_crypt_blk1_8;
-	}
-#endif
-      else
-	{
-	  prefetch_sbox_table ();
-	  crypt_blk1_8 = sm4_crypt_blocks;
-	}
 
       while (nblocks)
 	{
