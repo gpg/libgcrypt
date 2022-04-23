@@ -1152,8 +1152,6 @@ FUNC_NAME(ctr_enc):
 	movq 8(%rcx), %r11;
 	bswapq %r11;
 
-	vzeroupper;
-
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
 	movl $24, %eax;
@@ -1347,8 +1345,6 @@ FUNC_NAME(cbc_dec):
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
 
-	vzeroupper;
-
 	movq %rcx, %r9;
 
 	cmpl $128, key_bitlength(CTX);
@@ -1423,8 +1419,6 @@ FUNC_NAME(cfb_dec):
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
@@ -1509,8 +1503,6 @@ FUNC_NAME(ocb_enc):
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	subq $(16 * 32 + 4 * 8), %rsp;
 	andq $~63, %rsp;
@@ -1683,8 +1675,6 @@ FUNC_NAME(ocb_dec):
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	subq $(16 * 32 + 4 * 8), %rsp;
 	andq $~63, %rsp;
@@ -1880,8 +1870,6 @@ FUNC_NAME(ocb_auth):
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
 
-	vzeroupper;
-
 	subq $(16 * 32 + 4 * 8), %rsp;
 	andq $~63, %rsp;
 	movq %rsp, %rax;
@@ -2031,5 +2019,202 @@ FUNC_NAME(ocb_auth):
 	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ocb_auth),.-FUNC_NAME(ocb_auth);)
+
+.align 8
+.globl FUNC_NAME(enc_blk1_32)
+ELF(.type   FUNC_NAME(enc_blk1_32),@function;)
+
+FUNC_NAME(enc_blk1_32):
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (32 blocks)
+	 *	%rdx: src (32 blocks)
+	 *	%ecx: nblocks (1 to 32)
+	 */
+	CFI_STARTPROC();
+
+	pushq %rbp;
+	CFI_PUSH(%rbp);
+	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
+
+	movl %ecx, %r9d;
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
+
+	subq $(16 * 32), %rsp;
+	andq $~63, %rsp;
+	movq %rsp, %rax;
+
+	cmpl $31, %ecx;
+	vpxor %xmm0, %xmm0, %xmm0;
+	ja 1f;
+	jb 2f;
+	  vmovdqu 15 * 32(%rdx), %xmm0;
+	  jmp 2f;
+	1:
+	  vmovdqu 15 * 32(%rdx), %ymm0;
+	2:
+	  vmovdqu %ymm0, (%rax);
+
+	vpbroadcastq (key_table)(CTX), %ymm0;
+	vpshufb .Lpack_bswap rRIP, %ymm0, %ymm0;
+
+#define LOAD_INPUT(offset, ymm) \
+	cmpl $(1 + 2 * (offset)), %ecx; \
+	jb 2f; \
+	ja 1f; \
+	  vmovdqu (offset) * 32(%rdx), %ymm##_x; \
+	  vpxor %ymm0, %ymm, %ymm; \
+	  jmp 2f; \
+	1: \
+	  vpxor (offset) * 32(%rdx), %ymm0, %ymm;
+
+	LOAD_INPUT(0, ymm15);
+	LOAD_INPUT(1, ymm14);
+	LOAD_INPUT(2, ymm13);
+	LOAD_INPUT(3, ymm12);
+	LOAD_INPUT(4, ymm11);
+	LOAD_INPUT(5, ymm10);
+	LOAD_INPUT(6, ymm9);
+	LOAD_INPUT(7, ymm8);
+	LOAD_INPUT(8, ymm7);
+	LOAD_INPUT(9, ymm6);
+	LOAD_INPUT(10, ymm5);
+	LOAD_INPUT(11, ymm4);
+	LOAD_INPUT(12, ymm3);
+	LOAD_INPUT(13, ymm2);
+	LOAD_INPUT(14, ymm1);
+	vpxor (%rax), %ymm0, %ymm0;
+
+2:
+	call __camellia_enc_blk32;
+
+#define STORE_OUTPUT(ymm, offset) \
+	cmpl $(1 + 2 * (offset)), %r9d; \
+	jb 2f; \
+	ja 1f; \
+	  vmovdqu %ymm##_x, (offset) * 32(%rsi); \
+	  jmp 2f; \
+	1: \
+	  vmovdqu %ymm, (offset) * 32(%rsi);
+
+	STORE_OUTPUT(ymm7, 0);
+	STORE_OUTPUT(ymm6, 1);
+	STORE_OUTPUT(ymm5, 2);
+	STORE_OUTPUT(ymm4, 3);
+	STORE_OUTPUT(ymm3, 4);
+	STORE_OUTPUT(ymm2, 5);
+	STORE_OUTPUT(ymm1, 6);
+	STORE_OUTPUT(ymm0, 7);
+	STORE_OUTPUT(ymm15, 8);
+	STORE_OUTPUT(ymm14, 9);
+	STORE_OUTPUT(ymm13, 10);
+	STORE_OUTPUT(ymm12, 11);
+	STORE_OUTPUT(ymm11, 12);
+	STORE_OUTPUT(ymm10, 13);
+	STORE_OUTPUT(ymm9, 14);
+	STORE_OUTPUT(ymm8, 15);
+
+2:
+	vzeroall;
+
+	leave;
+	CFI_LEAVE();
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size FUNC_NAME(enc_blk1_32),.-FUNC_NAME(enc_blk1_32);)
+
+.align 8
+.globl FUNC_NAME(dec_blk1_32)
+ELF(.type   FUNC_NAME(dec_blk1_32),@function;)
+
+FUNC_NAME(dec_blk1_32):
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (32 blocks)
+	 *	%rdx: src (32 blocks)
+	 *	%ecx: nblocks (1 to 32)
+	 */
+	CFI_STARTPROC();
+
+	pushq %rbp;
+	CFI_PUSH(%rbp);
+	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
+
+	movl %ecx, %r9d;
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
+
+	subq $(16 * 32), %rsp;
+	andq $~63, %rsp;
+	movq %rsp, %rax;
+
+	cmpl $31, %ecx;
+	vpxor %xmm0, %xmm0, %xmm0;
+	ja 1f;
+	jb 2f;
+	  vmovdqu 15 * 32(%rdx), %xmm0;
+	  jmp 2f;
+	1:
+	  vmovdqu 15 * 32(%rdx), %ymm0;
+	2:
+	  vmovdqu %ymm0, (%rax);
+
+	vpbroadcastq (key_table)(CTX, %r8, 8), %ymm0;
+	vpshufb .Lpack_bswap rRIP, %ymm0, %ymm0;
+
+	LOAD_INPUT(0, ymm15);
+	LOAD_INPUT(1, ymm14);
+	LOAD_INPUT(2, ymm13);
+	LOAD_INPUT(3, ymm12);
+	LOAD_INPUT(4, ymm11);
+	LOAD_INPUT(5, ymm10);
+	LOAD_INPUT(6, ymm9);
+	LOAD_INPUT(7, ymm8);
+	LOAD_INPUT(8, ymm7);
+	LOAD_INPUT(9, ymm6);
+	LOAD_INPUT(10, ymm5);
+	LOAD_INPUT(11, ymm4);
+	LOAD_INPUT(12, ymm3);
+	LOAD_INPUT(13, ymm2);
+	LOAD_INPUT(14, ymm1);
+	vpxor (%rax), %ymm0, %ymm0;
+
+2:
+	call __camellia_dec_blk32;
+
+	STORE_OUTPUT(ymm7, 0);
+	STORE_OUTPUT(ymm6, 1);
+	STORE_OUTPUT(ymm5, 2);
+	STORE_OUTPUT(ymm4, 3);
+	STORE_OUTPUT(ymm3, 4);
+	STORE_OUTPUT(ymm2, 5);
+	STORE_OUTPUT(ymm1, 6);
+	STORE_OUTPUT(ymm0, 7);
+	STORE_OUTPUT(ymm15, 8);
+	STORE_OUTPUT(ymm14, 9);
+	STORE_OUTPUT(ymm13, 10);
+	STORE_OUTPUT(ymm12, 11);
+	STORE_OUTPUT(ymm11, 12);
+	STORE_OUTPUT(ymm10, 13);
+	STORE_OUTPUT(ymm9, 14);
+	STORE_OUTPUT(ymm8, 15);
+
+2:
+	vzeroall;
+
+	leave;
+	CFI_LEAVE();
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size FUNC_NAME(dec_blk1_32),.-FUNC_NAME(dec_blk1_32);)
 
 #endif /* GCRY_CAMELLIA_AESNI_AVX2_AMD64_H */
