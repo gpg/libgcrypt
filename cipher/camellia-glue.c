@@ -351,6 +351,9 @@ static void _gcry_camellia_cbc_dec (void *context, unsigned char *iv,
 static void _gcry_camellia_cfb_dec (void *context, unsigned char *iv,
 				    void *outbuf_arg, const void *inbuf_arg,
 				    size_t nblocks);
+static void _gcry_camellia_xts_crypt (void *context, unsigned char *tweak,
+                                      void *outbuf_arg, const void *inbuf_arg,
+                                      size_t nblocks, int encrypt);
 static size_t _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 					const void *inbuf_arg, size_t nblocks,
 					int encrypt);
@@ -407,6 +410,10 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
   bulk_ops->ctr_enc = _gcry_camellia_ctr_enc;
   bulk_ops->ocb_crypt = _gcry_camellia_ocb_crypt;
   bulk_ops->ocb_auth  = _gcry_camellia_ocb_auth;
+#ifdef USE_AESNI_AVX2
+  if (ctx->use_aesni_avx2 || ctx->use_vaes_avx2 || ctx->use_gfni_avx2)
+    bulk_ops->xts_crypt = _gcry_camellia_xts_crypt;
+#endif
 
   if (0)
     { }
@@ -908,6 +915,38 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
       nburn = bulk_cfb_dec_128(ctx, camellia_encrypt_blk1_32, outbuf, inbuf,
                                nblocks, iv, tmpbuf,
                                sizeof(tmpbuf) / CAMELLIA_BLOCK_SIZE, &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory(tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack(burn_stack_depth);
+}
+
+/* Bulk encryption/decryption of complete blocks in XTS mode. */
+static void
+_gcry_camellia_xts_crypt (void *context, unsigned char *tweak,
+                          void *outbuf_arg, const void *inbuf_arg,
+                          size_t nblocks, int encrypt)
+{
+  CAMELLIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      byte tmpbuf[CAMELLIA_BLOCK_SIZE * 32];
+      unsigned int tmp_used = CAMELLIA_BLOCK_SIZE;
+      size_t nburn;
+
+      nburn = bulk_xts_crypt_128(ctx, encrypt ? camellia_encrypt_blk1_32
+                                              : camellia_decrypt_blk1_32,
+                                 outbuf, inbuf, nblocks, tweak, tmpbuf,
+                                 sizeof(tmpbuf) / CAMELLIA_BLOCK_SIZE,
+                                 &tmp_used);
       burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
 
       wipememory(tmpbuf, tmp_used);

@@ -325,4 +325,72 @@ bulk_ocb_auth_128 (gcry_cipher_hd_t c, void *priv, bulk_crypt_fn_t crypt_fn,
 }
 
 
+static inline unsigned int
+bulk_xts_crypt_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
+                    const byte *inbuf, size_t nblocks, byte *tweak,
+                    byte *tmpbuf, size_t tmpbuf_nblocks,
+                    unsigned int *num_used_tmpblocks)
+{
+  u64 tweak_lo, tweak_hi, tweak_next_lo, tweak_next_hi, tmp_lo, tmp_hi, carry;
+  unsigned int tmp_used = 16;
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  tweak_next_lo = buf_get_le64 (tweak + 0);
+  tweak_next_hi = buf_get_le64 (tweak + 8);
+
+  while (nblocks >= 1)
+    {
+      size_t curr_blks = nblocks > tmpbuf_nblocks ? tmpbuf_nblocks : nblocks;
+      size_t i;
+
+      if (curr_blks * 16 > tmp_used)
+        tmp_used = curr_blks * 16;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          tweak_lo = tweak_next_lo;
+          tweak_hi = tweak_next_hi;
+
+          /* Generate next tweak. */
+          carry = -(tweak_next_hi >> 63) & 0x87;
+          tweak_next_hi = (tweak_next_hi << 1) + (tweak_next_lo >> 63);
+          tweak_next_lo = (tweak_next_lo << 1) ^ carry;
+
+          /* Xor-Encrypt/Decrypt-Xor block. */
+          tmp_lo = buf_get_le64 (inbuf + i * 16 + 0) ^ tweak_lo;
+          tmp_hi = buf_get_le64 (inbuf + i * 16 + 8) ^ tweak_hi;
+          buf_put_he64 (&tmpbuf[i * 16 + 0], tweak_lo);
+          buf_put_he64 (&tmpbuf[i * 16 + 8], tweak_hi);
+          buf_put_le64 (outbuf + i * 16 + 0, tmp_lo);
+          buf_put_le64 (outbuf + i * 16 + 8, tmp_hi);
+        }
+
+      nburn = crypt_fn (priv, outbuf, outbuf, curr_blks);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          /* Xor-Encrypt/Decrypt-Xor block. */
+          tweak_lo = buf_get_he64 (&tmpbuf[i * 16 + 0]);
+          tweak_hi = buf_get_he64 (&tmpbuf[i * 16 + 8]);
+          tmp_lo = buf_get_le64 (outbuf + i * 16 + 0) ^ tweak_lo;
+          tmp_hi = buf_get_le64 (outbuf + i * 16 + 8) ^ tweak_hi;
+          buf_put_le64 (outbuf + i * 16 + 0, tmp_lo);
+          buf_put_le64 (outbuf + i * 16 + 8, tmp_hi);
+        }
+
+      inbuf += curr_blks * 16;
+      outbuf += curr_blks * 16;
+      nblocks -= curr_blks;
+    }
+
+  buf_put_le64 (tweak + 0, tweak_next_lo);
+  buf_put_le64 (tweak + 8, tweak_next_hi);
+
+  *num_used_tmpblocks = tmp_used;
+  return burn_depth;
+}
+
+
 #endif /*GCRYPT_BULKHELP_H*/
