@@ -32,6 +32,10 @@ typedef u64 ocb_L_uintptr_t;
 typedef uintptr_t ocb_L_uintptr_t;
 #endif
 
+typedef unsigned int (*bulk_crypt_fn_t) (const void *ctx, byte *out,
+                                         const byte *in,
+                                         unsigned int num_blks);
+
 
 static inline ocb_L_uintptr_t *
 bulk_ocb_prepare_L_pointers_array_blk32 (gcry_cipher_hd_t c,
@@ -97,6 +101,227 @@ bulk_ocb_prepare_L_pointers_array_blk8 (gcry_cipher_hd_t c,
   Ls[(7 + n) % 8] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
 
   return &Ls[(7 + n) % 8];
+}
+
+
+static inline unsigned int
+bulk_ctr_enc_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
+                  const byte *inbuf, size_t nblocks, byte *ctr,
+                  byte *tmpbuf, size_t tmpbuf_nblocks,
+                  unsigned int *num_used_tmpblocks)
+{
+  unsigned int tmp_used = 16;
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  while (nblocks >= 1)
+    {
+      size_t curr_blks = nblocks > tmpbuf_nblocks ? tmpbuf_nblocks : nblocks;
+      size_t i;
+
+      if (curr_blks * 16 > tmp_used)
+        tmp_used = curr_blks * 16;
+
+      cipher_block_cpy (tmpbuf + 0 * 16, ctr, 16);
+      for (i = 1; i < curr_blks; i++)
+        {
+          cipher_block_cpy (&tmpbuf[i * 16], ctr, 16);
+          cipher_block_add (&tmpbuf[i * 16], i, 16);
+        }
+      cipher_block_add (ctr, curr_blks, 16);
+
+      nburn = crypt_fn (priv, tmpbuf, tmpbuf, curr_blks);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          cipher_block_xor (outbuf, &tmpbuf[i * 16], inbuf, 16);
+          outbuf += 16;
+          inbuf += 16;
+        }
+
+      nblocks -= curr_blks;
+    }
+
+  *num_used_tmpblocks = tmp_used;
+  return burn_depth;
+}
+
+
+static inline unsigned int
+bulk_cbc_dec_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
+                  const byte *inbuf, size_t nblocks, byte *iv,
+                  byte *tmpbuf, size_t tmpbuf_nblocks,
+                  unsigned int *num_used_tmpblocks)
+{
+  unsigned int tmp_used = 16;
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  while (nblocks >= 1)
+    {
+      size_t curr_blks = nblocks > tmpbuf_nblocks ? tmpbuf_nblocks : nblocks;
+      size_t i;
+
+      if (curr_blks * 16 > tmp_used)
+        tmp_used = curr_blks * 16;
+
+      nburn = crypt_fn (priv, tmpbuf, inbuf, curr_blks);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          cipher_block_xor_n_copy_2(outbuf, &tmpbuf[i * 16], iv, inbuf, 16);
+          outbuf += 16;
+          inbuf += 16;
+        }
+
+      nblocks -= curr_blks;
+    }
+
+  *num_used_tmpblocks = tmp_used;
+  return burn_depth;
+}
+
+
+static inline unsigned int
+bulk_cfb_dec_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
+                  const byte *inbuf, size_t nblocks, byte *iv,
+                  byte *tmpbuf, size_t tmpbuf_nblocks,
+                  unsigned int *num_used_tmpblocks)
+{
+  unsigned int tmp_used = 16;
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  while (nblocks >= 1)
+    {
+      size_t curr_blks = nblocks > tmpbuf_nblocks ? tmpbuf_nblocks : nblocks;
+      size_t i;
+
+      if (curr_blks * 16 > tmp_used)
+        tmp_used = curr_blks * 16;
+
+      cipher_block_cpy (&tmpbuf[0 * 16], iv, 16);
+      if (curr_blks > 1)
+        memcpy (&tmpbuf[1 * 16], &inbuf[(1 - 1) * 16], 16 * curr_blks - 16);
+      cipher_block_cpy (iv, &inbuf[(curr_blks - 1) * 16], 16);
+
+      nburn = crypt_fn (priv, tmpbuf, tmpbuf, curr_blks);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          cipher_block_xor (outbuf, inbuf, &tmpbuf[i * 16], 16);
+          outbuf += 16;
+          inbuf += 16;
+        }
+
+      nblocks -= curr_blks;
+    }
+
+  *num_used_tmpblocks = tmp_used;
+  return burn_depth;
+}
+
+
+static inline unsigned int
+bulk_ocb_crypt_128 (gcry_cipher_hd_t c, void *priv, bulk_crypt_fn_t crypt_fn,
+                    byte *outbuf, const byte *inbuf, size_t nblocks, u64 *blkn,
+                    int encrypt, byte *tmpbuf, size_t tmpbuf_nblocks,
+                    unsigned int *num_used_tmpblocks)
+{
+  unsigned int tmp_used = 16;
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  while (nblocks >= 1)
+    {
+      size_t curr_blks = nblocks > tmpbuf_nblocks ? tmpbuf_nblocks : nblocks;
+      size_t i;
+
+      if (curr_blks * 16 > tmp_used)
+        tmp_used = curr_blks * 16;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          const unsigned char *l = ocb_get_l(c, ++*blkn);
+
+          /* Checksum_i = Checksum_{i-1} xor P_i  */
+          if (encrypt)
+            cipher_block_xor_1(c->u_ctr.ctr, &inbuf[i * 16], 16);
+
+          /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+          cipher_block_xor_2dst (&tmpbuf[i * 16], c->u_iv.iv, l, 16);
+          cipher_block_xor (&outbuf[i * 16], &inbuf[i * 16],
+                            c->u_iv.iv, 16);
+        }
+
+      /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+      nburn = crypt_fn (priv, outbuf, outbuf, curr_blks);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          cipher_block_xor_1 (&outbuf[i * 16], &tmpbuf[i * 16], 16);
+
+          /* Checksum_i = Checksum_{i-1} xor P_i  */
+          if (!encrypt)
+              cipher_block_xor_1(c->u_ctr.ctr, &outbuf[i * 16], 16);
+        }
+
+      outbuf += curr_blks * 16;
+      inbuf  += curr_blks * 16;
+      nblocks -= curr_blks;
+    }
+
+  *num_used_tmpblocks = tmp_used;
+  return burn_depth;
+}
+
+
+static inline unsigned int
+bulk_ocb_auth_128 (gcry_cipher_hd_t c, void *priv, bulk_crypt_fn_t crypt_fn,
+                   const byte *abuf, size_t nblocks, u64 *blkn, byte *tmpbuf,
+                   size_t tmpbuf_nblocks, unsigned int *num_used_tmpblocks)
+{
+  unsigned int tmp_used = 16;
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  while (nblocks >= 1)
+    {
+      size_t curr_blks = nblocks > tmpbuf_nblocks ? tmpbuf_nblocks : nblocks;
+      size_t i;
+
+      if (curr_blks * 16 > tmp_used)
+        tmp_used = curr_blks * 16;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          const unsigned char *l = ocb_get_l(c, ++*blkn);
+
+          /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+          cipher_block_xor_2dst (&tmpbuf[i * 16],
+                                  c->u_mode.ocb.aad_offset, l, 16);
+          cipher_block_xor_1 (&tmpbuf[i * 16], &abuf[i * 16], 16);
+        }
+
+      /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+      nburn = crypt_fn (priv, tmpbuf, tmpbuf, curr_blks);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          cipher_block_xor_1 (c->u_mode.ocb.aad_sum, &tmpbuf[i * 16], 16);
+        }
+
+      abuf += curr_blks * 16;
+      nblocks -= curr_blks;
+    }
+
+  *num_used_tmpblocks = tmp_used;
+  return burn_depth;
 }
 
 

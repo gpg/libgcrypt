@@ -748,36 +748,12 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
       crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
       byte tmpbuf[16 * 8];
       unsigned int tmp_used = 16;
+      size_t nburn;
 
-      /* Process remaining blocks. */
-      while (nblocks)
-	{
-	  size_t curr_blks = nblocks > 8 ? 8 : nblocks;
-	  size_t i;
-
-	  if (curr_blks * 16 > tmp_used)
-	    tmp_used = curr_blks * 16;
-
-	  cipher_block_cpy (tmpbuf + 0 * 16, ctr, 16);
-	  for (i = 1; i < curr_blks; i++)
-	    {
-	      cipher_block_cpy (&tmpbuf[i * 16], ctr, 16);
-	      cipher_block_add (&tmpbuf[i * 16], i, 16);
-	    }
-	  cipher_block_add (ctr, curr_blks, 16);
-
-	  burn_stack_depth = crypt_blk1_8 (ctx->rkey_enc, tmpbuf, tmpbuf,
-					   curr_blks);
-
-	  for (i = 0; i < curr_blks; i++)
-	    {
-	      cipher_block_xor (outbuf, &tmpbuf[i * 16], inbuf, 16);
-	      outbuf += 16;
-	      inbuf += 16;
-	    }
-
-	  nblocks -= curr_blks;
-	}
+      nburn = bulk_ctr_enc_128(ctx->rkey_enc, crypt_blk1_8, outbuf, inbuf,
+                               nblocks, ctr, tmpbuf, sizeof(tmpbuf) / 16,
+                               &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
 
       wipememory(tmpbuf, tmp_used);
     }
@@ -866,33 +842,16 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
   if (nblocks)
     {
       crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
-      unsigned char savebuf[16 * 8];
+      unsigned char tmpbuf[16 * 8];
       unsigned int tmp_used = 16;
+      size_t nburn;
 
-      /* Process remaining blocks. */
-      while (nblocks)
-	{
-	  size_t curr_blks = nblocks > 8 ? 8 : nblocks;
-	  size_t i;
+      nburn = bulk_cbc_dec_128(ctx->rkey_dec, crypt_blk1_8, outbuf, inbuf,
+                               nblocks, iv, tmpbuf, sizeof(tmpbuf) / 16,
+                               &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
 
-	  if (curr_blks * 16 > tmp_used)
-	    tmp_used = curr_blks * 16;
-
-	  burn_stack_depth = crypt_blk1_8 (ctx->rkey_dec, savebuf, inbuf,
-					   curr_blks);
-
-	  for (i = 0; i < curr_blks; i++)
-	    {
-	      cipher_block_xor_n_copy_2(outbuf, &savebuf[i * 16], iv, inbuf,
-					16);
-	      outbuf += 16;
-	      inbuf += 16;
-	    }
-
-	  nblocks -= curr_blks;
-	}
-
-      wipememory(savebuf, tmp_used);
+      wipememory(tmpbuf, tmp_used);
     }
 
   if (burn_stack_depth)
@@ -979,37 +938,16 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
   if (nblocks)
     {
       crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
-      unsigned char ivbuf[16 * 8];
+      unsigned char tmpbuf[16 * 8];
       unsigned int tmp_used = 16;
+      size_t nburn;
 
-      /* Process remaining blocks. */
-      while (nblocks)
-	{
-	  size_t curr_blks = nblocks > 8 ? 8 : nblocks;
-	  size_t i;
+      nburn = bulk_cfb_dec_128(ctx->rkey_enc, crypt_blk1_8, outbuf, inbuf,
+                               nblocks, iv, tmpbuf, sizeof(tmpbuf) / 16,
+                               &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
 
-	  if (curr_blks * 16 > tmp_used)
-	    tmp_used = curr_blks * 16;
-
-	  cipher_block_cpy (&ivbuf[0 * 16], iv, 16);
-	  for (i = 1; i < curr_blks; i++)
-	    cipher_block_cpy (&ivbuf[i * 16], &inbuf[(i - 1) * 16], 16);
-	  cipher_block_cpy (iv, &inbuf[(i - 1) * 16], 16);
-
-	  burn_stack_depth = crypt_blk1_8 (ctx->rkey_enc, ivbuf, ivbuf,
-					   curr_blks);
-
-	  for (i = 0; i < curr_blks; i++)
-	    {
-	      cipher_block_xor (outbuf, inbuf, &ivbuf[i * 16], 16);
-	      outbuf += 16;
-	      inbuf += 16;
-	    }
-
-	  nblocks -= curr_blks;
-	}
-
-      wipememory(ivbuf, tmp_used);
+      wipememory(tmpbuf, tmp_used);
     }
 
   if (burn_stack_depth)
@@ -1089,51 +1027,19 @@ _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     }
 #endif
 
+  /* Process remaining blocks. */
   if (nblocks)
     {
       crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
-      const u32 *rk = encrypt ? ctx->rkey_enc : ctx->rkey_dec;
+      u32 *rk = encrypt ? ctx->rkey_enc : ctx->rkey_dec;
       unsigned char tmpbuf[16 * 8];
       unsigned int tmp_used = 16;
+      size_t nburn;
 
-      while (nblocks)
-	{
-	  size_t curr_blks = nblocks > 8 ? 8 : nblocks;
-	  size_t i;
-
-	  if (curr_blks * 16 > tmp_used)
-	    tmp_used = curr_blks * 16;
-
-	  for (i = 0; i < curr_blks; i++)
-	    {
-	      const unsigned char *l = ocb_get_l(c, ++blkn);
-
-	      /* Checksum_i = Checksum_{i-1} xor P_i  */
-	      if (encrypt)
-		cipher_block_xor_1(c->u_ctr.ctr, &inbuf[i * 16], 16);
-
-	      /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-	      cipher_block_xor_2dst (&tmpbuf[i * 16], c->u_iv.iv, l, 16);
-	      cipher_block_xor (&outbuf[i * 16], &inbuf[i * 16],
-				c->u_iv.iv, 16);
-	    }
-
-	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-	  crypt_blk1_8 (rk, outbuf, outbuf, curr_blks);
-
-	  for (i = 0; i < curr_blks; i++)
-	    {
-	      cipher_block_xor_1 (&outbuf[i * 16], &tmpbuf[i * 16], 16);
-
-	      /* Checksum_i = Checksum_{i-1} xor P_i  */
-	      if (!encrypt)
-		  cipher_block_xor_1(c->u_ctr.ctr, &outbuf[i * 16], 16);
-	    }
-
-	  outbuf += curr_blks * 16;
-	  inbuf  += curr_blks * 16;
-	  nblocks -= curr_blks;
-	}
+      nburn = bulk_ocb_crypt_128 (c, rk, crypt_blk1_8, outbuf, inbuf, nblocks,
+                                  &blkn, encrypt, tmpbuf, sizeof(tmpbuf) / 16,
+                                  &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
 
       wipememory(tmpbuf, tmp_used);
     }
@@ -1153,6 +1059,7 @@ _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
   SM4_context *ctx = (void *)&c->context.c;
   const unsigned char *abuf = abuf_arg;
   u64 blkn = c->u_mode.ocb.aad_nblocks;
+  int burn_stack_depth = 0;
 
 #ifdef USE_AESNI_AVX2
   if (ctx->use_aesni_avx2)
@@ -1208,46 +1115,25 @@ _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
     }
 #endif
 
+  /* Process remaining blocks. */
   if (nblocks)
     {
       crypt_blk1_8_fn_t crypt_blk1_8 = sm4_get_crypt_blk1_8_fn(ctx);
       unsigned char tmpbuf[16 * 8];
       unsigned int tmp_used = 16;
+      size_t nburn;
 
-      while (nblocks)
-	{
-	  size_t curr_blks = nblocks > 8 ? 8 : nblocks;
-	  size_t i;
-
-	  if (curr_blks * 16 > tmp_used)
-	    tmp_used = curr_blks * 16;
-
-	  for (i = 0; i < curr_blks; i++)
-	    {
-	      const unsigned char *l = ocb_get_l(c, ++blkn);
-
-	      /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-	      cipher_block_xor_2dst (&tmpbuf[i * 16],
-				     c->u_mode.ocb.aad_offset, l, 16);
-	      cipher_block_xor_1 (&tmpbuf[i * 16], &abuf[i * 16], 16);
-	    }
-
-	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-	  crypt_blk1_8 (ctx->rkey_enc, tmpbuf, tmpbuf, curr_blks);
-
-	  for (i = 0; i < curr_blks; i++)
-	    {
-	      cipher_block_xor_1 (c->u_mode.ocb.aad_sum, &tmpbuf[i * 16], 16);
-	    }
-
-	  abuf += curr_blks * 16;
-	  nblocks -= curr_blks;
-	}
+      nburn = bulk_ocb_auth_128 (c, ctx->rkey_enc, crypt_blk1_8, abuf, nblocks,
+                                 &blkn, tmpbuf, sizeof(tmpbuf) / 16, &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
 
       wipememory(tmpbuf, tmp_used);
     }
 
   c->u_mode.ocb.aad_nblocks = blkn;
+
+  if (burn_stack_depth)
+    _gcry_burn_stack(burn_stack_depth);
 
   return 0;
 }
