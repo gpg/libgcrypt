@@ -1,6 +1,6 @@
 /* sm4-avx2-amd64.S  -  AVX2 implementation of SM4 cipher
  *
- * Copyright (C) 2020 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2020, 2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -45,11 +45,19 @@
 #define RA1          %ymm9
 #define RA2          %ymm10
 #define RA3          %ymm11
+#define RA0x         %xmm8
+#define RA1x         %xmm9
+#define RA2x         %xmm10
+#define RA3x         %xmm11
 
 #define RB0          %ymm12
 #define RB1          %ymm13
 #define RB2          %ymm14
 #define RB3          %ymm15
+#define RB0x         %xmm12
+#define RB1x         %xmm13
+#define RB2x         %xmm14
+#define RB3x         %xmm15
 
 #define RNOT         %ymm0
 #define RBSWAP       %ymm1
@@ -280,6 +288,66 @@ __sm4_crypt_blk16:
 	CFI_ENDPROC();
 ELF(.size __sm4_crypt_blk16,.-__sm4_crypt_blk16;)
 
+.align 8
+.globl _gcry_sm4_aesni_avx2_crypt_blk1_16
+ELF(.type   _gcry_sm4_aesni_avx2_crypt_blk1_16,@function;)
+_gcry_sm4_aesni_avx2_crypt_blk1_16:
+	/* input:
+	 *	%rdi: round key array, CTX
+	 *	%rsi: dst (1..16 blocks)
+	 *	%rdx: src (1..16 blocks)
+	 *	%rcx: num blocks (1..16)
+	 */
+	CFI_STARTPROC();
+
+#define LOAD_INPUT(offset, yreg) \
+	cmpq $(1 + 2 * (offset)), %rcx; \
+	jb .Lblk16_load_input_done; \
+	ja 1f; \
+	  vmovdqu (offset) * 32(%rdx), yreg##x; \
+	  jmp .Lblk16_load_input_done; \
+	1: \
+	  vmovdqu (offset) * 32(%rdx), yreg;
+
+	LOAD_INPUT(0, RA0);
+	LOAD_INPUT(1, RA1);
+	LOAD_INPUT(2, RA2);
+	LOAD_INPUT(3, RA3);
+	LOAD_INPUT(4, RB0);
+	LOAD_INPUT(5, RB1);
+	LOAD_INPUT(6, RB2);
+	LOAD_INPUT(7, RB3);
+#undef LOAD_INPUT
+
+.Lblk16_load_input_done:
+	call __sm4_crypt_blk16;
+
+#define STORE_OUTPUT(yreg, offset) \
+	cmpq $(1 + 2 * (offset)), %rcx; \
+	jb .Lblk16_store_output_done; \
+	ja 1f; \
+	  vmovdqu yreg##x, (offset) * 32(%rsi); \
+	  jmp .Lblk16_store_output_done; \
+	1: \
+	  vmovdqu yreg, (offset) * 32(%rsi);
+
+	STORE_OUTPUT(RA0, 0);
+	STORE_OUTPUT(RA1, 1);
+	STORE_OUTPUT(RA2, 2);
+	STORE_OUTPUT(RA3, 3);
+	STORE_OUTPUT(RB0, 4);
+	STORE_OUTPUT(RB1, 5);
+	STORE_OUTPUT(RB2, 6);
+	STORE_OUTPUT(RB3, 7);
+#undef STORE_OUTPUT
+
+.Lblk16_store_output_done:
+	vzeroall;
+	xorl %eax, %eax;
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_sm4_aesni_avx2_crypt_blk1_16,.-_gcry_sm4_aesni_avx2_crypt_blk1_16;)
+
 #define inc_le128(x, minus_one, tmp) \
 	vpcmpeqq minus_one, x, tmp; \
 	vpsubq minus_one, x, x; \
@@ -300,8 +368,6 @@ _gcry_sm4_aesni_avx2_ctr_enc:
 
 	movq 8(%rcx), %rax;
 	bswapq %rax;
-
-	vzeroupper;
 
 	vbroadcasti128 .Lbswap128_mask rRIP, RTMP3;
 	vpcmpeqd RNOT, RNOT, RNOT;
@@ -410,8 +476,6 @@ _gcry_sm4_aesni_avx2_cbc_dec:
 	 */
 	CFI_STARTPROC();
 
-	vzeroupper;
-
 	vmovdqu (0 * 32)(%rdx), RA0;
 	vmovdqu (1 * 32)(%rdx), RA1;
 	vmovdqu (2 * 32)(%rdx), RA2;
@@ -462,8 +526,6 @@ _gcry_sm4_aesni_avx2_cfb_dec:
 	 *	%rcx: iv
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	/* Load input */
 	vmovdqu (%rcx), RNOTx;
@@ -520,8 +582,6 @@ _gcry_sm4_aesni_avx2_ocb_enc:
 	 *	%r9 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);
@@ -634,8 +694,6 @@ _gcry_sm4_aesni_avx2_ocb_dec:
 	 *	%r9 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);
@@ -757,8 +815,6 @@ _gcry_sm4_aesni_avx2_ocb_auth:
 	 *	%r8 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);

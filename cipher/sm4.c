@@ -291,6 +291,24 @@ extern void _gcry_sm4_aesni_avx2_ocb_auth(const u32 *rk_enc,
 					  unsigned char *offset,
 					  unsigned char *checksum,
 					  const u64 Ls[16]) ASM_FUNC_ABI;
+
+extern unsigned int
+_gcry_sm4_aesni_avx2_crypt_blk1_16(const u32 *rk, byte *out, const byte *in,
+				   unsigned int num_blks) ASM_FUNC_ABI;
+
+static inline unsigned int
+sm4_aesni_avx2_crypt_blk1_16(const void *rk, byte *out, const byte *in,
+                             unsigned int num_blks)
+{
+#ifdef USE_AESNI_AVX
+  /* Use 128-bit register implementation for short input. */
+  if (num_blks <= 8)
+    return _gcry_sm4_aesni_avx_crypt_blk1_8(rk, out, in, num_blks);
+#endif
+
+  return _gcry_sm4_aesni_avx2_crypt_blk1_16(rk, out, in, num_blks);
+}
+
 #endif /* USE_AESNI_AVX2 */
 
 #ifdef USE_GFNI_AVX2
@@ -382,6 +400,7 @@ sm4_aarch64_crypt_blk1_16(const void *rk, byte *out, const byte *in,
   _gcry_sm4_aarch64_crypt_blk1_8(rk, out, in, num_blks);
   return 0;
 }
+
 #endif /* USE_AARCH64_SIMD */
 
 #ifdef USE_ARM_CE
@@ -427,6 +446,7 @@ sm4_armv8_ce_crypt_blk1_16(const void *rk, byte *out, const byte *in,
   _gcry_sm4_armv8_ce_crypt_blk1_8(rk, out, in, num_blks);
   return 0;
 }
+
 #endif /* USE_ARM_CE */
 
 static inline void prefetch_sbox_table(void)
@@ -769,6 +789,12 @@ sm4_get_crypt_blk1_16_fn(SM4_context *ctx)
   else if (ctx->use_gfni_avx2)
     {
       return &sm4_gfni_avx2_crypt_blk1_16;
+    }
+#endif
+#ifdef USE_AESNI_AVX2
+  else if (ctx->use_aesni_avx2)
+    {
+      return &sm4_aesni_avx2_crypt_blk1_16;
     }
 #endif
 #ifdef USE_AESNI_AVX
