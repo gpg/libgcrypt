@@ -10940,7 +10940,7 @@ static int
 check_one_cipher_core (int algo, int mode, int flags,
                        const char *key, size_t nkey,
                        const unsigned char *plain, size_t nplain,
-                       int bufshift, int pass)
+                       int bufshift, int split_mode, int pass)
 {
   gcry_cipher_hd_t hd;
   unsigned char *in_buffer, *out_buffer;
@@ -11199,7 +11199,9 @@ check_one_cipher_core (int algo, int mode, int flags,
         }
 
       pos += piecelen;
-      piecelen = piecelen * 2 - ((piecelen != blklen) ? blklen : 0);
+      piecelen = split_mode == 1
+                  ? (piecelen + blklen)
+                  : (piecelen * 2 - ((piecelen != blklen) ? blklen : 0));
     }
 
   if (taglen > 0)
@@ -11246,7 +11248,9 @@ check_one_cipher_core (int algo, int mode, int flags,
         }
 
       pos += piecelen;
-      piecelen = piecelen * 2 - ((piecelen != blklen) ? blklen : 0);
+      piecelen = split_mode == 1
+                  ? (piecelen + blklen)
+                  : (piecelen * 2 - ((piecelen != blklen) ? blklen : 0));
     }
 
   if (taglen > 0)
@@ -11292,7 +11296,9 @@ check_one_cipher_core (int algo, int mode, int flags,
         }
 
       pos += piecelen;
-      piecelen = piecelen * 2 - ((piecelen != blklen) ? blklen : 0);
+      piecelen = split_mode == 1
+                  ? (piecelen + blklen)
+                  : (piecelen * 2 - ((piecelen != blklen) ? blklen : 0));
     }
 
   if (memcmp (enc_result, out, nplain))
@@ -11321,7 +11327,9 @@ check_one_cipher_core (int algo, int mode, int flags,
         }
 
       pos += piecelen;
-      piecelen = piecelen * 2 - ((piecelen != blklen) ? blklen : 0);
+      piecelen = split_mode == 1
+                  ? (piecelen + blklen)
+                  : (piecelen * 2 - ((piecelen != blklen) ? blklen : 0));
     }
 
   if (memcmp (plain, out, nplain))
@@ -11581,28 +11589,28 @@ check_one_cipher (int algo, int mode, int flags)
         }
 
       if (check_one_cipher_core (algo, mode, flags, key, 64, plain,
-				 medium_buffer_size, bufshift,
+				 medium_buffer_size, bufshift, 0,
 				 0+10*bufshift))
         goto out;
 
       /* Pass 1: Key not aligned.  */
       memmove (key+1, key, 64);
       if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain,
-				 medium_buffer_size, bufshift,
+				 medium_buffer_size, bufshift, 0,
 				 1+10*bufshift))
         goto out;
 
       /* Pass 2: Key not aligned and data not aligned.  */
       memmove (plain+1, plain, medium_buffer_size);
       if (check_one_cipher_core (algo, mode, flags, key+1, 64, plain+1,
-				 medium_buffer_size, bufshift,
+				 medium_buffer_size, bufshift, 0,
 				 2+10*bufshift))
         goto out;
 
       /* Pass 3: Key aligned and data not aligned.  */
       memmove (key, key+1, 64);
       if (check_one_cipher_core (algo, mode, flags, key, 64, plain+1,
-				 medium_buffer_size, bufshift,
+				 medium_buffer_size, bufshift, 0,
 				 3+10*bufshift))
         goto out;
     }
@@ -11621,8 +11629,13 @@ check_one_cipher (int algo, int mode, int flags)
     }
 
   if (check_one_cipher_core (algo, mode, flags, key, 64, plain,
-			     large_buffer_size, bufshift,
+			     large_buffer_size, bufshift, 0,
 			     50))
+    goto out;
+
+  if (check_one_cipher_core (algo, mode, flags, key, 64, plain,
+			     large_buffer_size, bufshift, 1,
+			     51))
     goto out;
 
   /* Pass 6: Counter overflow tests for ChaCha20 and CTR mode. */
