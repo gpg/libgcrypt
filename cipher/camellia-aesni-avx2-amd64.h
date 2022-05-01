@@ -793,13 +793,12 @@
 FUNC_NAME(_constants):
 ELF(.type   FUNC_NAME(_constants),@object;)
 
-.Lshufb_16x16b:
-	.byte SHUFB_BYTES(0), SHUFB_BYTES(1), SHUFB_BYTES(2), SHUFB_BYTES(3)
-	.byte SHUFB_BYTES(0), SHUFB_BYTES(1), SHUFB_BYTES(2), SHUFB_BYTES(3)
-
 .Lpack_bswap:
 	.long 0x00010203, 0x04050607, 0x80808080, 0x80808080
 	.long 0x00010203, 0x04050607, 0x80808080, 0x80808080
+
+.Lshufb_16x16b:
+	.byte SHUFB_BYTES(0), SHUFB_BYTES(1), SHUFB_BYTES(2), SHUFB_BYTES(3)
 
 /* For CTR-mode IV byteswap */
 .Lbswap128_mask:
@@ -999,9 +998,9 @@ ELF(.type   FUNC_NAME(_constants),@object;)
 ELF(.size FUNC_NAME(_constants),.-FUNC_NAME(_constants);)
 
 .align 8
-ELF(.type   __camellia_enc_blk32,@function;)
+ELF(.type   FUNC_NAME(enc_blk32),@function;)
 
-__camellia_enc_blk32:
+FUNC_NAME(enc_blk32):
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rax: temporary storage, 512 bytes
@@ -1058,19 +1057,19 @@ __camellia_enc_blk32:
 
 	ret_spec_stop;
 	CFI_ENDPROC();
-ELF(.size __camellia_enc_blk32,.-__camellia_enc_blk32;)
+ELF(.size FUNC_NAME(enc_blk32),.-FUNC_NAME(enc_blk32);)
 
 .align 8
-ELF(.type   __camellia_dec_blk32,@function;)
+ELF(.type   FUNC_NAME(dec_blk32),@function;)
 
-__camellia_dec_blk32:
+FUNC_NAME(dec_blk32):
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rax: temporary storage, 512 bytes
 	 *	%r8d: 24 for 16 byte key, 32 for larger
-	 *	%ymm0..%ymm15: 16 encrypted blocks
+	 *	%ymm0..%ymm15: 32 encrypted blocks
 	 * output:
-	 *	%ymm0..%ymm15: 16 plaintext blocks, order swapped:
+	 *	%ymm0..%ymm15: 32 plaintext blocks, order swapped:
 	 *       7, 8, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8
 	 */
 	CFI_STARTPROC();
@@ -1123,7 +1122,7 @@ __camellia_dec_blk32:
 
 	ret_spec_stop;
 	CFI_ENDPROC();
-ELF(.size __camellia_dec_blk32,.-__camellia_dec_blk32;)
+ELF(.size FUNC_NAME(dec_blk32),.-FUNC_NAME(dec_blk32);)
 
 #define inc_le128(x, minus_one, tmp) \
 	vpcmpeqq minus_one, x, tmp; \
@@ -1275,7 +1274,7 @@ FUNC_NAME(ctr_enc):
 
 .align 4
 .Lload_ctr_done:
-	/* inpack16_pre: */
+	/* inpack32_pre: */
 	vpbroadcastq (key_table)(CTX), %ymm15;
 	vpshufb .Lpack_bswap rRIP, %ymm15, %ymm15;
 	vpxor %ymm0, %ymm15, %ymm0;
@@ -1295,7 +1294,7 @@ FUNC_NAME(ctr_enc):
 	vpxor 14 * 32(%rax), %ymm15, %ymm14;
 	vpxor 15 * 32(%rax), %ymm15, %ymm15;
 
-	call __camellia_enc_blk32;
+	call FUNC_NAME(enc_blk32);
 
 	vpxor 0 * 32(%rdx), %ymm7, %ymm7;
 	vpxor 1 * 32(%rdx), %ymm6, %ymm6;
@@ -1313,7 +1312,6 @@ FUNC_NAME(ctr_enc):
 	vpxor 13 * 32(%rdx), %ymm10, %ymm10;
 	vpxor 14 * 32(%rdx), %ymm9, %ymm9;
 	vpxor 15 * 32(%rdx), %ymm8, %ymm8;
-	leaq 32 * 16(%rdx), %rdx;
 
 	write_output(%ymm7, %ymm6, %ymm5, %ymm4, %ymm3, %ymm2, %ymm1, %ymm0,
 		     %ymm15, %ymm14, %ymm13, %ymm12, %ymm11, %ymm10, %ymm9,
@@ -1360,7 +1358,7 @@ FUNC_NAME(cbc_dec):
 		     %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
 		     %ymm15, %rdx, (key_table)(CTX, %r8, 8));
 
-	call __camellia_dec_blk32;
+	call FUNC_NAME(dec_blk32);
 
 	/* XOR output with IV */
 	vmovdqu %ymm8, (%rax);
@@ -1429,7 +1427,7 @@ FUNC_NAME(cfb_dec):
 	andq $~63, %rsp;
 	movq %rsp, %rax;
 
-	/* inpack16_pre: */
+	/* inpack32_pre: */
 	vpbroadcastq (key_table)(CTX), %ymm0;
 	vpshufb .Lpack_bswap rRIP, %ymm0, %ymm0;
 	vmovdqu (%rcx), %xmm15;
@@ -1453,7 +1451,7 @@ FUNC_NAME(cfb_dec):
 	vpxor (13 * 32 + 16)(%rdx), %ymm0, %ymm1;
 	vpxor (14 * 32 + 16)(%rdx), %ymm0, %ymm0;
 
-	call __camellia_enc_blk32;
+	call FUNC_NAME(enc_blk32);
 
 	vpxor 0 * 32(%rdx), %ymm7, %ymm7;
 	vpxor 1 * 32(%rdx), %ymm6, %ymm6;
@@ -1596,7 +1594,7 @@ FUNC_NAME(ocb_enc):
 	movl $24, %r10d;
 	cmovel %r10d, %r8d; /* max */
 
-	/* inpack16_pre: */
+	/* inpack32_pre: */
 	vpbroadcastq (key_table)(CTX), %ymm15;
 	vpshufb .Lpack_bswap rRIP, %ymm15, %ymm15;
 	vpxor %ymm0, %ymm15, %ymm0;
@@ -1616,7 +1614,7 @@ FUNC_NAME(ocb_enc):
 	vpxor 14 * 32(%rax), %ymm15, %ymm14;
 	vpxor 15 * 32(%rax), %ymm15, %ymm15;
 
-	call __camellia_enc_blk32;
+	call FUNC_NAME(enc_blk32);
 
 	vpxor 0 * 32(%rsi), %ymm7, %ymm7;
 	vpxor 1 * 32(%rsi), %ymm6, %ymm6;
@@ -1763,7 +1761,7 @@ FUNC_NAME(ocb_dec):
 	movl $24, %r9d;
 	cmovel %r9d, %r8d; /* max */
 
-	/* inpack16_pre: */
+	/* inpack32_pre: */
 	vpbroadcastq (key_table)(CTX, %r8, 8), %ymm15;
 	vpshufb .Lpack_bswap rRIP, %ymm15, %ymm15;
 	vpxor %ymm0, %ymm15, %ymm0;
@@ -1783,7 +1781,7 @@ FUNC_NAME(ocb_dec):
 	vpxor 14 * 32(%rax), %ymm15, %ymm14;
 	vpxor 15 * 32(%rax), %ymm15, %ymm15;
 
-	call __camellia_dec_blk32;
+	call FUNC_NAME(dec_blk32);
 
 	vpxor 0 * 32(%rsi), %ymm7, %ymm7;
 	vpxor 1 * 32(%rsi), %ymm6, %ymm6;
@@ -1957,7 +1955,7 @@ FUNC_NAME(ocb_auth):
 
 	movq %rcx, %r10;
 
-	/* inpack16_pre: */
+	/* inpack32_pre: */
 	vpbroadcastq (key_table)(CTX), %ymm15;
 	vpshufb .Lpack_bswap rRIP, %ymm15, %ymm15;
 	vpxor %ymm0, %ymm15, %ymm0;
@@ -1977,7 +1975,7 @@ FUNC_NAME(ocb_auth):
 	vpxor 14 * 32(%rax), %ymm15, %ymm14;
 	vpxor 15 * 32(%rax), %ymm15, %ymm15;
 
-	call __camellia_enc_blk32;
+	call FUNC_NAME(enc_blk32);
 
 	vpxor %ymm7, %ymm6, %ymm6;
 	vpxor %ymm5, %ymm4, %ymm4;
@@ -2091,7 +2089,7 @@ FUNC_NAME(enc_blk1_32):
 	vpxor (%rax), %ymm0, %ymm0;
 
 2:
-	call __camellia_enc_blk32;
+	call FUNC_NAME(enc_blk32);
 
 #define STORE_OUTPUT(ymm, offset) \
 	cmpl $(1 + 2 * (offset)), %r9d; \
@@ -2189,7 +2187,7 @@ FUNC_NAME(dec_blk1_32):
 	vpxor (%rax), %ymm0, %ymm0;
 
 2:
-	call __camellia_dec_blk32;
+	call FUNC_NAME(dec_blk32);
 
 	STORE_OUTPUT(ymm7, 0);
 	STORE_OUTPUT(ymm6, 1);

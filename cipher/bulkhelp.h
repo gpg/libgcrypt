@@ -38,6 +38,35 @@ typedef unsigned int (*bulk_crypt_fn_t) (const void *ctx, byte *out,
 
 
 static inline ocb_L_uintptr_t *
+bulk_ocb_prepare_L_pointers_array_blk64 (gcry_cipher_hd_t c,
+                                         ocb_L_uintptr_t Ls[64], u64 blkn)
+{
+  unsigned int n = 64 - (blkn % 64);
+  unsigned int i;
+
+  for (i = 0; i < 64; i += 8)
+    {
+      Ls[(i + 0 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+      Ls[(i + 1 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+      Ls[(i + 2 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+      Ls[(i + 3 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
+      Ls[(i + 4 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+      Ls[(i + 5 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+      Ls[(i + 6 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+    }
+
+  Ls[(7 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
+  Ls[(15 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[4];
+  Ls[(23 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
+  Ls[(31 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[5];
+  Ls[(39 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
+  Ls[(47 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[4];
+  Ls[(55 + n) % 64] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
+  return &Ls[(63 + n) % 64];
+}
+
+
+static inline ocb_L_uintptr_t *
 bulk_ocb_prepare_L_pointers_array_blk32 (gcry_cipher_hd_t c,
                                          ocb_L_uintptr_t Ls[32], u64 blkn)
 {

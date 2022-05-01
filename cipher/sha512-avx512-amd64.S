@@ -375,7 +375,7 @@ _gcry_sha512_transform_amd64_avx512:
 	addm([8*5 + CTX],f)
 	addm([8*6 + CTX],g)
 	addm([8*7 + CTX],h)
-	kmovd	MASK_DC_00, eax
+	kxord MASK_DC_00, MASK_DC_00, MASK_DC_00
 
 	vzeroall
 	vmovdqa	[rsp + frame_XFER + 0*32], ymm0 /* burn stack */

@@ -287,7 +287,7 @@ _gcry_chacha20_amd64_avx512_blocks16:
 
 	/* clear the used vector registers */
 	clear_zmm16_zmm31();
-	kmovd %eax, %k2;
+	kxord %k2, %k2, %k2;
 	vzeroall; /* clears ZMM0-ZMM15 */
 
 	/* eax zeroed by round loop. */

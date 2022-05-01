@@ -1614,8 +1614,8 @@ _gcry_poly1305_amd64_avx512_blocks:
 
 	FUNC_EXIT()
 	xor eax, eax
-	kmovw k1, eax
-	kmovw k2, eax
+	kxorw k1, k1, k1
+	kxorw k2, k2, k2
 	ret_spec_stop
 	CFI_ENDPROC()
 ELF(.size _gcry_poly1305_amd64_avx512_blocks,
