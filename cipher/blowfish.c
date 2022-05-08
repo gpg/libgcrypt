@@ -38,7 +38,6 @@
 #include "cipher.h"
 #include "bufhelp.h"
 #include "cipher-internal.h"
-#include "cipher-selftest.h"
 
 #define BLOWFISH_BLOCKSIZE 8
 #define BLOWFISH_KEY_MIN_BITS 8
@@ -856,48 +855,6 @@ _gcry_blowfish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
 }
 
 
-/* Run the self-tests for BLOWFISH-CTR, tests IV increment of bulk CTR
-   encryption.  Returns NULL on success. */
-static const char *
-selftest_ctr (void)
-{
-  const int nblocks = 4+1;
-  const int blocksize = BLOWFISH_BLOCKSIZE;
-  const int context_size = sizeof(BLOWFISH_context);
-
-  return _gcry_selftest_helper_ctr("BLOWFISH", &bf_setkey,
-           &encrypt_block, nblocks, blocksize, context_size);
-}
-
-
-/* Run the self-tests for BLOWFISH-CBC, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char *
-selftest_cbc (void)
-{
-  const int nblocks = 4+2;
-  const int blocksize = BLOWFISH_BLOCKSIZE;
-  const int context_size = sizeof(BLOWFISH_context);
-
-  return _gcry_selftest_helper_cbc("BLOWFISH", &bf_setkey,
-           &encrypt_block, nblocks, blocksize, context_size);
-}
-
-
-/* Run the self-tests for BLOWFISH-CFB, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char *
-selftest_cfb (void)
-{
-  const int nblocks = 4+2;
-  const int blocksize = BLOWFISH_BLOCKSIZE;
-  const int context_size = sizeof(BLOWFISH_context);
-
-  return _gcry_selftest_helper_cfb("BLOWFISH", &bf_setkey,
-           &encrypt_block, nblocks, blocksize, context_size);
-}
-
-
 static const char*
 selftest(void)
 {
@@ -911,7 +868,6 @@ selftest(void)
     { 0x41, 0x79, 0x6E, 0xA0, 0x52, 0x61, 0x6E, 0xE4 };
   static const byte cipher3[] =
     { 0xE1, 0x13, 0xF4, 0x10, 0x2C, 0xFC, 0xCE, 0x43 };
-  const char *r;
 
   bf_setkey( (void *) &c,
              (const unsigned char*)"abcdefghijklmnopqrstuvwxyz", 26,
@@ -930,15 +886,6 @@ selftest(void)
   decrypt_block( (void *) &c, buffer, buffer );
   if( memcmp( buffer, plain3, 8 ) )
     return "Blowfish selftest failed (4).";
-
-  if ( (r = selftest_cbc ()) )
-    return r;
-
-  if ( (r = selftest_cfb ()) )
-    return r;
-
-  if ( (r = selftest_ctr ()) )
-    return r;
 
   return NULL;
 }

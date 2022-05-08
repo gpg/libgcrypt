@@ -30,7 +30,6 @@
 #include "bithelp.h"
 #include "bufhelp.h"
 #include "cipher-internal.h"
-#include "cipher-selftest.h"
 #include "bulkhelp.h"
 
 
@@ -1540,48 +1539,6 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
 
 
-/* Run the self-tests for SERPENT-CTR-128, tests IV increment of bulk CTR
-   encryption.  Returns NULL on success. */
-static const char*
-selftest_ctr_128 (void)
-{
-  const int nblocks = 16+8+1;
-  const int blocksize = sizeof(serpent_block_t);
-  const int context_size = sizeof(serpent_context_t);
-
-  return _gcry_selftest_helper_ctr("SERPENT", &serpent_setkey,
-           &serpent_encrypt, nblocks, blocksize, context_size);
-}
-
-
-/* Run the self-tests for SERPENT-CBC-128, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char*
-selftest_cbc_128 (void)
-{
-  const int nblocks = 16+8+2;
-  const int blocksize = sizeof(serpent_block_t);
-  const int context_size = sizeof(serpent_context_t);
-
-  return _gcry_selftest_helper_cbc("SERPENT", &serpent_setkey,
-           &serpent_encrypt, nblocks, blocksize, context_size);
-}
-
-
-/* Run the self-tests for SERPENT-CBC-128, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char*
-selftest_cfb_128 (void)
-{
-  const int nblocks = 16+8+2;
-  const int blocksize = sizeof(serpent_block_t);
-  const int context_size = sizeof(serpent_context_t);
-
-  return _gcry_selftest_helper_cfb("SERPENT", &serpent_setkey,
-           &serpent_encrypt, nblocks, blocksize, context_size);
-}
-
-
 /* Serpent test.  */
 
 static const char *
@@ -1590,7 +1547,6 @@ serpent_test (void)
   serpent_context_t context;
   unsigned char scratch[16];
   unsigned int i;
-  const char *r;
 
   static struct test
   {
@@ -1661,15 +1617,6 @@ serpent_test (void)
 	  return "Serpent-256 test decryption failed.";
 	}
     }
-
-  if ( (r = selftest_ctr_128 ()) )
-    return r;
-
-  if ( (r = selftest_cbc_128 ()) )
-    return r;
-
-  if ( (r = selftest_cfb_128 ()) )
-    return r;
 
   return NULL;
 }

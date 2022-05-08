@@ -26,7 +26,6 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
-#include "cipher-selftest.h"
 #include "rijndael-internal.h"
 #include "./cipher-internal.h"
 

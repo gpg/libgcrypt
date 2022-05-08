@@ -64,7 +64,6 @@
 #include "camellia.h"
 #include "bufhelp.h"
 #include "cipher-internal.h"
-#include "cipher-selftest.h"
 #include "bulkhelp.h"
 
 /* Helper macro to force alignment to 16 bytes.  */
@@ -1454,44 +1453,6 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   return nblocks;
 }
 
-/* Run the self-tests for CAMELLIA-CTR-128, tests IV increment of bulk CTR
-   encryption.  Returns NULL on success. */
-static const char*
-selftest_ctr_128 (void)
-{
-  const int nblocks = 64+32+16+1;
-  const int blocksize = CAMELLIA_BLOCK_SIZE;
-  const int context_size = sizeof(CAMELLIA_context);
-
-  return _gcry_selftest_helper_ctr("CAMELLIA", &camellia_setkey,
-           &camellia_encrypt, nblocks, blocksize, context_size);
-}
-
-/* Run the self-tests for CAMELLIA-CBC-128, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char*
-selftest_cbc_128 (void)
-{
-  const int nblocks = 64+32+16+2;
-  const int blocksize = CAMELLIA_BLOCK_SIZE;
-  const int context_size = sizeof(CAMELLIA_context);
-
-  return _gcry_selftest_helper_cbc("CAMELLIA", &camellia_setkey,
-           &camellia_encrypt, nblocks, blocksize, context_size);
-}
-
-/* Run the self-tests for CAMELLIA-CFB-128, tests bulk CFB decryption.
-   Returns NULL on success. */
-static const char*
-selftest_cfb_128 (void)
-{
-  const int nblocks = 64+32+16+2;
-  const int blocksize = CAMELLIA_BLOCK_SIZE;
-  const int context_size = sizeof(CAMELLIA_context);
-
-  return _gcry_selftest_helper_cfb("CAMELLIA", &camellia_setkey,
-           &camellia_encrypt, nblocks, blocksize, context_size);
-}
 
 static const char *
 selftest(void)
@@ -1499,7 +1460,6 @@ selftest(void)
   CAMELLIA_context ctx;
   byte scratch[16];
   cipher_bulk_ops_t bulk_ops;
-  const char *r;
 
   /* These test vectors are from RFC-3713 */
   static const byte plaintext[]=
@@ -1562,15 +1522,6 @@ selftest(void)
   camellia_decrypt(&ctx,scratch,scratch);
   if(memcmp(scratch,plaintext,sizeof(plaintext))!=0)
     return "CAMELLIA-256 test decryption failed.";
-
-  if ( (r = selftest_ctr_128 ()) )
-    return r;
-
-  if ( (r = selftest_cbc_128 ()) )
-    return r;
-
-  if ( (r = selftest_cfb_128 ()) )
-    return r;
 
   return NULL;
 }

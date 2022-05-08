@@ -29,7 +29,6 @@
 #include "cipher.h"
 #include "bufhelp.h"
 #include "cipher-internal.h"
-#include "cipher-selftest.h"
 #include "bulkhelp.h"
 
 /* Helper macro to force alignment to 64 bytes.  */
@@ -1429,51 +1428,11 @@ _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
   return 0;
 }
 
-/* Run the self-tests for SM4-CTR, tests IV increment of bulk CTR
-   encryption.  Returns NULL on success. */
-static const char*
-selftest_ctr_128 (void)
-{
-  const int nblocks = 16 - 1;
-  const int blocksize = 16;
-  const int context_size = sizeof(SM4_context);
-
-  return _gcry_selftest_helper_ctr("SM4", &sm4_setkey,
-           &sm4_encrypt, nblocks, blocksize, context_size);
-}
-
-/* Run the self-tests for SM4-CBC, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char*
-selftest_cbc_128 (void)
-{
-  const int nblocks = 16 - 1;
-  const int blocksize = 16;
-  const int context_size = sizeof(SM4_context);
-
-  return _gcry_selftest_helper_cbc("SM4", &sm4_setkey,
-           &sm4_encrypt, nblocks, blocksize, context_size);
-}
-
-/* Run the self-tests for SM4-CFB, tests bulk CFB decryption.
-   Returns NULL on success. */
-static const char*
-selftest_cfb_128 (void)
-{
-  const int nblocks = 16 - 1;
-  const int blocksize = 16;
-  const int context_size = sizeof(SM4_context);
-
-  return _gcry_selftest_helper_cfb("SM4", &sm4_setkey,
-           &sm4_encrypt, nblocks, blocksize, context_size);
-}
-
 static const char *
 sm4_selftest (void)
 {
   SM4_context ctx;
   byte scratch[16];
-  const char *r;
 
   static const byte plaintext[16] = {
     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
@@ -1497,15 +1456,6 @@ sm4_selftest (void)
   sm4_decrypt (&ctx, scratch, scratch);
   if (memcmp (scratch, plaintext, sizeof (plaintext)))
     return "SM4 test decryption failed.";
-
-  if ( (r = selftest_ctr_128 ()) )
-    return r;
-
-  if ( (r = selftest_cbc_128 ()) )
-    return r;
-
-  if ( (r = selftest_cfb_128 ()) )
-    return r;
 
   return NULL;
 }

@@ -27,6 +27,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include <assert.h>
+#ifdef HAVE_STDINT_H
+# include <stdint.h> /* uintptr_t */
+#elif defined(HAVE_INTTYPES_H)
+# include <inttypes.h>
+#else
+/* In this case, uintptr_t is provided by config.h. */
+#endif
 
 #include "../src/gcrypt-int.h"
 
@@ -11672,6 +11679,764 @@ out:
 
 
 
+static void buf_xor(void *vdst, const void *vsrc1, const void *vsrc2, size_t len)
+{
+  char *dst = vdst;
+  const char *src1 = vsrc1;
+  const char *src2 = vsrc2;
+
+  while (len)
+    {
+      *(char *)dst = *(char *)src1 ^ *(char *)src2;
+      dst++;
+      src1++;
+      src2++;
+      len--;
+    }
+}
+
+/* Run the tests for <block cipher>-CBC-<block size>, tests bulk CBC
+   decryption.  Returns NULL on success. */
+static int
+cipher_cbc_bulk_test (int cipher_algo)
+{
+  const int nblocks = 128 - 1;
+  int i, offs;
+  int blocksize;
+  const char *cipher;
+  gcry_cipher_hd_t hd_one;
+  gcry_cipher_hd_t hd_cbc;
+  gcry_error_t err = 0;
+  unsigned char *plaintext, *plaintext2, *ciphertext, *iv, *iv2, *mem;
+  unsigned int memsize;
+  unsigned int keylen;
+
+  static const unsigned char key[32] = {
+      0x66,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x22,
+      0x66,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x22
+    };
+
+  if (gcry_cipher_test_algo (cipher_algo))
+    return -1;
+  blocksize = gcry_cipher_get_algo_blklen(cipher_algo);
+  if (blocksize < 8)
+    return -1;
+  cipher = gcry_cipher_algo_name (cipher_algo);
+  keylen = gcry_cipher_get_algo_keylen (cipher_algo);
+  if (keylen > sizeof(key))
+    {
+      fail ("%s-CBC-%d test failed (key too short)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  memsize = (blocksize * 2) + (blocksize * nblocks * 3) + 16;
+
+  mem = xcalloc (1, memsize);
+  if (!mem)
+    return -1;
+
+  offs = (16 - ((uintptr_t)mem & 15)) & 15;
+  iv = (void*)(mem + offs);
+  iv2 = iv + blocksize;
+  plaintext = iv2 + blocksize;
+  plaintext2 = plaintext + nblocks * blocksize;
+  ciphertext = plaintext2 + nblocks * blocksize;
+
+  err = gcry_cipher_open (&hd_one, cipher_algo, GCRY_CIPHER_MODE_ECB, 0);
+  if (err)
+    {
+      xfree(mem);
+      fail ("%s-CBC-%d test failed (cipher open fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_open (&hd_cbc, cipher_algo, GCRY_CIPHER_MODE_CBC, 0);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      xfree(mem);
+      fail ("%s-CBC-%d test failed (cipher open fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  /* Initialize ctx */
+  if (gcry_cipher_setkey (hd_one, key, keylen) ||
+      gcry_cipher_setkey (hd_cbc, key, keylen))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree(mem);
+      fail ("%s-CBC-%d test failed (setkey fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  /* Test single block code path */
+  memset (iv, 0x4e, blocksize);
+  memset (iv2, 0x4e, blocksize);
+  for (i = 0; i < blocksize; i++)
+    plaintext[i] = i;
+
+  /* CBC manually.  */
+  buf_xor (ciphertext, iv, plaintext, blocksize);
+  err = gcry_cipher_encrypt (hd_one, ciphertext, blocksize,
+                             ciphertext, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree(mem);
+      fail ("%s-CBC-%d test failed (ECB encrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  memcpy (iv, ciphertext, blocksize);
+
+  /* CBC decrypt.  */
+  err = gcry_cipher_setiv (hd_cbc, iv2, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree(mem);
+      fail ("%s-CBC-%d test failed (setiv fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_decrypt (hd_cbc, plaintext2, blocksize * 1,
+                             ciphertext, blocksize * 1);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree(mem);
+      fail ("%s-CBC-%d test failed (CBC decrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  if (memcmp (plaintext2, plaintext, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree (mem);
+      fail ("%s-CBC-%d test failed (plaintext mismatch)", cipher, blocksize * 8);
+      return -1;
+    }
+
+#if 0 /* missing interface for reading IV */
+  if (memcmp (iv2, iv, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree (mem);
+      fail ("%s-CBC-%d test failed (IV mismatch)", cipher, blocksize * 8);
+      return -1;
+    }
+#endif
+
+  /* Test parallelized code paths */
+  memset (iv, 0x5f, blocksize);
+  memset (iv2, 0x5f, blocksize);
+
+  for (i = 0; i < nblocks * blocksize; i++)
+    plaintext[i] = i;
+
+  /* Create CBC ciphertext manually.  */
+  for (i = 0; i < nblocks * blocksize; i+=blocksize)
+    {
+      buf_xor (&ciphertext[i], iv, &plaintext[i], blocksize);
+      err = gcry_cipher_encrypt (hd_one, &ciphertext[i], blocksize,
+                                 &ciphertext[i], blocksize);
+      if (err)
+        {
+          gcry_cipher_close (hd_one);
+          gcry_cipher_close (hd_cbc);
+          xfree(mem);
+          fail ("%s-CBC-%d test failed (ECB encrypt fail)", cipher, blocksize * 8);
+          return -1;
+        }
+      memcpy (iv, &ciphertext[i], blocksize);
+    }
+
+  /* Decrypt using bulk CBC and compare result.  */
+  err = gcry_cipher_setiv (hd_cbc, iv2, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree(mem);
+      fail ("%s-CBC-%d test failed (setiv fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_decrypt (hd_cbc, plaintext2, blocksize * nblocks,
+                             ciphertext, blocksize * nblocks);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree(mem);
+      fail ("%s-CBC-%d test failed (CBC decrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  if (memcmp (plaintext2, plaintext, nblocks * blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree (mem);
+      fail ("%s-CBC-%d test failed (plaintext mismatch, parallel path)",
+            cipher, blocksize * 8);
+      return -1;
+    }
+#if 0 /* missing interface for reading IV */
+  if (memcmp (iv2, iv, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cbc);
+      xfree (mem);
+      fail ("%s-CBC-%d test failed (IV mismatch, parallel path)",
+            cipher, blocksize * 8);
+      return -1;
+    }
+#endif
+
+  gcry_cipher_close (hd_one);
+  gcry_cipher_close (hd_cbc);
+  xfree (mem);
+  return -1;
+}
+
+
+static void
+buf_xor_2dst(void *vdst1, void *vdst2, const void *vsrc, size_t len)
+{
+  byte *dst1 = vdst1;
+  byte *dst2 = vdst2;
+  const byte *src = vsrc;
+
+  for (; len; len--)
+    *dst1++ = (*dst2++ ^= *src++);
+}
+
+/* Run the tests for <block cipher>-CFB-<block size>, tests bulk CFB
+   decryption.  Returns NULL on success. */
+static int
+cipher_cfb_bulk_test (int cipher_algo)
+{
+  const int nblocks = 128 - 1;
+  int blocksize;
+  const char *cipher;
+  gcry_cipher_hd_t hd_one;
+  gcry_cipher_hd_t hd_cfb;
+  gcry_error_t err = 0;
+  int i, offs;
+  unsigned char *plaintext, *plaintext2, *ciphertext, *iv, *iv2, *mem;
+  unsigned int memsize;
+  unsigned int keylen;
+
+  static const unsigned char key[32] = {
+      0x11,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x33,
+      0x11,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x33
+    };
+
+  if (gcry_cipher_test_algo (cipher_algo))
+    return -1;
+  blocksize = gcry_cipher_get_algo_blklen(cipher_algo);
+  if (blocksize < 8)
+    return -1;
+  cipher = gcry_cipher_algo_name (cipher_algo);
+  keylen = gcry_cipher_get_algo_keylen (cipher_algo);
+  if (keylen > sizeof(key))
+    {
+      fail ("%s-CFB-%d test failed (key too short)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  memsize = (blocksize * 2) + (blocksize * nblocks * 3) + 16;
+
+  mem = xcalloc (1, memsize);
+  if (!mem)
+    return -1;
+
+  offs = (16 - ((uintptr_t)mem & 15)) & 15;
+  iv = (void*)(mem + offs);
+  iv2 = iv + blocksize;
+  plaintext = iv2 + blocksize;
+  plaintext2 = plaintext + nblocks * blocksize;
+  ciphertext = plaintext2 + nblocks * blocksize;
+
+  err = gcry_cipher_open (&hd_one, cipher_algo, GCRY_CIPHER_MODE_ECB, 0);
+  if (err)
+    {
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (cipher open fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_open (&hd_cfb, cipher_algo, GCRY_CIPHER_MODE_CFB, 0);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (cipher open fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  /* Initialize ctx */
+  if (gcry_cipher_setkey (hd_one, key, keylen) ||
+      gcry_cipher_setkey (hd_cfb, key, keylen))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (setkey fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  /* Test single block code path */
+  memset(iv, 0xd3, blocksize);
+  memset(iv2, 0xd3, blocksize);
+  for (i = 0; i < blocksize; i++)
+    plaintext[i] = i;
+
+  /* CFB manually.  */
+  err = gcry_cipher_encrypt (hd_one, ciphertext, blocksize, iv, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (ECB encrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  buf_xor_2dst (iv, ciphertext, plaintext, blocksize);
+
+  /* CFB decrypt.  */
+  err = gcry_cipher_setiv (hd_cfb, iv2, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (setiv fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_decrypt (hd_cfb, plaintext2, blocksize * 1,
+                             ciphertext, blocksize * 1);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (CFB decrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  if (memcmp(plaintext2, plaintext, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (plaintext mismatch)",
+            cipher, blocksize * 8);
+      return -1;
+    }
+
+#if 0
+  if (memcmp(iv2, iv, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (IV mismatch)",
+            cipher, blocksize * 8);
+      return -1;
+    }
+#endif
+
+  /* Test parallelized code paths */
+  memset(iv, 0xe6, blocksize);
+  memset(iv2, 0xe6, blocksize);
+
+  for (i = 0; i < nblocks * blocksize; i++)
+    plaintext[i] = i;
+
+  /* Create CFB ciphertext manually.  */
+  for (i = 0; i < nblocks * blocksize; i+=blocksize)
+    {
+      err = gcry_cipher_encrypt (hd_one, &ciphertext[i], blocksize,
+                                 iv, blocksize);
+      if (err)
+        {
+          gcry_cipher_close (hd_one);
+          gcry_cipher_close (hd_cfb);
+          xfree(mem);
+          fail ("%s-CFB-%d test failed (ECB encrypt fail)", cipher, blocksize * 8);
+          return -1;
+        }
+      buf_xor_2dst (iv, &ciphertext[i], &plaintext[i], blocksize);
+    }
+
+  /* Decrypt using bulk CBC and compare result.  */
+  err = gcry_cipher_setiv (hd_cfb, iv2, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (setiv fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_decrypt (hd_cfb, plaintext2, blocksize * nblocks,
+                             ciphertext, blocksize * nblocks);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (CFB decrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  if (memcmp(plaintext2, plaintext, nblocks * blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (plaintext mismatch, parallel path)",
+            cipher, blocksize * 8);
+      return -1;
+    }
+#if 0
+  if (memcmp(iv2, iv, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_cfb);
+      xfree(mem);
+      fail ("%s-CFB-%d test failed (IV mismatch, parallel path)",
+            cipher, blocksize * 8);
+      return -1;
+    }
+#endif
+
+  gcry_cipher_close (hd_one);
+  gcry_cipher_close (hd_cfb);
+  xfree(mem);
+  return -1;
+}
+
+
+/* Run the tests for <block cipher>-CTR-<block size>, tests IV increment
+   of bulk CTR encryption.  Returns NULL on success. */
+static int
+cipher_ctr_bulk_test (int cipher_algo)
+{
+  const int nblocks = 128 - 1;
+  int blocksize;
+  const char *cipher;
+  gcry_cipher_hd_t hd_one;
+  gcry_cipher_hd_t hd_ctr;
+  gcry_error_t err = 0;
+  int i, j, offs, diff;
+  unsigned char *plaintext, *plaintext2, *ciphertext, *ciphertext2,
+                *iv, *iv2, *mem;
+  unsigned int memsize;
+  unsigned int keylen;
+
+  static const unsigned char key[32] = {
+      0x06,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21,
+      0x06,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21
+    };
+
+  if (gcry_cipher_test_algo (cipher_algo))
+    return -1;
+  blocksize = gcry_cipher_get_algo_blklen(cipher_algo);
+  if (blocksize < 8)
+    return -1;
+  cipher = gcry_cipher_algo_name (cipher_algo);
+  keylen = gcry_cipher_get_algo_keylen (cipher_algo);
+  if (keylen > sizeof(key))
+    {
+      fail ("%s-CTR-%d test failed (key too short)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  memsize = (blocksize * 2) + (blocksize * nblocks * 4) + 16;
+
+  mem = xcalloc (1, memsize);
+  if (!mem)
+    return -1;
+
+  offs = (16 - ((uintptr_t)mem & 15)) & 15;
+  iv = (void*)(mem + offs);
+  iv2 = iv + blocksize;
+  plaintext = iv2 + blocksize;
+  plaintext2 = plaintext + nblocks * blocksize;
+  ciphertext = plaintext2 + nblocks * blocksize;
+  ciphertext2 = ciphertext + nblocks * blocksize;
+
+  err = gcry_cipher_open (&hd_one, cipher_algo, GCRY_CIPHER_MODE_ECB, 0);
+  if (err)
+    {
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (cipher open fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_open (&hd_ctr, cipher_algo, GCRY_CIPHER_MODE_CTR, 0);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (cipher open fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  /* Initialize ctx */
+  if (gcry_cipher_setkey (hd_one, key, keylen) ||
+      gcry_cipher_setkey (hd_ctr, key, keylen))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (setkey fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  /* Test single block code path */
+  memset (iv, 0xff, blocksize);
+  for (i = 0; i < blocksize; i++)
+    plaintext[i] = i;
+
+  /* CTR manually.  */
+  err = gcry_cipher_encrypt (hd_one, ciphertext, blocksize, iv, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (ECB encrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  for (i = 0; i < blocksize; i++)
+    ciphertext[i] ^= plaintext[i];
+  for (i = blocksize; i > 0; i--)
+    {
+      iv[i-1]++;
+      if (iv[i-1])
+        break;
+    }
+
+  memset (iv2, 0xff, blocksize);
+  err = gcry_cipher_setctr (hd_ctr, iv2, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (setiv fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_encrypt (hd_ctr, plaintext2, blocksize * 1,
+                             ciphertext, blocksize * 1);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (CTR encrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  if (memcmp (plaintext2, plaintext, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (plaintext mismatch)",
+            cipher, blocksize * 8);
+      return -1;
+    }
+
+#if 0
+  if (memcmp (iv2, iv, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (IV mismatch)", cipher, blocksize * 8);
+      return -1;
+    }
+#endif
+
+  /* Test bulk encryption with typical IV. */
+  memset(iv, 0x57, blocksize-4);
+  iv[blocksize-1] = 1;
+  iv[blocksize-2] = 0;
+  iv[blocksize-3] = 0;
+  iv[blocksize-4] = 0;
+  memset(iv2, 0x57, blocksize-4);
+  iv2[blocksize-1] = 1;
+  iv2[blocksize-2] = 0;
+  iv2[blocksize-3] = 0;
+  iv2[blocksize-4] = 0;
+
+  for (i = 0; i < blocksize * nblocks; i++)
+    plaintext2[i] = plaintext[i] = i;
+
+  /* Create CTR ciphertext manually.  */
+  for (i = 0; i < blocksize * nblocks; i+=blocksize)
+    {
+      err = gcry_cipher_encrypt (hd_one, &ciphertext[i], blocksize,
+                                 iv, blocksize);
+      if (err)
+        {
+          gcry_cipher_close (hd_one);
+          gcry_cipher_close (hd_ctr);
+          xfree(mem);
+          fail ("%s-CTR-%d test failed (ECB encrypt fail)",
+                cipher, blocksize * 8);
+          return -1;
+        }
+      for (j = 0; j < blocksize; j++)
+        ciphertext[i+j] ^= plaintext[i+j];
+      for (j = blocksize; j > 0; j--)
+        {
+          iv[j-1]++;
+          if (iv[j-1])
+            break;
+        }
+    }
+
+  err = gcry_cipher_setctr (hd_ctr, iv2, blocksize);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (setiv fail)", cipher, blocksize * 8);
+      return -1;
+    }
+  err = gcry_cipher_encrypt (hd_ctr, ciphertext2, blocksize * nblocks,
+                             plaintext2, blocksize * nblocks);
+  if (err)
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (CTR encrypt fail)", cipher, blocksize * 8);
+      return -1;
+    }
+
+  if (memcmp (ciphertext2, ciphertext, blocksize * nblocks))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (ciphertext mismatch, bulk)",
+            cipher, blocksize * 8);
+      return -1;
+    }
+#if 0
+  if (memcmp (iv2, iv, blocksize))
+    {
+      gcry_cipher_close (hd_one);
+      gcry_cipher_close (hd_ctr);
+      xfree(mem);
+      fail ("%s-CTR-%d test failed (IV mismatch, bulk)", cipher, blocksize * 8);
+      return -1;
+    }
+#endif
+
+  /* Test parallelized code paths (check counter overflow handling) */
+  for (diff = 0; diff < nblocks; diff++) {
+    memset(iv, 0xff, blocksize);
+    iv[blocksize-1] -= diff;
+    iv[0] = iv[1] = 0;
+    iv[2] = 0x07;
+
+    for (i = 0; i < blocksize * nblocks; i++)
+      plaintext[i] = i;
+
+    /* Create CTR ciphertext manually.  */
+    for (i = 0; i < blocksize * nblocks; i+=blocksize)
+      {
+        err = gcry_cipher_encrypt (hd_one, &ciphertext[i], blocksize,
+                                  iv, blocksize);
+        if (err)
+          {
+            gcry_cipher_close (hd_one);
+            gcry_cipher_close (hd_ctr);
+            xfree(mem);
+            fail ("%s-CTR-%d test failed (ECB encrypt fail)",
+                  cipher, blocksize * 8);
+            return -1;
+          }
+        for (j = 0; j < blocksize; j++)
+          ciphertext[i+j] ^= plaintext[i+j];
+        for (j = blocksize; j > 0; j--)
+          {
+            iv[j-1]++;
+            if (iv[j-1])
+              break;
+          }
+      }
+
+    /* Decrypt using bulk CTR and compare result.  */
+    memset(iv2, 0xff, blocksize);
+    iv2[blocksize-1] -= diff;
+    iv2[0] = iv2[1] = 0;
+    iv2[2] = 0x07;
+
+    err = gcry_cipher_setctr (hd_ctr, iv2, blocksize);
+    if (err)
+      {
+        gcry_cipher_close (hd_one);
+        gcry_cipher_close (hd_ctr);
+        xfree(mem);
+        fail ("%s-CTR-%d test failed (setiv fail)", cipher, blocksize * 8);
+        return -1;
+      }
+    err = gcry_cipher_decrypt (hd_ctr, plaintext2, blocksize * nblocks,
+                               ciphertext, blocksize * nblocks);
+    if (err)
+      {
+        gcry_cipher_close (hd_one);
+        gcry_cipher_close (hd_ctr);
+        xfree(mem);
+        fail ("%s-CTR-%d test failed (CTR decrypt fail)", cipher, blocksize * 8);
+        return -1;
+      }
+
+    if (memcmp (plaintext2, plaintext, blocksize * nblocks))
+      {
+        gcry_cipher_close (hd_one);
+        gcry_cipher_close (hd_ctr);
+        xfree(mem);
+        fail ("%s-CTR-%d test failed (plaintext mismatch, diff: %d)",
+              cipher, blocksize * 8, diff);
+        return -1;
+      }
+#if 0
+    if (memcmp(iv2, iv, blocksize))
+      {
+        gcry_cipher_close (hd_one);
+        gcry_cipher_close (hd_ctr);
+        xfree(mem);
+        fail ("%s-CTR-%d test failed (IV mismatch, diff: %d)",
+              cipher, blocksize * 8, diff);
+        return -1;
+      }
+#endif
+  }
+
+  gcry_cipher_close (hd_one);
+  gcry_cipher_close (hd_ctr);
+  xfree(mem);
+  return -1;
+}
+
+
+
 static void
 check_ciphers (void)
 {
@@ -11784,6 +12549,13 @@ check_ciphers (void)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_OCB, 0);
       if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_XTS_BLOCK_LEN)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_XTS, 0);
+
+      if (gcry_cipher_get_algo_blklen (algos[i]) >= 8)
+        {
+          cipher_cbc_bulk_test (algos[i]);
+          cipher_cfb_bulk_test (algos[i]);
+          cipher_ctr_bulk_test (algos[i]);
+        }
     }
 
   for (i = 0; algos2[i]; i++)

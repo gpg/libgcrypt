@@ -45,7 +45,6 @@
 #include "bithelp.h"
 #include "bufhelp.h"
 #include "cipher-internal.h"
-#include "cipher-selftest.h"
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
 #undef USE_AMD64_ASM
@@ -991,48 +990,6 @@ _gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
 }
 
 
-/* Run the self-tests for CAST5-CTR, tests IV increment of bulk CTR
-   encryption.  Returns NULL on success. */
-static const char *
-selftest_ctr (void)
-{
-  const int nblocks = 4+1;
-  const int blocksize = CAST5_BLOCKSIZE;
-  const int context_size = sizeof(CAST5_context);
-
-  return _gcry_selftest_helper_ctr("CAST5", &cast_setkey,
-           &encrypt_block, nblocks, blocksize, context_size);
-}
-
-
-/* Run the self-tests for CAST5-CBC, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char *
-selftest_cbc (void)
-{
-  const int nblocks = 4+2;
-  const int blocksize = CAST5_BLOCKSIZE;
-  const int context_size = sizeof(CAST5_context);
-
-  return _gcry_selftest_helper_cbc("CAST5", &cast_setkey,
-           &encrypt_block, nblocks, blocksize, context_size);
-}
-
-
-/* Run the self-tests for CAST5-CFB, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char *
-selftest_cfb (void)
-{
-  const int nblocks = 4+2;
-  const int blocksize = CAST5_BLOCKSIZE;
-  const int context_size = sizeof(CAST5_context);
-
-  return _gcry_selftest_helper_cfb("CAST5", &cast_setkey,
-           &encrypt_block, nblocks, blocksize, context_size);
-}
-
-
 static const char*
 selftest(void)
 {
@@ -1046,7 +1003,6 @@ selftest(void)
     static const byte cipher[8] =
                     { 0x23, 0x8B, 0x4F, 0xE5, 0x84, 0x7E, 0x44, 0xB2 };
     byte buffer[8];
-    const char *r;
 
     cast_setkey( &c, key, 16, &bulk_ops );
     encrypt_block( &c, buffer, plain );
@@ -1081,15 +1037,6 @@ selftest(void)
 
     }
 #endif
-
-    if ( (r = selftest_cbc ()) )
-      return r;
-
-    if ( (r = selftest_cfb ()) )
-      return r;
-
-    if ( (r = selftest_ctr ()) )
-      return r;
 
     return NULL;
 }

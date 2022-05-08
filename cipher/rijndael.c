@@ -46,7 +46,6 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
-#include "cipher-selftest.h"
 #include "rijndael-internal.h"
 #include "./cipher-internal.h"
 
@@ -1535,7 +1534,7 @@ static const char*
 selftest_basic_128 (void)
 {
   RIJNDAEL_context *ctx;
-  unsigned char *ctxmem;
+  unsigned char ctxmem[sizeof(*ctx) + 16];
   unsigned char scratch[16];
   cipher_bulk_ops_t bulk_ops;
 
@@ -1579,21 +1578,15 @@ selftest_basic_128 (void)
     };
 #endif
 
-  /* Because gcc/ld can only align the CTX struct on 8 bytes on the
-     stack, we need to allocate that context on the heap.  */
-  ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
-  if (!ctx)
-    return "failed to allocate memory";
+  ctx = (void *)(ctxmem + ((16 - ((uintptr_t)ctxmem & 15)) & 15));
 
   rijndael_setkey (ctx, key_128, sizeof (key_128), &bulk_ops);
   rijndael_encrypt (ctx, scratch, plaintext_128);
   if (memcmp (scratch, ciphertext_128, sizeof (ciphertext_128)))
     {
-      xfree (ctxmem);
       return "AES-128 test encryption failed.";
     }
   rijndael_decrypt (ctx, scratch, scratch);
-  xfree (ctxmem);
   if (memcmp (scratch, plaintext_128, sizeof (plaintext_128)))
     return "AES-128 test decryption failed.";
 
@@ -1605,7 +1598,7 @@ static const char*
 selftest_basic_192 (void)
 {
   RIJNDAEL_context *ctx;
-  unsigned char *ctxmem;
+  unsigned char ctxmem[sizeof(*ctx) + 16];
   unsigned char scratch[16];
   cipher_bulk_ops_t bulk_ops;
 
@@ -1626,18 +1619,15 @@ selftest_basic_192 (void)
       0x12,0x13,0x1A,0xC7,0xC5,0x47,0x88,0xAA
     };
 
-  ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
-  if (!ctx)
-    return "failed to allocate memory";
+  ctx = (void *)(ctxmem + ((16 - ((uintptr_t)ctxmem & 15)) & 15));
+
   rijndael_setkey (ctx, key_192, sizeof(key_192), &bulk_ops);
   rijndael_encrypt (ctx, scratch, plaintext_192);
   if (memcmp (scratch, ciphertext_192, sizeof (ciphertext_192)))
     {
-      xfree (ctxmem);
       return "AES-192 test encryption failed.";
     }
   rijndael_decrypt (ctx, scratch, scratch);
-  xfree (ctxmem);
   if (memcmp (scratch, plaintext_192, sizeof (plaintext_192)))
     return "AES-192 test decryption failed.";
 
@@ -1650,7 +1640,7 @@ static const char*
 selftest_basic_256 (void)
 {
   RIJNDAEL_context *ctx;
-  unsigned char *ctxmem;
+  unsigned char ctxmem[sizeof(*ctx) + 16];
   unsigned char scratch[16];
   cipher_bulk_ops_t bulk_ops;
 
@@ -1672,76 +1662,19 @@ selftest_basic_256 (void)
       0x9A,0xCF,0x72,0x80,0x86,0x04,0x0A,0xE3
     };
 
-  ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
-  if (!ctx)
-    return "failed to allocate memory";
+  ctx = (void *)(ctxmem + ((16 - ((uintptr_t)ctxmem & 15)) & 15));
+
   rijndael_setkey (ctx, key_256, sizeof(key_256), &bulk_ops);
   rijndael_encrypt (ctx, scratch, plaintext_256);
   if (memcmp (scratch, ciphertext_256, sizeof (ciphertext_256)))
     {
-      xfree (ctxmem);
       return "AES-256 test encryption failed.";
     }
   rijndael_decrypt (ctx, scratch, scratch);
-  xfree (ctxmem);
   if (memcmp (scratch, plaintext_256, sizeof (plaintext_256)))
     return "AES-256 test decryption failed.";
 
   return NULL;
-}
-
-
-/* Run the self-tests for AES-CTR-128, tests IV increment of bulk CTR
-   encryption.  Returns NULL on success. */
-static const char*
-selftest_ctr_128 (void)
-{
-#ifdef USE_VAES
-  const int nblocks = 16+1;
-#else
-  const int nblocks = 8+1;
-#endif
-  const int blocksize = BLOCKSIZE;
-  const int context_size = sizeof(RIJNDAEL_context);
-
-  return _gcry_selftest_helper_ctr("AES", &rijndael_setkey,
-           &rijndael_encrypt, nblocks, blocksize, context_size);
-}
-
-
-/* Run the self-tests for AES-CBC-128, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char*
-selftest_cbc_128 (void)
-{
-#ifdef USE_VAES
-  const int nblocks = 16+2;
-#else
-  const int nblocks = 8+2;
-#endif
-  const int blocksize = BLOCKSIZE;
-  const int context_size = sizeof(RIJNDAEL_context);
-
-  return _gcry_selftest_helper_cbc("AES", &rijndael_setkey,
-           &rijndael_encrypt, nblocks, blocksize, context_size);
-}
-
-
-/* Run the self-tests for AES-CFB-128, tests bulk CFB decryption.
-   Returns NULL on success. */
-static const char*
-selftest_cfb_128 (void)
-{
-#ifdef USE_VAES
-  const int nblocks = 16+2;
-#else
-  const int nblocks = 8+2;
-#endif
-  const int blocksize = BLOCKSIZE;
-  const int context_size = sizeof(RIJNDAEL_context);
-
-  return _gcry_selftest_helper_cfb("AES", &rijndael_setkey,
-           &rijndael_encrypt, nblocks, blocksize, context_size);
 }
 
 
@@ -1755,15 +1688,6 @@ selftest (void)
   if ( (r = selftest_basic_128 ())
        || (r = selftest_basic_192 ())
        || (r = selftest_basic_256 ()) )
-    return r;
-
-  if ( (r = selftest_ctr_128 ()) )
-    return r;
-
-  if ( (r = selftest_cbc_128 ()) )
-    return r;
-
-  if ( (r = selftest_cfb_128 ()) )
     return r;
 
   return r;

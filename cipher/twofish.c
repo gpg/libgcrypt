@@ -46,7 +46,6 @@
 #include "cipher.h"
 #include "bufhelp.h"
 #include "cipher-internal.h"
-#include "cipher-selftest.h"
 #include "bulkhelp.h"
 
 
@@ -1527,46 +1526,6 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   return nblocks;
 }
 
-
-
-/* Run the self-tests for TWOFISH-CTR, tests IV increment of bulk CTR
-   encryption.  Returns NULL on success. */
-static const char *
-selftest_ctr (void)
-{
-  const int nblocks = 16+1;
-  const int blocksize = TWOFISH_BLOCKSIZE;
-  const int context_size = sizeof(TWOFISH_context);
-
-  return _gcry_selftest_helper_ctr("TWOFISH", &twofish_setkey,
-           &twofish_encrypt, nblocks, blocksize, context_size);
-}
-
-/* Run the self-tests for TWOFISH-CBC, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char *
-selftest_cbc (void)
-{
-  const int nblocks = 16+2;
-  const int blocksize = TWOFISH_BLOCKSIZE;
-  const int context_size = sizeof(TWOFISH_context);
-
-  return _gcry_selftest_helper_cbc("TWOFISH", &twofish_setkey,
-           &twofish_encrypt, nblocks, blocksize, context_size);
-}
-
-/* Run the self-tests for TWOFISH-CFB, tests bulk CBC decryption.
-   Returns NULL on success. */
-static const char *
-selftest_cfb (void)
-{
-  const int nblocks = 16+2;
-  const int blocksize = TWOFISH_BLOCKSIZE;
-  const int context_size = sizeof(TWOFISH_context);
-
-  return _gcry_selftest_helper_cfb("TWOFISH", &twofish_setkey,
-           &twofish_encrypt, nblocks, blocksize, context_size);
-}
 
 
 /* Test a single encryption and decryption with each key size. */
@@ -1577,7 +1536,6 @@ selftest (void)
   TWOFISH_context ctx; /* Expanded key. */
   byte scratch[16];    /* Encryption/decryption result buffer. */
   cipher_bulk_ops_t bulk_ops;
-  const char *r;
 
   /* Test vectors for single encryption/decryption.  Note that I am using
    * the vectors from the Twofish paper's "known answer test", I=3 for
@@ -1626,13 +1584,6 @@ selftest (void)
   twofish_decrypt (&ctx, scratch, scratch);
   if (memcmp (scratch, plaintext_256, sizeof (plaintext_256)))
     return "Twofish-256 test decryption failed.";
-
-  if ((r = selftest_ctr()) != NULL)
-    return r;
-  if ((r = selftest_cbc()) != NULL)
-    return r;
-  if ((r = selftest_cfb()) != NULL)
-    return r;
 
   return NULL;
 }
