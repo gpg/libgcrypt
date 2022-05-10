@@ -45,6 +45,17 @@
 #endif
 #include <unistd.h>
 #include <errno.h>
+#ifndef EOPNOTSUPP
+# define EOPNOTSUPP ENOSYS
+#endif
+
+#ifdef HAVE_W32_SYSTEM
+# if defined(_WIN32_WINNT) && _WIN32_WINNT < 0x0501
+#  undef _WIN32_WINNT
+#  define _WIN32_WINNT 0x0501	/* for GetNativeSystemInfo */
+# endif
+# include <windows.h>
+#endif
 
 #include "types.h"
 #include "g10lib.h"

@@ -141,7 +141,7 @@ static inline void jent_memset_secure(void *s, size_t n)
 
 static inline long jent_ncpu(void)
 {
-#ifdef _POSIX_SOURCE
+#if defined(_POSIX_SOURCE)
 	long ncpu = sysconf(_SC_NPROCESSORS_ONLN);
 
 	if (ncpu == -1)
@@ -150,6 +150,19 @@ static inline long jent_ncpu(void)
 	if (ncpu == 0)
 		return -EFAULT;
 
+	return ncpu;
+#elif defined(HAVE_W32_SYSTEM)
+	SYSTEM_INFO sysinfo;
+	long ncpu;
+
+	GetNativeSystemInfo (&sysinfo);
+	ncpu = sysinfo.dwNumberOfProcessors;
+	if (ncpu <= 0) {
+		GetSystemInfo (&sysinfo);
+		ncpu = sysinfo.dwNumberOfProcessors;
+	}
+	if (ncpu <= 0)
+		ncpu = 1;
 	return ncpu;
 #else
 	return 1;
