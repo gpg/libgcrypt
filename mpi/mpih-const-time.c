@@ -204,6 +204,13 @@ _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v)
     is_all_zero &= (up[i] == 0);
 
   if (is_all_zero)
-    return up[0] - v;
+    {
+      if (up[0] < v)
+        return -1;
+      else if (up[0] > v)
+        return 1;
+      else
+        return 0;
+    }
   return 1;
 }
