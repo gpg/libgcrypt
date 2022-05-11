@@ -3504,8 +3504,8 @@ check_ec_mul (void)
   };
   gpg_error_t err;
   gcry_ctx_t ctx;
-  gcry_mpi_t k, x, y;
-  gcry_mpi_point_t G, Q;
+  gcry_mpi_t k = NULL, x = NULL, y = NULL;
+  gcry_mpi_point_t G = NULL, Q = NULL;
   int idx;
 
   for (idx = 0; tv[idx].curve; idx++)
@@ -3544,7 +3544,7 @@ check_ec_mul (void)
 	{
 	  fail ("tv[%d].'%s': error getting point parameter 'g'\n",
 		idx, tv[idx].curve);
-          return;
+          goto err;
 	}
 
       if (tv[idx].k_base10)
@@ -3562,7 +3562,7 @@ check_ec_mul (void)
 	{
 	  fail ("tv[%d].'%s': failed to get affine coordinates\n",
 		idx, tv[idx].curve);
-	  return;
+	  goto err;
 	}
 
       if (cmp_mpihex (x, tv[idx].qx) || cmp_mpihex (y, tv[idx].qy))
@@ -3576,6 +3576,7 @@ check_ec_mul (void)
 	  printf ("expected Qy: %s\n", tv[idx].qy);
 	}
 
+err:
       gcry_mpi_release (k);
       gcry_mpi_release (y);
       gcry_mpi_release (x);
@@ -4368,7 +4369,7 @@ check_ec_mul_reduction (void)
 	{
 	  fail ("tv[%d].'%s': failed to get affine coordinates\n",
 		idx, tv[idx].curve);
-	  return;
+	  goto out;
 	}
 
       if ((tv[idx].qx != NULL && tv[idx].qy != NULL)
@@ -4383,6 +4384,7 @@ check_ec_mul_reduction (void)
 	  printf ("expected Qy: %s\n", tv[idx].qy);
 	}
 
+out:
       gcry_mpi_release (uy);
       gcry_mpi_release (ux);
       gcry_mpi_release (uz);

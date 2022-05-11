@@ -195,7 +195,10 @@ hex2buffer (const char *string, size_t *r_length)
   for (; *s; s +=2 )
     {
       if (!hexdigitp (s) || !hexdigitp (s+1))
-        return NULL;           /* Invalid hex digits. */
+        {
+          xfree (buffer);
+          return NULL;           /* Invalid hex digits. */
+        }
       buffer[length++] = xtoi_2 (s);
     }
   *r_length = length;
@@ -483,6 +486,7 @@ one_test_sexp (const char *curvename, const char *sha_alg,
   xfree (out_s);
   xfree (sig_r_string);
   xfree (sig_s_string);
+  xfree (pkbuffer);
 }
 
 
