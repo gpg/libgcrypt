@@ -8448,7 +8448,7 @@ check_ocb_cipher_checksum (int algo, int keylen)
       return;
     }
   outbuf = xmalloc(buflen);
-  if (!inbuf)
+  if (!outbuf)
     {
       fail ("out-of-memory\n");
       xfree(inbuf);
