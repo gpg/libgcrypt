@@ -2629,7 +2629,9 @@ bench_ecc_init (struct bench_obj *obj)
   switch (oper->algo)
     {
       default:
-	return -1;
+        gcry_mpi_release (x);
+        free (hd);
+        return -1;
 
       case ECC_ALGO_ED25519:
         err = gcry_sexp_build (&hd->key_spec, NULL,

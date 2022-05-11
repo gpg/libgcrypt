@@ -532,6 +532,7 @@ my_spawn (const char *pgmname, char **argv, char **envp, MYPID_T *pid)
   *pid = fork ();
   if (*pid == MYINVALID_PID)
     {
+      xfree (arg_list);
       fail ("error forking process: %s\n", strerror (errno));
       return -1;
     }
@@ -546,17 +547,29 @@ my_spawn (const char *pgmname, char **argv, char **envp, MYPID_T *pid)
       /* Assign /dev/null to stdin. */
       fd = open ("/dev/null", O_RDONLY);
       if (fd == -1)
-        die ("failed to open '%s': %s\n", "/dev/null", strerror (errno));
+        {
+          xfree (arg_list);
+          die ("failed to open '%s': %s\n", "/dev/null", strerror (errno));
+        }
       if (fd != 0 && dup2 (fd, 0) == -1)
-        die ("dup2(%d,0) failed: %s\n", fd, strerror (errno));
+        {
+          xfree (arg_list);
+          die ("dup2(%d,0) failed: %s\n", fd, strerror (errno));
+        }
       /* Assign /dev/null to stdout unless in verbose mode. */
       if (!verbose)
         {
           fd = open ("/dev/null", O_RDONLY);
           if (fd == -1)
-            die ("failed to open '%s': %s\n", "/dev/null", strerror (errno));
+            {
+              xfree (arg_list);
+              die ("failed to open '%s': %s\n", "/dev/null", strerror (errno));
+            }
           if (fd != 1 && dup2 (fd, 1) == -1)
-            die ("dup2(%d,1) failed: %s\n", fd, strerror (errno));
+            {
+              xfree (arg_list);
+              die ("dup2(%d,1) failed: %s\n", fd, strerror (errno));
+            }
         }
 
       /* Exec the program.  */

@@ -7332,6 +7332,8 @@ check_ccm_cipher (void)
           if (!keylen)
             {
               fail ("cipher-ccm, gcry_cipher_get_algo_keylen failed\n");
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
               return;
             }
 
@@ -7351,6 +7353,8 @@ check_ccm_cipher (void)
           if (!blklen)
             {
               fail ("cipher-ccm, gcry_cipher_get_algo_blklen failed\n");
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
               return;
             }
 
@@ -8424,7 +8428,7 @@ check_ocb_cipher_checksum (int algo, int keylen)
   const size_t buflen = 128 * 16;
   unsigned char *inbuf, *outbuf;
   gpg_error_t err = 0;
-  gcry_cipher_hd_t hde, hde2, hdd;
+  gcry_cipher_hd_t hde = NULL, hde2 = NULL, hdd = NULL;
   unsigned char tag[16];
   unsigned char tag2[16];
   unsigned char tag3[16];
@@ -8486,6 +8490,8 @@ check_ocb_cipher_checksum (int algo, int keylen)
     err = gcry_cipher_open (&hdd, algo, GCRY_CIPHER_MODE_OCB, 0);
   if (err)
     {
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hde2);
       fail ("cipher-ocb, gcry_cipher_open failed (checksum, algo %d): %s\n",
             algo, gpg_strerror (err));
       goto out_free;
@@ -9119,6 +9125,7 @@ do_check_xts_cipher (int inplace)
         {
           fail ("cipher-xts, gcry_cipher_open failed (tv %d): %s\n",
                 tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
           return;
         }
 
@@ -9343,6 +9350,8 @@ check_gost28147_cipher_basic (enum gcry_cipher_algos algo)
       if (err)
         {
           fail ("gost28147, gcry_cipher_open failed: %s\n", gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
           return;
         }
 

@@ -348,7 +348,7 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
   gcry_mpi_t mpi_k = NULL;
   gcry_mpi_t mpi_x = NULL;
   gcry_mpi_point_t P = NULL;
-  gcry_mpi_point_t Q;
+  gcry_mpi_point_t Q = NULL;
   int i;
   gcry_mpi_t mpi_kk = NULL;
 
@@ -363,7 +363,7 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
               testno);
       if (verbose > 1)
         info ("not executed in FIPS mode\n");
-      return;
+      goto leave;
     }
   Q = gcry_mpi_point_new (0);
 

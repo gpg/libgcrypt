@@ -219,6 +219,7 @@ check_one_with_padding (int algo,
   if (err)
     {
       fail ("gcry_cipher_setkey failed: %s\n", gpg_strerror (err));
+      gcry_cipher_close (hd);
       return;
     }
 
@@ -235,6 +236,7 @@ check_one_with_padding (int algo,
   if (err)
     {
       fail ("gcry_cipher_encrypt failed: %s\n", gpg_strerror (err));
+      gcry_cipher_close (hd);
       return;
     }
 
@@ -275,6 +277,7 @@ check_one_with_padding (int algo,
   if (err)
     {
       fail ("gcry_cipher_decrypt failed: %s\n", gpg_strerror (err));
+      gcry_cipher_close (hd);
       return;
     }
 
@@ -318,6 +321,7 @@ check_one_with_padding (int algo,
   if (err)
     {
       fail ("gcry_cipher_decrypt(2) failed: %s\n", gpg_strerror (err));
+      gcry_cipher_close (hd);
       return;
     }
 
@@ -347,6 +351,7 @@ check_one_with_padding (int algo,
   if (err)
     {
       fail ("gcry_cipher_decrypt(3) failed: %s\n", gpg_strerror (err));
+      gcry_cipher_close (hd);
       return;
     }
 
