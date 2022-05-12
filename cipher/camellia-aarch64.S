@@ -214,7 +214,7 @@ _gcry_camellia_arm_encrypt_block:
 	 *	w3: keybitlen
 	 */
 
-	adr RTAB1,  _gcry_camellia_arm_tables;
+	GET_LOCAL_POINTER(RTAB1,  _gcry_camellia_arm_tables);
 	mov RMASK, #(0xff<<4); /* byte mask */
 	add RTAB2, RTAB1, #(1 * 4);
 	add RTAB3, RTAB1, #(2 * 4);
@@ -274,7 +274,7 @@ _gcry_camellia_arm_decrypt_block:
 	 *	w3: keybitlen
 	 */
 
-	adr RTAB1,  _gcry_camellia_arm_tables;
+	GET_LOCAL_POINTER(RTAB1,  _gcry_camellia_arm_tables);
 	mov RMASK, #(0xff<<4); /* byte mask */
 	add RTAB2, RTAB1, #(1 * 4);
 	add RTAB3, RTAB1, #(2 * 4);

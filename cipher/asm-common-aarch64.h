@@ -29,19 +29,8 @@
 # define ELF(...) /*_*/
 #endif
 
-#ifdef __APPLE__
-#define GET_DATA_POINTER(reg, name) \
-	adrp    reg, name@GOTPAGE ; \
-	add     reg, reg, name@GOTPAGEOFF ;
-#elif defined(_WIN32)
-#define GET_DATA_POINTER(reg, name) \
-	adrp    reg, name ; \
-	add     reg, reg, #:lo12:name ;
-#else
-#define GET_DATA_POINTER(reg, name) \
-	adrp    reg, :got:name ; \
-	ldr     reg, [reg, #:got_lo12:name] ;
-#endif
+#define GET_LOCAL_POINTER(reg, label) \
+	adr reg, label;
 
 #ifdef HAVE_GCC_ASM_CFI_DIRECTIVES
 /* CFI directives to emit DWARF stack unwinding information. */

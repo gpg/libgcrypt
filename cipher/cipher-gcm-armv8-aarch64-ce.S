@@ -169,7 +169,7 @@ _gcry_ghash_armv8_ce_pmull:
 
   cbz x3, .Ldo_nothing;
 
-  GET_DATA_POINTER(x5, .Lrconst)
+  GET_LOCAL_POINTER(x5, .Lrconst)
 
   eor vZZ.16b, vZZ.16b, vZZ.16b
   ld1 {rhash.16b}, [x1]
@@ -368,7 +368,7 @@ _gcry_polyval_armv8_ce_pmull:
 
   cbz x3, .Lpolyval_do_nothing;
 
-  GET_DATA_POINTER(x5, .Lrconst)
+  GET_LOCAL_POINTER(x5, .Lrconst)
 
   eor vZZ.16b, vZZ.16b, vZZ.16b
   ld1 {rhash.16b}, [x1]
@@ -589,7 +589,7 @@ _gcry_ghash_setup_armv8_ce_pmull:
    */
   CFI_STARTPROC()
 
-  GET_DATA_POINTER(x2, .Lrconst)
+  GET_LOCAL_POINTER(x2, .Lrconst)
 
   eor vZZ.16b, vZZ.16b, vZZ.16b
 

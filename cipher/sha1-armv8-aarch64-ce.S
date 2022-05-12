@@ -109,7 +109,7 @@ _gcry_sha1_transform_armv8_ce:
 
   cbz x2, .Ldo_nothing;
 
-  GET_DATA_POINTER(x4, .LK_VEC);
+  GET_LOCAL_POINTER(x4, .LK_VEC);
 
   ld1 {vH0123.4s}, [x0]     /* load h0,h1,h2,h3 */
   ld1 {vK1.4s-vK4.4s}, [x4] /* load K1,K2,K3,K4 */

@@ -71,7 +71,7 @@ _gcry_crc32r_armv8_ce_bulk:
    */
   CFI_STARTPROC()
 
-  GET_DATA_POINTER(x7, .Lcrc32_constants)
+  GET_LOCAL_POINTER(x7, .Lcrc32_constants)
   add x9, x3, #consts_k(5 - 1)
   cmp x2, #128
 
@@ -280,7 +280,7 @@ _gcry_crc32_armv8_ce_bulk:
    */
   CFI_STARTPROC()
 
-  GET_DATA_POINTER(x7, .Lcrc32_constants)
+  GET_LOCAL_POINTER(x7, .Lcrc32_constants)
   add x4, x7, #.Lcrc32_bswap_shuf - .Lcrc32_constants
   cmp x2, #128
   ld1 {v7.16b}, [x4]

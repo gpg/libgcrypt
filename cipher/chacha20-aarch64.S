@@ -206,10 +206,10 @@ _gcry_chacha20_aarch64_blocks4:
 	 */
 	CFI_STARTPROC()
 
-	GET_DATA_POINTER(CTR, _gcry_chacha20_aarch64_blocks4_data_rot8);
+	GET_LOCAL_POINTER(CTR, _gcry_chacha20_aarch64_blocks4_data_rot8);
 	add INPUT_CTR, INPUT, #(12*4);
 	ld1 {ROT8.16b}, [CTR];
-	GET_DATA_POINTER(CTR, _gcry_chacha20_aarch64_blocks4_data_inc_counter);
+	GET_LOCAL_POINTER(CTR, _gcry_chacha20_aarch64_blocks4_data_inc_counter);
 	mov INPUT_POS, INPUT;
 	ld1 {VCTR.16b}, [CTR];
 
@@ -383,10 +383,10 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 	mov POLY_RSTATE, x4;
 	mov POLY_RSRC, x5;
 
-	GET_DATA_POINTER(CTR, _gcry_chacha20_aarch64_blocks4_data_rot8);
+	GET_LOCAL_POINTER(CTR, _gcry_chacha20_aarch64_blocks4_data_rot8);
 	add INPUT_CTR, INPUT, #(12*4);
 	ld1 {ROT8.16b}, [CTR];
-	GET_DATA_POINTER(CTR, _gcry_chacha20_aarch64_blocks4_data_inc_counter);
+	GET_LOCAL_POINTER(CTR, _gcry_chacha20_aarch64_blocks4_data_inc_counter);
 	mov INPUT_POS, INPUT;
 	ld1 {VCTR.16b}, [CTR];
 

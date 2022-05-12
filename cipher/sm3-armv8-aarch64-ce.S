@@ -170,7 +170,7 @@ _gcry_sm3_transform_armv8_ce:
     ext         CTX2.16b, CTX2.16b, CTX2.16b, #8;
 
 .Lloop:
-    GET_DATA_POINTER(x3, .Lsm3_Ktable);
+    GET_LOCAL_POINTER(x3, .Lsm3_Ktable);
     ld1         {v0.16b-v3.16b}, [x1], #64;
     sub         x2, x2, #1;
 

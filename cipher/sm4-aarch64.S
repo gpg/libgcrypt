@@ -84,7 +84,7 @@ ELF(.size _gcry_sm4_aarch64_consts,.-_gcry_sm4_aarch64_consts)
 /* Helper macros. */
 
 #define preload_sbox(ptr)                   \
-        GET_DATA_POINTER(ptr, .Lsm4_sbox);  \
+        GET_LOCAL_POINTER(ptr, .Lsm4_sbox);  \
         ld1 {v16.16b-v19.16b}, [ptr], #64;  \
         ld1 {v20.16b-v23.16b}, [ptr], #64;  \
         ld1 {v24.16b-v27.16b}, [ptr], #64;  \

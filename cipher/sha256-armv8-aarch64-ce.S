@@ -119,7 +119,7 @@ _gcry_sha256_transform_armv8_ce:
 
   cbz x2, .Ldo_nothing;
 
-  GET_DATA_POINTER(x3, .LK);
+  GET_LOCAL_POINTER(x3, .LK);
   mov x4, x3
 
   ld1 {vH0123.4s-vH4567.4s}, [x0]  /* load state */

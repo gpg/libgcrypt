@@ -425,7 +425,7 @@ _gcry_sm3_transform_aarch64:
   CFI_DEF_CFA_REGISTER(RFRAME);
 
   sub addr0, sp, #STACK_SIZE;
-  GET_DATA_POINTER(RKPTR, .LKtable);
+  GET_LOCAL_POINTER(RKPTR, .LKtable);
   and sp, addr0, #(~63);
 
   /* Preload first block. */
