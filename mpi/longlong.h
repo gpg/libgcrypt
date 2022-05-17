@@ -430,14 +430,14 @@ extern UDItype __udiv_qrnnd ();
 #  define UMUL_TIME 40
 #  define UDIV_TIME 80
 # endif
-# ifndef LONGLONG_STANDALONE
+# if !defined(LONGLONG_STANDALONE) && !defined(ASM_DISABLED)
 #  define udiv_qrnnd(q, r, n1, n0, d) \
   do { USItype __r;							\
     (q) = __udiv_qrnnd (&__r, (n1), (n0), (d)); 			\
     (r) = __r;								\
   } while (0)
 extern USItype __udiv_qrnnd ();
-# endif /* !LONGLONG_STANDALONE */
+# endif /* !LONGLONG_STANDALONE && !ASM_DISABLED */
 # define count_leading_zeros(count, x) \
   do {								       \
     USItype __tmp;						       \
