@@ -289,48 +289,7 @@ print_warn (void)
 static void
 lock_pool_pages (void *p, size_t n)
 {
-#if defined(USE_CAPABILITIES) && defined(HAVE_MLOCK)
-  int err;
-
-  {
-    cap_t cap;
-
-    if (!no_priv_drop)
-      {
-        cap = cap_from_text ("cap_ipc_lock+ep");
-        cap_set_proc (cap);
-        cap_free (cap);
-      }
-    err = no_mlock? 0 : mlock (p, n);
-    if (err && errno)
-      err = errno;
-    if (!no_priv_drop)
-      {
-        cap = cap_from_text ("cap_ipc_lock+p");
-        cap_set_proc (cap);
-        cap_free(cap);
-      }
-  }
-
-  if (err)
-    {
-      if (err != EPERM
-#ifdef EAGAIN	/* BSD and also Linux may return EAGAIN */
-	  && err != EAGAIN
-#endif
-#ifdef ENOSYS	/* Some SCOs return this (function not implemented) */
-	  && err != ENOSYS
-#endif
-#ifdef ENOMEM  /* Linux might return this. */
-            && err != ENOMEM
-#endif
-	  )
-	log_error ("can't lock memory: %s\n", strerror (err));
-      show_warning = 1;
-      not_locked = 1;
-    }
-
-#elif defined(HAVE_MLOCK)
+#if defined(HAVE_MLOCK)
   uid_t uid;
   int err;
 
