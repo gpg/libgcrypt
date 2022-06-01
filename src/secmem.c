@@ -303,18 +303,14 @@ lock_pool_pages (void *p, size_t n)
   if (uid)
     {
       errno = EPERM;
-      err = errno;
+      err = -1;
     }
   else
     {
       err = no_mlock? 0 : mlock (p, n);
-      if (err && errno)
-	err = errno;
     }
 #else /* !HAVE_BROKEN_MLOCK */
   err = no_mlock? 0 : mlock (p, n);
-  if (err && errno)
-    err = errno;
 #endif /* !HAVE_BROKEN_MLOCK */
 
   /* Test whether we are running setuid(0).  */
@@ -332,18 +328,18 @@ lock_pool_pages (void *p, size_t n)
 
   if (err)
     {
-      if (err != EPERM
+      if (errno != EPERM
 #ifdef EAGAIN	/* BSD and also Linux may return this. */
-	  && err != EAGAIN
+	  && errno != EAGAIN
 #endif
 #ifdef ENOSYS	/* Some SCOs return this (function not implemented). */
-	  && err != ENOSYS
+	  && errno != ENOSYS
 #endif
 #ifdef ENOMEM  /* Linux might return this. */
-            && err != ENOMEM
+            && errno != ENOMEM
 #endif
 	  )
-	log_error ("can't lock memory: %s\n", strerror (err));
+	log_error ("can't lock memory: %s\n", strerror (errno));
       show_warning = 1;
       not_locked = 1;
     }
