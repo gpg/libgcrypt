@@ -356,12 +356,6 @@ lock_pool_pages (void *p, size_t n)
      * this whole Windows !@#$% and their user base are inherently insecure. */
   (void)p;
   (void)n;
-#elif defined (__riscos__)
-    /* No virtual memory on RISC OS, so no pages are swapped to disc,
-     * besides we don't have mmap, so we don't use it! ;-)
-     * But don't complain, as explained above.  */
-  (void)p;
-  (void)n;
 #else
   (void)p;
   (void)n;
