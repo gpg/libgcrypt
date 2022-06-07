@@ -206,7 +206,7 @@ struct gcry_thread_cbs
        Bits  7 - 0  are used for the thread model
        Bits 15 - 8  are used for the version number.  */
   unsigned int option;
-} _GCRY_ATTR_INTERNAL;
+} _GCRY_GCC_ATTR_DEPRECATED;
 
 #define GCRY_THREAD_OPTION_PTH_IMPL                                     \
   static struct gcry_thread_cbs gcry_threads_pth = {                    \
