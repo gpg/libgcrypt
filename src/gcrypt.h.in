@@ -1592,8 +1592,21 @@ enum gcry_kdf_algos
     GCRY_KDF_PBKDF1 = 33,
     GCRY_KDF_PBKDF2 = 34,
     GCRY_KDF_SCRYPT = 48,
+    /**/
     GCRY_KDF_ARGON2   = 64,
-    GCRY_KDF_BALLOON  = 65
+    GCRY_KDF_BALLOON  = 65,
+    /**/
+    /* In the original SP 800-56A, it's called
+     * "Concatenation Key Derivation Function".
+     * Now (as of 2022), it's defined in SP 800-56C rev.2, as
+     * "One-Step Key Derivation".
+     */
+    GCRY_KDF_ONESTEP_KDF = 96, /* One-Step Key Derivation with hash */
+    /* One-Step Key Derivation with HMAC */
+    /* One-Step Key Derivation with KMAC */
+    /* Two-Step Key Derivation with HMAC */
+    /* Two-Step Key Derivation with CMAC */
+    /* KDF PRF in SP 800-108r1 */
   };
 
 enum gcry_kdf_subalgo_argon2

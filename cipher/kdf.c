@@ -1382,8 +1382,123 @@ balloon_close (balloon_ctx_t b)
   wipememory (b, n);
   xfree (b);
 }
+
+typedef struct onestep_kdf_context *onestep_kdf_ctx_t;
+
+/* OneStepKDF context */
+struct onestep_kdf_context {
+  int algo;
+  gcry_md_hd_t md;
+  unsigned int blklen;
+  unsigned int outlen;
+  const void *input;
+  size_t inputlen;
+  const void *fixedinfo;
+  size_t fixedinfolen;
+};
+
+static gpg_err_code_t
+onestep_kdf_open (gcry_kdf_hd_t *hd, int hashalgo,
+                  const unsigned long *param, unsigned int paramlen,
+                  const void *input, size_t inputlen,
+                  const void *fixedinfo, size_t fixedinfolen)
+{
+  gpg_err_code_t ec;
+  unsigned int outlen;
+  onestep_kdf_ctx_t o;
+  size_t n;
+
+  if (paramlen != 1)
+    return GPG_ERR_INV_VALUE;
+  else
+    outlen = (unsigned int)param[0];
+
+  n = sizeof (struct onestep_kdf_context);
+  o = xtrymalloc (n);
+  if (!o)
+    return gpg_err_code_from_errno (errno);
+
+  o->blklen = _gcry_md_get_algo_dlen (hashalgo);
+  if (!o->blklen)
+    {
+      xfree (o);
+      return GPG_ERR_DIGEST_ALGO;
+    }
+  ec = _gcry_md_open (&o->md, hashalgo, 0);
+  if (ec)
+    {
+      xfree (o);
+      return ec;
+    }
+  o->algo = GCRY_KDF_ONESTEP_KDF;
+  o->outlen = outlen;
+  o->input = input;
+  o->inputlen = inputlen;
+  o->fixedinfo = fixedinfo;
+  o->fixedinfolen = fixedinfolen;
+
+  *hd = (void *)o;
+  return 0;
+}
 
 
+static gpg_err_code_t
+onestep_kdf_compute (onestep_kdf_ctx_t o, const struct gcry_kdf_thread_ops *ops)
+{
+  (void)o;
+
+  if (ops != NULL)
+    return GPG_ERR_INV_VALUE;
+
+  return 0;
+}
+
+static gpg_err_code_t
+onestep_kdf_final (onestep_kdf_ctx_t o, size_t resultlen, void *result)
+{
+  u32 counter = 0;
+  unsigned char cnt[4];
+  int i;
+
+  if (resultlen != o->outlen)
+    return GPG_ERR_INV_VALUE;
+
+  for (i = 0; i < o->outlen / o->blklen; i++)
+    {
+      counter++;
+      buf_put_be32 (cnt, counter);
+      _gcry_md_write (o->md, cnt, sizeof (cnt));
+      _gcry_md_write (o->md, o->input, o->inputlen);
+      _gcry_md_write (o->md, o->fixedinfo, o->fixedinfolen);
+      _gcry_md_final (o->md);
+      memcpy ((char *)result + o->blklen * i,
+              _gcry_md_read (o->md, 0), o->blklen);
+      resultlen -= o->blklen;
+      _gcry_md_reset (o->md);
+    }
+
+  if (resultlen)
+    {
+      counter++;
+      buf_put_be32 (cnt, counter);
+      _gcry_md_write (o->md, cnt, sizeof (cnt));
+      _gcry_md_write (o->md, o->input, o->inputlen);
+      _gcry_md_write (o->md, o->fixedinfo, o->fixedinfolen);
+      _gcry_md_final (o->md);
+      memcpy ((char *)result + o->blklen * i,
+              _gcry_md_read (o->md, 0), resultlen);
+    }
+
+  return 0;
+}
+
+static void
+onestep_kdf_close (onestep_kdf_ctx_t o)
+{
+  _gcry_md_close (o->md);
+  xfree (o);
+}
+
 struct gcry_kdf_handle {
   int algo;
   /* And algo specific parts come.  */
@@ -1392,7 +1507,7 @@ struct gcry_kdf_handle {
 gpg_err_code_t
 _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
                 const unsigned long *param, unsigned int paramlen,
-                const void *passphrase, size_t passphraselen,
+                const void *input, size_t inputlen,
                 const void *salt, size_t saltlen,
                 const void *key, size_t keylen,
                 const void *ad, size_t adlen)
@@ -1402,23 +1517,35 @@ _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
   switch (algo)
     {
     case GCRY_KDF_ARGON2:
-      if (!passphraselen || !saltlen)
+      if (!inputlen || !saltlen)
         ec = GPG_ERR_INV_VALUE;
       else
         ec = argon2_open (hd, subalgo, param, paramlen,
-                          passphrase, passphraselen, salt, saltlen,
+                          input, inputlen, salt, saltlen,
                           key, keylen, ad, adlen);
       break;
 
     case GCRY_KDF_BALLOON:
-      if (!passphraselen || !saltlen || keylen || adlen)
+      if (!inputlen || !saltlen || keylen || adlen)
         ec = GPG_ERR_INV_VALUE;
       else
         {
           (void)key;
           (void)ad;
           ec = balloon_open (hd, subalgo, param, paramlen,
-                             passphrase, passphraselen, salt, saltlen);
+                             input, inputlen, salt, saltlen);
+        }
+      break;
+
+    case GCRY_KDF_ONESTEP_KDF:
+      if (!inputlen || !paramlen || !adlen)
+        ec = GPG_ERR_INV_VALUE;
+      else
+        {
+          (void)salt;
+          (void)key;
+          ec = onestep_kdf_open (hd, subalgo, param, paramlen,
+                                 input, inputlen, ad, adlen);
         }
       break;
 
@@ -1445,6 +1572,10 @@ _gcry_kdf_compute (gcry_kdf_hd_t h, const struct gcry_kdf_thread_ops *ops)
       ec = balloon_compute_all ((balloon_ctx_t)(void *)h, ops);
       break;
 
+    case GCRY_KDF_ONESTEP_KDF:
+      ec = onestep_kdf_compute ((onestep_kdf_ctx_t)(void *)h, ops);
+      break;
+
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
@@ -1469,6 +1600,10 @@ _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
       ec = balloon_final ((balloon_ctx_t)(void *)h, resultlen, result);
       break;
 
+    case GCRY_KDF_ONESTEP_KDF:
+      ec = onestep_kdf_final ((onestep_kdf_ctx_t)(void *)h, resultlen, result);
+      break;
+
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
@@ -1488,6 +1623,10 @@ _gcry_kdf_close (gcry_kdf_hd_t h)
 
     case GCRY_KDF_BALLOON:
       balloon_close ((balloon_ctx_t)(void *)h);
+      break;
+
+    case GCRY_KDF_ONESTEP_KDF:
+      onestep_kdf_close ((onestep_kdf_ctx_t)(void *)h);
       break;
 
     default:
