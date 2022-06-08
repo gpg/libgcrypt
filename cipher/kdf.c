@@ -1499,6 +1499,149 @@ onestep_kdf_close (onestep_kdf_ctx_t o)
   xfree (o);
 }
 
+typedef struct onestep_kdf_mac_context *onestep_kdf_mac_ctx_t;
+
+/* OneStep_KDF_MAC context */
+struct onestep_kdf_mac_context {
+  int algo;
+  gcry_mac_hd_t md;
+  unsigned int blklen;
+  unsigned int outlen;
+  const void *input;
+  size_t inputlen;
+  const void *salt;
+  size_t saltlen;
+  const void *fixedinfo;
+  size_t fixedinfolen;
+};
+
+static gpg_err_code_t
+onestep_kdf_mac_open (gcry_kdf_hd_t *hd, int macalgo,
+                      const unsigned long *param, unsigned int paramlen,
+                      const void *input, size_t inputlen,
+                      const void *key, size_t keylen,
+                      const void *fixedinfo, size_t fixedinfolen)
+{
+  gpg_err_code_t ec;
+  unsigned int outlen;
+  onestep_kdf_mac_ctx_t o;
+  size_t n;
+
+  if (paramlen != 1)
+    return GPG_ERR_INV_VALUE;
+  else
+    outlen = (unsigned int)param[0];
+
+  n = sizeof (struct onestep_kdf_mac_context);
+  o = xtrymalloc (n);
+  if (!o)
+    return gpg_err_code_from_errno (errno);
+
+  o->blklen = _gcry_mac_get_algo_maclen (macalgo);
+  if (!o->blklen)
+    {
+      xfree (o);
+      return GPG_ERR_MAC_ALGO;
+    }
+  ec = _gcry_mac_open (&o->md, macalgo, 0, NULL);
+  if (ec)
+    {
+      xfree (o);
+      return ec;
+    }
+  o->algo = GCRY_KDF_ONESTEP_KDF_MAC;
+  o->outlen = outlen;
+  o->input = input;
+  o->inputlen = inputlen;
+  o->salt = key;
+  o->saltlen = keylen;
+  o->fixedinfo = fixedinfo;
+  o->fixedinfolen = fixedinfolen;
+
+  *hd = (void *)o;
+  return 0;
+}
+
+
+static gpg_err_code_t
+onestep_kdf_mac_compute (onestep_kdf_mac_ctx_t o,
+                         const struct gcry_kdf_thread_ops *ops)
+{
+  (void)o;
+
+  if (ops != NULL)
+    return GPG_ERR_INV_VALUE;
+
+  return 0;
+}
+
+static gpg_err_code_t
+onestep_kdf_mac_final (onestep_kdf_mac_ctx_t o, size_t resultlen, void *result)
+{
+  u32 counter = 0;
+  unsigned char cnt[4];
+  int i;
+  gcry_err_code_t ec;
+  size_t len = o->blklen;
+
+  if (resultlen != o->outlen)
+    return GPG_ERR_INV_VALUE;
+
+  ec = _gcry_mac_setkey (o->md, o->salt, o->saltlen);
+  if (ec)
+    return ec;
+
+  for (i = 0; i < o->outlen / o->blklen; i++)
+    {
+      counter++;
+      buf_put_be32 (cnt, counter);
+      ec = _gcry_mac_write (o->md, cnt, sizeof (cnt));
+      if (ec)
+        return ec;
+      ec = _gcry_mac_write (o->md, o->input, o->inputlen);
+      if (ec)
+        return ec;
+      ec = _gcry_mac_write (o->md, o->fixedinfo, o->fixedinfolen);
+      if (ec)
+        return ec;
+      ec = _gcry_mac_read (o->md, (char *)result + o->blklen * i, &len);
+      if (ec)
+        return ec;
+      resultlen -= o->blklen;
+      ec = _gcry_mac_ctl (o->md, GCRYCTL_RESET, NULL, 0);
+      if (ec)
+        return ec;
+    }
+
+  if (resultlen)
+    {
+      counter++;
+      len = resultlen;
+      buf_put_be32 (cnt, counter);
+      ec = _gcry_mac_write (o->md, cnt, sizeof (cnt));
+      if (ec)
+        return ec;
+      ec = _gcry_mac_write (o->md, o->input, o->inputlen);
+      if (ec)
+        return ec;
+      ec =_gcry_mac_write (o->md, o->fixedinfo, o->fixedinfolen);
+      if (ec)
+        return ec;
+      ec = _gcry_mac_read (o->md, (char *)result + o->blklen * i, &len);
+      if (ec)
+        return ec;
+    }
+
+  return 0;
+}
+
+static void
+onestep_kdf_mac_close (onestep_kdf_mac_ctx_t o)
+{
+  _gcry_mac_close (o->md);
+  xfree (o);
+}
+
 struct gcry_kdf_handle {
   int algo;
   /* And algo specific parts come.  */
@@ -1549,6 +1692,17 @@ _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
         }
       break;
 
+    case GCRY_KDF_ONESTEP_KDF_MAC:
+      if (!inputlen || !paramlen || !keylen || !adlen)
+        ec = GPG_ERR_INV_VALUE;
+      else
+        {
+          (void)salt;
+          ec = onestep_kdf_mac_open (hd, subalgo, param, paramlen,
+                                     input, inputlen, key, keylen, ad, adlen);
+        }
+      break;
+
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
@@ -1574,6 +1728,10 @@ _gcry_kdf_compute (gcry_kdf_hd_t h, const struct gcry_kdf_thread_ops *ops)
 
     case GCRY_KDF_ONESTEP_KDF:
       ec = onestep_kdf_compute ((onestep_kdf_ctx_t)(void *)h, ops);
+      break;
+
+    case GCRY_KDF_ONESTEP_KDF_MAC:
+      ec = onestep_kdf_mac_compute ((onestep_kdf_mac_ctx_t)(void *)h, ops);
       break;
 
     default:
@@ -1604,6 +1762,11 @@ _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
       ec = onestep_kdf_final ((onestep_kdf_ctx_t)(void *)h, resultlen, result);
       break;
 
+    case GCRY_KDF_ONESTEP_KDF_MAC:
+      ec = onestep_kdf_mac_final ((onestep_kdf_mac_ctx_t)(void *)h,
+                                  resultlen, result);
+      break;
+
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
@@ -1627,6 +1790,10 @@ _gcry_kdf_close (gcry_kdf_hd_t h)
 
     case GCRY_KDF_ONESTEP_KDF:
       onestep_kdf_close ((onestep_kdf_ctx_t)(void *)h);
+      break;
+
+    case GCRY_KDF_ONESTEP_KDF_MAC:
+      onestep_kdf_mac_close ((onestep_kdf_mac_ctx_t)(void *)h);
       break;
 
     default:

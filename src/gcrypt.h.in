@@ -1602,8 +1602,7 @@ enum gcry_kdf_algos
      * "One-Step Key Derivation".
      */
     GCRY_KDF_ONESTEP_KDF = 96, /* One-Step Key Derivation with hash */
-    /* One-Step Key Derivation with HMAC */
-    /* One-Step Key Derivation with KMAC */
+    GCRY_KDF_ONESTEP_KDF_MAC = 97, /* One-Step Key Derivation with MAC */
     /* Two-Step Key Derivation with HMAC */
     /* Two-Step Key Derivation with CMAC */
     /* KDF PRF in SP 800-108r1 */
