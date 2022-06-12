@@ -604,6 +604,12 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->xts_crypt = _gcry_aes_ppc9le_xts_crypt;
       if (hwfeatures & HWF_PPC_ARCH_3_10)  /* for P10 */
         bulk_ops->gcm_crypt = _gcry_aes_p10le_gcm_crypt;
+# ifdef ENABLE_FORCE_SOFT_HWFEATURES
+      /* HWF_PPC_ARCH_3_10 above is used as soft HW-feature indicator for P10.
+       * Actual implementation works with HWF_PPC_ARCH_3_00 also. */
+      if (hwfeatures & HWF_PPC_ARCH_3_00)
+        bulk_ops->gcm_crypt = _gcry_aes_p10le_gcm_crypt;
+# endif
     }
 #endif
 #ifdef USE_PPC_CRYPTO

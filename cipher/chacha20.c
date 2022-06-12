@@ -504,6 +504,11 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
   ctx->use_ppc = (features & HWF_PPC_ARCH_2_07) != 0;
 # ifndef WORDS_BIGENDIAN
   ctx->use_p10 = (features & HWF_PPC_ARCH_3_10) != 0;
+#  ifdef ENABLE_FORCE_SOFT_HWFEATURES
+  /* HWF_PPC_ARCH_3_10 above is used as soft HW-feature indicator for P10.
+   * Actual implementation works with HWF_PPC_ARCH_3_00 also. */
+  ctx->use_p10 |= (features & HWF_PPC_ARCH_3_00) != 0;
+#  endif
 # endif
 #endif
 #ifdef USE_S390X_VX

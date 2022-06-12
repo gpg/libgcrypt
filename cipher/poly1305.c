@@ -120,14 +120,22 @@ static void poly1305_init (poly1305_context_t *ctx,
 			   const byte key[POLY1305_KEYLEN])
 {
   POLY1305_STATE *st = &ctx->state;
+  unsigned int features = _gcry_get_hw_features ();
 
 #ifdef POLY1305_USE_AVX512
-  ctx->use_avx512 = (_gcry_get_hw_features () & HWF_INTEL_AVX512) != 0;
+  ctx->use_avx512 = (features & HWF_INTEL_AVX512) != 0;
 #endif
 
 #ifdef POLY1305_USE_PPC_VEC
-  ctx->use_p10 = (_gcry_get_hw_features () & HWF_PPC_ARCH_3_10) != 0;
+  ctx->use_p10 = (features & HWF_PPC_ARCH_3_10) != 0;
+# ifdef ENABLE_FORCE_SOFT_HWFEATURES
+  /* HWF_PPC_ARCH_3_10 above is used as soft HW-feature indicator for P10.
+   * Actual implementation works with HWF_PPC_ARCH_3_00 also. */
+  ctx->use_p10 |= (features & HWF_PPC_ARCH_3_00) != 0;
+# endif
 #endif
+
+  (void)features;
 
   ctx->leftover = 0;
 
