@@ -108,6 +108,14 @@ poly1305_amd64_avx512_blocks(poly1305_context_t *ctx, const byte *buf,
 #endif /* POLY1305_USE_AVX512 */
 
 
+#ifdef POLY1305_USE_PPC_VEC
+
+extern unsigned int
+gcry_poly1305_p10le_4blocks(unsigned char *key, const byte *m, size_t len);
+
+#endif /* POLY1305_USE_PPC_VEC */
+
+
 static void poly1305_init (poly1305_context_t *ctx,
 			   const byte key[POLY1305_KEYLEN])
 {
@@ -115,6 +123,10 @@ static void poly1305_init (poly1305_context_t *ctx,
 
 #ifdef POLY1305_USE_AVX512
   ctx->use_avx512 = (_gcry_get_hw_features () & HWF_INTEL_AVX512) != 0;
+#endif
+
+#ifdef POLY1305_USE_PPC_VEC
+  ctx->use_p10 = (_gcry_get_hw_features () & HWF_PPC_ARCH_3_10) != 0;
 #endif
 
   ctx->leftover = 0;
@@ -579,6 +591,7 @@ _gcry_poly1305_update_burn (poly1305_context_t *ctx, const byte *m,
 			    size_t bytes)
 {
   unsigned int burn = 0;
+  unsigned int nburn;
 
   /* handle leftover */
   if (ctx->leftover)
@@ -592,15 +605,31 @@ _gcry_poly1305_update_burn (poly1305_context_t *ctx, const byte *m,
       ctx->leftover += want;
       if (ctx->leftover < POLY1305_BLOCKSIZE)
 	return 0;
-      burn = poly1305_blocks (ctx, ctx->buffer, POLY1305_BLOCKSIZE, 1);
+      nburn = poly1305_blocks (ctx, ctx->buffer, POLY1305_BLOCKSIZE, 1);
+      burn = nburn > burn ? nburn : burn;
       ctx->leftover = 0;
     }
+
+#ifdef POLY1305_USE_PPC_VEC
+  /* PPC-P10/little-endian: bulk process multiples of eight blocks */
+  if (ctx->use_p10 && bytes >= POLY1305_BLOCKSIZE * 8)
+    {
+      size_t nblks = bytes / (POLY1305_BLOCKSIZE * 8);
+      size_t len = nblks * (POLY1305_BLOCKSIZE * 8);
+      POLY1305_STATE *st = &ctx->state;
+      nburn = gcry_poly1305_p10le_4blocks ((unsigned char *) st, m, len);
+      burn = nburn > burn ? nburn : burn;
+      m += len;
+      bytes -= len;
+    }
+#endif /* POLY1305_USE_PPC_VEC */
 
   /* process full blocks */
   if (bytes >= POLY1305_BLOCKSIZE)
     {
       size_t nblks = bytes / POLY1305_BLOCKSIZE;
-      burn = poly1305_blocks (ctx, m, nblks * POLY1305_BLOCKSIZE, 1);
+      nburn = poly1305_blocks (ctx, m, nblks * POLY1305_BLOCKSIZE, 1);
+      burn = nburn > burn ? nburn : burn;
       m += nblks * POLY1305_BLOCKSIZE;
       bytes -= nblks * POLY1305_BLOCKSIZE;
     }

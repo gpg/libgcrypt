@@ -2814,6 +2814,11 @@ if test "$found" = "1" ; then
       powerpc64le-*-*)
          # Build with the ppc8 vector implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-ppc.lo"
+	 # Build with the assembly implementation
+         if test "$gcry_cv_gcc_inline_asm_ppc_altivec" = "yes" &&
+            test "$gcry_cv_gcc_inline_asm_ppc_arch_3_00" = "yes" ; then
+            GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-p10le-8x.lo"
+         fi
       ;;
       powerpc64-*-*)
          # Build with the ppc8 vector implementation
@@ -3157,6 +3162,13 @@ case "${host}" in
   ;;
   x86_64-*-*)
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS poly1305-amd64-avx512.lo"
+  ;;
+  powerpc64le-*-*)
+    # Build with the assembly implementation
+    if test "$gcry_cv_gcc_inline_asm_ppc_altivec" = "yes" &&
+       test "$gcry_cv_gcc_inline_asm_ppc_arch_3_00" = "yes" ; then
+       GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS poly1305-p10le.lo"
+    fi
   ;;
 esac
 

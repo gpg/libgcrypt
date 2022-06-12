@@ -82,6 +82,7 @@ EXTRA_libcipher_la_SOURCES = \
 	chacha20.c chacha20-amd64-ssse3.S chacha20-amd64-avx2.S \
 	chacha20-amd64-avx512.S chacha20-armv7-neon.S chacha20-aarch64.S \
 	chacha20-ppc.c chacha20-s390x.S \
+	chacha20-p10le-8x.s \
 	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c cipher-gcm-armv7-neon.S \
 	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
 	crc.c crc-intel-pclmul.c crc-armv8-ce.c \
@@ -98,6 +99,7 @@ EXTRA_libcipher_la_SOURCES = \
 	md4.c \
 	md5.c \
 	poly1305-s390x.S poly1305-amd64-avx512.S \
+	poly1305-p10le.s \
 	rijndael.c rijndael-internal.h rijndael-tables.h   \
 	rijndael-aesni.c rijndael-padlock.c                \
 	rijndael-amd64.S rijndael-arm.S                    \

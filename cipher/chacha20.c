@@ -134,6 +134,7 @@ typedef struct CHACHA20_context_s
   unsigned int use_avx512:1;
   unsigned int use_neon:1;
   unsigned int use_ppc:1;
+  unsigned int use_p10:1;
   unsigned int use_s390x:1;
 } CHACHA20_context_t;
 
@@ -179,6 +180,12 @@ unsigned int _gcry_chacha20_amd64_avx512_blocks16(u32 *state, byte *dst,
 #endif /* USE_AVX2 */
 
 #ifdef USE_PPC_VEC
+
+#ifndef WORDS_BIGENDIAN
+unsigned int _gcry_chacha20_p10le_8x(u32 *state, byte *dst,
+				     const byte *src,
+				     size_t len);
+#endif
 
 unsigned int _gcry_chacha20_ppc8_blocks4(u32 *state, byte *dst,
 					 const byte *src,
@@ -495,6 +502,9 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 #endif
 #ifdef USE_PPC_VEC
   ctx->use_ppc = (features & HWF_PPC_ARCH_2_07) != 0;
+# ifndef WORDS_BIGENDIAN
+  ctx->use_p10 = (features & HWF_PPC_ARCH_3_10) != 0;
+# endif
 #endif
 #ifdef USE_S390X_VX
   ctx->use_s390x = (features & HWF_S390X_VX) != 0;
@@ -605,7 +615,22 @@ do_chacha20_encrypt_stream_tail (CHACHA20_context_t *ctx, byte *outbuf,
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
       nblocks -= nblocks % 4;
-      nburn = _gcry_chacha20_ppc8_blocks4(ctx->input, outbuf, inbuf, nblocks);
+#ifndef WORDS_BIGENDIAN
+      /*
+       * A workaround to skip counter overflow. This is rare.
+       */
+      if (ctx->use_p10 && nblocks >= 8
+          && ((u64)ctx->input[12] + nblocks) <= 0xffffffffU)
+        {
+          size_t len = nblocks * CHACHA20_BLOCK_SIZE;
+          nburn = _gcry_chacha20_p10le_8x(ctx->input, outbuf, inbuf, len);
+        }
+      else
+#endif
+        {
+          nburn = _gcry_chacha20_ppc8_blocks4(ctx->input, outbuf, inbuf,
+                                              nblocks);
+        }
       burn = nburn > burn ? nburn : burn;
       length -= nblocks * CHACHA20_BLOCK_SIZE;
       outbuf += nblocks * CHACHA20_BLOCK_SIZE;
@@ -801,6 +826,11 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
     }
 #endif
 #ifdef USE_PPC_VEC_POLY1305
+  else if (ctx->use_ppc && ctx->use_p10)
+    {
+      /* Skip stitched chacha20-poly1305 for P10. */
+      authptr = NULL;
+    }
   else if (ctx->use_ppc && length >= CHACHA20_BLOCK_SIZE * 4)
     {
       nburn = _gcry_chacha20_ppc8_blocks4(ctx->input, outbuf, inbuf, 4);
@@ -1084,6 +1114,13 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
       skip_stitched = 1;
     }
 #endif
+#ifdef USE_PPC_VEC_POLY1305
+  if (ctx->use_ppc && ctx->use_p10)
+    {
+      /* Skip stitched chacha20-poly1305 for P10. */
+      skip_stitched = 1;
+    }
+#endif
 
 #ifdef USE_AVX2
   if (!skip_stitched && ctx->use_avx2 && length >= 8 * CHACHA20_BLOCK_SIZE)
@@ -1154,6 +1191,7 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 #endif
 
 #ifdef USE_PPC_VEC_POLY1305
+  /* skip stitch for p10 */
   if (!skip_stitched && ctx->use_ppc && length >= 4 * CHACHA20_BLOCK_SIZE)
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;

@@ -43,6 +43,18 @@
 # define POLY1305_USE_AVX512 1
 #endif
 
+/* POLY1305_USE_PPC_VEC indicates whether to enable PowerPC vector code. */
+#undef POLY1305_USE_PPC_VEC
+#ifdef ENABLE_PPC_CRYPTO_SUPPORT
+# if defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+     defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC) && \
+     !defined(WORDS_BIGENDIAN)
+#  if __GNUC__ >= 4
+#   define POLY1305_USE_PPC_VEC 1
+#  endif
+# endif
+#endif
+
 
 typedef struct
 {
@@ -58,6 +70,9 @@ typedef struct poly1305_context_s
   unsigned int leftover;
 #ifdef POLY1305_USE_AVX512
   unsigned int use_avx512:1;
+#endif
+#ifdef POLY1305_USE_PPC_VEC
+  unsigned int use_p10:1;
 #endif
 } poly1305_context_t;
 
