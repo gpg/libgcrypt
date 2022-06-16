@@ -1642,6 +1642,200 @@ onestep_kdf_mac_close (onestep_kdf_mac_ctx_t o)
   xfree (o);
 }
 
+typedef struct hkdf_context *hkdf_ctx_t;
+
+/* Hkdf context */
+struct hkdf_context {
+  int algo;
+  gcry_mac_hd_t md;
+  int mode;
+  unsigned int blklen;
+  unsigned int outlen;
+  const void *input;
+  size_t inputlen;
+  const void *salt;
+  size_t saltlen;
+  const void *fixedinfo;
+  size_t fixedinfolen;
+  unsigned char *prk;
+};
+
+static gpg_err_code_t
+hkdf_open (gcry_kdf_hd_t *hd, int macalgo,
+           const unsigned long *param, unsigned int paramlen,
+           const void *input, size_t inputlen,
+           const void *salt, size_t saltlen,
+           const void *fixedinfo, size_t fixedinfolen)
+{
+  gpg_err_code_t ec;
+  unsigned int outlen;
+  int mode;
+  hkdf_ctx_t h;
+  size_t n;
+  unsigned char *prk;
+
+  if (paramlen != 1 && paramlen != 2)
+    return GPG_ERR_INV_VALUE;
+  else
+    {
+      outlen = (unsigned int)param[0];
+      /* MODE: support extract only, expand only: FIXME*/
+      if (paramlen == 2)
+        mode = (unsigned int)param[1];
+      else
+        mode = 0;
+    }
+
+  n = sizeof (struct hkdf_context);
+  h = xtrymalloc (n);
+  if (!h)
+    return gpg_err_code_from_errno (errno);
+
+  h->blklen = _gcry_mac_get_algo_maclen (macalgo);
+  if (!h->blklen)
+    {
+      xfree (h);
+      return GPG_ERR_MAC_ALGO;
+    }
+  ec = _gcry_mac_open (&h->md, macalgo, 0, NULL);
+  if (ec)
+    {
+      xfree (h);
+      return ec;
+    }
+  prk = xtrymalloc (h->blklen);
+  if (!prk)
+    {
+      _gcry_mac_close (h->md);
+      xfree (h);
+      return gpg_err_code_from_errno (errno);
+    }
+  h->prk = prk;
+  h->algo = GCRY_KDF_HKDF;
+  h->outlen = outlen;
+  h->mode = mode;
+  h->input = input;
+  h->inputlen = inputlen;
+  h->salt = salt;
+  h->saltlen = saltlen;
+  h->fixedinfo = fixedinfo;
+  h->fixedinfolen = fixedinfolen;
+
+  *hd = (void *)h;
+  return 0;
+}
+
+
+static gpg_err_code_t
+hkdf_compute (hkdf_ctx_t h, const struct gcry_kdf_thread_ops *ops)
+{
+  gcry_err_code_t ec;
+  size_t len = h->blklen;
+
+  if (ops != NULL)
+    return GPG_ERR_INV_VALUE;
+
+  /* Extract */
+  ec = _gcry_mac_setkey (h->md, h->salt, h->saltlen);
+  if (ec)
+    return ec;
+
+  ec = _gcry_mac_write (h->md, h->input, h->inputlen);
+  if (ec)
+    return ec;
+
+  ec = _gcry_mac_read (h->md, h->prk, &len);
+  if (ec)
+    return ec;
+
+  ec = _gcry_mac_ctl (h->md, GCRYCTL_RESET, NULL, 0);
+  if (ec)
+    return ec;
+
+  return 0;
+}
+
+static gpg_err_code_t
+hkdf_final (hkdf_ctx_t h, size_t resultlen, void *result)
+{
+  unsigned char counter = 0;
+  int i;
+  gcry_err_code_t ec;
+  size_t len = h->blklen;
+
+  if (resultlen != h->outlen)
+    return GPG_ERR_INV_VALUE;
+
+  /* Expand */
+  ec = _gcry_mac_setkey (h->md, h->prk, h->blklen);
+  if (ec)
+    return ec;
+
+  /* We re-use the memory of ->prk.  */
+
+  for (i = 0; i < h->outlen / h->blklen; i++)
+    {
+      counter++;
+      if (i)
+        {
+          ec = _gcry_mac_write (h->md, h->prk, h->blklen);
+          if (ec)
+            return ec;
+        }
+      if (h->fixedinfo)
+        {
+          ec = _gcry_mac_write (h->md, h->fixedinfo, h->fixedinfolen);
+          if (ec)
+            return ec;
+        }
+      ec = _gcry_mac_write (h->md, &counter, 1);
+      if (ec)
+        return ec;
+      ec = _gcry_mac_read (h->md, h->prk, &len);
+      if (ec)
+        return ec;
+      memcpy ((char *)result + h->blklen * i, h->prk, len);
+      resultlen -= h->blklen;
+      ec = _gcry_mac_ctl (h->md, GCRYCTL_RESET, NULL, 0);
+      if (ec)
+        return ec;
+    }
+
+  if (resultlen)
+    {
+      counter++;
+      len = resultlen;
+      if (i)
+        {
+          ec = _gcry_mac_write (h->md, h->prk, h->blklen);
+          if (ec)
+            return ec;
+        }
+      if (h->fixedinfo)
+        {
+          ec = _gcry_mac_write (h->md, h->fixedinfo, h->fixedinfolen);
+          if (ec)
+            return ec;
+        }
+      ec = _gcry_mac_write (h->md, &counter, 1);
+      if (ec)
+        return ec;
+      ec = _gcry_mac_read (h->md, (char *)result + h->blklen * i, &len);
+      if (ec)
+        return ec;
+    }
+
+  return 0;
+}
+
+static void
+hkdf_close (hkdf_ctx_t h)
+{
+  _gcry_mac_close (h->md);
+  xfree (h->prk);
+  xfree (h);
+}
+
 struct gcry_kdf_handle {
   int algo;
   /* And algo specific parts come.  */
@@ -1703,6 +1897,17 @@ _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
         }
       break;
 
+    case GCRY_KDF_HKDF:
+      if (!inputlen || !paramlen)
+        ec = GPG_ERR_INV_VALUE;
+      else
+        {
+          (void)salt;
+          ec = hkdf_open (hd, subalgo, param, paramlen,
+                          input, inputlen, key, keylen, ad, adlen);
+        }
+      break;
+
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
@@ -1732,6 +1937,10 @@ _gcry_kdf_compute (gcry_kdf_hd_t h, const struct gcry_kdf_thread_ops *ops)
 
     case GCRY_KDF_ONESTEP_KDF_MAC:
       ec = onestep_kdf_mac_compute ((onestep_kdf_mac_ctx_t)(void *)h, ops);
+      break;
+
+    case GCRY_KDF_HKDF:
+      ec = hkdf_compute ((hkdf_ctx_t)(void *)h, ops);
       break;
 
     default:
@@ -1767,6 +1976,10 @@ _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
                                   resultlen, result);
       break;
 
+    case GCRY_KDF_HKDF:
+      ec = hkdf_final ((hkdf_ctx_t)(void *)h, resultlen, result);
+      break;
+
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
@@ -1796,11 +2009,15 @@ _gcry_kdf_close (gcry_kdf_hd_t h)
       onestep_kdf_mac_close ((onestep_kdf_mac_ctx_t)(void *)h);
       break;
 
+    case GCRY_KDF_HKDF:
+      hkdf_close ((hkdf_ctx_t)(void *)h);
+      break;
+
     default:
       break;
     }
 }
-
+
 /* Check one KDF call with ALGO and HASH_ALGO using the regular KDF
  * API. (passphrase,passphraselen) is the password to be derived,
  * (salt,saltlen) the salt for the key derivation,
