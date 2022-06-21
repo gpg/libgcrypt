@@ -23,11 +23,22 @@
 # the driver is only used for cross-compiling.
 tests_bin = \
         version t-secmem mpitests t-sexp t-convert \
-	t-mpi-bit t-mpi-point curves t-lock \
+	t-mpi-bit t-mpi-point t-lock \
 	prime basic keygen pubkey hmac hashtest t-kdf keygrip \
-	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 \
-	t-dsa t-ecdsa t-rsa-pss t-rsa-15 \
-	t-ed25519 t-cv25519 t-x448 t-ed448
+	aeswrap random
+
+if USE_RSA
+tests_bin += pkcs1v2 t-rsa-pss t-rsa-15
+endif
+
+if USE_DSA
+tests_bin += fips186-dsa dsa-rfc6979 t-dsa
+endif
+
+if USE_ECC
+tests_bin += curves t-ecdsa t-ed25519 t-cv25519 t-x448 t-ed448
+endif
+
 
 tests_bin_last = benchmark bench-slope
 

@@ -2860,24 +2860,28 @@ if test "$found" = "1" ; then
 fi
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_DSA, [test "$found" = "1"])
 if test "$found" = "1" ; then
    GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS dsa.lo"
    AC_DEFINE(USE_DSA, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(rsa, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_RSA, [test "$found" = "1"])
 if test "$found" = "1" ; then
    GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS rsa.lo"
    AC_DEFINE(USE_RSA, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(elgamal, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_ELGAMAL, [test "$found" = "1"])
 if test "$found" = "1" ; then
    GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS elgamal.lo"
    AC_DEFINE(USE_ELGAMAL, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(ecc, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_ECC, [test "$found" = "1"])
 if test "$found" = "1" ; then
    GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS \
                           ecc.lo ecc-curves.lo ecc-misc.lo \
