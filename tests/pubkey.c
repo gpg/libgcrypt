@@ -31,6 +31,7 @@
 
 static int in_fips_mode;
 
+#if USE_RSA
 /* Sample RSA keys, taken from basic.c.  */
 
 static const char sample_private_key_1[] =
@@ -151,6 +152,7 @@ static const char sample_public_key_1[] =
 "  (e #010001#)\n"
 " )\n"
 ")\n";
+#endif /* USE_RSA */
 
 
 static void
@@ -169,6 +171,7 @@ show_sexp (const char *prefix, gcry_sexp_t a)
   gcry_free (buf);
 }
 
+#if USE_RSA
 /* from ../cipher/pubkey-util.c */
 static gpg_err_code_t
 _gcry_pk_util_get_nbits (gcry_sexp_t list, unsigned int *r_nbits)
@@ -196,6 +199,7 @@ _gcry_pk_util_get_nbits (gcry_sexp_t list, unsigned int *r_nbits)
   gcry_sexp_release (list);
   return 0;
 }
+#endif /* USE_RSA */
 
 /* Convert STRING consisting of hex characters into its binary
    representation and return it as an allocated buffer. The valid
@@ -250,6 +254,7 @@ extract_cmp_data (gcry_sexp_t sexp, const char *name, const char *expected)
 }
 
 
+#if USE_RSA || USE_ELGAMAL
 static void
 check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
 		  gcry_sexp_t plain0, gpg_err_code_t decrypt_fail_code)
@@ -350,7 +355,9 @@ check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data,
   check_keys_crypt (pkey, skey, plain, decrypt_fail_code);
   gcry_sexp_release (plain);
 }
+#endif /* USE_RSA || USE_ELGAMAL */
 
+#if USE_RSA
 static void
 get_keys_sample (gcry_sexp_t *pkey, gcry_sexp_t *skey, int secret_variant)
 {
@@ -440,8 +447,10 @@ get_keys_x931_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   *pkey = pub_key;
   *skey = sec_key;
 }
+#endif /* USE_RSA */
 
 
+#if USE_ELGAMAL
 static void
 get_elg_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int fixed_x)
 {
@@ -485,8 +494,10 @@ get_elg_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int fixed_x)
   *pkey = pub_key;
   *skey = sec_key;
 }
+#endif /* USE_ELGAMAL */
 
 
+#if USE_DSA
 static void
 get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int transient_key)
 {
@@ -719,6 +730,7 @@ get_dsa_key_fips186_with_seed_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   *pkey = pub_key;
   *skey = sec_key;
 }
+#endif /* USE_ELGAMAL */
 
 
 static void
@@ -728,6 +740,12 @@ check_run (void)
   gcry_sexp_t pkey, skey;
   int variant;
 
+  (void) err;
+  (void) pkey;
+  (void) skey;
+  (void) variant;
+
+#if USE_RSA
   pkey = skey = NULL;
   for (variant=0; variant < 3; variant++)
     {
@@ -745,7 +763,9 @@ check_run (void)
       gcry_sexp_release (skey);
       pkey = skey = NULL;
     }
+#endif /* USE_RSA */
 
+#if USE_RSA
   if (verbose)
     fprintf (stderr, "Checking generated RSA key.\n");
   get_keys_new (&pkey, &skey);
@@ -761,7 +781,9 @@ check_run (void)
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
   pkey = skey = NULL;
+#endif /* USE_RSA */
 
+#if USE_ELGAMAL
   if (verbose)
     fprintf (stderr, "Checking generated Elgamal key.\n");
   get_elg_key_new (&pkey, &skey, 0);
@@ -779,7 +801,9 @@ check_run (void)
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
   pkey = skey = NULL;
+#endif /* USE_ELGAMAL */
 
+#if USE_DSA
   if (verbose)
     fprintf (stderr, "Generating DSA key.\n");
   get_dsa_key_new (&pkey, &skey, 0);
@@ -849,10 +873,12 @@ check_run (void)
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
   pkey = skey = NULL;
+#endif /* USE_DSA */
 }
 
 
 
+#ifdef USE_RSA
 static gcry_mpi_t
 key_param_from_sexp (gcry_sexp_t sexp, const char *topname, const char *name)
 {
@@ -1080,9 +1106,11 @@ leave:
   gcry_sexp_release (pub_key);
   gcry_sexp_release (sec_key);
 }
+#endif /* USE_RSA */
 
 
 
+#if USE_ECC
 static void
 check_ecc_sample_key (void)
 {
@@ -1296,6 +1324,7 @@ check_ed25519ecdsa_sample_key (void)
   gcry_sexp_release (key);
   gcry_sexp_release (hash);
 }
+#endif /* USE_ECC */
 
 
 int
@@ -1326,12 +1355,16 @@ main (int argc, char **argv)
   for (i=0; i < 2; i++)
     check_run ();
 
+#ifdef USE_RSA
   for (i=0; i < 4; i++)
     check_x931_derived_key (i);
+#endif /* USE_RSA */
 
+#ifdef USE_ECC
   check_ecc_sample_key ();
   if (!in_fips_mode)
     check_ed25519ecdsa_sample_key ();
+#endif /* USE_ECC */
 
   return !!error_count;
 }
