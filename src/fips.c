@@ -554,8 +554,12 @@ run_pubkey_selftests (int extended)
 {
   static int algos[] =
     {
+#if USE_RSA
       GCRY_PK_RSA,
+#endif /* USE_RSA */
+#if USE_ECC
       GCRY_PK_ECC,
+#endif /* USE_ECC */
       0
     };
   int idx;
