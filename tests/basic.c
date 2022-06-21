@@ -206,6 +206,22 @@ show_mac_not_available (int algo)
 }
 
 
+static void
+show_pk_not_available (int algo)
+{
+    static int list[100];
+    static int listlen;
+    int i;
+
+    for (i = 0; i < listlen; i++)
+      if (algo == list[i])
+        return; /* Note already printed. */
+    if (listlen < DIM (list))
+      list[listlen++] = algo;
+    show_note ("PK algorithm %d not available - skipping tests", algo);
+}
+
+
 
 static void
 progress_handler (void *cb_data, const char *what, int printchar,
@@ -9428,6 +9444,8 @@ check_gost28147_cipher_basic (enum gcry_cipher_algos algo)
         gcry_cipher_close (hdd);
     }
 
+#else
+  (void) algo;
 #endif
 }
 
@@ -17079,7 +17097,7 @@ check_pubkey (void)
               }
             else
               {
-                fail ("gcry_pk_test_algo failed: %s\n", gpg_strerror (err));
+                show_pk_not_available (pubkeys[i].id);
                 continue;
               }
           }
@@ -17090,7 +17108,10 @@ check_pubkey (void)
 
   if (verbose)
     fprintf (stderr, "Starting additional public key check.\n");
-  check_one_pubkey_new (i);
+  if (gcry_pk_test_algo (GCRY_PK_RSA) == 0)
+    check_one_pubkey_new (i);
+  else
+    show_pk_not_available (GCRY_PK_RSA);
   if (verbose)
     fprintf (stderr, "Completed additional public key check.\n");
 
