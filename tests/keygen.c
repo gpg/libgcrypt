@@ -69,6 +69,7 @@ show_sexp (const char *prefix, gcry_sexp_t a)
 }
 
 
+#if USE_RSA
 static void
 show_mpi (const char *prefix, gcry_mpi_t a)
 {
@@ -131,11 +132,13 @@ check_generated_rsa_key (gcry_sexp_t key, unsigned long expected_e)
       gcry_sexp_release (skey);
     }
 }
+#endif /* USE_RSA */
 
 
 static void
 check_rsa_keys (void)
 {
+#if USE_RSA
   gcry_sexp_t keyparm, key;
   int rc;
 
@@ -249,12 +252,14 @@ check_rsa_keys (void)
   if (!rc)
     check_generated_rsa_key (key, 0); /* We don't expect a constant exponent. */
   gcry_sexp_release (key);
+#endif /* USE_RSA */
 }
 
 
 static void
 check_elg_keys (void)
 {
+#if USE_ELGAMAL
   gcry_sexp_t keyparm, key;
   int rc;
 
@@ -276,12 +281,14 @@ check_elg_keys (void)
   if (verbose > 1)
     show_sexp ("1024 bit Elgamal key:\n", key);
   gcry_sexp_release (key);
+#endif /* USE_ELGAMAL */
 }
 
 
 static void
 check_dsa_keys (void)
 {
+#if USE_DSA
   gcry_sexp_t keyparm, key;
   int rc;
   int i;
@@ -389,9 +396,11 @@ check_dsa_keys (void)
   if (verbose > 1)
     show_sexp ("2048 bit DSA key:\n", key);
   gcry_sexp_release (key);
+#endif /* USE_DSA */
 }
 
 
+#if USE_ECC
 static void
 check_generated_ecc_key (gcry_sexp_t key)
 {
@@ -425,11 +434,13 @@ check_generated_ecc_key (gcry_sexp_t key)
       fail ("gcry_pk_testkey failed on key pair: %s\n", gpg_strerror (rc));
   }
 }
+#endif /* USE_ECC */
 
 
 static void
 check_ecc_keys (void)
 {
+#if USE_ECC
   const char *curves[] = { "NIST P-521", "NIST P-384", "NIST P-256",
                            "Ed25519", NULL };
   int testno;
@@ -611,6 +622,7 @@ check_ecc_keys (void)
       check_generated_ecc_key (key);
     }
   gcry_sexp_release (key);
+#endif /* USE_ECC */
 }
 
 
