@@ -71,6 +71,7 @@ static int with_progress;
 static int single_char_progress;
 
 
+#if USE_DSA
 static const char sample_private_dsa_key_1024[] =
 "(private-key\n"
 "  (dsa\n"
@@ -256,8 +257,10 @@ static const char sample_public_dsa_key_3072[] =
        "3DB98C4297CB678046ED55C0DBE60BF7142C594603E4D705DC3D17270F9F086EC561"
        "2703D518D8D49FF0EBE6#)\n"
 "))\n";
+#endif /* USE_DSA */
 
 
+#if USE_ELGAMAL
 static const char sample_public_elg_key_1024[] =
 "(public-key"
 "  (elg"
@@ -392,6 +395,7 @@ static const char sample_private_elg_key_3072[] =
 "   (x #03A73F0389E470AAC831B039F8AA0C4EBD3A47DD083E32EEA08E4911236CD597C272"
        "9823D47A51C8535DA52FE6DAB3E8D1C20D#)"
 "  ))";
+#endif /* USE_ELGAMAL */
 
 
 #define BUG() do {fprintf ( stderr, "Ooops at %s:%d\n", __FILE__ , __LINE__ );\
@@ -1136,6 +1140,7 @@ cipher_bench ( const char *algoname )
 static void
 rsa_bench (int iterations, int print_header, int no_blinding)
 {
+#if USE_RSA
   gpg_error_t err;
   int p_sizes[] = { 1024, 2048, 3072, 4096 };
   int testno;
@@ -1257,12 +1262,18 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       gcry_sexp_release (sec_key);
       gcry_sexp_release (pub_key);
     }
+#else /* USE_RSA */
+  (void) iterations;
+  (void) print_header;
+  (void) no_blinding;
+#endif /* USE_RSA */
 }
 
 
 static void
 elg_bench (int iterations, int print_header)
 {
+#ifdef USE_ELGAMAL
   gpg_error_t err;
   gcry_sexp_t pub_key[3], sec_key[3];
   int p_sizes[3] = { 1024, 2048, 3072 };
@@ -1374,12 +1385,17 @@ elg_bench (int iterations, int print_header)
       gcry_sexp_release (sec_key[i]);
       gcry_sexp_release (pub_key[i]);
     }
+#else /* USE_ELGAMAL */
+  (void) iterations;
+  (void) print_header;
+#endif /* USE_ELGAMAL */
 }
 
 
 static void
 dsa_bench (int iterations, int print_header)
 {
+#ifdef USE_DSA
   gpg_error_t err;
   gcry_sexp_t pub_key[3], sec_key[3];
   int p_sizes[3] = { 1024, 2048, 3072 };
@@ -1485,6 +1501,10 @@ dsa_bench (int iterations, int print_header)
       gcry_sexp_release (sec_key[i]);
       gcry_sexp_release (pub_key[i]);
     }
+#else
+  (void) iterations;
+  (void) print_header;
+#endif /* USE_DSA */
 }
 
 
@@ -1648,6 +1668,9 @@ ecc_bench (int iterations, int print_header)
       gcry_sexp_release (sec_key);
       gcry_sexp_release (pub_key);
     }
+#else
+  (void) iterations;
+  (void) print_header;
 #endif /*USE_ECC*/
 }
 
