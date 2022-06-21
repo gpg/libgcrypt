@@ -862,6 +862,8 @@ check_openpgp (void)
       /* MD5 isn't supported in fips mode */
       if (in_fips_mode && tv[tvidx].hashalgo == GCRY_MD_MD5)
         continue;
+      if (gcry_md_test_algo (tv[tvidx].hashalgo) != 0)
+        continue;
       if (verbose)
         fprintf (stderr, "checking S2K test vector %d\n", tvidx);
       assert (tv[tvidx].dklen <= sizeof outbuf);
@@ -1096,6 +1098,8 @@ check_pbkdf2 (void)
   for (tvidx=0; tvidx < DIM(tv); tvidx++)
     {
       if (tv[tvidx].disabled)
+        continue;
+      if (gcry_md_test_algo (tv[tvidx].hashalgo) != 0)
         continue;
       if (verbose)
         fprintf (stderr, "checking PBKDF2 test vector %d algo %d\n", tvidx,
