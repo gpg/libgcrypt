@@ -1875,17 +1875,7 @@ check_hkdf (void)
                        info, infolen,
                        expectedlen, out);
   if (err)
-    {
-      if (in_fips_mode && saltlen < 14)
-        {
-          if (verbose)
-            fprintf (stderr,
-                     "  shorter salt (%lu) rejected correctly in fips mode\n",
-                     saltlen);
-        }
-      else
-        fail ("HKDF test %d failed: %s\n", count, gpg_strerror (err));
-    }
+    fail ("HKDF test %d failed: %s\n", count, gpg_strerror (err));
   else if (memcmp (out, expected, expectedlen))
     {
       fail ("HKDF test %d failed: mismatch\n", count);
