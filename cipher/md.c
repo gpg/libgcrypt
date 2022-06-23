@@ -903,9 +903,6 @@ prepare_macpads (gcry_md_hd_t a, const unsigned char *key, size_t keylen)
 {
   GcryDigestEntry *r;
 
-  if (fips_mode () && keylen < 14)
-    return GPG_ERR_INV_VALUE;
-
   if (!a->ctx->list)
     return GPG_ERR_DIGEST_ALGO; /* Might happen if no algo is enabled.  */
 
