@@ -1651,6 +1651,30 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
         }
       break;
 
+    case PRIV_CIPHERCTL_GET_COUNTER: /* (private)  */
+      /* This is the input block as used in CTR mode which has
+         initially been set as IV.  The returned format is:
+           1 byte  Actual length of the block in bytes.
+           n byte  The block.
+         If the provided buffer is too short, an error is returned. */
+      if (buflen < (1 + h->spec->blocksize))
+        rc = GPG_ERR_TOO_SHORT;
+      else
+        {
+          unsigned char *ctrp;
+          unsigned char *dst = buffer;
+          int n = h->unused;
+
+          if (!n)
+            n = h->spec->blocksize;
+          gcry_assert (n <= h->spec->blocksize);
+          *dst++ = n;
+          ctrp = h->u_ctr.ctr + h->spec->blocksize - n;
+          while (n--)
+            *dst++ = *ctrp++;
+        }
+      break;
+
     case GCRYCTL_SET_SBOX:
       if (h->spec->set_extra_info)
         rc = h->spec->set_extra_info

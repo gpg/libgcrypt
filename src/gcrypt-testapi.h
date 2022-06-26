@@ -41,6 +41,7 @@
 /* For use with gcry_cipher_ctl:  */
 #define PRIV_CIPHERCTL_DISABLE_WEAK_KEY   61
 #define PRIV_CIPHERCTL_GET_INPUT_VECTOR   62
+#define PRIV_CIPHERCTL_GET_COUNTER        63
 
 
 /* Private interfaces for testing of random-drbg.c. */
