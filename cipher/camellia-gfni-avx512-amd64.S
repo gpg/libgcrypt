@@ -972,6 +972,8 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 		     %zmm15, %zmm14, %zmm13, %zmm12, %zmm11, %zmm10, %zmm9,
 		     %zmm8, %rsi);
 
+	clear_regs();
+
 	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_ctr_enc,.-_gcry_camellia_gfni_avx512_ctr_enc;)
@@ -1031,6 +1033,8 @@ _gcry_camellia_gfni_avx512_cbc_dec:
 
 	/* store new IV */
 	vmovdqu64 %xmm16, (0)(%r9);
+
+	clear_regs();
 
 	ret_spec_stop;
 	CFI_ENDPROC();
@@ -1102,6 +1106,8 @@ _gcry_camellia_gfni_avx512_cfb_dec:
 	write_output(%zmm7, %zmm6, %zmm5, %zmm4, %zmm3, %zmm2, %zmm1, %zmm0,
 		     %zmm15, %zmm14, %zmm13, %zmm12, %zmm11, %zmm10, %zmm9,
 		     %zmm8, %rsi);
+
+	clear_regs();
 
 	ret_spec_stop;
 	CFI_ENDPROC();
@@ -1254,6 +1260,8 @@ _gcry_camellia_gfni_avx512_ocb_enc:
 		     %zmm15, %zmm14, %zmm13, %zmm12, %zmm11, %zmm10, %zmm9,
 		     %zmm8, %rsi);
 
+	clear_regs();
+
 	popq %rbx;
 	CFI_RESTORE(%rbx);
 	popq %r15;
@@ -1264,6 +1272,7 @@ _gcry_camellia_gfni_avx512_ocb_enc:
 	CFI_RESTORE(%r12);
 	popq %r12;
 	CFI_RESTORE(%r13);
+
 	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_ocb_enc,.-_gcry_camellia_gfni_avx512_ocb_enc;)
@@ -1420,6 +1429,8 @@ _gcry_camellia_gfni_avx512_ocb_dec:
 	vpternlogq $0x96, (%r8), %xmm0, %xmm8;
 	vmovdqu64 %xmm8, (%r8);
 
+	clear_regs();
+
 	popq %rbx;
 	CFI_RESTORE(%rbx);
 	popq %r15;
@@ -1430,6 +1441,7 @@ _gcry_camellia_gfni_avx512_ocb_dec:
 	CFI_RESTORE(%r12);
 	popq %r12;
 	CFI_RESTORE(%r13);
+
 	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_ocb_dec,.-_gcry_camellia_gfni_avx512_ocb_dec;)
