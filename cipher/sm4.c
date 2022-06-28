@@ -784,7 +784,7 @@ sm4_get_crypt_blk1_16_fn(SM4_context *ctx)
 {
   if (0)
     ;
-#ifdef USE_AESNI_AVX
+#ifdef USE_GFNI_AVX2
   else if (ctx->use_gfni_avx2)
     {
       return &sm4_gfni_avx2_crypt_blk1_16;
