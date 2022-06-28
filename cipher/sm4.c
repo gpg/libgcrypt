@@ -311,9 +311,9 @@ sm4_aesni_avx2_crypt_blk1_16(const void *rk, byte *out, const byte *in,
 #endif /* USE_AESNI_AVX2 */
 
 #ifdef USE_GFNI_AVX2
-extern void _gcry_sm4_gfni_avx_expand_key(const byte *key, u32 *rk_enc,
-					  u32 *rk_dec, const u32 *fk,
-					  const u32 *ck) ASM_FUNC_ABI;
+extern void _gcry_sm4_gfni_avx2_expand_key(const byte *key, u32 *rk_enc,
+                                           u32 *rk_dec, const u32 *fk,
+                                           const u32 *ck) ASM_FUNC_ABI;
 
 extern void _gcry_sm4_gfni_avx2_ctr_enc(const u32 *rk_enc, byte *out,
 					const byte *in,
@@ -516,11 +516,11 @@ sm4_expand_key (SM4_context *ctx, const byte *key)
   u32 rk[4];
   int i;
 
-#ifdef USE_GFNI_AVX
-  if (ctx->use_gfni_avx)
+#ifdef USE_GFNI_AVX2
+  if (ctx->use_gfni_avx2)
     {
-      _gcry_sm4_gfni_avx_expand_key (key, ctx->rkey_enc, ctx->rkey_dec,
-				     fk, ck);
+      _gcry_sm4_gfni_avx2_expand_key (key, ctx->rkey_enc, ctx->rkey_dec,
+                                      fk, ck);
       return;
     }
 #endif
