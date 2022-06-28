@@ -1,4 +1,4 @@
-/* camellia-gfni-avx512-amd64.h - GFNI/AVX512 implementation of Camellia
+/* camellia-gfni-avx512-amd64.S - GFNI/AVX512 implementation of Camellia
  *
  * Copyright (C) 2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
@@ -622,11 +622,6 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 .Lbswap128_mask:
 	.byte 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 
-	vbroadcasti64x2 .Lcounter4444_lo rRIP, %zmm22;
-	vbroadcasti64x2 .Lcounter8888_lo rRIP, %zmm23;
-	vbroadcasti64x2 .Lcounter16161616_lo rRIP, %zmm24;
-	vbroadcasti64x2 .Lcounter1111_hi rRIP, %zmm25;
-
 .Lbyte_ones:
 	.byte 1, 1, 1, 1, 1, 1, 1, 1
 
@@ -1155,7 +1150,6 @@ _gcry_camellia_gfni_avx512_ocb_enc:
 	  vinserti64x2 $2, %xmm30, %zmm16, %zmm16; \
 	  vpxorq (l3reg), %xmm30, %xmm30; \
 	  vinserti64x2 $3, %xmm30, %zmm16, %zmm16; \
-	  vpxorq zplain, %zmm31, %zmm31; \
 	  vpxorq zplain, %zmm16, zreg; \
 	  vmovdqu64 %zmm16, (n * 64)(%rsi);
 
