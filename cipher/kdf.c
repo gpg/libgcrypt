@@ -1699,7 +1699,10 @@ hkdf_open (gcry_kdf_hd_t *hd, int macalgo,
     }
 
   if (outlen > 255 * h->blklen)
-    return GPG_ERR_INV_VALUE;
+    {
+      xfree (h);
+      return GPG_ERR_INV_VALUE;
+    }
 
   ec = _gcry_mac_open (&h->md, macalgo, 0, NULL);
   if (ec)
