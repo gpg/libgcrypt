@@ -17098,8 +17098,8 @@ check_pubkey (void)
             else
               {
                 show_pk_not_available (pubkeys[i].id);
-                continue;
               }
+            continue;
           }
         check_one_pubkey (i, pubkeys[i]);
       }
