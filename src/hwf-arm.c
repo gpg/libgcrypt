@@ -1,5 +1,5 @@
 /* hwf-arm.c - Detect hardware features - ARM part
- * Copyright (C) 2013,2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013,2019,2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -27,6 +27,10 @@
 #if defined(HAVE_SYS_AUXV_H) && (defined(HAVE_GETAUXVAL) || \
     defined(HAVE_ELF_AUX_INFO))
 #include <sys/auxv.h>
+#endif
+#if defined(__APPLE__) && defined(HAVE_SYS_SYSCTL_H) && \
+    defined(HAVE_SYSCTLBYNAME)
+#include <sys/sysctl.h>
 #endif
 
 #include "g10lib.h"
@@ -385,6 +389,63 @@ detect_arm_proc_cpuinfo(unsigned int *broken_hwfs)
 
 #endif /* __linux__ */
 
+
+#undef HAS_APPLE_SYSCTLBYNAME
+#if defined(__APPLE__) && defined(HAVE_SYS_SYSCTL_H) && \
+    defined(HAVE_SYSCTLBYNAME)
+#define HAS_APPLE_SYSCTLBYNAME 1
+
+static unsigned int
+detect_arm_apple_sysctlbyname (void)
+{
+  static const struct
+  {
+    const char *feat_name;
+    unsigned int hwf_flag;
+  } hw_optional_arm_features[] =
+    {
+#ifdef ENABLE_NEON_SUPPORT
+      { "hw.optional.neon",            HWF_ARM_NEON },
+      { "hw.optional.AdvSIMD",         HWF_ARM_NEON },
+#endif
+#ifdef ENABLE_ARM_CRYPTO_SUPPORT
+      { "hw.optional.arm.FEAT_AES",    HWF_ARM_AES },
+      { "hw.optional.arm.FEAT_SHA1",   HWF_ARM_SHA1 },
+      { "hw.optional.arm.FEAT_SHA256", HWF_ARM_SHA2 },
+      { "hw.optional.arm.FEAT_PMULL",  HWF_ARM_PMULL },
+      { "hw.optional.arm.FEAT_SHA3",   HWF_ARM_SHA3 },
+      { "hw.optional.armv8_2_sha3",    HWF_ARM_SHA3 },
+      { "hw.optional.arm.FEAT_SHA512", HWF_ARM_SHA512 },
+      { "hw.optional.armv8_2_sha512",  HWF_ARM_SHA512 },
+#endif
+    };
+  unsigned int i;
+  unsigned int hwf = 0;
+
+  for (i = 0; i < DIM(hw_optional_arm_features); i++)
+    {
+      const char *name = hw_optional_arm_features[i].feat_name;
+      int sysctl_value = 0;
+      size_t value_size = sizeof(sysctl_value);
+
+      if (sysctlbyname (name, &sysctl_value, &value_size, NULL, 0) != 0)
+        continue;
+
+      if (value_size != sizeof(sysctl_value))
+        continue;
+
+      if (sysctl_value == 1)
+        {
+          hwf |= hw_optional_arm_features[i].hwf_flag;
+        }
+    }
+
+  return hwf;
+}
+
+#endif /* __APPLE__ */
+
+
 static unsigned int
 detect_arm_hwf_by_toolchain (void)
 {
@@ -414,7 +475,7 @@ detect_arm_hwf_by_toolchain (void)
 
 #endif /* __ARM_NEON */
 
-#if defined(__ARM_FEATURE_CRYPTO)
+#if defined(__ARM_FEATURE_CRYPTO) && defined(ENABLE_ARM_CRYPTO_SUPPORT)
   /* ARMv8 crypto extensions include support for PMULL, AES, SHA1 and SHA2
    * instructions. */
   ret |= HWF_ARM_PMULL;
@@ -462,6 +523,10 @@ _gcry_hwf_detect_arm (void)
 
 #if defined (HAS_PROC_CPUINFO)
   ret |= detect_arm_proc_cpuinfo (&broken_hwfs);
+#endif
+
+#if defined (HAS_APPLE_SYSCTLBYNAME)
+  ret |= detect_arm_apple_sysctlbyname ();
 #endif
 
   ret |= detect_arm_hwf_by_toolchain ();

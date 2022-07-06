@@ -805,7 +805,7 @@ AC_SEARCH_LIBS(setsockopt, [nsl])
 #### Checks for header files. ####
 ##################################
 
-AC_CHECK_HEADERS(unistd.h sys/auxv.h sys/random.h)
+AC_CHECK_HEADERS(unistd.h sys/auxv.h sys/random.h sys/sysctl.h)
 
 
 ##########################################
@@ -2210,7 +2210,7 @@ AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 AC_CHECK_FUNCS(strerror rand mmap getpagesize sysconf waitpid wait4)
 AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime syslog)
 AC_CHECK_FUNCS(syscall fcntl ftruncate flockfile getauxval elf_aux_info)
-AC_CHECK_FUNCS(explicit_bzero explicit_memset getentropy)
+AC_CHECK_FUNCS(explicit_bzero explicit_memset getentropy sysctlbyname)
 
 GNUPG_CHECK_MLOCK
 
