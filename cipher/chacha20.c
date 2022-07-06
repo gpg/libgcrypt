@@ -1076,7 +1076,11 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
 {
   CHACHA20_context_t *ctx = (void *) &c->context.c;
   unsigned int nburn, burn = 0;
+#if defined(USE_AVX512) || defined(USE_PPC_VEC_POLY1305)                  \
+  || defined(USE_AVX2) || defined(USE_SSSE3) || defined(USE_AARCH64_SIMD) \
+  || defined(USE_S390X_VX_POLY1305)
   int skip_stitched = 0;
+#endif
 
   if (!length)
     return 0;
