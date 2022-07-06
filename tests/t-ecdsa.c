@@ -225,10 +225,11 @@ one_test_sexp (const char *curvename, const char *sha_alg,
   gcry_ctx_t ctx = NULL;
   int md_algo;
   const char *data_tmpl;
+  char data_tmpl2[256];
   gcry_md_hd_t hd = NULL;
   gcry_sexp_t s_pk = NULL;
   gcry_sexp_t s_sk = NULL;
-  gcry_sexp_t s_sig= NULL;
+  gcry_sexp_t s_sig = NULL, s_sig2 = NULL;
   gcry_sexp_t s_tmp, s_tmp2;
   unsigned char *out_r = NULL;
   unsigned char *out_s = NULL;
@@ -373,6 +374,21 @@ one_test_sexp (const char *curvename, const char *sha_alg,
       goto leave;
     }
 
+  if (snprintf (data_tmpl2, sizeof(data_tmpl2),
+                "(data(flags raw)(hash %s %%b)(label %%b))",
+                gcry_md_algo_name(md_algo)) >= sizeof(data_tmpl2))
+    {
+      fail ("snprintf out of bounds");
+      goto leave;
+    }
+  err = gcry_pk_hash_sign (&s_sig2, data_tmpl2, s_sk, hd, ctx);
+  if (err)
+    {
+      fail ("gcry_pk_hash_sign with explicit hash algorithm %s failed: %s",
+            gcry_md_algo_name (md_algo), gpg_strerror (err));
+      goto leave;
+    }
+
   out_r_len = out_s_len = 0;
   out_s = out_r = NULL;
   s_tmp2 = NULL;
@@ -470,11 +486,20 @@ one_test_sexp (const char *curvename, const char *sha_alg,
       if (err)
         fail ("gcry_pk_hash_verify failed for test: %s",
               gpg_strerror (err));
+
+      /* TODO Verifying with data_tmpl2 crashes because gcry_pk_hash_verify()
+       * does not support specifying the hash algorithm explicitly. See
+       * https://dev.gnupg.org/T6066, which tracks this problem. */
+      err = gcry_pk_hash_verify (s_sig2, data_tmpl, s_pk, hd, ctx);
+      if (err)
+        fail ("gcry_pk_hash_verify with explicit hash algorithm %s failed: %s",
+              gcry_md_algo_name (md_algo), gpg_strerror (err));
     }
 
  leave:
   gcry_ctx_release (ctx);
   gcry_sexp_release (s_sig);
+  gcry_sexp_release (s_sig2);
   gcry_sexp_release (s_sk);
   gcry_sexp_release (s_pk);
   if (hd)
