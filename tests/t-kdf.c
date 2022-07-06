@@ -1490,6 +1490,64 @@ check_argon2 (void)
 }
 
 
+static void
+check_fips_indicators (void)
+{
+  enum gcry_kdf_algos fips_kdf_algos[] = {
+    GCRY_KDF_PBKDF2,
+  };
+  enum gcry_kdf_algos kdf_algos[] = {
+    GCRY_KDF_SIMPLE_S2K,
+    GCRY_KDF_SALTED_S2K,
+    GCRY_KDF_ITERSALTED_S2K,
+    GCRY_KDF_PBKDF1,
+    GCRY_KDF_PBKDF2,
+    GCRY_KDF_SCRYPT,
+    GCRY_KDF_ARGON2
+  };
+  size_t i, j;
+
+  for (i = 0; i < sizeof(kdf_algos) / sizeof(*kdf_algos); i++)
+    {
+      int is_fips_kdf_algo = 0;
+      gcry_error_t err = gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR_KDF, kdf_algos[i]);
+
+      if (verbose)
+        fprintf (stderr, "checking FIPS indicator for KDF %d: %s\n",
+                 kdf_algos[i], gcry_strerror (err));
+
+      for (j = 0; j < sizeof(fips_kdf_algos) / sizeof(*fips_kdf_algos); j++)
+        {
+          if (kdf_algos[i] == fips_kdf_algos[j])
+            {
+              is_fips_kdf_algo = 1;
+              break;
+            }
+        }
+
+      switch (err & GPG_ERR_CODE_MASK)
+        {
+          case GPG_ERR_NO_ERROR:
+            if (!is_fips_kdf_algo)
+              fail ("KDF algorithm %d is marked as approved by"
+                    " GCRYCTL_FIPS_SERVICE_INDICATOR_KDF, but only PBKDF2 should"
+                    " be marked as approved.", kdf_algos[i]);
+            break;
+          case GPG_ERR_NOT_SUPPORTED:
+            if (is_fips_kdf_algo)
+              fail ("KDF algorithm %d is marked as not approved by"
+                    " GCRYCTL_FIPS_SERVICE_INDICATOR_KDF, but it should be"
+                    " approved", kdf_algos[i]);
+            break;
+          default:
+            fail ("Unexpected error '%s' (%d) returned by"
+                  " GCRYCTL_FIPS_SERVICE_INDICATOR_KDF for KDF algorithm %d",
+                  gcry_strerror (err), err, kdf_algos[i]);
+        }
+    }
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -1567,6 +1625,8 @@ main (int argc, char **argv)
       check_pbkdf2 ();
       check_scrypt ();
       check_argon2 ();
+      if (in_fips_mode)
+        check_fips_indicators();
     }
 
   return error_count ? 1 : 0;
