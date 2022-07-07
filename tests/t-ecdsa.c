@@ -487,10 +487,7 @@ one_test_sexp (const char *curvename, const char *sha_alg,
         fail ("gcry_pk_hash_verify failed for test: %s",
               gpg_strerror (err));
 
-      /* TODO Verifying with data_tmpl2 crashes because gcry_pk_hash_verify()
-       * does not support specifying the hash algorithm explicitly. See
-       * https://dev.gnupg.org/T6066, which tracks this problem. */
-      err = gcry_pk_hash_verify (s_sig2, data_tmpl, s_pk, hd, ctx);
+      err = gcry_pk_hash_verify (s_sig2, data_tmpl2, s_pk, hd, ctx);
       if (err)
         fail ("gcry_pk_hash_verify with explicit hash algorithm %s failed: %s",
               gcry_md_algo_name (md_algo), gpg_strerror (err));
