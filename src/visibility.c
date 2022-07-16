@@ -1244,7 +1244,9 @@ gcry_md_read (gcry_md_hd_t hd, int algo)
 gcry_error_t
 gcry_md_extract (gcry_md_hd_t hd, int algo, void *buffer, size_t length)
 {
-  return gpg_error (_gcry_md_extract(hd, algo, buffer, length));
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  return gpg_error (_gcry_md_extract (hd, algo, buffer, length));
 }
 
 void
