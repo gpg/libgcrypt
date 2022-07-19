@@ -63,7 +63,8 @@ libcipher_la_SOURCES = \
 	kdf.c kdf-internal.h \
 	bithelp.h  \
 	bufhelp.h  \
-	primegen.c  \
+	bulkhelp.h \
+	primegen.c \
 	hash-common.c hash-common.h \
 	dsa-common.c rsa-common.c \
 	sha1.h
