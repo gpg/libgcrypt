@@ -83,6 +83,7 @@ AC_CONFIG_LIBOBJ_DIR([compat])
 AC_CANONICAL_HOST
 AM_MAINTAINER_MODE
 AM_SILENT_RULES
+AC_USE_SYSTEM_EXTENSIONS
 
 AC_ARG_VAR(SYSROOT,[locate config scripts also below that directory])
 
@@ -149,8 +150,6 @@ AM_PROG_AS
 AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_INSTALL
 AC_PROG_AWK
-
-AC_USE_SYSTEM_EXTENSIONS
 
 # Taken from mpfr-4.0.1, then modified for LDADD_FOR_TESTS_KLUDGE
 dnl Under Linux, make sure that the old dtags are used if LD_LIBRARY_PATH
