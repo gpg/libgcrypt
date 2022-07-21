@@ -1462,6 +1462,13 @@ sm4_crypt_blk1_32 (const SM4_context *ctx, byte *outbuf, const byte *inbuf,
       return _gcry_sm4_gfni_avx512_crypt_blk32 (rk, outbuf, inbuf);
     }
 #endif
+#ifdef USE_ARM_SVE_CE
+  if (ctx->use_arm_sve_ce)
+    {
+      _gcry_sm4_armv9_sve_ce_crypt (rk, outbuf, inbuf, num_blks);
+      return 0;
+    }
+#endif
 
   do
     {
