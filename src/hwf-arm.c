@@ -157,6 +157,22 @@ static const struct feature_map_s arm_features[] =
 # define HWCAP_SVE    (1 << 22)
 #endif
 
+#ifndef HWCAP2_SVE2
+# define HWCAP2_SVE2        (1 << 1)
+#endif
+#ifndef HWCAP2_SVEAES
+# define HWCAP2_SVEAES      (1 << 2)
+#endif
+#ifndef HWCAP2_SVEPMULL
+# define HWCAP2_SVEPMULL    (1 << 3)
+#endif
+#ifndef HWCAP2_SVESHA3
+# define HWCAP2_SVESHA3     (1 << 5)
+#endif
+#ifndef HWCAP2_SVESM4
+# define HWCAP2_SVESM4      (1 << 6)
+#endif
+
 static const struct feature_map_s arm_features[] =
   {
 #ifdef ENABLE_NEON_SUPPORT
@@ -174,6 +190,11 @@ static const struct feature_map_s arm_features[] =
 #endif
 #ifdef ENABLE_SVE_SUPPORT
     { HWCAP_SVE, 0, " sve",  HWF_ARM_SVE },
+    { 0, HWCAP2_SVE2, " sve2",  HWF_ARM_SVE2 },
+    { 0, HWCAP2_SVEAES, " sveaes",  HWF_ARM_SVEAES },
+    { 0, HWCAP2_SVEPMULL, " svepmull",  HWF_ARM_SVEPMULL },
+    { 0, HWCAP2_SVESHA3, " svesha3",  HWF_ARM_SVESHA3 },
+    { 0, HWCAP2_SVESM4, " svesm4",  HWF_ARM_SVESM4 },
 #endif
   };
 

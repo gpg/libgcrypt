@@ -602,6 +602,11 @@ are
 @item arm-sm4
 @item arm-sha512
 @item arm-sve
+@item arm-sve2
+@item arm-sveaes
+@item arm-svepmull
+@item arm-svesha3
+@item arm-svesm4
 @item ppc-vcrypto
 @item ppc-arch_3_00
 @item ppc-arch_2_07

@@ -706,6 +706,14 @@ AC_ARG_ENABLE(sve-support,
 	      svesupport=$enableval,svesupport=yes)
 AC_MSG_RESULT($svesupport)
 
+# Implementation of the --disable-sve2-support switch.
+AC_MSG_CHECKING([whether SVE2 support is requested])
+AC_ARG_ENABLE(sve2-support,
+              AS_HELP_STRING([--disable-sve2-support],
+                 [Disable support for the ARMv9 SVE2 instructions]),
+	      sve2support=$enableval,sve2support=yes)
+AC_MSG_RESULT($sve2support)
+
 # Implementation of the --disable-ppc-crypto-support switch.
 AC_MSG_CHECKING([whether PPC crypto support is requested])
 AC_ARG_ENABLE(ppc-crypto-support,
@@ -1330,6 +1338,7 @@ if test "$mpi_cpu_arch" != "arm" ; then
      neonsupport="n/a"
      armcryptosupport="n/a"
      svesupport="n/a"
+     sve2support="n/a"
    fi
 fi
 
@@ -2013,6 +2022,39 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports AArch64 SVE2 instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SVE2 instructions],
+       [gcry_cv_gcc_inline_asm_aarch64_sve2],
+       [if test "$mpi_cpu_arch" != "aarch64" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_aarch64_sve2="n/a"
+        else
+          gcry_cv_gcc_inline_asm_aarch64_sve2=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[__asm__(
+                ".cpu generic+simd+sve2\n\t"
+                ".text\n\t"
+                "testfn:\n\t"
+                ";\n\t"
+                "eor3 z0.d, z0.d, z1.d, z2.d;\n\t"
+                "ext z8.b, {z20.b, z21.b}, \#3;\n\t"
+                "adclt z0.d, z1.d, z2.d;\n\t"
+                "tbl z0.b, {z8.b, z9.b}, z1.b;\n\t"
+                "addhnb z16.s, z17.d, z18.d;\n\t"
+                "mov z0.s, p0/z, \#55;\n\t"
+                "ld1b {z0.b}, p0/z, [x1];\n\t"
+                );
+            ]], [ testfn(); ])],
+          [gcry_cv_gcc_inline_asm_aarch64_sve2=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_aarch64_sve2" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AARCH64_SVE2,1,
+     [Defined if inline assembler supports AArch64 SVE2 instructions])
+fi
+
+
+#
 # Check whether PowerPC AltiVec/VSX intrinsics
 #
 AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics],
@@ -2507,6 +2549,13 @@ if test x"$svesupport" = xyes ; then
     fi
   fi
 fi
+if test x"$sve2support" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_sve2" != "yes" ; then
+    if test "$gcry_cv_gcc_inline_asm_aarch64_sve2" != "yes" ; then
+      sve2support="no (unsupported by compiler)"
+    fi
+  fi
+fi
 
 if test x"$aesnisupport" = xyes ; then
   AC_DEFINE(ENABLE_AESNI_SUPPORT, 1,
@@ -2551,6 +2600,10 @@ fi
 if test x"$svesupport" = xyes ; then
   AC_DEFINE(ENABLE_SVE_SUPPORT,1,
             [Enable support for ARMv8 SVE instructions.])
+fi
+if test x"$sve2support" = xyes ; then
+  AC_DEFINE(ENABLE_SVE2_SUPPORT,1,
+            [Enable support for ARMv9 SVE2 instructions.])
 fi
 if test x"$ppccryptosupport" = xyes ; then
   AC_DEFINE(ENABLE_PPC_CRYPTO_SUPPORT,1,
@@ -3435,6 +3488,7 @@ GCRY_MSG_SHOW([Try using Intel GFNI:     ],[$gfnisupport])
 GCRY_MSG_SHOW([Try using ARM NEON:       ],[$neonsupport])
 GCRY_MSG_SHOW([Try using ARMv8 crypto:   ],[$armcryptosupport])
 GCRY_MSG_SHOW([Try using ARMv8 SVE:      ],[$svesupport])
+GCRY_MSG_SHOW([Try using ARMv9 SVE2:     ],[$sve2support])
 GCRY_MSG_SHOW([Try using PPC crypto:     ],[$ppccryptosupport])
 GCRY_MSG_SHOW([],[])
 

@@ -75,6 +75,11 @@ static struct
     { HWF_ARM_SM4,             "arm-sm4" },
     { HWF_ARM_SHA512,          "arm-sha512" },
     { HWF_ARM_SVE,             "arm-sve" },
+    { HWF_ARM_SVE2,            "arm-sve2" },
+    { HWF_ARM_SVEAES,          "arm-sveaes" },
+    { HWF_ARM_SVEPMULL,        "arm-svepmull" },
+    { HWF_ARM_SVESHA3,         "arm-svesha3" },
+    { HWF_ARM_SVESM4,          "arm-svesm4" },
 #elif defined(HAVE_CPU_ARCH_PPC)
     { HWF_PPC_VCRYPTO,         "ppc-vcrypto" },
     { HWF_PPC_ARCH_3_00,       "ppc-arch_3_00" },
