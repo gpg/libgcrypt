@@ -3153,7 +3153,7 @@ if test "$found" = "1" ; then
    case "${host}" in
       x86_64-*-*)
          # Build with the assembly implementation
-         :
+         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS keccak-amd64-avx512.lo"
       ;;
    esac
 

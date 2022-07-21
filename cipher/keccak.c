@@ -62,6 +62,16 @@
 #endif
 
 
+/* USE_64BIT_AVX512 indicates whether to compile with Intel AVX512 code. */
+#undef USE_64BIT_AVX512
+#if defined(USE_64BIT) && defined(__x86_64__) && \
+    defined(HAVE_GCC_INLINE_ASM_AVX512) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+# define USE_64BIT_AVX512 1
+#endif
+
+
 /* USE_64BIT_ARM_NEON indicates whether to enable 64-bit ARM/NEON assembly
  * code. */
 #undef USE_64BIT_ARM_NEON
@@ -79,6 +89,16 @@
 #if defined(HAVE_GCC_INLINE_ASM_S390X)
 # define USE_S390X_CRYPTO 1
 #endif /* USE_S390X_CRYPTO */
+
+
+/* x86-64 vector register assembly implementations use SystemV ABI, ABI
+ * conversion needed on Win64 through function attribute. */
+#undef ASM_FUNC_ABI
+#if defined(USE_64BIT_AVX512) && defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)
+# define ASM_FUNC_ABI __attribute__((sysv_abi))
+#else
+# define ASM_FUNC_ABI
+#endif
 
 
 #if defined(USE_64BIT) || defined(USE_64BIT_ARM_NEON)
@@ -426,6 +446,65 @@ static const keccak_ops_t keccak_bmi2_64_ops =
 };
 
 #endif /* USE_64BIT_BMI2 */
+
+
+/* 64-bit Intel AVX512 implementation. */
+#ifdef USE_64BIT_AVX512
+
+extern ASM_FUNC_ABI unsigned int
+_gcry_keccak_f1600_state_permute64_avx512(u64 *state, const u64 *rconst);
+
+extern ASM_FUNC_ABI unsigned int
+_gcry_keccak_absorb_blocks_avx512(u64 *state, const u64 *rconst,
+                                  const byte *lanes, size_t nlanes,
+                                  size_t blocklanes, const byte **new_lanes);
+
+static unsigned int
+keccak_f1600_state_permute64_avx512(KECCAK_STATE *hd)
+{
+  return _gcry_keccak_f1600_state_permute64_avx512 (
+                                hd->u.state64, _gcry_keccak_round_consts_64bit);
+}
+
+static unsigned int
+keccak_absorb_lanes64_avx512(KECCAK_STATE *hd, int pos, const byte *lanes,
+			     unsigned int nlanes, int blocklanes)
+{
+  while (nlanes)
+    {
+      if (pos == 0 && blocklanes > 0 && nlanes >= (unsigned int)blocklanes)
+        {
+          nlanes = _gcry_keccak_absorb_blocks_avx512 (
+                            hd->u.state64, _gcry_keccak_round_consts_64bit,
+                            lanes, nlanes, blocklanes, &lanes);
+        }
+
+      while (nlanes)
+	{
+	  hd->u.state64[pos] ^= buf_get_le64 (lanes);
+	  lanes += 8;
+	  nlanes--;
+
+	  if (++pos == blocklanes)
+	    {
+	      keccak_f1600_state_permute64_avx512 (hd);
+	      pos = 0;
+	      break;
+	    }
+	}
+    }
+
+  return 0;
+}
+
+static const keccak_ops_t keccak_avx512_64_ops =
+{
+  .permute = keccak_f1600_state_permute64_avx512,
+  .absorb = keccak_absorb_lanes64_avx512,
+  .extract = keccak_extract64,
+};
+
+#endif /* USE_64BIT_AVX512 */
 
 
 /* 64-bit ARMv7/NEON implementation. */
@@ -894,6 +973,10 @@ keccak_init (int algo, void *context, unsigned int flags)
 
   /* Select optimized implementation based in hw features. */
   if (0) {}
+#ifdef USE_64BIT_AVX512
+  else if (features & HWF_INTEL_AVX512)
+    ctx->ops = &keccak_avx512_64_ops;
+#endif
 #ifdef USE_64BIT_ARM_NEON
   else if (features & HWF_ARM_NEON)
     ctx->ops = &keccak_armv7_neon_64_ops;

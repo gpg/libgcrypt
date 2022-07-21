@@ -139,6 +139,7 @@ with any binary distributions derived from the GNU C Library.
 
   For files:
   - cipher/cipher-gcm-ppc.c
+  - cipher/keccak-amd64-avx512.S
 
 #+begin_quote
  Copyright (c) 2006, CRYPTOGAMS by <appro@openssl.org>
