@@ -153,6 +153,9 @@ static const struct feature_map_s arm_features[] =
 #ifndef HWCAP_SHA512
 # define HWCAP_SHA512 (1 << 21)
 #endif
+#ifndef HWCAP_SVE
+# define HWCAP_SVE    (1 << 22)
+#endif
 
 static const struct feature_map_s arm_features[] =
   {
@@ -168,6 +171,9 @@ static const struct feature_map_s arm_features[] =
     { HWCAP_SM3, 0, " sm3",  HWF_ARM_SM3 },
     { HWCAP_SM4, 0, " sm4",  HWF_ARM_SM4 },
     { HWCAP_SHA512, 0, " sha512",  HWF_ARM_SHA512 },
+#endif
+#ifdef ENABLE_SVE_SUPPORT
+    { HWCAP_SVE, 0, " sve",  HWF_ARM_SVE },
 #endif
   };
 

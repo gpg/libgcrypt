@@ -698,6 +698,14 @@ AC_ARG_ENABLE(arm-crypto-support,
 	      armcryptosupport=$enableval,armcryptosupport=yes)
 AC_MSG_RESULT($armcryptosupport)
 
+# Implementation of the --disable-sve-support switch.
+AC_MSG_CHECKING([whether SVE support is requested])
+AC_ARG_ENABLE(sve-support,
+              AS_HELP_STRING([--disable-sve-support],
+                 [Disable support for the ARMv8 SVE instructions]),
+	      svesupport=$enableval,svesupport=yes)
+AC_MSG_RESULT($svesupport)
+
 # Implementation of the --disable-ppc-crypto-support switch.
 AC_MSG_CHECKING([whether PPC crypto support is requested])
 AC_ARG_ENABLE(ppc-crypto-support,
@@ -1321,6 +1329,7 @@ if test "$mpi_cpu_arch" != "arm" ; then
    if test "$mpi_cpu_arch" != "aarch64" ; then
      neonsupport="n/a"
      armcryptosupport="n/a"
+     svesupport="n/a"
    fi
 fi
 
@@ -1975,6 +1984,35 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports AArch64 SVE instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SVE instructions],
+       [gcry_cv_gcc_inline_asm_aarch64_sve],
+       [if test "$mpi_cpu_arch" != "aarch64" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_aarch64_sve="n/a"
+        else
+          gcry_cv_gcc_inline_asm_aarch64_sve=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[__asm__(
+                ".cpu generic+simd+sve\n\t"
+                ".text\n\t"
+                "testfn:\n\t"
+                "mov x0, \#60;\n\t"
+                "whilelo p0.s, xzr, x0;\n\t"
+                "mov z0.s, p0/z, \#55;\n\t"
+                "ld1b {z0.b}, p0/z, [x1];\n\t"
+                );
+            ]], [ testfn(); ])],
+          [gcry_cv_gcc_inline_asm_aarch64_sve=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_aarch64_sve" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AARCH64_SVE,1,
+     [Defined if inline assembler supports AArch64 SVE instructions])
+fi
+
+
+#
 # Check whether PowerPC AltiVec/VSX intrinsics
 #
 AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics],
@@ -2462,6 +2500,13 @@ if test x"$armcryptosupport" = xyes ; then
     fi
   fi
 fi
+if test x"$svesupport" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_sve" != "yes" ; then
+    if test "$gcry_cv_gcc_inline_asm_aarch64_sve" != "yes" ; then
+      svesupport="no (unsupported by compiler)"
+    fi
+  fi
+fi
 
 if test x"$aesnisupport" = xyes ; then
   AC_DEFINE(ENABLE_AESNI_SUPPORT, 1,
@@ -2502,6 +2547,10 @@ fi
 if test x"$armcryptosupport" = xyes ; then
   AC_DEFINE(ENABLE_ARM_CRYPTO_SUPPORT,1,
             [Enable support for ARMv8 Crypto Extension instructions.])
+fi
+if test x"$svesupport" = xyes ; then
+  AC_DEFINE(ENABLE_SVE_SUPPORT,1,
+            [Enable support for ARMv8 SVE instructions.])
 fi
 if test x"$ppccryptosupport" = xyes ; then
   AC_DEFINE(ENABLE_PPC_CRYPTO_SUPPORT,1,
@@ -3385,6 +3434,7 @@ GCRY_MSG_SHOW([Try using Intel AVX512:   ],[$avx512support])
 GCRY_MSG_SHOW([Try using Intel GFNI:     ],[$gfnisupport])
 GCRY_MSG_SHOW([Try using ARM NEON:       ],[$neonsupport])
 GCRY_MSG_SHOW([Try using ARMv8 crypto:   ],[$armcryptosupport])
+GCRY_MSG_SHOW([Try using ARMv8 SVE:      ],[$svesupport])
 GCRY_MSG_SHOW([Try using PPC crypto:     ],[$ppccryptosupport])
 GCRY_MSG_SHOW([],[])
 
