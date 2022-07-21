@@ -178,6 +178,55 @@ bulk_ctr_enc_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
 
 
 static inline unsigned int
+bulk_ctr32le_enc_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
+                      const byte *inbuf, size_t nblocks, byte *ctr,
+                      byte *tmpbuf, size_t tmpbuf_nblocks,
+                      unsigned int *num_used_tmpblocks)
+{
+  unsigned int tmp_used = 16;
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  while (nblocks >= 1)
+    {
+      size_t curr_blks = nblocks > tmpbuf_nblocks ? tmpbuf_nblocks : nblocks;
+      u64 ctr_lo = buf_get_le64(ctr + 0 * 8);
+      u64 ctr_hi = buf_get_he64(ctr + 1 * 8);
+      size_t i;
+
+      if (curr_blks * 16 > tmp_used)
+        tmp_used = curr_blks * 16;
+
+      cipher_block_cpy (tmpbuf + 0 * 16, ctr, 16);
+      for (i = 1; i < curr_blks; i++)
+        {
+          u32 lo_u32 = (u32)ctr_lo + i;
+          u64 lo_u64 = ctr_lo & ~(u64)(u32)-1;
+          lo_u64 += lo_u32;
+          buf_put_le64(&tmpbuf[0 * 8 + i * 16], lo_u64);
+          buf_put_he64(&tmpbuf[1 * 8 + i * 16], ctr_hi);
+        }
+      buf_put_le32(ctr, (u32)ctr_lo + curr_blks);
+
+      nburn = crypt_fn (priv, tmpbuf, tmpbuf, curr_blks);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      for (i = 0; i < curr_blks; i++)
+        {
+          cipher_block_xor (outbuf, &tmpbuf[i * 16], inbuf, 16);
+          outbuf += 16;
+          inbuf += 16;
+        }
+
+      nblocks -= curr_blks;
+    }
+
+  *num_used_tmpblocks = tmp_used;
+  return burn_depth;
+}
+
+
+static inline unsigned int
 bulk_cbc_dec_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
                   const byte *inbuf, size_t nblocks, byte *iv,
                   byte *tmpbuf, size_t tmpbuf_nblocks,

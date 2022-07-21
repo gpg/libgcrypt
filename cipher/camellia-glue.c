@@ -407,6 +407,9 @@ static void _gcry_camellia_cfb_dec (void *context, unsigned char *iv,
 static void _gcry_camellia_xts_crypt (void *context, unsigned char *tweak,
                                       void *outbuf_arg, const void *inbuf_arg,
                                       size_t nblocks, int encrypt);
+static void _gcry_camellia_ctr32le_enc (void *context, unsigned char *ctr,
+                                        void *outbuf_arg, const void *inbuf_arg,
+                                        size_t nblocks);
 static size_t _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 					const void *inbuf_arg, size_t nblocks,
 					int encrypt);
@@ -469,7 +472,13 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
   bulk_ops->ocb_auth  = _gcry_camellia_ocb_auth;
 #ifdef USE_AESNI_AVX2
   if (ctx->use_aesni_avx2 || ctx->use_vaes_avx2 || ctx->use_gfni_avx2)
-    bulk_ops->xts_crypt = _gcry_camellia_xts_crypt;
+    {
+      bulk_ops->xts_crypt = _gcry_camellia_xts_crypt;
+      bulk_ops->ctr32le_enc = _gcry_camellia_ctr32le_enc;
+    }
+#else
+  (void)_gcry_camellia_xts_crypt;
+  (void)_gcry_camellia_ctr32le_enc;
 #endif
 
   if (0)
@@ -1147,6 +1156,37 @@ _gcry_camellia_xts_crypt (void *context, unsigned char *tweak,
 
   if (burn_stack_depth)
     _gcry_burn_stack(burn_stack_depth);
+}
+
+/* Bulk encryption of complete blocks in CTR32LE mode (for GCM-SIV). */
+static void
+_gcry_camellia_ctr32le_enc(void *context, unsigned char *ctr,
+                           void *outbuf_arg, const void *inbuf_arg,
+                           size_t nblocks)
+{
+  CAMELLIA_context *ctx = context;
+  byte *outbuf = outbuf_arg;
+  const byte *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      byte tmpbuf[64 * CAMELLIA_BLOCK_SIZE];
+      unsigned int tmp_used = CAMELLIA_BLOCK_SIZE;
+      size_t nburn;
+
+      nburn = bulk_ctr32le_enc_128 (ctx, camellia_encrypt_blk1_64, outbuf,
+                                    inbuf, nblocks, ctr, tmpbuf,
+                                    sizeof(tmpbuf) / CAMELLIA_BLOCK_SIZE,
+                                    &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
 }
 
 /* Bulk encryption/decryption of complete blocks in OCB mode. */
