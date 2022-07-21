@@ -94,6 +94,17 @@
 # endif
 #endif
 
+#undef USE_ARM_SVE_CE
+#ifdef ENABLE_SVE_SUPPORT
+# if defined(__AARCH64EL__) && \
+     defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
+     defined(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO) && \
+     defined(HAVE_GCC_INLINE_ASM_AARCH64_SVE) && \
+     defined(HAVE_GCC_INLINE_ASM_AARCH64_SVE2)
+#   define USE_ARM_SVE_CE 1
+# endif
+#endif
+
 static const char *sm4_selftest (void);
 
 static void _gcry_sm4_ctr_enc (void *context, unsigned char *ctr,
@@ -132,6 +143,9 @@ typedef struct
 #endif
 #ifdef USE_ARM_CE
   unsigned int use_arm_ce:1;
+#endif
+#ifdef USE_ARM_SVE_CE
+  unsigned int use_arm_sve_ce:1;
 #endif
 } SM4_context;
 
@@ -448,6 +462,37 @@ sm4_armv8_ce_crypt_blk1_16(const void *rk, byte *out, const byte *in,
 
 #endif /* USE_ARM_CE */
 
+#ifdef USE_ARM_SVE_CE
+extern void _gcry_sm4_armv9_sve_ce_crypt(const u32 *rk, byte *out,
+					 const byte *in,
+					 size_t nblocks);
+
+extern void _gcry_sm4_armv9_sve_ce_ctr_enc(const u32 *rk_enc, byte *out,
+					   const byte *in,
+					   byte *ctr,
+					   size_t nblocks);
+
+extern void _gcry_sm4_armv9_sve_ce_cbc_dec(const u32 *rk_dec, byte *out,
+					   const byte *in,
+					   byte *iv,
+					   size_t nblocks);
+
+extern void _gcry_sm4_armv9_sve_ce_cfb_dec(const u32 *rk_enc, byte *out,
+					   const byte *in,
+					   byte *iv,
+					   size_t nblocks);
+
+static inline unsigned int
+sm4_armv9_sve_ce_crypt_blk1_16(const void *rk, byte *out, const byte *in,
+			       unsigned int num_blks)
+{
+  _gcry_sm4_armv9_sve_ce_crypt(rk, out, in, num_blks);
+  return 0;
+}
+
+extern unsigned int _gcry_sm4_armv9_sve_get_vl(void);
+#endif /* USE_ARM_SVE_CE */
+
 static inline void prefetch_sbox_table(void)
 {
   const volatile byte *vtab = (void *)&sbox_table;
@@ -605,6 +650,11 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
 #endif
 #ifdef USE_ARM_CE
   ctx->use_arm_ce = !!(hwf & HWF_ARM_SM4);
+#endif
+#ifdef USE_ARM_SVE_CE
+  /* Only enabled when the SVE vector length is greater than 128 bits */
+  ctx->use_arm_sve_ce = (hwf & HWF_ARM_SVE2) && (hwf & HWF_ARM_SVESM4)
+		&& _gcry_sm4_armv9_sve_get_vl() > 16;
 #endif
 
 #ifdef USE_GFNI_AVX2
@@ -802,6 +852,12 @@ sm4_get_crypt_blk1_16_fn(SM4_context *ctx)
       return &sm4_aesni_avx_crypt_blk1_16;
     }
 #endif
+#ifdef USE_ARM_SVE_CE
+  else if (ctx->use_arm_sve_ce)
+    {
+      return &sm4_armv9_sve_ce_crypt_blk1_16;
+    }
+#endif
 #ifdef USE_ARM_CE
   else if (ctx->use_arm_ce)
     {
@@ -876,6 +932,16 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
           outbuf += 8 * 16;
           inbuf += 8 * 16;
         }
+    }
+#endif
+
+#ifdef USE_ARM_SVE_CE
+  if (ctx->use_arm_sve_ce)
+    {
+      /* Process all blocks at a time. */
+      _gcry_sm4_armv9_sve_ce_ctr_enc(ctx->rkey_enc, outbuf, inbuf,
+				     ctr, nblocks);
+      nblocks = 0;
     }
 #endif
 
@@ -990,6 +1056,16 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
     }
 #endif
 
+#ifdef USE_ARM_SVE_CE
+  if (ctx->use_arm_sve_ce)
+    {
+      /* Process all blocks at a time. */
+      _gcry_sm4_armv9_sve_ce_cbc_dec(ctx->rkey_dec, outbuf, inbuf,
+				     iv, nblocks);
+      nblocks = 0;
+    }
+#endif
+
 #ifdef USE_ARM_CE
   if (ctx->use_arm_ce)
     {
@@ -1098,6 +1174,16 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
           outbuf += 8 * 16;
           inbuf += 8 * 16;
         }
+    }
+#endif
+
+#ifdef USE_ARM_SVE_CE
+  if (ctx->use_arm_sve_ce)
+    {
+      /* Process all blocks at a time. */
+      _gcry_sm4_armv9_sve_ce_cfb_dec(ctx->rkey_enc, outbuf, inbuf,
+				     iv, nblocks);
+      nblocks = 0;
     }
 #endif
 
