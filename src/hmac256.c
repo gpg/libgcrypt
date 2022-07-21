@@ -35,7 +35,7 @@
      WORDS_BIGENDIAN       Defined to 1 on big endian systems.
      inline                If defined, it should yield the keyword used
                            to inline a function.
-     HAVE_TYPE_U32         Defined if the u32 type is available.
+     HAVE_U32              Defined if the u32 type is available.
      SIZEOF_UNSIGNED_INT   Defined to the size in bytes of an unsigned int.
      SIZEOF_UNSIGNED_LONG  Defined to the size in bytes of an unsigned long.
 
@@ -50,7 +50,7 @@
 # define KEY_FOR_BINARY_CHECK "What am I, a doctor or a moonshuttle conductor?"
 # endif
 #include <stdint.h>
-#define HAVE_TYPE_U32 1
+#define HAVE_U32 1
 typedef uint32_t u32;
 #define VERSION "standalone"
 /* For GCC, we can detect endianness.  If not GCC, please define manually.  */
@@ -82,7 +82,7 @@ typedef uint32_t u32;
 
 
 
-#ifndef HAVE_TYPE_U32
+#ifndef HAVE_U32
 # undef u32 /* Undef a possible macro with that name.  */
 # if SIZEOF_UNSIGNED_INT == 4
    typedef unsigned int u32;
@@ -91,7 +91,7 @@ typedef uint32_t u32;
 # else
 #  error no typedef for u32
 # endif
-# define HAVE_TYPE_U32
+# define HAVE_U32
 #endif
 
 
