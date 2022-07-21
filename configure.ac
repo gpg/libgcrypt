@@ -2055,6 +2055,56 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports AArch64 SHA3/SHA512/SM3/SM4 instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SHA3/SHA512/SM3/SM4 instructions],
+       [gcry_cv_gcc_inline_asm_aarch64_sha3_sha512_sm3_sm4],
+       [if test "$mpi_cpu_arch" != "aarch64" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_aarch64_sha3_sha512_sm3_sm4="n/a"
+        else
+          gcry_cv_gcc_inline_asm_aarch64_sha3_sha512_sm3_sm4=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[__asm__(
+                ".arch armv8.2-a+sha3+sm4\n\t"
+                ".text\n\t"
+                "testfn:\n\t"
+
+                /* Test for SHA512 instructions */
+                "sha512h q0, q0, v0.2d;\n\t"
+                "sha512h2 q0, q0, v0.2d;\n\t"
+                "sha512su0 v0.2d, v0.2d;\n\t"
+                "sha512su1 v0.2d, v0.2d, v31.2d;\n\t"
+
+                /* Test for SHA3 instructions */
+                "bcax v0.16b, v1.16b, v2.16b, v3.16b;\n\t"
+                "eor3 v0.16b, v1.16b, v2.16b, v3.16b;\n\t"
+                "rax1 v0.2d, v1.2d, v2.2d;\n\t"
+                "xar v0.2d, v1.2d, v2.2d, \#1;\n\t"
+
+                /* Test for SM3 instructions */
+                "sm3partw1 v0.4s, v1.4s, v2.4s;\n\t"
+                "sm3partw2 v0.4s, v1.4s, v2.4s;\n\t"
+                "sm3ss1 v0.4s, v1.4s, v2.4s, v3.4s;\n\t"
+                "sm3tt1a v0.4s, v1.4s, v2.s[0];\n\t"
+                "sm3tt1b v0.4s, v1.4s, v2.s[0];\n\t"
+                "sm3tt2a v0.4s, v1.4s, v2.s[0];\n\t"
+                "sm3tt2b v0.4s, v1.4s, v2.s[0];\n\t"
+
+                /* Test for SM4 instructions */
+                "sm4e v0.4s, v1.4s;\n\t"
+                "sm4ekey v0.4s, v1.4s, v2.4s;\n\t"
+                );
+            ]], [ testfn(); ])],
+          [gcry_cv_gcc_inline_asm_aarch64_sha3_sha512_sm3_sm4=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_aarch64_sha3_sha512_sm3_sm4" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AARCH64_SHA3_SHA512_SM3_SM4,1,
+     [Defined if inline assembler supports AArch64 SHA3/SHA512/SM3/SM4 instructions])
+fi
+
+
+#
 # Check whether PowerPC AltiVec/VSX intrinsics
 #
 AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics],
@@ -3123,6 +3173,10 @@ if test "$found" = "1" ; then
       arm*-*-*)
          # Build with the assembly implementation
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-arm.lo"
+      ;;
+      aarch64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-armv8-aarch64-ce.lo"
       ;;
       powerpc64le-*-*)
          # Build with the crypto extension implementation

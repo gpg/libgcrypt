@@ -55,6 +55,14 @@
 #include "hash-common.h"
 
 
+/* Helper macro to force alignment to 64 bytes.  */
+#ifdef HAVE_GCC_ATTRIBUTE_ALIGNED
+# define ATTR_ALIGNED_64  __attribute__ ((aligned (64)))
+#else
+# define ATTR_ALIGNED_64
+#endif
+
+
 /* USE_ARM_NEON_ASM indicates whether to enable ARM NEON assembly code. */
 #undef USE_ARM_NEON_ASM
 #ifdef ENABLE_NEON_SUPPORT
@@ -70,6 +78,17 @@
 #undef USE_ARM_ASM
 #if defined(__ARMEL__) && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS)
 # define USE_ARM_ASM 1
+#endif
+
+/* USE_ARM64_SHA512 indicates whether to enable ARMv8 SHA512 extension assembly
+ * code. */
+#undef USE_ARM64_SHA512
+#ifdef ENABLE_ARM_CRYPTO_SUPPORT
+# if defined(__AARCH64EL__) \
+       && defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) \
+       && defined(HAVE_GCC_INLINE_ASM_AARCH64_SHA3_SHA512_SM3_SM4)
+#  define USE_ARM64_SHA512 1
+# endif
 #endif
 
 
@@ -158,7 +177,7 @@ typedef struct
 } SHA512_CONTEXT;
 
 
-static const u64 k[] =
+static ATTR_ALIGNED_64 const u64 k[] =
   {
     U64_C(0x428a2f98d728ae22), U64_C(0x7137449123ef65cd),
     U64_C(0xb5c0fbcfec4d3b2f), U64_C(0xe9b5dba58189dbbc),
@@ -218,6 +237,21 @@ static const u64 k[] =
 # endif
 #endif
 
+
+#ifdef USE_ARM64_SHA512
+unsigned int _gcry_sha512_transform_armv8_ce (u64 state[8],
+                                              const unsigned char *data,
+                                              size_t num_blks,
+                                              const u64 k[]);
+
+static unsigned int
+do_sha512_transform_armv8_ce(void *ctx, const unsigned char *data,
+                             size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_armv8_ce (hd->state.h, data, nblks, k);
+}
+#endif
 
 #ifdef USE_ARM_NEON_ASM
 unsigned int _gcry_sha512_transform_armv7_neon (SHA512_STATE *hd,
@@ -414,6 +448,10 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 #ifdef USE_ARM_NEON_ASM
   if ((features & HWF_ARM_NEON) != 0)
     ctx->bctx.bwrite = do_sha512_transform_armv7_neon;
+#endif
+#ifdef USE_ARM64_SHA512
+  if ((features & HWF_ARM_NEON) && (features & HWF_ARM_SHA512))
+    ctx->bctx.bwrite = do_sha512_transform_armv8_ce;
 #endif
 #ifdef USE_SSSE3
   if ((features & HWF_INTEL_SSSE3) != 0)
