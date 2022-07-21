@@ -3191,7 +3191,9 @@ if test "$found" = "1" ; then
       x86_64-*-*)
          # Build with the assembly implementation
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS blake2b-amd64-avx2.lo"
+         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS blake2b-amd64-avx512.lo"
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS blake2s-amd64-avx.lo"
+         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS blake2s-amd64-avx512.lo"
       ;;
    esac
 fi

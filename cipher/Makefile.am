@@ -148,7 +148,8 @@ EXTRA_libcipher_la_SOURCES = \
 	camellia-vaes-avx2-amd64.S camellia-aesni-avx2-amd64.S \
 	camellia-arm.S camellia-aarch64.S \
 	blake2.c \
-	blake2b-amd64-avx2.S blake2s-amd64-avx.S
+	blake2b-amd64-avx2.S blake2b-amd64-avx512.S \
+	blake2s-amd64-avx.S blake2s-amd64-avx512.S
 
 gost28147.lo: gost-sb.h
 gost-sb.h: gost-s-box$(EXEEXT_FOR_BUILD)
