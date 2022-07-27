@@ -1,6 +1,6 @@
 /* Rijndael (AES) for GnuPG - PowerPC Vector Crypto AES implementation
  * Copyright (C) 2019 Shawn Landden <shawn@git.icu>
- * Copyright (C) 2019-2020 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2019-2020, 2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -76,43 +76,46 @@ void CFB_ENC_FUNC (void *context, unsigned char *iv_arg,
   u128_t *out = (u128_t *)outbuf_arg;
   int rounds = ctx->rounds;
   ROUND_KEY_VARIABLES_ALL;
-  block rkeylast_orig;
-  block iv;
+  block key0_xor_keylast;
+  block iv, outiv;
 
   iv = VEC_LOAD_BE (iv_arg, 0, bige_const);
+  outiv = iv;
 
   PRELOAD_ROUND_KEYS_ALL (rounds);
-  rkeylast_orig = rkeylast;
-
-  for (; nblocks >= 2; nblocks -= 2)
-    {
-      block in2, iv1;
-
-      rkeylast = rkeylast_orig ^ VEC_LOAD_BE (in, 0, bige_const);
-      in2 = VEC_LOAD_BE (in + 1, 0, bige_const);
-      in += 2;
-
-      AES_ENCRYPT_ALL (iv, rounds);
-
-      iv1 = iv;
-      rkeylast = rkeylast_orig ^ in2;
-
-      AES_ENCRYPT_ALL (iv, rounds);
-
-      VEC_STORE_BE (out++, 0, iv1, bige_const);
-      VEC_STORE_BE (out++, 0, iv, bige_const);
-    }
+  key0_xor_keylast = rkey0 ^ rkeylast;
+  iv ^= rkey0;
 
   for (; nblocks; nblocks--)
     {
-      rkeylast = rkeylast_orig ^ VEC_LOAD_BE (in++, 0, bige_const);
+      rkeylast = key0_xor_keylast ^ VEC_LOAD_BE (in++, 0, bige_const);
 
-      AES_ENCRYPT_ALL (iv, rounds);
+      iv = asm_cipher_be (iv, rkey1);
+      iv = asm_cipher_be (iv, rkey2);
+      iv = asm_cipher_be (iv, rkey3);
+      iv = asm_cipher_be (iv, rkey4);
+      iv = asm_cipher_be (iv, rkey5);
+      iv = asm_cipher_be (iv, rkey6);
+      iv = asm_cipher_be (iv, rkey7);
+      iv = asm_cipher_be (iv, rkey8);
+      iv = asm_cipher_be (iv, rkey9);
+      if (rounds >= 12)
+	{
+	  iv = asm_cipher_be (iv, rkey10);
+	  iv = asm_cipher_be (iv, rkey11);
+	  if (rounds > 12)
+	    {
+	      iv = asm_cipher_be (iv, rkey12);
+	      iv = asm_cipher_be (iv, rkey13);
+	    }
+	}
+      iv = asm_cipherlast_be (iv, rkeylast);
 
-      VEC_STORE_BE (out++, 0, iv, bige_const);
+      outiv = rkey0 ^ iv;
+      VEC_STORE_BE (out++, 0, outiv, bige_const);
     }
 
-  VEC_STORE_BE (iv_arg, 0, iv, bige_const);
+  VEC_STORE_BE (iv_arg, 0, outiv, bige_const);
 }
 
 void CFB_DEC_FUNC (void *context, unsigned char *iv_arg,
@@ -324,47 +327,61 @@ void CBC_ENC_FUNC (void *context, unsigned char *iv_arg,
   byte *out = (byte *)outbuf_arg;
   int rounds = ctx->rounds;
   ROUND_KEY_VARIABLES_ALL;
-  block lastiv, b;
+  block iv, key0_xor_keylast, nextiv, outiv;
   unsigned int outadd = -(!cbc_mac) & 16;
 
-  lastiv = VEC_LOAD_BE (iv_arg, 0, bige_const);
+  if (nblocks == 0) /* CMAC may call with nblocks 0. */
+    return;
+
+  iv = VEC_LOAD_BE (iv_arg, 0, bige_const);
 
   PRELOAD_ROUND_KEYS_ALL (rounds);
+  key0_xor_keylast = rkey0 ^ rkeylast;
 
-  for (; nblocks >= 2; nblocks -= 2)
+  nextiv = VEC_LOAD_BE (in++, 0, bige_const);
+  iv ^= rkey0 ^ nextiv;
+
+  do
     {
-      block in2, lastiv1;
+      if (--nblocks)
+	{
+	  nextiv = key0_xor_keylast ^ VEC_LOAD_BE (in++, 0, bige_const);
+	}
 
-      b = lastiv ^ VEC_LOAD_BE (in, 0, bige_const);
-      in2 = VEC_LOAD_BE (in + 1, 0, bige_const);
-      in += 2;
+      iv = asm_cipher_be (iv, rkey1);
+      iv = asm_cipher_be (iv, rkey2);
+      iv = asm_cipher_be (iv, rkey3);
+      iv = asm_cipher_be (iv, rkey4);
+      iv = asm_cipher_be (iv, rkey5);
+      iv = asm_cipher_be (iv, rkey6);
+      iv = asm_cipher_be (iv, rkey7);
+      iv = asm_cipher_be (iv, rkey8);
+      iv = asm_cipher_be (iv, rkey9);
+      if (rounds >= 12)
+	{
+	  iv = asm_cipher_be (iv, rkey10);
+	  iv = asm_cipher_be (iv, rkey11);
+	  if (rounds > 12)
+	    {
+	      iv = asm_cipher_be (iv, rkey12);
+	      iv = asm_cipher_be (iv, rkey13);
+	    }
+	}
+      outiv = iv;
+      /* Proper order for following instructions is important for best
+       * performance on POWER8: the output path vcipherlast needs to be
+       * last one. */
+      __asm__ volatile ("vcipherlast %0, %0, %2\n\t"
+			"vcipherlast %1, %1, %3\n\t"
+			: "+v" (iv), "+outiv" (outiv)
+			: "v" (nextiv), "v" (rkeylast));
 
-      AES_ENCRYPT_ALL (b, rounds);
-
-      lastiv1 = b;
-      b = lastiv1 ^ in2;
-
-      AES_ENCRYPT_ALL (b, rounds);
-
-      lastiv = b;
-      VEC_STORE_BE ((u128_t *)out, 0, lastiv1, bige_const);
-      out += outadd;
-      VEC_STORE_BE ((u128_t *)out, 0, lastiv, bige_const);
+      VEC_STORE_BE ((u128_t *)out, 0, outiv, bige_const);
       out += outadd;
     }
+  while (nblocks);
 
-  for (; nblocks; nblocks--)
-    {
-      b = lastiv ^ VEC_LOAD_BE (in++, 0, bige_const);
-
-      AES_ENCRYPT_ALL (b, rounds);
-
-      lastiv = b;
-      VEC_STORE_BE ((u128_t *)out, 0, b, bige_const);
-      out += outadd;
-    }
-
-  VEC_STORE_BE (iv_arg, 0, lastiv, bige_const);
+  VEC_STORE_BE (iv_arg, 0, outiv, bige_const);
 }
 
 void CBC_DEC_FUNC (void *context, unsigned char *iv_arg,
