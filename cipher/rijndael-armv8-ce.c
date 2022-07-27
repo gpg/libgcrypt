@@ -1,5 +1,5 @@
 /* ARMv8 Crypto Extension AES for Libgcrypt
- * Copyright (C) 2016 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2016, 2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -128,103 +128,47 @@ typedef void (*xts_crypt_fn_t) (const void *keysched, unsigned char *outbuf,
                                 unsigned char *tweak, size_t nblocks,
                                 unsigned int nrounds);
 
+
 void
 _gcry_aes_armv8_ce_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
-  union
-    {
-      PROPERLY_ALIGNED_TYPE dummy;
-      byte data[MAXKC][4];
-      u32 data32[MAXKC];
-    } tkk[2];
   unsigned int rounds = ctx->rounds;
-  int KC = rounds - 6;
-  unsigned int keylen = KC * 4;
-  unsigned int i, r, t;
+  unsigned int KC = rounds - 6;
+  u32 *W_u32 = ctx->keyschenc32b;
+  unsigned int i, j;
+  u32 W_prev;
   byte rcon = 1;
-  int j;
-#define k      tkk[0].data
-#define k_u32  tkk[0].data32
-#define tk     tkk[1].data
-#define tk_u32 tkk[1].data32
-#define W      (ctx->keyschenc)
-#define W_u32  (ctx->keyschenc32)
 
-  for (i = 0; i < keylen; i++)
+  for (i = 0; i < KC; i += 2)
     {
-      k[i >> 2][i & 3] = key[i];
+      W_u32[i + 0] = buf_get_le32(key + i * 4 + 0);
+      W_u32[i + 1] = buf_get_le32(key + i * 4 + 4);
     }
 
-  for (j = KC-1; j >= 0; j--)
+  for (i = KC, j = KC, W_prev = W_u32[KC - 1];
+       i < 4 * (rounds + 1);
+       i += 2, j += 2)
     {
-      tk_u32[j] = k_u32[j];
+      u32 temp0 = W_prev;
+      u32 temp1;
+
+      if (j == KC)
+        {
+          j = 0;
+          temp0 = _gcry_aes_sbox4_armv8_ce(rol(temp0, 24)) ^ rcon;
+          rcon = ((rcon << 1) ^ (-(rcon >> 7) & 0x1b)) & 0xff;
+        }
+      else if (KC == 8 && j == 4)
+        {
+          temp0 = _gcry_aes_sbox4_armv8_ce(temp0);
+        }
+
+      temp1 = W_u32[i - KC + 0];
+
+      W_u32[i + 0] = temp0 ^ temp1;
+      W_u32[i + 1] = W_u32[i - KC + 1] ^ temp0 ^ temp1;
+      W_prev = W_u32[i + 1];
     }
-  r = 0;
-  t = 0;
-  /* Copy values into round key array.  */
-  for (j = 0; (j < KC) && (r < rounds + 1); )
-    {
-      for (; (j < KC) && (t < 4); j++, t++)
-        {
-          W_u32[r][t] = le_bswap32(tk_u32[j]);
-        }
-      if (t == 4)
-        {
-          r++;
-          t = 0;
-        }
-    }
-
-  while (r < rounds + 1)
-    {
-      tk_u32[0] ^= _gcry_aes_sbox4_armv8_ce(rol(tk_u32[KC - 1], 24)) ^ rcon;
-
-      if (KC != 8)
-        {
-          for (j = 1; j < KC; j++)
-            {
-              tk_u32[j] ^= tk_u32[j-1];
-            }
-        }
-      else
-        {
-          for (j = 1; j < KC/2; j++)
-            {
-              tk_u32[j] ^= tk_u32[j-1];
-            }
-
-          tk_u32[KC/2] ^= _gcry_aes_sbox4_armv8_ce(tk_u32[KC/2 - 1]);
-
-          for (j = KC/2 + 1; j < KC; j++)
-            {
-              tk_u32[j] ^= tk_u32[j-1];
-            }
-        }
-
-      /* Copy values into round key array.  */
-      for (j = 0; (j < KC) && (r < rounds + 1); )
-        {
-          for (; (j < KC) && (t < 4); j++, t++)
-            {
-              W_u32[r][t] = le_bswap32(tk_u32[j]);
-            }
-          if (t == 4)
-            {
-              r++;
-              t = 0;
-            }
-        }
-
-      rcon = (rcon << 1) ^ ((rcon >> 7) * 0x1b);
-    }
-
-#undef W
-#undef tk
-#undef k
-#undef W_u32
-#undef tk_u32
-#undef k_u32
-  wipememory(&tkk, sizeof(tkk));
 }
 
 /* Make a decryption key from an encryption key. */

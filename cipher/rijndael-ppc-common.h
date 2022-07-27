@@ -30,6 +30,7 @@
 
 
 typedef vector unsigned char block;
+typedef vector unsigned int vec_u32;
 
 typedef union
 {

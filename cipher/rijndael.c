@@ -422,6 +422,17 @@ static void prefetch_dec(void)
 
 
 
+static inline u32
+sbox4(u32 inb4)
+{
+  u32 out;
+  out =  (encT[(inb4 >> 0) & 0xffU] & 0xff00U) >> 8;
+  out |= (encT[(inb4 >> 8) & 0xffU] & 0xff00U) >> 0;
+  out |= (encT[(inb4 >> 16) & 0xffU] & 0xff0000U) << 0;
+  out |= (encT[(inb4 >> 24) & 0xffU] & 0xff0000U) << 8;
+  return out;
+}
+
 /* Perform the key setup.  */
 static gcry_err_code_t
 do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
@@ -431,8 +442,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
   static const char *selftest_failed = 0;
   void (*hw_setkey)(RIJNDAEL_context *ctx, const byte *key) = NULL;
   int rounds;
-  int i,j, r, t, rconpointer = 0;
-  int KC;
+  unsigned int KC;
   unsigned int hwfeatures;
 
   /* The on-the-fly self tests are only run in non-fips mode. In fips
@@ -662,101 +672,43 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
     }
   else
     {
-      const byte *sbox = ((const byte *)encT) + 1;
-      union
-        {
-          PROPERLY_ALIGNED_TYPE dummy;
-          byte data[MAXKC][4];
-          u32 data32[MAXKC];
-        } tkk[2];
-#define k      tkk[0].data
-#define k_u32  tkk[0].data32
-#define tk     tkk[1].data
-#define tk_u32 tkk[1].data32
-#define W      (ctx->keyschenc)
-#define W_u32  (ctx->keyschenc32)
+      u32 W_prev;
+      u32 *W_u32 = ctx->keyschenc32b;
+      byte rcon = 1;
+      unsigned int i, j;
 
       prefetch_enc();
 
-      for (i = 0; i < keylen; i++)
+      for (i = 0; i < KC; i += 2)
         {
-          k[i >> 2][i & 3] = key[i];
+          W_u32[i + 0] = buf_get_le32(key + i * 4 + 0);
+          W_u32[i + 1] = buf_get_le32(key + i * 4 + 4);
         }
 
-      for (j = KC-1; j >= 0; j--)
+      for (i = KC, j = KC, W_prev = W_u32[KC - 1];
+           i < 4 * (rounds + 1);
+           i += 2, j += 2)
         {
-          tk_u32[j] = k_u32[j];
-        }
-      r = 0;
-      t = 0;
-      /* Copy values into round key array.  */
-      for (j = 0; (j < KC) && (r < rounds + 1); )
-        {
-          for (; (j < KC) && (t < 4); j++, t++)
-            {
-              W_u32[r][t] = le_bswap32(tk_u32[j]);
-            }
-          if (t == 4)
-            {
-              r++;
-              t = 0;
-            }
-        }
+          u32 temp0 = W_prev;
+          u32 temp1;
 
-      while (r < rounds + 1)
-        {
-          /* While not enough round key material calculated calculate
-             new values.  */
-          tk[0][0] ^= sbox[tk[KC-1][1] * 4];
-          tk[0][1] ^= sbox[tk[KC-1][2] * 4];
-          tk[0][2] ^= sbox[tk[KC-1][3] * 4];
-          tk[0][3] ^= sbox[tk[KC-1][0] * 4];
-          tk[0][0] ^= rcon[rconpointer++];
-
-          if (KC != 8)
+          if (j == KC)
             {
-              for (j = 1; j < KC; j++)
-                {
-                  tk_u32[j] ^= tk_u32[j-1];
-                }
+              j = 0;
+              temp0 = sbox4(rol(temp0, 24)) ^ rcon;
+              rcon = ((rcon << 1) ^ (-(rcon >> 7) & 0x1b)) & 0xff;
             }
-          else
+          else if (KC == 8 && j == 4)
             {
-              for (j = 1; j < KC/2; j++)
-                {
-                  tk_u32[j] ^= tk_u32[j-1];
-                }
-              tk[KC/2][0] ^= sbox[tk[KC/2 - 1][0] * 4];
-              tk[KC/2][1] ^= sbox[tk[KC/2 - 1][1] * 4];
-              tk[KC/2][2] ^= sbox[tk[KC/2 - 1][2] * 4];
-              tk[KC/2][3] ^= sbox[tk[KC/2 - 1][3] * 4];
-              for (j = KC/2 + 1; j < KC; j++)
-                {
-                  tk_u32[j] ^= tk_u32[j-1];
-                }
+              temp0 = sbox4(temp0);
             }
 
-          /* Copy values into round key array.  */
-          for (j = 0; (j < KC) && (r < rounds + 1); )
-            {
-              for (; (j < KC) && (t < 4); j++, t++)
-                {
-                  W_u32[r][t] = le_bswap32(tk_u32[j]);
-                }
-              if (t == 4)
-                {
-                  r++;
-                  t = 0;
-                }
-            }
+          temp1 = W_u32[i - KC + 0];
+
+          W_u32[i + 0] = temp0 ^ temp1;
+          W_u32[i + 1] = W_u32[i - KC + 1] ^ temp0 ^ temp1;
+          W_prev = W_u32[i + 1];
         }
-#undef W
-#undef tk
-#undef k
-#undef W_u32
-#undef tk_u32
-#undef k_u32
-      wipememory(&tkk, sizeof(tkk));
     }
 
   return 0;
