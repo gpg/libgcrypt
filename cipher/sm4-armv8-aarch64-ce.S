@@ -62,12 +62,27 @@
 #define RTMP3   v19
 
 #define RIV     v20
+#define RMASK   v21
 
 /* Helper macros. */
 
 #define load_rkey(ptr)                     \
         ld1 {v24.16b-v27.16b}, [ptr], #64; \
         ld1 {v28.16b-v31.16b}, [ptr];
+
+#define SM4_CRYPT_BLK(b0)                       \
+        rev32       b0.16b, b0.16b;             \
+        sm4e(b0, v24);                          \
+        sm4e(b0, v25);                          \
+        sm4e(b0, v26);                          \
+        sm4e(b0, v27);                          \
+        sm4e(b0, v28);                          \
+        sm4e(b0, v29);                          \
+        sm4e(b0, v30);                          \
+        sm4e(b0, v31);                          \
+        rev64       b0.4s, b0.4s;               \
+        ext         b0.16b, b0.16b, b0.16b, #8; \
+        rev32       b0.16b, b0.16b;
 
 #define crypt_blk4(b0, b1, b2, b3)         \
         rev32 b0.16b, b0.16b;              \
@@ -576,5 +591,141 @@ _gcry_sm4_armv8_ce_ctr_enc:
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_ctr_enc,.-_gcry_sm4_armv8_ce_ctr_enc;)
+
+.align 3
+.global _gcry_sm4_armv8_ce_xts_crypt
+ELF(.type _gcry_sm4_armv8_ce_xts_crypt,%function;)
+_gcry_sm4_armv8_ce_xts_crypt:
+    /* input:
+     *   x0: round key array, CTX
+     *   x1: dst
+     *   x2: src
+     *   x3: tweak (big endian, 128 bit)
+     *   x4: nblocks
+     */
+    CFI_STARTPROC()
+    VPUSH_ABI
+
+    load_rkey(x0)
+
+    mov         x7, #0x87
+    mov         x8, #0x1
+    mov         RMASK.d[0], x7
+    mov         RMASK.d[1], x8
+
+    ld1         {RIV.16b}, [x3]
+    mov         v8.16b, RIV.16b
+    ext         RIV.16b, RIV.16b, RIV.16b, #8
+
+.Lxts_loop_blk:
+    sub         x4, x4, #8
+    tbnz        x4, #63, .Lxts_tail8
+
+#define tweak_next(vt, vin, RTMP)                       \
+        sshr        RTMP.2d, RIV.2d, #63;               \
+        add         vt.2d, vin.2d, vin.2d;              \
+        and         RTMP.16b, RTMP.16b, RMASK.16b;      \
+        add         RIV.2d, RIV.2d, RIV.2d;             \
+        eor         vt.16b, vt.16b, RTMP.16b;
+
+    tweak_next( v9,  v8, RTMP0)
+    tweak_next(v10,  v9, RTMP1)
+    tweak_next(v11, v10, RTMP2)
+    tweak_next(v12, v11, RTMP3)
+    tweak_next(v13, v12, RTMP0)
+    tweak_next(v14, v13, RTMP1)
+    tweak_next(v15, v14, RTMP2)
+
+    ld1         {v0.16b-v3.16b}, [x2], #64
+    eor         v0.16b, v0.16b,  v8.16b
+    eor         v1.16b, v1.16b,  v9.16b
+    eor         v2.16b, v2.16b, v10.16b
+    eor         v3.16b, v3.16b, v11.16b
+    ld1         {v4.16b-v7.16b}, [x2], #64
+    eor         v4.16b, v4.16b, v12.16b
+    eor         v5.16b, v5.16b, v13.16b
+    eor         v6.16b, v6.16b, v14.16b
+    eor         v7.16b, v7.16b, v15.16b
+
+    crypt_blk8(v0, v1, v2, v3, v4, v5, v6, v7)
+
+    eor         v0.16b, v0.16b,  v8.16b
+    eor         v1.16b, v1.16b,  v9.16b
+    eor         v2.16b, v2.16b, v10.16b
+    eor         v3.16b, v3.16b, v11.16b
+    st1         {v0.16b-v3.16b}, [x1], #64
+    eor         v4.16b, v4.16b, v12.16b
+    eor         v5.16b, v5.16b, v13.16b
+    eor         v6.16b, v6.16b, v14.16b
+    eor         v7.16b, v7.16b, v15.16b
+    st1         {v4.16b-v7.16b}, [x1], #64
+
+    tweak_next(v8, v15, RTMP3)
+
+    cbz         x4, .Lxts_end
+    b           .Lxts_loop_blk
+
+.Lxts_tail8:
+    add         x4, x4, #8
+    cmp         x4, #4
+    blt         .Lxts_tail4
+
+    sub         x4, x4, #4
+
+    tweak_next( v9,  v8, RTMP0)
+    tweak_next(v10,  v9, RTMP1)
+    tweak_next(v11, v10, RTMP2)
+
+    ld1         {v0.16b-v3.16b}, [x2], #64
+    eor         v0.16b, v0.16b,  v8.16b
+    eor         v1.16b, v1.16b,  v9.16b
+    eor         v2.16b, v2.16b, v10.16b
+    eor         v3.16b, v3.16b, v11.16b
+
+    crypt_blk4(v0, v1, v2, v3);
+
+    eor         v0.16b, v0.16b,  v8.16b
+    eor         v1.16b, v1.16b,  v9.16b
+    eor         v2.16b, v2.16b, v10.16b
+    eor         v3.16b, v3.16b, v11.16b
+    st1         {v0.16b-v3.16b}, [x1], #64
+
+    tweak_next(v8, v11, RTMP3)
+
+    cbz         x4, .Lxts_end
+
+.Lxts_tail4:
+    sub         x4, x4, #1
+
+    ld1         {v0.16b}, [x2], #16
+    eor         v0.16b, v0.16b, v8.16b
+
+    SM4_CRYPT_BLK(v0)
+
+    eor         v0.16b, v0.16b, v8.16b
+    st1         {v0.16b}, [x1], #16
+
+    tweak_next(v8, v8, RTMP0)
+
+    cbnz        x4, .Lxts_tail4
+
+.Lxts_end:
+    /* store new tweak */
+    st1         {v8.16b}, [x3]
+
+    CLEAR_REG(v8)
+    CLEAR_REG(v9)
+    CLEAR_REG(v10)
+    CLEAR_REG(v11)
+    CLEAR_REG(v12)
+    CLEAR_REG(v13)
+    CLEAR_REG(v14)
+    CLEAR_REG(v15)
+    CLEAR_REG(RIV)
+
+    VPOP_ABI
+    ret_spec_stop
+    CFI_ENDPROC()
+ELF(.size _gcry_sm4_armv8_ce_xts_crypt,.-_gcry_sm4_armv8_ce_xts_crypt;)
 
 #endif

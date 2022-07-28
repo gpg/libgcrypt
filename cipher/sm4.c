@@ -1,6 +1,6 @@
 /* sm4.c  -  SM4 Cipher Algorithm
  * Copyright (C) 2020 Alibaba Group.
- * Copyright (C) 2020 Tianjia Zhang <tianjia.zhang@linux.alibaba.com>
+ * Copyright (C) 2020-2022 Tianjia Zhang <tianjia.zhang@linux.alibaba.com>
  * Copyright (C) 2020-2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
@@ -538,6 +538,11 @@ extern void _gcry_sm4_armv8_ce_cfb_dec(const u32 *rk_enc, byte *out,
 				       const byte *in,
 				       byte *iv,
 				       size_t nblocks);
+
+extern void _gcry_sm4_armv8_ce_xts_crypt(const u32 *rk, byte *out,
+					 const byte *in,
+					 byte *tweak,
+					 size_t nblocks);
 
 extern void _gcry_sm4_armv8_ce_crypt_blk1_8(const u32 *rk, byte *out,
 					    const byte *in,
@@ -1509,6 +1514,17 @@ _gcry_sm4_xts_crypt (void *context, unsigned char *tweak, void *outbuf_arg,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   int burn_stack_depth = 0;
+
+#ifdef USE_ARM_CE
+  if (ctx->use_arm_ce)
+    {
+      /* Process all blocks at a time. */
+      _gcry_sm4_armv8_ce_xts_crypt(encrypt ? ctx->rkey_enc : ctx->rkey_dec,
+                                   outbuf, inbuf, tweak, nblocks);
+
+      nblocks = 0;
+    }
+#endif
 
   /* Process remaining blocks. */
   if (nblocks)
