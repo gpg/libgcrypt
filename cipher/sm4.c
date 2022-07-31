@@ -1007,6 +1007,7 @@ sm4_get_crypt_blk1_16_fn(SM4_context *ctx)
 #endif
   else
     {
+      (void)ctx;
       prefetch_sbox_table ();
       return &sm4_crypt_blocks;
     }
