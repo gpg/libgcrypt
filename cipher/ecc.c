@@ -1679,6 +1679,126 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
  */
 
 static const char *
+selftest_hash_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
+{
+  int md_algo = GCRY_MD_SHA256;
+  gcry_md_hd_t hd = NULL;
+  const char *data_tmpl = "(data (flags rfc6979) (hash %s %b))";
+  /* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
+  static const char sample_data[] = "sample";
+  static const char sample_data_bad[] = "sbmple";
+  static const char signature_r[] =
+    "efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716";
+  static const char signature_s[] =
+    "f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8";
+
+  const char *errtxt = NULL;
+  gcry_error_t err;
+  gcry_sexp_t sig = NULL;
+  gcry_sexp_t l1 = NULL;
+  gcry_sexp_t l2 = NULL;
+  gcry_mpi_t r = NULL;
+  gcry_mpi_t s = NULL;
+  gcry_mpi_t calculated_r = NULL;
+  gcry_mpi_t calculated_s = NULL;
+  int cmp;
+
+  err = _gcry_md_open (&hd, md_algo, 0);
+  if (err)
+    {
+      errtxt = "gcry_md_open failed";
+      goto leave;
+    }
+
+  _gcry_md_write (hd, sample_data, strlen(sample_data));
+
+  err = _gcry_mpi_scan (&r, GCRYMPI_FMT_HEX, signature_r, 0, NULL);
+  if (!err)
+    err = _gcry_mpi_scan (&s, GCRYMPI_FMT_HEX, signature_s, 0, NULL);
+
+  if (err)
+    {
+      errtxt = "converting data failed";
+      goto leave;
+    }
+
+  err = _gcry_pk_sign_md (&sig, data_tmpl, hd, skey, NULL);
+  if (err)
+    {
+      errtxt = "signing failed";
+      goto leave;
+    }
+
+  /* check against known signature */
+  errtxt = "signature validity failed";
+  l1 = _gcry_sexp_find_token (sig, "sig-val", 0);
+  if (!l1)
+    goto leave;
+  l2 = _gcry_sexp_find_token (l1, "ecdsa", 0);
+  if (!l2)
+    goto leave;
+
+  sexp_release (l1);
+  l1 = l2;
+
+  l2 = _gcry_sexp_find_token (l1, "r", 0);
+  if (!l2)
+    goto leave;
+  calculated_r = _gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+  if (!calculated_r)
+    goto leave;
+
+  sexp_release (l2);
+  l2 = _gcry_sexp_find_token (l1, "s", 0);
+  if (!l2)
+    goto leave;
+  calculated_s = _gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+  if (!calculated_s)
+    goto leave;
+
+  errtxt = "known sig check failed";
+
+  cmp = _gcry_mpi_cmp (r, calculated_r);
+  if (cmp)
+    goto leave;
+  cmp = _gcry_mpi_cmp (s, calculated_s);
+  if (cmp)
+    goto leave;
+
+  errtxt = NULL;
+
+  /* verify generated signature */
+  err = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  if (err)
+    {
+      errtxt = "verify failed";
+      goto leave;
+    }
+
+  _gcry_md_reset(hd);
+  _gcry_md_write (hd, sample_data_bad, strlen(sample_data_bad));
+  err = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  if (gcry_err_code (err) != GPG_ERR_BAD_SIGNATURE)
+    {
+      errtxt = "bad signature not detected";
+      goto leave;
+    }
+
+
+ leave:
+  _gcry_md_close (hd);
+  sexp_release (sig);
+  sexp_release (l1);
+  sexp_release (l2);
+  mpi_release (r);
+  mpi_release (s);
+  mpi_release (calculated_r);
+  mpi_release (calculated_s);
+  return errtxt;
+}
+
+
+static const char *
 selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
   /* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
@@ -1798,7 +1918,7 @@ selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
 
 
 static gpg_err_code_t
-selftests_ecdsa (selftest_report_func_t report)
+selftests_ecdsa (selftest_report_func_t report, int extended)
 {
   const char *what;
   const char *errtxt;
@@ -1826,8 +1946,16 @@ selftests_ecdsa (selftest_report_func_t report)
       goto failed;
     }
 
-  what = "sign";
-  errtxt = selftest_sign (pkey, skey);
+  if (extended)
+    {
+      what = "sign";
+      errtxt = selftest_sign (pkey, skey);
+      if (errtxt)
+        goto failed;
+    }
+
+  what = "digest sign";
+  errtxt = selftest_hash_sign (pkey, skey);
   if (errtxt)
     goto failed;
 
@@ -1848,12 +1976,10 @@ selftests_ecdsa (selftest_report_func_t report)
 static gpg_err_code_t
 run_selftests (int algo, int extended, selftest_report_func_t report)
 {
-  (void)extended;
-
   if (algo != GCRY_PK_ECC)
     return GPG_ERR_PUBKEY_ALGO;
 
-  return selftests_ecdsa (report);
+  return selftests_ecdsa (report, extended);
 }
 
 
