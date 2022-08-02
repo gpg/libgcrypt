@@ -1761,6 +1761,96 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
  */
 
 static const char *
+selftest_hash_sign_2048 (gcry_sexp_t pkey, gcry_sexp_t skey)
+{
+  int md_algo = GCRY_MD_SHA256;
+  gcry_md_hd_t hd = NULL;
+  const char *data_tmpl = "(data (flags pkcs1) (hash %s %b))";
+  static const char sample_data[] =
+    "11223344556677889900aabbccddeeff"
+    "102030405060708090a0b0c0d0f01121";
+  static const char sample_data_bad[] =
+    "11223344556677889900aabbccddeeff"
+    "802030405060708090a0b0c0d0f01121";
+
+  const char *errtxt = NULL;
+  gcry_error_t err;
+  gcry_sexp_t sig = NULL;
+  /* raw signature data reference */
+  const char ref_data[] =
+    "518f41dea3ad884e93eefff8d7ca68a6f4c30d923632e35673651d675cebd652"
+    "a44ed66f6879b18f3d48b2d235b1dd78f6189be1440352cc94231a55c1f93109"
+    "84616b2841c42fe9a6e37be34cd188207209bd028e2fa93e721fbac40c31a068"
+    "1253b312d4e07addb9c7f3d508fa89f218ea7c7f7b9f6a9b1e522c19fa1cd839"
+    "93f9d4ca2f16c3d0b9abafe5e63e848152afc72ce7ee19ea45353116f85209ea"
+    "b9de42129dbccdac8faa461e8e8cc2ae801101cc6add4ba76ccb752030b0e827"
+    "7352b11cdecebae9cdc9a626c4701cd9c85cd287618888c5fae8b4d0ba48915d"
+    "e5cc64e3aee2ba2862d04348ea71f65454f74f9fd1e3108005cc367ca41585a4";
+  gcry_mpi_t ref_mpi = NULL;
+  gcry_mpi_t sig_mpi = NULL;
+
+  err = _gcry_md_open (&hd, md_algo, 0);
+  if (err)
+    {
+      errtxt = "gcry_md_open failed";
+      goto leave;
+    }
+
+  _gcry_md_write (hd, sample_data, sizeof(sample_data));
+
+  err = _gcry_pk_sign_md (&sig, data_tmpl, hd, skey, NULL);
+  if (err)
+    {
+      errtxt = "signing failed";
+      goto leave;
+    }
+
+  err = _gcry_mpi_scan(&ref_mpi, GCRYMPI_FMT_HEX, ref_data, 0, NULL);
+  if (err)
+    {
+      errtxt = "converting ref_data to mpi failed";
+      goto leave;
+    }
+
+  err = _gcry_sexp_extract_param(sig, "sig-val!rsa", "s", &sig_mpi, NULL);
+  if (err)
+    {
+      errtxt = "extracting signature data failed";
+      goto leave;
+    }
+
+  if (mpi_cmp (sig_mpi, ref_mpi))
+    {
+      errtxt = "signature does not match reference data";
+      goto leave;
+    }
+
+  err = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  if (err)
+    {
+      errtxt = "verify failed";
+      goto leave;
+    }
+
+  _gcry_md_reset(hd);
+  _gcry_md_write (hd, sample_data_bad, sizeof(sample_data_bad));
+  err = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  if (gcry_err_code (err) != GPG_ERR_BAD_SIGNATURE)
+    {
+      errtxt = "bad signature not detected";
+      goto leave;
+    }
+
+
+ leave:
+  sexp_release (sig);
+  _gcry_md_close (hd);
+  _gcry_mpi_release (ref_mpi);
+  _gcry_mpi_release (sig_mpi);
+  return errtxt;
+}
+
+static const char *
 selftest_sign_2048 (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
   static const char sample_data[] =
@@ -1996,7 +2086,7 @@ selftest_encr_2048 (gcry_sexp_t pkey, gcry_sexp_t skey)
 
 
 static gpg_err_code_t
-selftests_rsa (selftest_report_func_t report)
+selftests_rsa (selftest_report_func_t report, int extended)
 {
   const char *what;
   const char *errtxt;
@@ -2024,8 +2114,16 @@ selftests_rsa (selftest_report_func_t report)
       goto failed;
     }
 
-  what = "sign";
-  errtxt = selftest_sign_2048 (pkey, skey);
+  if (extended)
+    {
+      what = "sign";
+      errtxt = selftest_sign_2048 (pkey, skey);
+      if (errtxt)
+        goto failed;
+    }
+
+  what = "digest sign";
+  errtxt = selftest_hash_sign_2048 (pkey, skey);
   if (errtxt)
     goto failed;
 
@@ -2053,12 +2151,10 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 {
   gpg_err_code_t ec;
 
-  (void)extended;
-
   switch (algo)
     {
     case GCRY_PK_RSA:
-      ec = selftests_rsa (report);
+      ec = selftests_rsa (report, extended);
       break;
     default:
       ec = GPG_ERR_PUBKEY_ALGO;
