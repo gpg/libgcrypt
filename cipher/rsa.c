@@ -177,6 +177,73 @@ test_keys (RSA_secret_key *sk, unsigned int nbits)
   return result;
 }
 
+static int
+test_keys_fips (RSA_secret_key *sk)
+{
+  int result = -1; /* Default to failure.  */
+  char plaintext[128];
+  gcry_sexp_t sig = NULL;
+  gcry_sexp_t skey = NULL, pkey = NULL;
+  const char *data_tmpl = "(data (flags pkcs1) (hash %s %b))";
+  gcry_md_hd_t hd = NULL;
+  int ec;
+
+  /* Put the relevant parameters into a public key structure.  */
+  ec = sexp_build (&pkey, NULL,
+                   "(key-data"
+                   " (public-key"
+                   "  (rsa(n%m)(e%m))))",
+                   sk->n, sk->e);
+  if (ec)
+    goto leave;
+
+  /* Put the relevant parameters into a secret key structure.  */
+  ec = sexp_build (&skey, NULL,
+                   "(key-data"
+                   " (public-key"
+                   "  (rsa(n%m)(e%m)))"
+                   " (private-key"
+                   "  (rsa(n%m)(e%m)(d%m)(p%m)(q%m)(u%m))))",
+                   sk->n, sk->e,
+                   sk->n, sk->e, sk->d, sk->p, sk->q, sk->u);
+  if (ec)
+    goto leave;
+
+  /* Create a random plaintext.  */
+  _gcry_randomize (plaintext, sizeof plaintext, GCRY_WEAK_RANDOM);
+
+  /* Open MD context and feed the random data in */
+  ec = _gcry_md_open (&hd, GCRY_MD_SHA256, 0);
+  if (ec)
+    goto leave;
+  _gcry_md_write (hd, plaintext, sizeof(plaintext));
+
+  /* Use the RSA secret function to create a signature of the plaintext.  */
+  ec = _gcry_pk_sign_md (&sig, data_tmpl, hd, skey, NULL);
+  if (ec)
+    goto leave;
+
+  /* Use the RSA public function to verify this signature.  */
+  ec = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  if (ec)
+    goto leave;
+
+  /* Modify the data and check that the signing fails.  */
+  _gcry_md_reset(hd);
+  plaintext[sizeof plaintext / 2] ^= 1;
+  _gcry_md_write (hd, plaintext, sizeof(plaintext));
+  ec = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  if (ec != GPG_ERR_BAD_SIGNATURE)
+    goto leave; /* Signature verification worked on modified data  */
+
+  result = 0; /* All tests succeeded.  */
+ leave:
+  sexp_release (sig);
+  _gcry_md_close (hd);
+  sexp_release (pkey);
+  sexp_release (skey);
+  return result;
+}
 
 /* Callback used by the prime generation to test whether the exponent
    is suitable. Returns 0 if the test has been passed. */
@@ -648,7 +715,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
   sk->u = u;
 
   /* Now we can test our keys. */
-  if (ec || (!testparms && test_keys (sk, nbits - 64)))
+  if (ec || (!testparms && test_keys_fips (sk)))
     {
       _gcry_mpi_release (sk->n); sk->n = NULL;
       _gcry_mpi_release (sk->e); sk->e = NULL;
