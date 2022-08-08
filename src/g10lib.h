@@ -468,6 +468,7 @@ void _gcry_fips_signal_error (const char *srcfile,
 
 int _gcry_fips_indicator_cipher (va_list arg_ptr);
 int _gcry_fips_indicator_kdf (va_list arg_ptr);
+int _gcry_fips_indicator_function (va_list arg_ptr);
 
 int _gcry_fips_is_operational (void);
 

@@ -995,6 +995,13 @@ certification. If the KDF is approved, this function returns
 @code{GPG_ERR_NO_ERROR}. Otherwise @code{GPG_ERR_NOT_SUPPORTED}
 is returned.
 
+@item GCRYCTL_FIPS_SERVICE_INDICATOR_FUNCTION; Arguments: const char *
+
+Check if the given function is approved under the current FIPS 140-3
+certification. If the function is approved, this function returns
+@code{GPG_ERR_NO_ERROR} (other restrictions might still apply).
+Otherwise @code{GPG_ERR_NOT_SUPPORTED} is returned.
+
 @end table
 
 @end deftypefun
