@@ -390,6 +390,18 @@ _gcry_fips_indicator_kdf (va_list arg_ptr)
     }
 }
 
+int
+_gcry_fips_indicator_function (va_list arg_ptr)
+{
+  const char *function = va_arg (arg_ptr, const char *);
+
+  if (strcmp (function, "gcry_sign") == 0 ||
+      strcmp (function, "gcry_verify") == 0)
+    return GPG_ERR_NOT_SUPPORTED;
+
+  return GPG_ERR_NO_ERROR;
+}
+
 
 /* This is a test on whether the library is in the error or
    operational state. */
