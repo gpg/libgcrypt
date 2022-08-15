@@ -101,6 +101,7 @@ static void *progress_cb_data;
 
 /* Local prototypes. */
 static void test_keys (mpi_ec_t ec, unsigned int nbits);
+static void test_keys_fips (mpi_ec_t ec, gcry_mpi_t x, gcry_mpi_t y);
 static void test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags);
 static unsigned int ecc_get_nbits (gcry_sexp_t parms);
 
@@ -255,6 +256,8 @@ nist_generate_key (mpi_ec_t ec, int flags,
     ; /* User requested to skip the test.  */
   else if (ec->model == MPI_EC_MONTGOMERY)
     test_ecdh_only_keys (ec, ec->nbits - 63, flags);
+  else if (fips_mode ())
+    test_keys_fips (ec, x, y);
   else
     test_keys (ec, ec->nbits - 64);
 
@@ -302,6 +305,84 @@ test_keys (mpi_ec_t ec, unsigned int nbits)
   mpi_free (out);
   mpi_free (c);
   mpi_free (test);
+}
+
+/* We should get here only with the NIST curves as they are the only ones
+ * having the fips bit set in ecc_domain_parms_t struct so this is slightly
+ * simpler than the whole ecc_generate function */
+static void
+test_keys_fips (mpi_ec_t ec, gcry_mpi_t Qx, gcry_mpi_t Qy)
+{
+  gcry_md_hd_t hd = NULL;
+  const char *data_tmpl = "(data (flags rfc6979) (hash %s %b))";
+  gcry_sexp_t skey = NULL, pkey = NULL;
+  gcry_sexp_t curve_info = NULL;
+  gcry_sexp_t sig = NULL;
+  gcry_mpi_t public = NULL;
+  char plaintext[128];
+  int rc;
+
+  /* Build keys structures */
+  if (ec->name)
+    {
+      rc = sexp_build (&curve_info, NULL, "(curve %s)", ec->name);
+      if (rc)
+        log_fatal ("ECDSA operation: failed to build curve_info\n");
+    }
+
+  public = _gcry_ecc_ec2os (Qx, Qy, ec->p);
+  rc = sexp_build (&pkey, NULL,
+                   "(key-data"
+                   " (public-key"
+                   "  (ecc%S(q%m)))"
+                   " )",
+                   curve_info,
+                   public);
+  if (rc)
+    log_fatal ("ECDSA operation: failed to build public key: %s\n", gpg_strerror (rc));
+  rc = sexp_build (&skey, NULL,
+                   "(key-data"
+                   " (private-key"
+                   "  (ecc%S(q%m)(d%m)))"
+                   " )",
+                   curve_info,
+                   public, ec->d);
+  if (rc)
+    log_fatal ("ECDSA operation: failed to build private key: %s\n", gpg_strerror (rc));
+
+  /* Create a random plaintext.  */
+  _gcry_randomize (plaintext, sizeof plaintext, GCRY_WEAK_RANDOM);
+
+  /* Open MD context and feed the random data in */
+  rc = _gcry_md_open (&hd, GCRY_MD_SHA256, 0);
+  if (rc)
+    log_fatal ("ECDSA operation: failed to initialize MD context: %s\n", gpg_strerror (rc));
+  _gcry_md_write (hd, plaintext, sizeof(plaintext));
+
+  /* Sign the data */
+  rc = _gcry_pk_sign_md (&sig, data_tmpl, hd, skey, NULL);
+  if (rc)
+    log_fatal ("ECDSA operation: signing failed: %s\n", gpg_strerror (rc));
+
+  /* Verify this signature.  */
+  rc = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  if (rc)
+    log_fatal ("ECDSA operation: verification failed: %s\n", gpg_strerror (rc));
+
+  /* Modify the data and check that the signing fails.  */
+  _gcry_md_reset(hd);
+  plaintext[sizeof plaintext / 2] ^= 1;
+  _gcry_md_write (hd, plaintext, sizeof(plaintext));
+  rc = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  if (rc != GPG_ERR_BAD_SIGNATURE)
+    log_fatal ("ECDSA operation: signature verification worked on modified data\n");
+
+  mpi_free (public);
+  sexp_release (curve_info);
+  _gcry_md_close (hd);
+  sexp_release (pkey);
+  sexp_release (skey);
+  sexp_release (sig);
 }
 
 
