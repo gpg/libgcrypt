@@ -82,7 +82,10 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
         {
           nbytes = length < sizeof (buffer)? length : sizeof (buffer);
           _gcry_pre_syscall ();
-          ret = getentropy (buffer, nbytes);
+          if (fips_mode ())
+            ret = getrandom (buffer, nbytes, GRND_RANDOM);
+          else
+            ret = getentropy (buffer, nbytes);
           _gcry_post_syscall ();
         }
       while (ret == -1 && errno == EINTR);
