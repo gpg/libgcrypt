@@ -178,36 +178,14 @@ test_keys (RSA_secret_key *sk, unsigned int nbits)
 }
 
 static int
-test_keys_fips (RSA_secret_key *sk)
+test_keys_fips (gcry_sexp_t skey)
 {
   int result = -1; /* Default to failure.  */
   char plaintext[128];
   gcry_sexp_t sig = NULL;
-  gcry_sexp_t skey = NULL, pkey = NULL;
   const char *data_tmpl = "(data (flags pkcs1) (hash %s %b))";
   gcry_md_hd_t hd = NULL;
   int ec;
-
-  /* Put the relevant parameters into a public key structure.  */
-  ec = sexp_build (&pkey, NULL,
-                   "(key-data"
-                   " (public-key"
-                   "  (rsa(n%m)(e%m))))",
-                   sk->n, sk->e);
-  if (ec)
-    goto leave;
-
-  /* Put the relevant parameters into a secret key structure.  */
-  ec = sexp_build (&skey, NULL,
-                   "(key-data"
-                   " (public-key"
-                   "  (rsa(n%m)(e%m)))"
-                   " (private-key"
-                   "  (rsa(n%m)(e%m)(d%m)(p%m)(q%m)(u%m))))",
-                   sk->n, sk->e,
-                   sk->n, sk->e, sk->d, sk->p, sk->q, sk->u);
-  if (ec)
-    goto leave;
 
   /* Create a random plaintext.  */
   _gcry_randomize (plaintext, sizeof plaintext, GCRY_WEAK_RANDOM);
@@ -224,7 +202,7 @@ test_keys_fips (RSA_secret_key *sk)
     goto leave;
 
   /* Use the RSA public function to verify this signature.  */
-  ec = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  ec = _gcry_pk_verify_md (sig, data_tmpl, hd, skey, NULL);
   if (ec)
     goto leave;
 
@@ -232,7 +210,7 @@ test_keys_fips (RSA_secret_key *sk)
   _gcry_md_reset(hd);
   plaintext[sizeof plaintext / 2] ^= 1;
   _gcry_md_write (hd, plaintext, sizeof(plaintext));
-  ec = _gcry_pk_verify_md (sig, data_tmpl, hd, pkey, NULL);
+  ec = _gcry_pk_verify_md (sig, data_tmpl, hd, skey, NULL);
   if (ec != GPG_ERR_BAD_SIGNATURE)
     goto leave; /* Signature verification worked on modified data  */
 
@@ -240,8 +218,6 @@ test_keys_fips (RSA_secret_key *sk)
  leave:
   sexp_release (sig);
   _gcry_md_close (hd);
-  sexp_release (pkey);
-  sexp_release (skey);
   return result;
 }
 
@@ -714,8 +690,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
   sk->d = d;
   sk->u = u;
 
-  /* Now we can test our keys. */
-  if (ec || (!testparms && test_keys_fips (sk)))
+  if (ec)
     {
       _gcry_mpi_release (sk->n); sk->n = NULL;
       _gcry_mpi_release (sk->e); sk->e = NULL;
@@ -723,11 +698,6 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       _gcry_mpi_release (sk->q); sk->q = NULL;
       _gcry_mpi_release (sk->d); sk->d = NULL;
       _gcry_mpi_release (sk->u); sk->u = NULL;
-      if (!ec)
-        {
-          fips_signal_error ("self-test after key generation failed");
-          return GPG_ERR_SELFTEST_FAILED;
-        }
     }
 
   return ec;
@@ -1306,7 +1276,7 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                      /**/    : NULL);
 
       /* Generate.  */
-      if (deriveparms || fips_mode())
+      if (deriveparms || fips_mode ())
         {
           ec = generate_fips (&sk, nbits, evalue, deriveparms,
                               !!(flags & PUBKEY_FLAG_TRANSIENT_KEY));
@@ -1340,6 +1310,13 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   mpi_free (sk.d);
   mpi_free (sk.u);
   sexp_release (swap_info);
+
+  if (!ec && fips_mode () && test_keys_fips (*r_skey))
+    {
+      sexp_release (*r_skey); *r_skey = NULL;
+      fips_signal_error ("self-test after key generation failed");
+      return GPG_ERR_SELFTEST_FAILED;
+    }
 
   return ec;
 }
