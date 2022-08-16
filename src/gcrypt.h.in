@@ -1077,7 +1077,8 @@ gcry_error_t gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag,
    cipher handle H. */
 #define gcry_cipher_sync(h)  gcry_cipher_ctl( (h), GCRYCTL_CFB_SYNC, NULL, 0)
 
-/* Enable or disable CTS in future calls to gcry_encrypt(). CBC mode only. */
+/* Enable or disable CTS in future calls to gcry_cipher_encrypt().
+ * CBC mode only. */
 #define gcry_cipher_cts(h,on)  gcry_cipher_ctl( (h), GCRYCTL_SET_CBC_CTS, \
                                                                    NULL, on )
 
