@@ -186,11 +186,24 @@ check_oaep (void)
           err = gcry_pk_encrypt (&ciph, plain, pub_key);
           if (err)
             {
+              if (in_fips_mode)
+                {
+                  gcry_sexp_release (plain);
+                  plain = NULL;
+                  continue;
+                }
               show_sexp ("plain:\n", ciph);
               fail ("gcry_pk_encrypt failed: %s\n", gpg_strerror (err));
             }
           else
             {
+              if (in_fips_mode)
+                {
+                  fail ("The OAEP encryption unexpectedly worked in FIPS mode\n");
+                  gcry_sexp_release (plain);
+                  plain = NULL;
+                  continue;
+                }
               if (extract_cmp_data (ciph, "a", tbl[tno].m[mno].encr,
                                     tbl[tno].m[mno].desc))
                 {
