@@ -1092,7 +1092,10 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       const void * value;
       size_t valuelen;
 
-      if ( !(value=sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
+      /* The RSA OAEP encryption requires some more assurances in FIPS */
+      if (fips_mode ())
+        rc = GPG_ERR_INV_FLAG;
+      else if ( !(value=sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
 	rc = GPG_ERR_INV_OBJ;
       else
 	{
