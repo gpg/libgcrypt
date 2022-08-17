@@ -1457,7 +1457,8 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       rc = GPG_ERR_INV_DATA;
       goto leave;
     }
-  if (fips_mode () && (ctx.encoding == PUBKEY_ENC_PKCS1))
+  if (fips_mode () && (ctx.encoding == PUBKEY_ENC_PKCS1 ||
+                       ctx.encoding == PUBKEY_ENC_OAEP))
     {
       rc = GPG_ERR_INV_FLAG;
       goto leave;
