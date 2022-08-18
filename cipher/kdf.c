@@ -402,10 +402,13 @@ argon2_fill_first_blocks (argon2_ctx_t a)
   iov[iov_count].len = 4 * 7;
   iov[iov_count].off = 0;
   iov_count++;
-  iov[iov_count].data = (void *)a->password;
-  iov[iov_count].len = a->passwordlen;
-  iov[iov_count].off = 0;
-  iov_count++;
+  if (a->passwordlen)
+    {
+      iov[iov_count].data = (void *)a->password;
+      iov[iov_count].len = a->passwordlen;
+      iov[iov_count].off = 0;
+      iov_count++;
+    }
 
   buf_put_le32 (buf[7], a->saltlen);
   iov[iov_count].data = buf[7];
@@ -1861,7 +1864,7 @@ _gcry_kdf_open (gcry_kdf_hd_t *hd, int algo, int subalgo,
   switch (algo)
     {
     case GCRY_KDF_ARGON2:
-      if (!inputlen || !saltlen)
+      if (!saltlen)
         ec = GPG_ERR_INV_VALUE;
       else
         ec = argon2_open (hd, subalgo, param, paramlen,
