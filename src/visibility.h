@@ -122,6 +122,8 @@ MARK_VISIBLEX (gcry_cipher_close)
 MARK_VISIBLEX (gcry_cipher_setkey)
 MARK_VISIBLEX (gcry_cipher_setiv)
 MARK_VISIBLEX (gcry_cipher_setctr)
+MARK_VISIBLEX (gcry_cipher_setup_geniv)
+MARK_VISIBLEX (gcry_cipher_geniv)
 MARK_VISIBLEX (gcry_cipher_authenticate)
 MARK_VISIBLEX (gcry_cipher_checktag)
 MARK_VISIBLEX (gcry_cipher_gettag)
@@ -344,6 +346,8 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_cipher_setctr          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_cipher_algo_info       _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_cipher_algo_name       _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_cipher_setup_geniv     _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_cipher_geniv           _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_cipher_authenticate    _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_cipher_checktag        _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_cipher_gettag          _gcry_USE_THE_UNDERSCORED_FUNCTION

@@ -985,6 +985,13 @@ enum gcry_cipher_flags
     GCRY_CIPHER_EXTENDED    = 16  /* Enable extended AES-WRAP.  */
   };
 
+/* Methods used for AEAD IV generation. */
+enum gcry_cipher_geniv_methods
+  {
+    GCRY_CIPHER_GENIV_METHOD_CONCAT = 1,
+    GCRY_CIPHER_GENIV_METHOD_XOR = 2
+  };
+
 /* GCM works only with blocks of 128 bits */
 #define GCRY_GCM_BLOCK_LEN  (128 / 8)
 
@@ -1055,6 +1062,15 @@ gcry_error_t gcry_cipher_setkey (gcry_cipher_hd_t hd,
 /* Set initialization vector IV of length IVLEN for the cipher handle HD. */
 gcry_error_t gcry_cipher_setiv (gcry_cipher_hd_t hd,
                                 const void *iv, size_t ivlen);
+
+/* Initialization vector generation setup for AEAD modes/ciphers.  */
+gcry_error_t gcry_cipher_setup_geniv (gcry_cipher_hd_t hd, int method,
+                                      const void *fixed_iv, size_t fixed_ivlen,
+                                      const void *dyn_iv, size_t dyn_ivlen);
+
+/* Initialization vector generation for AEAD modes/ciphers.  */
+gcry_error_t gcry_cipher_geniv (gcry_cipher_hd_t hd,
+                                void *iv, size_t ivlen);
 
 /* Provide additional authentication data for AEAD modes/ciphers.  */
 gcry_error_t gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
