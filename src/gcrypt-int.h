@@ -69,6 +69,12 @@ gcry_err_code_t _gcry_cipher_setkey (gcry_cipher_hd_t hd,
                                      const void *key, size_t keylen);
 gcry_err_code_t _gcry_cipher_setiv (gcry_cipher_hd_t hd,
                                     const void *iv, size_t ivlen);
+gcry_err_code_t _gcry_cipher_setup_geniv (gcry_cipher_hd_t hd, int method,
+                                          const void *fixed_iv,
+                                          size_t fixed_ivlen,
+                                          const void *dyn_iv, size_t dyn_ivlen);
+gcry_err_code_t _gcry_cipher_geniv (gcry_cipher_hd_t hd,
+                                    void *iv, size_t ivlen);
 gpg_err_code_t _gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
                                           size_t abuflen);
 gpg_err_code_t _gcry_cipher_gettag (gcry_cipher_hd_t hd, void *outtag,

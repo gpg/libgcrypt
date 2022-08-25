@@ -1210,9 +1210,20 @@ _gcry_cipher_setkey (gcry_cipher_hd_t hd, const void *key, size_t keylen)
 
 
 gcry_err_code_t
-_gcry_cipher_setiv (gcry_cipher_hd_t hd, const void *iv, size_t ivlen)
+_gcry_cipher_setiv (gcry_cipher_hd_t c, const void *iv, size_t ivlen)
 {
-  return hd->mode_ops.setiv (hd, iv, ivlen);
+  if (c->mode == GCRY_CIPHER_MODE_GCM)
+    {
+      c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode = 0;
+
+      if (fips_mode ())
+        {
+          /* Direct invocation of GCM setiv in FIPS mode disables encryption. */
+          c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode = 1;
+        }
+    }
+
+  return c->mode_ops.setiv (c, iv, ivlen);
 }
 
 
@@ -1247,6 +1258,53 @@ _gcry_cipher_getctr (gcry_cipher_hd_t hd, void *ctr, size_t ctrlen)
     return GPG_ERR_INV_ARG;
 
   return 0;
+}
+
+
+gcry_err_code_t
+_gcry_cipher_setup_geniv (gcry_cipher_hd_t hd, int method,
+                          const void *fixed_iv, size_t fixed_iv_len,
+                          const void *dyn_iv, size_t dyn_iv_len)
+{
+  gcry_err_code_t rc = 0;
+
+  if (method != GCRY_CIPHER_GENIV_METHOD_CONCAT)
+    return GPG_ERR_INV_ARG;
+
+  hd->aead.geniv_method = GCRY_CIPHER_GENIV_METHOD_CONCAT;
+  hd->aead.fixed_iv_len = fixed_iv_len;
+  hd->aead.dynamic_iv_len = dyn_iv_len;
+  memset (hd->aead.fixed, 0, MAX_BLOCKSIZE);
+  memset (hd->aead.dynamic, 0, MAX_BLOCKSIZE);
+  memcpy (hd->aead.fixed, fixed_iv, fixed_iv_len);
+  memcpy (hd->aead.dynamic, dyn_iv, dyn_iv_len);
+
+  return rc;
+}
+
+
+gcry_err_code_t
+_gcry_cipher_geniv (gcry_cipher_hd_t hd, void *iv, size_t iv_len)
+{
+  gcry_err_code_t rc = 0;
+  int i;
+
+  if (hd->aead.geniv_method != GCRY_CIPHER_GENIV_METHOD_CONCAT)
+    return GPG_ERR_INV_ARG;
+
+  if (iv_len != hd->aead.fixed_iv_len + hd->aead.dynamic_iv_len)
+    return GPG_ERR_INV_ARG;
+
+  memcpy (iv, hd->aead.fixed, hd->aead.fixed_iv_len);
+  memcpy ((byte *)iv+hd->aead.fixed_iv_len,
+          hd->aead.dynamic, hd->aead.dynamic_iv_len);
+  rc = hd->mode_ops.setiv (hd, iv, iv_len);
+
+  for (i = hd->aead.dynamic_iv_len; i > 0; i--)
+    if (++hd->aead.dynamic[i - 1] != 0)
+      break;
+
+  return rc;
 }
 
 

@@ -2005,6 +2005,33 @@ truncated lengths (4, 8, 12, 13, 14, or 15).
 
 @end deftypefun
 
+For encryption of AEAD cipher modes, it should be possible to generate
+an initialization vector internally within libgcrypt implementation,
+in coordinated way, instead of calling @code{gcry_cipher_setiv} with
+arbitrary value, so that it can ensure the security properties of AEAD
+block cipher.  For this purpose, the following two functions are provided:
+
+@deftypefun {gcry_error_t} gcry_cipher_setup_geniv (gcry_cipher_hd_t @var{h}, @
+            int @var{method}, const void *@var{fixed_iv}, size_t @var{fixed_ivlen}, @
+            const void *@var{dyn_iv}, size_t @var{dyn_ivlen})
+
+Set up an initialization vector generation for AEAD cipher modes.
+Generation is specified by @var{method}, fixed part of initialization
+vector by @var{fixed_iv} and @var{fixed_ivlen}, and dynamic part of
+initialization vector by @var{dyn_iv} and @var{dyn_ivlen}.
+For @var{method}, valid values are @code{GCRY_CIPHER_GENIV_METHOD_CONCAT}
+and @code{GCRY_CIPHER_GENIV_METHOD_XOR}.
+@end deftypefun
+
+@deftypefun {gcry_error_t} gcry_cipher_geniv (gcry_cipher_hd_t @var{h}, @
+            void *@var{iv}, size_t @var{ivlen})
+
+Generate the initialization vector into the output buffer @var{iv}
+with length @var{ivlen}.  The initialization vector will be used by
+following @code{gcry_cipher_encrypt} call.
+@end deftypefun
+
+
 The actual encryption and decryption is done by using one of the
 following functions.  They may be used as often as required to process
 all the data.

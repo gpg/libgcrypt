@@ -125,6 +125,9 @@ GCRYPT_1.6 {
     gcry_pk_hash_sign; gcry_pk_hash_verify; gcry_pk_random_override_new;
 
     gcry_kdf_open; gcry_kdf_compute; gcry_kdf_final; gcry_kdf_close;
+
+    gcry_cipher_setup_geniv; gcry_cipher_geniv;
+
   local:
     *;
 

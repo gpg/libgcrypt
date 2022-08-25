@@ -774,6 +774,22 @@ gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
 }
 
 gcry_error_t
+gcry_cipher_setup_geniv (gcry_cipher_hd_t hd, int method,
+                         const void *fixed_iv, size_t fixed_iv_len,
+                         const void *dyn_iv, size_t dyn_iv_len)
+{
+  return gcry_error (_gcry_cipher_setup_geniv (hd, method,
+                                               fixed_iv, fixed_iv_len,
+                                               dyn_iv, dyn_iv_len));
+}
+
+gcry_error_t
+gcry_cipher_geniv (gcry_cipher_hd_t hd, void *iv, size_t iv_len)
+{
+  return gcry_error (_gcry_cipher_geniv (hd, iv, iv_len));
+}
+
+gcry_error_t
 gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf, size_t abuflen)
 {
   if (!fips_is_operational ())

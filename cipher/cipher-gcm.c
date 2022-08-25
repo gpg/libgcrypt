@@ -30,6 +30,8 @@
 #include "./cipher-internal.h"
 
 
+static gcry_err_code_t _gcry_cipher_gcm_setiv_zero (gcry_cipher_hd_t c);
+
 /* Helper macro to force alignment to 16 or 64 bytes.  */
 #ifdef HAVE_GCC_ATTRIBUTE_ALIGNED
 # define ATTR_ALIGNED_64  __attribute__ ((aligned (64)))
@@ -909,8 +911,6 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
                           byte *outbuf, size_t outbuflen,
                           const byte *inbuf, size_t inbuflen)
 {
-  static const unsigned char zerobuf[MAX_BLOCKSIZE];
-
   if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_CIPHER_ALGO;
   if (outbuflen < inbuflen)
@@ -923,7 +923,7 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
-    _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
+    _gcry_cipher_gcm_setiv_zero (c);
 
   if (c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode)
     return GPG_ERR_INV_STATE;
@@ -951,8 +951,6 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
                           byte *outbuf, size_t outbuflen,
                           const byte *inbuf, size_t inbuflen)
 {
-  static const unsigned char zerobuf[MAX_BLOCKSIZE];
-
   if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_CIPHER_ALGO;
   if (outbuflen < inbuflen)
@@ -965,7 +963,7 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
-    _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
+    _gcry_cipher_gcm_setiv_zero (c);
 
   if (!c->u_mode.gcm.ghash_aad_finalized)
     {
@@ -989,8 +987,6 @@ gcry_err_code_t
 _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
                                const byte * aadbuf, size_t aadbuflen)
 {
-  static const unsigned char zerobuf[MAX_BLOCKSIZE];
-
   if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_CIPHER_ALGO;
   if (c->u_mode.gcm.datalen_over_limits)
@@ -1002,7 +998,7 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
-    _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
+    _gcry_cipher_gcm_setiv_zero (c);
 
   gcm_bytecounter_add(c->u_mode.gcm.aadlen, aadbuflen);
   if (!gcm_check_aadlen_or_ivlen(c->u_mode.gcm.aadlen))
@@ -1105,6 +1101,15 @@ _gcry_cipher_gcm_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
   c->marks.iv = 0;
   c->marks.tag = 0;
+
+  return _gcry_cipher_gcm_initiv (c, iv, ivlen);
+}
+
+static gcry_err_code_t
+_gcry_cipher_gcm_setiv_zero (gcry_cipher_hd_t c)
+{
+  static const unsigned char zerobuf[MAX_BLOCKSIZE];
+
   c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode = 0;
 
   if (fips_mode ())
@@ -1113,7 +1118,7 @@ _gcry_cipher_gcm_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
       c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode = 1;
     }
 
-  return _gcry_cipher_gcm_initiv (c, iv, ivlen);
+  return _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
 }
 
 

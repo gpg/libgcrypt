@@ -246,6 +246,14 @@ struct gcry_cipher_handle
   unsigned int flags;
 
   struct {
+    int geniv_method;
+    unsigned char fixed[MAX_BLOCKSIZE];
+    unsigned char dynamic[MAX_BLOCKSIZE];
+    size_t fixed_iv_len;
+    size_t dynamic_iv_len;
+  } aead;
+
+  struct {
     unsigned int key:1; /* Set to 1 if a key has been set.  */
     unsigned int iv:1;  /* Set to 1 if a IV has been set.  */
     unsigned int tag:1; /* Set to 1 if a tag is finalized. */
