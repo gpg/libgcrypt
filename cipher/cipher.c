@@ -1271,6 +1271,9 @@ _gcry_cipher_setup_geniv (gcry_cipher_hd_t hd, int method,
   if (method != GCRY_CIPHER_GENIV_METHOD_CONCAT)
     return GPG_ERR_INV_ARG;
 
+  if (fixed_iv_len + dyn_iv_len > MAX_BLOCKSIZE)
+    return GPG_ERR_INV_ARG;
+
   hd->aead.geniv_method = GCRY_CIPHER_GENIV_METHOD_CONCAT;
   hd->aead.fixed_iv_len = fixed_iv_len;
   hd->aead.dynamic_iv_len = dyn_iv_len;
