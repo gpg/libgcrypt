@@ -752,6 +752,8 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
   unsigned int count1, count2;
   int *mods;
 
+  (void)count1; /* The value is not used, actually.  */
+
 /*   if (  DBG_CIPHER ) */
 /*     log_debug ("generate a prime of %u bits ", nbits ); */
 

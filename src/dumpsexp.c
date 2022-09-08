@@ -414,6 +414,7 @@ parse_and_print (FILE *fp)
     }
   state = INIT_STATE;
 
+  (void)level; /* The value is not used, but useful in debug session.  */
 
   while ((c = my_getc (fp)) != EOF )
     {
