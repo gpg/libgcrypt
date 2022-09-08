@@ -564,7 +564,7 @@ _gcry_secmem_init (size_t n)
 
 
 gcry_err_code_t
-_gcry_secmem_module_init ()
+_gcry_secmem_module_init (void)
 {
   /* Not anymore needed.  */
   return 0;
@@ -825,7 +825,7 @@ _gcry_private_is_secure (const void *p)
  *	     there is no chance to get the secure memory cleaned.
  */
 void
-_gcry_secmem_term ()
+_gcry_secmem_term (void)
 {
   pooldesc_t *pool, *next;
 

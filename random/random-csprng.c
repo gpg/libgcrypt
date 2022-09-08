@@ -1131,7 +1131,7 @@ add_randomness (const void *buffer, size_t length, enum random_origins origin)
 
 
 static void
-random_poll()
+random_poll (void)
 {
   rndstats.slowpolls++;
   read_random_source (RANDOM_ORIGIN_SLOWPOLL, POOLSIZE/5, GCRY_STRONG_RANDOM);
