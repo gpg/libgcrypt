@@ -296,7 +296,7 @@ _gcry_err_code_from_errno (int err)
 static inline int
 _gcry_err_code_to_errno (gcry_err_code_t code)
 {
-  return gpg_err_code_from_errno (code);
+  return gpg_err_code_to_errno (code);
 }
 
 /* Return an error value with the error source SOURCE and the system
