@@ -46,10 +46,10 @@
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 5 )
 #define JNLIB_GCC_M_FUNCTION 1
-#define JNLIB_GCC_A_NR 	     __attribute__ ((noreturn))
+#define JNLIB_GCC_A_NR 	     __attribute__ ((__noreturn__))
 #define JNLIB_GCC_A_PRINTF( f, a )  __attribute__ ((format (printf,f,a)))
 #define JNLIB_GCC_A_NR_PRINTF( f, a ) \
-			    __attribute__ ((noreturn, format (printf,f,a)))
+			    __attribute__ ((__noreturn__, format (printf,f,a)))
 #define GCC_ATTR_NORETURN  __attribute__ ((__noreturn__))
 #else
 #define JNLIB_GCC_A_NR
