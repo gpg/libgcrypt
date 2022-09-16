@@ -119,6 +119,8 @@ void _gcry_sha1_hash_buffer (void *outbuf,
                              const void *buffer, size_t length);
 
 /*-- blake2.c --*/
+gcry_err_code_t blake2b_vl_hash (const void *in, size_t inlen,
+                                 size_t outputlen, void *output);
 gcry_err_code_t _gcry_blake2_init_with_key(void *ctx, unsigned int flags,
 					   const unsigned char *key,
 					   size_t keylen, int algo);
