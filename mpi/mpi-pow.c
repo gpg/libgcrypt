@@ -545,7 +545,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
   {
     mpi_size_t i, j, k;
     mpi_ptr_t xp;
-    mpi_size_t xsize;
+    mpi_size_t xsize = 0;
     int c;
     mpi_limb_t e;
     mpi_limb_t carry_limb;

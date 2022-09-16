@@ -39,7 +39,7 @@
 	    mul_n_basecase (prodp, up, vp, size);	\
 	else						\
 	    mul_n (prodp, up, vp, size, tspace);	\
-    } while (0);
+    } while (0)
 
 #define MPN_SQR_N_RECURSE(prodp, up, size, tspace) \
     do {					    \
@@ -47,7 +47,7 @@
 	    _gcry_mpih_sqr_n_basecase (prodp, up, size);	 \
 	else					    \
 	    _gcry_mpih_sqr_n (prodp, up, size, tspace);	 \
-    } while (0);
+    } while (0)
 
 
 

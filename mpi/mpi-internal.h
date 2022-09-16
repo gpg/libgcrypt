@@ -139,7 +139,7 @@ typedef int mpi_size_t;        /* (must be a signed type) */
 	    mul_n_basecase (prodp, up, vp, size);	\
 	else						\
 	    mul_n (prodp, up, vp, size, tspace);	\
-    } while (0);
+    } while (0)
 
 
 /* Divide the two-limb number in (NH,,NL) by D, with DI being the largest
