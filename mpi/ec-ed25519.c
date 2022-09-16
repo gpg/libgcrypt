@@ -27,7 +27,7 @@
 #include "g10lib.h"
 #include "context.h"
 #include "ec-context.h"
-
+#include "ec-internal.h"
 
 void
 _gcry_mpi_ec_ed25519_mod (gcry_mpi_t a)

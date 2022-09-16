@@ -260,7 +260,7 @@ _gcry_cipher_ccm_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
 }
 
 
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_cipher_ccm_tag (gcry_cipher_hd_t c, unsigned char *outbuf,
 		      size_t outbuflen, int check)
 {

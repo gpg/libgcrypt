@@ -715,7 +715,7 @@ _gcry_secmem_free_internal (void *a)
   /* This does not make much sense: probably this memory is held in the
    * cache. We do it anyway: */
 #define MB_WIPE_OUT(byte) \
-  wipememory2 (((char *) mb + BLOCK_HEAD_SIZE), (byte), size);
+  wipememory2 (((char *) mb + BLOCK_HEAD_SIZE), (byte), size)
 
   MB_WIPE_OUT (0xff);
   MB_WIPE_OUT (0xaa);
