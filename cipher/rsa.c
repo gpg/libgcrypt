@@ -1218,6 +1218,7 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   int flags = 0;
   gcry_sexp_t l1;
   gcry_sexp_t swap_info = NULL;
+  int testparms = 0;
 
   memset (&sk, 0, sizeof sk);
 
@@ -1274,6 +1275,8 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         }
       deriveparms = (genparms? sexp_find_token (genparms, "test-parms", 0)
                      /**/    : NULL);
+      if (deriveparms)
+        testparms = 1;
 
       /* Generate.  */
       if (deriveparms || fips_mode ())
@@ -1311,7 +1314,7 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   mpi_free (sk.u);
   sexp_release (swap_info);
 
-  if (!ec && fips_mode () && test_keys_fips (*r_skey))
+  if (!ec && !testparms && fips_mode () && test_keys_fips (*r_skey))
     {
       sexp_release (*r_skey); *r_skey = NULL;
       fips_signal_error ("self-test after key generation failed");
