@@ -131,7 +131,7 @@ typedef struct
 {
   unsigned int (*permute)(KECCAK_STATE *hd);
   unsigned int (*absorb)(KECCAK_STATE *hd, int pos, const byte *lanes,
-			 unsigned int nlanes, int blocklanes);
+			 size_t nlanes, int blocklanes);
   unsigned int (*extract) (KECCAK_STATE *hd, unsigned int pos, byte *outbuf,
 			   unsigned int outlen);
 } keccak_ops_t;
@@ -468,11 +468,11 @@ keccak_f1600_state_permute64_avx512(KECCAK_STATE *hd)
 
 static unsigned int
 keccak_absorb_lanes64_avx512(KECCAK_STATE *hd, int pos, const byte *lanes,
-			     unsigned int nlanes, int blocklanes)
+			     size_t nlanes, int blocklanes)
 {
   while (nlanes)
     {
-      if (pos == 0 && blocklanes > 0 && nlanes >= (unsigned int)blocklanes)
+      if (pos == 0 && blocklanes > 0 && nlanes >= (size_t)blocklanes)
         {
           nlanes = _gcry_keccak_absorb_blocks_avx512 (
                             hd->u.state64, _gcry_keccak_round_consts_64bit,
@@ -513,7 +513,7 @@ static const keccak_ops_t keccak_avx512_64_ops =
 unsigned int _gcry_keccak_permute_armv7_neon(u64 *state);
 unsigned int _gcry_keccak_absorb_lanes64_armv7_neon(u64 *state, int pos,
 						    const byte *lanes,
-						    unsigned int nlanes,
+						    size_t nlanes,
 						    int blocklanes);
 
 static unsigned int keccak_permute64_armv7_neon(KECCAK_STATE *hd)
@@ -523,7 +523,7 @@ static unsigned int keccak_permute64_armv7_neon(KECCAK_STATE *hd)
 
 static unsigned int
 keccak_absorb_lanes64_armv7_neon(KECCAK_STATE *hd, int pos, const byte *lanes,
-				 unsigned int nlanes, int blocklanes)
+				 size_t nlanes, int blocklanes)
 {
   if (blocklanes < 0)
     {
@@ -571,7 +571,7 @@ static const keccak_ops_t keccak_armv7_neon_64_ops =
 
 static unsigned int
 keccak_absorb_lanes32bi(KECCAK_STATE *hd, int pos, const byte *lanes,
-		        unsigned int nlanes, int blocklanes)
+		        size_t nlanes, int blocklanes)
 {
   unsigned int burn = 0;
 
@@ -653,7 +653,7 @@ keccak_absorb_lane32bi_bmi2(u32 *lane, u32 x0, u32 x1)
 
 static unsigned int
 keccak_absorb_lanes32bi_bmi2(KECCAK_STATE *hd, int pos, const byte *lanes,
-		             unsigned int nlanes, int blocklanes)
+		             size_t nlanes, int blocklanes)
 {
   unsigned int burn = 0;
 
@@ -873,7 +873,8 @@ keccak_write (void *context, const void *inbuf_arg, size_t inlen)
   const byte *inbuf = inbuf_arg;
   unsigned int nburn, burn = 0;
   unsigned int count, i;
-  unsigned int pos, nlanes;
+  unsigned int pos;
+  size_t nlanes;
 
 #ifdef USE_S390X_CRYPTO
   if (ctx->kimd_func)
@@ -918,8 +919,7 @@ keccak_write (void *context, const void *inbuf_arg, size_t inlen)
       burn = nburn > burn ? nburn : burn;
       inlen -= nlanes * 8;
       inbuf += nlanes * 8;
-      count += nlanes * 8;
-      count = count % bsize;
+      count = ((size_t) count + nlanes * 8) % bsize;
     }
 
   if (inlen)

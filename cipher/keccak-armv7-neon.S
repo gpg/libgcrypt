@@ -467,11 +467,11 @@ _gcry_keccak_permute_armv7_neon:
 .ltorg
 .size _gcry_keccak_permute_armv7_neon,.-_gcry_keccak_permute_armv7_neon;
 
-@//unsigned _gcry_keccak_permute_armv7_neon(u64 *state, @r4
-@					    int pos,    @r1
-@					    const byte *lanes,   @r2
-@					    unsigned int nlanes, @r3
-@					    int blocklanes) @ r5 callable from C
+@//unsigned _gcry_keccak_absorb_lanes64_armv7_neon(u64 *state, @r4
+@						int pos,    @r1
+@						const byte *lanes,   @r2
+@						size_t nlanes, @r3
+@						int blocklanes) @ r5 callable from C
 .p2align 3
 .global   _gcry_keccak_absorb_lanes64_armv7_neon
 .type  _gcry_keccak_absorb_lanes64_armv7_neon,%function;
