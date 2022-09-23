@@ -292,7 +292,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
 
 static unsigned int
 KECCAK_F1600_ABSORB_FUNC_NAME(KECCAK_STATE *hd, int pos, const byte *lanes,
-			      unsigned int nlanes, int blocklanes)
+			      size_t nlanes, int blocklanes)
 {
   unsigned int burn = 0;
 
