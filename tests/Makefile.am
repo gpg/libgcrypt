@@ -44,13 +44,14 @@ tests_bin_last = benchmark bench-slope
 
 tests_sh = basic-disable-all-hwf
 
-tests_sh_last = hashtest-256g
+tests_sh_last = hashtest-6g hashtest-256g
 
 TESTS = $(tests_bin) $(tests_sh) $(tests_bin_last) $(tests_sh_last)
 
 # Force sequential run of some tests.
 bench-slope.log:    benchmark.log
-hashtest-256g.log:  bench-slope.log
+hashtest-6g.log:    bench-slope.log
+hashtest-256g.log:  hashtest-6g.log
 
 
 TESTS_ENVIRONMENT = GCRYPT_IN_REGRESSION_TEST=1
@@ -76,8 +77,8 @@ CLEANFILES = testdrv-build
 EXTRA_DIST = README rsa-16k.key \
 	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h \
 	     t-ed25519.inp t-ed448.inp t-dsa.inp t-ecdsa.inp t-rsa-15.inp \
-	     t-rsa-pss.inp stopwatch.h hashtest-256g.in sha3-224.h \
-	     sha3-256.h sha3-384.h sha3-512.h blake2b.h blake2s.h \
+	     t-rsa-pss.inp stopwatch.h hashtest-6g.in hashtest-256g.in \
+	     sha3-224.h sha3-256.h sha3-384.h sha3-512.h blake2b.h blake2s.h \
 	     basic-disable-all-hwf.in basic_all_hwfeature_combinations.sh
 
 LDADD = $(standard_ldadd) $(GPG_ERROR_LIBS) @LDADD_FOR_TESTS_KLUDGE@

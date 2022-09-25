@@ -78,7 +78,12 @@ static struct {
    { "t-ed448"     },
    { "benchmark"   },
    { "bench-slope" },
-   { "hashtest-256g",  "hashtest", "--gigs 256 SHA1 SHA256 SHA512 SM3",
+   { "hashtest-6g", "hashtest", "--hugeblock --gigs 6 SHA1 SHA256 SHA512 "
+                                                     "SHA3-512 SM3 BLAKE2S_256 "
+                                                     "BLAKE2B_512 CRC32 "
+                                                     "CRC24RFC2440",
+     LONG_RUNNING },
+   { "hashtest-256g", "hashtest", "--gigs 256 SHA1 SHA256 SHA512 SHA3-512 SM3",
      LONG_RUNNING },
    { NULL }
   };

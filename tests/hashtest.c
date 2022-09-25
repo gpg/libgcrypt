@@ -34,6 +34,7 @@
 #define PGM "hashtest"
 #include "t-common.h"
 
+static int use_hugeblock;
 static int missing_test_vectors;
 
 static struct {
@@ -112,6 +113,169 @@ static struct {
     "4f6d0e260299c1f286ef1dbb4638a0770979f266b6c007c55410ee6849cba2a8" },
   { GCRY_MD_SM3, 256, +64,
     "ed34869dbadd62e3bec1f511004d7bbfc9cafa965477cc48843b248293bbe867" },
+
+  { GCRY_MD_BLAKE2S_256, 256, -64,
+    "8a3d4f712275e8e8da70c76501cce364c75f8dd09748be58cf63c9ce38d62627" },
+  { GCRY_MD_BLAKE2S_256, 256, -1,
+    "0c01c9ad1e60e27dc889f2c9034a949ca8b9a9dc90dd99be64963af306d47b92" },
+  { GCRY_MD_BLAKE2S_256, 256, +0,
+    "f8c43d5c4bad93aca702c8c466987c5ac5e640a29b37dd9904252ff27b2348a0" },
+  { GCRY_MD_BLAKE2S_256, 256, +1,
+    "24c34b167b4eea1a7eb7d572ff3cf669a9856ea91bb112e9ef2ccd4b1aceccb4" },
+  { GCRY_MD_BLAKE2S_256, 256, +64,
+    "2f8d754f98e2d4ed7744389f89d0bdb9b770c9fa215b8badd3129ea1364af867" },
+
+  { GCRY_MD_BLAKE2B_512, 256, -64,
+    "36d32ae4deeacab4119401c52e2aec5545675bd2dce4f67871ddc73671a05f94"
+    "e8332c2a31f32f5601878606a571aa7b43029dac3ae71cf9ef141d05651dc4bf" },
+  { GCRY_MD_BLAKE2B_512, 256, -1,
+    "b5dc439f51664a6c9cbc87e2de98ce608ac4064a779e5140909d75d2120c9b2a"
+    "a1d4ae7be9c1ba97025be91ddcfbe42c791c3231cffbfa4b5368ba18f9590e1b" },
+  { GCRY_MD_BLAKE2B_512, 256, +0,
+    "c413d011ba9abbf118dd96bfc827f5fd94493d8350df9f7aff834faace5adba2"
+    "0c3037069dfb2c81718ffc7b418ce1c1320d334b6fe8cddfb5d2dd19eb530853" },
+  { GCRY_MD_BLAKE2B_512, 256, +1,
+    "b6dfb821f1c8167fb33995c29485010da56abd539c3d04ab9c222844301b8bba"
+    "6f57a48e45a748e40847084b93f26706aae82212550671c736becffcc6fb1496" },
+  { GCRY_MD_BLAKE2B_512, 256, +64,
+    "8c21316a4a02044e302d503d0fe669d905c40d9d80ecd5aafc8e30f1df06736f"
+    "51fdaf6002160bb8fe4e868eaad9623fc5ecdd728bcbfee4a19b386503710f48" },
+
+  { GCRY_MD_WHIRLPOOL, 256, -64,
+    "aabf62344c1aa82d2dc7605f339b3571d540f1f320f97e6a8c0229645ee61f1f"
+    "da796acde2f96caa1c56eb2c2f9a6029a6242ad690479def66feac44334cc3af" },
+  { GCRY_MD_WHIRLPOOL, 256, -1,
+    "9a35ec14aa9cefd40e04295d45d39f3111a98c2d76d90c54a7d2b8f2f5b9302b"
+    "79663eab6b6674625c3ae3e4b5dbb3b0a2f5b2f49a7a59cd1723e2b16a3efea2" },
+  { GCRY_MD_WHIRLPOOL, 256, +0,
+    "818ad31a5110b6217cc6ffa099d554aaadc9566bf5291e104a5d58b21d51ae4d"
+    "c216c6de888d1359066c584e24e6606f530a3fce80ef78aed8564de4a28801c8" },
+  { GCRY_MD_WHIRLPOOL, 256, +1,
+    "298805f5fc68488712427c1bcb27581d91aa04337c1c6b4657489ed3d239bb8b"
+    "c70ef654065d380ac1f5596aca5cb59e6da8044b5a067e32ea4cd94ca606f9f3" },
+  { GCRY_MD_WHIRLPOOL, 256, +64,
+    "7bd35c3bee621bc0fb8907904b3b84d6cf4fae4c22cc64fbc744c8c5c8de806d"
+    "0f11a27892d531dc907426597737762c83e3ddcdc62f50d16d130aaefaeec436" },
+
+  { GCRY_MD_SHA1, 6, -64,
+    "eeee82d952403313bd63d6d7c8e342df0a1eea77" },
+  { GCRY_MD_SHA1, 6, -1,
+    "8217b9f987d67db5880bcfff1d6763a6514d629f" },
+  { GCRY_MD_SHA1, 6, +0,
+    "2b38aa63c05668217e5331320a4aee0adad7fc3b" },
+  { GCRY_MD_SHA1, 6, +1,
+    "f3222de4d0704554cff0a537bc95b30f15daa94f" },
+  { GCRY_MD_SHA1, 6, +64,
+    "b3bdd8065bb92d8208d55d28fad2281c6fbf2601" },
+
+  { GCRY_MD_SHA256, 6, -64,
+    "a2d5add5be904b70d6ef9bcd5feb9c6cfc2be0799732a122d9eccb576ff5a922" },
+  { GCRY_MD_SHA256, 6, -1,
+    "88293b7e0e5a47fdef1148c6e510f95272770db6b5296958380209ba57db7a5d" },
+  { GCRY_MD_SHA256, 6, +0,
+    "ccee8e8dfc366eba67471e49c45057b0041be0d2206c6de1aa765ce07ecfc434" },
+  { GCRY_MD_SHA256, 6, +1,
+    "f4a89e92b38e0e61ee17079dc31411de06cfe1f77c83095ae1a2e7aa0205d94b" },
+  { GCRY_MD_SHA256, 6, +64,
+    "338708608c2356ed2927a85b08fe745223c6140243fb3a87f309e12b31b946a8" },
+
+  { GCRY_MD_SHA512, 6, -64,
+    "658f52850932633c00b2f1d65b874c540ab84e2c0fe84a8a6c35f8e90e6f6a9c"
+    "2f7e0ccca5064783562a42ad8f47eab48687aaf6998b04ee94441e82c14e834d" },
+  { GCRY_MD_SHA512, 6, -1,
+    "9ead6d66b46a3a72d77c7990874cfebc1575e5bfda6026430d76b3db6cc62d52"
+    "4ca0dd2674b9c24208b2e780d75542572eee8df6724acadcc23a03eed8f82f0a" },
+  { GCRY_MD_SHA512, 6, +0,
+    "03e4549eb28bd0fb1606c321f1498503b5e889bec8d799cf0688567c7f8ac0d9"
+    "a7ec4e84d1d729d6a359797656e286617c3ef82abb51991bb576aaf05f7b6573" },
+  { GCRY_MD_SHA512, 6, +1,
+    "ffe52f6385ccde6fa7d45845787d8f9993fdcb5833fb58b13c424a84e39ea50f"
+    "52d40e254fe667cb0104ffe3837dc8d0eee3c81721cb8eac10d5851dfb1f91db" },
+  { GCRY_MD_SHA512, 6, +64,
+    "4a19da3d5eaaa79ac1eaff5e4062f23ee56573411f8d302f7bf3c6da8779bd00"
+    "a936e9ad7f535597a49162ed308b0cced7724667f97a1bb24540152fcfe3ec95" },
+
+  { GCRY_MD_SHA3_512, 6, -64,
+    "a99f2913d3beb9b45273402e30daa4d25c7a5e9eb8cf6039996eb2292a45c04c"
+    "b9e3a1a187f71920626f465ed6cf7dc34047ec5578e05516374bb9c56683903a" },
+  { GCRY_MD_SHA3_512, 6, -1,
+    "fca50bde79c55e5fc4c9d97e66eb5cfacef7032395848731e645ca42f07f8d38"
+    "be1d593727c2a82b9a9bc058ebc9744971f867fa920cfa902023448243ac017b" },
+  { GCRY_MD_SHA3_512, 6, +0,
+    "c61bb345c0a553edaa89fd38114ac9799b6d307ba8e3cde53552ad4c77cfe4b7"
+    "2671d82c1519c8e7b23153a9268e2939239564fc7c2060608aa42955e938840d" },
+  { GCRY_MD_SHA3_512, 6, +1,
+    "502a83d8d1b977312806382a45c1cc9c0e7db437ca962e37eb181754d59db686"
+    "14d91df286d510411adf69f7c9befc1027bdc0c33a48a5dd6ae0957b9061e7ca" },
+  { GCRY_MD_SHA3_512, 6, +64,
+    "207bfb83ae788ddd4531188567f0892bbddbbc88d69bc196b2357bee3e668706"
+    "c27f832ecb50e9ae5b63e9f384bdc37373958d4a14f3825146d2f6b1a65d8e51" },
+
+  { GCRY_MD_SM3, 6, -64,
+    "41d96d19cef4c942b0f5f4cdc3e1afe440dc62c0bc103a2c0e9eee9e1733a74a" },
+  { GCRY_MD_SM3, 6, -1,
+    "b7689cc4ef6c7dc795b9e5e6998e5cc3dc1daec02bc1181cdbef8d6812b4957a" },
+  { GCRY_MD_SM3, 6, +0,
+    "c6eae4a82052423cf98017bde4dee8769947c66120a1a2ff79f0f0dc945a3272" },
+  { GCRY_MD_SM3, 6, +1,
+    "f6590f161fee11529585c7a9dfc725f8b81951e49b616844097a3dbdc9ffdbec" },
+  { GCRY_MD_SM3, 6, +64,
+    "f3277fa90c47afe5e4fc52374aadf8e96bc29c2b5a7a4ebf5d704245ada837ea" },
+
+  { GCRY_MD_BLAKE2S_256, 6, -64,
+    "0f3c17610777c34d40a0d11a93d5e5ed444ce16edefebabd0bc8e30392d5c2db" },
+  { GCRY_MD_BLAKE2S_256, 6, -1,
+    "92cbcf142c45de9d64da9791c51dce4e32b58f74d9f3d201b1ea74deac765f51" },
+  { GCRY_MD_BLAKE2S_256, 6, +0,
+    "b20702cb5a0bee2ab104f38eb513429589310a7edde81dd1f40043be7d16d0de" },
+  { GCRY_MD_BLAKE2S_256, 6, +1,
+    "bfc17dc74930989841da05aac08402bf0dcb4a597b17c52402a516ea7e541cdf" },
+  { GCRY_MD_BLAKE2S_256, 6, +64,
+    "d85588cdf5a00bec1327da02f22f1a10b68dd9d6b730f30a3aa65af3a51c1722" },
+
+  { GCRY_MD_BLAKE2B_512, 6, -64,
+    "30b6015f94524861b04b83f0455be10a993460e0f8f0fd755fc3d0270b0c7d00"
+    "039a6e01684ce0689ce4ef70932bd19a676acf4b4ea521c30337d2f445fc2055" },
+  { GCRY_MD_BLAKE2B_512, 6, -1,
+    "49abef820ad7fc5e6ed9b63acddce639a69dcd749b0798b140216649bc3b927c"
+    "637dbe1cb39a41bbafe7f8b675401ccdcf69a7fba227ae4cda5cd28b9ff36776" },
+  { GCRY_MD_BLAKE2B_512, 6, +0,
+    "4182a7307a89391b78af9dbc3ba1e8d643708abbed5919086aa6e2bc65ae9597"
+    "e40229450c86ac5d3117b006427dd0131f5ae4c1a1d64c81420d2731536c81d8" },
+  { GCRY_MD_BLAKE2B_512, 6, +1,
+    "33c0d9e65b1b18e9556134a08c1e725c19155bbf6ed4349d7d6d678f1827fef3"
+    "74b6e3381471f3d3fff7ffbcb9474ce9038143b99e25cd5f8afbb336313d4648" },
+  { GCRY_MD_BLAKE2B_512, 6, +64,
+    "d2d7f388611af78a2ea40b06f99993cff156afd25cbc47695bdb567d4d35b992"
+    "0ff8c325c359a2bdeddf54ececc671ac7b981031e90a7d63d6e0415ec4484282" },
+
+  { GCRY_MD_WHIRLPOOL, 6, -64,
+    "247707d1f9cf31b90ee68527144b1c20ad5ce96293bdccd1a81c8f40bc9df10c"
+    "e7441ac3b3097162d6fbf4d4b67b8fa09de451e2d920f16aad78c47ab00cb833" },
+  { GCRY_MD_WHIRLPOOL, 6, -1,
+    "af49e4a553bdbec1fdafc41713029e0fb1666894753c0ab3ecb280fc5af6eff8"
+    "253120745a229d7a8b5831711e4fd16ed0741258504d8a47e2b42aa2f1886968" },
+  { GCRY_MD_WHIRLPOOL, 6, +0,
+    "f269ffa424bc2aad2da654f01783fc9b2b431219f2b05784d718da0935e78792"
+    "9207b000ebbfb63dfdcc8adf8e5bd321d9616c1b8357430b9be6cb4640df8609" },
+  { GCRY_MD_WHIRLPOOL, 6, +1,
+    "52b77eb13129151b69b63c09abb655dc9cb046cafd4cbf7d4a82ae04b61ef9e6"
+    "531dde04cae7c5ab400ed8ee8da2e3f490d177289b2b3aa29b12b292954b902c" },
+  { GCRY_MD_WHIRLPOOL, 6, +64,
+    "60a950c92f3f08abbc81c41c86ce0463679ffd5ab420e988e15b210615b454ae"
+    "69607d14a1806fa44aacf8c926fbdcee998af46f56e0c642d3fb4ee54c8fb917" },
+
+  { GCRY_MD_CRC32, 6, -64, "20739052" },
+  { GCRY_MD_CRC32, 6, -1,  "971a5a74" },
+  { GCRY_MD_CRC32, 6, +0,  "bf48113c" },
+  { GCRY_MD_CRC32, 6, +1,  "c7678ad5" },
+  { GCRY_MD_CRC32, 6, +64, "1efa7255" },
+
+  { GCRY_MD_CRC24_RFC2440, 6, -64, "747e81" },
+  { GCRY_MD_CRC24_RFC2440, 6, -1,  "deb97d" },
+  { GCRY_MD_CRC24_RFC2440, 6, +0,  "7d5bea" },
+  { GCRY_MD_CRC24_RFC2440, 6, +1,  "acc351" },
+  { GCRY_MD_CRC24_RFC2440, 6, +64, "9d9032" },
 
   { 0 }
 };
@@ -251,11 +415,37 @@ run_longtest (int algo, int gigs)
   gcry_md_hd_t hd_post = NULL;
   gcry_md_hd_t hd_post2 = NULL;
   char pattern[1024];
-  int i, g;
+  char *hugepattern = NULL;
+  size_t hugesize;
+  size_t hugegigs;
+  int i, g, gppos, gptot;
   const unsigned char *digest;
   unsigned int digestlen;
 
   memset (pattern, 'a', sizeof pattern);
+
+  if (use_hugeblock)
+    {
+      hugegigs = 5;
+      if (sizeof(size_t) >= 8)
+        {
+          hugesize = hugegigs*1024*1024*1024;
+          hugepattern = malloc(hugesize);
+          if (hugepattern != NULL)
+            memset(hugepattern, 'a', hugesize);
+          else
+            show_note ("failed to allocate %d GiB huge pattern block: %s",
+                       hugegigs, strerror(errno));
+        }
+      else
+        show_note ("cannot allocate %d GiB huge pattern block on 32-bit system",
+                   hugegigs);
+    }
+  if (hugepattern == NULL)
+    {
+      hugegigs = 0;
+      hugesize = 0;
+    }
 
   err = gcry_md_open (&hd, algo, 0);
   if (err)
@@ -267,9 +457,17 @@ run_longtest (int algo, int gigs)
 
   digestlen = gcry_md_get_algo_dlen (algo);
 
-
-  for (g=0; g < gigs; g++)
+  gppos = 0;
+  gptot = 0;
+  for (g=0; g < gigs; )
     {
+      if (gppos >= 16)
+        {
+          gptot += 16;
+          gppos -= 16;
+          show_note ("%d GiB so far hashed with %s", gptot,
+                     gcry_md_algo_name (algo));
+        }
       if (g == gigs - 1)
         {
           for (i = 0; i < 1024*1023; i++)
@@ -283,16 +481,24 @@ run_longtest (int algo, int gigs)
             die ("gcry_md_copy failed for %s (%d): %s",
                  gcry_md_algo_name (algo), algo, gpg_strerror (err));
           gcry_md_write (hd, pattern, sizeof pattern);
+          g++;
+          gppos++;
+        }
+      else if (hugepattern != NULL && gigs - g > hugegigs)
+        {
+          gcry_md_write (hd, hugepattern, hugesize);
+          g += hugegigs;
+          gppos += hugegigs;
         }
       else
         {
           for (i = 0; i < 1024*1024; i++)
             gcry_md_write (hd, pattern, sizeof pattern);
+          g++;
+          gppos++;
         }
-      if (g && !(g % 16))
-        show_note ("%d GiB so far hashed with %s", g, gcry_md_algo_name (algo));
     }
-  if (g >= 16)
+  if (g >= 16 && gppos)
     show_note ("%d GiB hashed with %s", g, gcry_md_algo_name (algo));
 
   err = gcry_md_copy (&hd_post, hd);
@@ -335,6 +541,8 @@ run_longtest (int algo, int gigs)
   gcry_md_close (hd_pre2);
   gcry_md_close (hd_post);
   gcry_md_close (hd_post2);
+
+  free(hugepattern);
 }
 
 
@@ -361,9 +569,12 @@ main (int argc, char **argv)
         {
           fputs ("usage: " PGM " [options] [algos]\n"
                  "Options:\n"
-                 "  --verbose       print timings etc.\n"
-                 "  --debug         flyswatter\n"
-                 "  --gigs N        Run a test on N GiB\n",
+                 "  --verbose                 print timings etc.\n"
+                 "  --debug                   flyswatter\n"
+                 "  --hugeblock               Use 5 GiB pattern block\n"
+                 "  --gigs N                  Run a test on N GiB\n"
+                 "  --disable-hwf <features>  Disable hardware acceleration feature(s)\n"
+                 "                            for benchmarking.\n",
                  stdout);
           exit (0);
         }
@@ -378,6 +589,11 @@ main (int argc, char **argv)
           debug++;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--hugeblock"))
+        {
+          use_hugeblock = 1;
+          argc--; argv++;
+        }
       else if (!strcmp (*argv, "--gigs"))
         {
           argc--; argv++;
@@ -385,6 +601,21 @@ main (int argc, char **argv)
             {
               gigs = atoi (*argv);
               argc--; argv++;
+            }
+        }
+      else if (!strcmp (*argv, "--disable-hwf"))
+        {
+          argc--;
+          argv++;
+          if (argc)
+            {
+              if (gcry_control (GCRYCTL_DISABLE_HWF, *argv, NULL))
+                fprintf (stderr,
+                        PGM
+                        ": unknown hardware feature `%s' - option ignored\n",
+                        *argv);
+              argc--;
+              argv++;
             }
         }
       else if (!strncmp (*argv, "--", 2))

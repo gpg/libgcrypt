@@ -3511,6 +3511,7 @@ src/libgcrypt.pc
 src/versioninfo.rc
 tests/Makefile
 ])
+AC_CONFIG_FILES([tests/hashtest-6g], [chmod +x tests/hashtest-6g])
 AC_CONFIG_FILES([tests/hashtest-256g], [chmod +x tests/hashtest-256g])
 AC_CONFIG_FILES([tests/basic-disable-all-hwf], [chmod +x tests/basic-disable-all-hwf])
 AC_OUTPUT

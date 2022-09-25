@@ -87,6 +87,7 @@ tests/fipsdrv
 tests/gchash
 tests/genhashdata
 tests/hashtest
+tests/hashtest-6g
 tests/hashtest-256g
 tests/hmac
 tests/keygen
