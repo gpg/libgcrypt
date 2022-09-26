@@ -80,12 +80,18 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
        * never blocking once the kernel is seeded.  */
       do
         {
-          nbytes = length < sizeof (buffer)? length : sizeof (buffer);
           _gcry_pre_syscall ();
           if (fips_mode ())
-            ret = getrandom (buffer, nbytes, GRND_RANDOM);
+            {
+              /* The getrandom API returns maximum 32 B of strong entropy */
+              nbytes = length < 32 ? length : 32;
+              ret = getrandom (buffer, nbytes, GRND_RANDOM);
+            }
           else
-            ret = getentropy (buffer, nbytes);
+            {
+              nbytes = length < sizeof (buffer) ? length : sizeof (buffer);
+              ret = getentropy (buffer, nbytes);
+            }
           _gcry_post_syscall ();
         }
       while (ret == -1 && errno == EINTR);
