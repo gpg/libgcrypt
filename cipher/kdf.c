@@ -160,6 +160,9 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
     return GPG_ERR_INV_VALUE;
 #endif
 
+  /* HMAC requires longer input for approved use case.  */
+  if (fips_mode () && passphraselen < 14)
+    return GPG_ERR_INV_VALUE;
 
   /* Step 2 */
   l = ((dklen - 1)/ hlen) + 1;
