@@ -94,9 +94,9 @@ _gcry_mpi_ec_nist192_mod (gcry_mpi_t w, mpi_ec_t ctx)
   };
   const mpi_limb64_t zero = LIMB_TO64(0);
   mpi_ptr_t wp;
-  mpi_size_t wsize = 192 / BITS_PER_MPI_LIMB64;
-  mpi_limb64_t s[wsize + 1];
-  mpi_limb64_t o[wsize + 1];
+  mpi_limb64_t s[192 / BITS_PER_MPI_LIMB64 + 1];
+  mpi_limb64_t o[DIM(s)];
+  const mpi_size_t wsize = DIM(s) - 1;
   mpi_limb_t mask1;
   mpi_limb_t mask2;
   mpi_limb_t s_is_negative;
@@ -186,10 +186,10 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
   };
   const mpi_limb64_t zero = LIMB_TO64(0);
   mpi_ptr_t wp;
-  mpi_size_t wsize = (224 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64;
+  mpi_limb64_t s[(224 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64];
+  mpi_limb64_t d[DIM(s)];
+  const mpi_size_t wsize = DIM(s);
   mpi_size_t psize = ctx->p->nlimbs;
-  mpi_limb64_t s[wsize];
-  mpi_limb64_t d[wsize];
   mpi_limb_t mask1;
   mpi_limb_t mask2;
   mpi_limb_t s_is_negative;
@@ -345,12 +345,12 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
   };
   const mpi_limb64_t zero = LIMB_TO64(0);
   mpi_ptr_t wp;
-  mpi_size_t wsize = (256 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64;
+  mpi_limb64_t s[(256 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64 + 1];
+  mpi_limb64_t t[DIM(s)];
+  mpi_limb64_t d[DIM(s)];
+  mpi_limb64_t e[DIM(s)];
+  const mpi_size_t wsize = DIM(s) - 1;
   mpi_size_t psize = ctx->p->nlimbs;
-  mpi_limb64_t s[wsize + 1];
-  mpi_limb64_t t[wsize + 1];
-  mpi_limb64_t d[wsize + 1];
-  mpi_limb64_t e[wsize + 1];
   mpi_limb_t mask1;
   mpi_limb_t mask2;
   mpi_limb_t mask3;
@@ -595,15 +595,15 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
   };
   const mpi_limb64_t zero = LIMB_TO64(0);
   mpi_ptr_t wp;
-  mpi_size_t wsize = (384 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64;
-  mpi_size_t psize = ctx->p->nlimbs;
+  mpi_limb64_t s[(384 + BITS_PER_MPI_LIMB64 - 1) / BITS_PER_MPI_LIMB64 + 1];
+  mpi_limb64_t t[DIM(s)];
+  mpi_limb64_t d[DIM(s)];
+  mpi_limb64_t x[DIM(s)];
 #if (BITS_PER_MPI_LIMB64 == BITS_PER_MPI_LIMB) && defined(WORDS_BIGENDIAN)
-  mpi_limb_t wp_shr32[wsize * LIMBS_PER_LIMB64];
+  mpi_limb_t wp_shr32[(DIM(s) - 1) * LIMBS_PER_LIMB64];
 #endif
-  mpi_limb64_t s[wsize + 1];
-  mpi_limb64_t t[wsize + 1];
-  mpi_limb64_t d[wsize + 1];
-  mpi_limb64_t x[wsize + 1];
+  const mpi_size_t wsize = DIM(s) - 1;
+  mpi_size_t psize = ctx->p->nlimbs;
   mpi_limb_t mask1;
   mpi_limb_t mask2;
   mpi_limb_t s_is_negative;
@@ -791,8 +791,8 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
 void
 _gcry_mpi_ec_nist521_mod (gcry_mpi_t w, mpi_ec_t ctx)
 {
-  mpi_size_t wsize = (521 + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB;
-  mpi_limb_t s[wsize];
+  mpi_limb_t s[(521 + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB];
+  const mpi_size_t wsize = DIM(s);
   mpi_limb_t cy;
   mpi_ptr_t wp;
 

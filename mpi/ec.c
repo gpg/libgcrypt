@@ -581,9 +581,9 @@ ec_pow2_448 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
 static void
 ec_secp256k1_mod (gcry_mpi_t w, mpi_ec_t ctx)
 {
-  mpi_size_t wsize = (256 + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB;
-  mpi_limb_t n[wsize + 1];
-  mpi_limb_t s[wsize + 1];
+  mpi_limb_t s[(256 + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB + 1];
+  mpi_limb_t n[DIM(s)];
+  const mpi_size_t wsize = DIM(s) - 1;
   mpi_limb_t cy, borrow;
   mpi_ptr_t wp;
 
