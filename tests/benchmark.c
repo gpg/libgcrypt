@@ -719,15 +719,16 @@ mac_bench ( const char *algoname )
 
 static void ccm_aead_init(gcry_cipher_hd_t hd, size_t buflen, int authlen)
 {
-  const int _L = 4;
-  const int noncelen = 15 - _L;
-  char nonce[noncelen];
+  const char _L[4];
+  char nonce[15 - sizeof(_L)];
   u64 params[3];
   gcry_error_t err = GPG_ERR_NO_ERROR;
 
-  memset (nonce, 0x33, noncelen);
+  (void)_L;
 
-  err = gcry_cipher_setiv (hd, nonce, noncelen);
+  memset (nonce, 0x33, sizeof(nonce));
+
+  err = gcry_cipher_setiv (hd, nonce, sizeof(nonce));
   if (err)
     {
       fprintf (stderr, "gcry_cipher_setiv failed: %s\n",
