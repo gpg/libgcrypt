@@ -32,7 +32,7 @@
 
 
 static void
-check_rsa_testparm ()
+check_rsa_testparm (void)
 {
   gpg_error_t err;
   gcry_sexp_t keyspec = NULL;
