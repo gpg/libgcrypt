@@ -982,6 +982,35 @@ struct bench_cipher_mode
 };
 
 
+static void
+bench_set_cipher_key (gcry_cipher_hd_t hd, int keylen)
+{
+  char *key;
+  int err, i;
+
+  key = malloc (keylen);
+  if (!key)
+    {
+      fprintf (stderr, PGM ": couldn't allocate %d bytes\n", keylen);
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+
+  for (i = 0; i < keylen; i++)
+    key[i] = 0x33 ^ (11 - i);
+
+  err = gcry_cipher_setkey (hd, key, keylen);
+  free (key);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_setkey failed: %s\n",
+                gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+}
+
+
 static int
 bench_encrypt_init (struct bench_obj *obj)
 {
@@ -1010,20 +1039,7 @@ bench_encrypt_init (struct bench_obj *obj)
 
   if (keylen)
     {
-      char key[keylen];
-      int i;
-
-      for (i = 0; i < keylen; i++)
-	key[i] = 0x33 ^ (11 - i);
-
-      err = gcry_cipher_setkey (hd, key, keylen);
-      if (err)
-	{
-	  fprintf (stderr, PGM ": gcry_cipher_setkey failed: %s\n",
-		   gpg_strerror (err));
-	  gcry_cipher_close (hd);
-	  exit (1);
-	}
+      bench_set_cipher_key (hd, keylen);
     }
   else
     {
@@ -1119,20 +1135,7 @@ bench_xts_encrypt_init (struct bench_obj *obj)
   keylen = gcry_cipher_get_algo_keylen (mode->algo) * 2;
   if (keylen)
     {
-      char key[keylen];
-      int i;
-
-      for (i = 0; i < keylen; i++)
-	key[i] = 0x33 ^ (11 - i);
-
-      err = gcry_cipher_setkey (hd, key, keylen);
-      if (err)
-	{
-	  fprintf (stderr, PGM ": gcry_cipher_setkey failed: %s\n",
-		   gpg_strerror (err));
-	  gcry_cipher_close (hd);
-	  exit (1);
-	}
+      bench_set_cipher_key (hd, keylen);
     }
   else
     {
