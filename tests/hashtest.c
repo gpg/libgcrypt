@@ -452,6 +452,7 @@ run_longtest (int algo, int gigs)
     {
       fail ("gcry_md_open failed for %s (%d): %s",
             gcry_md_algo_name (algo), algo, gpg_strerror (err));
+      free(hugepattern);
       return;
     }
 
