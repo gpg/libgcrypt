@@ -1710,7 +1710,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
   } while (0)
 #endif
 
-#if !defined (umul_ppmm)
+#if !defined (smul_ppmm)
 #  define smul_ppmm(w1, w0, u, v) 					\
   do {									\
     UWtype __w1;							\
