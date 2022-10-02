@@ -624,7 +624,7 @@ extern USItype __udiv_qrnnd ();
 # define count_trailing_zeros(count, x) \
   do {                                                                  \
     UDItype __cbtmp;                                                    \
-    __asm__ ("bsfq %1,%0"                                               \
+    __asm__ ("rep;bsfq %1,%0"                                           \
              : "=r" (__cbtmp) : "rm" ((UDItype)(x))                     \
              __CLOBBER_CC);                                             \
     (count) = __cbtmp;                                                  \
