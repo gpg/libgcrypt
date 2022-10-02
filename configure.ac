@@ -360,6 +360,7 @@ AC_CHECK_SIZEOF(unsigned short, 2)
 AC_CHECK_SIZEOF(unsigned int, 4)
 AC_CHECK_SIZEOF(unsigned long, 4)
 AC_CHECK_SIZEOF(unsigned long long, 0)
+AC_CHECK_SIZEOF(unsigned __int128, 0)
 AC_CHECK_SIZEOF(void *, 0)
 
 AC_TYPE_UINTPTR_T

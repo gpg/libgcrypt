@@ -20,18 +20,28 @@ along with this file; see the file COPYING.LIB.  If not, write to
 the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA. */
 
+/* On 32-bit, use 64-bit 'unsigned long long' for UDWtype, if available. */
+#if !defined (UDWtype) && SIZEOF_UNSIGNED_LONG_LONG * 8 == W_TYPE_SIZE * 2
+#  define UDWtype unsigned long long
+#endif
+
+/* On 64-bit, use 128-bit 'unsigned __int128' for UDWtype, if available. */
+#if !defined (UDWtype) && SIZEOF_UNSIGNED___INT128 * 8 == W_TYPE_SIZE * 2
+#  define UDWtype unsigned __int128
+#endif
+
 /* You have to define the following before including this file:
 
-   UWtype -- An unsigned type, default type for operations (typically a "word")
+   UWtype -- An unsigned type, default type for operations (typically a "word").
    UHWtype -- An unsigned type, at least half the size of UWtype.
-   UDWtype -- An unsigned type, at least twice as large a UWtype
-   W_TYPE_SIZE -- size in bits of UWtype
+   UDWtype -- An unsigned type, at least twice as large a UWtype.
+   W_TYPE_SIZE -- size in bits of UWtype.
 
    SItype, USItype -- Signed and unsigned 32 bit types.
    DItype, UDItype -- Signed and unsigned 64 bit types.
 
-   On a 32 bit machine UWtype should typically be USItype;
-   on a 64 bit machine, UWtype should typically be UDItype.
+   On a 32 bit machine UWtype should typically be USItype.
+   On a 64 bit machine, UWtype should typically be UDItype.
 */
 
 #define __BITS4 (W_TYPE_SIZE / 4)
@@ -1617,7 +1627,21 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 
 /* If this machine has no inline assembler, use C macros.  */
 
-#if !defined (add_ssaaaa)
+#if !defined (add_ssaaaa) && defined (UDWtype)
+/* Use double word type when available. */
+#  define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+  do {									\
+    UDWtype __audw = (ah);						\
+    UDWtype __budw = (bh);						\
+    __audw <<= W_TYPE_SIZE;						\
+    __audw |= (al);							\
+    __budw <<= W_TYPE_SIZE;						\
+    __budw |= (bl);							\
+    __audw += __budw;							\
+    (sh) = (UWtype)(__audw >> W_TYPE_SIZE);				\
+    (sl) = (UWtype)(__audw); 						\
+  } while (0)
+#elif !defined (add_ssaaaa)
 #  define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   do {									\
     UWtype __x; 							\
@@ -1627,7 +1651,21 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
   } while (0)
 #endif
 
-#if !defined (sub_ddmmss)
+#if !defined (sub_ddmmss) && defined (UDWtype)
+/* Use double word type when available. */
+#  define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+  do {									\
+    UDWtype __audw = (ah);						\
+    UDWtype __budw = (bh);						\
+    __audw <<= W_TYPE_SIZE;						\
+    __audw |= (al);							\
+    __budw <<= W_TYPE_SIZE;						\
+    __budw |= (bl);							\
+    __audw -= __budw;							\
+    (sh) = (UWtype)(__audw >> W_TYPE_SIZE);				\
+    (sl) = (UWtype)(__audw); 						\
+  } while (0)
+#elif !defined (sub_ddmmss)
 #  define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   do {									\
     UWtype __x; 							\
@@ -1637,7 +1675,15 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
   } while (0)
 #endif
 
-#if !defined (umul_ppmm)
+#if !defined (umul_ppmm) && defined (UDWtype)
+#  define umul_ppmm(w1, w0, u, v) 					\
+  do {									\
+    UDWtype __x = (u);							\
+    __x *= (v);								\
+    (w1) = (UWtype)(__x >> W_TYPE_SIZE);				\
+    (w0) = (UWtype)(__x);						\
+  } while (0)
+#elif !defined (umul_ppmm)
 #  define umul_ppmm(w1, w0, u, v) 					\
   do {									\
     UWtype __x0, __x1, __x2, __x3;					\
@@ -1711,6 +1757,19 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
     (q) = (UWtype) __q1 * __ll_B | __q0;				\
     (r) = __r0; 							\
   } while (0)
+
+/* Use double word type if available. */
+#if !defined (udiv_qrnnd) && defined (UDWtype)
+#  define udiv_qrnnd(q, r, nh, nl, d) \
+  do {									\
+    UWtype __d = (d);							\
+    UDWtype __nudw = (nh);						\
+    __nudw <<= W_TYPE_SIZE;						\
+    __nudw |= (nl);							\
+    (q) = (UWtype)(__nudw / __d);					\
+    (r) = (UWtype)(__nudw % __d);					\
+  } while (0)
+#endif
 
 /* If the processor has no udiv_qrnnd but sdiv_qrnnd, go through
    __udiv_w_sdiv (defined in libgcc or elsewhere).  */
