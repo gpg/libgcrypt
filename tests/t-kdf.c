@@ -911,6 +911,14 @@ check_pbkdf2 (void)
       "password", 8,
       "salt", 4,
       GCRY_MD_SHA1,
+      1,
+      10, /* too short dklen for FIPS */
+      "\x0c\x60\xc8\x0f\x96\x1f\x0e\x71\xf3\xa9"
+    },
+    {
+      "password", 8,
+      "salt", 4,
+      GCRY_MD_SHA1,
       2,
       20,
       "\xea\x6c\x01\x4d\xc7\x2d\x6f\x8c\xcd\x1e"
@@ -1105,7 +1113,7 @@ check_pbkdf2 (void)
                              GCRY_KDF_PBKDF2, tv[tvidx].hashalgo,
                              tv[tvidx].salt, tv[tvidx].saltlen,
                              tv[tvidx].c, tv[tvidx].dklen, outbuf);
-      if (in_fips_mode && tvidx > 6)
+      if (in_fips_mode && tvidx > 7)
         {
           if (!err)
             fail ("pbkdf2 test %d unexpectedly passed in FIPS mode: %s\n",
@@ -1114,7 +1122,7 @@ check_pbkdf2 (void)
         }
       if (err)
         {
-          if (in_fips_mode && tv[tvidx].plen < 14)
+          if (in_fips_mode && (tv[tvidx].plen < 14 || tv[tvidx].dklen < 14))
             {
               if (verbose)
                 fprintf (stderr,
