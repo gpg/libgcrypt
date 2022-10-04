@@ -83,7 +83,17 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
           _gcry_pre_syscall ();
           if (fips_mode ())
             {
-              /* The getrandom API returns maximum 32 B of strong entropy */
+              /* DRBG chaining defined in SP 800-90A (rev 1) specify
+               * the upstream (kernel) DRBG needs to be reseeded for
+               * initialization of downstream (libgcrypt) DRBG. For this
+               * in RHEL, we repurposed the GRND_RANDOM flag of getrandom API.
+               * The libgcrypt DRBG is initialized with 48B of entropy, but
+               * the kernel can provide only 32B at a time after reseeding
+               * so we need to limit our requests to 32B here.
+               * This is clarified in IG 7.19 / IG D.K. for FIPS 140-2 / 3
+               * and might not be applicable on other FIPS modules not running
+               * RHEL kernel.
+               */
               nbytes = length < 32 ? length : 32;
               ret = getrandom (buffer, nbytes, GRND_RANDOM);
             }
