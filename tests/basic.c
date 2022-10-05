@@ -16876,16 +16876,14 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
 	NULL,
 	0,
 	0,
-	0,
-	FLAG_NOFIPS },
+	0 },
       {	GCRY_PK_RSA,
         "(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags pkcs1)",
 	1,
 	0,
-	0,
-	FLAG_NOFIPS },
+	0 },
       { GCRY_PK_RSA,
         "(data\n (flags oaep)\n"
 	" (value #11223344556677889900AA#))\n",
@@ -16987,8 +16985,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
 	die ("converting data failed: %s\n", gpg_strerror (rc));
 
       rc = gcry_pk_encrypt (&ciph, data, pkey);
-      if (in_fips_mode && ((flags & FLAG_NOFIPS) ||
-                           (datas[dataidx].flags & FLAG_NOFIPS)))
+      if (in_fips_mode && (flags & FLAG_NOFIPS))
         {
           if (!rc)
             fail ("gcry_pk_encrypt did not fail as expected in FIPS mode\n");
@@ -17037,7 +17034,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
 	      ciph = list;
 	    }
 	  rc = gcry_pk_decrypt (&plain, ciph, skey);
-          if ((!rc || in_fips_mode) && (datas[dataidx].flags & FLAG_SPECIAL))
+          if (!rc && (datas[dataidx].flags & FLAG_SPECIAL))
             {
               /* It may happen that OAEP formatted data which is
                  decrypted as pkcs#1 data returns a valid pkcs#1

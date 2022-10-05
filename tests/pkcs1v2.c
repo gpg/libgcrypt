@@ -454,19 +454,7 @@ check_v15crypt (void)
           gcry_free (seed);
 
           err = gcry_pk_encrypt (&ciph, plain, pub_key);
-          if (in_fips_mode)
-            {
-              if (!err)
-                {
-                  fail ("gcry_pk_encrypt should have failed in FIPS mode:\n");
-                }
-              gcry_sexp_release (plain);
-              plain = NULL;
-              gcry_sexp_release (ciph);
-              ciph = NULL;
-              continue;
-            }
-          else if (err)
+          if (err)
             {
               show_sexp ("plain:\n", ciph);
               fail ("gcry_pk_encrypt failed: %s\n", gpg_strerror (err));
