@@ -957,10 +957,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       void *random_override = NULL;
       size_t random_override_len = 0;
 
-      /* The RSA PKCS#1.5 encryption is no longer supported by FIPS */
-      if (fips_mode ())
-        rc = GPG_ERR_INV_FLAG;
-      else if ( !(value=sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
+      if ( !(value=sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
         rc = GPG_ERR_INV_OBJ;
       else
         {
