@@ -2169,10 +2169,13 @@ selftests_rsa (selftest_report_func_t report, int extended)
   if (errtxt)
     goto failed;
 
-  what = "encrypt";
-  errtxt = selftest_encr_2048 (pkey, skey);
-  if (errtxt)
-    goto failed;
+  if (extended)
+    {
+      what = "encrypt";
+      errtxt = selftest_encr_2048 (pkey, skey);
+      if (errtxt)
+        goto failed;
+    }
 
   sexp_release (pkey);
   sexp_release (skey);
