@@ -434,11 +434,11 @@ run_longtest (int algo, int gigs)
           if (hugepattern != NULL)
             memset(hugepattern, 'a', hugesize);
           else
-            show_note ("failed to allocate %d GiB huge pattern block: %s",
+            show_note ("failed to allocate %zu GiB huge pattern block: %s",
                        hugegigs, strerror(errno));
         }
       else
-        show_note ("cannot allocate %d GiB huge pattern block on 32-bit system",
+        show_note ("cannot allocate %zu GiB huge pattern block on 32-bit system",
                    hugegigs);
     }
   if (hugepattern == NULL)
