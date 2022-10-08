@@ -565,7 +565,7 @@ extern USItype __udiv_qrnnd ();
     (count) = __cbtmp ^ 31;						\
   } while (0)
 # define count_trailing_zeros(count, x) \
-  __asm__ ("bsfl %1,%0" : "=r" (count) : "rm" ((USItype)(x)) __CLOBBER_CC)
+  __asm__ ("rep;bsfl %1,%0" : "=r" (count) : "rm" ((USItype)(x)) __CLOBBER_CC)
 # ifndef UMUL_TIME
 #  define UMUL_TIME 40
 # endif
