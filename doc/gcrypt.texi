@@ -1825,7 +1825,7 @@ needs to be given to SIV mode before decryption using
 @item  GCRY_CIPHER_MODE_GCM_SIV
 @cindex GCM-SIV, GCM-SIV mode, AES-GCM-SIV
 This mode implements is GCM-SIV Authenticated Encryption with
-Associated Data (AEAD) block cipher mode specified in RFC-5297
+Associated Data (AEAD) block cipher mode specified in RFC-8452
 (AES-GCM-SIV: Nonce Misuse-Resistant Authenticated Encryption).
 This implementations works with block ciphers with block size of
 128 bits and uses tag length of 128 bits.  Supported key lengths
