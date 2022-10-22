@@ -466,7 +466,7 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
     ctx->bctx.bwrite = do_sha512_transform_amd64_avx2;
 #endif
 #ifdef USE_AVX512
-  if ((features & HWF_INTEL_AVX512) != 0)
+  if ((features & HWF_INTEL_AVX512) && (features & HWF_INTEL_CPU))
     ctx->bctx.bwrite = do_sha512_transform_amd64_avx512;
 #endif
 #ifdef USE_PPC_CRYPTO
