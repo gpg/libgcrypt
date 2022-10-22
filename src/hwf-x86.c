@@ -187,6 +187,7 @@ detect_x86_gnuc (void)
   unsigned int fms, family, model;
   unsigned int result = 0;
   unsigned int avoid_vpgather = 0;
+  unsigned int is_amd_cpu = 0;
 
   (void)os_supports_avx_avx2_registers;
   (void)os_supports_avx512_registers;
@@ -242,6 +243,7 @@ detect_x86_gnuc (void)
   else if (!strcmp (vendor_id.c, "AuthenticAMD"))
     {
       /* This is an AMD CPU.  */
+      is_amd_cpu = 1;
     }
 
   /* Detect Intel features, that might also be supported by other
@@ -252,77 +254,6 @@ detect_x86_gnuc (void)
 
   family = ((fms & 0xf00) >> 8) + ((fms & 0xff00000) >> 20);
   model = ((fms & 0xf0) >> 4) + ((fms & 0xf0000) >> 12);
-
-  if ((result & HWF_INTEL_CPU) && family == 6)
-    {
-      /* These Intel Core processor models have SHLD/SHRD instruction that
-       * can do integer rotation faster actual ROL/ROR instructions. */
-      switch (model)
-	{
-	case 0x2A:
-	case 0x2D:
-	case 0x3A:
-	case 0x3C:
-	case 0x3F:
-	case 0x45:
-	case 0x46:
-	case 0x3D:
-	case 0x4F:
-	case 0x56:
-	case 0x47:
-	case 0x4E:
-	case 0x5E:
-	case 0x8E:
-	case 0x9E:
-	case 0x55:
-	case 0x66:
-	  result |= HWF_INTEL_FAST_SHLD;
-	  break;
-	}
-
-      /* These Intel Core processors that have AVX2 have slow VPGATHER and
-       * should be avoided for table-lookup use. */
-      switch (model)
-	{
-	case 0x3C:
-	case 0x3F:
-	case 0x45:
-	case 0x46:
-	  /* Haswell */
-	  avoid_vpgather |= 1;
-	  break;
-	}
-    }
-  else
-    {
-      /* Avoid VPGATHER for non-Intel CPUs as testing is needed to
-       * make sure it is fast enough. */
-
-      avoid_vpgather |= 1;
-    }
-
-#ifdef ENABLE_FORCE_SOFT_HWFEATURES
-  /* Soft HW features mark functionality that is available on all systems
-   * but not feasible to use because of slow HW implementation. */
-
-  /* SHLD is faster at rotating register than actual ROR/ROL instructions
-   * on older Intel systems (~sandy-bridge era). However, SHLD is very
-   * slow on almost anything else and later Intel processors have faster
-   * ROR/ROL. Therefore in regular build HWF_INTEL_FAST_SHLD is enabled
-   * only for those Intel processors that benefit from the SHLD
-   * instruction. Enabled here unconditionally as requested. */
-  result |= HWF_INTEL_FAST_SHLD;
-
-  /* VPGATHER instructions are used for look-up table based
-   * implementations which require VPGATHER to be fast enough to beat
-   * regular parallelized look-up table implementations (see Twofish).
-   * So far, only Intel processors beginning with skylake have had
-   * VPGATHER fast enough to be enabled. AMD Zen3 comes close to
-   * being feasible, but not quite (where twofish-avx2 is few percent
-   * slower than twofish-3way). Enable VPGATHER here unconditionally
-   * as requested. */
-  avoid_vpgather = 0;
-#endif
 
 #ifdef ENABLE_PCLMUL_SUPPORT
   /* Test bit 1 for PCLMUL.  */
@@ -392,9 +323,6 @@ detect_x86_gnuc (void)
       if (features & 0x00000020)
         if (os_supports_avx_avx2_registers)
           result |= HWF_INTEL_AVX2;
-
-      if ((result & HWF_INTEL_AVX2) && !avoid_vpgather)
-        result |= HWF_INTEL_FAST_VPGATHER;
 #endif /*ENABLE_AVX_SUPPORT*/
 
       /* Test bit 29 for SHA Extensions. */
@@ -445,6 +373,87 @@ detect_x86_gnuc (void)
       if (features2 & (1 << 6))
         result |= HWF_INTEL_GFNI;
     }
+
+  if ((result & HWF_INTEL_CPU) && family == 6)
+    {
+      /* These Intel Core processor models have SHLD/SHRD instruction that
+       * can do integer rotation faster actual ROL/ROR instructions. */
+      switch (model)
+	{
+	case 0x2A:
+	case 0x2D:
+	case 0x3A:
+	case 0x3C:
+	case 0x3F:
+	case 0x45:
+	case 0x46:
+	case 0x3D:
+	case 0x4F:
+	case 0x56:
+	case 0x47:
+	case 0x4E:
+	case 0x5E:
+	case 0x8E:
+	case 0x9E:
+	case 0x55:
+	case 0x66:
+	  result |= HWF_INTEL_FAST_SHLD;
+	  break;
+	}
+
+      /* These Intel Core processors that have AVX2 have slow VPGATHER and
+       * should be avoided for table-lookup use. */
+      switch (model)
+	{
+	case 0x3C:
+	case 0x3F:
+	case 0x45:
+	case 0x46:
+	  /* Haswell */
+	  avoid_vpgather |= 1;
+	  break;
+	}
+    }
+  else if (is_amd_cpu)
+    {
+      /* Non-AVX512 AMD CPUs (pre-Zen4) have slow VPGATHER and should be
+       * avoided for table-lookup use. */
+      avoid_vpgather |= !(result & HWF_INTEL_AVX512);
+    }
+  else
+    {
+      /* Avoid VPGATHER for non-Intel/non-AMD CPUs as testing is needed to
+       * make sure it is fast enough. */
+      avoid_vpgather |= 1;
+    }
+
+#ifdef ENABLE_FORCE_SOFT_HWFEATURES
+  /* Soft HW features mark functionality that is available on all systems
+   * but not feasible to use because of slow HW implementation. */
+
+  /* Some implementations are disabled for non-Intel CPUs. Mark
+   * current CPU as Intel one to enable those implementations. */
+  result |= HWF_INTEL_CPU;
+
+  /* SHLD is faster at rotating register than actual ROR/ROL instructions
+   * on older Intel systems (~sandy-bridge era). However, SHLD is very
+   * slow on almost anything else and later Intel processors have faster
+   * ROR/ROL. Therefore in regular build HWF_INTEL_FAST_SHLD is enabled
+   * only for those Intel processors that benefit from the SHLD
+   * instruction. Enabled here unconditionally as requested. */
+  result |= HWF_INTEL_FAST_SHLD;
+
+  /* VPGATHER instructions are used for look-up table based
+   * implementations which require VPGATHER to be fast enough to beat
+   * regular parallelized look-up table implementations (see Twofish).
+   * So far, only Intel processors beginning with Skylake and AMD
+   * processors starting with Zen4 have had VPGATHER fast enough to be
+   * enabled. Enable VPGATHER here unconditionally as requested. */
+  avoid_vpgather = 0;
+#endif
+
+  if ((result & HWF_INTEL_AVX2) && !avoid_vpgather)
+    result |= HWF_INTEL_FAST_VPGATHER;
 
   return result;
 }
