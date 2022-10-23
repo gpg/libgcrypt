@@ -86,6 +86,7 @@
  **********************************************************************/
 ELF(.type _gcry_vaes_avx2_cbc_dec_amd64,@function)
 .globl _gcry_vaes_avx2_cbc_dec_amd64
+.align 16
 _gcry_vaes_avx2_cbc_dec_amd64:
 	/* input:
 	 *	%rdi: round keys
@@ -392,6 +393,7 @@ ELF(.size _gcry_vaes_avx2_cbc_dec_amd64,.-_gcry_vaes_avx2_cbc_dec_amd64)
  **********************************************************************/
 ELF(.type _gcry_vaes_avx2_cfb_dec_amd64,@function)
 .globl _gcry_vaes_avx2_cfb_dec_amd64
+.align 16
 _gcry_vaes_avx2_cfb_dec_amd64:
 	/* input:
 	 *	%rdi: round keys
@@ -700,6 +702,7 @@ ELF(.size _gcry_vaes_avx2_cfb_dec_amd64,.-_gcry_vaes_avx2_cfb_dec_amd64)
  **********************************************************************/
 ELF(.type _gcry_vaes_avx2_ctr_enc_amd64,@function)
 .globl _gcry_vaes_avx2_ctr_enc_amd64
+.align 16
 _gcry_vaes_avx2_ctr_enc_amd64:
 	/* input:
 	 *	%rdi: round keys
@@ -1112,6 +1115,7 @@ ELF(.size _gcry_vaes_avx2_ctr_enc_amd64,.-_gcry_vaes_avx2_ctr_enc_amd64)
  **********************************************************************/
 ELF(.type _gcry_vaes_avx2_ctr32le_enc_amd64,@function)
 .globl _gcry_vaes_avx2_ctr32le_enc_amd64
+.align 16
 _gcry_vaes_avx2_ctr32le_enc_amd64:
 	/* input:
 	 *	%rdi: round keys
@@ -1396,6 +1400,7 @@ ELF(.size _gcry_vaes_avx2_ctr32le_enc_amd64,.-_gcry_vaes_avx2_ctr32le_enc_amd64)
  **********************************************************************/
 ELF(.type _gcry_vaes_avx2_ocb_crypt_amd64,@function)
 .globl _gcry_vaes_avx2_ocb_crypt_amd64
+.align 16
 _gcry_vaes_avx2_ocb_crypt_amd64:
 	/* input:
 	 *	%rdi:     round keys
@@ -2361,6 +2366,7 @@ ELF(.size _gcry_vaes_avx2_ocb_crypt_amd64,.-_gcry_vaes_avx2_ocb_crypt_amd64)
  **********************************************************************/
 ELF(.type _gcry_vaes_avx2_xts_crypt_amd64,@function)
 .globl _gcry_vaes_avx2_xts_crypt_amd64
+.align 16
 _gcry_vaes_avx2_xts_crypt_amd64:
 	/* input:
 	 *	%rdi: round keys
@@ -2878,6 +2884,7 @@ ELF(.size _gcry_vaes_avx2_xts_crypt_amd64,.-_gcry_vaes_avx2_xts_crypt_amd64)
  **********************************************************************/
 ELF(.type _gcry_vaes_avx2_ecb_crypt_amd64,@function)
 .globl _gcry_vaes_avx2_ecb_crypt_amd64
+.align 16
 _gcry_vaes_avx2_ecb_crypt_amd64:
 	/* input:
 	 *	%rdi: round keys
