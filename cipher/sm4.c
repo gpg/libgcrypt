@@ -129,6 +129,9 @@ static void _gcry_sm4_cfb_dec (void *context, unsigned char *iv,
 static void _gcry_sm4_xts_crypt (void *context, unsigned char *tweak,
                                  void *outbuf_arg, const void *inbuf_arg,
                                  size_t nblocks, int encrypt);
+static void _gcry_sm4_ecb_crypt (void *context, void *outbuf_arg,
+				 const void *inbuf_arg, size_t nblocks,
+				 int encrypt);
 static void _gcry_sm4_ctr32le_enc(void *context, unsigned char *ctr,
                                   void *outbuf_arg, const void *inbuf_arg,
                                   size_t nblocks);
@@ -796,6 +799,7 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
   bulk_ops->cfb_dec = _gcry_sm4_cfb_dec;
   bulk_ops->ctr_enc = _gcry_sm4_ctr_enc;
   bulk_ops->xts_crypt = _gcry_sm4_xts_crypt;
+  bulk_ops->ecb_crypt = _gcry_sm4_ecb_crypt;
   bulk_ops->ctr32le_enc = _gcry_sm4_ctr32le_enc;
   bulk_ops->ocb_crypt = _gcry_sm4_ocb_crypt;
   bulk_ops->ocb_auth  = _gcry_sm4_ocb_auth;
@@ -1515,6 +1519,34 @@ sm4_decrypt_blk1_32 (const void *context, byte *out, const byte *in,
 {
   const SM4_context *ctx = context;
   return sm4_crypt_blk1_32 (ctx, out, in, num_blks, ctx->rkey_dec);
+}
+
+/* Bulk encryption/decryption in ECB mode. */
+static void
+_gcry_sm4_ecb_crypt (void *context, void *outbuf_arg,
+		     const void *inbuf_arg, size_t nblocks, int encrypt)
+{
+  SM4_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      size_t nburn;
+
+      if (ctx->crypt_blk1_16 == &sm4_crypt_blocks)
+	prefetch_sbox_table ();
+
+      nburn = bulk_ecb_crypt_128(ctx, encrypt ? sm4_encrypt_blk1_32
+                                              : sm4_decrypt_blk1_32,
+                                 outbuf, inbuf, nblocks, 32);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack(burn_stack_depth);
 }
 
 /* Bulk encryption/decryption of complete blocks in XTS mode. */
