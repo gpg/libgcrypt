@@ -91,6 +91,32 @@ extern void _gcry_vaes_avx2_xts_crypt_amd64 (const void *keysched,
 					     unsigned int nrounds,
 					     int encrypt) ASM_FUNC_ABI;
 
+extern void _gcry_vaes_avx2_ecb_crypt_amd64 (const void *keysched,
+					     int encrypt,
+					     void *outbuf_arg,
+					     const void *inbuf_arg,
+					     size_t nblocks,
+					     unsigned int nrounds) ASM_FUNC_ABI;
+
+
+void
+_gcry_aes_vaes_ecb_crypt (void *context, void *outbuf,
+			  const void *inbuf, size_t nblocks,
+			  int encrypt)
+{
+  RIJNDAEL_context *ctx = context;
+  const void *keysched = encrypt ? ctx->keyschenc32 : ctx->keyschdec32;
+  unsigned int nrounds = ctx->rounds;
+
+  if (!encrypt && !ctx->decryption_prepared)
+    {
+      _gcry_aes_aesni_prepare_decryption (ctx);
+      ctx->decryption_prepared = 1;
+    }
+
+  _gcry_vaes_avx2_ecb_crypt_amd64 (keysched, encrypt, outbuf, inbuf,
+				   nblocks, nrounds);
+}
 
 void
 _gcry_aes_vaes_cbc_dec (void *context, unsigned char *iv,

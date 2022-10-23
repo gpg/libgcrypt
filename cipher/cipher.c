@@ -983,14 +983,11 @@ cipher_reset (gcry_cipher_hd_t c)
 
 
 static gcry_err_code_t
-do_ecb_crypt (gcry_cipher_hd_t c,
-              unsigned char *outbuf, size_t outbuflen,
-              const unsigned char *inbuf, size_t inbuflen,
-              gcry_cipher_encrypt_t crypt_fn)
+do_ecb_crypt (gcry_cipher_hd_t c, unsigned char *outbuf, size_t outbuflen,
+	      const unsigned char *inbuf, size_t inbuflen, int encrypt)
 {
   unsigned int blocksize = c->spec->blocksize;
   size_t n, nblocks;
-  unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
@@ -998,18 +995,32 @@ do_ecb_crypt (gcry_cipher_hd_t c,
     return GPG_ERR_INV_LENGTH;
 
   nblocks = inbuflen / blocksize;
-  burn = 0;
 
-  for (n=0; n < nblocks; n++ )
+  if (nblocks == 0)
+    return 0;
+
+  if (c->bulk.ecb_crypt)
     {
-      nburn = crypt_fn (&c->context.c, outbuf, inbuf);
-      burn = nburn > burn ? nburn : burn;
-      inbuf  += blocksize;
-      outbuf += blocksize;
+      c->bulk.ecb_crypt (&c->context.c, outbuf, inbuf, nblocks, encrypt);
     }
+  else
+    {
+      gcry_cipher_encrypt_t crypt_fn =
+          encrypt ? c->spec->encrypt : c->spec->decrypt;
+      unsigned int burn = 0;
+      unsigned int nburn;
 
-  if (burn > 0)
-    _gcry_burn_stack (burn + 4 * sizeof(void *));
+      for (n = 0; n < nblocks; n++)
+	{
+	  nburn = crypt_fn (&c->context.c, outbuf, inbuf);
+	  burn = nburn > burn ? nburn : burn;
+	  inbuf  += blocksize;
+	  outbuf += blocksize;
+	}
+
+      if (burn > 0)
+	_gcry_burn_stack (burn + 4 * sizeof(void *));
+    }
 
   return 0;
 }
@@ -1019,7 +1030,7 @@ do_ecb_encrypt (gcry_cipher_hd_t c,
                 unsigned char *outbuf, size_t outbuflen,
                 const unsigned char *inbuf, size_t inbuflen)
 {
-  return do_ecb_crypt (c, outbuf, outbuflen, inbuf, inbuflen, c->spec->encrypt);
+  return do_ecb_crypt (c, outbuf, outbuflen, inbuf, inbuflen, 1);
 }
 
 static gcry_err_code_t
@@ -1027,7 +1038,7 @@ do_ecb_decrypt (gcry_cipher_hd_t c,
                 unsigned char *outbuf, size_t outbuflen,
                 const unsigned char *inbuf, size_t inbuflen)
 {
-  return do_ecb_crypt (c, outbuf, outbuflen, inbuf, inbuflen, c->spec->decrypt);
+  return do_ecb_crypt (c, outbuf, outbuflen, inbuf, inbuflen, 0);
 }
 
 

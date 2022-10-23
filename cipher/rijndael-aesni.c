@@ -870,7 +870,7 @@ do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
                 "aesenc %%xmm0, %%xmm10\n\t"
                 "aesenc %%xmm0, %%xmm11\n\t"
                 "movdqa 0xa0(%[key]), %%xmm0\n\t"
-                "jb .Ldeclast%=\n\t"
+                "jb .Lenclast%=\n\t"
                 "aesenc %%xmm0, %%xmm1\n\t"
                 "aesenc %%xmm0, %%xmm2\n\t"
                 "aesenc %%xmm0, %%xmm3\n\t"
@@ -889,7 +889,7 @@ do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
                 "aesenc %%xmm0, %%xmm10\n\t"
                 "aesenc %%xmm0, %%xmm11\n\t"
                 "movdqa 0xc0(%[key]), %%xmm0\n\t"
-                "je .Ldeclast%=\n\t"
+                "je .Lenclast%=\n\t"
                 "aesenc %%xmm0, %%xmm1\n\t"
                 "aesenc %%xmm0, %%xmm2\n\t"
                 "aesenc %%xmm0, %%xmm3\n\t"
@@ -909,7 +909,7 @@ do_aesni_enc_vec8 (const RIJNDAEL_context *ctx)
                 "aesenc %%xmm0, %%xmm11\n\t"
                 "movdqa 0xe0(%[key]), %%xmm0\n"
 
-                ".Ldeclast%=:\n\t"
+                ".Lenclast%=:\n\t"
                 : /* no output */
                 : [key] "r" (ctx->keyschenc),
                   [rounds] "r" (ctx->rounds)
@@ -1714,6 +1714,160 @@ _gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                 : "memory" );
   aesni_cleanup ();
   return 0;
+}
+
+
+void ASM_FUNC_ATTR
+_gcry_aes_aesni_ecb_crypt (RIJNDAEL_context *ctx, unsigned char *dst,
+			   const unsigned char *src, size_t nblocks,
+			   int encrypt)
+{
+  aesni_prepare_2_7_variable;
+
+  aesni_prepare ();
+  aesni_prepare_2_7();
+
+  if (!encrypt && !ctx->decryption_prepared)
+    {
+      do_aesni_prepare_decryption ( ctx );
+      ctx->decryption_prepared = 1;
+    }
+
+#ifdef __x86_64__
+  if (nblocks >= 8)
+    {
+      const void *key = encrypt ? ctx->keyschenc : ctx->keyschdec;
+      aesni_prepare_8_15_variable;
+
+      aesni_prepare_8_15();
+
+      for (; nblocks >= 8; nblocks -= 8)
+	{
+	  asm volatile
+	    ("movdqa (%[key]), %%xmm0\n\t"
+	     "movdqu 0*16(%[src]), %%xmm1\n\t"
+	     "movdqu 1*16(%[src]), %%xmm2\n\t"
+	     "movdqu 2*16(%[src]), %%xmm3\n\t"
+	     "movdqu 3*16(%[src]), %%xmm4\n\t"
+	     "movdqu 4*16(%[src]), %%xmm8\n\t"
+	     "movdqu 5*16(%[src]), %%xmm9\n\t"
+	     "movdqu 6*16(%[src]), %%xmm10\n\t"
+	     "movdqu 7*16(%[src]), %%xmm11\n\t"
+	     "pxor   %%xmm0, %%xmm1\n\t"
+	     "pxor   %%xmm0, %%xmm2\n\t"
+	     "pxor   %%xmm0, %%xmm3\n\t"
+	     "pxor   %%xmm0, %%xmm4\n\t"
+	     "pxor   %%xmm0, %%xmm8\n\t"
+	     "pxor   %%xmm0, %%xmm9\n\t"
+	     "pxor   %%xmm0, %%xmm10\n\t"
+	     "pxor   %%xmm0, %%xmm11\n\t"
+	     : /* No output */
+	     : [src] "r" (src),
+	       [key] "r" (key)
+	     : "memory");
+
+	  if (encrypt)
+	    {
+	      do_aesni_enc_vec8 (ctx);
+	      asm volatile
+		("aesenclast %%xmm0, %%xmm1\n\t"
+		 "aesenclast %%xmm0, %%xmm2\n\t"
+		 "aesenclast %%xmm0, %%xmm3\n\t"
+		 "aesenclast %%xmm0, %%xmm4\n\t"
+		 "aesenclast %%xmm0, %%xmm8\n\t"
+		 "aesenclast %%xmm0, %%xmm9\n\t"
+		 "aesenclast %%xmm0, %%xmm10\n\t"
+		 "aesenclast %%xmm0, %%xmm11\n\t"
+		 ::: "memory" );
+	    }
+	  else
+	    {
+	      do_aesni_dec_vec8 (ctx);
+	      asm volatile
+		("aesdeclast %%xmm0, %%xmm1\n\t"
+		 "aesdeclast %%xmm0, %%xmm2\n\t"
+		 "aesdeclast %%xmm0, %%xmm3\n\t"
+		 "aesdeclast %%xmm0, %%xmm4\n\t"
+		 "aesdeclast %%xmm0, %%xmm8\n\t"
+		 "aesdeclast %%xmm0, %%xmm9\n\t"
+		 "aesdeclast %%xmm0, %%xmm10\n\t"
+		 "aesdeclast %%xmm0, %%xmm11\n\t"
+		 ::: "memory" );
+	    }
+
+	  asm volatile
+	    ("movdqu %%xmm1, 0*16(%[dst])\n\t"
+	     "movdqu %%xmm2, 1*16(%[dst])\n\t"
+	     "movdqu %%xmm3, 2*16(%[dst])\n\t"
+	     "movdqu %%xmm4, 3*16(%[dst])\n\t"
+	     "movdqu %%xmm8, 4*16(%[dst])\n\t"
+	     "movdqu %%xmm9, 5*16(%[dst])\n\t"
+	     "movdqu %%xmm10, 6*16(%[dst])\n\t"
+	     "movdqu %%xmm11, 7*16(%[dst])\n\t"
+	     : /* No output */
+	     : [dst] "r" (dst)
+	     : "memory");
+
+	  dst += 8*BLOCKSIZE;
+	  src += 8*BLOCKSIZE;
+	}
+
+      aesni_cleanup_8_15();
+    }
+#endif
+
+  for (; nblocks >= 4; nblocks -= 4)
+    {
+      asm volatile
+	("movdqu 0*16(%[src]), %%xmm1\n\t"
+	 "movdqu 1*16(%[src]), %%xmm2\n\t"
+	 "movdqu 2*16(%[src]), %%xmm3\n\t"
+	 "movdqu 3*16(%[src]), %%xmm4\n\t"
+	 : /* No output */
+	 : [src] "r" (src)
+	 : "memory");
+
+      if (encrypt)
+	do_aesni_enc_vec4 (ctx);
+      else
+	do_aesni_dec_vec4 (ctx);
+
+      asm volatile
+	("movdqu %%xmm1, 0*16(%[dst])\n\t"
+	 "movdqu %%xmm2, 1*16(%[dst])\n\t"
+	 "movdqu %%xmm3, 2*16(%[dst])\n\t"
+	 "movdqu %%xmm4, 3*16(%[dst])\n\t"
+	 : /* No output */
+	 : [dst] "r" (dst)
+	 : "memory");
+
+      dst += 4*BLOCKSIZE;
+      src += 4*BLOCKSIZE;
+    }
+
+  for (; nblocks; nblocks--)
+    {
+      asm volatile ("movdqu %[src], %%xmm0\n\t"
+                    :
+                    : [src] "m" (*src)
+                    : "memory" );
+
+      if (encrypt)
+	do_aesni_enc (ctx);
+      else
+	do_aesni_dec (ctx);
+
+      asm volatile ("movdqu %%xmm0, %[dst]\n\t"
+                    : [dst] "=m" (*dst)
+                    :
+                    : "memory" );
+
+      dst += BLOCKSIZE;
+      src += BLOCKSIZE;
+    }
+
+  aesni_cleanup ();
+  aesni_cleanup_2_7 ();
 }
 
 

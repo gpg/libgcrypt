@@ -161,6 +161,8 @@ typedef struct cipher_mode_ops
    not NULL.  */
 typedef struct cipher_bulk_ops
 {
+  void (*ecb_crypt)(void *context, void *outbuf_arg, const void *inbuf_arg,
+		    size_t nblocks, int encrypt);
   void (*cfb_enc)(void *context, unsigned char *iv, void *outbuf_arg,
 		  const void *inbuf_arg, size_t nblocks);
   void (*cfb_dec)(void *context, unsigned char *iv, void *outbuf_arg,
