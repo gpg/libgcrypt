@@ -470,5 +470,24 @@ bulk_xts_crypt_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
   return burn_depth;
 }
 
+static inline unsigned int
+bulk_ecb_crypt_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
+		    const byte *inbuf, size_t nblocks, size_t fn_max_nblocks)
+{
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  while (nblocks >= 1)
+    {
+      size_t curr_blks = nblocks > fn_max_nblocks ? fn_max_nblocks : nblocks;
+      nburn = crypt_fn (priv, outbuf, inbuf, curr_blks);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+      inbuf += curr_blks * 16;
+      outbuf += curr_blks * 16;
+      nblocks -= curr_blks;
+    }
+
+  return burn_depth;
+}
 
 #endif /*GCRYPT_BULKHELP_H*/

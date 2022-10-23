@@ -405,11 +405,14 @@ static void _gcry_camellia_cfb_dec (void *context, unsigned char *iv,
 				    void *outbuf_arg, const void *inbuf_arg,
 				    size_t nblocks);
 static void _gcry_camellia_xts_crypt (void *context, unsigned char *tweak,
-                                      void *outbuf_arg, const void *inbuf_arg,
-                                      size_t nblocks, int encrypt);
+				      void *outbuf_arg, const void *inbuf_arg,
+				      size_t nblocks, int encrypt);
+static void _gcry_camellia_ecb_crypt (void *context, void *outbuf_arg,
+				      const void *inbuf_arg, size_t nblocks,
+				      int encrypt);
 static void _gcry_camellia_ctr32le_enc (void *context, unsigned char *ctr,
-                                        void *outbuf_arg, const void *inbuf_arg,
-                                        size_t nblocks);
+					void *outbuf_arg, const void *inbuf_arg,
+					size_t nblocks);
 static size_t _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 					const void *inbuf_arg, size_t nblocks,
 					int encrypt);
@@ -474,10 +477,12 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
   if (ctx->use_aesni_avx2 || ctx->use_vaes_avx2 || ctx->use_gfni_avx2)
     {
       bulk_ops->xts_crypt = _gcry_camellia_xts_crypt;
+      bulk_ops->ecb_crypt = _gcry_camellia_ecb_crypt;
       bulk_ops->ctr32le_enc = _gcry_camellia_ctr32le_enc;
     }
 #else
   (void)_gcry_camellia_xts_crypt;
+  (void)_gcry_camellia_ecb_crypt;
   (void)_gcry_camellia_ctr32le_enc;
 #endif
 
@@ -1120,6 +1125,31 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
       burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
 
       wipememory(tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack(burn_stack_depth);
+}
+
+/* Bulk encryption/decryption in ECB mode. */
+static void
+_gcry_camellia_ecb_crypt (void *context, void *outbuf_arg,
+			  const void *inbuf_arg, size_t nblocks, int encrypt)
+{
+  CAMELLIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      size_t nburn;
+
+      nburn = bulk_ecb_crypt_128(ctx, encrypt ? camellia_encrypt_blk1_64
+                                              : camellia_decrypt_blk1_64,
+                                 outbuf, inbuf, nblocks, 64);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
     }
 
   if (burn_stack_depth)
