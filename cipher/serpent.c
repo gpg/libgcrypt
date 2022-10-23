@@ -1369,10 +1369,10 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
 	      if (encrypt)
 		_gcry_serpent_neon_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
-					   c->u_ctr.ctr, (void **)Ls);
+					   c->u_ctr.ctr, (const void **)Ls);
 	      else
 		_gcry_serpent_neon_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv,
-					   c->u_ctr.ctr, (void **)Ls);
+					   c->u_ctr.ctr, (const void **)Ls);
 
 	      nblocks -= 8;
 	      outbuf += 8 * sizeof(serpent_block_t);
@@ -1508,7 +1508,8 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	      *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 8);
 
 	      _gcry_serpent_neon_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
-					  c->u_mode.ocb.aad_sum, (void **)Ls);
+					  c->u_mode.ocb.aad_sum,
+					  (const void **)Ls);
 
 	      nblocks -= 8;
 	      abuf += 8 * sizeof(serpent_block_t);
