@@ -701,6 +701,8 @@ sm4_expand_key (SM4_context *ctx, const byte *key)
     }
 #endif
 
+  prefetch_sbox_table ();
+
   rk[0] = buf_get_be32(key + 4 * 0) ^ fk[0];
   rk[1] = buf_get_be32(key + 4 * 1) ^ fk[1];
   rk[2] = buf_get_be32(key + 4 * 2) ^ fk[2];
@@ -1008,7 +1010,6 @@ sm4_get_crypt_blk1_16_fn(SM4_context *ctx)
   else
     {
       (void)ctx;
-      prefetch_sbox_table ();
       return &sm4_crypt_blocks;
     }
 }
@@ -1148,6 +1149,9 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
       byte tmpbuf[16 * 16];
       unsigned int tmp_used = 16;
       size_t nburn;
+
+      if (crypt_blk1_16 == &sm4_crypt_blocks)
+	prefetch_sbox_table ();
 
       nburn = bulk_ctr_enc_128(ctx->rkey_enc, crypt_blk1_16, outbuf, inbuf,
                                nblocks, ctr, tmpbuf, sizeof(tmpbuf) / 16,
@@ -1295,6 +1299,9 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
       unsigned int tmp_used = 16;
       size_t nburn;
 
+      if (crypt_blk1_16 == &sm4_crypt_blocks)
+	prefetch_sbox_table ();
+
       nburn = bulk_cbc_dec_128(ctx->rkey_dec, crypt_blk1_16, outbuf, inbuf,
                                nblocks, iv, tmpbuf, sizeof(tmpbuf) / 16,
                                &tmp_used);
@@ -1441,6 +1448,9 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
       unsigned int tmp_used = 16;
       size_t nburn;
 
+      if (crypt_blk1_16 == &sm4_crypt_blocks)
+	prefetch_sbox_table ();
+
       nburn = bulk_cfb_dec_128(ctx->rkey_enc, crypt_blk1_16, outbuf, inbuf,
                                nblocks, iv, tmpbuf, sizeof(tmpbuf) / 16,
                                &tmp_used);
@@ -1457,6 +1467,7 @@ static unsigned int
 sm4_crypt_blk1_32 (const SM4_context *ctx, byte *outbuf, const byte *inbuf,
                    unsigned int num_blks, const u32 *rk)
 {
+  crypt_blk1_16_fn_t crypt_blk1_16 = ctx->crypt_blk1_16;
   unsigned int stack_burn_size = 0;
   unsigned int nburn;
 
@@ -1479,7 +1490,7 @@ sm4_crypt_blk1_32 (const SM4_context *ctx, byte *outbuf, const byte *inbuf,
   do
     {
       unsigned int curr_blks = num_blks > 16 ? 16 : num_blks;
-      nburn = ctx->crypt_blk1_16 (rk, outbuf, inbuf, curr_blks);
+      nburn = crypt_blk1_16 (rk, outbuf, inbuf, curr_blks);
       stack_burn_size = nburn > stack_burn_size ? nburn : stack_burn_size;
       outbuf += curr_blks * 16;
       inbuf += curr_blks * 16;
@@ -1533,6 +1544,9 @@ _gcry_sm4_xts_crypt (void *context, unsigned char *tweak, void *outbuf_arg,
       unsigned char tmpbuf[32 * 16];
       unsigned int tmp_used = 16;
       size_t nburn;
+
+      if (ctx->crypt_blk1_16 == &sm4_crypt_blocks)
+	prefetch_sbox_table ();
 
       nburn = bulk_xts_crypt_128(ctx, encrypt ? sm4_encrypt_blk1_32
                                               : sm4_decrypt_blk1_32,
