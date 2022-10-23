@@ -139,6 +139,9 @@ extern void _gcry_serpent_sse2_ocb_auth(serpent_context_t *ctx,
 					unsigned char *offset,
 					unsigned char *checksum,
 					const u64 Ls[8]) ASM_FUNC_ABI;
+
+extern void _gcry_serpent_sse2_blk8(const serpent_context_t *c, byte *out,
+				    const byte *in, int encrypt) ASM_FUNC_ABI;
 #endif
 
 #ifdef USE_AVX2
@@ -179,6 +182,9 @@ extern void _gcry_serpent_avx2_ocb_auth(serpent_context_t *ctx,
 					unsigned char *offset,
 					unsigned char *checksum,
 					const u64 Ls[16]) ASM_FUNC_ABI;
+
+extern void _gcry_serpent_avx2_blk16(const serpent_context_t *c, byte *out,
+				     const byte *in, int encrypt) ASM_FUNC_ABI;
 #endif
 
 #ifdef USE_NEON
@@ -219,6 +225,9 @@ extern void _gcry_serpent_neon_ocb_auth(serpent_context_t *ctx,
 					unsigned char *offset,
 					unsigned char *checksum,
 					const void *Ls[8]);
+
+extern void _gcry_serpent_neon_blk8(const serpent_context_t *c, byte *out,
+				    const byte *in, int encrypt);
 #endif
 
 
@@ -239,6 +248,12 @@ static size_t _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 				       int encrypt);
 static size_t _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 				      size_t nblocks);
+static void _gcry_serpent_xts_crypt (void *context, unsigned char *tweak,
+				     void *outbuf_arg, const void *inbuf_arg,
+				     size_t nblocks, int encrypt);
+static void _gcry_serpent_ecb_crypt (void *context, void *outbuf_arg,
+				     const void *inbuf_arg, size_t nblocks,
+				     int encrypt);
 
 
 /*
@@ -790,7 +805,9 @@ serpent_setkey (void *ctx,
   bulk_ops->cfb_dec = _gcry_serpent_cfb_dec;
   bulk_ops->ctr_enc = _gcry_serpent_ctr_enc;
   bulk_ops->ocb_crypt = _gcry_serpent_ocb_crypt;
-  bulk_ops->ocb_auth  = _gcry_serpent_ocb_auth;
+  bulk_ops->ocb_auth = _gcry_serpent_ocb_auth;
+  bulk_ops->xts_crypt = _gcry_serpent_xts_crypt;
+  bulk_ops->ecb_crypt = _gcry_serpent_ecb_crypt;
 
   if (serpent_test_ret)
     ret = GPG_ERR_SELFTEST_FAILED;
@@ -1536,6 +1553,134 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 #endif
 
   return nblocks;
+}
+
+
+static unsigned int
+serpent_crypt_blk1_16(const void *context, byte *out, const byte *in,
+		      unsigned int num_blks, int encrypt)
+{
+  const serpent_context_t *ctx = context;
+  unsigned int burn, burn_stack_depth = 0;
+
+#ifdef USE_AVX2
+  if (num_blks == 16 && ctx->use_avx2)
+    {
+      _gcry_serpent_avx2_blk16 (ctx, out, in, encrypt);
+      return 0;
+    }
+#endif
+
+#ifdef USE_SSE2
+  while (num_blks >= 8)
+    {
+      _gcry_serpent_sse2_blk8 (ctx, out, in, encrypt);
+      out += 8 * sizeof(serpent_block_t);
+      in += 8 * sizeof(serpent_block_t);
+      num_blks -= 8;
+    }
+#endif
+
+#ifdef USE_NEON
+  if (ctx->use_neon)
+    {
+      while (num_blks >= 8)
+	{
+	  _gcry_serpent_neon_blk8 (ctx, out, in, encrypt);
+	  out += 8 * sizeof(serpent_block_t);
+	  in += 8 * sizeof(serpent_block_t);
+	  num_blks -= 8;
+	}
+    }
+#endif
+
+  while (num_blks >= 1)
+    {
+      if (encrypt)
+	serpent_encrypt_internal((void *)ctx, in, out);
+      else
+	serpent_decrypt_internal((void *)ctx, in, out);
+
+      burn = 2 * sizeof(serpent_block_t);
+      burn_stack_depth = (burn > burn_stack_depth) ? burn : burn_stack_depth;
+      out += sizeof(serpent_block_t);
+      in += sizeof(serpent_block_t);
+      num_blks--;
+    }
+
+  return burn_stack_depth;
+}
+
+static unsigned int
+serpent_encrypt_blk1_16(const void *ctx, byte *out, const byte *in,
+			unsigned int num_blks)
+{
+  return serpent_crypt_blk1_16 (ctx, out, in, num_blks, 1);
+}
+
+static unsigned int
+serpent_decrypt_blk1_16(const void *ctx, byte *out, const byte *in,
+			unsigned int num_blks)
+{
+  return serpent_crypt_blk1_16 (ctx, out, in, num_blks, 0);
+}
+
+
+/* Bulk encryption/decryption of complete blocks in XTS mode. */
+static void
+_gcry_serpent_xts_crypt (void *context, unsigned char *tweak, void *outbuf_arg,
+			 const void *inbuf_arg, size_t nblocks, int encrypt)
+{
+  serpent_context_t *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      unsigned char tmpbuf[16 * 16];
+      unsigned int tmp_used = 16;
+      size_t nburn;
+
+      nburn = bulk_xts_crypt_128(ctx, encrypt ? serpent_encrypt_blk1_16
+                                              : serpent_decrypt_blk1_16,
+                                 outbuf, inbuf, nblocks,
+                                 tweak, tmpbuf, sizeof(tmpbuf) / 16,
+                                 &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory(tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack(burn_stack_depth);
+}
+
+
+/* Bulk encryption/decryption in ECB mode. */
+static void
+_gcry_serpent_ecb_crypt (void *context, void *outbuf_arg, const void *inbuf_arg,
+			 size_t nblocks, int encrypt)
+{
+  serpent_context_t *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      size_t nburn;
+
+      nburn = bulk_ecb_crypt_128(ctx, encrypt ? serpent_encrypt_blk1_16
+                                              : serpent_decrypt_blk1_16,
+                                 outbuf, inbuf, nblocks, 16);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack(burn_stack_depth);
 }
 
 

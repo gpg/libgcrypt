@@ -601,6 +601,62 @@ __serpent_dec_blk8:
 .size __serpent_dec_blk8,.-__serpent_dec_blk8;
 
 .align 3
+.globl _gcry_serpent_neon_blk8
+.type _gcry_serpent_neon_blk8,%function;
+_gcry_serpent_neon_blk8:
+	/* input:
+	 *	r0: ctx, CTX
+	 *	r1: dst (8 blocks)
+	 *	r2: src (8 blocks)
+	 *	r3: encrypt
+	 */
+
+	push {lr};
+	vpush {RA4-RB2};
+
+	cmp r3, #0
+
+	vld1.8 {RA0, RA1}, [r2]!;
+	vld1.8 {RA2, RA3}, [r2]!;
+	vld1.8 {RB0, RB1}, [r2]!;
+	vld1.8 {RB2, RB3}, [r2]!;
+
+	beq .Lblk8_dec;
+		bl __serpent_enc_blk8;
+		vst1.8 {RA4}, [r1]!;
+		vst1.8 {RA1, RA2}, [r1]!;
+		vst1.8 {RA0}, [r1]!;
+		vst1.8 {RB4}, [r1]!;
+		vst1.8 {RB1, RB2}, [r1]!;
+		vst1.8 {RB0}, [r1]!;
+		b .Lblk8_end;
+	.Lblk8_dec:
+		bl __serpent_dec_blk8;
+		vst1.8 {RA0, RA1}, [r1]!;
+		vst1.8 {RA2, RA3}, [r1]!;
+		vst1.8 {RB0, RB1}, [r1]!;
+		vst1.8 {RB2, RB3}, [r1]!;
+
+.Lblk8_end:
+	/* clear the used registers */
+	veor RA0, RA0;
+	veor RA1, RA1;
+	veor RA2, RA2;
+	veor RA3, RA3;
+
+	vpop {RA4-RB2};
+
+	veor RB3, RB3;
+	veor RB4, RB4;
+	veor RT0, RT0;
+	veor RT1, RT1;
+	veor RT2, RT2;
+	veor RT3, RT3;
+
+	pop {pc};
+.size _gcry_serpent_neon_cbc_dec,.-_gcry_serpent_neon_cbc_dec;
+
+.align 3
 .globl _gcry_serpent_neon_ctr_enc
 .type _gcry_serpent_neon_ctr_enc,%function;
 _gcry_serpent_neon_ctr_enc:

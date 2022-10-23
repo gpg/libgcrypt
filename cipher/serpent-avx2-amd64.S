@@ -583,6 +583,56 @@ __serpent_dec_blk16:
 	CFI_ENDPROC();
 ELF(.size __serpent_dec_blk16,.-__serpent_dec_blk16;)
 
+.align 8
+.globl _gcry_serpent_avx2_blk16
+ELF(.type   _gcry_serpent_avx2_blk16,@function;)
+_gcry_serpent_avx2_blk16:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (8 blocks)
+	 *	%rdx: src (8 blocks)
+	 *	%ecx: encrypt
+	 */
+	CFI_STARTPROC();
+
+	vmovdqu (0 * 32)(%rdx), RA0;
+	vmovdqu (1 * 32)(%rdx), RA1;
+	vmovdqu (2 * 32)(%rdx), RA2;
+	vmovdqu (3 * 32)(%rdx), RA3;
+	vmovdqu (4 * 32)(%rdx), RB0;
+	vmovdqu (5 * 32)(%rdx), RB1;
+	vmovdqu (6 * 32)(%rdx), RB2;
+	vmovdqu (7 * 32)(%rdx), RB3;
+
+	testl %ecx, %ecx;
+	jz .Lblk16_dec;
+		call __serpent_enc_blk16;
+		vmovdqu RA4, (0 * 32)(%rsi);
+		vmovdqu RA1, (1 * 32)(%rsi);
+		vmovdqu RA2, (2 * 32)(%rsi);
+		vmovdqu RA0, (3 * 32)(%rsi);
+		vmovdqu RB4, (4 * 32)(%rsi);
+		vmovdqu RB1, (5 * 32)(%rsi);
+		vmovdqu RB2, (6 * 32)(%rsi);
+		vmovdqu RB0, (7 * 32)(%rsi);
+		jmp .Lblk16_end;
+	.Lblk16_dec:
+		call __serpent_dec_blk16;
+		vmovdqu RA0, (0 * 32)(%rsi);
+		vmovdqu RA1, (1 * 32)(%rsi);
+		vmovdqu RA2, (2 * 32)(%rsi);
+		vmovdqu RA3, (3 * 32)(%rsi);
+		vmovdqu RB0, (4 * 32)(%rsi);
+		vmovdqu RB1, (5 * 32)(%rsi);
+		vmovdqu RB2, (6 * 32)(%rsi);
+		vmovdqu RB3, (7 * 32)(%rsi);
+
+.Lblk16_end:
+	vzeroall;
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_serpent_avx2_blk16,.-_gcry_serpent_avx2_blk16;)
+
 #define inc_le128(x, minus_one, tmp) \
 	vpcmpeqq minus_one, x, tmp; \
 	vpsubq minus_one, x, x; \
