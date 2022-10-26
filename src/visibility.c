@@ -1339,6 +1339,10 @@ gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+
+  if (fips_mode () && keylen < 14)
+    return GPG_ERR_INV_VALUE;
+
   return gpg_error (_gcry_md_setkey (hd, key, keylen));
 }
 
