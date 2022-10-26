@@ -456,8 +456,8 @@ _gcry_keccak_f1600_state_permute64_avx512(u64 *state, const u64 *rconst);
 
 extern ASM_FUNC_ABI unsigned int
 _gcry_keccak_absorb_blocks_avx512(u64 *state, const u64 *rconst,
-                                  const byte *lanes, size_t nlanes,
-                                  size_t blocklanes, const byte **new_lanes);
+                                  const byte *lanes, u64 nlanes,
+                                  u64 blocklanes, u64 *new_lanes);
 
 static unsigned int
 keccak_f1600_state_permute64_avx512(KECCAK_STATE *hd)
@@ -474,9 +474,12 @@ keccak_absorb_lanes64_avx512(KECCAK_STATE *hd, int pos, const byte *lanes,
     {
       if (pos == 0 && blocklanes > 0 && nlanes >= (size_t)blocklanes)
         {
+          /* Get new pointer through u64 variable for "x32" compatibility. */
+          u64 new_lanes;
           nlanes = _gcry_keccak_absorb_blocks_avx512 (
                             hd->u.state64, _gcry_keccak_round_consts_64bit,
-                            lanes, nlanes, blocklanes, &lanes);
+                            lanes, nlanes, blocklanes, &new_lanes);
+          lanes = (const byte *)(uintptr_t)new_lanes;
         }
 
       while (nlanes)
