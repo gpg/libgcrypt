@@ -29,23 +29,23 @@
 .arm
 
 /* register macros */
-#define CTX	%r0
-#define RTAB	%lr
-#define RMASK	%ip
+#define CTX	r0
+#define RTAB	lr
+#define RMASK	ip
 
-#define RA	%r4
-#define RB	%r5
-#define RC	%r6
-#define RD	%r7
+#define RA	r4
+#define RB	r5
+#define RC	r6
+#define RD	r7
 
-#define RNA	%r8
-#define RNB	%r9
-#define RNC	%r10
-#define RND	%r11
+#define RNA	r8
+#define RNB	r9
+#define RNC	r10
+#define RND	r11
 
-#define RT0	%r1
-#define RT1	%r2
-#define RT2	%r3
+#define RT0	r1
+#define RT1	r2
+#define RT2	r3
 
 /* helper macros */
 #define ldr_unaligned_le(rout, rsrc, offs, rtmp) \
@@ -216,30 +216,30 @@
 
 _gcry_aes_arm_encrypt_block:
 	/* input:
-	 *	%r0: keysched, CTX
-	 *	%r1: dst
-	 *	%r2: src
-	 *	%r3: number of rounds.. 10, 12 or 14
-	 *      %st+0: encryption table
+	 *	r0: keysched, CTX
+	 *	r1: dst
+	 *	r2: src
+	 *	r3: number of rounds.. 10, 12 or 14
+	 *      st+0: encryption table
 	 */
-	push {%r4-%r11, %ip, %lr};
+	push {r4-r11, ip, lr};
 
 	/* read input block */
 
 	/* test if src is unaligned */
-	tst	%r2, #3;
+	tst	r2, #3;
 	beq	1f;
 
 	/* unaligned load */
-	ldr_unaligned_le(RA, %r2, 0, RNA);
-	ldr_unaligned_le(RB, %r2, 4, RNB);
-	ldr_unaligned_le(RC, %r2, 8, RNA);
-	ldr_unaligned_le(RD, %r2, 12, RNB);
+	ldr_unaligned_le(RA, r2, 0, RNA);
+	ldr_unaligned_le(RB, r2, 4, RNB);
+	ldr_unaligned_le(RC, r2, 8, RNA);
+	ldr_unaligned_le(RD, r2, 12, RNB);
 	b	2f;
 .ltorg
 1:
 	/* aligned load */
-	ldm	%r2, {RA, RB, RC, RD};
+	ldm	r2, {RA, RB, RC, RD};
 #ifndef __ARMEL__
 	rev	RA, RA;
 	rev	RB, RB;
@@ -247,12 +247,12 @@ _gcry_aes_arm_encrypt_block:
 	rev	RD, RD;
 #endif
 2:
-	ldr     RTAB, [%sp, #40];
-	sub	%sp, #16;
+	ldr     RTAB, [sp, #40];
+	sub	sp, #16;
 
-	str	%r1, [%sp, #4];		/* dst */
+	str	r1, [sp, #4];		/* dst */
 	mov	RMASK, #0xff;
-	str	%r3, [%sp, #8];		/* nrounds */
+	str	r3, [sp, #8];		/* nrounds */
 	mov	RMASK, RMASK, lsl#2;	/* byte mask */
 
 	firstencround(0, RA, RB, RC, RD, RNA, RNB, RNC, RND);
@@ -264,7 +264,7 @@ _gcry_aes_arm_encrypt_block:
 	encround(6, RA, RB, RC, RD, RNA, RNB, RNC, RND, preload_first_key);
 	encround(7, RNA, RNB, RNC, RND, RA, RB, RC, RD, preload_first_key);
 
-	ldr	RT0, [%sp, #8];		/* nrounds */
+	ldr	RT0, [sp, #8];		/* nrounds */
 	cmp	RT0, #12;
 	bge	.Lenc_not_128;
 
@@ -272,8 +272,8 @@ _gcry_aes_arm_encrypt_block:
 	lastencround(9, RNA, RNB, RNC, RND, RA, RB, RC, RD);
 
 .Lenc_done:
-	ldr	RT0, [%sp, #4];		/* dst */
-	add	%sp, #16;
+	ldr	RT0, [sp, #4];		/* dst */
+	add	sp, #16;
 
 	/* store output block */
 
@@ -301,7 +301,7 @@ _gcry_aes_arm_encrypt_block:
 2:
 
 	mov     r0, #(10 * 4);
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 
 .ltorg
 .Lenc_not_128:
@@ -473,30 +473,30 @@ _gcry_aes_arm_encrypt_block:
 
 _gcry_aes_arm_decrypt_block:
 	/* input:
-	 *	%r0: keysched, CTX
-	 *	%r1: dst
-	 *	%r2: src
-	 *	%r3: number of rounds.. 10, 12 or 14
-	 *      %st+0: decryption table
+	 *	r0: keysched, CTX
+	 *	r1: dst
+	 *	r2: src
+	 *	r3: number of rounds.. 10, 12 or 14
+	 *      st+0: decryption table
 	 */
-	push {%r4-%r11, %ip, %lr};
+	push {r4-r11, ip, lr};
 
 	/* read input block */
 
 	/* test if src is unaligned */
-	tst	%r2, #3;
+	tst	r2, #3;
 	beq	1f;
 
 	/* unaligned load */
-	ldr_unaligned_le(RA, %r2, 0, RNA);
-	ldr_unaligned_le(RB, %r2, 4, RNB);
-	ldr_unaligned_le(RC, %r2, 8, RNA);
-	ldr_unaligned_le(RD, %r2, 12, RNB);
+	ldr_unaligned_le(RA, r2, 0, RNA);
+	ldr_unaligned_le(RB, r2, 4, RNB);
+	ldr_unaligned_le(RC, r2, 8, RNA);
+	ldr_unaligned_le(RD, r2, 12, RNB);
 	b	2f;
 .ltorg
 1:
 	/* aligned load */
-	ldm	%r2, {RA, RB, RC, RD};
+	ldm	r2, {RA, RB, RC, RD};
 #ifndef __ARMEL__
 	rev	RA, RA;
 	rev	RB, RB;
@@ -504,14 +504,14 @@ _gcry_aes_arm_decrypt_block:
 	rev	RD, RD;
 #endif
 2:
-	ldr     RTAB, [%sp, #40];
-	sub	%sp, #16;
+	ldr     RTAB, [sp, #40];
+	sub	sp, #16;
 
 	mov	RMASK, #0xff;
-	str	%r1, [%sp, #4];		/* dst */
+	str	r1, [sp, #4];		/* dst */
 	mov	RMASK, RMASK, lsl#2;	/* byte mask */
 
-	cmp	%r3, #12;
+	cmp	r3, #12;
 	bge	.Ldec_256;
 
 	firstdecround(9, RA, RB, RC, RD, RNA, RNB, RNC, RND);
@@ -526,8 +526,8 @@ _gcry_aes_arm_decrypt_block:
 	decround(1, RA, RB, RC, RD, RNA, RNB, RNC, RND, set_last_round_rmask);
 	lastdecround(0, RNA, RNB, RNC, RND, RA, RB, RC, RD);
 
-	ldr	RT0, [%sp, #4];		/* dst */
-	add	%sp, #16;
+	ldr	RT0, [sp, #4];		/* dst */
+	add	sp, #16;
 
 	/* store output block */
 
@@ -554,7 +554,7 @@ _gcry_aes_arm_decrypt_block:
 	stm	RT0, {RA, RB, RC, RD};
 2:
 	mov     r0, #(10 * 4);
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 
 .ltorg
 .Ldec_256:

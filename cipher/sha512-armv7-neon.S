@@ -40,7 +40,7 @@
 #define hd_g ((hd_f) + 8)
 
 /* register macros */
-#define RK %r2
+#define RK r2
 
 #define RA d0
 #define RB d1
@@ -285,26 +285,26 @@
 
 _gcry_sha512_transform_armv7_neon:
 	/* Input:
-	 *	%r0: SHA512_CONTEXT
-	 *	%r1: data
-	 *	%r2: u64 k[] constants
-	 *	%r3: nblks
+	 *	r0: SHA512_CONTEXT
+	 *	r1: data
+	 *	r2: u64 k[] constants
+	 *	r3: nblks
 	 */
-	push {%lr};
+	push {lr};
 
-	mov %lr, #0;
+	mov lr, #0;
 
 	/* Load context to d0-d7 */
-	vld1.64 {RA-RD}, [%r0]!;
-	vld1.64 {RE-RH}, [%r0];
-	sub %r0, #(4*8);
+	vld1.64 {RA-RD}, [r0]!;
+	vld1.64 {RE-RH}, [r0];
+	sub r0, #(4*8);
 
 	/* Load input to w[16], d16-d31 */
 	/* NOTE: Assumes that on ARMv7 unaligned accesses are always allowed. */
-	vld1.64 {RW0-RW3}, [%r1]!;
-	vld1.64 {RW4-RW7}, [%r1]!;
-	vld1.64 {RW8-RW11}, [%r1]!;
-	vld1.64 {RW12-RW15}, [%r1]!;
+	vld1.64 {RW0-RW3}, [r1]!;
+	vld1.64 {RW4-RW7}, [r1]!;
+	vld1.64 {RW8-RW11}, [r1]!;
+	vld1.64 {RW12-RW15}, [r1]!;
 #ifdef __ARMEL__
 	/* byteswap */
 	vrev64.8 RW01q, RW01q;
@@ -332,46 +332,46 @@ _gcry_sha512_transform_armv7_neon:
 	rounds2_0_63(RC, RD, RE, RF, RG, RH, RA, RB, RW6, RW7, RW67q, RW8, RW89q, RW45q, RW15, RW0, vadd_RT01q, RW45q);
 	rounds2_0_63(RA, RB, RC, RD, RE, RF, RG, RH, RW8, RW9, RW89q, RW10, RW1011q, RW67q, RW1, RW2, vadd_RT01q, RW67q);
 	rounds2_0_63(RG, RH, RA, RB, RC, RD, RE, RF, RW10, RW11, RW1011q, RW12, RW1213q, RW89q, RW3, RW4, vadd_RT01q, RW89q);
-	add %lr, #16;
+	add lr, #16;
 	rounds2_0_63(RE, RF, RG, RH, RA, RB, RC, RD, RW12, RW13, RW1213q, RW14, RW1415q, RW1011q, RW5, RW6, vadd_RT01q, RW1011q);
-	cmp %lr, #64;
+	cmp lr, #64;
 	rounds2_0_63(RC, RD, RE, RF, RG, RH, RA, RB, RW14, RW15, RW1415q, RW0, RW01q, RW1213q, RW7, RW8, vadd_RT01q, RW1213q);
 	bne .Loop_rounds;
 
-	subs %r3, #1;
+	subs r3, #1;
 
 	rounds2_64_79(RA, RB, RC, RD, RE, RF, RG, RH, RW0, RW1, vadd_RT01q, RW1415q, dummy, _);
 	rounds2_64_79(RG, RH, RA, RB, RC, RD, RE, RF, RW2, RW3, vadd_rg_RT0, RG, vadd_rg_RT1, RG);
 	beq .Lhandle_tail;
-	vld1.64 {RW0-RW3}, [%r1]!;
+	vld1.64 {RW0-RW3}, [r1]!;
 	rounds2_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW4, RW5, vadd_rg_RT0, RE, vadd_rg_RT1, RE);
 	rounds2_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW6, RW7, vadd_rg_RT0, RC, vadd_rg_RT1, RC);
 #ifdef __ARMEL__
 	vrev64.8 RW01q, RW01q;
 	vrev64.8 RW23q, RW23q;
 #endif
-	vld1.64 {RW4-RW7}, [%r1]!;
+	vld1.64 {RW4-RW7}, [r1]!;
 	rounds2_64_79(RA, RB, RC, RD, RE, RF, RG, RH, RW8, RW9, vadd_rg_RT0, RA, vadd_rg_RT1, RA);
 	rounds2_64_79(RG, RH, RA, RB, RC, RD, RE, RF, RW10, RW11, vadd_rg_RT0, RG, vadd_rg_RT1, RG);
 #ifdef __ARMEL__
 	vrev64.8 RW45q, RW45q;
 	vrev64.8 RW67q, RW67q;
 #endif
-	vld1.64 {RW8-RW11}, [%r1]!;
+	vld1.64 {RW8-RW11}, [r1]!;
 	rounds2_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW12, RW13, vadd_rg_RT0, RE, vadd_rg_RT1, RE);
 	rounds2_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW14, RW15, vadd_rg_RT0, RC, vadd_rg_RT1, RC);
 #ifdef __ARMEL__
 	vrev64.8 RW89q, RW89q;
 	vrev64.8 RW1011q, RW1011q;
 #endif
-	vld1.64 {RW12-RW15}, [%r1]!;
+	vld1.64 {RW12-RW15}, [r1]!;
 	vadd_rg_RT0(RA);
 	vadd_rg_RT1(RA);
 
 	/* Load context */
-	vld1.64 {RT0-RT3}, [%r0]!;
-	vld1.64 {RT4-RT7}, [%r0];
-	sub %r0, #(4*8);
+	vld1.64 {RT0-RT3}, [r0]!;
+	vld1.64 {RT4-RT7}, [r0];
+	sub r0, #(4*8);
 
 #ifdef __ARMEL__
 	vrev64.8 RW1213q, RW1213q;
@@ -388,11 +388,11 @@ _gcry_sha512_transform_armv7_neon:
 	vadd.u64 RH, RT7;
 
 	/* Store the first half of context */
-	vst1.64 {RA-RD}, [%r0]!;
+	vst1.64 {RA-RD}, [r0]!;
 	sub RK, $(8*80);
-	vst1.64 {RE-RH}, [%r0]; /* Store the last half of context */
-	mov %lr, #0;
-	sub %r0, #(4*8);
+	vst1.64 {RE-RH}, [r0]; /* Store the last half of context */
+	mov lr, #0;
+	sub r0, #(4*8);
 
 	b .Loop;
 .ltorg
@@ -406,11 +406,11 @@ _gcry_sha512_transform_armv7_neon:
 	rounds2_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW14, RW15, vadd_rg_RT0, RC, vadd_rg_RT1, RC);
 
 	/* Load context to d16-d23 */
-	vld1.64 {RW0-RW3}, [%r0]!;
+	vld1.64 {RW0-RW3}, [r0]!;
 	vadd_rg_RT0(RA);
-	vld1.64 {RW4-RW7}, [%r0];
+	vld1.64 {RW4-RW7}, [r0];
 	vadd_rg_RT1(RA);
-	sub %r0, #(4*8);
+	sub r0, #(4*8);
 
 	vadd.u64 RA, RW0;
 	vadd.u64 RB, RW1;
@@ -422,7 +422,7 @@ _gcry_sha512_transform_armv7_neon:
 	vadd.u64 RH, RW7;
 
 	/* Store the first half of context */
-	vst1.64 {RA-RD}, [%r0]!;
+	vst1.64 {RA-RD}, [r0]!;
 
 	/* Clear used registers */
 	/* d16-d31 */
@@ -430,7 +430,7 @@ _gcry_sha512_transform_armv7_neon:
 	veor.u64 RW23q, RW23q;
 	veor.u64 RW45q, RW45q;
 	veor.u64 RW67q, RW67q;
-	vst1.64 {RE-RH}, [%r0]; /* Store the last half of context */
+	vst1.64 {RE-RH}, [r0]; /* Store the last half of context */
 	veor.u64 RW89q, RW89q;
 	veor.u64 RW1011q, RW1011q;
 	veor.u64 RW1213q, RW1213q;
@@ -438,13 +438,13 @@ _gcry_sha512_transform_armv7_neon:
 	/* d8-d15 */
 	vpop {RT0-RT7};
 	/* d0-d7 (q0-q3) */
-	veor.u64 %q0, %q0;
-	veor.u64 %q1, %q1;
-	veor.u64 %q2, %q2;
-	veor.u64 %q3, %q3;
+	veor.u64 q0, q0;
+	veor.u64 q1, q1;
+	veor.u64 q2, q2;
+	veor.u64 q3, q3;
 
-	eor %r0, %r0;
-	pop {%pc};
+	eor r0, r0;
+	pop {pc};
 .size _gcry_sha512_transform_armv7_neon,.-_gcry_sha512_transform_armv7_neon;
 
 #endif

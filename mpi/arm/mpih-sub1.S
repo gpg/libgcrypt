@@ -29,10 +29,10 @@
 
 /*******************
  *  mpi_limb_t
- *  _gcry_mpih_sub_n( mpi_ptr_t res_ptr,	%r0
- *		   mpi_ptr_t s1_ptr,		%r1
- *		   mpi_ptr_t s2_ptr,		%r2
- *		   mpi_size_t size)		%r3
+ *  _gcry_mpih_sub_n( mpi_ptr_t res_ptr,	r0
+ *		   mpi_ptr_t s1_ptr,		r1
+ *		   mpi_ptr_t s2_ptr,		r2
+ *		   mpi_size_t size)		r3
  */
 
 .text
@@ -40,38 +40,38 @@
 .globl _gcry_mpih_sub_n
 .type  _gcry_mpih_sub_n,%function
 _gcry_mpih_sub_n:
-	push	{%r4, %r5, %r6, %r7, %r8, %r9, %r10, %lr};
-	cmp	%r0, #0; /* prepare carry flag for sub */
+	push	{r4, r5, r6, r7, r8, r9, r10, lr};
+	cmp	r0, #0; /* prepare carry flag for sub */
 
-	tst	%r3, #3;
+	tst	r3, #3;
 	beq	.Large_loop;
 
 .Loop:
-	ldr	%r4, [%r1], #4;
-	sub	%r3, #1;
-	ldr	%lr, [%r2], #4;
-	sbcs	%r4, %lr;
-	tst	%r3, #3;
-	str	%r4, [%r0], #4;
+	ldr	r4, [r1], #4;
+	sub	r3, #1;
+	ldr	lr, [r2], #4;
+	sbcs	r4, lr;
+	tst	r3, #3;
+	str	r4, [r0], #4;
 	bne	.Loop;
 
-	teq	%r3, #0;
+	teq	r3, #0;
 	beq	.Lend;
 
 .Large_loop:
-	ldm	%r1!, {%r4, %r6, %r8, %r10};
-	sub	%r3, #4;
-	ldm	%r2!, {%r5, %r7, %r9, %lr};
-	sbcs	%r4, %r5;
-	sbcs	%r6, %r7;
-	sbcs	%r8, %r9;
-	sbcs	%r10, %lr;
-	teq	%r3, #0;
-	stm	%r0!, {%r4, %r6, %r8, %r10};
+	ldm	r1!, {r4, r6, r8, r10};
+	sub	r3, #4;
+	ldm	r2!, {r5, r7, r9, lr};
+	sbcs	r4, r5;
+	sbcs	r6, r7;
+	sbcs	r8, r9;
+	sbcs	r10, lr;
+	teq	r3, #0;
+	stm	r0!, {r4, r6, r8, r10};
 	bne	.Large_loop;
 
 .Lend:
-	sbc	%r0, %r3, #0;
-	neg	%r0, %r0;
-	pop	{%r4, %r5, %r6, %r7, %r8, %r9, %r10, %pc};
+	sbc	r0, r3, #0;
+	neg	r0, r0;
+	pop	{r4, r5, r6, r7, r8, r9, r10, pc};
 .size _gcry_mpih_sub_n,.-_gcry_mpih_sub_n;

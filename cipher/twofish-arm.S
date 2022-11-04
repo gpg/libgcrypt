@@ -37,25 +37,25 @@
 #define k  ((w) + 4 * 8)
 
 /* register macros */
-#define CTX %r0
-#define CTXs0 %r0
-#define CTXs1 %r1
-#define CTXs3 %r7
+#define CTX r0
+#define CTXs0 r0
+#define CTXs1 r1
+#define CTXs3 r7
 
-#define RA %r3
-#define RB %r4
-#define RC %r5
-#define RD %r6
+#define RA r3
+#define RB r4
+#define RC r5
+#define RD r6
 
-#define RX %r2
-#define RY %ip
+#define RX r2
+#define RY ip
 
-#define RMASK %lr
+#define RMASK lr
 
-#define RT0 %r8
-#define RT1 %r9
-#define RT2 %r10
-#define RT3 %r11
+#define RT0 r8
+#define RT1 r9
+#define RT2 r10
+#define RT3 r11
 
 /* helper macros */
 #define ldr_unaligned_le(rout, rsrc, offs, rtmp) \
@@ -262,15 +262,15 @@
 
 _gcry_twofish_arm_encrypt_block:
 	/* input:
-	 *	%r0: ctx
-	 *	%r1: dst
-	 *	%r2: src
+	 *	r0: ctx
+	 *	r1: dst
+	 *	r2: src
 	 */
-	push {%r1, %r4-%r11, %ip, %lr};
+	push {r1, r4-r11, ip, lr};
 
 	add RY, CTXs0, #w;
 
-	ldr_input_le(%r2, RA, RB, RC, RD, RT0);
+	ldr_input_le(r2, RA, RB, RC, RD, RT0);
 
 	/* Input whitening */
 	ldm RY, {RT0, RT1, RT2, RT3};
@@ -292,7 +292,7 @@ _gcry_twofish_arm_encrypt_block:
 	last_encrypt_cycle(7);
 
 	add RY, CTXs3, #(w + 4*4 - s3);
-	pop {%r1}; /* dst */
+	pop {r1}; /* dst */
 
 	/* Output whitening */
 	ldm RY, {RT0, RT1, RT2, RT3};
@@ -301,9 +301,9 @@ _gcry_twofish_arm_encrypt_block:
 	eor RA, RA, RT2;
 	eor RB, RB, RT3;
 
-	str_output_le(%r1, RC, RD, RA, RB, RT0, RT1);
+	str_output_le(r1, RC, RD, RA, RB, RT0, RT1);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_twofish_arm_encrypt_block,.-_gcry_twofish_arm_encrypt_block;
 
@@ -313,15 +313,15 @@ _gcry_twofish_arm_encrypt_block:
 
 _gcry_twofish_arm_decrypt_block:
 	/* input:
-	 *	%r0: ctx
-	 *	%r1: dst
-	 *	%r2: src
+	 *	r0: ctx
+	 *	r1: dst
+	 *	r2: src
 	 */
-	push {%r1, %r4-%r11, %ip, %lr};
+	push {r1, r4-r11, ip, lr};
 
 	add CTXs3, CTXs0, #(s3 - s0);
 
-	ldr_input_le(%r2, RC, RD, RA, RB, RT0);
+	ldr_input_le(r2, RC, RD, RA, RB, RT0);
 
 	add RY, CTXs3, #(w + 4*4 - s3);
 	add CTXs3, CTXs0, #(s3 - s0);
@@ -345,7 +345,7 @@ _gcry_twofish_arm_decrypt_block:
 	last_decrypt_cycle(0);
 
 	add RY, CTXs0, #w;
-	pop {%r1}; /* dst */
+	pop {r1}; /* dst */
 
 	/* Output whitening */
 	ldm RY, {RT0, RT1, RT2, RT3};
@@ -354,9 +354,9 @@ _gcry_twofish_arm_decrypt_block:
 	eor RC, RC, RT2;
 	eor RD, RD, RT3;
 
-	str_output_le(%r1, RA, RB, RC, RD, RT0, RT1);
+	str_output_le(r1, RA, RB, RC, RD, RT0, RT1);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .size _gcry_twofish_arm_decrypt_block,.-_gcry_twofish_arm_decrypt_block;
 
 #endif /*HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS*/

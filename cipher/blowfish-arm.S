@@ -36,24 +36,24 @@
 #define p	(s3 + (1 * 256) * 4)
 
 /* register macros */
-#define CTXs0 %r0
-#define CTXs1 %r9
-#define CTXs2 %r8
-#define CTXs3 %r10
-#define RMASK %lr
-#define RKEYL %r2
-#define RKEYR %ip
+#define CTXs0 r0
+#define CTXs1 r9
+#define CTXs2 r8
+#define CTXs3 r10
+#define RMASK lr
+#define RKEYL r2
+#define RKEYR ip
 
-#define RL0 %r3
-#define RR0 %r4
+#define RL0 r3
+#define RR0 r4
 
-#define RL1 %r9
-#define RR1 %r10
+#define RL1 r9
+#define RR1 r10
 
-#define RT0 %r11
-#define RT1 %r7
-#define RT2 %r5
-#define RT3 %r6
+#define RT0 r11
+#define RT1 r7
+#define RT2 r5
+#define RT3 r6
 
 /* helper macros */
 #define ldr_unaligned_le(rout, rsrc, offs, rtmp) \
@@ -250,7 +250,7 @@ __blowfish_enc_blk1:
 	 * output:
 	 *	[RR0, RL0]: dst
 	 */
-	push {%lr};
+	push {lr};
 
 	add CTXs1, CTXs0, #(s1 - s0);
 	add CTXs2, CTXs0, #(s2 - s0);
@@ -268,7 +268,7 @@ __blowfish_enc_blk1:
 	round_enc(16);
 	add_roundkey_enc();
 
-	pop {%pc};
+	pop {pc};
 .size __blowfish_enc_blk1,.-__blowfish_enc_blk1;
 
 .align 8
@@ -277,22 +277,22 @@ __blowfish_enc_blk1:
 
 _gcry_blowfish_arm_do_encrypt:
 	/* input:
-	 *	%r0: ctx, CTX
-	 *	%r1: u32 *ret_xl
-	 *	%r2: u32 *ret_xr
+	 *	r0: ctx, CTX
+	 *	r1: u32 *ret_xl
+	 *	r2: u32 *ret_xr
 	 */
-	push {%r2, %r4-%r11, %ip, %lr};
+	push {r2, r4-r11, ip, lr};
 
-	ldr RL0, [%r1];
-	ldr RR0, [%r2];
+	ldr RL0, [r1];
+	ldr RR0, [r2];
 
 	bl __blowfish_enc_blk1;
 
-	pop {%r2};
-	str RR0, [%r1];
-	str RL0, [%r2];
+	pop {r2};
+	str RR0, [r1];
+	str RL0, [r2];
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .size _gcry_blowfish_arm_do_encrypt,.-_gcry_blowfish_arm_do_encrypt;
 
 .align 3
@@ -301,19 +301,19 @@ _gcry_blowfish_arm_do_encrypt:
 
 _gcry_blowfish_arm_encrypt_block:
 	/* input:
-	 *	%r0: ctx, CTX
-	 *	%r1: dst
-	 *	%r2: src
+	 *	r0: ctx, CTX
+	 *	r1: dst
+	 *	r2: src
 	 */
-	push {%r4-%r11, %ip, %lr};
+	push {r4-r11, ip, lr};
 
-	read_block(%r2, 0, RL0, RR0, RT0);
+	read_block(r2, 0, RL0, RR0, RT0);
 
 	bl __blowfish_enc_blk1;
 
-	write_block(%r1, 0, RR0, RL0, RT0, RT1);
+	write_block(r1, 0, RR0, RL0, RT0, RT1);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .size _gcry_blowfish_arm_encrypt_block,.-_gcry_blowfish_arm_encrypt_block;
 
 .align 3
@@ -322,18 +322,18 @@ _gcry_blowfish_arm_encrypt_block:
 
 _gcry_blowfish_arm_decrypt_block:
 	/* input:
-	 *	%r0: ctx, CTX
-	 *	%r1: dst
-	 *	%r2: src
+	 *	r0: ctx, CTX
+	 *	r1: dst
+	 *	r2: src
 	 */
-	push {%r4-%r11, %ip, %lr};
+	push {r4-r11, ip, lr};
 
 	add CTXs1, CTXs0, #(s1 - s0);
 	add CTXs2, CTXs0, #(s2 - s0);
 	mov RMASK, #(0xff << 2); /* byte mask */
 	add CTXs3, CTXs1, #(s3 - s1);
 
-	read_block(%r2, 0, RL0, RR0, RT0);
+	read_block(r2, 0, RL0, RR0, RT0);
 
 	load_roundkey_dec(17);
 	round_dec(15);
@@ -346,9 +346,9 @@ _gcry_blowfish_arm_decrypt_block:
 	round_dec(1);
 	add_roundkey_dec();
 
-	write_block(%r1, 0, RR0, RL0, RT0, RT1);
+	write_block(r1, 0, RR0, RL0, RT0, RT1);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .size _gcry_blowfish_arm_decrypt_block,.-_gcry_blowfish_arm_decrypt_block;
 
 /***********************************************************************
@@ -548,7 +548,7 @@ _gcry_blowfish_arm_enc_blk2:
 	 * output:
 	 *	[RR0, RL0], [RR1, RL1]: dst
 	 */
-	push {RT0,%lr};
+	push {RT0,lr};
 
 	add CTXs2, CTXs0, #(s2 - s0);
 	mov RMASK, #(0xff << 2); /* byte mask */
@@ -568,7 +568,7 @@ _gcry_blowfish_arm_enc_blk2:
 	host_to_be(RR1, RT0);
 	host_to_be(RL1, RT0);
 
-	pop {RT0,%pc};
+	pop {RT0,pc};
 .size _gcry_blowfish_arm_enc_blk2,.-_gcry_blowfish_arm_enc_blk2;
 
 .align 3
@@ -577,40 +577,40 @@ _gcry_blowfish_arm_enc_blk2:
 
 _gcry_blowfish_arm_cfb_dec:
 	/* input:
-	 *	%r0: CTX
-	 *	%r1: dst (2 blocks)
-	 *	%r2: src (2 blocks)
-	 *	%r3: iv (64bit)
+	 *	r0: CTX
+	 *	r1: dst (2 blocks)
+	 *	r2: src (2 blocks)
+	 *	r3: iv (64bit)
 	 */
-	push {%r2, %r4-%r11, %ip, %lr};
+	push {r2, r4-r11, ip, lr};
 
-	mov %lr, %r3;
+	mov lr, r3;
 
-	/* Load input (iv/%r3 is aligned, src/%r2 might not be) */
-	ldm %r3, {RL0, RR0};
+	/* Load input (iv/r3 is aligned, src/r2 might not be) */
+	ldm r3, {RL0, RR0};
 	host_to_be(RL0, RT0);
 	host_to_be(RR0, RT0);
-	read_block(%r2, 0, RL1, RR1, RT0);
+	read_block(r2, 0, RL1, RR1, RT0);
 
 	/* Update IV, load src[1] and save to iv[0] */
-	read_block_host(%r2, 8, %r5, %r6, RT0);
-	stm %lr, {%r5, %r6};
+	read_block_host(r2, 8, r5, r6, RT0);
+	stm lr, {r5, r6};
 
 	bl _gcry_blowfish_arm_enc_blk2;
-	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
+	/* result in RR0:RL0, RR1:RL1 = r4:r3, r10:r9 */
 
-	/* %r1: dst, %r0: %src */
-	pop {%r0};
+	/* r1: dst, r0: src */
+	pop {r0};
 
 	/* dst = src ^ result */
-	read_block2_host(%r0, %r5, %r6, %r7, %r8, %lr);
-	eor %r5, %r4;
-	eor %r6, %r3;
-	eor %r7, %r10;
-	eor %r8, %r9;
-	write_block2_host(%r1, %r5, %r6, %r7, %r8, %r9, %r10);
+	read_block2_host(r0, r5, r6, r7, r8, lr);
+	eor r5, r4;
+	eor r6, r3;
+	eor r7, r10;
+	eor r8, r9;
+	write_block2_host(r1, r5, r6, r7, r8, r9, r10);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_blowfish_arm_cfb_dec,.-_gcry_blowfish_arm_cfb_dec;
 
@@ -620,42 +620,42 @@ _gcry_blowfish_arm_cfb_dec:
 
 _gcry_blowfish_arm_ctr_enc:
 	/* input:
-	 *	%r0: CTX
-	 *	%r1: dst (2 blocks)
-	 *	%r2: src (2 blocks)
-	 *	%r3: iv (64bit, big-endian)
+	 *	r0: CTX
+	 *	r1: dst (2 blocks)
+	 *	r2: src (2 blocks)
+	 *	r3: iv (64bit, big-endian)
 	 */
-	push {%r2, %r4-%r11, %ip, %lr};
+	push {r2, r4-r11, ip, lr};
 
-	mov %lr, %r3;
+	mov lr, r3;
 
 	/* Load IV (big => host endian) */
-	read_block_aligned(%lr, 0, RL0, RR0, be_to_host, RT0);
+	read_block_aligned(lr, 0, RL0, RR0, be_to_host, RT0);
 
 	/* Construct IVs */
 	adds RR1, RR0, #1; /* +1 */
 	adc RL1, RL0, #0;
-	adds %r6, RR1, #1; /* +2 */
-	adc %r5, RL1, #0;
+	adds r6, RR1, #1; /* +2 */
+	adc r5, RL1, #0;
 
 	/* Store new IV (host => big-endian) */
-	write_block_aligned(%lr, 0, %r5, %r6, host_to_be, RT0);
+	write_block_aligned(lr, 0, r5, r6, host_to_be, RT0);
 
 	bl _gcry_blowfish_arm_enc_blk2;
-	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
+	/* result in RR0:RL0, RR1:RL1 = r4:r3, r10:r9 */
 
-	/* %r1: dst, %r0: %src */
-	pop {%r0};
+	/* r1: dst, r0: src */
+	pop {r0};
 
 	/* XOR key-stream with plaintext */
-	read_block2_host(%r0, %r5, %r6, %r7, %r8, %lr);
-	eor %r5, %r4;
-	eor %r6, %r3;
-	eor %r7, %r10;
-	eor %r8, %r9;
-	write_block2_host(%r1, %r5, %r6, %r7, %r8, %r9, %r10);
+	read_block2_host(r0, r5, r6, r7, r8, lr);
+	eor r5, r4;
+	eor r6, r3;
+	eor r7, r10;
+	eor r8, r9;
+	write_block2_host(r1, r5, r6, r7, r8, r9, r10);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_blowfish_arm_ctr_enc,.-_gcry_blowfish_arm_ctr_enc;
 
@@ -697,45 +697,45 @@ _gcry_blowfish_arm_dec_blk2:
 
 _gcry_blowfish_arm_cbc_dec:
 	/* input:
-	 *	%r0: CTX
-	 *	%r1: dst (2 blocks)
-	 *	%r2: src (2 blocks)
-	 *	%r3: iv (64bit)
+	 *	r0: CTX
+	 *	r1: dst (2 blocks)
+	 *	r2: src (2 blocks)
+	 *	r3: iv (64bit)
 	 */
-	push {%r2-%r11, %ip, %lr};
+	push {r2-r11, ip, lr};
 
-	read_block2(%r2, RL0, RR0, RL1, RR1, RT0);
+	read_block2(r2, RL0, RR0, RL1, RR1, RT0);
 
 	/* dec_blk2 is only used by cbc_dec, jump directly in/out instead
 	 * of function call. */
 	b _gcry_blowfish_arm_dec_blk2;
 .Ldec_cbc_tail:
-	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
+	/* result in RR0:RL0, RR1:RL1 = r4:r3, r10:r9 */
 
-	/* %r0: %src, %r1: dst, %r2: iv */
-	pop {%r0, %r2};
+	/* r0: src, r1: dst, r2: iv */
+	pop {r0, r2};
 
-	/* load IV+1 (src[0]) to %r7:%r8. Might be unaligned. */
-	read_block_host(%r0, 0, %r7, %r8, %r5);
-	/* load IV (iv[0]) to %r5:%r6. 'iv' is aligned. */
-	ldm %r2, {%r5, %r6};
+	/* load IV+1 (src[0]) to r7:r8. Might be unaligned. */
+	read_block_host(r0, 0, r7, r8, r5);
+	/* load IV (iv[0]) to r5:r6. 'iv' is aligned. */
+	ldm r2, {r5, r6};
 
 	/* out[1] ^= IV+1 */
-	eor %r10, %r7;
-	eor %r9, %r8;
+	eor r10, r7;
+	eor r9, r8;
 	/* out[0] ^= IV */
-	eor %r4, %r5;
-	eor %r3, %r6;
+	eor r4, r5;
+	eor r3, r6;
 
-	/* load IV+2 (src[1]) to %r7:%r8. Might be unaligned. */
-	read_block_host(%r0, 8, %r7, %r8, %r5);
+	/* load IV+2 (src[1]) to r7:r8. Might be unaligned. */
+	read_block_host(r0, 8, r7, r8, r5);
 	/* store IV+2 to iv[0] (aligned). */
-	stm %r2, {%r7, %r8};
+	stm r2, {r7, r8};
 
 	/* store result to dst[0-3]. Might be unaligned. */
-	write_block2_host(%r1, %r4, %r3, %r10, %r9, %r5, %r6);
+	write_block2_host(r1, r4, r3, r10, r9, r5, r6);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_blowfish_arm_cbc_dec,.-_gcry_blowfish_arm_cbc_dec;
 
