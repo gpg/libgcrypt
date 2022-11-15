@@ -367,6 +367,7 @@ _gcry_fips_indicator_cipher (va_list arg_ptr)
         case GCRY_CIPHER_MODE_CCM:
         case GCRY_CIPHER_MODE_GCM:
         case GCRY_CIPHER_MODE_XTS:
+        case GCRY_CIPHER_MODE_AESWRAP:
           return GPG_ERR_NO_ERROR;
         default:
           return GPG_ERR_NOT_SUPPORTED;
