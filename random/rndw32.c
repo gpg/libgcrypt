@@ -624,8 +624,15 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
         }
       else
         {
-          log_info ("NOTE: you should run 'diskperf -y' "
-                    "to enable the disk statistics\n");
+          DWORD err_code = GetLastError ();
+
+          if (err_code == 0x32)
+            /* If it's ERROR_NOT_SUPPORTED, skip the message, as it
+               won't work.  */
+            ;
+          else
+            log_info ("NOTE: you should run 'diskperf -y' "
+                      "to enable the disk statistics\n");
         }
       CloseHandle (hDevice);
     }
