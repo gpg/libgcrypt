@@ -16602,6 +16602,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
     const char *data;
     int algo;
     int expected_rc;
+    int flags;
   } datas[] =
     {
       { "(data\n (flags pkcs1)\n"
@@ -16672,6 +16673,22 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
         " (random-override #4253647587980912233445566778899019283747#))\n",
 	GCRY_PK_RSA,
 	0 },
+      { "(data\n (flags pss)\n"
+	" (hash-algo sha256)\n"
+	" (value #11223344556677889900AABBCCDDEEFF#)\n"
+	" (salt-length 2:32)\n"
+        " (random-override #42536475879809122334455667788990192837465564738291"
+                           "00122334455667#))\n",
+	GCRY_PK_RSA,
+	0 },
+      { "(data\n (flags pss)\n"
+	" (hash-algo sha256)\n"
+	" (value #11223344556677889900AABBCCDDEEFF#)\n"
+	" (salt-length 2:33)\n"
+        " (random-override #42536475879809122334455667788990192837465564738291"
+                           "0012233445566778#))\n",
+	GCRY_PK_RSA,
+	0, FLAG_NOFIPS },
       { NULL }
     };
 
@@ -16695,7 +16712,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
 	die ("converting data failed: %s\n", gpg_strerror (rc));
 
       rc = gcry_pk_sign (&sig, hash, skey);
-      if (in_fips_mode && (flags & FLAG_NOFIPS))
+      if (in_fips_mode && (flags & FLAG_NOFIPS || datas[dataidx].flags & FLAG_NOFIPS))
         {
           if (!rc)
             fail ("gcry_pk_sign did not fail as expected in FIPS mode\n");
