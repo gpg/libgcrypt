@@ -809,6 +809,13 @@ _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   hlen = _gcry_md_get_algo_dlen (algo);
   gcry_assert (hlen);  /* We expect a valid ALGO here.  */
 
+  /* The FIPS 186-4 Section 5.5 allows only 0 <= sLen <= hLen */
+  if (fips_mode () && saltlen > hlen)
+    {
+      rc = GPG_ERR_INV_ARG;
+      goto leave;
+    }
+
   /* Allocate a help buffer and setup some pointers.  */
   buflen = 8 + hlen + saltlen + (emlen - hlen - 1);
   buf = xtrymalloc (buflen);
@@ -949,6 +956,13 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
   /* Get the length of the digest.  */
   hlen = _gcry_md_get_algo_dlen (algo);
   gcry_assert (hlen);  /* We expect a valid ALGO here.  */
+
+  /* The FIPS 186-4 Section 5.5 allows only 0 <= sLen <= hLen */
+  if (fips_mode () && saltlen > hlen)
+    {
+      rc = GPG_ERR_INV_ARG;
+      goto leave;
+    }
 
   /* Allocate a help buffer and setup some pointers.
      This buffer is used for two purposes:

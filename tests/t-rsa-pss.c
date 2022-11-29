@@ -340,7 +340,7 @@ one_test_sexp (const char *n, const char *e, const char *d,
     snprintf (p, 3, "%02x", out[i]);
   if (strcmp (sig_string, s))
     {
-      fail ("gcry_pkhash_sign failed: %s",
+      fail ("gcry_pk_hash_sign failed: %s",
             "wrong value returned");
       info ("  expected: '%s'", s);
       info ("       got: '%s'", sig_string);
