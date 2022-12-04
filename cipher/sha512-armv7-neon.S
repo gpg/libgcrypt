@@ -389,7 +389,7 @@ _gcry_sha512_transform_armv7_neon:
 
 	/* Store the first half of context */
 	vst1.64 {RA-RD}, [r0]!;
-	sub RK, $(8*80);
+	sub RK, #(8*80);
 	vst1.64 {RE-RH}, [r0]; /* Store the last half of context */
 	mov lr, #0;
 	sub r0, #(4*8);

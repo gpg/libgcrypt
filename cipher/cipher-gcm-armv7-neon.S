@@ -121,21 +121,21 @@ gcry_gcm_reduction_constant:
  * Engineering — MoCrySEn, 2013". */
 
 #define vmull_p64(rq, rl, rh, ad, bd) \
-	vext.8 t0l, ad, ad, $1; \
+	vext.8 t0l, ad, ad, #1; \
 	vmull.p8 t0q, t0l, bd; \
-	vext.8 rl, bd, bd, $1; \
+	vext.8 rl, bd, bd, #1; \
 	vmull.p8 rq, ad, rl; \
-	vext.8 t1l, ad, ad, $2; \
+	vext.8 t1l, ad, ad, #2; \
 	vmull.p8 t1q, t1l, bd; \
-	vext.8 t3l, bd, bd, $2; \
+	vext.8 t3l, bd, bd, #2; \
 	vmull.p8 t3q, ad, t3l; \
-	vext.8 t2l, ad, ad, $3; \
+	vext.8 t2l, ad, ad, #3; \
 	vmull.p8 t2q, t2l, bd; \
 	veor t0q, t0q, rq; \
-	vext.8 rl, bd, bd, $3; \
+	vext.8 rl, bd, bd, #3; \
 	vmull.p8 rq, ad, rl; \
 	veor t1q, t1q, t3q; \
-	vext.8 t3l, bd, bd, $4; \
+	vext.8 t3l, bd, bd, #4; \
 	vmull.p8 t3q, ad, t3l; \
 	veor t0l, t0l, t0h; \
 	vand t0h, t0h, k48; \
@@ -147,13 +147,13 @@ gcry_gcm_reduction_constant:
 	veor t2l, t2l, t2h; \
 	vand t2h, t2h, k16; \
 	veor t3l, t3l, t3h; \
-	vmov.i64 t3h, $0; \
-	vext.8 t0q, t0q, t0q, $15; \
+	vmov.i64 t3h, 0; \
+	vext.8 t0q, t0q, t0q, #15; \
 	veor t2l, t2l, t2h; \
-	vext.8 t1q, t1q, t1q, $14; \
+	vext.8 t1q, t1q, t1q, #14; \
 	vmull.p8 rq, ad, bd; \
-	vext.8 t2q, t2q, t2q, $13; \
-	vext.8 t3q, t3q, t3q, $12; \
+	vext.8 t2q, t2q, t2q, #13; \
+	vext.8 t3q, t3q, t3q, #12; \
 	veor t0q, t0q, t1q; \
 	veor t2q, t2q, t3q; \
 	veor rq, rq, t0q; \
