@@ -173,9 +173,9 @@ unsigned int _gcry_chacha20_poly1305_amd64_avx2_blocks8(
 
 #ifdef USE_AVX512
 
-unsigned int _gcry_chacha20_amd64_avx512_blocks16(u32 *state, byte *dst,
-						  const byte *src,
-						  size_t nblks) ASM_FUNC_ABI;
+unsigned int _gcry_chacha20_amd64_avx512_blocks(u32 *state, byte *dst,
+                                                const byte *src,
+                                                size_t nblks) ASM_FUNC_ABI;
 
 #endif /* USE_AVX2 */
 
@@ -352,6 +352,13 @@ static unsigned int
 chacha20_blocks (CHACHA20_context_t *ctx, byte *dst, const byte *src,
 		 size_t nblks)
 {
+#ifdef USE_AVX512
+  if (ctx->use_avx512)
+    {
+      return _gcry_chacha20_amd64_avx512_blocks(ctx->input, dst, src, nblks);
+    }
+#endif
+
 #ifdef USE_SSSE3
   if (ctx->use_ssse3)
     {
@@ -546,14 +553,13 @@ do_chacha20_encrypt_stream_tail (CHACHA20_context_t *ctx, byte *outbuf,
   unsigned int nburn, burn = 0;
 
 #ifdef USE_AVX512
-  if (ctx->use_avx512 && length >= CHACHA20_BLOCK_SIZE * 16)
+  if (ctx->use_avx512 && length >= CHACHA20_BLOCK_SIZE)
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
-      nblocks -= nblocks % 16;
-      nburn = _gcry_chacha20_amd64_avx512_blocks16(ctx->input, outbuf, inbuf,
-						   nblocks);
+      nburn = _gcry_chacha20_amd64_avx512_blocks(ctx->input, outbuf, inbuf,
+                                                 nblocks);
       burn = nburn > burn ? nburn : burn;
-      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      length %= CHACHA20_BLOCK_SIZE;
       outbuf += nblocks * CHACHA20_BLOCK_SIZE;
       inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
     }
@@ -662,7 +668,7 @@ do_chacha20_encrypt_stream_tail (CHACHA20_context_t *ctx, byte *outbuf,
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
       nburn = chacha20_blocks(ctx, outbuf, inbuf, nblocks);
       burn = nburn > burn ? nburn : burn;
-      length -= nblocks * CHACHA20_BLOCK_SIZE;
+      length %= CHACHA20_BLOCK_SIZE;
       outbuf += nblocks * CHACHA20_BLOCK_SIZE;
       inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
     }
