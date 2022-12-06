@@ -1256,6 +1256,11 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   if (deriveparms || (flags & PUBKEY_FLAG_USE_X931))
     {
       int swapped;
+      if (fips_mode ())
+        {
+          sexp_release (deriveparms);
+          return GPG_ERR_INV_SEXP;
+        }
       ec = generate_x931 (&sk, nbits, evalue, deriveparms, &swapped);
       sexp_release (deriveparms);
       if (!ec && swapped)

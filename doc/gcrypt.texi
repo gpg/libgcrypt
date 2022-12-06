@@ -2699,8 +2699,7 @@ achieve fastest ECC key generation.
 Force the use of the ANSI X9.31 key generation algorithm instead of
 the default algorithm. This flag is only meaningful for RSA key
 generation and usually not required.  Note that this algorithm is
-implicitly used if either @code{derive-parms} is given or Libgcrypt is
-in FIPS mode.
+implicitly used if either @code{derive-parms} is given.
 
 @item use-fips186
 @cindex FIPS 186
@@ -3310,9 +3309,9 @@ This is currently only implemented for RSA and DSA keys.  It is not
 allowed to use this together with a @code{domain} specification.  If
 given, it is used to derive the keys using the given parameters.
 
-If given for an RSA key, the X9.31 key generation algorithm is used
-even if libgcrypt is not in FIPS mode.  If given for a DSA key, the
-FIPS 186 algorithm is used even if libgcrypt is not in FIPS mode.
+If given for an RSA key, the X9.31 key generation algorithm is used.
+If given for a DSA key, the FIPS 186 algorithm is used even if
+libgcrypt is not in FIPS mode.
 
 @example
 (genkey
@@ -3340,6 +3339,38 @@ FIPS 186 algorithm is used even if libgcrypt is not in FIPS mode.
     (nbits 4:1024)
     (derive-parms
       (seed @var{seed-mpi}))))
+@end example
+
+@item test-parms @var{list}
+This is currently only implemented for RSA keys. If given, the
+libgcrypt will not generate parameter, but tests whether the p,q is
+probably prime. Returns key with zeroes.
+
+The FIPS key generation algorithm is used even if libgcrypt is not
+in FIPS mode.
+
+@example
+(genkey
+  (rsa
+    (nbits 4:1024)
+    (rsa-use-e 1:3)
+    (test-parms
+      (e "65537")
+      (p #00bbccabcee15d343944a47e492d4b1f4de79633e2
+          0cbb46f7d2d6813392a807ad048cf77528edd19f77
+          e7453f25173b9dcb70423afa2037aae147b81a33d5
+          41fc58f875eff1e852ab55e2e09a3debfbc151b3b0
+          d17fef6f74d81fca14fbae531418e211ef818592af
+          70de5cec3b92795cc3578572bf456099cd8727150e
+          523261#)
+      (q #00ca87ecf2883f4ed00a9ec65abdeba81d28edbfcc
+          34ecc563d587f166b52d42bfbe22bbc095b0b8426a
+          2f8bbc55baaa8859b42cbc376ed3067db3ef7b135b
+          63481322911ebbd7014db83aa051e0ca2dbf302b75
+          cd37f2ae8df90e134226e92f6353a284b28bb30af0
+          bbf925b345b955328379866ebac11d55bc80fe84f1
+          05d415#)
+
 @end example
 
 
