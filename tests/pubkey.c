@@ -423,7 +423,17 @@ get_keys_x931_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   rc = gcry_pk_genkey (&key, key_spec);
   gcry_sexp_release (key_spec);
   if (rc)
-    die ("error generating RSA key: %s\n", gcry_strerror (rc));
+    {
+      if (in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "The X9.31 RSA keygen is not available in FIPS modee.\n");
+          return;
+        }
+      die ("error generating RSA key: %s\n", gcry_strerror (rc));
+    }
+  else if (in_fips_mode)
+    die ("generating X9.31 RSA key unexpected worked in FIPS mode\n");
 
   if (verbose > 1)
     show_sexp ("generated RSA (X9.31) key:\n", key);
@@ -757,7 +767,8 @@ check_run (void)
   if (verbose)
     fprintf (stderr, "Checking generated RSA key (X9.31).\n");
   get_keys_x931_new (&pkey, &skey);
-  check_keys (pkey, skey, 800, 0);
+  if (!in_fips_mode)
+    check_keys (pkey, skey, 800, 0);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
   pkey = skey = NULL;
