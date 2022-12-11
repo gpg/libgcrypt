@@ -221,6 +221,8 @@ _gcry_blake2b_transform_amd64_avx512:
          */
         CFI_STARTPROC();
 
+        spec_stop_avx512;
+
         movl $0xf, %eax;
         kmovw %eax, %k0;
         xorl %eax, %eax;

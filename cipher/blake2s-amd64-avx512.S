@@ -183,6 +183,8 @@ _gcry_blake2s_transform_amd64_avx512:
          */
         CFI_STARTPROC();
 
+        spec_stop_avx512;
+
         addq $64, (STATE_T + 0)(RSTATE);
 
         vmovdqa .Liv+(0 * 4) rRIP, ROW3;

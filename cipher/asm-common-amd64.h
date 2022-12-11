@@ -186,8 +186,16 @@
 # define EXIT_SYSV_FUNC
 #endif
 
-/* 'ret' instruction replacement for straight-line speculation mitigation */
+/* 'ret' instruction replacement for straight-line speculation mitigation. */
 #define ret_spec_stop \
 	ret; int3;
+
+/* This prevents speculative execution on old AVX512 CPUs, to prevent
+ * speculative execution to AVX512 code. The vpopcntb instruction is
+ * available on newer CPUs that do not suffer from significant frequency
+ * drop when 512-bit vectors are utilized. */
+#define spec_stop_avx512 \
+	vpxord %xmm16, %xmm16, %xmm16; \
+	vpopcntb %xmm16, %xmm16; /* Supported only by newer AVX512 CPUs. */
 
 #endif /* GCRY_ASM_COMMON_AMD64_H */

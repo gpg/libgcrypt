@@ -1580,8 +1580,7 @@ ELF(.size _gcry_poly1305_avx512_consts,.-_gcry_poly1305_avx512_consts)
 ELF(.type _gcry_poly1305_amd64_avx512_blocks,@function;)
 _gcry_poly1305_amd64_avx512_blocks:
 	CFI_STARTPROC()
-	vpxord xmm16, xmm16, xmm16;
-	vpopcntb zmm16, zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 	FUNC_ENTRY()
 
 #define _a0 gp3

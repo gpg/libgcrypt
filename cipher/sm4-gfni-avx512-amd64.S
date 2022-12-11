@@ -158,6 +158,7 @@ _gcry_sm4_gfni_avx512_expand_key:
 	 *	%r8: ck array
 	 */
 	CFI_STARTPROC();
+	spec_stop_avx512;
 
 	vmovd 0*4(%rdi), RA0x;
 	vmovd 1*4(%rdi), RA1x;
@@ -553,6 +554,7 @@ _gcry_sm4_gfni_avx512_crypt_blk1_16:
 	 *	%rcx: num blocks (1..16)
 	 */
 	CFI_STARTPROC();
+	spec_stop_avx512;
 
 #define LOAD_INPUT(offset, yreg) \
 	cmpq $(1 + 2 * (offset)), %rcx; \
@@ -621,6 +623,7 @@ _gcry_sm4_gfni_avx512_ctr_enc:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 	CFI_STARTPROC();
+	spec_stop_avx512;
 
 	vbroadcasti128 .Lbswap128_mask rRIP, RTMP0;
 	vmovdqa .Lcounter0123_lo rRIP, RTMP1;
@@ -728,6 +731,7 @@ _gcry_sm4_gfni_avx512_cbc_dec:
 	 *	%rcx: iv
 	 */
 	CFI_STARTPROC();
+	spec_stop_avx512;
 
 	vmovdqu (0 * 32)(%rdx), RA0;
 	vmovdqu (1 * 32)(%rdx), RA1;
@@ -779,6 +783,7 @@ _gcry_sm4_gfni_avx512_cfb_dec:
 	 *	%rcx: iv
 	 */
 	CFI_STARTPROC();
+	spec_stop_avx512;
 
 	/* Load input */
 	vmovdqu (%rcx), RNOTx;
@@ -835,6 +840,7 @@ _gcry_sm4_gfni_avx512_ocb_enc:
 	 *	%r9 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
+	spec_stop_avx512;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);
@@ -950,6 +956,7 @@ _gcry_sm4_gfni_avx512_ocb_dec:
 	 *	%r9 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
+	spec_stop_avx512;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);
@@ -1066,6 +1073,7 @@ _gcry_sm4_gfni_avx512_ocb_auth:
 	 *	%r8 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
+	spec_stop_avx512;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);
@@ -1251,7 +1259,7 @@ _gcry_sm4_gfni_avx512_crypt_blk32:
 	 *	%rdx: src (32 blocks)
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	/* Load input */
 	vmovdqu32 (0 * 64)(%rdx), RA0z;
@@ -1292,7 +1300,7 @@ _gcry_sm4_gfni_avx512_ctr_enc_blk32:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	vbroadcasti64x2 .Lbswap128_mask rRIP, RTMP0z;
 	vmovdqa32 .Lcounter0123_lo rRIP, RTMP1z;
@@ -1400,7 +1408,7 @@ _gcry_sm4_gfni_avx512_cbc_dec_blk32:
 	 *	%rcx: iv
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	vmovdqu32 (0 * 64)(%rdx), RA0z;
 	vmovdqu32 (1 * 64)(%rdx), RA1z;
@@ -1453,7 +1461,7 @@ _gcry_sm4_gfni_avx512_cfb_dec_blk32:
 	 *	%rcx: iv
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	/* Load input */
 	vmovdqu (%rcx), RA0x;
@@ -1510,7 +1518,7 @@ _gcry_sm4_gfni_avx512_ocb_enc_blk32:
 	 *	%r9 : L pointers (void *L[32])
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	subq $(5 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(5 * 8);
@@ -1634,7 +1642,7 @@ _gcry_sm4_gfni_avx512_ocb_dec_blk32:
 	 *	%r9 : L pointers (void *L[32])
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	subq $(5 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(5 * 8);

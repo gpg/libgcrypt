@@ -1513,7 +1513,7 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
       if (nblocks >= 32
 	  && (c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX512))
 	{
-	  asm volatile ("vpopcntb %%zmm7, %%zmm15\n\t" /* spec stop for old AVX512 CPUs */
+	  asm volatile ("vpopcntb %%xmm7, %%xmm16\n\t" /* spec stop for old AVX512 CPUs */
 			"vshufi64x2 $0, %%zmm7, %%zmm7, %%zmm15\n\t"
 			"vmovdqa %%xmm1, %%xmm8\n\t"
 			"vmovdqu64 %[swapperm], %%zmm14\n\t"
@@ -1792,7 +1792,7 @@ _gcry_polyval_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
       if (nblocks >= 32
 	  && (c->u_mode.gcm.hw_impl_flags & GCM_INTEL_USE_VPCLMUL_AVX512))
 	{
-	  asm volatile ("vpopcntb %%zmm7, %%zmm15\n\t" /* spec stop for old AVX512 CPUs */
+	  asm volatile ("vpopcntb %%xmm1, %%xmm16\n\t" /* spec stop for old AVX512 CPUs */
 			"vmovdqa %%xmm1, %%xmm8\n\t"
 			"vmovdqu64 %[swapperm], %%zmm14\n\t"
 			:

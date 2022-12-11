@@ -832,7 +832,7 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	vbroadcasti64x2 .Lbswap128_mask rRIP, %zmm19;
 	vmovdqa64 .Lcounter0123_lo rRIP, %zmm21;
@@ -985,7 +985,7 @@ _gcry_camellia_gfni_avx512_cbc_dec:
 	 *	%rcx: iv
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	movq %rcx, %r9;
 
@@ -1047,7 +1047,7 @@ _gcry_camellia_gfni_avx512_cfb_dec:
 	 *	%rcx: iv
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
@@ -1122,7 +1122,7 @@ _gcry_camellia_gfni_avx512_ocb_enc:
 	 *	%r9 : L pointers (void *L[64])
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	pushq %r12;
 	CFI_PUSH(%r12);
@@ -1285,7 +1285,7 @@ _gcry_camellia_gfni_avx512_ocb_dec:
 	 *	%r9 : L pointers (void *L[64])
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	pushq %r12;
 	CFI_PUSH(%r12);
@@ -1451,7 +1451,7 @@ _gcry_camellia_gfni_avx512_enc_blk64:
 	 *	%rdx: src (64 blocks)
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
@@ -1515,7 +1515,7 @@ _gcry_camellia_gfni_avx512_dec_blk64:
 	 *	%rdx: src (64 blocks)
 	 */
 	CFI_STARTPROC();
-	vpopcntb %zmm16, %zmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;

@@ -264,6 +264,8 @@ _gcry_sha512_transform_amd64_avx512:
 	cmp	rdx, 0
 	je	.Lnowork
 
+	spec_stop_avx512;
+
 	/* Setup mask register for DC:BA merging. */
 	mov	eax, 0b1100
 	kmovd	MASK_DC_00, eax

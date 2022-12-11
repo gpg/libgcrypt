@@ -282,6 +282,8 @@ _gcry_keccak_f1600_state_permute64_avx512:
 	 */
 	CFI_STARTPROC()
 
+	spec_stop_avx512;
+
 	leaq		12*8(%rdi), %rax
 	leaq		(24-1)*8(%rsi), %r11
 
@@ -361,6 +363,8 @@ _gcry_keccak_absorb_blocks_avx512:
 	 *	%r9 : lanes output pointer
 	 */
 	CFI_STARTPROC()
+
+	spec_stop_avx512;
 
 	leaq		12*8(%rdi), %rax
 	leaq		(24-1)*8(%rsi), %r11

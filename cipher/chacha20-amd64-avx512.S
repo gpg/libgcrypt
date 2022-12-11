@@ -298,8 +298,7 @@ _gcry_chacha20_amd64_avx512_blocks:
 	 */
 	CFI_STARTPROC();
 
-	vpxord %xmm16, %xmm16, %xmm16;
-	vpopcntb %xmm16, %xmm16; /* spec stop for old AVX512 CPUs */
+	spec_stop_avx512;
 
 	cmpq $4, NBLKS;
 	jb .Lskip_vertical_handling;
