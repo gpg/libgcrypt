@@ -2025,6 +2025,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SVE instructions],
                 "mov z0.s, p0/z, \#55;\n\t"
                 "ld1b {z0.b}, p0/z, [x1];\n\t"
                 );
+            void testfn(void);
             ]], [ testfn(); ])],
           [gcry_cv_gcc_inline_asm_aarch64_sve=yes])
         fi])
@@ -2058,6 +2059,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SVE2 instructions]
                 "mov z0.s, p0/z, \#55;\n\t"
                 "ld1b {z0.b}, p0/z, [x1];\n\t"
                 );
+            void testfn(void);
             ]], [ testfn(); ])],
           [gcry_cv_gcc_inline_asm_aarch64_sve2=yes])
         fi])
@@ -2108,6 +2110,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SHA3/SHA512/SM3/SM
                 "sm4e v0.4s, v1.4s;\n\t"
                 "sm4ekey v0.4s, v1.4s, v2.4s;\n\t"
                 );
+            void testfn(void);
             ]], [ testfn(); ])],
           [gcry_cv_gcc_inline_asm_aarch64_sha3_sha512_sm3_sm4=yes])
         fi])
