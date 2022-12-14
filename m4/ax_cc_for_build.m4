@@ -60,7 +60,7 @@ if test "x$cross_compiling" = "xno"; then
 else
   AC_CACHE_CHECK([for build system executable suffix], bfd_cv_build_exeext,
     [rm -f conftest*
-     echo 'int main () { return 0; }' > conftest.c
+     echo 'int main (void) { return 0; }' > conftest.c
      bfd_cv_build_exeext=
      ${CC_FOR_BUILD} -o conftest conftest.c 1>&5 2>&5
      for file in conftest.*; do
