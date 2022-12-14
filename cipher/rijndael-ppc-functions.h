@@ -373,7 +373,7 @@ void CBC_ENC_FUNC (void *context, unsigned char *iv_arg,
        * last one. */
       __asm__ volatile ("vcipherlast %0, %0, %2\n\t"
 			"vcipherlast %1, %1, %3\n\t"
-			: "+v" (iv), "+outiv" (outiv)
+			: "+v" (iv), "+v" (outiv)
 			: "v" (nextiv), "v" (rkeylast));
 
       VEC_STORE_BE ((u128_t *)out, 0, outiv, bige_const);
