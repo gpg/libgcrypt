@@ -50,25 +50,25 @@
 #define Kr_arm_dec (Kr_arm_enc + (16))
 
 /* register macros */
-#define CTX %r0
-#define Rs1 %r7
-#define Rs2 %r8
-#define Rs3 %r9
-#define Rs4 %r10
-#define RMASK %r11
-#define RKM %r1
-#define RKR %r2
+#define CTX r0
+#define Rs1 r7
+#define Rs2 r8
+#define Rs3 r9
+#define Rs4 r10
+#define RMASK r11
+#define RKM r1
+#define RKR r2
 
-#define RL0 %r3
-#define RR0 %r4
+#define RL0 r3
+#define RR0 r4
 
-#define RL1 %r9
-#define RR1 %r10
+#define RL1 r9
+#define RR1 r10
 
-#define RT0 %lr
-#define RT1 %ip
-#define RT2 %r5
-#define RT3 %r6
+#define RT0 lr
+#define RT1 ip
+#define RT2 r5
+#define RT3 r6
 
 /* helper macros */
 #define ldr_unaligned_le(rout, rsrc, offs, rtmp) \
@@ -267,11 +267,11 @@
 
 _gcry_cast5_arm_encrypt_block:
 	/* input:
-	 *	%r0: CTX
-	 *	%r1: dst
-	 *	%r2: src
+	 *	r0: CTX
+	 *	r1: dst
+	 *	r2: src
 	 */
-	push {%r1, %r4-%r11, %ip, %lr};
+	push {r1, r4-r11, ip, lr};
 
 	GET_DATA_POINTER(Rs1, _gcry_cast5_s1to4, Rs2);
 	mov RMASK, #(0xff << 2);
@@ -279,7 +279,7 @@ _gcry_cast5_arm_encrypt_block:
 	add Rs3, Rs1, #(0x100*4*2);
 	add Rs4, Rs1, #(0x100*4*3);
 
-	read_block(%r2, 0, RL0, RR0, RT0);
+	read_block(r2, 0, RL0, RR0, RT0);
 
 	load_km(0);
 	load_kr(0);
@@ -300,10 +300,10 @@ _gcry_cast5_arm_encrypt_block:
 	enc_round(14, F3, RL0, RR0, load_km, shift_kr, dummy);
 	enc_round(15, F1, RR0, RL0, dummy, dummy, dummy);
 
-	ldr %r1, [%sp], #4;
-	write_block(%r1, 0, RR0, RL0, RT0, RT1);
+	ldr r1, [sp], #4;
+	write_block(r1, 0, RR0, RL0, RT0, RT1);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_cast5_arm_encrypt_block,.-_gcry_cast5_arm_encrypt_block;
 
@@ -313,11 +313,11 @@ _gcry_cast5_arm_encrypt_block:
 
 _gcry_cast5_arm_decrypt_block:
 	/* input:
-	 *	%r0: CTX
-	 *	%r1: dst
-	 *	%r2: src
+	 *	r0: CTX
+	 *	r1: dst
+	 *	r2: src
 	 */
-	push {%r1, %r4-%r11, %ip, %lr};
+	push {r1, r4-r11, ip, lr};
 
 	GET_DATA_POINTER(Rs1, _gcry_cast5_s1to4, Rs2);
 	mov RMASK, #(0xff << 2);
@@ -325,7 +325,7 @@ _gcry_cast5_arm_decrypt_block:
 	add Rs3, Rs1, #(0x100 * 4 * 2);
 	add Rs4, Rs1, #(0x100 * 4 * 3);
 
-	read_block(%r2, 0, RL0, RR0, RT0);
+	read_block(r2, 0, RL0, RR0, RT0);
 
 	load_km(15);
 	load_dec_kr(15);
@@ -346,10 +346,10 @@ _gcry_cast5_arm_decrypt_block:
 	dec_round(1, F2, RL0, RR0, load_km, shift_kr, dummy);
 	dec_round(0, F1, RR0, RL0, dummy, dummy, dummy);
 
-	ldr %r1, [%sp], #4;
-	write_block(%r1, 0, RR0, RL0, RT0, RT1);
+	ldr r1, [sp], #4;
+	write_block(r1, 0, RR0, RL0, RT0, RT1);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_cast5_arm_decrypt_block,.-_gcry_cast5_arm_decrypt_block;
 
@@ -511,7 +511,7 @@ _gcry_cast5_arm_enc_blk2:
 	 * output:
 	 *	[RR0, RL0], [RR1, RL1]: dst
 	 */
-	push {%lr};
+	push {lr};
 
 	GET_DATA_POINTER(Rs1, _gcry_cast5_s1to4, Rs2);
 	mov RMASK, #(0xff << 2);
@@ -541,7 +541,7 @@ _gcry_cast5_arm_enc_blk2:
 	host_to_be(RR1, RT0);
 	host_to_be(RL1, RT0);
 
-	pop {%pc};
+	pop {pc};
 .ltorg
 .size _gcry_cast5_arm_enc_blk2,.-_gcry_cast5_arm_enc_blk2;
 
@@ -551,40 +551,40 @@ _gcry_cast5_arm_enc_blk2:
 
 _gcry_cast5_arm_cfb_dec:
 	/* input:
-	 *	%r0: CTX
-	 *	%r1: dst (2 blocks)
-	 *	%r2: src (2 blocks)
-	 *	%r3: iv (64bit)
+	 *	r0: CTX
+	 *	r1: dst (2 blocks)
+	 *	r2: src (2 blocks)
+	 *	r3: iv (64bit)
 	 */
-	push {%r1, %r2, %r4-%r11, %ip, %lr};
+	push {r1, r2, r4-r11, ip, lr};
 
-	mov %lr, %r3;
+	mov lr, r3;
 
-	/* Load input (iv/%r3 is aligned, src/%r2 might not be) */
-	ldm %r3, {RL0, RR0};
+	/* Load input (iv/r3 is aligned, src/r2 might not be) */
+	ldm r3, {RL0, RR0};
 	host_to_be(RL0, RT1);
 	host_to_be(RR0, RT1);
-	read_block(%r2, 0, RL1, RR1, %ip);
+	read_block(r2, 0, RL1, RR1, ip);
 
 	/* Update IV, load src[1] and save to iv[0] */
-	read_block_host(%r2, 8, %r5, %r6, %r7);
-	stm %lr, {%r5, %r6};
+	read_block_host(r2, 8, r5, r6, r7);
+	stm lr, {r5, r6};
 
 	bl _gcry_cast5_arm_enc_blk2;
-	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
+	/* result in RR0:RL0, RR1:RL1 = r4:r3, r10:r9 */
 
-	/* %r0: dst, %r1: %src */
-	pop {%r0, %r1};
+	/* r0: dst, r1: src */
+	pop {r0, r1};
 
 	/* dst = src ^ result */
-	read_block2_host(%r1, %r5, %r6, %r7, %r8, %lr);
-	eor %r5, %r4;
-	eor %r6, %r3;
-	eor %r7, %r10;
-	eor %r8, %r9;
-	write_block2_host(%r0, %r5, %r6, %r7, %r8, %r1, %r2);
+	read_block2_host(r1, r5, r6, r7, r8, lr);
+	eor r5, r4;
+	eor r6, r3;
+	eor r7, r10;
+	eor r8, r9;
+	write_block2_host(r0, r5, r6, r7, r8, r1, r2);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_cast5_arm_cfb_dec,.-_gcry_cast5_arm_cfb_dec;
 
@@ -594,42 +594,42 @@ _gcry_cast5_arm_cfb_dec:
 
 _gcry_cast5_arm_ctr_enc:
 	/* input:
-	 *	%r0: CTX
-	 *	%r1: dst (2 blocks)
-	 *	%r2: src (2 blocks)
-	 *	%r3: iv (64bit, big-endian)
+	 *	r0: CTX
+	 *	r1: dst (2 blocks)
+	 *	r2: src (2 blocks)
+	 *	r3: iv (64bit, big-endian)
 	 */
-	push {%r1, %r2, %r4-%r11, %ip, %lr};
+	push {r1, r2, r4-r11, ip, lr};
 
-	mov %lr, %r3;
+	mov lr, r3;
 
 	/* Load IV (big => host endian) */
-	read_block_aligned(%lr, 0, RL0, RR0, be_to_host, RT1);
+	read_block_aligned(lr, 0, RL0, RR0, be_to_host, RT1);
 
 	/* Construct IVs */
 	adds RR1, RR0, #1; /* +1 */
 	adc RL1, RL0, #0;
-	adds %r6, RR1, #1; /* +2 */
-	adc %r5, RL1, #0;
+	adds r6, RR1, #1; /* +2 */
+	adc r5, RL1, #0;
 
 	/* Store new IV (host => big-endian) */
-	write_block_aligned(%lr, 0, %r5, %r6, host_to_be, RT1);
+	write_block_aligned(lr, 0, r5, r6, host_to_be, RT1);
 
 	bl _gcry_cast5_arm_enc_blk2;
-	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
+	/* result in RR0:RL0, RR1:RL1 = r4:r3, r10:r9 */
 
-	/* %r0: dst, %r1: %src */
-	pop {%r0, %r1};
+	/* r0: dst, r1: src */
+	pop {r0, r1};
 
 	/* XOR key-stream with plaintext */
-	read_block2_host(%r1, %r5, %r6, %r7, %r8, %lr);
-	eor %r5, %r4;
-	eor %r6, %r3;
-	eor %r7, %r10;
-	eor %r8, %r9;
-	write_block2_host(%r0, %r5, %r6, %r7, %r8, %r1, %r2);
+	read_block2_host(r1, r5, r6, r7, r8, lr);
+	eor r5, r4;
+	eor r6, r3;
+	eor r7, r10;
+	eor r8, r9;
+	write_block2_host(r0, r5, r6, r7, r8, r1, r2);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_cast5_arm_ctr_enc,.-_gcry_cast5_arm_ctr_enc;
 
@@ -682,45 +682,45 @@ _gcry_cast5_arm_dec_blk2:
 
 _gcry_cast5_arm_cbc_dec:
 	/* input:
-	 *	%r0: CTX
-	 *	%r1: dst (2 blocks)
-	 *	%r2: src (2 blocks)
-	 *	%r3: iv (64bit)
+	 *	r0: CTX
+	 *	r1: dst (2 blocks)
+	 *	r2: src (2 blocks)
+	 *	r3: iv (64bit)
 	 */
-	push {%r1-%r11, %ip, %lr};
+	push {r1-r11, ip, lr};
 
-	read_block2(%r2, RL0, RR0, RL1, RR1, RT0);
+	read_block2(r2, RL0, RR0, RL1, RR1, RT0);
 
 	/* dec_blk2 is only used by cbc_dec, jump directly in/out instead
 	 * of function call. */
 	b _gcry_cast5_arm_dec_blk2;
 .Ldec_cbc_tail:
-	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
+	/* result in RR0:RL0, RR1:RL1 = r4:r3, r10:r9 */
 
-	/* %r0: dst, %r1: %src, %r2: iv */
-	pop {%r0-%r2};
+	/* r0: dst, r1: src, r2: iv */
+	pop {r0-r2};
 
-	/* load IV+1 (src[0]) to %r7:%r8. Might be unaligned. */
-	read_block_host(%r1, 0, %r7, %r8, %r5);
-	/* load IV (iv[0]) to %r5:%r6. 'iv' is aligned. */
-	ldm %r2, {%r5, %r6};
+	/* load IV+1 (src[0]) to r7:r8. Might be unaligned. */
+	read_block_host(r1, 0, r7, r8, r5);
+	/* load IV (iv[0]) to r5:r6. 'iv' is aligned. */
+	ldm r2, {r5, r6};
 
 	/* out[1] ^= IV+1 */
-	eor %r10, %r7;
-	eor %r9, %r8;
+	eor r10, r7;
+	eor r9, r8;
 	/* out[0] ^= IV */
-	eor %r4, %r5;
-	eor %r3, %r6;
+	eor r4, r5;
+	eor r3, r6;
 
-	/* load IV+2 (src[1]) to %r7:%r8. Might be unaligned. */
-	read_block_host(%r1, 8, %r7, %r8, %r5);
+	/* load IV+2 (src[1]) to r7:r8. Might be unaligned. */
+	read_block_host(r1, 8, r7, r8, r5);
 	/* store IV+2 to iv[0] (aligned). */
-	stm %r2, {%r7, %r8};
+	stm r2, {r7, r8};
 
 	/* store result to dst[0-3]. Might be unaligned. */
-	write_block2_host(%r0, %r4, %r3, %r10, %r9, %r5, %r6);
+	write_block2_host(r0, r4, r3, r10, r9, r5, r6);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_cast5_arm_cbc_dec,.-_gcry_cast5_arm_cbc_dec;
 

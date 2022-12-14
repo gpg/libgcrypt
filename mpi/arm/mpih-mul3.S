@@ -29,10 +29,10 @@
 
 /*******************
  * mpi_limb_t
- * _gcry_mpih_submul_1( mpi_ptr_t res_ptr,	%r0
- *		     mpi_ptr_t s1_ptr,		%r1
- *		     mpi_size_t s1_size,	%r2
- *		     mpi_limb_t s2_limb)	%r3
+ * _gcry_mpih_submul_1( mpi_ptr_t res_ptr,	r0
+ *		     mpi_ptr_t s1_ptr,		r1
+ *		     mpi_size_t s1_size,	r2
+ *		     mpi_limb_t s2_limb)	r3
  */
 
 .text
@@ -40,61 +40,61 @@
 .globl _gcry_mpih_submul_1
 .type  _gcry_mpih_submul_1,%function
 _gcry_mpih_submul_1:
-	push	{%r4, %r5, %r6, %r8, %r9, %r10, %lr};
-	mov	%lr, #0;
-	cmp	%r0, #0; /* prepare carry flag for sbc */
+	push	{r4, r5, r6, r8, r9, r10, lr};
+	mov	lr, #0;
+	cmp	r0, #0; /* prepare carry flag for sbc */
 
-	tst	%r2, #3;
+	tst	r2, #3;
 	beq	.Large_loop;
 .Loop:
-	ldr	%r5, [%r1], #4;
-	mov	%r4, %lr;
-	mov	%lr, #0;
-	ldr	%r6, [%r0];
-	umlal	%r4, %lr, %r5, %r3;
-	sub	%r2, #1;
-	sbcs	%r4, %r6, %r4;
-	tst	%r2, #3;
-	str	%r4, [%r0], #4;
+	ldr	r5, [r1], #4;
+	mov	r4, lr;
+	mov	lr, #0;
+	ldr	r6, [r0];
+	umlal	r4, lr, r5, r3;
+	sub	r2, #1;
+	sbcs	r4, r6, r4;
+	tst	r2, #3;
+	str	r4, [r0], #4;
 	bne	.Loop;
 
-	teq	%r2, #0;
+	teq	r2, #0;
 	beq	.Lend;
 
 .Large_loop:
-	ldr	%r5, [%r1], #4;
-	mov	%r9, #0;
-	ldr	%r4, [%r0, #0];
+	ldr	r5, [r1], #4;
+	mov	r9, #0;
+	ldr	r4, [r0, #0];
 
-	umlal	%lr, %r9, %r5, %r3;
-	ldr	%r6, [%r0, #4];
-	ldr	%r5, [%r1], #4;
-	sbcs	%r4, %r4, %lr;
+	umlal	lr, r9, r5, r3;
+	ldr	r6, [r0, #4];
+	ldr	r5, [r1], #4;
+	sbcs	r4, r4, lr;
 
-	mov	%lr, #0;
-	umlal	%r9, %lr, %r5, %r3;
-	ldr	%r8, [%r0, #8];
-	ldr	%r5, [%r1], #4;
-	sbcs	%r6, %r6, %r9;
+	mov	lr, #0;
+	umlal	r9, lr, r5, r3;
+	ldr	r8, [r0, #8];
+	ldr	r5, [r1], #4;
+	sbcs	r6, r6, r9;
 
-	mov	%r9, #0;
-	umlal	%lr, %r9, %r5, %r3;
-	ldr	%r10, [%r0, #12];
-	ldr	%r5, [%r1], #4;
-	sbcs	%r8, %r8, %lr;
+	mov	r9, #0;
+	umlal	lr, r9, r5, r3;
+	ldr	r10, [r0, #12];
+	ldr	r5, [r1], #4;
+	sbcs	r8, r8, lr;
 
-	mov	%lr, #0;
-	umlal	%r9, %lr, %r5, %r3;
-	sub	%r2, #4;
-	sbcs	%r10, %r10, %r9;
+	mov	lr, #0;
+	umlal	r9, lr, r5, r3;
+	sub	r2, #4;
+	sbcs	r10, r10, r9;
 
-	teq	%r2, #0;
-	stm	%r0!, {%r4, %r6, %r8, %r10};
+	teq	r2, #0;
+	stm	r0!, {r4, r6, r8, r10};
 	bne	.Large_loop;
 
 .Lend:
 	it	cc
-	movcc	%r2, #1;
-	add	%r0, %lr, %r2;
-	pop	{%r4, %r5, %r6, %r8, %r9, %r10, %pc};
+	movcc	r2, #1;
+	add	r0, lr, r2;
+	pop	{r4, r5, r6, r8, r9, r10, pc};
 .size _gcry_mpih_submul_1,.-_gcry_mpih_submul_1;

@@ -483,9 +483,9 @@ _gcry_aes_cbc_enc_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: iv
-   *    %st+0: nblocks => r4
-   *    %st+4: cbc_mac => r5
-   *    %st+8: nrounds => r6
+   *    st+0: nblocks => r4
+   *    st+4: cbc_mac => r5
+   *    st+8: nrounds => r6
    */
 
   push {r4-r6,lr} /* 4*4 = 16b */
@@ -563,8 +563,8 @@ _gcry_aes_cbc_dec_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: iv
-   *    %st+0: nblocks => r4
-   *    %st+4: nrounds => r5
+   *    st+0: nblocks => r4
+   *    st+4: nrounds => r5
    */
 
   push {r4-r6,lr} /* 4*4 = 16b */
@@ -670,7 +670,7 @@ _gcry_aes_ecb_enc_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: nblocks
-   *    %st+0: nrounds => r4
+   *    st+0: nrounds => r4
    */
 
   push {r4-r6,lr} /* 4*4 = 16b */
@@ -755,7 +755,7 @@ _gcry_aes_ecb_dec_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: nblocks
-   *    %st+0: nrounds => r4
+   *    st+0: nrounds => r4
    */
 
   push {r4-r6,lr} /* 4*4 = 16b */
@@ -812,8 +812,8 @@ _gcry_aes_cfb_enc_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: iv
-   *    %st+0: nblocks => r4
-   *    %st+4: nrounds => r5
+   *    st+0: nblocks => r4
+   *    st+4: nrounds => r5
    */
 
   push {r4-r6,lr} /* 4*4 = 16b */
@@ -888,8 +888,8 @@ _gcry_aes_cfb_dec_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: iv
-   *    %st+0: nblocks => r4
-   *    %st+4: nrounds => r5
+   *    st+0: nblocks => r4
+   *    st+4: nrounds => r5
    */
 
   push {r4-r6,lr} /* 4*4 = 16b */
@@ -996,8 +996,8 @@ _gcry_aes_ctr_enc_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: iv
-   *    %st+0: nblocks => r4
-   *    %st+4: nrounds => r5
+   *    st+0: nblocks => r4
+   *    st+4: nrounds => r5
    */
 
   vpush {q4-q7}
@@ -1176,8 +1176,8 @@ _gcry_aes_ctr32le_enc_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: iv
-   *    %st+0: nblocks => r4
-   *    %st+4: nrounds => r5
+   *    st+0: nblocks => r4
+   *    st+4: nrounds => r5
    */
 
   vpush {q4-q7}
@@ -1301,11 +1301,11 @@ _gcry_aes_ocb_enc_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: offset
-   *    %st+0: checksum => r4
-   *    %st+4: Ls => r5
-   *    %st+8: nblocks => r6  (0 < nblocks <= 32)
-   *    %st+12: nrounds => r7
-   *    %st+16: blkn => lr
+   *    st+0: checksum => r4
+   *    st+4: Ls => r5
+   *    st+8: nblocks => r6  (0 < nblocks <= 32)
+   *    st+12: nrounds => r7
+   *    st+16: blkn => lr
    */
 
   vpush {q4-q7}
@@ -1476,11 +1476,11 @@ _gcry_aes_ocb_dec_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: offset
-   *    %st+0: checksum => r4
-   *    %st+4: Ls => r5
-   *    %st+8: nblocks => r6  (0 < nblocks <= 32)
-   *    %st+12: nrounds => r7
-   *    %st+16: blkn => lr
+   *    st+0: checksum => r4
+   *    st+4: Ls => r5
+   *    st+8: nblocks => r6  (0 < nblocks <= 32)
+   *    st+12: nrounds => r7
+   *    st+16: blkn => lr
    */
 
   vpush {q4-q7}
@@ -1650,10 +1650,10 @@ _gcry_aes_ocb_auth_armv8_ce:
    *    r1: abuf
    *    r2: offset
    *    r3: checksum
-   *    %st+0: Ls => r5
-   *    %st+4: nblocks => r6  (0 < nblocks <= 32)
-   *    %st+8: nrounds => r7
-   *    %st+12: blkn => lr
+   *    st+0: Ls => r5
+   *    st+4: nblocks => r6  (0 < nblocks <= 32)
+   *    st+8: nrounds => r7
+   *    st+12: blkn => lr
    */
 
   vpush {q4-q7}
@@ -1801,8 +1801,8 @@ _gcry_aes_xts_enc_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: iv
-   *    %st+0: nblocks => r4
-   *    %st+4: nrounds => r5
+   *    st+0: nblocks => r4
+   *    st+4: nrounds => r5
    */
 
   vpush {q4-q7}
@@ -1956,8 +1956,8 @@ _gcry_aes_xts_dec_armv8_ce:
    *    r1: outbuf
    *    r2: inbuf
    *    r3: iv
-   *    %st+0: nblocks => r4
-   *    %st+4: nrounds => r5
+   *    st+0: nblocks => r4
+   *    st+4: nrounds => r5
    */
 
   vpush {q4-q7}

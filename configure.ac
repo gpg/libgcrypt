@@ -1181,7 +1181,7 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementat
                 ".text\n\t"
                 /* Following causes error if assembler ignored '.syntax unified'.  */
                 "asmfunc:\n\t"
-                "add %r0, %r0, %r4, ror #12;\n\t"
+                "add r0, r0, r4, ror #12;\n\t"
 
                 /* Test if '.type' and '.size' are supported.  */
                 ".size asmfunc,.-asmfunc;\n\t"
@@ -1864,10 +1864,10 @@ AC_CACHE_CHECK([whether GCC inline assembler supports NEON instructions],
                 ".fpu neon\n\t"
                 ".text\n\t"
                 "testfn:\n\t"
-                "vld1.64 {%q0-%q1}, [%r0]!;\n\t"
-                "vrev64.8 %q0, %q3;\n\t"
-                "vadd.u64 %q0, %q1;\n\t"
-                "vadd.s64 %d3, %d2, %d3;\n\t"
+                "vld1.64 {q0-q1}, [r0]!;\n\t"
+                "vrev64.8 q0, q3;\n\t"
+                "vadd.u64 q0, q1;\n\t"
+                "vadd.s64 d3, d2, d3;\n\t"
                 );
             void testfn(void);
             ]], [ testfn(); ])],

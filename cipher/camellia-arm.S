@@ -45,23 +45,23 @@
 #define key_table 0
 
 /* register macros */
-#define CTX %r0
-#define RTAB1 %ip
-#define RTAB3 %r1
-#define RMASK %lr
+#define CTX r0
+#define RTAB1 ip
+#define RTAB3 r1
+#define RMASK lr
 
-#define IL %r2
-#define IR %r3
+#define IL r2
+#define IR r3
 
-#define XL %r4
-#define XR %r5
-#define YL %r6
-#define YR %r7
+#define XL r4
+#define XR r5
+#define YL r6
+#define YR r7
 
-#define RT0 %r8
-#define RT1 %r9
-#define RT2 %r10
-#define RT3 %r11
+#define RT0 r8
+#define RT1 r9
+#define RT2 r10
+#define RT3 r11
 
 /* helper macros */
 #define ldr_unaligned_be(rout, rsrc, offs, rtmp) \
@@ -248,7 +248,7 @@
 	    (n) * 2 + 0, (n) * 2 + 1);
 
 #define inpack(n) \
-	ldr_input_be(%r2, XL, XR, YL, YR, RT0); \
+	ldr_input_be(r2, XL, XR, YL, YR, RT0); \
 	ldr RT0, [CTX, #(key_table + ((n) * 8) + 0)]; \
 	ldr RT1, [CTX, #(key_table + ((n) * 8) + 4)]; \
 	eor XL, RT0; \
@@ -259,7 +259,7 @@
 	ldr RT1, [CTX, #(key_table + ((n) * 8) + 4)]; \
 	eor YL, RT0; \
 	eor YR, RT1; \
-	str_output_be(%r1, YL, YR, XL, XR, RT0, RT1);
+	str_output_be(r1, YL, YR, XL, XR, RT0, RT1);
 
 .align 3
 .globl _gcry_camellia_arm_encrypt_block
@@ -267,17 +267,17 @@
 
 _gcry_camellia_arm_encrypt_block:
 	/* input:
-	 *	%r0: keytable
-	 *	%r1: dst
-	 *	%r2: src
-	 *	%r3: keybitlen
+	 *	r0: keytable
+	 *	r1: dst
+	 *	r2: src
+	 *	r3: keybitlen
 	 */
-	push {%r1, %r4-%r11, %ip, %lr};
+	push {r1, r4-r11, ip, lr};
 
 	GET_DATA_POINTER(RTAB1, .Lcamellia_sp1110, RTAB3);
 	mov RMASK, #0xff;
 	add RTAB3, RTAB1, #(2 * 4);
-	push {%r3};
+	push {r3};
 	mov RMASK, RMASK, lsl#4 /* byte mask */
 
 	inpack(0);
@@ -292,20 +292,20 @@ _gcry_camellia_arm_encrypt_block:
 	cmp RT0, #(16 * 8);
 	bne .Lenc_256;
 
-	pop {%r1};
+	pop {r1};
 	outunpack(24);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 
 .Lenc_256:
 	enc_fls(24);
 	enc_rounds(24);
 
-	pop {%r1};
+	pop {r1};
 	outunpack(32);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 .size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;
 
@@ -315,19 +315,19 @@ _gcry_camellia_arm_encrypt_block:
 
 _gcry_camellia_arm_decrypt_block:
 	/* input:
-	 *	%r0: keytable
-	 *	%r1: dst
-	 *	%r2: src
-	 *	%r3: keybitlen
+	 *	r0: keytable
+	 *	r1: dst
+	 *	r2: src
+	 *	r3: keybitlen
 	 */
-	push {%r1, %r4-%r11, %ip, %lr};
+	push {r1, r4-r11, ip, lr};
 
 	GET_DATA_POINTER(RTAB1, .Lcamellia_sp1110, RTAB3);
 	mov RMASK, #0xff;
 	add RTAB3, RTAB1, #(2 * 4);
 	mov RMASK, RMASK, lsl#4 /* byte mask */
 
-	cmp %r3, #(16 * 8);
+	cmp r3, #(16 * 8);
 	bne .Ldec_256;
 
 	inpack(24);
@@ -339,10 +339,10 @@ _gcry_camellia_arm_decrypt_block:
 	dec_fls(8);
 	dec_rounds(0);
 
-	pop {%r1};
+	pop {r1};
 	outunpack(0);
 
-	pop {%r4-%r11, %ip, %pc};
+	pop {r4-r11, ip, pc};
 .ltorg
 
 .Ldec_256:
