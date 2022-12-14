@@ -33,7 +33,7 @@ AC_MSG_RESULT($noexecstack_support)
 AC_CACHE_CHECK([whether assembler supports --noexecstack option],
 cl_cv_as_noexecstack, [dnl
   cat > conftest.c <<EOF
-void foo() {}
+void foo(void) {}
 EOF
   if AC_TRY_COMMAND([${CC} $CFLAGS $CPPFLAGS
                      -S -o conftest.s conftest.c >/dev/null]) \
