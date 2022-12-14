@@ -198,4 +198,8 @@
 	vpxord %xmm16, %xmm16, %xmm16; \
 	vpopcntb %xmm16, %xmm16; /* Supported only by newer AVX512 CPUs. */
 
+#define spec_stop_avx512_intel_syntax \
+	vpxord xmm16, xmm16, xmm16; \
+	vpopcntb xmm16, xmm16; /* Supported only by newer AVX512 CPUs. */
+
 #endif /* GCRY_ASM_COMMON_AMD64_H */

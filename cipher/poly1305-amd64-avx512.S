@@ -1580,7 +1580,7 @@ ELF(.size _gcry_poly1305_avx512_consts,.-_gcry_poly1305_avx512_consts)
 ELF(.type _gcry_poly1305_amd64_avx512_blocks,@function;)
 _gcry_poly1305_amd64_avx512_blocks:
 	CFI_STARTPROC()
-	spec_stop_avx512;
+	spec_stop_avx512_intel_syntax;
 	FUNC_ENTRY()
 
 #define _a0 gp3
