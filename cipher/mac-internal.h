@@ -253,6 +253,9 @@ extern const gcry_mac_spec_t _gcry_mac_type_spec_gmac_seed;
 #if USE_CAMELLIA
 extern const gcry_mac_spec_t _gcry_mac_type_spec_gmac_camellia;
 #endif
+#if USE_SM4
+extern const gcry_mac_spec_t _gcry_mac_type_spec_gmac_sm4;
+#endif
 
 /*
  * The Poly1305 MAC algorithm specifications (mac-poly1305.c).
@@ -272,4 +275,7 @@ extern const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_serpent;
 #endif
 #if USE_SEED
 extern const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_seed;
+#endif
+#if USE_SM4
+extern const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_sm4;
 #endif

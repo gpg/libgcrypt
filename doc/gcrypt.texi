@@ -4261,6 +4261,10 @@ block cipher algorithm.
 This is GMAC message authentication algorithm based on the SEED
 block cipher algorithm.
 
+@item GCRY_MAC_GMAC_SM4
+This is GMAC message authentication algorithm based on the SM4
+block cipher algorithm.
+
 @item GCRY_MAC_POLY1305
 This is plain Poly1305 message authentication algorithm, used with
 one-time key.
@@ -4283,6 +4287,10 @@ key and one-time nonce.
 
 @item GCRY_MAC_POLY1305_SEED
 This is Poly1305-SEED message authentication algorithm, used with
+key and one-time nonce.
+
+@item GCRY_MAC_POLY1305_SM4
+This is Poly1305-SM4 message authentication algorithm, used with
 key and one-time nonce.
 
 @item GCRY_MAC_GOST28147_IMIT

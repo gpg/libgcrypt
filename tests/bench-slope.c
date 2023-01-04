@@ -2063,6 +2063,7 @@ bench_mac_init (struct bench_obj *obj)
     case GCRY_MAC_POLY1305_TWOFISH:
     case GCRY_MAC_POLY1305_SERPENT:
     case GCRY_MAC_POLY1305_SEED:
+    case GCRY_MAC_POLY1305_SM4:
       gcry_mac_setiv (hd, key, 16);
       break;
     }

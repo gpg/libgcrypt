@@ -91,7 +91,7 @@ static gcry_cipher_spec_t * const cipher_list[] =
 #if USE_SM4
      &_gcry_cipher_spec_sm4,
 #endif
-    NULL
+     NULL
   };
 
 /* Cipher implementations starting with index 0 (enum gcry_cipher_algos) */
@@ -207,9 +207,9 @@ static gcry_cipher_spec_t * const cipher_list_algo301[] =
     NULL,
 #endif
 #if USE_SM4
-     &_gcry_cipher_spec_sm4,
+     &_gcry_cipher_spec_sm4
 #else
-    NULL,
+    NULL
 #endif
   };
 
