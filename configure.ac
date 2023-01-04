@@ -212,7 +212,7 @@ LIBGCRYPT_CONFIG_HOST="$host"
 # Definitions for symmetric ciphers.
 available_ciphers="arcfour blowfish cast5 des aes twofish serpent rfc2268 seed"
 available_ciphers="$available_ciphers camellia idea salsa20 gost28147 chacha20"
-available_ciphers="$available_ciphers sm4"
+available_ciphers="$available_ciphers sm4 aria"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
@@ -3028,6 +3028,12 @@ if test "$found" = "1" ; then
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-armv8-aarch64-ce.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-armv9-aarch64-sve-ce.lo"
    esac
+fi
+
+LIST_MEMBER(aria, $enabled_ciphers)
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS aria.lo"
+   AC_DEFINE(USE_ARIA, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)

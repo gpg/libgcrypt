@@ -1685,6 +1685,15 @@ A 128 bit cipher by the State Cryptography Administration
 of China (SCA).  See
 @uref{https://tools.ietf.org/html/draft-ribose-cfrg-sm4-10}.
 
+@item  GCRY_CIPHER_ARIA128
+@itemx GCRY_CIPHER_ARIA192
+@itemx GCRY_CIPHER_ARIA256
+@cindex ARIA (cipher)
+ARIA is a general-purpose block cipher algorithm developed by
+Korean cryptographers in 2003.  It was established as a Korean
+standard block cipher algorithm in 2004.  See
+@uref{https://www.rfc-editor.org/rfc/rfc5794.html}.
+
 @end table
 
 @node Available cipher modes
@@ -4241,6 +4250,10 @@ block cipher algorithm.
 This is CMAC message authentication algorithm based on the SM4
 block cipher algorithm.
 
+@item GCRY_MAC_CMAC_ARIA
+This is CMAC message authentication algorithm based on the ARIA
+block cipher algorithm.
+
 @item GCRY_MAC_GMAC_AES
 This is GMAC (GCM mode based MAC) message authentication algorithm based on
 the AES block cipher algorithm.
@@ -4263,6 +4276,10 @@ block cipher algorithm.
 
 @item GCRY_MAC_GMAC_SM4
 This is GMAC message authentication algorithm based on the SM4
+block cipher algorithm.
+
+@item GCRY_MAC_GMAC_ARIA
+This is GMAC message authentication algorithm based on the ARIA
 block cipher algorithm.
 
 @item GCRY_MAC_POLY1305
@@ -4291,6 +4308,10 @@ key and one-time nonce.
 
 @item GCRY_MAC_POLY1305_SM4
 This is Poly1305-SM4 message authentication algorithm, used with
+key and one-time nonce.
+
+@item GCRY_MAC_POLY1305_ARIA
+This is Poly1305-ARIA message authentication algorithm, used with
 key and one-time nonce.
 
 @item GCRY_MAC_GOST28147_IMIT

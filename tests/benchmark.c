@@ -652,7 +652,7 @@ mac_bench ( const char *algoname )
   for (i=0; i < bufsize; i++)
     buf[i] = i;
 
-  if (algo >= GCRY_MAC_POLY1305_AES && algo <= GCRY_MAC_POLY1305_SM4)
+  if (algo >= GCRY_MAC_POLY1305_AES && algo <= GCRY_MAC_POLY1305_ARIA)
     {
       static const char iv[16] = { 1, 2, 3, 4, };
       err = gcry_mac_setiv(hd, iv, sizeof(iv));

@@ -91,6 +91,11 @@ static gcry_cipher_spec_t * const cipher_list[] =
 #if USE_SM4
      &_gcry_cipher_spec_sm4,
 #endif
+#if USE_ARIA
+     &_gcry_cipher_spec_aria128,
+     &_gcry_cipher_spec_aria192,
+     &_gcry_cipher_spec_aria256,
+#endif
      NULL
   };
 
@@ -207,8 +212,17 @@ static gcry_cipher_spec_t * const cipher_list_algo301[] =
     NULL,
 #endif
 #if USE_SM4
-     &_gcry_cipher_spec_sm4
+    &_gcry_cipher_spec_sm4,
 #else
+    NULL,
+#endif
+#if USE_ARIA
+    &_gcry_cipher_spec_aria128,
+    &_gcry_cipher_spec_aria192,
+    &_gcry_cipher_spec_aria256
+#else
+    NULL,
+    NULL,
     NULL
 #endif
   };

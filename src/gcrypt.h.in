@@ -943,7 +943,10 @@ enum gcry_cipher_algos
     GCRY_CIPHER_GOST28147   = 315,
     GCRY_CIPHER_CHACHA20    = 316,
     GCRY_CIPHER_GOST28147_MESH   = 317, /* With CryptoPro key meshing.  */
-    GCRY_CIPHER_SM4         = 318
+    GCRY_CIPHER_SM4         = 318,
+    GCRY_CIPHER_ARIA128     = 319,
+    GCRY_CIPHER_ARIA192     = 320,
+    GCRY_CIPHER_ARIA256     = 321
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */
@@ -1510,6 +1513,7 @@ enum gcry_mac_algos
     GCRY_MAC_CMAC_IDEA          = 210,
     GCRY_MAC_CMAC_GOST28147     = 211,
     GCRY_MAC_CMAC_SM4           = 212,
+    GCRY_MAC_CMAC_ARIA          = 213,
 
     GCRY_MAC_GMAC_AES           = 401,
     GCRY_MAC_GMAC_CAMELLIA      = 402,
@@ -1517,6 +1521,7 @@ enum gcry_mac_algos
     GCRY_MAC_GMAC_SERPENT       = 404,
     GCRY_MAC_GMAC_SEED          = 405,
     GCRY_MAC_GMAC_SM4           = 406,
+    GCRY_MAC_GMAC_ARIA          = 407,
 
     GCRY_MAC_POLY1305           = 501,
     GCRY_MAC_POLY1305_AES       = 502,
@@ -1524,7 +1529,8 @@ enum gcry_mac_algos
     GCRY_MAC_POLY1305_TWOFISH   = 504,
     GCRY_MAC_POLY1305_SERPENT   = 505,
     GCRY_MAC_POLY1305_SEED      = 506,
-    GCRY_MAC_POLY1305_SM4       = 507
+    GCRY_MAC_POLY1305_SM4       = 507,
+    GCRY_MAC_POLY1305_ARIA      = 508
   };
 
 /* Flags used with the open function.  */

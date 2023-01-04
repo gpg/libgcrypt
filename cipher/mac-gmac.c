@@ -47,6 +47,8 @@ map_mac_algo_to_cipher (int mac_algo)
       return GCRY_CIPHER_SEED;
     case GCRY_MAC_GMAC_SM4:
       return GCRY_CIPHER_SM4;
+    case GCRY_MAC_GMAC_ARIA:
+      return GCRY_CIPHER_ARIA128;
     }
 }
 
@@ -190,6 +192,12 @@ const gcry_mac_spec_t _gcry_mac_type_spec_gmac_camellia = {
 #if USE_SM4
 const gcry_mac_spec_t _gcry_mac_type_spec_gmac_sm4 = {
   GCRY_MAC_GMAC_SM4, {0, 0}, "GMAC_SM4",
+  &gmac_ops
+};
+#endif
+#if USE_ARIA
+const gcry_mac_spec_t _gcry_mac_type_spec_gmac_aria = {
+  GCRY_MAC_GMAC_ARIA, {0, 0}, "GMAC_ARIA",
   &gmac_ops
 };
 #endif

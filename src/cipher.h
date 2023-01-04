@@ -171,6 +171,9 @@ extern gcry_cipher_spec_t _gcry_cipher_spec_gost28147;
 extern gcry_cipher_spec_t _gcry_cipher_spec_gost28147_mesh;
 extern gcry_cipher_spec_t _gcry_cipher_spec_chacha20;
 extern gcry_cipher_spec_t _gcry_cipher_spec_sm4;
+extern gcry_cipher_spec_t _gcry_cipher_spec_aria128;
+extern gcry_cipher_spec_t _gcry_cipher_spec_aria192;
+extern gcry_cipher_spec_t _gcry_cipher_spec_aria256;
 
 /* Declarations for the digest specifications.  */
 extern const gcry_md_spec_t _gcry_digest_spec_crc32;

@@ -86,6 +86,9 @@ poly1305mac_open (gcry_mac_hd_t h)
     case GCRY_MAC_POLY1305_SM4:
       cipher_algo = GCRY_CIPHER_SM4;
       break;
+    case GCRY_MAC_POLY1305_ARIA:
+      cipher_algo = GCRY_CIPHER_ARIA128;
+      break;
     }
 
   err = _gcry_cipher_open_internal (&mac_ctx->hd, cipher_algo,
@@ -368,6 +371,12 @@ const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_seed = {
 #if USE_SM4
 const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_sm4 = {
   GCRY_MAC_POLY1305_SM4, {0, 0}, "POLY1305_SM4",
+  &poly1305mac_ops
+};
+#endif
+#if USE_ARIA
+const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_aria = {
+  GCRY_MAC_POLY1305_ARIA, {0, 0}, "POLY1305_ARIA",
   &poly1305mac_ops
 };
 #endif

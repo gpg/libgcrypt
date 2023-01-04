@@ -135,6 +135,11 @@ static const gcry_mac_spec_t * const mac_list[] = {
   &_gcry_mac_type_spec_gmac_sm4,
   &_gcry_mac_type_spec_poly1305mac_sm4,
 #endif
+#if USE_ARIA
+  &_gcry_mac_type_spec_cmac_aria,
+  &_gcry_mac_type_spec_gmac_aria,
+  &_gcry_mac_type_spec_poly1305mac_aria,
+#endif
   NULL
 };
 
@@ -310,7 +315,12 @@ static const gcry_mac_spec_t * const mac_list_algo201[] =
     NULL,
 #endif
 #if USE_SM4
-    &_gcry_mac_type_spec_cmac_sm4
+    &_gcry_mac_type_spec_cmac_sm4,
+#else
+    NULL,
+#endif
+#if USE_ARIA
+    &_gcry_mac_type_spec_cmac_aria
 #else
     NULL
 #endif
@@ -345,7 +355,12 @@ static const gcry_mac_spec_t * const mac_list_algo401[] =
     NULL,
 #endif
 #if USE_SM4
-    &_gcry_mac_type_spec_gmac_sm4
+    &_gcry_mac_type_spec_gmac_sm4,
+#else
+    NULL,
+#endif
+#if USE_ARIA
+    &_gcry_mac_type_spec_gmac_aria
 #else
     NULL
 #endif
@@ -381,7 +396,12 @@ static const gcry_mac_spec_t * const mac_list_algo501[] =
     NULL,
 #endif
 #if USE_SM4
-    &_gcry_mac_type_spec_poly1305mac_sm4
+    &_gcry_mac_type_spec_poly1305mac_sm4,
+#else
+    NULL,
+#endif
+#if USE_ARIA
+    &_gcry_mac_type_spec_poly1305mac_aria
 #else
     NULL
 #endif
