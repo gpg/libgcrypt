@@ -1663,6 +1663,26 @@ _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	      inbuf += 32 * 16;
 	    }
 	}
+
+      if (nblocks >= 16)
+	{
+          l = bulk_ocb_prepare_L_pointers_array_blk16 (c, Ls, blkn);
+
+	  /* Process data in 16 block chunks. */
+	  blkn += 16;
+	  *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 16);
+
+	  if (encrypt)
+	    _gcry_sm4_gfni_avx512_ocb_enc(ctx->rkey_enc, outbuf, inbuf,
+					  c->u_iv.iv, c->u_ctr.ctr, Ls);
+	  else
+	    _gcry_sm4_gfni_avx512_ocb_dec(ctx->rkey_dec, outbuf, inbuf,
+					  c->u_iv.iv, c->u_ctr.ctr, Ls);
+
+	  nblocks -= 16;
+	  outbuf += 16 * 16;
+	  inbuf += 16 * 16;
+	}
     }
 #endif
 
