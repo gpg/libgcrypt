@@ -66,8 +66,9 @@ typedef struct
   u32 dec_key[ARIA_MAX_RD_KEYS][ARIA_RD_KEY_WORDS];
   int rounds;
 
-  /* The decryption key schedule is available */
-  unsigned int decryption_prepared:1;
+  unsigned int decryption_prepared:1; /* The decryption key is set up. */
+  unsigned int bulk_prefetch_ready:1; /* Look-up table prefetch ready for
+				       * current bulk operation. */
 } ARIA_context;
 
 
@@ -506,6 +507,7 @@ aria_add_round_key(u32 *rk, u32 *t0, u32 *t1, u32 *t2, u32 *t3)
   *t2 ^= rk[2];
   *t3 ^= rk[3];
 }
+
 /* Odd round Substitution & Diffusion */
 static ALWAYS_INLINE void
 aria_subst_diff_odd(u32 *t0, u32 *t1, u32 *t2, u32 *t3)
@@ -803,6 +805,469 @@ aria_decrypt(void *c, byte *outbuf, const byte *inbuf)
 }
 
 
+static unsigned int
+aria_crypt_2blks(ARIA_context *ctx, byte *out, const byte *in,
+		 u32 key[][ARIA_RD_KEY_WORDS])
+{
+  u32 ra0, ra1, ra2, ra3;
+  u32 rb0, rb1, rb2, rb3;
+  int rounds = ctx->rounds;
+  int rkidx = 0;
+
+  ra0 = buf_get_be32(in + 0);
+  ra1 = buf_get_be32(in + 4);
+  ra2 = buf_get_be32(in + 8);
+  ra3 = buf_get_be32(in + 12);
+  rb0 = buf_get_be32(in + 16);
+  rb1 = buf_get_be32(in + 20);
+  rb2 = buf_get_be32(in + 24);
+  rb3 = buf_get_be32(in + 28);
+
+  while (1)
+    {
+      aria_add_round_key(key[rkidx], &ra0, &ra1, &ra2, &ra3);
+      aria_add_round_key(key[rkidx], &rb0, &rb1, &rb2, &rb3);
+      rkidx++;
+
+      aria_subst_diff_odd(&ra0, &ra1, &ra2, &ra3);
+      aria_subst_diff_odd(&rb0, &rb1, &rb2, &rb3);
+      aria_add_round_key(key[rkidx], &ra0, &ra1, &ra2, &ra3);
+      aria_add_round_key(key[rkidx], &rb0, &rb1, &rb2, &rb3);
+      rkidx++;
+
+      if (rkidx >= rounds)
+	break;
+
+      aria_subst_diff_even(&ra0, &ra1, &ra2, &ra3);
+      aria_subst_diff_even(&rb0, &rb1, &rb2, &rb3);
+    }
+
+  aria_last_round(&ra0, &ra1, &ra2, &ra3);
+  aria_last_round(&rb0, &rb1, &rb2, &rb3);
+  aria_add_round_key(key[rkidx], &ra0, &ra1, &ra2, &ra3);
+  aria_add_round_key(key[rkidx], &rb0, &rb1, &rb2, &rb3);
+
+  buf_put_be32(out + 0, ra0);
+  buf_put_be32(out + 4, ra1);
+  buf_put_be32(out + 8, ra2);
+  buf_put_be32(out + 12, ra3);
+  buf_put_be32(out + 16, rb0);
+  buf_put_be32(out + 20, rb1);
+  buf_put_be32(out + 24, rb2);
+  buf_put_be32(out + 28, rb3);
+
+  return 4 * sizeof(void *) + 8 * sizeof(u32); /* stack burn depth */
+}
+
+static unsigned int
+aria_crypt_blocks (ARIA_context *ctx, byte *out, const byte *in,
+		   size_t num_blks, u32 key[][ARIA_RD_KEY_WORDS])
+{
+  unsigned int burn_depth = 0;
+  unsigned int nburn;
+
+  if (!ctx->bulk_prefetch_ready)
+    {
+      prefetch_sboxes();
+      ctx->bulk_prefetch_ready = 1;
+    }
+
+  while (num_blks >= 2)
+    {
+      nburn = aria_crypt_2blks (ctx, out, in, key);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+      out += 2 * 16;
+      in += 2 * 16;
+      num_blks -= 2;
+    }
+
+  while (num_blks)
+    {
+      nburn = aria_crypt (ctx, out, in, key);
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+      out += 16;
+      in += 16;
+      num_blks--;
+    }
+
+  if (burn_depth)
+    burn_depth += sizeof(void *) * 5;
+  return burn_depth;
+}
+
+static unsigned int
+aria_enc_blocks (void *c, byte *out, const byte *in, size_t num_blks)
+{
+  ARIA_context *ctx = (ARIA_context *)c;
+
+  return aria_crypt_blocks (ctx, out, in, num_blks, ctx->enc_key);
+}
+
+static unsigned int
+aria_dec_blocks (void *c, byte *out, const byte *in, size_t num_blks)
+{
+  ARIA_context *ctx = (ARIA_context *)c;
+
+  return aria_crypt_blocks (ctx, out, in, num_blks, ctx->dec_key);
+}
+
+
+/* Bulk encryption of complete blocks in CTR mode.  This function is only
+   intended for the bulk encryption feature of cipher.c.  CTR is expected to be
+   of size 16. */
+static void
+_gcry_aria_ctr_enc(void *context, unsigned char *ctr,
+		   void *outbuf_arg, const void *inbuf_arg,
+		   size_t nblocks)
+{
+  ARIA_context *ctx = context;
+  byte *outbuf = outbuf_arg;
+  const byte *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      byte tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned int tmp_used = ARIA_BLOCK_SIZE;
+      size_t nburn;
+
+      ctx->bulk_prefetch_ready = 0;
+
+      nburn = bulk_ctr_enc_128(ctx, aria_enc_blocks, outbuf, inbuf,
+			       nblocks, ctr, tmpbuf,
+			       sizeof(tmpbuf) / ARIA_BLOCK_SIZE, &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
+}
+
+/* Bulk encryption of complete blocks in CBC mode. */
+static void
+_gcry_aria_cbc_enc (void *context, unsigned char *iv,
+		    void *outbuf_arg, const void *inbuf_arg,
+		    size_t nblocks, int cbc_mac)
+{
+  ARIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char *last_iv;
+  unsigned int burn_depth = 0;
+
+  prefetch_sboxes();
+
+  last_iv = iv;
+
+  for (; nblocks; nblocks--)
+    {
+      cipher_block_xor (outbuf, inbuf, last_iv, ARIA_BLOCK_SIZE);
+
+      burn_depth = aria_crypt (ctx, outbuf, outbuf, ctx->enc_key);
+
+      last_iv = outbuf;
+      inbuf += ARIA_BLOCK_SIZE;
+      if (!cbc_mac)
+	outbuf += ARIA_BLOCK_SIZE;
+    }
+
+  if (last_iv != iv)
+    cipher_block_cpy (iv, last_iv, ARIA_BLOCK_SIZE);
+
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
+}
+
+/* Bulk decryption of complete blocks in CBC mode.  This function is only
+   intended for the bulk encryption feature of cipher.c. */
+static void
+_gcry_aria_cbc_dec(void *context, unsigned char *iv,
+		   void *outbuf_arg, const void *inbuf_arg,
+		   size_t nblocks)
+{
+  ARIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  if (!ctx->decryption_prepared)
+    {
+      aria_set_decrypt_key (ctx);
+      ctx->decryption_prepared = 1;
+    }
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned int tmp_used = ARIA_BLOCK_SIZE;
+      size_t nburn;
+
+      ctx->bulk_prefetch_ready = 0;
+
+      nburn = bulk_cbc_dec_128(ctx, aria_dec_blocks, outbuf, inbuf,
+			       nblocks, iv, tmpbuf,
+			       sizeof(tmpbuf) / ARIA_BLOCK_SIZE, &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
+}
+
+/* Bulk encryption of complete blocks in CFB mode. */
+static void
+_gcry_aria_cfb_enc (void *context, unsigned char *iv,
+		    void *outbuf_arg, const void *inbuf_arg,
+		    size_t nblocks)
+{
+  ARIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned int burn_depth = 0;
+
+  prefetch_sboxes();
+
+  for (; nblocks; nblocks--)
+    {
+      /* Encrypt the IV. */
+      burn_depth = aria_crypt (ctx, iv, iv, ctx->enc_key);
+      /* XOR the input with the IV and store input into IV.  */
+      cipher_block_xor_2dst(outbuf, iv, inbuf, ARIA_BLOCK_SIZE);
+      outbuf += ARIA_BLOCK_SIZE;
+      inbuf += ARIA_BLOCK_SIZE;
+    }
+
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
+}
+
+/* Bulk decryption of complete blocks in CFB mode.  This function is only
+   intended for the bulk encryption feature of cipher.c. */
+static void
+_gcry_aria_cfb_dec(void *context, unsigned char *iv,
+		   void *outbuf_arg, const void *inbuf_arg,
+		   size_t nblocks)
+{
+  ARIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned int tmp_used = ARIA_BLOCK_SIZE;
+      size_t nburn;
+
+      ctx->bulk_prefetch_ready = 0;
+
+      nburn = bulk_cfb_dec_128(ctx, aria_enc_blocks, outbuf, inbuf,
+			       nblocks, iv, tmpbuf,
+			       sizeof(tmpbuf) / ARIA_BLOCK_SIZE, &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
+}
+
+/* Bulk encryption/decryption in ECB mode. */
+static void
+_gcry_aria_ecb_crypt (void *context, void *outbuf_arg,
+		      const void *inbuf_arg, size_t nblocks, int encrypt)
+{
+  ARIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  if (!encrypt && !ctx->decryption_prepared)
+    {
+      aria_set_decrypt_key (ctx);
+      ctx->decryption_prepared = 1;
+    }
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      bulk_crypt_fn_t crypt_blk1_16;
+      size_t nburn;
+
+      ctx->bulk_prefetch_ready = 0;
+      crypt_blk1_16 = encrypt ? aria_enc_blocks : aria_dec_blocks;
+
+      nburn = bulk_ecb_crypt_128(ctx, crypt_blk1_16,
+				 outbuf, inbuf, nblocks, 16);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
+}
+
+/* Bulk encryption/decryption of complete blocks in XTS mode. */
+static void
+_gcry_aria_xts_crypt (void *context, unsigned char *tweak, void *outbuf_arg,
+		      const void *inbuf_arg, size_t nblocks, int encrypt)
+{
+  ARIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  if (!encrypt && !ctx->decryption_prepared)
+    {
+      aria_set_decrypt_key (ctx);
+      ctx->decryption_prepared = 1;
+    }
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned int tmp_used = ARIA_BLOCK_SIZE;
+      bulk_crypt_fn_t crypt_blk1_16;
+      size_t nburn;
+
+      ctx->bulk_prefetch_ready = 0;
+      crypt_blk1_16 = encrypt ? aria_enc_blocks : aria_dec_blocks;
+
+      nburn = bulk_xts_crypt_128(ctx, crypt_blk1_16,
+				 outbuf, inbuf, nblocks,
+				 tweak, tmpbuf,
+				 sizeof(tmpbuf) / ARIA_BLOCK_SIZE,
+				 &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
+}
+
+/* Bulk encryption of complete blocks in CTR32LE mode (for GCM-SIV). */
+static void
+_gcry_aria_ctr32le_enc(void *context, unsigned char *ctr,
+		       void *outbuf_arg, const void *inbuf_arg,
+		       size_t nblocks)
+{
+  ARIA_context *ctx = context;
+  byte *outbuf = outbuf_arg;
+  const byte *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned int tmp_used = ARIA_BLOCK_SIZE;
+      size_t nburn;
+
+      ctx->bulk_prefetch_ready = 0;
+
+      nburn = bulk_ctr32le_enc_128 (ctx, aria_enc_blocks, outbuf, inbuf,
+				    nblocks, ctr, tmpbuf,
+				    sizeof(tmpbuf) / ARIA_BLOCK_SIZE,
+				    &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
+}
+
+/* Bulk encryption/decryption of complete blocks in OCB mode. */
+static size_t
+_gcry_aria_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+		      const void *inbuf_arg, size_t nblocks, int encrypt)
+{
+  ARIA_context *ctx = (void *)&c->context.c;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  u64 blkn = c->u_mode.ocb.data_nblocks;
+  int burn_stack_depth = 0;
+
+  if (!encrypt && !ctx->decryption_prepared)
+    {
+      aria_set_decrypt_key (ctx);
+      ctx->decryption_prepared = 1;
+    }
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned int tmp_used = ARIA_BLOCK_SIZE;
+      bulk_crypt_fn_t crypt_blk1_16;
+      size_t nburn;
+
+      ctx->bulk_prefetch_ready = 0;
+      crypt_blk1_16 = encrypt ? aria_enc_blocks : aria_dec_blocks;
+
+      nburn = bulk_ocb_crypt_128 (c, ctx, crypt_blk1_16, outbuf, inbuf, nblocks,
+				  &blkn, encrypt, tmpbuf,
+				  sizeof(tmpbuf) / ARIA_BLOCK_SIZE,
+				  &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  c->u_mode.ocb.data_nblocks = blkn;
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
+
+  return 0;
+}
+
+/* Bulk authentication of complete blocks in OCB mode. */
+static size_t
+_gcry_aria_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
+{
+  ARIA_context *ctx = (void *)&c->context.c;
+  const unsigned char *abuf = abuf_arg;
+  u64 blkn = c->u_mode.ocb.aad_nblocks;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned int tmp_used = ARIA_BLOCK_SIZE;
+      size_t nburn;
+
+      ctx->bulk_prefetch_ready = 0;
+
+      nburn = bulk_ocb_auth_128 (c, ctx, aria_enc_blocks, abuf, nblocks,
+				 &blkn, tmpbuf,
+				 sizeof(tmpbuf) / ARIA_BLOCK_SIZE, &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  c->u_mode.ocb.aad_nblocks = blkn;
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
+
+  return 0;
+}
+
+
 static gcry_err_code_t
 aria_setkey(void *c, const byte *key, unsigned keylen,
 	    cipher_bulk_ops_t *bulk_ops)
@@ -827,6 +1292,16 @@ aria_setkey(void *c, const byte *key, unsigned keylen,
 
   /* Setup bulk encryption routines.  */
   memset (bulk_ops, 0, sizeof(*bulk_ops));
+  bulk_ops->cbc_enc = _gcry_aria_cbc_enc;
+  bulk_ops->cbc_dec = _gcry_aria_cbc_dec;
+  bulk_ops->cfb_enc = _gcry_aria_cfb_enc;
+  bulk_ops->cfb_dec = _gcry_aria_cfb_dec;
+  bulk_ops->ctr_enc = _gcry_aria_ctr_enc;
+  bulk_ops->ctr32le_enc = _gcry_aria_ctr32le_enc;
+  bulk_ops->ecb_crypt = _gcry_aria_ecb_crypt;
+  bulk_ops->xts_crypt = _gcry_aria_xts_crypt;
+  bulk_ops->ocb_crypt = _gcry_aria_ocb_crypt;
+  bulk_ops->ocb_auth = _gcry_aria_ocb_auth;
 
   /* Setup context and encryption key. */
   ctx->decryption_prepared = 0;
