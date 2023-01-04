@@ -87,13 +87,6 @@ vec_merge_idx0_elems(vector4x_u32 v0, vector4x_u32 v1,
 
 
 static ASM_FUNC_ATTR_INLINE vector4x_u32
-vec_ror_u32(vector4x_u32 v, unsigned int shift)
-{
-  return (v >> (shift & 31)) ^ (v << ((32 - shift) & 31));
-}
-
-
-static ASM_FUNC_ATTR_INLINE vector4x_u32
 vec_vshasigma_u32(vector4x_u32 v, unsigned int a, unsigned int b)
 {
   asm ("vshasigmaw %0,%1,%2,%3"

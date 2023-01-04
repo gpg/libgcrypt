@@ -106,9 +106,9 @@ _gcry_aes_sbox4_ppc8(u32 fourbytes)
 {
   vec_u32 vec_fourbyte = { fourbytes, fourbytes, fourbytes, fourbytes };
 #ifdef WORDS_BIGENDIAN
-  return ((vec_u32)vec_sbox_be((block)vec_fourbyte))[1];
+  return ((vec_u32)asm_sbox_be((block)vec_fourbyte))[1];
 #else
-  return ((vec_u32)vec_sbox_be((block)vec_fourbyte))[2];
+  return ((vec_u32)asm_sbox_be((block)vec_fourbyte))[2];
 #endif
 }
 

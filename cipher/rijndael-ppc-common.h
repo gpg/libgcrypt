@@ -257,6 +257,16 @@ asm_xor(block a, block b)
 }
 
 static ASM_FUNC_ATTR_INLINE block
+asm_sbox_be(block b)
+{
+  block o;
+  __asm__ volatile ("vsbox %0, %1\n\t"
+		    : "=v" (o)
+		    : "v" (b));
+  return o;
+}
+
+static ASM_FUNC_ATTR_INLINE block
 asm_cipher_be(block b, block rk)
 {
   block o;
