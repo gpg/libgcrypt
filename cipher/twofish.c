@@ -1541,10 +1541,10 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
 
 static unsigned int
-twofish_crypt_blk1_16(const void *context, byte *out, const byte *in,
-		      unsigned int num_blks, int encrypt)
+twofish_crypt_blk1_16(void *context, byte *out, const byte *in,
+		      size_t num_blks, int encrypt)
 {
-  const TWOFISH_context *ctx = context;
+  TWOFISH_context *ctx = context;
   unsigned int burn, burn_stack_depth = 0;
 
 #ifdef USE_AVX2
@@ -1584,15 +1584,15 @@ twofish_crypt_blk1_16(const void *context, byte *out, const byte *in,
 }
 
 static unsigned int
-twofish_encrypt_blk1_16(const void *ctx, byte *out, const byte *in,
-			unsigned int num_blks)
+twofish_encrypt_blk1_16(void *ctx, byte *out, const byte *in,
+			size_t num_blks)
 {
   return twofish_crypt_blk1_16 (ctx, out, in, num_blks, 1);
 }
 
 static unsigned int
-twofish_decrypt_blk1_16(const void *ctx, byte *out, const byte *in,
-			unsigned int num_blks)
+twofish_decrypt_blk1_16(void *ctx, byte *out, const byte *in,
+			size_t num_blks)
 {
   return twofish_crypt_blk1_16 (ctx, out, in, num_blks, 0);
 }

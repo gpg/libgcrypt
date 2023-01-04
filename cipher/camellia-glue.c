@@ -616,8 +616,8 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
 
 
 static unsigned int
-camellia_encrypt_blk1_32 (const void *priv, byte *outbuf, const byte *inbuf,
-                          unsigned int num_blks)
+camellia_encrypt_blk1_32 (void *priv, byte *outbuf, const byte *inbuf,
+			  size_t num_blks)
 {
   const CAMELLIA_context *ctx = priv;
   unsigned int stack_burn_size = 0;
@@ -664,10 +664,10 @@ camellia_encrypt_blk1_32 (const void *priv, byte *outbuf, const byte *inbuf,
 }
 
 static unsigned int
-camellia_encrypt_blk1_64 (const void *priv, byte *outbuf, const byte *inbuf,
-                          unsigned int num_blks)
+camellia_encrypt_blk1_64 (void *priv, byte *outbuf, const byte *inbuf,
+			  size_t num_blks)
 {
-  const CAMELLIA_context *ctx = priv;
+  CAMELLIA_context *ctx = priv;
   unsigned int stack_burn_size = 0;
   unsigned int nburn;
 
@@ -696,8 +696,8 @@ camellia_encrypt_blk1_64 (const void *priv, byte *outbuf, const byte *inbuf,
 }
 
 static unsigned int
-camellia_decrypt_blk1_32 (const void *priv, byte *outbuf, const byte *inbuf,
-                          unsigned int num_blks)
+camellia_decrypt_blk1_32 (void *priv, byte *outbuf, const byte *inbuf,
+			  size_t num_blks)
 {
   const CAMELLIA_context *ctx = priv;
   unsigned int stack_burn_size = 0;
@@ -744,10 +744,10 @@ camellia_decrypt_blk1_32 (const void *priv, byte *outbuf, const byte *inbuf,
 }
 
 static unsigned int
-camellia_decrypt_blk1_64 (const void *priv, byte *outbuf, const byte *inbuf,
-                          unsigned int num_blks)
+camellia_decrypt_blk1_64 (void *priv, byte *outbuf, const byte *inbuf,
+			  size_t num_blks)
 {
-  const CAMELLIA_context *ctx = priv;
+  CAMELLIA_context *ctx = priv;
   unsigned int stack_burn_size = 0;
   unsigned int nburn;
 

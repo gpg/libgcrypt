@@ -141,9 +141,7 @@ static size_t _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 static size_t _gcry_sm4_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 				  size_t nblocks);
 
-typedef unsigned int (*crypt_blk1_16_fn_t) (const void *ctx, byte *out,
-                                            const byte *in,
-                                            unsigned int num_blks);
+typedef bulk_crypt_fn_t crypt_blk1_16_fn_t;
 
 typedef struct
 {
@@ -274,12 +272,12 @@ extern void _gcry_sm4_aesni_avx_ocb_auth(const u32 *rk_enc,
 					 const u64 Ls[8]) ASM_FUNC_ABI;
 
 extern unsigned int
-_gcry_sm4_aesni_avx_crypt_blk1_8(const u32 *rk, byte *out, const byte *in,
+_gcry_sm4_aesni_avx_crypt_blk1_8(u32 *rk, byte *out, const byte *in,
 				 unsigned int num_blks) ASM_FUNC_ABI;
 
 static inline unsigned int
-sm4_aesni_avx_crypt_blk1_16(const void *rk, byte *out, const byte *in,
-                            unsigned int num_blks)
+sm4_aesni_avx_crypt_blk1_16(void *rk, byte *out, const byte *in,
+                            size_t num_blks)
 {
   if (num_blks > 8)
     {
@@ -328,12 +326,12 @@ extern void _gcry_sm4_aesni_avx2_ocb_auth(const u32 *rk_enc,
 					  const u64 Ls[16]) ASM_FUNC_ABI;
 
 extern unsigned int
-_gcry_sm4_aesni_avx2_crypt_blk1_16(const u32 *rk, byte *out, const byte *in,
+_gcry_sm4_aesni_avx2_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
 				   unsigned int num_blks) ASM_FUNC_ABI;
 
 static inline unsigned int
-sm4_aesni_avx2_crypt_blk1_16(const void *rk, byte *out, const byte *in,
-                             unsigned int num_blks)
+sm4_aesni_avx2_crypt_blk1_16(void *rk, byte *out, const byte *in,
+			     size_t num_blks)
 {
 #ifdef USE_AESNI_AVX
   /* Use 128-bit register implementation for short input. */
@@ -384,12 +382,12 @@ extern void _gcry_sm4_gfni_avx2_ocb_auth(const u32 *rk_enc,
 					 const u64 Ls[16]) ASM_FUNC_ABI;
 
 extern unsigned int
-_gcry_sm4_gfni_avx2_crypt_blk1_16(const u32 *rk, byte *out, const byte *in,
+_gcry_sm4_gfni_avx2_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
 				  unsigned int num_blks) ASM_FUNC_ABI;
 
 static inline unsigned int
-sm4_gfni_avx2_crypt_blk1_16(const void *rk, byte *out, const byte *in,
-			   unsigned int num_blks)
+sm4_gfni_avx2_crypt_blk1_16(void *rk, byte *out, const byte *in,
+			    size_t num_blks)
 {
   return _gcry_sm4_gfni_avx2_crypt_blk1_16(rk, out, in, num_blks);
 }
@@ -460,16 +458,16 @@ extern void _gcry_sm4_gfni_avx512_ocb_dec_blk32(const u32 *rk_dec,
                                                 const u64 Ls[32]) ASM_FUNC_ABI;
 
 extern unsigned int
-_gcry_sm4_gfni_avx512_crypt_blk1_16(const u32 *rk, byte *out, const byte *in,
+_gcry_sm4_gfni_avx512_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
                                     unsigned int num_blks) ASM_FUNC_ABI;
 
 extern unsigned int
-_gcry_sm4_gfni_avx512_crypt_blk32(const u32 *rk, byte *out,
+_gcry_sm4_gfni_avx512_crypt_blk32(u32 *rk, byte *out,
                                   const byte *in) ASM_FUNC_ABI;
 
 static inline unsigned int
-sm4_gfni_avx512_crypt_blk1_16(const void *rk, byte *out, const byte *in,
-                              unsigned int num_blks)
+sm4_gfni_avx512_crypt_blk1_16(void *rk, byte *out, const byte *in,
+			      size_t num_blks)
 {
   return _gcry_sm4_gfni_avx512_crypt_blk1_16(rk, out, in, num_blks);
 }
@@ -496,13 +494,13 @@ extern void _gcry_sm4_aarch64_cfb_dec(const u32 *rk_enc, byte *out,
 				      byte *iv,
 				      size_t nblocks);
 
-extern void _gcry_sm4_aarch64_crypt_blk1_8(const u32 *rk, byte *out,
+extern void _gcry_sm4_aarch64_crypt_blk1_8(u32 *rk, byte *out,
 					   const byte *in,
 					   size_t num_blocks);
 
 static inline unsigned int
-sm4_aarch64_crypt_blk1_16(const void *rk, byte *out, const byte *in,
-                          unsigned int num_blks)
+sm4_aarch64_crypt_blk1_16(void *rk, byte *out, const byte *in,
+			  size_t num_blks)
 {
   if (num_blks > 8)
     {
@@ -547,13 +545,13 @@ extern void _gcry_sm4_armv8_ce_xts_crypt(const u32 *rk, byte *out,
 					 byte *tweak,
 					 size_t nblocks);
 
-extern void _gcry_sm4_armv8_ce_crypt_blk1_8(const u32 *rk, byte *out,
+extern void _gcry_sm4_armv8_ce_crypt_blk1_8(u32 *rk, byte *out,
 					    const byte *in,
 					    size_t num_blocks);
 
 static inline unsigned int
-sm4_armv8_ce_crypt_blk1_16(const void *rk, byte *out, const byte *in,
-                           unsigned int num_blks)
+sm4_armv8_ce_crypt_blk1_16(void *rk, byte *out, const byte *in,
+			   size_t num_blks)
 {
   if (num_blks > 8)
     {
@@ -570,7 +568,7 @@ sm4_armv8_ce_crypt_blk1_16(const void *rk, byte *out, const byte *in,
 #endif /* USE_ARM_CE */
 
 #ifdef USE_ARM_SVE_CE
-extern void _gcry_sm4_armv9_sve_ce_crypt(const u32 *rk, byte *out,
+extern void _gcry_sm4_armv9_sve_ce_crypt(u32 *rk, byte *out,
 					 const byte *in,
 					 size_t nblocks);
 
@@ -590,8 +588,8 @@ extern void _gcry_sm4_armv9_sve_ce_cfb_dec(const u32 *rk_enc, byte *out,
 					   size_t nblocks);
 
 static inline unsigned int
-sm4_armv9_sve_ce_crypt_blk1_16(const void *rk, byte *out, const byte *in,
-			       unsigned int num_blks)
+sm4_armv9_sve_ce_crypt_blk1_16(void *rk, byte *out, const byte *in,
+			       size_t num_blks)
 {
   _gcry_sm4_armv9_sve_ce_crypt(rk, out, in, num_blks);
   return 0;
@@ -934,8 +932,8 @@ sm4_do_crypt_blks2 (const u32 *rk, byte *out, const byte *in)
 }
 
 static unsigned int
-sm4_crypt_blocks (const void *ctx, byte *out, const byte *in,
-		  unsigned int num_blks)
+sm4_crypt_blocks (void *ctx, byte *out, const byte *in,
+		  size_t num_blks)
 {
   const u32 *rk = ctx;
   unsigned int burn_depth = 0;
@@ -1468,8 +1466,8 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
 }
 
 static unsigned int
-sm4_crypt_blk1_32 (const SM4_context *ctx, byte *outbuf, const byte *inbuf,
-                   unsigned int num_blks, const u32 *rk)
+sm4_crypt_blk1_32 (SM4_context *ctx, byte *outbuf, const byte *inbuf,
+		   size_t num_blks, u32 *rk)
 {
   crypt_blk1_16_fn_t crypt_blk1_16 = ctx->crypt_blk1_16;
   unsigned int stack_burn_size = 0;
@@ -1506,18 +1504,18 @@ sm4_crypt_blk1_32 (const SM4_context *ctx, byte *outbuf, const byte *inbuf,
 }
 
 static unsigned int
-sm4_encrypt_blk1_32 (const void *context, byte *out, const byte *in,
-                     unsigned int num_blks)
+sm4_encrypt_blk1_32 (void *context, byte *out, const byte *in,
+		     size_t num_blks)
 {
-  const SM4_context *ctx = context;
+  SM4_context *ctx = context;
   return sm4_crypt_blk1_32 (ctx, out, in, num_blks, ctx->rkey_enc);
 }
 
 static unsigned int
-sm4_decrypt_blk1_32 (const void *context, byte *out, const byte *in,
-                     unsigned int num_blks)
+sm4_decrypt_blk1_32 (void *context, byte *out, const byte *in,
+		     size_t num_blks)
 {
-  const SM4_context *ctx = context;
+  SM4_context *ctx = context;
   return sm4_crypt_blk1_32 (ctx, out, in, num_blks, ctx->rkey_dec);
 }
 

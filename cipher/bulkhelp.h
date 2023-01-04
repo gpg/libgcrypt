@@ -32,9 +32,9 @@ typedef u64 ocb_L_uintptr_t;
 typedef uintptr_t ocb_L_uintptr_t;
 #endif
 
-typedef unsigned int (*bulk_crypt_fn_t) (const void *ctx, byte *out,
+typedef unsigned int (*bulk_crypt_fn_t) (void *ctx, byte *out,
                                          const byte *in,
-                                         unsigned int num_blks);
+                                         size_t num_blks);
 
 
 static inline ocb_L_uintptr_t *
