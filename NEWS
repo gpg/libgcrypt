@@ -1,6 +1,15 @@
-Noteworthy changes in version 1.8.10 (unreleased)  [C22/A2/R__]
+Noteworthy changes in version 1.8.10 (2023-01-05)  [C22/A2/R11]
 -------------------------------------------------
 
+ * Bug fixes:
+
+   - Avoid useless reseeds for child process in the FIPS 140-2 random
+     generator.  [rC35a7409dcf]
+
+ * Other features:
+
+   - New make target to create a tarball with the entire regressison
+     test suite.  [rC47993489a8]
 
  Release-info: https://dev.gnupg.org/T5818
 
