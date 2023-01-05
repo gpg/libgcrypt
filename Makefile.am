@@ -70,7 +70,7 @@ dist-hook: gen-ChangeLog
 
 distcheck-hook:
 	set -e; ( \
-	pref="#+macro: $$(echo $(PACKAGE_NAME)|tr '-' '_')_" ;\
+	pref="#+macro: $$(echo $(PACKAGE_NAME)18|tr '-' '_')_" ;\
 	reldate="$$(date -u +%Y-%m-%d)" ;\
         echo "$${pref}ver  $(PACKAGE_VERSION)"  ;\
         echo "$${pref}date $${reldate}" ;\
