@@ -591,6 +591,7 @@ run_all_rng_tests (const char *program)
       if (len > maxlen)
         maxlen = len;
     }
+  maxlen += 2;  /* For "./" on Unix */
   maxlen += strlen (program);
   maxlen += strlen (" --in-recursion --verbose --debug --progress");
   maxlen++;
@@ -602,7 +603,12 @@ run_all_rng_tests (const char *program)
     {
       if (verbose)
         info ("now running with options '%s'\n", options[idx]);
-      strcpy (cmdline, program);
+      *cmdline = 0;
+#ifndef HAVE_W32_SYSTEM
+      if (!strchr (program, '/'))
+        strcat (cmdline, "./");
+#endif
+      strcat (cmdline, program);
       strcat (cmdline, " --in-recursion");
       if (verbose)
         strcat (cmdline, " --verbose");
