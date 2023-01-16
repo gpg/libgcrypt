@@ -1560,10 +1560,10 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
 	    }
 
 	  asm volatile ("vmovdqa %%xmm15, %%xmm7\n\t"
-			"vpxorq %%zmm16, %%zmm16, %%zmm16\n\t"
-			"vpxorq %%zmm17, %%zmm17, %%zmm17\n\t"
-			"vpxorq %%zmm18, %%zmm18, %%zmm18\n\t"
-			"vpxorq %%zmm19, %%zmm19, %%zmm19\n\t"
+			"vpxorq %%ymm16, %%ymm16, %%ymm16\n\t"
+			"vpxorq %%ymm17, %%ymm17, %%ymm17\n\t"
+			"vpxorq %%ymm18, %%ymm18, %%ymm18\n\t"
+			"vpxorq %%ymm19, %%ymm19, %%ymm19\n\t"
 			:
 			:
 			: "memory" );
@@ -1838,15 +1838,15 @@ _gcry_polyval_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
 	    }
 
 	  asm volatile ("vpxor %%xmm7, %%xmm7, %%xmm7\n\t"
-			"vpxorq %%zmm16, %%zmm16, %%zmm16\n\t"
-			"vpxorq %%zmm17, %%zmm17, %%zmm17\n\t"
-			"vpxorq %%zmm18, %%zmm18, %%zmm18\n\t"
-			"vpxorq %%zmm19, %%zmm19, %%zmm19\n\t"
+			"vpxorq %%ymm16, %%ymm16, %%ymm16\n\t"
+			"vpxorq %%ymm17, %%ymm17, %%ymm17\n\t"
+			"vpxorq %%ymm18, %%ymm18, %%ymm18\n\t"
+			"vpxorq %%ymm19, %%ymm19, %%ymm19\n\t"
 			:
 			:
 			: "memory" );
 	}
-#endif
+#endif /* GCM_USE_INTEL_VPCLMUL_AVX512 */
 
       if (nblocks >= 16)
 	{

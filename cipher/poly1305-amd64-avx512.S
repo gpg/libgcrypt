@@ -1425,10 +1425,10 @@ ELF(.size _gcry_poly1305_avx512_consts,.-_gcry_poly1305_avx512_consts)
 	vmovdqa64 [rsp + STACK_r_save + 64*5], zmm0; \
 	\
 	vzeroall; \
-	clear_zmm(xmm16); clear_zmm(xmm20); clear_zmm(xmm24); clear_zmm(xmm28); \
-	clear_zmm(xmm17); clear_zmm(xmm21); clear_zmm(xmm25); clear_zmm(xmm29); \
-	clear_zmm(xmm18); clear_zmm(xmm22); clear_zmm(xmm26); clear_zmm(xmm30); \
-	clear_zmm(xmm19); clear_zmm(xmm23); clear_zmm(xmm27); clear_zmm(xmm31); \
+	clear_zmm(ymm16); clear_zmm(ymm20); clear_zmm(ymm24); clear_zmm(ymm28); \
+	clear_zmm(ymm17); clear_zmm(ymm21); clear_zmm(ymm25); clear_zmm(ymm29); \
+	clear_zmm(ymm18); clear_zmm(ymm22); clear_zmm(ymm26); clear_zmm(ymm30); \
+	clear_zmm(ymm19); clear_zmm(ymm23); clear_zmm(ymm27); clear_zmm(ymm31); \
 	\
 .L_final_loop: \
 	cmp     LEN, POLY1305_BLOCK_SIZE; \

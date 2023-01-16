@@ -205,10 +205,10 @@
 	vpxord v3, v3, v3;
 
 #define clear_zmm16_zmm31() \
-	clear_vec4(%xmm16, %xmm20, %xmm24, %xmm28); \
-	clear_vec4(%xmm17, %xmm21, %xmm25, %xmm29); \
-	clear_vec4(%xmm18, %xmm22, %xmm26, %xmm30); \
-	clear_vec4(%xmm19, %xmm23, %xmm27, %xmm31);
+	clear_vec4(%ymm16, %ymm20, %ymm24, %ymm28); \
+	clear_vec4(%ymm17, %ymm21, %ymm25, %ymm29); \
+	clear_vec4(%ymm18, %ymm22, %ymm26, %ymm30); \
+	clear_vec4(%ymm19, %ymm23, %ymm27, %ymm31);
 
 /**********************************************************************
   16-way (zmm), 8-way (ymm), 4-way (xmm) chacha20

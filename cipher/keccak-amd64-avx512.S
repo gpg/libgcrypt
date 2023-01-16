@@ -160,14 +160,14 @@
 
 /* Misc helper macros. */
 #define clear_avx512_4regs(a, b, c, d) \
-	eor(a, a, a); vmovdqa64 a, b; vmovdqa64 a, c; vmovdqa64 a, d;
+	eor(a, a, a); eor(b, b, b); eor(c, c, c); eor(d, d, d);
 
 #define clear_regs() \
 	vzeroall; /* xmm0-xmm15 */ \
-	clear_avx512_4regs(%xmm16, %xmm17, %xmm18, %xmm19); \
-	clear_avx512_4regs(%xmm20, %xmm21, %xmm22, %xmm23); \
-	clear_avx512_4regs(%xmm24, %xmm25, %xmm26, %xmm27); \
-	clear_avx512_4regs(%xmm28, %xmm29, %xmm30, %xmm31);
+	clear_avx512_4regs(%ymm16, %ymm17, %ymm18, %ymm19); \
+	clear_avx512_4regs(%ymm20, %ymm21, %ymm22, %ymm23); \
+	clear_avx512_4regs(%ymm24, %ymm25, %ymm26, %ymm27); \
+	clear_avx512_4regs(%ymm28, %ymm29, %ymm30, %ymm31);
 
 ELF(.type	KeccakF1600_ce,@function)
 .align	64, 0xcc
