@@ -848,7 +848,7 @@ Out_no_chacha:
 	li	3, 0
 	blr
 
-.data
+.section .rodata
 .align 4
 sigma:
 .long 0x61707865, 0x3320646e, 0x79622d32, 0x6b206574
