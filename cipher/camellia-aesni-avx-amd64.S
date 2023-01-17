@@ -764,7 +764,7 @@
 	.long 0x0f0f0f0f
 
 
-.align 8
+.align 16
 ELF(.type   __camellia_enc_blk16,@function;)
 
 __camellia_enc_blk16:
@@ -826,7 +826,7 @@ __camellia_enc_blk16:
 	CFI_ENDPROC();
 ELF(.size __camellia_enc_blk16,.-__camellia_enc_blk16;)
 
-.align 8
+.align 16
 ELF(.type   __camellia_dec_blk16,@function;)
 
 __camellia_dec_blk16:
@@ -897,7 +897,7 @@ ELF(.size __camellia_dec_blk16,.-__camellia_dec_blk16;)
 	vpslldq $8, tmp, tmp; \
 	vpsubq tmp, x, x;
 
-.align 8
+.align 16
 .globl _gcry_camellia_aesni_avx_ctr_enc
 ELF(.type   _gcry_camellia_aesni_avx_ctr_enc,@function;)
 
@@ -1025,7 +1025,7 @@ _gcry_camellia_aesni_avx_ctr_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_ctr_enc,.-_gcry_camellia_aesni_avx_ctr_enc;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_aesni_avx_cbc_dec
 ELF(.type   _gcry_camellia_aesni_avx_cbc_dec,@function;)
 
@@ -1098,7 +1098,7 @@ _gcry_camellia_aesni_avx_cbc_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_cbc_dec,.-_gcry_camellia_aesni_avx_cbc_dec;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_aesni_avx_cfb_dec
 ELF(.type   _gcry_camellia_aesni_avx_cfb_dec,@function;)
 
@@ -1180,7 +1180,7 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_cfb_dec,.-_gcry_camellia_aesni_avx_cfb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_aesni_avx_ocb_enc
 ELF(.type   _gcry_camellia_aesni_avx_ocb_enc,@function;)
 
@@ -1332,7 +1332,7 @@ _gcry_camellia_aesni_avx_ocb_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_ocb_enc,.-_gcry_camellia_aesni_avx_ocb_enc;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_aesni_avx_ocb_dec
 ELF(.type   _gcry_camellia_aesni_avx_ocb_dec,@function;)
 
@@ -1503,7 +1503,7 @@ _gcry_camellia_aesni_avx_ocb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_ocb_dec,.-_gcry_camellia_aesni_avx_ocb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_aesni_avx_ocb_auth
 ELF(.type   _gcry_camellia_aesni_avx_ocb_auth,@function;)
 
@@ -1753,7 +1753,7 @@ ELF(.size _gcry_camellia_aesni_avx_ocb_auth,.-_gcry_camellia_aesni_avx_ocb_auth;
 	.long 0xB3E6C1FD, 0xB05688C2;
 
 
-.align 8
+.align 16
 ELF(.type  __camellia_avx_setup128,@function;)
 __camellia_avx_setup128:
 	/* input:
@@ -2100,7 +2100,7 @@ __camellia_avx_setup128:
 	CFI_ENDPROC();
 ELF(.size __camellia_avx_setup128,.-__camellia_avx_setup128;)
 
-.align 8
+.align 16
 ELF(.type  __camellia_avx_setup256,@function;)
 
 __camellia_avx_setup256:
@@ -2580,7 +2580,7 @@ __camellia_avx_setup256:
 	CFI_ENDPROC();
 ELF(.size __camellia_avx_setup256,.-__camellia_avx_setup256;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_aesni_avx_keygen
 ELF(.type  _gcry_camellia_aesni_avx_keygen,@function;)
 

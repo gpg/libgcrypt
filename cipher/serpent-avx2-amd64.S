@@ -401,7 +401,7 @@
 
 .text
 
-.align 8
+.align 16
 ELF(.type   __serpent_enc_blk16,@function;)
 __serpent_enc_blk16:
 	/* input:
@@ -491,7 +491,7 @@ __serpent_enc_blk16:
 	CFI_ENDPROC();
 ELF(.size __serpent_enc_blk16,.-__serpent_enc_blk16;)
 
-.align 8
+.align 16
 ELF(.type   __serpent_dec_blk16,@function;)
 __serpent_dec_blk16:
 	/* input:
@@ -583,7 +583,7 @@ __serpent_dec_blk16:
 	CFI_ENDPROC();
 ELF(.size __serpent_dec_blk16,.-__serpent_dec_blk16;)
 
-.align 8
+.align 16
 .globl _gcry_serpent_avx2_blk16
 ELF(.type   _gcry_serpent_avx2_blk16,@function;)
 _gcry_serpent_avx2_blk16:
@@ -639,7 +639,7 @@ ELF(.size _gcry_serpent_avx2_blk16,.-_gcry_serpent_avx2_blk16;)
 	vpslldq $8, tmp, tmp; \
 	vpsubq tmp, x, x;
 
-.align 8
+.align 16
 .globl _gcry_serpent_avx2_ctr_enc
 ELF(.type   _gcry_serpent_avx2_ctr_enc,@function;)
 _gcry_serpent_avx2_ctr_enc:
@@ -751,7 +751,7 @@ _gcry_serpent_avx2_ctr_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ctr_enc,.-_gcry_serpent_avx2_ctr_enc;)
 
-.align 8
+.align 16
 .globl _gcry_serpent_avx2_cbc_dec
 ELF(.type   _gcry_serpent_avx2_cbc_dec,@function;)
 _gcry_serpent_avx2_cbc_dec:
@@ -804,7 +804,7 @@ _gcry_serpent_avx2_cbc_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_cbc_dec,.-_gcry_serpent_avx2_cbc_dec;)
 
-.align 8
+.align 16
 .globl _gcry_serpent_avx2_cfb_dec
 ELF(.type   _gcry_serpent_avx2_cfb_dec,@function;)
 _gcry_serpent_avx2_cfb_dec:
@@ -859,7 +859,7 @@ _gcry_serpent_avx2_cfb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_cfb_dec,.-_gcry_serpent_avx2_cfb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_serpent_avx2_ocb_enc
 ELF(.type _gcry_serpent_avx2_ocb_enc,@function;)
 
@@ -973,7 +973,7 @@ _gcry_serpent_avx2_ocb_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_enc,.-_gcry_serpent_avx2_ocb_enc;)
 
-.align 8
+.align 16
 .globl _gcry_serpent_avx2_ocb_dec
 ELF(.type _gcry_serpent_avx2_ocb_dec,@function;)
 
@@ -1097,7 +1097,7 @@ _gcry_serpent_avx2_ocb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_dec,.-_gcry_serpent_avx2_ocb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_serpent_avx2_ocb_auth
 ELF(.type _gcry_serpent_avx2_ocb_auth,@function;)
 

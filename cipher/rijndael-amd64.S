@@ -200,7 +200,7 @@
 #define lastencround(round) \
 	do_lastencround((round) + 1);
 
-.align 8
+.align 16
 .globl _gcry_aes_amd64_encrypt_block
 ELF(.type   _gcry_aes_amd64_encrypt_block,@function;)
 
@@ -377,7 +377,7 @@ ELF(.size _gcry_aes_amd64_encrypt_block,.-_gcry_aes_amd64_encrypt_block;)
 #define lastdecround(round) \
 	do_lastdecround(round);
 
-.align 8
+.align 16
 .globl _gcry_aes_amd64_decrypt_block
 ELF(.type   _gcry_aes_amd64_decrypt_block,@function;)
 

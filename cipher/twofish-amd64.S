@@ -161,7 +161,7 @@
 	xorl (w + 4 * (m))(CTX), x; \
 	movl x, (4 * (n))(out);
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_encrypt_block
 ELF(.type   _gcry_twofish_amd64_encrypt_block,@function;)
 
@@ -215,7 +215,7 @@ _gcry_twofish_amd64_encrypt_block:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_decrypt_block
 ELF(.type   _gcry_twofish_amd64_decrypt_block,@function;)
 
@@ -486,7 +486,7 @@ ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;
 	rorq $32,			RAB2; \
 	outunpack3(RAB, 2);
 
-.align 8
+.align 16
 ELF(.type __twofish_enc_blk3,@function;)
 
 __twofish_enc_blk3:
@@ -515,7 +515,7 @@ __twofish_enc_blk3:
 	CFI_ENDPROC();
 ELF(.size __twofish_enc_blk3,.-__twofish_enc_blk3;)
 
-.align 8
+.align 16
 ELF(.type  __twofish_dec_blk3,@function;)
 
 __twofish_dec_blk3:
@@ -544,7 +544,7 @@ __twofish_dec_blk3:
 	CFI_ENDPROC();
 ELF(.size __twofish_dec_blk3,.-__twofish_dec_blk3;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_blk3
 ELF(.type   _gcry_twofish_amd64_blk3,@function;)
 _gcry_twofish_amd64_blk3:
@@ -618,7 +618,7 @@ _gcry_twofish_amd64_blk3:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_blk3,.-_gcry_twofish_amd64_blk3;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_ctr_enc
 ELF(.type   _gcry_twofish_amd64_ctr_enc,@function;)
 _gcry_twofish_amd64_ctr_enc:
@@ -719,7 +719,7 @@ _gcry_twofish_amd64_ctr_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ctr_enc,.-_gcry_twofish_amd64_ctr_enc;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_cbc_dec
 ELF(.type   _gcry_twofish_amd64_cbc_dec,@function;)
 _gcry_twofish_amd64_cbc_dec:
@@ -804,7 +804,7 @@ _gcry_twofish_amd64_cbc_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_cbc_dec,.-_gcry_twofish_amd64_cbc_dec;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_cfb_dec
 ELF(.type   _gcry_twofish_amd64_cfb_dec,@function;)
 _gcry_twofish_amd64_cfb_dec:
@@ -889,7 +889,7 @@ _gcry_twofish_amd64_cfb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_cfb_dec,.-_gcry_twofish_amd64_cfb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_ocb_enc
 ELF(.type   _gcry_twofish_amd64_ocb_enc,@function;)
 _gcry_twofish_amd64_ocb_enc:
@@ -1015,7 +1015,7 @@ _gcry_twofish_amd64_ocb_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ocb_enc,.-_gcry_twofish_amd64_ocb_enc;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_ocb_dec
 ELF(.type   _gcry_twofish_amd64_ocb_dec,@function;)
 _gcry_twofish_amd64_ocb_dec:
@@ -1149,7 +1149,7 @@ _gcry_twofish_amd64_ocb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_amd64_ocb_dec,.-_gcry_twofish_amd64_ocb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_amd64_ocb_auth
 ELF(.type   _gcry_twofish_amd64_ocb_auth,@function;)
 _gcry_twofish_amd64_ocb_auth:

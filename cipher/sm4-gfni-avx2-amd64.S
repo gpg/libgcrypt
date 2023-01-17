@@ -133,7 +133,7 @@
 .Lbswap32_mask:
 	.byte 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12
 
-.align 8
+.align 16
 .globl _gcry_sm4_gfni_avx2_expand_key
 ELF(.type   _gcry_sm4_gfni_avx2_expand_key,@function;)
 _gcry_sm4_gfni_avx2_expand_key:
@@ -216,7 +216,7 @@ _gcry_sm4_gfni_avx2_expand_key:
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_gfni_avx2_expand_key,.-_gcry_sm4_gfni_avx2_expand_key;)
 
-.align 8
+.align 16
 ELF(.type   sm4_gfni_avx2_crypt_blk1_4,@function;)
 sm4_gfni_avx2_crypt_blk1_4:
 	/* input:
@@ -314,7 +314,7 @@ sm4_gfni_avx2_crypt_blk1_4:
 	CFI_ENDPROC();
 ELF(.size sm4_gfni_avx2_crypt_blk1_4,.-sm4_gfni_avx2_crypt_blk1_4;)
 
-.align 8
+.align 16
 ELF(.type __sm4_gfni_crypt_blk8,@function;)
 __sm4_gfni_crypt_blk8:
 	/* input:
@@ -415,7 +415,7 @@ __sm4_gfni_crypt_blk8:
 	CFI_ENDPROC();
 ELF(.size __sm4_gfni_crypt_blk8,.-__sm4_gfni_crypt_blk8;)
 
-.align 8
+.align 16
 ELF(.type   _gcry_sm4_gfni_avx2_crypt_blk1_8,@function;)
 _gcry_sm4_gfni_avx2_crypt_blk1_8:
 	/* input:
@@ -472,7 +472,7 @@ ELF(.size _gcry_sm4_gfni_avx2_crypt_blk1_8,.-_gcry_sm4_gfni_avx2_crypt_blk1_8;)
   16-way SM4 with GFNI and AVX2
  **********************************************************************/
 
-.align 8
+.align 16
 ELF(.type   __sm4_gfni_crypt_blk16,@function;)
 __sm4_gfni_crypt_blk16:
 	/* input:
@@ -573,7 +573,7 @@ __sm4_gfni_crypt_blk16:
 	CFI_ENDPROC();
 ELF(.size __sm4_gfni_crypt_blk16,.-__sm4_gfni_crypt_blk16;)
 
-.align 8
+.align 16
 .globl _gcry_sm4_gfni_avx2_crypt_blk1_16
 ELF(.type   _gcry_sm4_gfni_avx2_crypt_blk1_16,@function;)
 _gcry_sm4_gfni_avx2_crypt_blk1_16:
@@ -641,7 +641,7 @@ ELF(.size _gcry_sm4_gfni_avx2_crypt_blk1_16,.-_gcry_sm4_gfni_avx2_crypt_blk1_16;
 	vpslldq $8, tmp, tmp; \
 	vpsubq tmp, x, x;
 
-.align 8
+.align 16
 .globl _gcry_sm4_gfni_avx2_ctr_enc
 ELF(.type   _gcry_sm4_gfni_avx2_ctr_enc,@function;)
 _gcry_sm4_gfni_avx2_ctr_enc:
@@ -751,7 +751,7 @@ _gcry_sm4_gfni_avx2_ctr_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_gfni_avx2_ctr_enc,.-_gcry_sm4_gfni_avx2_ctr_enc;)
 
-.align 8
+.align 16
 .globl _gcry_sm4_gfni_avx2_cbc_dec
 ELF(.type   _gcry_sm4_gfni_avx2_cbc_dec,@function;)
 _gcry_sm4_gfni_avx2_cbc_dec:
@@ -802,7 +802,7 @@ _gcry_sm4_gfni_avx2_cbc_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_gfni_avx2_cbc_dec,.-_gcry_sm4_gfni_avx2_cbc_dec;)
 
-.align 8
+.align 16
 .globl _gcry_sm4_gfni_avx2_cfb_dec
 ELF(.type   _gcry_sm4_gfni_avx2_cfb_dec,@function;)
 _gcry_sm4_gfni_avx2_cfb_dec:
@@ -855,7 +855,7 @@ _gcry_sm4_gfni_avx2_cfb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_gfni_avx2_cfb_dec,.-_gcry_sm4_gfni_avx2_cfb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_sm4_gfni_avx2_ocb_enc
 ELF(.type _gcry_sm4_gfni_avx2_ocb_enc,@function;)
 
@@ -967,7 +967,7 @@ _gcry_sm4_gfni_avx2_ocb_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_gfni_avx2_ocb_enc,.-_gcry_sm4_gfni_avx2_ocb_enc;)
 
-.align 8
+.align 16
 .globl _gcry_sm4_gfni_avx2_ocb_dec
 ELF(.type _gcry_sm4_gfni_avx2_ocb_dec,@function;)
 
@@ -1089,7 +1089,7 @@ _gcry_sm4_gfni_avx2_ocb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_gfni_avx2_ocb_dec,.-_gcry_sm4_gfni_avx2_ocb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_sm4_gfni_avx2_ocb_auth
 ELF(.type _gcry_sm4_gfni_avx2_ocb_auth,@function;)
 

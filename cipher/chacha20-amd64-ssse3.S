@@ -164,7 +164,7 @@ chacha20_data:
 .Lunsigned_cmp:
 	.long 0x80000000,0x80000000,0x80000000,0x80000000
 
-.align 8
+.align 16
 .globl _gcry_chacha20_amd64_ssse3_blocks4
 ELF(.type _gcry_chacha20_amd64_ssse3_blocks4,@function;)
 
@@ -366,7 +366,7 @@ ELF(.size _gcry_chacha20_amd64_ssse3_blocks4,
 				   ROTATE(x1, 7, tmp1); \
 	  WORD_SHUF(x1, shuf_x1);
 
-.align 8
+.align 16
 .globl _gcry_chacha20_amd64_ssse3_blocks1
 ELF(.type _gcry_chacha20_amd64_ssse3_blocks1,@function;)
 
@@ -513,7 +513,7 @@ ELF(.size _gcry_chacha20_amd64_ssse3_blocks1,
 
 #define _ /*_*/
 
-.align 8
+.align 16
 .globl _gcry_chacha20_poly1305_amd64_ssse3_blocks4
 ELF(.type _gcry_chacha20_poly1305_amd64_ssse3_blocks4,@function;)
 
@@ -781,7 +781,7 @@ ELF(.size _gcry_chacha20_poly1305_amd64_ssse3_blocks4,
   2-way && 1-way stitched chacha20-poly1305
  **********************************************************************/
 
-.align 8
+.align 16
 .globl _gcry_chacha20_poly1305_amd64_ssse3_blocks1
 ELF(.type _gcry_chacha20_poly1305_amd64_ssse3_blocks1,@function;)
 

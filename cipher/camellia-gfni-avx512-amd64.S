@@ -691,7 +691,7 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 
 ELF(.size _gcry_camellia_gfni_avx512__constants,.-_gcry_camellia_gfni_avx512__constants;)
 
-.align 8
+.align 16
 ELF(.type   __camellia_gfni_avx512_enc_blk64,@function;)
 
 __camellia_gfni_avx512_enc_blk64:
@@ -751,7 +751,7 @@ __camellia_gfni_avx512_enc_blk64:
 	CFI_ENDPROC();
 ELF(.size __camellia_gfni_avx512_enc_blk64,.-__camellia_gfni_avx512_enc_blk64;)
 
-.align 8
+.align 16
 ELF(.type   __camellia_gfni_avx512_dec_blk64,@function;)
 
 __camellia_gfni_avx512_dec_blk64:
@@ -820,7 +820,7 @@ ELF(.size __camellia_gfni_avx512_dec_blk64,.-__camellia_gfni_avx512_dec_blk64;)
 	kaddb %k1, %k1, %k1; \
 	vpaddq hi_counter1, out, out{%k1};
 
-.align 8
+.align 16
 .globl _gcry_camellia_gfni_avx512_ctr_enc
 ELF(.type   _gcry_camellia_gfni_avx512_ctr_enc,@function;)
 
@@ -973,7 +973,7 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_ctr_enc,.-_gcry_camellia_gfni_avx512_ctr_enc;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_gfni_avx512_cbc_dec
 ELF(.type   _gcry_camellia_gfni_avx512_cbc_dec,@function;)
 
@@ -1035,7 +1035,7 @@ _gcry_camellia_gfni_avx512_cbc_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_cbc_dec,.-_gcry_camellia_gfni_avx512_cbc_dec;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_gfni_avx512_cfb_dec
 ELF(.type   _gcry_camellia_gfni_avx512_cfb_dec,@function;)
 
@@ -1108,7 +1108,7 @@ _gcry_camellia_gfni_avx512_cfb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_cfb_dec,.-_gcry_camellia_gfni_avx512_cfb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_gfni_avx512_ocb_enc
 ELF(.type   _gcry_camellia_gfni_avx512_ocb_enc,@function;)
 
@@ -1271,7 +1271,7 @@ _gcry_camellia_gfni_avx512_ocb_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_ocb_enc,.-_gcry_camellia_gfni_avx512_ocb_enc;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_gfni_avx512_ocb_dec
 ELF(.type   _gcry_camellia_gfni_avx512_ocb_dec,@function;)
 
@@ -1440,7 +1440,7 @@ _gcry_camellia_gfni_avx512_ocb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_ocb_dec,.-_gcry_camellia_gfni_avx512_ocb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_gfni_avx512_enc_blk64
 ELF(.type   _gcry_camellia_gfni_avx512_enc_blk64,@function;)
 
@@ -1504,7 +1504,7 @@ _gcry_camellia_gfni_avx512_enc_blk64:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_enc_blk64,.-_gcry_camellia_gfni_avx512_enc_blk64;)
 
-.align 8
+.align 16
 .globl _gcry_camellia_gfni_avx512_dec_blk64
 ELF(.type   _gcry_camellia_gfni_avx512_dec_blk64,@function;)
 

@@ -402,7 +402,7 @@
 	outunpack_dec8(a ## 0, b ## 0, c ## 0, d ## 0); \
 	outunpack_dec8(a ## 1, b ## 1, c ## 1, d ## 1);
 
-.align 8
+.align 16
 ELF(.type __twofish_enc_blk16,@function;)
 __twofish_enc_blk16:
 	/* input:
@@ -435,7 +435,7 @@ __twofish_enc_blk16:
 	CFI_ENDPROC();
 ELF(.size __twofish_enc_blk16,.-__twofish_enc_blk16;)
 
-.align 8
+.align 16
 ELF(.type __twofish_dec_blk16,@function;)
 __twofish_dec_blk16:
 	/* input:
@@ -468,7 +468,7 @@ __twofish_dec_blk16:
 	CFI_ENDPROC();
 ELF(.size __twofish_dec_blk16,.-__twofish_dec_blk16;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_avx2_blk16
 ELF(.type   _gcry_twofish_avx2_blk16,@function;)
 _gcry_twofish_avx2_blk16:
@@ -520,7 +520,7 @@ ELF(.size _gcry_twofish_avx2_blk16,.-_gcry_twofish_avx2_blk16;)
 	vpslldq $8, tmp, tmp; \
 	vpsubq tmp, x, x;
 
-.align 8
+.align 16
 .globl _gcry_twofish_avx2_ctr_enc
 ELF(.type   _gcry_twofish_avx2_ctr_enc,@function;)
 _gcry_twofish_avx2_ctr_enc:
@@ -632,7 +632,7 @@ _gcry_twofish_avx2_ctr_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ctr_enc,.-_gcry_twofish_avx2_ctr_enc;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_avx2_cbc_dec
 ELF(.type   _gcry_twofish_avx2_cbc_dec,@function;)
 _gcry_twofish_avx2_cbc_dec:
@@ -685,7 +685,7 @@ _gcry_twofish_avx2_cbc_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_cbc_dec,.-_gcry_twofish_avx2_cbc_dec;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_avx2_cfb_dec
 ELF(.type   _gcry_twofish_avx2_cfb_dec,@function;)
 _gcry_twofish_avx2_cfb_dec:
@@ -740,7 +740,7 @@ _gcry_twofish_avx2_cfb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_cfb_dec,.-_gcry_twofish_avx2_cfb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_avx2_ocb_enc
 ELF(.type _gcry_twofish_avx2_ocb_enc,@function;)
 
@@ -854,7 +854,7 @@ _gcry_twofish_avx2_ocb_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_enc,.-_gcry_twofish_avx2_ocb_enc;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_avx2_ocb_dec
 ELF(.type _gcry_twofish_avx2_ocb_dec,@function;)
 
@@ -979,7 +979,7 @@ _gcry_twofish_avx2_ocb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_dec,.-_gcry_twofish_avx2_ocb_dec;)
 
-.align 8
+.align 16
 .globl _gcry_twofish_avx2_ocb_auth
 ELF(.type _gcry_twofish_avx2_ocb_auth,@function;)
 

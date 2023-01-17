@@ -180,7 +180,7 @@
 	movl   left##d,   (io); \
 	movl   right##d, 4(io);
 
-.align 8
+.align 16
 .globl _gcry_3des_amd64_crypt_block
 ELF(.type  _gcry_3des_amd64_crypt_block,@function;)
 
@@ -473,7 +473,7 @@ ELF(.size _gcry_3des_amd64_crypt_block,.-_gcry_3des_amd64_crypt_block;)
 	movl   left##d,   (io); \
 	movl   right##d, 4(io);
 
-.align 8
+.align 16
 ELF(.type  _gcry_3des_amd64_crypt_blk3,@function;)
 _gcry_3des_amd64_crypt_blk3:
 	/* input:
@@ -548,7 +548,7 @@ _gcry_3des_amd64_crypt_blk3:
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_crypt_blk3,.-_gcry_3des_amd64_crypt_blk3;)
 
-.align 8
+.align 16
 .globl  _gcry_3des_amd64_cbc_dec
 ELF(.type   _gcry_3des_amd64_cbc_dec,@function;)
 _gcry_3des_amd64_cbc_dec:
@@ -646,7 +646,7 @@ _gcry_3des_amd64_cbc_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;)
 
-.align 8
+.align 16
 .globl  _gcry_3des_amd64_ctr_enc
 ELF(.type   _gcry_3des_amd64_ctr_enc,@function;)
 _gcry_3des_amd64_ctr_enc:
@@ -744,7 +744,7 @@ _gcry_3des_amd64_ctr_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;)
 
-.align 8
+.align 16
 .globl  _gcry_3des_amd64_cfb_dec
 ELF(.type   _gcry_3des_amd64_cfb_dec,@function;)
 _gcry_3des_amd64_cfb_dec:

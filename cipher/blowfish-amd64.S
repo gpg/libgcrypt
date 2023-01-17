@@ -123,7 +123,7 @@
 	bswapq 			RX0; \
 	movq RX0, 		(RIO);
 
-.align 8
+.align 16
 ELF(.type   __blowfish_enc_blk1,@function;)
 
 __blowfish_enc_blk1:
@@ -155,7 +155,7 @@ __blowfish_enc_blk1:
 	CFI_ENDPROC();
 ELF(.size __blowfish_enc_blk1,.-__blowfish_enc_blk1;)
 
-.align 8
+.align 16
 .globl  _gcry_blowfish_amd64_do_encrypt
 ELF(.type   _gcry_blowfish_amd64_do_encrypt,@function;)
 
@@ -186,7 +186,7 @@ _gcry_blowfish_amd64_do_encrypt:
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_do_encrypt,.-_gcry_blowfish_amd64_do_encrypt;)
 
-.align 8
+.align 16
 .globl  _gcry_blowfish_amd64_encrypt_block
 ELF(.type   _gcry_blowfish_amd64_encrypt_block,@function;)
 
@@ -214,7 +214,7 @@ _gcry_blowfish_amd64_encrypt_block:
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_encrypt_block,.-_gcry_blowfish_amd64_encrypt_block;)
 
-.align 8
+.align 16
 .globl  _gcry_blowfish_amd64_decrypt_block
 ELF(.type   _gcry_blowfish_amd64_decrypt_block,@function;)
 
@@ -342,7 +342,7 @@ ELF(.size _gcry_blowfish_amd64_decrypt_block,.-_gcry_blowfish_amd64_decrypt_bloc
 	bswapq 			RX2; \
 	bswapq 			RX3;
 
-.align 8
+.align 16
 ELF(.type   __blowfish_enc_blk4,@function;)
 
 __blowfish_enc_blk4:
@@ -371,7 +371,7 @@ __blowfish_enc_blk4:
 	CFI_ENDPROC();
 ELF(.size __blowfish_enc_blk4,.-__blowfish_enc_blk4;)
 
-.align 8
+.align 16
 ELF(.type   __blowfish_dec_blk4,@function;)
 
 __blowfish_dec_blk4:
@@ -402,7 +402,7 @@ __blowfish_dec_blk4:
 	CFI_ENDPROC();
 ELF(.size __blowfish_dec_blk4,.-__blowfish_dec_blk4;)
 
-.align 8
+.align 16
 .globl  _gcry_blowfish_amd64_ctr_enc
 ELF(.type   _gcry_blowfish_amd64_ctr_enc,@function;)
 _gcry_blowfish_amd64_ctr_enc:
@@ -472,7 +472,7 @@ _gcry_blowfish_amd64_ctr_enc:
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_ctr_enc,.-_gcry_blowfish_amd64_ctr_enc;)
 
-.align 8
+.align 16
 .globl  _gcry_blowfish_amd64_cbc_dec
 ELF(.type   _gcry_blowfish_amd64_cbc_dec,@function;)
 _gcry_blowfish_amd64_cbc_dec:
@@ -533,7 +533,7 @@ _gcry_blowfish_amd64_cbc_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_blowfish_amd64_cbc_dec,.-_gcry_blowfish_amd64_cbc_dec;)
 
-.align 8
+.align 16
 .globl  _gcry_blowfish_amd64_cfb_dec
 ELF(.type   _gcry_blowfish_amd64_cfb_dec,@function;)
 _gcry_blowfish_amd64_cfb_dec:

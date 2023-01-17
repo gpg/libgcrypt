@@ -168,7 +168,7 @@ chacha20_data:
 .Lunsigned_cmp:
 	.long 0x80000000
 
-.align 8
+.align 16
 .globl _gcry_chacha20_amd64_avx2_blocks8
 ELF(.type _gcry_chacha20_amd64_avx2_blocks8,@function;)
 
@@ -333,7 +333,7 @@ ELF(.size _gcry_chacha20_amd64_avx2_blocks8,
 
 #define _ /*_*/
 
-.align 8
+.align 16
 .globl _gcry_chacha20_poly1305_amd64_avx2_blocks8
 ELF(.type _gcry_chacha20_poly1305_amd64_avx2_blocks8,@function;)
 

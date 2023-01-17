@@ -997,7 +997,7 @@ ELF(.type   FUNC_NAME(_constants),@object;)
 
 ELF(.size FUNC_NAME(_constants),.-FUNC_NAME(_constants);)
 
-.align 8
+.align 16
 ELF(.type   FUNC_NAME(enc_blk32),@function;)
 
 FUNC_NAME(enc_blk32):
@@ -1059,7 +1059,7 @@ FUNC_NAME(enc_blk32):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(enc_blk32),.-FUNC_NAME(enc_blk32);)
 
-.align 8
+.align 16
 ELF(.type   FUNC_NAME(dec_blk32),@function;)
 
 FUNC_NAME(dec_blk32):
@@ -1130,7 +1130,7 @@ ELF(.size FUNC_NAME(dec_blk32),.-FUNC_NAME(dec_blk32);)
 	vpslldq $8, tmp, tmp; \
 	vpsubq tmp, x, x;
 
-.align 8
+.align 16
 .globl FUNC_NAME(ctr_enc)
 ELF(.type   FUNC_NAME(ctr_enc),@function;)
 
@@ -1325,7 +1325,7 @@ FUNC_NAME(ctr_enc):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ctr_enc),.-FUNC_NAME(ctr_enc);)
 
-.align 8
+.align 16
 .globl FUNC_NAME(cbc_dec)
 ELF(.type   FUNC_NAME(cbc_dec),@function;)
 
@@ -1400,7 +1400,7 @@ FUNC_NAME(cbc_dec):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(cbc_dec),.-FUNC_NAME(cbc_dec);)
 
-.align 8
+.align 16
 .globl FUNC_NAME(cfb_dec)
 ELF(.type   FUNC_NAME(cfb_dec),@function;)
 
@@ -1482,7 +1482,7 @@ FUNC_NAME(cfb_dec):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(cfb_dec),.-FUNC_NAME(cfb_dec);)
 
-.align 8
+.align 16
 .globl FUNC_NAME(ocb_enc)
 ELF(.type   FUNC_NAME(ocb_enc),@function;)
 
@@ -1654,7 +1654,7 @@ FUNC_NAME(ocb_enc):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ocb_enc),.-FUNC_NAME(ocb_enc);)
 
-.align 8
+.align 16
 .globl FUNC_NAME(ocb_dec)
 ELF(.type   FUNC_NAME(ocb_dec),@function;)
 
@@ -1849,7 +1849,7 @@ FUNC_NAME(ocb_dec):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ocb_dec),.-FUNC_NAME(ocb_dec);)
 
-.align 8
+.align 16
 .globl FUNC_NAME(ocb_auth)
 ELF(.type   FUNC_NAME(ocb_auth),@function;)
 
@@ -2018,7 +2018,7 @@ FUNC_NAME(ocb_auth):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ocb_auth),.-FUNC_NAME(ocb_auth);)
 
-.align 8
+.align 16
 .globl FUNC_NAME(enc_blk1_32)
 ELF(.type   FUNC_NAME(enc_blk1_32),@function;)
 
@@ -2126,7 +2126,7 @@ FUNC_NAME(enc_blk1_32):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(enc_blk1_32),.-FUNC_NAME(enc_blk1_32);)
 
-.align 8
+.align 16
 .globl FUNC_NAME(dec_blk1_32)
 ELF(.type   FUNC_NAME(dec_blk1_32),@function;)
 

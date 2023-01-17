@@ -32,7 +32,7 @@
 
 .text
 
-.align 8
+.align 16
 .globl _gcry_salsa20_amd64_keysetup
 ELF(.type  _gcry_salsa20_amd64_keysetup,@function;)
 _gcry_salsa20_amd64_keysetup:
@@ -86,7 +86,7 @@ _gcry_salsa20_amd64_keysetup:
 	ret_spec_stop
 	CFI_ENDPROC();
 
-.align 8
+.align 16
 .globl _gcry_salsa20_amd64_ivsetup
 ELF(.type  _gcry_salsa20_amd64_ivsetup,@function;)
 _gcry_salsa20_amd64_ivsetup:
@@ -102,7 +102,7 @@ _gcry_salsa20_amd64_ivsetup:
 	ret_spec_stop
 	CFI_ENDPROC();
 
-.align 8
+.align 16
 .globl _gcry_salsa20_amd64_encrypt_blocks
 ELF(.type  _gcry_salsa20_amd64_encrypt_blocks,@function;)
 _gcry_salsa20_amd64_encrypt_blocks:

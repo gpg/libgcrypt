@@ -47,6 +47,7 @@
 ##
 ##  _gcry_aes_ssse3_enc_preload
 ##
+.align 16
 ELF(.type _gcry_aes_ssse3_enc_preload,@function)
 .globl _gcry_aes_ssse3_enc_preload
 _gcry_aes_ssse3_enc_preload:
@@ -68,6 +69,7 @@ ELF(.size _gcry_aes_ssse3_enc_preload,.-_gcry_aes_ssse3_enc_preload)
 ##
 ##  _gcry_aes_ssse3_dec_preload
 ##
+.align 16
 ELF(.type _gcry_aes_ssse3_dec_preload,@function)
 .globl _gcry_aes_ssse3_dec_preload
 _gcry_aes_ssse3_dec_preload:
