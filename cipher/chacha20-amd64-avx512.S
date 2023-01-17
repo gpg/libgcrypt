@@ -33,8 +33,6 @@
    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 
-.text
-
 #include "asm-common-amd64.h"
 
 /* register macros */
@@ -269,6 +267,8 @@
 				   ROTATE(x1, 7); ROTATE(y1, 7); \
 	  WORD_SHUF(x1, shuf_x1); WORD_SHUF(y1, shuf_x1);
 
+SECTION_RODATA
+
 .align 64
 ELF(.type _gcry_chacha20_amd64_avx512_data,@object;)
 _gcry_chacha20_amd64_avx512_data:
@@ -285,6 +285,8 @@ _gcry_chacha20_amd64_avx512_data:
 .Linc_counter:
 	.byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 ELF(.size _gcry_chacha20_amd64_avx512_data,.-_gcry_chacha20_amd64_avx512_data)
+
+.text
 
 .align 16
 .globl _gcry_chacha20_amd64_avx512_blocks

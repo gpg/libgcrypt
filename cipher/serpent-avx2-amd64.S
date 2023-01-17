@@ -1200,9 +1200,13 @@ _gcry_serpent_avx2_ocb_auth:
 	CFI_ENDPROC();
 ELF(.size _gcry_serpent_avx2_ocb_auth,.-_gcry_serpent_avx2_ocb_auth;)
 
-.align 16
+
+SECTION_RODATA
+ELF(.type _serpent_avx2_consts,@object)
+_serpent_avx2_consts:
 
 /* For CTR-mode IV byteswap */
+.align 16
 .Lbswap128_mask:
 	.byte 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 

@@ -33,8 +33,6 @@
    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 
-.text
-
 #include "asm-common-amd64.h"
 #include "asm-poly1305-amd64.h"
 
@@ -151,7 +149,10 @@
 	PLUS(c1,d1); PLUS(c2,d2); XOR(b1,c1); XOR(b2,c2);	\
 	    ROTATE2(b1, b2,  7, tmp1, tmp2);
 
-chacha20_data:
+SECTION_RODATA
+
+ELF(.type _chacha20_ssse3_data,@object;)
+_chacha20_ssse3_data:
 .align 16
 .Lshuf_rol16:
 	.byte 2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13
@@ -163,6 +164,8 @@ chacha20_data:
 	.long 0,1,2,3
 .Lunsigned_cmp:
 	.long 0x80000000,0x80000000,0x80000000,0x80000000
+
+.text
 
 .align 16
 .globl _gcry_chacha20_amd64_ssse3_blocks4

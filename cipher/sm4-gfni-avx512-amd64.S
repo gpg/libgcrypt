@@ -103,7 +103,7 @@
 #define RB2z         %zmm14
 #define RB3z         %zmm15
 
-.text
+SECTION_RODATA
 .align 32
 
 /* Affine transform, SM4 field to AES field */
@@ -145,6 +145,8 @@
 	.quad 1, 0
 	.quad 2, 0
 	.quad 3, 0
+
+.text
 
 .align 16
 .globl _gcry_sm4_gfni_avx512_expand_key

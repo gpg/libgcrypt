@@ -784,7 +784,8 @@
 	vmovdqu y6, 14 * 32(rio); \
 	vmovdqu y7, 15 * 32(rio);
 
-.text
+SECTION_RODATA
+
 .align 32
 
 #define SHUFB_BYTES(idx) \
@@ -996,6 +997,8 @@ ELF(.type   FUNC_NAME(_constants),@object;)
 #endif /* CAMELLIA_GFNI_BUILD */
 
 ELF(.size FUNC_NAME(_constants),.-FUNC_NAME(_constants);)
+
+.text
 
 .align 16
 ELF(.type   FUNC_NAME(enc_blk32),@function;)

@@ -1082,10 +1082,13 @@ _gcry_twofish_avx2_ocb_auth:
 	CFI_ENDPROC();
 ELF(.size _gcry_twofish_avx2_ocb_auth,.-_gcry_twofish_avx2_ocb_auth;)
 
+SECTION_RODATA
+
 .align 16
 
 /* For CTR-mode IV byteswap */
- _gcry_twofish_bswap128_mask:
+ELF(.type _gcry_twofish_bswap128_mask,@object)
+_gcry_twofish_bswap128_mask:
 .Lbswap128_mask:
 	.byte 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 ELF(.size _gcry_twofish_bswap128_mask,.-_gcry_twofish_bswap128_mask;)

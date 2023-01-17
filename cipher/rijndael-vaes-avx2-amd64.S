@@ -3313,6 +3313,8 @@ ELF(.size _gcry_vaes_avx2_ecb_crypt_amd64,.-_gcry_vaes_avx2_ecb_crypt_amd64)
 /**********************************************************************
   constants
  **********************************************************************/
+SECTION_RODATA
+
 ELF(.type _gcry_vaes_consts,@object)
 _gcry_vaes_consts:
 .align 32

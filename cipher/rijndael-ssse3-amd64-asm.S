@@ -691,8 +691,11 @@ ELF(.size _gcry_aes_ssse3_schedule_core,.-_gcry_aes_ssse3_schedule_core)
 ##                                                    ##
 ########################################################
 
+SECTION_RODATA
+
 .align 16
-ELF(.type _aes_consts,@object)
+ELF(.type _aes_ssse3_consts,@object)
+_aes_ssse3_consts:
 .Laes_consts:
 _aes_consts:
 	# s0F

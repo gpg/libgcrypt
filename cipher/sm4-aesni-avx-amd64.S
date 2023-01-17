@@ -97,8 +97,11 @@
   4-way && 8-way SM4 with AES-NI and AVX
  **********************************************************************/
 
-.text
+SECTION_RODATA
 .align 16
+
+ELF(.type _sm4_aesni_avx_consts,@object)
+_sm4_aesni_avx_consts:
 
 /*
  * Following four affine transform look-up tables are from work by
@@ -151,6 +154,8 @@
 /* 4-bit mask */
 .L0f0f0f0f:
 	.long 0x0f0f0f0f
+
+.text
 
 .align 16
 .globl _gcry_sm4_aesni_avx_expand_key

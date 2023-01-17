@@ -841,7 +841,12 @@ _gcry_3des_amd64_cfb_dec:
 	CFI_ENDPROC();
 ELF(.size _gcry_3des_amd64_cfb_dec,.-_gcry_3des_amd64_cfb_dec;)
 
+
+SECTION_RODATA
+ELF(.type _des_amd64_data,@object;)
+
 .align 16
+_des_amd64_data:
 .L_s1:
 	.quad 0x0010100001010400, 0x0000000000000000
 	.quad 0x0000100000010000, 0x0010100001010404

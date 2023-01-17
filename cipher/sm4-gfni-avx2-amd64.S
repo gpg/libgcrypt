@@ -87,8 +87,11 @@
 #define RB2x         %xmm14
 #define RB3x         %xmm15
 
-.text
+SECTION_RODATA
 .align 32
+
+ELF(.type _sm4_gfni_avx2_consts,@object)
+_sm4_gfni_avx2_consts:
 
 /* Affine transform, SM4 field to AES field */
 .Lpre_affine_s:
@@ -132,6 +135,8 @@
 /* For input word byte-swap */
 .Lbswap32_mask:
 	.byte 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12
+
+.text
 
 .align 16
 .globl _gcry_sm4_gfni_avx2_expand_key

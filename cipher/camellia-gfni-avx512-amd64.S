@@ -584,7 +584,7 @@
 	vmovdqu64 y6, 14 * 64(rio); \
 	vmovdqu64 y7, 15 * 64(rio);
 
-.text
+SECTION_RODATA
 
 #define SHUFB_BYTES(idx) \
 	0 + (idx), 4 + (idx), 8 + (idx), 12 + (idx)
@@ -690,6 +690,8 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 		    BV8(0, 0, 0, 0, 0, 0, 0, 1))
 
 ELF(.size _gcry_camellia_gfni_avx512__constants,.-_gcry_camellia_gfni_avx512__constants;)
+
+.text
 
 .align 16
 ELF(.type   __camellia_gfni_avx512_enc_blk64,@function;)
