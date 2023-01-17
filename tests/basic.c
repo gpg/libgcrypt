@@ -339,39 +339,24 @@ clutter_vector_registers(void)
   prepare_vector_data(data);
 
 #if defined(CLUTTER_VECTOR_REGISTER_AMD64)
-  asm volatile("movdqu %[data0], %%xmm0\n"
-	       "movdqu %[data1], %%xmm1\n"
-	       "movdqu %[data2], %%xmm2\n"
-	       "movdqu %[data3], %%xmm3\n"
-	       "movdqu %[data4], %%xmm4\n"
-	       "movdqu %[data5], %%xmm5\n"
-	       "movdqu %[data6], %%xmm6\n"
-	       "movdqu %[data7], %%xmm7\n"
-	       "movdqu %[data8], %%xmm8\n"
-	       "movdqu %[data9], %%xmm9\n"
-	       "movdqu %[data10], %%xmm10\n"
-	       "movdqu %[data11], %%xmm11\n"
-	       "movdqu %[data12], %%xmm12\n"
-	       "movdqu %[data13], %%xmm13\n"
-	       "movdqu %[data14], %%xmm14\n"
-	       "movdqu %[data15], %%xmm15\n"
+  asm volatile("movdqu (0 * 16)(%[data]), %%xmm0\n"
+	       "movdqu (1 * 16)(%[data]), %%xmm1\n"
+	       "movdqu (2 * 16)(%[data]), %%xmm2\n"
+	       "movdqu (3 * 16)(%[data]), %%xmm3\n"
+	       "movdqu (4 * 16)(%[data]), %%xmm4\n"
+	       "movdqu (5 * 16)(%[data]), %%xmm5\n"
+	       "movdqu (6 * 16)(%[data]), %%xmm6\n"
+	       "movdqu (7 * 16)(%[data]), %%xmm7\n"
+	       "movdqu (8 * 16)(%[data]), %%xmm8\n"
+	       "movdqu (9 * 16)(%[data]), %%xmm9\n"
+	       "movdqu (10 * 16)(%[data]), %%xmm10\n"
+	       "movdqu (11 * 16)(%[data]), %%xmm11\n"
+	       "movdqu (12 * 16)(%[data]), %%xmm12\n"
+	       "movdqu (13 * 16)(%[data]), %%xmm13\n"
+	       "movdqu (14 * 16)(%[data]), %%xmm14\n"
+	       "movdqu (15 * 16)(%[data]), %%xmm15\n"
 	      :
-	      : [data0] "m" (*data[0]),
-	        [data1] "m" (*data[1]),
-	        [data2] "m" (*data[2]),
-	        [data3] "m" (*data[3]),
-	        [data4] "m" (*data[4]),
-	        [data5] "m" (*data[5]),
-	        [data6] "m" (*data[6]),
-	        [data7] "m" (*data[7]),
-	        [data8] "m" (*data[8]),
-	        [data9] "m" (*data[9]),
-	        [data10] "m" (*data[10]),
-	        [data11] "m" (*data[11]),
-	        [data12] "m" (*data[12]),
-	        [data13] "m" (*data[13]),
-	        [data14] "m" (*data[14]),
-	        [data15] "m" (*data[15])
+	      : [data] "r" (&data[0])
 	      : "memory"
 #ifdef __SSE2__
 	       ,"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7",
@@ -380,23 +365,16 @@ clutter_vector_registers(void)
 #endif
 	      );
 #elif defined(CLUTTER_VECTOR_REGISTER_I386)
-  asm volatile("movdqu %[data0], %%xmm0\n"
-	       "movdqu %[data1], %%xmm1\n"
-	       "movdqu %[data2], %%xmm2\n"
-	       "movdqu %[data3], %%xmm3\n"
-	       "movdqu %[data4], %%xmm4\n"
-	       "movdqu %[data5], %%xmm5\n"
-	       "movdqu %[data6], %%xmm6\n"
-	       "movdqu %[data7], %%xmm7\n"
+  asm volatile("movdqu (0 * 16)(%[data]), %%xmm0\n"
+	       "movdqu (1 * 16)(%[data]), %%xmm1\n"
+	       "movdqu (2 * 16)(%[data]), %%xmm2\n"
+	       "movdqu (3 * 16)(%[data]), %%xmm3\n"
+	       "movdqu (4 * 16)(%[data]), %%xmm4\n"
+	       "movdqu (5 * 16)(%[data]), %%xmm5\n"
+	       "movdqu (6 * 16)(%[data]), %%xmm6\n"
+	       "movdqu (7 * 16)(%[data]), %%xmm7\n"
 	      :
-	      : [data0] "m" (*data[0]),
-	        [data1] "m" (*data[1]),
-	        [data2] "m" (*data[2]),
-	        [data3] "m" (*data[3]),
-	        [data4] "m" (*data[4]),
-	        [data5] "m" (*data[5]),
-	        [data6] "m" (*data[6]),
-	        [data7] "m" (*data[7])
+	      : [data] "r" (&data[0])
 	      : "memory"
 #ifdef __SSE2__
 	       ,"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"
