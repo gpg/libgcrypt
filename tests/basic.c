@@ -243,11 +243,12 @@ progress_handler (void *cb_data, const char *what, int printchar,
 
 #if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
     (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
-     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
+    defined(__SSE2__)
 # define CLUTTER_VECTOR_REGISTER_AMD64 1
 # define CLUTTER_VECTOR_REGISTER_COUNT 16
 #elif defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4 && \
-      defined(HAVE_GCC_INLINE_ASM_SSSE3)
+      defined(HAVE_GCC_INLINE_ASM_SSSE3) && defined(__SSE2__)
 # define CLUTTER_VECTOR_REGISTER_I386 1
 # define CLUTTER_VECTOR_REGISTER_COUNT 8
 #elif defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
@@ -357,12 +358,9 @@ clutter_vector_registers(void)
 	       "movdqu (15 * 16)(%[data]), %%xmm15\n"
 	      :
 	      : [data] "r" (&data[0])
-	      : "memory"
-#ifdef __SSE2__
-	       ,"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7",
-	        "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14",
-	        "xmm15"
-#endif
+	      : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+	        "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12",
+	        "xmm13", "xmm14", "xmm15"
 	      );
 #elif defined(CLUTTER_VECTOR_REGISTER_I386)
   asm volatile("movdqu (0 * 16)(%[data]), %%xmm0\n"
@@ -375,10 +373,8 @@ clutter_vector_registers(void)
 	       "movdqu (7 * 16)(%[data]), %%xmm7\n"
 	      :
 	      : [data] "r" (&data[0])
-	      : "memory"
-#ifdef __SSE2__
-	       ,"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"
-#endif
+	      : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+	        "xmm6", "xmm7"
 	      );
 #elif defined(CLUTTER_VECTOR_REGISTER_AARCH64)
   asm volatile("mov x0, %[ptr]\n"
