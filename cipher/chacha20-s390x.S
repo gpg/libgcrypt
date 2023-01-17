@@ -26,9 +26,12 @@
 #include "asm-poly1305-s390x.h"
 
 .machine "z13+vx"
-.text
 
+.section .rodata
+
+ELF(.type _gcry_chacha20_s390x_vx_constants,@function;)
 .balign 16
+_gcry_chacha20_s390x_vx_constants:
 .Lconsts:
 .Lwordswap:
 	.byte 12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3
@@ -302,7 +305,9 @@
   4-way && 2-way && 1-way chacha20 ("horizontal")
  **********************************************************************/
 
-.balign 8
+.text
+
+.balign 16
 .globl _gcry_chacha20_s390x_vx_blocks4_2_1
 ELF(.type _gcry_chacha20_s390x_vx_blocks4_2_1,@function;)
 
@@ -578,7 +583,7 @@ ELF(.size _gcry_chacha20_s390x_vx_blocks4_2_1,
   4-way && 2-way && 1-way stitched chacha20-poly1305 ("horizontal")
  **********************************************************************/
 
-.balign 8
+.balign 16
 .globl _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1
 ELF(.type _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1,@function;)
 
@@ -1058,7 +1063,7 @@ ELF(.size _gcry_chacha20_poly1305_s390x_vx_blocks4_2_1,
 	  vpdi vc, tmpc,   vd, 0;				\
 	  vpdi vd, tmpc,   vd, 5;
 
-.balign 8
+.balign 16
 .globl _gcry_chacha20_s390x_vx_blocks8
 ELF(.type _gcry_chacha20_s390x_vx_blocks8,@function;)
 
@@ -1276,7 +1281,7 @@ ELF(.size _gcry_chacha20_s390x_vx_blocks8,
   8-way stitched chacha20-poly1305 ("vertical")
  **********************************************************************/
 
-.balign 8
+.balign 16
 .globl _gcry_chacha20_poly1305_s390x_vx_blocks8
 ELF(.type _gcry_chacha20_poly1305_s390x_vx_blocks8,@function;)
 

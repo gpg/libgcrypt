@@ -26,7 +26,7 @@
 
 .text
 
-.balign 8
+.balign 16
 .globl _gcry_poly1305_s390x_blocks1
 ELF(.type _gcry_poly1305_s390x_blocks1,@function;)
 
