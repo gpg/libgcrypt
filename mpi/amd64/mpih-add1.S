@@ -40,7 +40,8 @@
  *		   mpi_size_t size)		rcx
  */
 
-.text
+	TEXT
+	ALIGN(4)
 	.globl C_SYMBOL_NAME(_gcry_mpih_add_n)
 C_SYMBOL_NAME(_gcry_mpih_add_n:)
 	FUNC_ENTRY()

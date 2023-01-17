@@ -39,7 +39,8 @@
  *		   mpi_ptr_t s2_ptr,		rdx
  *		   mpi_size_t size)		rcx
  */
-.text
+	TEXT
+	ALIGN(4)
 	.globl C_SYMBOL_NAME(_gcry_mpih_sub_n)
 C_SYMBOL_NAME(_gcry_mpih_sub_n:)
 	FUNC_ENTRY()

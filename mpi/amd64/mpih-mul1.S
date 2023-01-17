@@ -40,8 +40,7 @@
 
 
 	TEXT
-	ALIGN(5)
-	.byte	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	ALIGN(4)
 
 	GLOBL	C_SYMBOL_NAME(_gcry_mpih_mul_1)
 C_SYMBOL_NAME(_gcry_mpih_mul_1:)
@@ -53,6 +52,7 @@ C_SYMBOL_NAME(_gcry_mpih_mul_1:)
 	negq	%r11
 	xorl	%r8d, %r8d
 
+	ALIGN(4)
 .Loop:	movq	(%rsi,%r11,8), %rax
 	mulq	%rcx
 	addq	%r8, %rax

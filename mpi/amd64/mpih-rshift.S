@@ -39,7 +39,8 @@
  *		   unsigned cnt)	rcx
  */
 
-.text
+	TEXT
+	ALIGN(4)
 	.globl C_SYMBOL_NAME(_gcry_mpih_rshift)
 C_SYMBOL_NAME(_gcry_mpih_rshift:)
 	FUNC_ENTRY()

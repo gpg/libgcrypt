@@ -39,6 +39,7 @@
  *		     mpi_limb_t s2_limb)     (rcx)
  */
 	TEXT
+	ALIGN(4)
 	GLOBL	C_SYMBOL_NAME(_gcry_mpih_addmul_1)
 C_SYMBOL_NAME(_gcry_mpih_addmul_1:)
 	FUNC_ENTRY()
@@ -49,7 +50,7 @@ C_SYMBOL_NAME(_gcry_mpih_addmul_1:)
 	xorl	%r8d, %r8d
 	xorl	%r10d, %r10d
 
-	ALIGN(3)			/* minimal alignment for claimed speed */
+	ALIGN(4)			/* minimal alignment for claimed speed */
 .Loop:	movq	(%rsi,%r11,8), %rax
 	mulq	%rcx
 	addq	(%rdi,%r11,8), %rax
