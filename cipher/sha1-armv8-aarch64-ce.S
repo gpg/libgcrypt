@@ -99,7 +99,7 @@ gcry_sha1_aarch64_ce_K_VEC:
  * _gcry_sha1_transform_armv8_ce (void *ctx, const unsigned char *data,
  *                                size_t nblks)
  */
-.align 3
+.align 4
 .globl _gcry_sha1_transform_armv8_ce
 ELF(.type  _gcry_sha1_transform_armv8_ce,%function;)
 _gcry_sha1_transform_armv8_ce:

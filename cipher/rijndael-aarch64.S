@@ -208,6 +208,7 @@
 .globl _gcry_aes_arm_encrypt_block
 ELF(.type   _gcry_aes_arm_encrypt_block,%function;)
 
+.align 4
 _gcry_aes_arm_encrypt_block:
 	/* input:
 	 *	%x0: keysched, CTX
@@ -431,6 +432,7 @@ ELF(.size _gcry_aes_arm_encrypt_block,.-_gcry_aes_arm_encrypt_block;)
 .globl _gcry_aes_arm_decrypt_block
 ELF(.type   _gcry_aes_arm_decrypt_block,%function;)
 
+.align 4
 _gcry_aes_arm_decrypt_block:
 	/* input:
 	 *	%x0: keysched, CTX

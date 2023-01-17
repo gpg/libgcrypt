@@ -36,6 +36,7 @@
 
 .globl C_SYMBOL_NAME(_gcry_mpih_submul_1)
 ELF(.type  C_SYMBOL_NAME(_gcry_mpih_submul_1),%function)
+.align 4
 C_SYMBOL_NAME(_gcry_mpih_submul_1):
 	CFI_STARTPROC()
 	and	w5, w2, #3;

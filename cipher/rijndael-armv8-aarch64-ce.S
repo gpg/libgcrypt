@@ -262,7 +262,7 @@
  *                                     const byte *src,
  *                                     unsigned int nrounds);
  */
-.align 3
+.align 4
 .globl _gcry_aes_enc_armv8_ce
 ELF(.type  _gcry_aes_enc_armv8_ce,%function;)
 _gcry_aes_enc_armv8_ce:
@@ -326,7 +326,7 @@ ELF(.size _gcry_aes_enc_armv8_ce,.-_gcry_aes_enc_armv8_ce;)
  *                                     const byte *src,
  *                                     unsigned int nrounds);
  */
-.align 3
+.align 4
 .globl _gcry_aes_dec_armv8_ce
 ELF(.type  _gcry_aes_dec_armv8_ce,%function;)
 _gcry_aes_dec_armv8_ce:
@@ -392,7 +392,7 @@ ELF(.size _gcry_aes_dec_armv8_ce,.-_gcry_aes_dec_armv8_ce;)
  *                                  size_t nblocks, unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_ecb_enc_armv8_ce
 ELF(.type  _gcry_aes_ecb_enc_armv8_ce,%function;)
 _gcry_aes_ecb_enc_armv8_ce:
@@ -461,7 +461,7 @@ ELF(.size _gcry_aes_ecb_enc_armv8_ce,.-_gcry_aes_ecb_enc_armv8_ce;)
  *                                  size_t nblocks, unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_ecb_dec_armv8_ce
 ELF(.type  _gcry_aes_ecb_dec_armv8_ce,%function;)
 _gcry_aes_ecb_dec_armv8_ce:
@@ -506,7 +506,7 @@ ELF(.size _gcry_aes_ecb_dec_armv8_ce,.-_gcry_aes_ecb_dec_armv8_ce;)
  *                                  int cbc_mac, unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_cbc_enc_armv8_ce
 ELF(.type  _gcry_aes_cbc_enc_armv8_ce,%function;)
 _gcry_aes_cbc_enc_armv8_ce:
@@ -588,7 +588,7 @@ ELF(.size _gcry_aes_cbc_enc_armv8_ce,.-_gcry_aes_cbc_enc_armv8_ce;)
  *                                  size_t nblocks, unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_cbc_dec_armv8_ce
 ELF(.type  _gcry_aes_cbc_dec_armv8_ce,%function;)
 _gcry_aes_cbc_dec_armv8_ce:
@@ -710,7 +710,7 @@ ELF(.size _gcry_aes_cbc_dec_armv8_ce,.-_gcry_aes_cbc_dec_armv8_ce;)
  *                                  unsigned char *iv, unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_ctr_enc_armv8_ce
 ELF(.type  _gcry_aes_ctr_enc_armv8_ce,%function;)
 _gcry_aes_ctr_enc_armv8_ce:
@@ -904,7 +904,7 @@ ELF(.size _gcry_aes_ctr_enc_armv8_ce,.-_gcry_aes_ctr_enc_armv8_ce;)
  *                                      unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_ctr32le_enc_armv8_ce
 ELF(.type  _gcry_aes_ctr32le_enc_armv8_ce,%function;)
 _gcry_aes_ctr32le_enc_armv8_ce:
@@ -1050,7 +1050,7 @@ ELF(.size _gcry_aes_ctr32le_enc_armv8_ce,.-_gcry_aes_ctr32le_enc_armv8_ce;)
  *                                  unsigned char *iv, unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_cfb_enc_armv8_ce
 ELF(.type  _gcry_aes_cfb_enc_armv8_ce,%function;)
 _gcry_aes_cfb_enc_armv8_ce:
@@ -1132,7 +1132,7 @@ ELF(.size _gcry_aes_cfb_enc_armv8_ce,.-_gcry_aes_cfb_enc_armv8_ce;)
  *                                  unsigned char *iv, unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_cfb_dec_armv8_ce
 ELF(.type  _gcry_aes_cfb_dec_armv8_ce,%function;)
 _gcry_aes_cfb_dec_armv8_ce:
@@ -1261,7 +1261,7 @@ ELF(.size _gcry_aes_cfb_dec_armv8_ce,.-_gcry_aes_cfb_dec_armv8_ce;)
  *                                  unsigned int blkn);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_ocb_enc_armv8_ce
 ELF(.type  _gcry_aes_ocb_enc_armv8_ce,%function;)
 _gcry_aes_ocb_enc_armv8_ce:
@@ -1511,7 +1511,7 @@ ELF(.size _gcry_aes_ocb_enc_armv8_ce,.-_gcry_aes_ocb_enc_armv8_ce;)
  *                                  unsigned int blkn);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_ocb_dec_armv8_ce
 ELF(.type  _gcry_aes_ocb_dec_armv8_ce,%function;)
 _gcry_aes_ocb_dec_armv8_ce:
@@ -1590,7 +1590,7 @@ ELF(.size _gcry_aes_ocb_dec_armv8_ce,.-_gcry_aes_ocb_dec_armv8_ce;)
  *                                   unsigned int blkn);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_ocb_auth_armv8_ce
 ELF(.type  _gcry_aes_ocb_auth_armv8_ce,%function;)
 _gcry_aes_ocb_auth_armv8_ce:
@@ -1736,7 +1736,7 @@ ELF(.size _gcry_aes_ocb_auth_armv8_ce,.-_gcry_aes_ocb_auth_armv8_ce;)
  *                                  unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_xts_enc_armv8_ce
 ELF(.type  _gcry_aes_xts_enc_armv8_ce,%function;)
 _gcry_aes_xts_enc_armv8_ce:
@@ -1937,7 +1937,7 @@ ELF(.size _gcry_aes_xts_enc_armv8_ce,.-_gcry_aes_xts_enc_armv8_ce;)
  *                                  unsigned int nrounds);
  */
 
-.align 3
+.align 4
 .globl _gcry_aes_xts_dec_armv8_ce
 ELF(.type  _gcry_aes_xts_dec_armv8_ce,%function;)
 _gcry_aes_xts_dec_armv8_ce:
@@ -1999,7 +1999,7 @@ ELF(.size _gcry_aes_xts_dec_armv8_ce,.-_gcry_aes_xts_dec_armv8_ce;)
 /*
  * u32 _gcry_aes_sbox4_armv8_ce(u32 in4b);
  */
-.align 3
+.align 4
 .globl _gcry_aes_sbox4_armv8_ce
 ELF(.type  _gcry_aes_sbox4_armv8_ce,%function;)
 _gcry_aes_sbox4_armv8_ce:
@@ -2022,7 +2022,7 @@ ELF(.size _gcry_aes_sbox4_armv8_ce,.-_gcry_aes_sbox4_armv8_ce;)
 /*
  * void _gcry_aes_invmixcol_armv8_ce(void *dst, const void *src);
  */
-.align 3
+.align 4
 .globl _gcry_aes_invmixcol_armv8_ce
 ELF(.type  _gcry_aes_invmixcol_armv8_ce,%function;)
 _gcry_aes_invmixcol_armv8_ce:

@@ -200,6 +200,7 @@
 .globl _gcry_camellia_arm_encrypt_block
 ELF(.type   _gcry_camellia_arm_encrypt_block,@function;)
 
+.align 4
 _gcry_camellia_arm_encrypt_block:
 	CFI_STARTPROC()
 	stp x19, x30, [sp, #-16]!
@@ -258,6 +259,7 @@ ELF(.size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;)
 .globl _gcry_camellia_arm_decrypt_block
 ELF(.type   _gcry_camellia_arm_decrypt_block,@function;)
 
+.align 4
 _gcry_camellia_arm_decrypt_block:
 	CFI_STARTPROC()
 	stp x19, x30, [sp, #-16]!

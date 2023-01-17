@@ -197,7 +197,7 @@ _gcry_chacha20_aarch64_blocks4_data_rot8:
 
 .text
 
-.align 3
+.align 4
 .globl _gcry_chacha20_aarch64_blocks4
 ELF(.type _gcry_chacha20_aarch64_blocks4,%function;)
 
@@ -368,7 +368,7 @@ ELF(.size _gcry_chacha20_aarch64_blocks4, .-_gcry_chacha20_aarch64_blocks4;)
   4-way stitched chacha20-poly1305
  **********************************************************************/
 
-.align 3
+.align 4
 .globl _gcry_chacha20_poly1305_aarch64_blocks4
 ELF(.type _gcry_chacha20_poly1305_aarch64_blocks4,%function;)
 

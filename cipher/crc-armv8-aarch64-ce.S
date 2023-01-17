@@ -62,7 +62,7 @@ _crc32_aarch64_ce_constants:
  * void _gcry_crc32r_armv8_ce_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
  *                                  const struct crc32_consts_s *consts);
  */
-.align 3
+.align 4
 .globl _gcry_crc32r_armv8_ce_bulk
 ELF(.type  _gcry_crc32r_armv8_ce_bulk,%function;)
 _gcry_crc32r_armv8_ce_bulk:
@@ -238,7 +238,7 @@ ELF(.size _gcry_crc32r_armv8_ce_bulk,.-_gcry_crc32r_armv8_ce_bulk;)
  * void _gcry_crc32r_armv8_ce_reduction_4 (u32 *pcrc, u32 data, u32 crc,
  *                                         const struct crc32_consts_s *consts);
  */
-.align 3
+.align 4
 .globl _gcry_crc32r_armv8_ce_reduction_4
 ELF(.type  _gcry_crc32r_armv8_ce_reduction_4,%function;)
 _gcry_crc32r_armv8_ce_reduction_4:
@@ -271,7 +271,7 @@ ELF(.size _gcry_crc32r_armv8_ce_reduction_4,.-_gcry_crc32r_armv8_ce_reduction_4;
  * void _gcry_crc32_armv8_ce_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
  *                                 const struct crc32_consts_s *consts);
  */
-.align 3
+.align 4
 .globl _gcry_crc32_armv8_ce_bulk
 ELF(.type  _gcry_crc32_armv8_ce_bulk,%function;)
 _gcry_crc32_armv8_ce_bulk:
@@ -468,7 +468,7 @@ ELF(.size _gcry_crc32_armv8_ce_bulk,.-_gcry_crc32_armv8_ce_bulk;)
  * void _gcry_crc32_armv8_ce_reduction_4 (u32 *pcrc, u32 data, u32 crc,
  *                                        const struct crc32_consts_s *consts);
  */
-.align 3
+.align 4
 .globl _gcry_crc32_armv8_ce_reduction_4
 ELF(.type  _gcry_crc32_armv8_ce_reduction_4,%function;)
 _gcry_crc32_armv8_ce_reduction_4:

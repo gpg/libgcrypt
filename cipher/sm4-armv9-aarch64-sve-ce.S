@@ -351,7 +351,7 @@ ELF(.size _gcry_sm4_armv9_svesm4_consts,.-_gcry_sm4_armv9_svesm4_consts)
         rev32       b0.16b, b0.16b;
 
 
-.align 3
+.align 4
 .global _gcry_sm4_armv9_sve_ce_crypt
 ELF(.type _gcry_sm4_armv9_sve_ce_crypt,%function;)
 _gcry_sm4_armv9_sve_ce_crypt:
@@ -447,7 +447,7 @@ _gcry_sm4_armv9_sve_ce_crypt:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv9_sve_ce_crypt,.-_gcry_sm4_armv9_sve_ce_crypt;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv9_sve_ce_cbc_dec
 ELF(.type _gcry_sm4_armv9_sve_ce_cbc_dec,%function;)
 _gcry_sm4_armv9_sve_ce_cbc_dec:
@@ -621,7 +621,7 @@ _gcry_sm4_armv9_sve_ce_cbc_dec:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv9_sve_ce_cbc_dec,.-_gcry_sm4_armv9_sve_ce_cbc_dec;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv9_sve_ce_cfb_dec
 ELF(.type _gcry_sm4_armv9_sve_ce_cfb_dec,%function;)
 _gcry_sm4_armv9_sve_ce_cfb_dec:
@@ -795,7 +795,7 @@ _gcry_sm4_armv9_sve_ce_cfb_dec:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv9_sve_ce_cfb_dec,.-_gcry_sm4_armv9_sve_ce_cfb_dec;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv9_sve_ce_ctr_enc
 ELF(.type _gcry_sm4_armv9_sve_ce_ctr_enc,%function;)
 _gcry_sm4_armv9_sve_ce_ctr_enc:
@@ -951,7 +951,7 @@ _gcry_sm4_armv9_sve_ce_ctr_enc:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv9_sve_ce_ctr_enc,.-_gcry_sm4_armv9_sve_ce_ctr_enc;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv9_sve_get_vl
 ELF(.type _gcry_sm4_armv9_sve_get_vl,%function;)
 _gcry_sm4_armv9_sve_get_vl:

@@ -113,7 +113,7 @@ ELF(.size _gcry_sm4_aarch64_consts,.-_gcry_sm4_aarch64_consts)
 
 .text
 
-.align 3
+.align 4
 ELF(.type sm4_aarch64_crypt_blk1_4,%function;)
 sm4_aarch64_crypt_blk1_4:
     /* input:
@@ -220,7 +220,7 @@ sm4_aarch64_crypt_blk1_4:
     CFI_ENDPROC();
 ELF(.size sm4_aarch64_crypt_blk1_4,.-sm4_aarch64_crypt_blk1_4;)
 
-.align 3
+.align 4
 ELF(.type __sm4_crypt_blk8,%function;)
 __sm4_crypt_blk8:
     /* input:
@@ -333,7 +333,7 @@ __sm4_crypt_blk8:
     CFI_ENDPROC();
 ELF(.size __sm4_crypt_blk8,.-__sm4_crypt_blk8;)
 
-.align 3
+.align 4
 .global _gcry_sm4_aarch64_crypt_blk1_8
 ELF(.type _gcry_sm4_aarch64_crypt_blk1_8,%function;)
 _gcry_sm4_aarch64_crypt_blk1_8:
@@ -394,7 +394,7 @@ _gcry_sm4_aarch64_crypt_blk1_8:
 ELF(.size _gcry_sm4_aarch64_crypt_blk1_8,.-_gcry_sm4_aarch64_crypt_blk1_8;)
 
 
-.align 3
+.align 4
 .global _gcry_sm4_aarch64_crypt
 ELF(.type _gcry_sm4_aarch64_crypt,%function;)
 _gcry_sm4_aarch64_crypt:
@@ -436,7 +436,7 @@ _gcry_sm4_aarch64_crypt:
 ELF(.size _gcry_sm4_aarch64_crypt,.-_gcry_sm4_aarch64_crypt;)
 
 
-.align 3
+.align 4
 .global _gcry_sm4_aarch64_cbc_dec
 ELF(.type _gcry_sm4_aarch64_cbc_dec,%function;)
 _gcry_sm4_aarch64_cbc_dec:
@@ -499,7 +499,7 @@ _gcry_sm4_aarch64_cbc_dec:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_aarch64_cbc_dec,.-_gcry_sm4_aarch64_cbc_dec;)
 
-.align 3
+.align 4
 .global _gcry_sm4_aarch64_cfb_dec
 ELF(.type _gcry_sm4_aarch64_cfb_dec,%function;)
 _gcry_sm4_aarch64_cfb_dec:
@@ -562,7 +562,7 @@ _gcry_sm4_aarch64_cfb_dec:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_aarch64_cfb_dec,.-_gcry_sm4_aarch64_cfb_dec;)
 
-.align 3
+.align 4
 .global _gcry_sm4_aarch64_ctr_enc
 ELF(.type _gcry_sm4_aarch64_ctr_enc,%function;)
 _gcry_sm4_aarch64_ctr_enc:

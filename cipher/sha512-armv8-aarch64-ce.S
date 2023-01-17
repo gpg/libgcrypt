@@ -135,7 +135,7 @@
  * _gcry_sha512_transform_armv8_ce (u64 state[8], const void *input_data,
  *                                  size_t num_blks, const u64 k[80])
  */
-.align 3
+.align 4
 .globl _gcry_sha512_transform_armv8_ce
 ELF(.type  _gcry_sha512_transform_armv8_ce,%function;)
 _gcry_sha512_transform_armv8_ce:

@@ -393,7 +393,7 @@ ELF(.size _gcry_sm3_aarch64_consts,.-_gcry_sm3_aarch64_consts)
  * _gcry_sm3_transform_aarch64 (void *ctx, const unsigned char *data,
  *                              size_t nblks)
  */
-.align 3
+.align 4
 .globl _gcry_sm3_transform_aarch64
 ELF(.type _gcry_sm3_transform_aarch64,%function;)
 _gcry_sm3_transform_aarch64:

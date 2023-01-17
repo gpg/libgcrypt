@@ -219,6 +219,7 @@
 .globl _gcry_twofish_arm_encrypt_block
 ELF(.type   _gcry_twofish_arm_encrypt_block,%function;)
 
+.align 4
 _gcry_twofish_arm_encrypt_block:
 	/* input:
 	 *	x0: ctx
@@ -269,6 +270,7 @@ ELF(.size _gcry_twofish_arm_encrypt_block,.-_gcry_twofish_arm_encrypt_block;)
 .globl _gcry_twofish_arm_decrypt_block
 ELF(.type   _gcry_twofish_arm_decrypt_block,%function;)
 
+.align 4
 _gcry_twofish_arm_decrypt_block:
 	/* input:
 	 *	%r0: ctx

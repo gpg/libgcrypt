@@ -155,7 +155,7 @@ ELF(.size _gcry_sm3_armv8_ce_consts,.-_gcry_sm3_armv8_ce_consts)
 
 .text
 
-.align 3
+.align 4
 .global _gcry_sm3_transform_armv8_ce
 ELF(.type _gcry_sm3_transform_armv8_ce,%function;)
 _gcry_sm3_transform_armv8_ce:

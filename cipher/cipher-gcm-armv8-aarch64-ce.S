@@ -157,7 +157,7 @@ gcry_gcm_reduction_constant:
  *                                          const byte *buf, size_t nblocks,
  *                                          void *gcm_table);
  */
-.align 3
+.align 4
 .globl _gcry_ghash_armv8_ce_pmull
 ELF(.type  _gcry_ghash_armv8_ce_pmull,%function;)
 _gcry_ghash_armv8_ce_pmull:
@@ -356,7 +356,7 @@ ELF(.size _gcry_ghash_armv8_ce_pmull,.-_gcry_ghash_armv8_ce_pmull;)
  *                                            const byte *buf, size_t nblocks,
  *                                            void *gcm_table);
  */
-.align 3
+.align 4
 .globl _gcry_polyval_armv8_ce_pmull
 ELF(.type  _gcry_polyval_armv8_ce_pmull,%function;)
 _gcry_polyval_armv8_ce_pmull:
@@ -582,7 +582,7 @@ ELF(.size _gcry_polyval_armv8_ce_pmull,.-_gcry_polyval_armv8_ce_pmull;)
 /*
  * void _gcry_ghash_setup_armv8_ce_pmull (void *gcm_key, void *gcm_table);
  */
-.align 3
+.align 4
 .globl _gcry_ghash_setup_armv8_ce_pmull
 ELF(.type  _gcry_ghash_setup_armv8_ce_pmull,%function;)
 _gcry_ghash_setup_armv8_ce_pmull:

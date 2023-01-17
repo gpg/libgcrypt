@@ -233,7 +233,7 @@
         rev32 b7.16b, b7.16b;
 
 
-.align 3
+.align 4
 .global _gcry_sm4_armv8_ce_expand_key
 ELF(.type _gcry_sm4_armv8_ce_expand_key,%function;)
 _gcry_sm4_armv8_ce_expand_key:
@@ -294,7 +294,7 @@ _gcry_sm4_armv8_ce_expand_key:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_expand_key,.-_gcry_sm4_armv8_ce_expand_key;)
 
-.align 3
+.align 4
 ELF(.type sm4_armv8_ce_crypt_blk1_4,%function;)
 sm4_armv8_ce_crypt_blk1_4:
     /* input:
@@ -338,7 +338,7 @@ sm4_armv8_ce_crypt_blk1_4:
     CFI_ENDPROC();
 ELF(.size sm4_armv8_ce_crypt_blk1_4,.-sm4_armv8_ce_crypt_blk1_4;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv8_ce_crypt_blk1_8
 ELF(.type _gcry_sm4_armv8_ce_crypt_blk1_8,%function;)
 _gcry_sm4_armv8_ce_crypt_blk1_8:
@@ -387,7 +387,7 @@ _gcry_sm4_armv8_ce_crypt_blk1_8:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_crypt_blk1_8,.-_gcry_sm4_armv8_ce_crypt_blk1_8;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv8_ce_crypt
 ELF(.type _gcry_sm4_armv8_ce_crypt,%function;)
 _gcry_sm4_armv8_ce_crypt:
@@ -420,7 +420,7 @@ _gcry_sm4_armv8_ce_crypt:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_crypt,.-_gcry_sm4_armv8_ce_crypt;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv8_ce_cbc_dec
 ELF(.type _gcry_sm4_armv8_ce_cbc_dec,%function;)
 _gcry_sm4_armv8_ce_cbc_dec:
@@ -472,7 +472,7 @@ _gcry_sm4_armv8_ce_cbc_dec:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_cbc_dec,.-_gcry_sm4_armv8_ce_cbc_dec;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv8_ce_cfb_dec
 ELF(.type _gcry_sm4_armv8_ce_cfb_dec,%function;)
 _gcry_sm4_armv8_ce_cfb_dec:
@@ -524,7 +524,7 @@ _gcry_sm4_armv8_ce_cfb_dec:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_cfb_dec,.-_gcry_sm4_armv8_ce_cfb_dec;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv8_ce_ctr_enc
 ELF(.type _gcry_sm4_armv8_ce_ctr_enc,%function;)
 _gcry_sm4_armv8_ce_ctr_enc:
@@ -592,7 +592,7 @@ _gcry_sm4_armv8_ce_ctr_enc:
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_ctr_enc,.-_gcry_sm4_armv8_ce_ctr_enc;)
 
-.align 3
+.align 4
 .global _gcry_sm4_armv8_ce_xts_crypt
 ELF(.type _gcry_sm4_armv8_ce_xts_crypt,%function;)
 _gcry_sm4_armv8_ce_xts_crypt:
