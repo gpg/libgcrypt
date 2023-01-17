@@ -25,12 +25,13 @@
 
 .cpu generic+simd+crypto
 
-.text
-
 
 /* Constants */
 
+SECTION_RODATA
+
 .align 4
+ELF(.type gcry_sha256_aarch64_ce_K,%object;)
 gcry_sha256_aarch64_ce_K:
 .LK:
   .long 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5
@@ -101,6 +102,8 @@ gcry_sha256_aarch64_ce_K:
 #define CLEAR_REG(reg) movi reg.16b, #0;
 
 
+.text
+
 /*
  * unsigned int
  * _gcry_sha256_transform_armv8_ce (u32 state[8], const void *input_data,
@@ -119,7 +122,7 @@ _gcry_sha256_transform_armv8_ce:
 
   cbz x2, .Ldo_nothing;
 
-  GET_LOCAL_POINTER(x3, .LK);
+  GET_DATA_POINTER(x3, .LK);
   mov x4, x3
 
   ld1 {vH0123.4s-vH4567.4s}, [x0]  /* load state */

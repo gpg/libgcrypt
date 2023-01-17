@@ -73,7 +73,7 @@
 
 /* Constants */
 
-.text
+SECTION_RODATA
 .align 4
 ELF(.type _gcry_sm3_armv8_ce_consts,@object)
 _gcry_sm3_armv8_ce_consts:
@@ -152,6 +152,9 @@ ELF(.size _gcry_sm3_armv8_ce_consts,.-_gcry_sm3_armv8_ce_consts)
 #define R1(s0, s1, s2, s3, s4, IOP)  R(a, s0, s1, s2, s3, s4, IOP)
 #define R2(s0, s1, s2, s3, s4, IOP)  R(b, s0, s1, s2, s3, s4, IOP)
 
+
+.text
+
 .align 3
 .global _gcry_sm3_transform_armv8_ce
 ELF(.type _gcry_sm3_transform_armv8_ce,%function;)
@@ -170,7 +173,7 @@ _gcry_sm3_transform_armv8_ce:
     ext         CTX2.16b, CTX2.16b, CTX2.16b, #8;
 
 .Lloop:
-    GET_LOCAL_POINTER(x3, .Lsm3_Ktable);
+    GET_DATA_POINTER(x3, .Lsm3_Ktable);
     ld1         {v0.16b-v3.16b}, [x1], #64;
     sub         x2, x2, #1;
 

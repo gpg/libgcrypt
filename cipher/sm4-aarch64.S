@@ -30,7 +30,7 @@
 
 /* Constants */
 
-.text
+SECTION_RODATA
 .align 4
 ELF(.type _gcry_sm4_aarch64_consts,@object)
 _gcry_sm4_aarch64_consts:
@@ -84,7 +84,7 @@ ELF(.size _gcry_sm4_aarch64_consts,.-_gcry_sm4_aarch64_consts)
 /* Helper macros. */
 
 #define preload_sbox(ptr)                   \
-        GET_LOCAL_POINTER(ptr, .Lsm4_sbox);  \
+        GET_DATA_POINTER(ptr, .Lsm4_sbox);  \
         ld1 {v16.16b-v19.16b}, [ptr], #64;  \
         ld1 {v20.16b-v23.16b}, [ptr], #64;  \
         ld1 {v24.16b-v27.16b}, [ptr], #64;  \
@@ -110,6 +110,8 @@ ELF(.size _gcry_sm4_aarch64_consts,.-_gcry_sm4_aarch64_consts)
         zip1 s2.2d, RTMP3.2d, RTMP1.2d;     \
         zip2 s3.2d, RTMP3.2d, RTMP1.2d;
 
+
+.text
 
 .align 3
 ELF(.type sm4_aarch64_crypt_blk1_4,%function;)

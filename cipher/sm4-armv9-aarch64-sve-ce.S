@@ -32,7 +32,7 @@
 
 /* Constants */
 
-.text
+SECTION_RODATA
 .align 4
 ELF(.type _gcry_sm4_armv9_svesm4_consts,@object)
 _gcry_sm4_armv9_svesm4_consts:
@@ -167,7 +167,7 @@ ELF(.size _gcry_sm4_armv9_svesm4_consts,.-_gcry_sm4_armv9_svesm4_consts)
 /* Helper macros. */
 
 #define PREPARE()                                   \
-        GET_LOCAL_POINTER(x7, .Lbswap128_mask);     \
+        GET_DATA_POINTER(x7, .Lbswap128_mask);     \
         ptrue       p0.b, ALL;                      \
         rdvl        x5, #1;                         \
         ld1b        {RSWAP128.b}, p0/z, [x7];       \
@@ -811,7 +811,7 @@ _gcry_sm4_armv9_sve_ce_ctr_enc:
     PREPARE();
 
     dup         RZERO.d, #0;
-    GET_LOCAL_POINTER(x6, .Lle128_inc);
+    GET_DATA_POINTER(x6, .Lle128_inc);
     ld1b        {RLE128_INC.b}, p0/z, [x6];
 
     ldp         x7, x8, [x3];

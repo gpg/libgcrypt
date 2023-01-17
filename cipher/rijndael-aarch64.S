@@ -265,7 +265,6 @@ _gcry_aes_arm_encrypt_block:
 	mov     x0, #(0);
 	ret_spec_stop;
 
-.ltorg
 .Lenc_not_128:
 	beq .Lenc_192
 
@@ -278,7 +277,6 @@ _gcry_aes_arm_encrypt_block:
 
 	b .Lenc_done;
 
-.ltorg
 .Lenc_192:
 	encround(8, RA, RB, RC, RD, RNA, RNB, RNC, RND, preload_first_key);
 	encround(9, RNA, RNB, RNC, RND, RA, RB, RC, RD, preload_first_key);
@@ -488,7 +486,6 @@ _gcry_aes_arm_decrypt_block:
 	mov     x0, #(0);
 	ret_spec_stop;
 
-.ltorg
 .Ldec_256:
 	beq .Ldec_192;
 
@@ -500,7 +497,6 @@ _gcry_aes_arm_decrypt_block:
 
 	b .Ldec_tail;
 
-.ltorg
 .Ldec_192:
 	firstdecround(11, RA, RB, RC, RD, RNA, RNB, RNC, RND);
 	decround(10, RNA, RNB, RNC, RND, RA, RB, RC, RD, preload_first_key);

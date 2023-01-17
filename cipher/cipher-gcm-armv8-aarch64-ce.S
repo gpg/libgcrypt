@@ -25,12 +25,13 @@
 
 .cpu generic+simd+crypto
 
-.text
-
 
 /* Constants */
 
+SECTION_RODATA
+
 .align 4
+ELF(.type gcry_gcm_reduction_constant,%object;)
 gcry_gcm_reduction_constant:
 .Lrconst:
   .quad 0x87
@@ -149,6 +150,8 @@ gcry_gcm_reduction_constant:
 #define _(...) __VA_ARGS__
 #define __ _()
 
+.text
+
 /*
  * unsigned int _gcry_ghash_armv8_ce_pmull (void *gcm_key, byte *result,
  *                                          const byte *buf, size_t nblocks,
@@ -169,7 +172,7 @@ _gcry_ghash_armv8_ce_pmull:
 
   cbz x3, .Ldo_nothing;
 
-  GET_LOCAL_POINTER(x5, .Lrconst)
+  GET_DATA_POINTER(x5, .Lrconst)
 
   eor vZZ.16b, vZZ.16b, vZZ.16b
   ld1 {rhash.16b}, [x1]
@@ -368,7 +371,7 @@ _gcry_polyval_armv8_ce_pmull:
 
   cbz x3, .Lpolyval_do_nothing;
 
-  GET_LOCAL_POINTER(x5, .Lrconst)
+  GET_DATA_POINTER(x5, .Lrconst)
 
   eor vZZ.16b, vZZ.16b, vZZ.16b
   ld1 {rhash.16b}, [x1]
@@ -589,7 +592,7 @@ _gcry_ghash_setup_armv8_ce_pmull:
    */
   CFI_STARTPROC()
 
-  GET_LOCAL_POINTER(x2, .Lrconst)
+  GET_DATA_POINTER(x2, .Lrconst)
 
   eor vZZ.16b, vZZ.16b, vZZ.16b
 

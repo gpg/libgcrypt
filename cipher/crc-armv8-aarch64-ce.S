@@ -25,8 +25,6 @@
 
 .cpu generic+simd+crypto
 
-.text
-
 
 /* Structure of crc32_consts_s */
 
@@ -35,7 +33,11 @@
 
 /* Constants */
 
+SECTION_RODATA
+
 .align 6
+ELF(.type _crc32_aarch64_ce_constants,%object;)
+_crc32_aarch64_ce_constants:
 .Lcrc32_constants:
 .Lcrc32_partial_fold_input_mask:
   .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -54,6 +56,7 @@
   .byte 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
   .byte 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 
+.text
 
 /*
  * void _gcry_crc32r_armv8_ce_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
@@ -71,7 +74,7 @@ _gcry_crc32r_armv8_ce_bulk:
    */
   CFI_STARTPROC()
 
-  GET_LOCAL_POINTER(x7, .Lcrc32_constants)
+  GET_DATA_POINTER(x7, .Lcrc32_constants)
   add x9, x3, #consts_k(5 - 1)
   cmp x2, #128
 
@@ -280,7 +283,7 @@ _gcry_crc32_armv8_ce_bulk:
    */
   CFI_STARTPROC()
 
-  GET_LOCAL_POINTER(x7, .Lcrc32_constants)
+  GET_DATA_POINTER(x7, .Lcrc32_constants)
   add x4, x7, #.Lcrc32_bswap_shuf - .Lcrc32_constants
   cmp x2, #128
   ld1 {v7.16b}, [x4]

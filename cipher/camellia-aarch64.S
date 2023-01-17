@@ -214,7 +214,7 @@ _gcry_camellia_arm_encrypt_block:
 	 *	w3: keybitlen
 	 */
 
-	GET_LOCAL_POINTER(RTAB1,  _gcry_camellia_arm_tables);
+	GET_DATA_POINTER(RTAB1, _gcry_camellia_arm_tables);
 	mov RMASK, #(0xff<<4); /* byte mask */
 	add RTAB2, RTAB1, #(1 * 4);
 	add RTAB3, RTAB1, #(2 * 4);
@@ -240,7 +240,6 @@ _gcry_camellia_arm_encrypt_block:
 	CFI_RESTORE(x30)
 	ret_spec_stop;
 	CFI_RESTORE_STATE()
-.ltorg
 
 .Lenc_256:
 	enc_fls(24);
@@ -254,7 +253,6 @@ _gcry_camellia_arm_encrypt_block:
 	CFI_RESTORE(x30)
 	ret_spec_stop;
 	CFI_ENDPROC()
-.ltorg
 ELF(.size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;)
 
 .globl _gcry_camellia_arm_decrypt_block
@@ -274,7 +272,7 @@ _gcry_camellia_arm_decrypt_block:
 	 *	w3: keybitlen
 	 */
 
-	GET_LOCAL_POINTER(RTAB1,  _gcry_camellia_arm_tables);
+	GET_DATA_POINTER(RTAB1, _gcry_camellia_arm_tables);
 	mov RMASK, #(0xff<<4); /* byte mask */
 	add RTAB2, RTAB1, #(1 * 4);
 	add RTAB3, RTAB1, #(2 * 4);
@@ -301,7 +299,6 @@ _gcry_camellia_arm_decrypt_block:
 	CFI_RESTORE(x30)
 	ret_spec_stop;
 	CFI_RESTORE_STATE()
-.ltorg
 
 .Ldec_256:
 	inpack(32);
@@ -310,11 +307,11 @@ _gcry_camellia_arm_decrypt_block:
 
 	b .Ldec_128;
 	CFI_ENDPROC()
-.ltorg
 ELF(.size _gcry_camellia_arm_decrypt_block,.-_gcry_camellia_arm_decrypt_block;)
 
 /* Encryption/Decryption tables */
-ELF(.type  _gcry_camellia_arm_tables,@object;)
+SECTION_RODATA
+ELF(.type _gcry_camellia_arm_tables,%object;)
 .balign 32
 _gcry_camellia_arm_tables:
 .Lcamellia_sp1110:

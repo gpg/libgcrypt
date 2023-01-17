@@ -25,16 +25,17 @@
 
 .cpu generic+simd+crypto
 
-.text
-
 
 /* Constants */
+
+SECTION_RODATA
 
 #define K1  0x5A827999
 #define K2  0x6ED9EBA1
 #define K3  0x8F1BBCDC
 #define K4  0xCA62C1D6
 .align 4
+ELF(.type gcry_sha1_aarch64_ce_K_VEC,%object;)
 gcry_sha1_aarch64_ce_K_VEC:
 .LK_VEC:
 .LK1:	.long K1, K1, K1, K1
@@ -91,6 +92,8 @@ gcry_sha1_aarch64_ce_K_VEC:
 #define CLEAR_REG(reg) movi reg.16b, #0;
 
 
+.text
+
 /*
  * unsigned int
  * _gcry_sha1_transform_armv8_ce (void *ctx, const unsigned char *data,
@@ -109,7 +112,7 @@ _gcry_sha1_transform_armv8_ce:
 
   cbz x2, .Ldo_nothing;
 
-  GET_LOCAL_POINTER(x4, .LK_VEC);
+  GET_DATA_POINTER(x4, .LK_VEC);
 
   ld1 {vH0123.4s}, [x0]     /* load h0,h1,h2,h3 */
   ld1 {vK1.4s-vK4.4s}, [x4] /* load K1,K2,K3,K4 */
