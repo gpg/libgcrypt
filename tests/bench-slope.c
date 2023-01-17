@@ -2966,6 +2966,9 @@ warm_up_cpu (void)
 {
   struct nsec_time start, end;
 
+  if (in_regression_test)
+    return;
+
   get_nsec_time (&start);
   do
     {
