@@ -31,8 +31,6 @@
 
 #include "asm-common-amd64.h"
 
-.text
-
 /* register macros */
 #define RSTATE  %rdi
 #define RINBLKS %rsi
@@ -185,8 +183,10 @@
         G2(ROW1, ROW2, ROW3, ROW4, m4); \
         UNDIAGONALIZE(ROW1, ROW2, ROW3, ROW4);
 
-blake2b_data:
+SECTION_RODATA
 .align 32
+ELF(.type _blake2b_avx2_data,@object;)
+_blake2b_avx2_data:
 .Liv:
         .quad 0x6a09e667f3bcc908, 0xbb67ae8584caa73b
         .quad 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1
@@ -197,6 +197,7 @@ blake2b_data:
 .Lshuf_ror24:
         .byte 3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10
 
+.text
 .align 64
 .globl _gcry_blake2b_transform_amd64_avx2
 ELF(.type _gcry_blake2b_transform_amd64_avx2,@function;)

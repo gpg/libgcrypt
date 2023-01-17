@@ -477,6 +477,12 @@ _gcry_sha256_transform_amd64_avx2:
 	ret_spec_stop
 	CFI_ENDPROC()
 
+
+SECTION_RODATA
+
+ELF(.type _sha256_avx2_consts,@object)
+_sha256_avx2_consts:
+
 .align 64
 .LK256:
 	.long	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5

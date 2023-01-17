@@ -47,7 +47,10 @@
 
 /* Constants */
 
-.text
+SECTION_RODATA
+
+ELF(.type _sha1_avx_consts,@object)
+_sha1_avx_consts:
 #define K1  0x5A827999
 #define K2  0x6ED9EBA1
 #define K3  0x8F1BBCDC
@@ -195,6 +198,7 @@
 	vpaddd (.LK_XMM + ((i)/20)*16) rRIP, W, tmp0; \
 	vmovdqa tmp0, WK((i)&~3);
 
+.text
 
 /*
  * Transform nblks*64 bytes (nblks*16 32-bit words) at DATA.

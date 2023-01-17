@@ -44,7 +44,7 @@
 
 .intel_syntax noprefix
 
-.text
+SECTION_RODATA
 
 ELF(.type _gcry_poly1305_avx512_consts,@object)
 _gcry_poly1305_avx512_consts:
@@ -1564,6 +1564,8 @@ ELF(.size _gcry_poly1305_avx512_consts,.-_gcry_poly1305_avx512_consts)
 	mov     r15, [rsp + STACK_gpr_save + 8*5]; \
 	mov     rsp, [rsp + STACK_rsp_save]; \
 	CFI_DEF_CFA_REGISTER(rsp)
+
+.text
 
 /*
 ;; =============================================================================

@@ -29,6 +29,12 @@
 # define ELF(...) /*_*/
 #endif
 
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+# define SECTION_RODATA .section .rdata
+#else
+# define SECTION_RODATA .section .rodata
+#endif
+
 #ifdef __PIC__
 #  define rRIP (%rip)
 #else

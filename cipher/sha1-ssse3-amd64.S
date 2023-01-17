@@ -47,7 +47,11 @@
 
 /* Constants */
 
-.text
+SECTION_RODATA
+
+ELF(.type _sha1_ssse3_consts,@object)
+_sha1_ssse3_consts:
+
 #define K1  0x5A827999
 #define K2  0x6ED9EBA1
 #define K3  0x8F1BBCDC
@@ -207,6 +211,7 @@
 
 #define CLEAR_REG(reg) pxor reg, reg;
 
+.text
 
 /*
  * Transform nblks*64 bytes (nblks*16 32-bit words) at DATA.

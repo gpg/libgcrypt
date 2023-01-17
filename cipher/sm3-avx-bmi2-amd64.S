@@ -41,7 +41,7 @@
 
 /* Constants */
 
-.text
+SECTION_RODATA
 .align 16
 ELF(.type _gcry_sm3_avx2_consts,@object)
 _gcry_sm3_avx2_consts:
@@ -333,6 +333,8 @@ ELF(.size _gcry_sm3_avx2_consts,.-_gcry_sm3_avx2_consts)
         /* W1 ^ W2 => XTMP1 */ \
         vpxor w0, XTMP4, XTMP1; \
         vmovdqa XTMP1, XW_W1W2_ADDR((round), 0);
+
+.text
 
 /*
  * Transform nblks*64 bytes (nblks*16 32-bit words) at DATA.

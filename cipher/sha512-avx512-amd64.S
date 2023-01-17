@@ -404,6 +404,8 @@ ELF(.size _gcry_sha512_transform_amd64_avx512,.-_gcry_sha512_transform_amd64_avx
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 /*;; Binary Data */
 
+SECTION_RODATA
+
 ELF(.type _gcry_sha512_avx512_consts,@object)
 _gcry_sha512_avx512_consts:
 .align 64

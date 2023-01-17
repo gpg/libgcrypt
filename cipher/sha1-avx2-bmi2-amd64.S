@@ -48,9 +48,13 @@
 
 /* Constants */
 
+SECTION_RODATA
+
 #define WK_STACK_WORDS (80 * 2)
 
-.text
+ELF(.type _sha1_avx2_bmi2_consts,@object)
+_sha1_avx2_bmi2_consts:
+
 .align 16
 .Lbswap_shufb_ctl:
 	.long 0x00010203, 0x04050607, 0x08090a0b, 0x0c0d0e0f
@@ -200,6 +204,7 @@
 	vpaddd K, W, tmp0; \
 	vmovdqa tmp0, PRE_WK((i)&~3);
 
+.text
 
 /*
  * Transform 2*nblks*64 bytes (2*nblks*16 32-bit words) at DATA.

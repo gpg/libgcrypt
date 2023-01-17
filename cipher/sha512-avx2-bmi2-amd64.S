@@ -445,6 +445,11 @@ _gcry_sha512_transform_amd64_avx2:
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; */
 /*;; Binary Data */
 
+SECTION_RODATA
+
+ELF(.type _sha512_avx2_consts,@object)
+_sha512_avx2_consts:
+
 .align 64
 /* K[t] used in SHA512 hashing */
 .LK512:

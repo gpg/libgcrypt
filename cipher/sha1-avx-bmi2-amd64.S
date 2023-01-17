@@ -48,7 +48,11 @@
 
 /* Constants */
 
-.text
+SECTION_RODATA
+
+ELF(.type _sha1_avx_bmi2_consts,@object)
+_sha1_avx_bmi2_consts:
+
 .align 16
 .Lbswap_shufb_ctl:
 	.long 0x00010203, 0x04050607, 0x08090a0b, 0x0c0d0e0f
@@ -194,6 +198,7 @@
 	vpaddd K, W, tmp0; \
 	vmovdqa tmp0, WK((i)&~3);
 
+.text
 
 /*
  * Transform nblks*64 bytes (nblks*16 32-bit words) at DATA.

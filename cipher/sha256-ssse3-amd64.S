@@ -497,6 +497,11 @@ _gcry_sha256_transform_amd64_ssse3:
 	CFI_ENDPROC()
 
 
+SECTION_RODATA
+
+ELF(.type _sha256_ssse3_consts,@object)
+_sha256_ssse3_consts:
+
 .align 16
 .LK256:
 	.long	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5

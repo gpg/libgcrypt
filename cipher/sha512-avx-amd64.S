@@ -408,6 +408,11 @@ _gcry_sha512_transform_amd64_avx:
 ;;; Binary Data
 */
 
+SECTION_RODATA
+
+ELF(.type _sha512_avx_consts,@object)
+_sha512_avx_consts:
+
 .align 16
 
 /* Mask for byte-swapping a couple of qwords in an XMM register using (v)pshufb. */
