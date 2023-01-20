@@ -5686,8 +5686,8 @@ func_mode_link ()
 	*-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-os2* | *-*-darwin* | *-cegcc*)
 	  # The PATH hackery in wrapper scripts is required on Windows
 	  # and Darwin in order for the loader to find any dlls it needs.
-	  func_warning "\`-no-install' is ignored for $host"
-	  func_warning "assuming \`-no-fast-install' instead"
+	  # func_warning "\`-no-install' is ignored for $host"
+	  # func_warning "assuming \`-no-fast-install' instead"
 	  fast_install=no
 	  ;;
 	*) no_install=yes ;;
