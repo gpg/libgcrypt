@@ -29,7 +29,11 @@
 # define ELF(...) /*_*/
 #endif
 
-#define SECTION_RODATA .section .rodata
+#ifdef _WIN32
+# define SECTION_RODATA .section .rdata
+#else
+# define SECTION_RODATA .section .rodata
+#endif
 
 #ifdef __APPLE__
 #define GET_DATA_POINTER(reg, name) \
