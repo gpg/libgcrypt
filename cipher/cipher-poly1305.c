@@ -164,10 +164,12 @@ _gcry_cipher_poly1305_encrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
+#ifdef USE_CHACHA20
   if (LIKELY(inbuflen > 0) && LIKELY(c->spec->algo == GCRY_CIPHER_CHACHA20))
     {
       return _gcry_chacha20_poly1305_encrypt (c, outbuf, inbuf, inbuflen);
     }
+#endif
 
   while (inbuflen)
     {
@@ -222,10 +224,12 @@ _gcry_cipher_poly1305_decrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
+#ifdef USE_CHACHA20
   if (LIKELY(inbuflen > 0) && LIKELY(c->spec->algo == GCRY_CIPHER_CHACHA20))
     {
       return _gcry_chacha20_poly1305_decrypt (c, outbuf, inbuf, inbuflen);
     }
+#endif
 
   while (inbuflen)
     {
