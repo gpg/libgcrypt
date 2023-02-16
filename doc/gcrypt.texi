@@ -992,6 +992,19 @@ certification. If the function is approved, this function returns
 @code{GPG_ERR_NO_ERROR} (other restrictions might still apply).
 Otherwise @code{GPG_ERR_NOT_SUPPORTED} is returned.
 
+@item GCRYCTL_FIPS_SERVICE_INDICATOR_MAC; Arguments: enum gcry_mac_algos
+
+Check if the given MAC is approved under the current FIPS 140-3
+certification. If the MAC is approved, this function returns
+@code{GPG_ERR_NO_ERROR}. Otherwise @code{GPG_ERR_NOT_SUPPORTED}
+is returned.
+
+@item GCRYCTL_FIPS_SERVICE_INDICATOR_MD; Arguments: enum gcry_md_algos
+
+Check if the given message digest algorithm is approved under the current
+FIPS 140-3 certification. If the algorithm is approved, this function returns
+@code{GPG_ERR_NO_ERROR}. Otherwise @code{GPG_ERR_NOT_SUPPORTED} is returned.
+
 @end table
 
 @end deftypefun
