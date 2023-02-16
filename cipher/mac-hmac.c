@@ -1413,7 +1413,7 @@ const gcry_mac_spec_t _gcry_mac_type_spec_hmac_tiger1 = {
 #endif
 #if USE_MD5
 const gcry_mac_spec_t _gcry_mac_type_spec_hmac_md5 = {
-  GCRY_MAC_HMAC_MD5, {0, 0}, "HMAC_MD5",
+  GCRY_MAC_HMAC_MD5, {0, 1}, "HMAC_MD5",
   &hmac_ops
 };
 #endif

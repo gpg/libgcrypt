@@ -314,7 +314,7 @@ static const gcry_md_oid_spec_t oid_spec_md5[] =
 
 const gcry_md_spec_t _gcry_digest_spec_md5 =
   {
-    GCRY_MD_MD5, {0, 0},
+    GCRY_MD_MD5, {0, 1},
     "MD5", asn, DIM (asn), oid_spec_md5, 16,
     md5_init, _gcry_md_block_write, md5_final, md5_read, NULL,
     NULL,
