@@ -377,6 +377,57 @@ _gcry_fips_indicator_cipher (va_list arg_ptr)
 }
 
 int
+_gcry_fips_indicator_mac (va_list arg_ptr)
+{
+  enum gcry_mac_algos alg = va_arg (arg_ptr, enum gcry_mac_algos);
+
+  switch (alg)
+    {
+    case GCRY_MAC_CMAC_AES:
+    case GCRY_MAC_HMAC_SHA1:
+    case GCRY_MAC_HMAC_SHA224:
+    case GCRY_MAC_HMAC_SHA256:
+    case GCRY_MAC_HMAC_SHA384:
+    case GCRY_MAC_HMAC_SHA512:
+    case GCRY_MAC_HMAC_SHA512_224:
+    case GCRY_MAC_HMAC_SHA512_256:
+    case GCRY_MAC_HMAC_SHA3_224:
+    case GCRY_MAC_HMAC_SHA3_256:
+    case GCRY_MAC_HMAC_SHA3_384:
+    case GCRY_MAC_HMAC_SHA3_512:
+      return GPG_ERR_NO_ERROR;
+    default:
+      return GPG_ERR_NOT_SUPPORTED;
+    }
+}
+
+int
+_gcry_fips_indicator_md (va_list arg_ptr)
+{
+  enum gcry_md_algos alg = va_arg (arg_ptr, enum gcry_md_algos);
+
+  switch (alg)
+    {
+    case GCRY_MD_SHA1:
+    case GCRY_MD_SHA224:
+    case GCRY_MD_SHA256:
+    case GCRY_MD_SHA384:
+    case GCRY_MD_SHA512:
+    case GCRY_MD_SHA512_224:
+    case GCRY_MD_SHA512_256:
+    case GCRY_MD_SHA3_224:
+    case GCRY_MD_SHA3_256:
+    case GCRY_MD_SHA3_384:
+    case GCRY_MD_SHA3_512:
+    case GCRY_MD_SHAKE128:
+    case GCRY_MD_SHAKE256:
+      return GPG_ERR_NO_ERROR;
+    default:
+      return GPG_ERR_NOT_SUPPORTED;
+    }
+}
+
+int
 _gcry_fips_indicator_kdf (va_list arg_ptr)
 {
   enum gcry_kdf_algos alg = va_arg (arg_ptr, enum gcry_kdf_algos);
