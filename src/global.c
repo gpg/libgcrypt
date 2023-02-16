@@ -791,6 +791,20 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       rc = _gcry_fips_indicator_cipher (arg_ptr);
       break;
 
+    case GCRYCTL_FIPS_SERVICE_INDICATOR_MAC:
+      /* Get FIPS Service Indicator for a given message authentication code.
+       * Returns GPG_ERR_NO_ERROR if algorithm is allowed or
+       * GPG_ERR_NOT_SUPPORTED otherwise */
+      rc = _gcry_fips_indicator_mac (arg_ptr);
+      break;
+
+    case GCRYCTL_FIPS_SERVICE_INDICATOR_MD:
+      /* Get FIPS Service Indicator for a given message digest. Returns
+       * GPG_ERR_NO_ERROR if algorithm is allowed or GPG_ERR_NOT_SUPPORTED
+       * otherwise */
+      rc = _gcry_fips_indicator_md (arg_ptr);
+      break;
+
     case GCRYCTL_FIPS_SERVICE_INDICATOR_KDF:
       /* Get FIPS Service Indicator for a given KDF. Returns GPG_ERR_NO_ERROR
        * if algorithm is allowed or GPG_ERR_NOT_SUPPORTED otherwise */
