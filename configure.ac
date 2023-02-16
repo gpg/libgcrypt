@@ -3034,6 +3034,14 @@ LIST_MEMBER(aria, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS aria.lo"
    AC_DEFINE(USE_ARIA, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS aria-aesni-avx-amd64.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS aria-aesni-avx2-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)

@@ -50,6 +50,60 @@
 #endif
 
 
+/* USE_AESNI_AVX inidicates whether to compile with Intel AES-NI/AVX code. */
+#undef USE_AESNI_AVX
+#if defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX_SUPPORT)
+# if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+#  define USE_AESNI_AVX 1
+# endif
+#endif
+
+/* USE_GFNI_AVX inidicates whether to compile with Intel GFNI/AVX code. */
+#undef USE_GFNI_AVX
+#if defined(USE_AESNI_AVX) && defined(ENABLE_GFNI_SUPPORT)
+# define USE_GFNI_AVX 1
+#endif
+
+/* USE_AESNI_AVX2 inidicates whether to compile with Intel AES-NI/AVX2 code. */
+#undef USE_AESNI_AVX2
+#if defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX2_SUPPORT)
+# if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+#  define USE_AESNI_AVX2 1
+# endif
+#endif
+
+/* USE_GFNI_AVX2 inidicates whether to compile with Intel GFNI/AVX2 code. */
+#undef USE_GFNI_AVX2
+#if defined(USE_AESNI_AVX2) && defined(ENABLE_GFNI_SUPPORT)
+# define USE_GFNI_AVX2 1
+#endif
+
+/* How many parallel blocks to handle in bulk processing functions. */
+#if defined(USE_AESNI_AVX2)
+# define MAX_PARALLEL_BLKS 32
+#elif defined(USE_AESNI_AVX)
+# define MAX_PARALLEL_BLKS 16
+#else
+# define MAX_PARALLEL_BLKS 8
+#endif
+
+/* Assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#undef ASM_FUNC_ABI
+#undef ASM_EXTRA_STACK
+#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
+# ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+#  define ASM_FUNC_ABI __attribute__((sysv_abi))
+#  define ASM_EXTRA_STACK (10 * 16)
+# else
+#  define ASM_FUNC_ABI
+#  define ASM_EXTRA_STACK 0
+# endif
+#endif
+
+
 static const char *aria_selftest (void);
 
 
@@ -69,6 +123,15 @@ typedef struct
   unsigned int decryption_prepared:1; /* The decryption key is set up. */
   unsigned int bulk_prefetch_ready:1; /* Look-up table prefetch ready for
 				       * current bulk operation. */
+
+#ifdef USE_AESNI_AVX
+  unsigned int use_aesni_avx:1;
+  unsigned int use_gfni_avx:1;
+#endif
+#ifdef USE_AESNI_AVX2
+  unsigned int use_aesni_avx2:1;
+  unsigned int use_gfni_avx2:1;
+#endif
 } ARIA_context;
 
 
@@ -362,6 +425,102 @@ static struct
     },
     0
   };
+
+#ifdef USE_AESNI_AVX
+extern unsigned int
+_gcry_aria_aesni_avx_ecb_crypt_blk1_16(const void *ctx, byte *out,
+				       const byte *in, const void *key,
+				       u64 nblks) ASM_FUNC_ABI;
+extern unsigned int
+_gcry_aria_aesni_avx_ctr_crypt_blk16(const void *ctx, byte *out,
+				     const byte *in, byte *iv) ASM_FUNC_ABI;
+
+#ifdef USE_GFNI_AVX
+extern unsigned int
+_gcry_aria_gfni_avx_ecb_crypt_blk1_16(const void *ctx, byte *out,
+				      const byte *in, const void *key,
+				      u64 nblks) ASM_FUNC_ABI;
+extern unsigned int
+_gcry_aria_gfni_avx_ctr_crypt_blk16(const void *ctx, byte *out,
+				    const byte *in, byte *iv) ASM_FUNC_ABI;
+#endif /* USE_GFNI_AVX */
+
+static inline unsigned int
+aria_avx_ecb_crypt_blk1_16(const ARIA_context *ctx, byte *out, const byte *in,
+			   const u32 key[][ARIA_RD_KEY_WORDS], size_t nblks)
+{
+#ifdef USE_GFNI_AVX
+  if (ctx->use_gfni_avx)
+    return _gcry_aria_gfni_avx_ecb_crypt_blk1_16(ctx, out, in, key, nblks)
+		+ ASM_EXTRA_STACK;
+  else
+#endif /* USE_GFNI_AVX */
+    return _gcry_aria_aesni_avx_ecb_crypt_blk1_16(ctx, out, in, key, nblks)
+		+ ASM_EXTRA_STACK;
+}
+
+static inline unsigned int
+aria_avx_ctr_crypt_blk16(const ARIA_context *ctx, byte *out, const byte *in,
+			 byte *iv)
+{
+#ifdef USE_GFNI_AVX
+  if (ctx->use_gfni_avx)
+    return _gcry_aria_gfni_avx_ctr_crypt_blk16(ctx, out, in, iv)
+		+ ASM_EXTRA_STACK;
+  else
+#endif /* USE_GFNI_AVX */
+    return _gcry_aria_aesni_avx_ctr_crypt_blk16(ctx, out, in, iv)
+		+ ASM_EXTRA_STACK;
+}
+#endif /* USE_AESNI_AVX */
+
+#ifdef USE_AESNI_AVX2
+extern unsigned int
+_gcry_aria_aesni_avx2_ecb_crypt_blk32(const void *ctx, byte *out,
+				      const byte *in,
+				      const void *key) ASM_FUNC_ABI;
+extern unsigned int
+_gcry_aria_aesni_avx2_ctr_crypt_blk32(const void *ctx, byte *out,
+				      const byte *in, byte *iv) ASM_FUNC_ABI;
+
+#ifdef USE_GFNI_AVX2
+extern unsigned int
+_gcry_aria_gfni_avx2_ecb_crypt_blk32(const void *ctx, byte *out,
+				     const byte *in,
+				     const void *key) ASM_FUNC_ABI;
+extern unsigned int
+_gcry_aria_gfni_avx2_ctr_crypt_blk32(const void *ctx, byte *out,
+				     const byte *in, byte *iv) ASM_FUNC_ABI;
+#endif /* USE_GFNI_AVX2 */
+
+static inline unsigned int
+aria_avx2_ecb_crypt_blk32(const ARIA_context *ctx, byte *out, const byte *in,
+			  const u32 key[][ARIA_RD_KEY_WORDS])
+{
+#ifdef USE_GFNI_AVX2
+  if (ctx->use_gfni_avx2)
+    return _gcry_aria_gfni_avx2_ecb_crypt_blk32(ctx, out, in, key)
+		+ ASM_EXTRA_STACK;
+  else
+#endif /* USE_GFNI_AVX2 */
+    return _gcry_aria_aesni_avx2_ecb_crypt_blk32(ctx, out, in, key)
+		+ ASM_EXTRA_STACK;
+}
+
+static inline unsigned int
+aria_avx2_ctr_crypt_blk32(const ARIA_context *ctx, byte *out, const byte *in,
+			  byte *iv)
+{
+#ifdef USE_GFNI_AVX2
+  if (ctx->use_gfni_avx2)
+    return _gcry_aria_gfni_avx2_ctr_crypt_blk32(ctx, out, in, iv)
+		+ ASM_EXTRA_STACK;
+  else
+#endif /* USE_GFNI_AVX2 */
+    return _gcry_aria_aesni_avx2_ctr_crypt_blk32(ctx, out, in, iv)
+		+ ASM_EXTRA_STACK;
+}
+#endif /* USE_AESNI_AVX2 */
 
 /* Prefetching for sbox tables. */
 static inline void
@@ -864,7 +1023,47 @@ aria_crypt_blocks (ARIA_context *ctx, byte *out, const byte *in,
 		   size_t num_blks, u32 key[][ARIA_RD_KEY_WORDS])
 {
   unsigned int burn_depth = 0;
-  unsigned int nburn;
+
+#ifdef USE_AESNI_AVX2
+  if (ctx->use_aesni_avx2 || ctx->use_gfni_avx2)
+    {
+      unsigned int nburn = 0;
+
+      while (num_blks >= 32)
+	{
+	  nburn = aria_avx2_ecb_crypt_blk32 (ctx, out, in, key);
+	  in += 32 * ARIA_BLOCK_SIZE;
+	  out += 32 * ARIA_BLOCK_SIZE;
+	  num_blks -= 32;
+	}
+
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      if (num_blks == 0)
+	return burn_depth;
+    }
+#endif /* USE_AESNI_AVX2 */
+
+#ifdef USE_AESNI_AVX
+  if (ctx->use_aesni_avx || ctx->use_gfni_avx)
+    {
+      unsigned int nburn = 0;
+
+      while (num_blks >= 3)
+	{
+	  size_t curr_blks = num_blks < 16 ? num_blks : 16;
+	  nburn = aria_avx_ecb_crypt_blk1_16 (ctx, out, in, key, curr_blks);
+	  in += curr_blks * ARIA_BLOCK_SIZE;
+	  out += curr_blks * ARIA_BLOCK_SIZE;
+	  num_blks -= curr_blks;
+	}
+
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      if (num_blks == 0)
+	return burn_depth;
+    }
+#endif /* USE_AESNI_AVX */
 
   if (!ctx->bulk_prefetch_ready)
     {
@@ -874,19 +1073,19 @@ aria_crypt_blocks (ARIA_context *ctx, byte *out, const byte *in,
 
   while (num_blks >= 2)
     {
-      nburn = aria_crypt_2blks (ctx, out, in, key);
+      unsigned int nburn = aria_crypt_2blks (ctx, out, in, key);
       burn_depth = nburn > burn_depth ? nburn : burn_depth;
-      out += 2 * 16;
-      in += 2 * 16;
+      out += 2 * ARIA_BLOCK_SIZE;
+      in += 2 * ARIA_BLOCK_SIZE;
       num_blks -= 2;
     }
 
   while (num_blks)
     {
-      nburn = aria_crypt (ctx, out, in, key);
+      unsigned int nburn = aria_crypt (ctx, out, in, key);
       burn_depth = nburn > burn_depth ? nburn : burn_depth;
-      out += 16;
-      in += 16;
+      out += ARIA_BLOCK_SIZE;
+      in += ARIA_BLOCK_SIZE;
       num_blks--;
     }
 
@@ -925,12 +1124,46 @@ _gcry_aria_ctr_enc(void *context, unsigned char *ctr,
   const byte *inbuf = inbuf_arg;
   int burn_stack_depth = 0;
 
+#ifdef USE_AESNI_AVX2
+  if (ctx->use_aesni_avx2 || ctx->use_gfni_avx2)
+    {
+      size_t nburn = 0;
+
+      while (nblocks >= 32)
+	{
+	  nburn = aria_avx2_ctr_crypt_blk32 (ctx, outbuf, inbuf, ctr);
+	  inbuf += 32 * ARIA_BLOCK_SIZE;
+	  outbuf += 32 * ARIA_BLOCK_SIZE;
+	  nblocks -= 32;
+	}
+
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+    }
+#endif /* USE_AESNI_AVX */
+
+#ifdef USE_AESNI_AVX
+  if (ctx->use_aesni_avx || ctx->use_gfni_avx)
+    {
+      size_t nburn = 0;
+
+      while (nblocks >= 16)
+	{
+	  nburn = aria_avx_ctr_crypt_blk16 (ctx, outbuf, inbuf, ctr);
+	  inbuf += 16 * ARIA_BLOCK_SIZE;
+	  outbuf += 16 * ARIA_BLOCK_SIZE;
+	  nblocks -= 16;
+	}
+
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+    }
+#endif /* USE_AESNI_AVX */
+
   /* Process remaining blocks. */
   if (nblocks)
     {
-      byte tmpbuf[16 * ARIA_BLOCK_SIZE];
+      byte tmpbuf[MAX_PARALLEL_BLKS * ARIA_BLOCK_SIZE];
       unsigned int tmp_used = ARIA_BLOCK_SIZE;
-      size_t nburn;
+      size_t nburn = 0;
 
       ctx->bulk_prefetch_ready = 0;
 
@@ -1002,7 +1235,7 @@ _gcry_aria_cbc_dec(void *context, unsigned char *iv,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned char tmpbuf[MAX_PARALLEL_BLKS * ARIA_BLOCK_SIZE];
       unsigned int tmp_used = ARIA_BLOCK_SIZE;
       size_t nburn;
 
@@ -1062,7 +1295,7 @@ _gcry_aria_cfb_dec(void *context, unsigned char *iv,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned char tmpbuf[MAX_PARALLEL_BLKS * ARIA_BLOCK_SIZE];
       unsigned int tmp_used = ARIA_BLOCK_SIZE;
       size_t nburn;
 
@@ -1099,14 +1332,14 @@ _gcry_aria_ecb_crypt (void *context, void *outbuf_arg,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      bulk_crypt_fn_t crypt_blk1_16;
+      bulk_crypt_fn_t crypt_blk1_n;
       size_t nburn;
 
       ctx->bulk_prefetch_ready = 0;
-      crypt_blk1_16 = encrypt ? aria_enc_blocks : aria_dec_blocks;
+      crypt_blk1_n = encrypt ? aria_enc_blocks : aria_dec_blocks;
 
-      nburn = bulk_ecb_crypt_128(ctx, crypt_blk1_16,
-				 outbuf, inbuf, nblocks, 16);
+      nburn = bulk_ecb_crypt_128(ctx, crypt_blk1_n,
+				 outbuf, inbuf, nblocks, MAX_PARALLEL_BLKS);
       burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
     }
 
@@ -1133,15 +1366,15 @@ _gcry_aria_xts_crypt (void *context, unsigned char *tweak, void *outbuf_arg,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned char tmpbuf[MAX_PARALLEL_BLKS * ARIA_BLOCK_SIZE];
       unsigned int tmp_used = ARIA_BLOCK_SIZE;
-      bulk_crypt_fn_t crypt_blk1_16;
+      bulk_crypt_fn_t crypt_blk1_n;
       size_t nburn;
 
       ctx->bulk_prefetch_ready = 0;
-      crypt_blk1_16 = encrypt ? aria_enc_blocks : aria_dec_blocks;
+      crypt_blk1_n = encrypt ? aria_enc_blocks : aria_dec_blocks;
 
-      nburn = bulk_xts_crypt_128(ctx, crypt_blk1_16,
+      nburn = bulk_xts_crypt_128(ctx, crypt_blk1_n,
 				 outbuf, inbuf, nblocks,
 				 tweak, tmpbuf,
 				 sizeof(tmpbuf) / ARIA_BLOCK_SIZE,
@@ -1169,7 +1402,7 @@ _gcry_aria_ctr32le_enc(void *context, unsigned char *ctr,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned char tmpbuf[MAX_PARALLEL_BLKS * ARIA_BLOCK_SIZE];
       unsigned int tmp_used = ARIA_BLOCK_SIZE;
       size_t nburn;
 
@@ -1208,15 +1441,15 @@ _gcry_aria_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned char tmpbuf[MAX_PARALLEL_BLKS * ARIA_BLOCK_SIZE];
       unsigned int tmp_used = ARIA_BLOCK_SIZE;
-      bulk_crypt_fn_t crypt_blk1_16;
+      bulk_crypt_fn_t crypt_blk1_n;
       size_t nburn;
 
       ctx->bulk_prefetch_ready = 0;
-      crypt_blk1_16 = encrypt ? aria_enc_blocks : aria_dec_blocks;
+      crypt_blk1_n = encrypt ? aria_enc_blocks : aria_dec_blocks;
 
-      nburn = bulk_ocb_crypt_128 (c, ctx, crypt_blk1_16, outbuf, inbuf, nblocks,
+      nburn = bulk_ocb_crypt_128 (c, ctx, crypt_blk1_n, outbuf, inbuf, nblocks,
 				  &blkn, encrypt, tmpbuf,
 				  sizeof(tmpbuf) / ARIA_BLOCK_SIZE,
 				  &tmp_used);
@@ -1245,7 +1478,7 @@ _gcry_aria_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned char tmpbuf[16 * ARIA_BLOCK_SIZE];
+      unsigned char tmpbuf[MAX_PARALLEL_BLKS * ARIA_BLOCK_SIZE];
       unsigned int tmp_used = ARIA_BLOCK_SIZE;
       size_t nburn;
 
@@ -1275,6 +1508,9 @@ aria_setkey(void *c, const byte *key, unsigned keylen,
   ARIA_context *ctx = c;
   static int initialized = 0;
   static const char *selftest_failed = NULL;
+  unsigned int hwf = _gcry_get_hw_features ();
+
+  (void)hwf;
 
   if (keylen != 16 && keylen != 24 && keylen != 32)
     return GPG_ERR_INV_KEYLEN;
@@ -1289,6 +1525,19 @@ aria_setkey(void *c, const byte *key, unsigned keylen,
 
   if (selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
+
+#ifdef USE_AESNI_AVX2
+  ctx->use_aesni_avx2 = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX2);
+#endif
+#ifdef USE_GFNI_AVX2
+  ctx->use_gfni_avx2 = (hwf & HWF_INTEL_GFNI) && (hwf & HWF_INTEL_AVX2);
+#endif
+#ifdef USE_AESNI_AVX
+  ctx->use_aesni_avx = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX);
+#endif
+#ifdef USE_GFNI_AVX
+  ctx->use_gfni_avx = (hwf & HWF_INTEL_GFNI) && (hwf & HWF_INTEL_AVX);
+#endif
 
   /* Setup bulk encryption routines.  */
   memset (bulk_ops, 0, sizeof(*bulk_ops));

@@ -77,7 +77,7 @@ EXTRA_libcipher_la_SOURCES = \
 	asm-poly1305-aarch64.h \
 	asm-poly1305-amd64.h \
 	asm-poly1305-s390x.h \
-	aria.c \
+	aria.c aria-aesni-avx-amd64.S aria-aesni-avx2-amd64.S \
 	arcfour.c arcfour-amd64.S \
 	blowfish.c blowfish-amd64.S blowfish-arm.S \
 	cast5.c cast5-amd64.S cast5-arm.S \
