@@ -80,8 +80,19 @@
 # define USE_GFNI_AVX2 1
 #endif
 
+/* USE_GFNI_AVX512 inidicates whether to compile with Intel GFNI/AVX512 code. */
+#undef USE_GFNI_AVX512
+#if defined(ENABLE_GFNI_SUPPORT) && defined(ENABLE_AVX512_SUPPORT)
+# if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+#  define USE_GFNI_AVX512 1
+# endif
+#endif
+
 /* How many parallel blocks to handle in bulk processing functions. */
-#if defined(USE_AESNI_AVX2)
+#if defined(USE_GFNI_AVX512)
+# define MAX_PARALLEL_BLKS 64
+#elif defined(USE_AESNI_AVX2)
 # define MAX_PARALLEL_BLKS 32
 #elif defined(USE_AESNI_AVX)
 # define MAX_PARALLEL_BLKS 16
@@ -93,7 +104,8 @@
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
 #undef ASM_EXTRA_STACK
-#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
+#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2) || \
+    defined(USE_GFNI_AVX512)
 # ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
 #  define ASM_FUNC_ABI __attribute__((sysv_abi))
 #  define ASM_EXTRA_STACK (10 * 16)
@@ -131,6 +143,9 @@ typedef struct
 #ifdef USE_AESNI_AVX2
   unsigned int use_aesni_avx2:1;
   unsigned int use_gfni_avx2:1;
+#endif
+#ifdef USE_GFNI_AVX512
+  unsigned int use_gfni_avx512:1;
 #endif
 } ARIA_context;
 
@@ -518,6 +533,33 @@ aria_avx2_ctr_crypt_blk32(const ARIA_context *ctx, byte *out, const byte *in,
   else
 #endif /* USE_GFNI_AVX2 */
     return _gcry_aria_aesni_avx2_ctr_crypt_blk32(ctx, out, in, iv)
+		+ ASM_EXTRA_STACK;
+}
+#endif /* USE_AESNI_AVX2 */
+
+#ifdef USE_GFNI_AVX512
+extern unsigned int
+_gcry_aria_gfni_avx512_ecb_crypt_blk64(const void *ctx, byte *out,
+				       const byte *in,
+				       const void *key) ASM_FUNC_ABI;
+extern unsigned int
+_gcry_aria_gfni_avx512_ctr_crypt_blk64(const void *ctx, byte *out,
+				       const byte *in, byte *iv) ASM_FUNC_ABI;
+
+static inline unsigned int
+aria_gfni_avx512_ecb_crypt_blk64(const ARIA_context *ctx, byte *out,
+				 const byte *in,
+				 const u32 key[][ARIA_RD_KEY_WORDS])
+{
+  return _gcry_aria_gfni_avx512_ecb_crypt_blk64(ctx, out, in, key)
+		+ ASM_EXTRA_STACK;
+}
+
+static inline unsigned int
+aria_gfni_avx512_ctr_crypt_blk64(const ARIA_context *ctx, byte *out,
+				 const byte *in, byte *iv)
+{
+  return _gcry_aria_gfni_avx512_ctr_crypt_blk64(ctx, out, in, iv)
 		+ ASM_EXTRA_STACK;
 }
 #endif /* USE_AESNI_AVX2 */
@@ -1024,6 +1066,26 @@ aria_crypt_blocks (ARIA_context *ctx, byte *out, const byte *in,
 {
   unsigned int burn_depth = 0;
 
+#ifdef USE_GFNI_AVX512
+  if (ctx->use_gfni_avx512)
+    {
+      unsigned int nburn = 0;
+
+      while (num_blks >= 64)
+	{
+	  nburn = aria_gfni_avx512_ecb_crypt_blk64 (ctx, out, in, key);
+	  in += 64 * ARIA_BLOCK_SIZE;
+	  out += 64 * ARIA_BLOCK_SIZE;
+	  num_blks -= 64;
+	}
+
+      burn_depth = nburn > burn_depth ? nburn : burn_depth;
+
+      if (num_blks == 0)
+	return burn_depth;
+    }
+#endif /* USE_AESNI_AVX2 */
+
 #ifdef USE_AESNI_AVX2
   if (ctx->use_aesni_avx2 || ctx->use_gfni_avx2)
     {
@@ -1123,6 +1185,23 @@ _gcry_aria_ctr_enc(void *context, unsigned char *ctr,
   byte *outbuf = outbuf_arg;
   const byte *inbuf = inbuf_arg;
   int burn_stack_depth = 0;
+
+#ifdef USE_GFNI_AVX512
+  if (ctx->use_gfni_avx512)
+    {
+      size_t nburn = 0;
+
+      while (nblocks >= 64)
+	{
+	  nburn = aria_gfni_avx512_ctr_crypt_blk64 (ctx, outbuf, inbuf, ctr);
+	  inbuf += 64 * ARIA_BLOCK_SIZE;
+	  outbuf += 64 * ARIA_BLOCK_SIZE;
+	  nblocks -= 64;
+	}
+
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+    }
+#endif /* USE_AESNI_AVX */
 
 #ifdef USE_AESNI_AVX2
   if (ctx->use_aesni_avx2 || ctx->use_gfni_avx2)
@@ -1526,6 +1605,9 @@ aria_setkey(void *c, const byte *key, unsigned keylen,
   if (selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
 
+#ifdef USE_GFNI_AVX512
+  ctx->use_gfni_avx512 = (hwf & HWF_INTEL_GFNI) && (hwf & HWF_INTEL_AVX512);
+#endif
 #ifdef USE_AESNI_AVX2
   ctx->use_aesni_avx2 = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX2);
 #endif

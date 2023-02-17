@@ -3040,6 +3040,7 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS aria-aesni-avx-amd64.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS aria-aesni-avx2-amd64.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS aria-gfni-avx512-amd64.lo"
       ;;
    esac
 fi
