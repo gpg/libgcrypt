@@ -357,27 +357,21 @@
 		      t0, t1, t2, rk,			\
 		      idx, round)			\
 	/* AddRoundKey */                               \
-	vbroadcastss ((round * 16) + idx + 0)(rk), t0;	\
-	vpsrld $24, t0, t2;				\
-	vpshufb t1, t2, t2;				\
+	vmovd ((round * 16) + idx + 0)(rk), t0;		\
+	vpshufb .Lthree_x16 rRIP, t0, t2;		\
 	vpxor t2, x0, x0;				\
-	vpsrld $16, t0, t2;				\
-	vpshufb t1, t2, t2;				\
+	vpshufb .Ltwo_x16 rRIP, t0, t2;			\
 	vpxor t2, x1, x1;				\
-	vpsrld $8, t0, t2;				\
-	vpshufb t1, t2, t2;				\
+	vpshufb .Lone_x16 rRIP, t0, t2;			\
 	vpxor t2, x2, x2;				\
 	vpshufb t1, t0, t2;				\
 	vpxor t2, x3, x3;				\
-	vbroadcastss ((round * 16) + idx + 4)(rk), t0;	\
-	vpsrld $24, t0, t2;				\
-	vpshufb t1, t2, t2;				\
+	vmovd ((round * 16) + idx + 4)(rk), t0;		\
+	vpshufb .Lthree_x16 rRIP, t0, t2;		\
 	vpxor t2, x4, x4;				\
-	vpsrld $16, t0, t2;				\
-	vpshufb t1, t2, t2;				\
+	vpshufb .Ltwo_x16 rRIP, t0, t2;			\
 	vpxor t2, x5, x5;				\
-	vpsrld $8, t0, t2;				\
-	vpshufb t1, t2, t2;				\
+	vpshufb .Lone_x16 rRIP, t0, t2;			\
 	vpxor t2, x6, x6;				\
 	vpshufb t1, t0, t2;				\
 	vpxor t2, x7, x7;
@@ -857,6 +851,13 @@ SECTION_RODATA
 	.octa 0xEFAE0544FCBD1657B8F95213ABEA4100
 .Ltf_hi__x2__and__fwd_aff:
 	.octa 0x3F893781E95FE1576CDA64D2BA0CB204
+
+.Lthree_x16:
+	.byte 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+.Ltwo_x16:
+	.byte 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
+.Lone_x16:
+	.byte 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 
 .Lbige_addb_1:
 	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
