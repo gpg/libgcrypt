@@ -31,6 +31,9 @@
 #ifdef ENABLE_GFNI_SUPPORT
 #  define CONFIG_AS_GFNI 1
 #endif
+#ifdef HAVE_GCC_INLINE_ASM_VAES_VPCLMUL
+#  define CONFIG_AS_VAES 1
+#endif
 
 /* struct ARIA_context: */
 #define ARIA_BLOCK_SIZE  16
@@ -358,6 +361,53 @@
 	vgf2p8affineinvqb $0, t2, x7, x7
 #endif /* CONFIG_AS_GFNI */
 
+#ifdef CONFIG_AS_VAES
+#define aria_sbox_8way_vaes(x0, x1, x2, x3,		\
+			    x4, x5, x6, x7,		\
+			    t0, t1, t2, t3,		\
+			    t4, t5, t6, t7)		\
+	vpxor t7, t7, t7;				\
+	vpxor t6, t6, t6;				\
+	vbroadcasti128 .Linv_shift_row rRIP, t0;	\
+	vbroadcasti128 .Lshift_row rRIP, t1;		\
+	vbroadcasti128 .Ltf_lo__inv_aff__and__s2 rRIP, t2;\
+	vbroadcasti128 .Ltf_hi__inv_aff__and__s2 rRIP, t3;\
+	vbroadcasti128 .Ltf_lo__x2__and__fwd_aff rRIP, t4;\
+	vbroadcasti128 .Ltf_hi__x2__and__fwd_aff rRIP, t5;\
+							\
+	vaesenclast t7, x0, x0;				\
+	vaesenclast t7, x4, x4;				\
+	vaesenclast t7, x1, x1;				\
+	vaesenclast t7, x5, x5;				\
+	vaesdeclast t7, x2, x2;				\
+	vaesdeclast t7, x6, x6;				\
+							\
+	vpbroadcastd .L0f0f0f0f rRIP, t6;		\
+							\
+	/* AES inverse shift rows */			\
+	vpshufb t0, x0, x0;				\
+	vpshufb t0, x4, x4;				\
+	vpshufb t0, x1, x1;				\
+	vpshufb t0, x5, x5;				\
+	vpshufb t1, x3, x3;				\
+	vpshufb t1, x7, x7;				\
+	vpshufb t1, x2, x2;				\
+	vpshufb t1, x6, x6;				\
+							\
+	/* affine transformation for S2 */		\
+	filter_8bit(x1, t2, t3, t6, t0);		\
+	/* affine transformation for S2 */		\
+	filter_8bit(x5, t2, t3, t6, t0);		\
+							\
+	/* affine transformation for X2 */		\
+	filter_8bit(x3, t4, t5, t6, t0);		\
+	/* affine transformation for X2 */		\
+	filter_8bit(x7, t4, t5, t6, t0);		\
+							\
+	vaesdeclast t7, x3, x3;				\
+	vaesdeclast t7, x7, x7;
+#endif /* CONFIG_AS_VAES */
+
 #define aria_sbox_8way(x0, x1, x2, x3,			\
 		       x4, x5, x6, x7,			\
 		       t0, t1, t2, t3,			\
@@ -432,7 +482,7 @@
 	vextracti128 $1, x7, t6##_x;			\
 	vaesdeclast t7##_x, x7##_x, x7##_x;		\
 	vaesdeclast t7##_x, t6##_x, t6##_x;		\
-	vinserti128 $1, t6##_x, x7, x7;			\
+	vinserti128 $1, t6##_x, x7, x7;
 
 #define aria_diff_m(x0, x1, x2, x3,			\
 		    t0, t1, t2, t3)			\
@@ -630,6 +680,7 @@
 	aria_load_state_8way(y0, y1, y2, y3,		\
 			     y4, y5, y6, y7,		\
 			     mem_tmp, 8);
+
 #ifdef CONFIG_AS_GFNI
 #define aria_fe_gfni(x0, x1, x2, x3,			\
 		     x4, x5, x6, x7,			\
@@ -786,6 +837,155 @@
 			     mem_tmp, 8);
 #endif /* CONFIG_AS_GFNI */
 
+#ifdef CONFIG_AS_VAES
+#define aria_fe_vaes(x0, x1, x2, x3,			\
+		     x4, x5, x6, x7,			\
+		     y0, y1, y2, y3,			\
+		     y4, y5, y6, y7,			\
+		     mem_tmp, rk, round)		\
+	aria_ark_8way(x0, x1, x2, x3, x4, x5, x6, x7,	\
+		      y0, rk, 8, round);		\
+							\
+	aria_sbox_8way_vaes(x2, x3, x0, x1, x6, x7, x4,	\
+			    x5, y0, y1, y2, y3, y4, y5,	\
+			    y6, y7);			\
+							\
+	aria_diff_m(x0, x1, x2, x3, y0, y1, y2, y3);	\
+	aria_diff_m(x4, x5, x6, x7, y0, y1, y2, y3);	\
+	aria_store_state_8way(x0, x1, x2, x3,		\
+			      x4, x5, x6, x7,		\
+			      mem_tmp, 8);		\
+							\
+	aria_load_state_8way(x0, x1, x2, x3,		\
+			     x4, x5, x6, x7,		\
+			     mem_tmp, 0);		\
+	aria_ark_8way(x0, x1, x2, x3, x4, x5, x6, x7,	\
+		      y0, rk, 0, round);		\
+							\
+	aria_sbox_8way_vaes(x2, x3, x0, x1, x6, x7, x4,	\
+			    x5, y0, y1, y2, y3, y4, y5,	\
+			    y6, y7);			\
+							\
+	aria_diff_m(x0, x1, x2, x3, y0, y1, y2, y3);	\
+	aria_diff_m(x4, x5, x6, x7, y0, y1, y2, y3);	\
+	aria_store_state_8way(x0, x1, x2, x3,		\
+			      x4, x5, x6, x7,		\
+			      mem_tmp, 0);		\
+	aria_load_state_8way(y0, y1, y2, y3,		\
+			     y4, y5, y6, y7,		\
+			     mem_tmp, 8);		\
+	aria_diff_word(x0, x1, x2, x3,			\
+		       x4, x5, x6, x7,			\
+		       y0, y1, y2, y3,			\
+		       y4, y5, y6, y7);			\
+	/* aria_diff_byte()				\
+	 * T3 = ABCD -> BADC				\
+	 * T3 = y4, y5, y6, y7 -> y5, y4, y7, y6	\
+	 * T0 = ABCD -> CDAB				\
+	 * T0 = x0, x1, x2, x3 -> x2, x3, x0, x1	\
+	 * T1 = ABCD -> DCBA				\
+	 * T1 = x4, x5, x6, x7 -> x7, x6, x5, x4	\
+	 */						\
+	aria_diff_word(x2, x3, x0, x1,			\
+		       x7, x6, x5, x4,			\
+		       y0, y1, y2, y3,			\
+		       y5, y4, y7, y6);			\
+	aria_store_state_8way(x3, x2, x1, x0,		\
+			      x6, x7, x4, x5,		\
+			      mem_tmp, 0);
+
+#define aria_fo_vaes(x0, x1, x2, x3,			\
+		     x4, x5, x6, x7,			\
+		     y0, y1, y2, y3,			\
+		     y4, y5, y6, y7,			\
+		     mem_tmp, rk, round)		\
+	aria_ark_8way(x0, x1, x2, x3, x4, x5, x6, x7,	\
+		      y0, rk, 8, round);		\
+							\
+	aria_sbox_8way_vaes(x0, x1, x2, x3, x4, x5, x6,	\
+			    x7, y0, y1, y2, y3, y4, y5,	\
+			    y6, y7);			\
+							\
+	aria_diff_m(x0, x1, x2, x3, y0, y1, y2, y3);	\
+	aria_diff_m(x4, x5, x6, x7, y0, y1, y2, y3);	\
+	aria_store_state_8way(x0, x1, x2, x3,		\
+			      x4, x5, x6, x7,		\
+			      mem_tmp, 8);		\
+							\
+	aria_load_state_8way(x0, x1, x2, x3,		\
+			     x4, x5, x6, x7,		\
+			     mem_tmp, 0);		\
+	aria_ark_8way(x0, x1, x2, x3, x4, x5, x6, x7,	\
+		      y0, rk, 0, round);		\
+							\
+	aria_sbox_8way_vaes(x0, x1, x2, x3, x4, x5, x6,	\
+			    x7, y0, y1, y2, y3, y4, y5,	\
+			    y6, y7);	\
+							\
+	aria_diff_m(x0, x1, x2, x3, y0, y1, y2, y3);	\
+	aria_diff_m(x4, x5, x6, x7, y0, y1, y2, y3);	\
+	aria_store_state_8way(x0, x1, x2, x3,		\
+			      x4, x5, x6, x7,		\
+			      mem_tmp, 0);		\
+	aria_load_state_8way(y0, y1, y2, y3,		\
+			     y4, y5, y6, y7,		\
+			     mem_tmp, 8);		\
+	aria_diff_word(x0, x1, x2, x3,			\
+		       x4, x5, x6, x7,			\
+		       y0, y1, y2, y3,			\
+		       y4, y5, y6, y7);			\
+	/* aria_diff_byte()				\
+	 * T1 = ABCD -> BADC				\
+	 * T1 = x4, x5, x6, x7 -> x5, x4, x7, x6	\
+	 * T2 = ABCD -> CDAB				\
+	 * T2 = y0, y1, y2, y3, -> y2, y3, y0, y1	\
+	 * T3 = ABCD -> DCBA				\
+	 * T3 = y4, y5, y6, y7 -> y7, y6, y5, y4	\
+	 */						\
+	aria_diff_word(x0, x1, x2, x3,			\
+		       x5, x4, x7, x6,			\
+		       y2, y3, y0, y1,			\
+		       y7, y6, y5, y4);			\
+	aria_store_state_8way(x3, x2, x1, x0,		\
+			      x6, x7, x4, x5,		\
+			      mem_tmp, 0);
+
+#define aria_ff_vaes(x0, x1, x2, x3,			\
+		     x4, x5, x6, x7,			\
+		     y0, y1, y2, y3,			\
+		     y4, y5, y6, y7,			\
+		     mem_tmp, rk, round, last_round)	\
+	aria_ark_8way(x0, x1, x2, x3, x4, x5, x6, x7,	\
+		      y0, rk, 8, round);		\
+							\
+	aria_sbox_8way_vaes(x2, x3, x0, x1, x6, x7, x4,	\
+			    x5, y0, y1, y2, y3, y4, y5,	\
+			    y6, y7);			\
+							\
+	aria_ark_8way(x0, x1, x2, x3, x4, x5, x6, x7,	\
+		      y0, rk, 8, last_round);		\
+							\
+	aria_store_state_8way(x0, x1, x2, x3,		\
+			      x4, x5, x6, x7,		\
+			      mem_tmp, 8);		\
+							\
+	aria_load_state_8way(x0, x1, x2, x3,		\
+			     x4, x5, x6, x7,		\
+			     mem_tmp, 0);		\
+	aria_ark_8way(x0, x1, x2, x3, x4, x5, x6, x7,	\
+		      y0, rk, 0, round);		\
+							\
+	aria_sbox_8way_vaes(x2, x3, x0, x1, x6, x7, x4,	\
+			    x5, y0, y1, y2, y3, y4, y5,	\
+			    y6, y7);	\
+							\
+	aria_ark_8way(x0, x1, x2, x3, x4, x5, x6, x7,	\
+		      y0, rk, 0, last_round);		\
+							\
+	aria_load_state_8way(y0, y1, y2, y3,		\
+			     y4, y5, y6, y7,		\
+			     mem_tmp, 8);
+#endif /* CONFIG_AS_VAES */
 
 SECTION_RODATA
 .align 32
@@ -1293,6 +1493,172 @@ _gcry_aria_aesni_avx2_ctr_crypt_blk32:
 	CFI_ENDPROC();
 ELF(.size _gcry_aria_aesni_avx2_ctr_crypt_blk32,
 	  .-_gcry_aria_aesni_avx2_ctr_crypt_blk32;)
+
+#ifdef CONFIG_AS_VAES
+.align 16
+ELF(.type __aria_vaes_avx2_crypt_32way,@function;)
+__aria_vaes_avx2_crypt_32way:
+	/* input:
+	 *      %r9: rk
+	 *      %rsi: dst
+	 *      %rdx: src
+	 *      %ymm0..%ymm15: byte-sliced blocks
+	 */
+	CFI_STARTPROC();
+
+	movq %rsi, %rax;
+	leaq 8 * 32(%rax), %r8;
+
+	movl ARIA_CTX_rounds(CTX), %r10d;
+	subl $2, %r10d;
+
+	inpack16_post(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
+		      %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
+		      %ymm15, %rax, %r8);
+	aria_fo_vaes(%ymm8, %ymm9, %ymm10, %ymm11,
+		     %ymm12, %ymm13, %ymm14, %ymm15,
+		     %ymm0, %ymm1, %ymm2, %ymm3,
+		     %ymm4, %ymm5, %ymm6, %ymm7,
+		     %rax, %r9, 0);
+	leaq 1*16(%r9), %r9;
+
+.align 16
+.Loop_vaes:
+	aria_fe_vaes(%ymm1, %ymm0, %ymm3, %ymm2,
+		     %ymm4, %ymm5, %ymm6, %ymm7,
+		     %ymm8, %ymm9, %ymm10, %ymm11,
+		     %ymm12, %ymm13, %ymm14, %ymm15,
+		     %rax, %r9, 0);
+	aria_fo_vaes(%ymm9, %ymm8, %ymm11, %ymm10,
+		     %ymm12, %ymm13, %ymm14, %ymm15,
+		     %ymm0, %ymm1, %ymm2, %ymm3,
+		     %ymm4, %ymm5, %ymm6, %ymm7,
+		     %rax, %r9, 1);
+	leaq 2*16(%r9), %r9;
+	subl $2, %r10d;
+	jnz .Loop_vaes;
+
+	aria_ff_vaes(%ymm1, %ymm0, %ymm3, %ymm2,
+		     %ymm4, %ymm5, %ymm6, %ymm7,
+		     %ymm8, %ymm9, %ymm10, %ymm11,
+		     %ymm12, %ymm13, %ymm14, %ymm15,
+		     %rax, %r9, 0, 1);
+
+	debyteslice_16x16b(%ymm8, %ymm12, %ymm1, %ymm4,
+			   %ymm9, %ymm13, %ymm0, %ymm5,
+			   %ymm10, %ymm14, %ymm3, %ymm6,
+			   %ymm11, %ymm15, %ymm2, %ymm7,
+			   (%rax), (%r8));
+
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size __aria_vaes_avx2_crypt_32way,.-__aria_vaes_avx2_crypt_32way;)
+
+.align 16
+.globl _gcry_aria_vaes_avx2_ecb_crypt_blk32
+ELF(.type _gcry_aria_vaes_avx2_ecb_crypt_blk32,@function;)
+_gcry_aria_vaes_avx2_ecb_crypt_blk32:
+	/* input:
+	 *      %rdi: ctx, CTX
+	 *      %rsi: dst
+	 *      %rdx: src
+	 *      %rcx: round keys
+	 */
+	CFI_STARTPROC();
+
+	pushq %rbp;
+	CFI_PUSH(%rbp);
+	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
+
+	subq $(16 * 32), %rsp;
+	andq $~31, %rsp;
+
+	movq %rcx, %r9;
+	movq %rsi, %r11;
+	movq %rsp, %rsi; /* use stack for temporary store */
+
+	inpack16_pre(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
+		     %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
+		     %ymm15, %rdx);
+
+	call __aria_vaes_avx2_crypt_32way;
+
+	write_output(%ymm1, %ymm0, %ymm3, %ymm2, %ymm4, %ymm5, %ymm6, %ymm7,
+		     %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
+		     %ymm15, %r11);
+
+	movl $STACK_DEPTH, %eax;
+	leave;
+	CFI_LEAVE();
+	vzeroall;
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_aria_vaes_avx2_ecb_crypt_blk32,
+	  .-_gcry_aria_vaes_avx2_ecb_crypt_blk32;)
+
+.align 16
+.globl _gcry_aria_vaes_avx2_ctr_crypt_blk32
+ELF(.type _gcry_aria_vaes_avx2_ctr_crypt_blk32,@function;)
+_gcry_aria_vaes_avx2_ctr_crypt_blk32:
+	/* input:
+	 *      %rdi: ctx
+	 *      %rsi: dst
+	 *      %rdx: src
+	 *      %rcx: iv (big endian, 128bit)
+	 */
+	CFI_STARTPROC();
+
+	pushq %rbp;
+	CFI_PUSH(%rbp);
+	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
+
+	subq $(16 * 32), %rsp;
+	andq $~31, %rsp;
+
+	movq %rcx, %r8;  /* %r8: iv */
+	movq %rsp, %rcx; /* %rcx: keystream */
+	call __aria_aesni_avx2_ctr_gen_keystream_32way;
+
+	pushq %rsi;
+	movq %rdx, %r11;
+	movq %rcx, %rsi; /* use stack for temporary store */
+	movq %rcx, %rdx;
+	leaq ARIA_CTX_enc_key(CTX), %r9;
+
+	call __aria_vaes_avx2_crypt_32way;
+
+	popq %rsi;
+	vpxor (0 * 32)(%r11), %ymm1, %ymm1;
+	vpxor (1 * 32)(%r11), %ymm0, %ymm0;
+	vpxor (2 * 32)(%r11), %ymm3, %ymm3;
+	vpxor (3 * 32)(%r11), %ymm2, %ymm2;
+	vpxor (4 * 32)(%r11), %ymm4, %ymm4;
+	vpxor (5 * 32)(%r11), %ymm5, %ymm5;
+	vpxor (6 * 32)(%r11), %ymm6, %ymm6;
+	vpxor (7 * 32)(%r11), %ymm7, %ymm7;
+	vpxor (8 * 32)(%r11), %ymm8, %ymm8;
+	vpxor (9 * 32)(%r11), %ymm9, %ymm9;
+	vpxor (10 * 32)(%r11), %ymm10, %ymm10;
+	vpxor (11 * 32)(%r11), %ymm11, %ymm11;
+	vpxor (12 * 32)(%r11), %ymm12, %ymm12;
+	vpxor (13 * 32)(%r11), %ymm13, %ymm13;
+	vpxor (14 * 32)(%r11), %ymm14, %ymm14;
+	vpxor (15 * 32)(%r11), %ymm15, %ymm15;
+	write_output(%ymm1, %ymm0, %ymm3, %ymm2, %ymm4, %ymm5, %ymm6, %ymm7,
+		     %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
+		     %ymm15, %rsi);
+
+	movl $STACK_DEPTH, %eax;
+	leave;
+	CFI_LEAVE();
+	vzeroall;
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_aria_vaes_avx2_ctr_crypt_blk32,
+	  .-_gcry_aria_vaes_avx2_ctr_crypt_blk32;)
+#endif /* CONFIG_AS_VAES */
 
 #ifdef CONFIG_AS_GFNI
 .align 16

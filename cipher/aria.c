@@ -74,6 +74,12 @@
 # endif
 #endif
 
+/* USE_VAES_AVX2 inidicates whether to compile with Intel VAES/AVX2 code. */
+#undef USE_VAES_AVX2
+#if defined(USE_AESNI_AVX2) && defined(HAVE_GCC_INLINE_ASM_VAES_VPCLMUL)
+# define USE_VAES_AVX2 1
+#endif
+
 /* USE_GFNI_AVX2 inidicates whether to compile with Intel GFNI/AVX2 code. */
 #undef USE_GFNI_AVX2
 #if defined(USE_AESNI_AVX2) && defined(ENABLE_GFNI_SUPPORT)
@@ -142,6 +148,7 @@ typedef struct
 #endif
 #ifdef USE_AESNI_AVX2
   unsigned int use_aesni_avx2:1;
+  unsigned int use_vaes_avx2:1;
   unsigned int use_gfni_avx2:1;
 #endif
 #ifdef USE_GFNI_AVX512
@@ -464,12 +471,13 @@ static inline unsigned int
 aria_avx_ecb_crypt_blk1_16(const ARIA_context *ctx, byte *out, const byte *in,
 			   const u32 key[][ARIA_RD_KEY_WORDS], size_t nblks)
 {
+  if (0) { }
 #ifdef USE_GFNI_AVX
-  if (ctx->use_gfni_avx)
+  else if (ctx->use_gfni_avx)
     return _gcry_aria_gfni_avx_ecb_crypt_blk1_16(ctx, out, in, key, nblks)
 		+ ASM_EXTRA_STACK;
-  else
 #endif /* USE_GFNI_AVX */
+  else
     return _gcry_aria_aesni_avx_ecb_crypt_blk1_16(ctx, out, in, key, nblks)
 		+ ASM_EXTRA_STACK;
 }
@@ -478,12 +486,13 @@ static inline unsigned int
 aria_avx_ctr_crypt_blk16(const ARIA_context *ctx, byte *out, const byte *in,
 			 byte *iv)
 {
+  if (0) { }
 #ifdef USE_GFNI_AVX
-  if (ctx->use_gfni_avx)
+  else if (ctx->use_gfni_avx)
     return _gcry_aria_gfni_avx_ctr_crypt_blk16(ctx, out, in, iv)
 		+ ASM_EXTRA_STACK;
-  else
 #endif /* USE_GFNI_AVX */
+  else
     return _gcry_aria_aesni_avx_ctr_crypt_blk16(ctx, out, in, iv)
 		+ ASM_EXTRA_STACK;
 }
@@ -497,6 +506,16 @@ _gcry_aria_aesni_avx2_ecb_crypt_blk32(const void *ctx, byte *out,
 extern unsigned int
 _gcry_aria_aesni_avx2_ctr_crypt_blk32(const void *ctx, byte *out,
 				      const byte *in, byte *iv) ASM_FUNC_ABI;
+
+#ifdef USE_VAES_AVX2
+extern unsigned int
+_gcry_aria_vaes_avx2_ecb_crypt_blk32(const void *ctx, byte *out,
+				     const byte *in,
+				     const void *key) ASM_FUNC_ABI;
+extern unsigned int
+_gcry_aria_vaes_avx2_ctr_crypt_blk32(const void *ctx, byte *out,
+				     const byte *in, byte *iv) ASM_FUNC_ABI;
+#endif /* USE_VAES_AVX2 */
 
 #ifdef USE_GFNI_AVX2
 extern unsigned int
@@ -512,12 +531,18 @@ static inline unsigned int
 aria_avx2_ecb_crypt_blk32(const ARIA_context *ctx, byte *out, const byte *in,
 			  const u32 key[][ARIA_RD_KEY_WORDS])
 {
+  if (0) { }
 #ifdef USE_GFNI_AVX2
-  if (ctx->use_gfni_avx2)
+  else if (ctx->use_gfni_avx2)
     return _gcry_aria_gfni_avx2_ecb_crypt_blk32(ctx, out, in, key)
 		+ ASM_EXTRA_STACK;
-  else
 #endif /* USE_GFNI_AVX2 */
+#ifdef USE_VAES_AVX2
+  else if (ctx->use_vaes_avx2)
+    return _gcry_aria_vaes_avx2_ecb_crypt_blk32(ctx, out, in, key)
+		+ ASM_EXTRA_STACK;
+#endif /* USE_VAES_AVX2 */
+  else
     return _gcry_aria_aesni_avx2_ecb_crypt_blk32(ctx, out, in, key)
 		+ ASM_EXTRA_STACK;
 }
@@ -526,12 +551,18 @@ static inline unsigned int
 aria_avx2_ctr_crypt_blk32(const ARIA_context *ctx, byte *out, const byte *in,
 			  byte *iv)
 {
+  if (0) { }
 #ifdef USE_GFNI_AVX2
-  if (ctx->use_gfni_avx2)
+  else if (ctx->use_gfni_avx2)
     return _gcry_aria_gfni_avx2_ctr_crypt_blk32(ctx, out, in, iv)
 		+ ASM_EXTRA_STACK;
-  else
 #endif /* USE_GFNI_AVX2 */
+#ifdef USE_VAES_AVX2
+  else if (ctx->use_vaes_avx2)
+    return _gcry_aria_vaes_avx2_ctr_crypt_blk32(ctx, out, in, iv)
+		+ ASM_EXTRA_STACK;
+#endif /* USE_VAES_AVX2 */
+  else
     return _gcry_aria_aesni_avx2_ctr_crypt_blk32(ctx, out, in, iv)
 		+ ASM_EXTRA_STACK;
 }
@@ -1613,6 +1644,9 @@ aria_setkey(void *c, const byte *key, unsigned keylen,
 #endif
 #ifdef USE_GFNI_AVX2
   ctx->use_gfni_avx2 = (hwf & HWF_INTEL_GFNI) && (hwf & HWF_INTEL_AVX2);
+#endif
+#ifdef USE_VAES_AVX2
+  ctx->use_vaes_avx2 = (hwf & HWF_INTEL_VAES_VPCLMUL) && (hwf & HWF_INTEL_AVX2);
 #endif
 #ifdef USE_AESNI_AVX
   ctx->use_aesni_avx = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX);
