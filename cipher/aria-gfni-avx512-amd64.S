@@ -406,21 +406,17 @@
 	vgf2p8affineinvqb $0, t2, y3, y3;		\
 	vgf2p8affineinvqb $0, t2, y7, y7;
 
-
 #define aria_diff_m(x0, x1, x2, x3,			\
 		    t0, t1, t2, t3)			\
 	/* T = rotr32(X, 8); */				\
 	/* X ^= T */					\
-	vpxorq x0, x3, t0;				\
-	vpxorq x1, x0, t1;				\
-	vpxorq x2, x1, t2;				\
-	vpxorq x3, x2, t3;				\
 	/* X = T ^ rotr(X, 16); */			\
-	vpxorq t2, x0, x0;				\
-	vpxorq x1, t3, t3;				\
-	vpxorq t0, x2, x2;				\
-	vpxorq t1, x3, x1;				\
-	vmovdqu64 t3, x3;
+	vmovdqa64 x0, t0;				\
+	vmovdqa64 x3, t3;				\
+	vpternlogq $0x96, x2, x1, x0;			\
+	vpternlogq $0x96, x2, x1, x3;			\
+	vpternlogq $0x96, t0, t3, x2;			\
+	vpternlogq $0x96, t0, t3, x1;
 
 #define aria_diff_word(x0, x1, x2, x3,			\
 		       x4, x5, x6, x7,			\
