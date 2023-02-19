@@ -738,6 +738,16 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	vpslldq $8, tmp2, tmp2; \
 	vpsubq tmp2, x, x;
 
+#define handle_ctr_128bit_add(nblks) \
+	addq $(nblks), %r10; \
+	adcq $0, %r11; \
+	bswapq %r10; \
+	bswapq %r11; \
+	movq %r10, 8(%rsi); \
+	movq %r11, 0(%rsi); \
+	bswapq %r10; \
+	bswapq %r11;
+
 	/* Process 16 blocks per loop. */
 .align 8
 .Lctr_enc_blk16:
@@ -753,6 +763,9 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	addb $16, 15(%rsi);
 	jc .Lctr_enc_blk16_handle_carry;
 
+	leaq 16(%r10), %r10;
+
+  .Lctr_enc_blk16_byte_bige_add:
 	/* Increment counters. */
 	vpaddb .Lbige_addb_0 rRIP, %ymm7, %ymm0;
 	vpaddb .Lbige_addb_2 rRIP, %ymm7, %ymm1;
@@ -762,7 +775,6 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	vpaddb .Lbige_addb_10 rRIP, %ymm7, %ymm5;
 	vpaddb .Lbige_addb_12 rRIP, %ymm7, %ymm6;
 	vpaddb .Lbige_addb_14 rRIP, %ymm7, %ymm7;
-	leaq 16(%r10), %r10;
 
   .Lctr_enc_blk16_rounds:
 	/* AES rounds */
@@ -830,21 +842,20 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	jmp .Lctr_enc_blk16;
 
   .align 8
+  .Lctr_enc_blk16_handle_only_ctr_carry:
+	handle_ctr_128bit_add(16);
+	jmp .Lctr_enc_blk16_byte_bige_add;
+
+  .align 8
   .Lctr_enc_blk16_handle_carry:
+	jz .Lctr_enc_blk16_handle_only_ctr_carry;
 	/* Increment counters (handle carry). */
 	vpshufb %xmm13, %xmm7, %xmm1; /* be => le */
 	vmovdqa %xmm1, %xmm0;
 	inc_le128(%xmm1, %xmm15, %xmm5);
 	vinserti128 $1, %xmm1, %ymm0, %ymm7; /* ctr: +1:+0 */
 	vpshufb %ymm13, %ymm7, %ymm0;
-	addq $16, %r10;
-	adcq $0, %r11;
-	bswapq %r10;
-	bswapq %r11;
-	movq %r10, 8(%rsi);
-	movq %r11, 0(%rsi);
-	bswapq %r10;
-	bswapq %r11;
+	handle_ctr_128bit_add(16);
 	add2_le128(%ymm7, %ymm15, %ymm14, %ymm9, %ymm10); /* ctr: +3:+2 */
 	vpshufb %ymm13, %ymm7, %ymm1;
 	add2_le128(%ymm7, %ymm15, %ymm14, %ymm9, %ymm10); /* ctr: +5:+4 */
@@ -877,12 +888,14 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	addb $8, 15(%rsi);
 	jc .Lctr_enc_blk8_handle_carry;
 
+	leaq 8(%r10), %r10;
+
+  .Lctr_enc_blk8_byte_bige_add:
 	/* Increment counters. */
 	vpaddb .Lbige_addb_0 rRIP, %ymm3, %ymm0;
 	vpaddb .Lbige_addb_2 rRIP, %ymm3, %ymm1;
 	vpaddb .Lbige_addb_4 rRIP, %ymm3, %ymm2;
 	vpaddb .Lbige_addb_6 rRIP, %ymm3, %ymm3;
-	leaq 8(%r10), %r10;
 
   .Lctr_enc_blk8_rounds:
 	/* AES rounds */
@@ -938,21 +951,20 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	jmp .Lctr_enc_blk4;
 
   .align 8
+  .Lctr_enc_blk8_handle_only_ctr_carry:
+	handle_ctr_128bit_add(8);
+	jmp .Lctr_enc_blk8_byte_bige_add;
+
+  .align 8
   .Lctr_enc_blk8_handle_carry:
+	jz .Lctr_enc_blk8_handle_only_ctr_carry;
 	/* Increment counters (handle carry). */
 	vpshufb %xmm13, %xmm3, %xmm1; /* be => le */
 	vmovdqa %xmm1, %xmm0;
 	inc_le128(%xmm1, %xmm15, %xmm5);
 	vinserti128 $1, %xmm1, %ymm0, %ymm3; /* ctr: +1:+0 */
 	vpshufb %ymm13, %ymm3, %ymm0;
-	addq $8, %r10;
-	adcq $0, %r11;
-	bswapq %r10;
-	bswapq %r11;
-	movq %r10, 8(%rsi);
-	movq %r11, 0(%rsi);
-	bswapq %r10;
-	bswapq %r11;
+	handle_ctr_128bit_add(8);
 	add2_le128(%ymm3, %ymm15, %ymm14, %ymm5, %ymm6); /* ctr: +3:+2 */
 	vpshufb %ymm13, %ymm3, %ymm1;
 	add2_le128(%ymm3, %ymm15, %ymm14, %ymm5, %ymm6); /* ctr: +5:+4 */
@@ -977,10 +989,12 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	addb $4, 15(%rsi);
 	jc .Lctr_enc_blk4_handle_carry;
 
+	leaq 4(%r10), %r10;
+
+  .Lctr_enc_blk4_byte_bige_add:
 	/* Increment counters. */
 	vpaddb .Lbige_addb_0 rRIP, %ymm3, %ymm0;
 	vpaddb .Lbige_addb_2 rRIP, %ymm3, %ymm1;
-	leaq 4(%r10), %r10;
 
   .Lctr_enc_blk4_rounds:
 	/* AES rounds */
@@ -1030,21 +1044,20 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 	jmp .Lctr_enc_blk1;
 
   .align 8
+  .Lctr_enc_blk4_handle_only_ctr_carry:
+	handle_ctr_128bit_add(4);
+	jmp .Lctr_enc_blk4_byte_bige_add;
+
+  .align 8
   .Lctr_enc_blk4_handle_carry:
+	jz .Lctr_enc_blk4_handle_only_ctr_carry;
 	/* Increment counters (handle carry). */
 	vpshufb %xmm13, %xmm3, %xmm1; /* be => le */
 	vmovdqa %xmm1, %xmm0;
 	inc_le128(%xmm1, %xmm15, %xmm5);
 	vinserti128 $1, %xmm1, %ymm0, %ymm3; /* ctr: +1:+0 */
 	vpshufb %ymm13, %ymm3, %ymm0;
-	addq $4, %r10;
-	adcq $0, %r11;
-	bswapq %r10;
-	bswapq %r11;
-	movq %r10, 8(%rsi);
-	movq %r11, 0(%rsi);
-	bswapq %r10;
-	bswapq %r11;
+	handle_ctr_128bit_add(4);
 	add2_le128(%ymm3, %ymm15, %ymm14, %ymm5, %ymm6); /* ctr: +3:+2 */
 	vpshufb %ymm13, %ymm3, %ymm1;
 
@@ -1060,14 +1073,7 @@ _gcry_vaes_avx2_ctr_enc_amd64:
 
 	/* Load and increament counter. */
 	vmovdqu (%rsi), %xmm0;
-	addq $1, %r10;
-	adcq $0, %r11;
-	bswapq %r10;
-	bswapq %r11;
-	movq %r10, 8(%rsi);
-	movq %r11, 0(%rsi);
-	bswapq %r10;
-	bswapq %r11;
+	handle_ctr_128bit_add(1);
 
 	/* AES rounds. */
 	vpxor (0 * 16)(%rdi), %xmm0, %xmm0;
