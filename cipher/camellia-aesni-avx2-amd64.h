@@ -805,6 +805,36 @@ ELF(.type   FUNC_NAME(_constants),@object;)
 .Lbswap128_mask:
 	.byte 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 
+/* CTR byte addition constants */
+.align 32
+.Lbige_addb_0_1:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+.Lbige_addb_2_3:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3
+.Lbige_addb_4_5:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5
+.Lbige_addb_6_7:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7
+.Lbige_addb_8_9:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9
+.Lbige_addb_10_11:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11
+.Lbige_addb_12_13:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13
+.Lbige_addb_14_15:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15
+.Lbige_addb_16_16:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16
+
 #ifdef CAMELLIA_GFNI_BUILD
 
 /* Pre-filters and post-filters bit-matrixes for Camellia sboxes s1, s2, s3
@@ -1151,9 +1181,6 @@ FUNC_NAME(ctr_enc):
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
 
-	movq 8(%rcx), %r11;
-	bswapq %r11;
-
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
 	movl $24, %eax;
@@ -1162,6 +1189,12 @@ FUNC_NAME(ctr_enc):
 	subq $(16 * 32), %rsp;
 	andq $~63, %rsp;
 	movq %rsp, %rax;
+
+	cmpb $(0x100 - 32), 15(%rcx);
+	jbe .Lctr_byteadd;
+
+	movq 8(%rcx), %r11;
+	bswapq %r11;
 
 	vpcmpeqd %ymm15, %ymm15, %ymm15;
 	vpsrldq $8, %ymm15, %ymm15; /* ab: -1:0 ; cd: -1:0 */
@@ -1275,7 +1308,7 @@ FUNC_NAME(ctr_enc):
 	vpshufb .Lbswap128_mask rRIP, %xmm13, %xmm13;
 	vmovdqu %xmm13, (%rcx);
 
-.align 4
+.align 8
 .Lload_ctr_done:
 	/* inpack32_pre: */
 	vpbroadcastq (key_table)(CTX), %ymm15;
@@ -1325,6 +1358,48 @@ FUNC_NAME(ctr_enc):
 	leave;
 	CFI_LEAVE();
 	ret_spec_stop;
+
+.align 8
+.Lctr_byteadd_full_ctr_carry:
+	movq 8(%rcx), %r11;
+	movq (%rcx), %r10;
+	bswapq %r11;
+	bswapq %r10;
+	addq $32, %r11;
+	adcq $0, %r10;
+	bswapq %r11;
+	bswapq %r10;
+	movq %r11, 8(%rcx);
+	movq %r10, (%rcx);
+	jmp .Lctr_byteadd_ymm;
+.align 8
+.Lctr_byteadd:
+	vbroadcasti128 (%rcx), %ymm8;
+	je .Lctr_byteadd_full_ctr_carry;
+	addb $32, 15(%rcx);
+.Lctr_byteadd_ymm:
+	vpaddb .Lbige_addb_16_16 rRIP, %ymm8, %ymm0;
+	vpaddb .Lbige_addb_0_1 rRIP, %ymm8, %ymm15;
+	vpaddb .Lbige_addb_2_3 rRIP, %ymm8, %ymm14;
+	vmovdqu %ymm15, 15 * 32(%rax);
+	vpaddb .Lbige_addb_4_5 rRIP, %ymm8, %ymm13;
+	vmovdqu %ymm14, 14 * 32(%rax);
+	vpaddb .Lbige_addb_6_7 rRIP, %ymm8, %ymm12;
+	vmovdqu %ymm13, 13 * 32(%rax);
+	vpaddb .Lbige_addb_8_9 rRIP, %ymm8, %ymm11;
+	vpaddb .Lbige_addb_10_11 rRIP, %ymm8, %ymm10;
+	vpaddb .Lbige_addb_12_13 rRIP, %ymm8, %ymm9;
+	vpaddb .Lbige_addb_14_15 rRIP, %ymm8, %ymm8;
+	vpaddb .Lbige_addb_0_1 rRIP, %ymm0, %ymm7;
+	vpaddb .Lbige_addb_2_3 rRIP, %ymm0, %ymm6;
+	vpaddb .Lbige_addb_4_5 rRIP, %ymm0, %ymm5;
+	vpaddb .Lbige_addb_6_7 rRIP, %ymm0, %ymm4;
+	vpaddb .Lbige_addb_8_9 rRIP, %ymm0, %ymm3;
+	vpaddb .Lbige_addb_10_11 rRIP, %ymm0, %ymm2;
+	vpaddb .Lbige_addb_12_13 rRIP, %ymm0, %ymm1;
+	vpaddb .Lbige_addb_14_15 rRIP, %ymm0, %ymm0;
+
+	jmp .Lload_ctr_done;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(ctr_enc),.-FUNC_NAME(ctr_enc);)
 

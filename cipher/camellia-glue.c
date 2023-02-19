@@ -117,6 +117,7 @@ typedef struct
   unsigned int use_aesni_avx:1;	/* AES-NI/AVX implementation shall be used.  */
 #endif /*USE_AESNI_AVX*/
 #ifdef USE_AESNI_AVX2
+  unsigned int use_avx2:1; /* If any of AVX2 implementation is enabled.  */
   unsigned int use_aesni_avx2:1;/* AES-NI/AVX2 implementation shall be used.  */
   unsigned int use_vaes_avx2:1; /* VAES/AVX2 implementation shall be used.  */
   unsigned int use_gfni_avx2:1; /* GFNI/AVX2 implementation shall be used.  */
@@ -463,12 +464,15 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
   ctx->use_vaes_avx2 = 0;
   ctx->use_gfni_avx2 = 0;
   ctx->use_gfni_avx512 = 0;
+  ctx->use_avx2 = ctx->use_aesni_avx2;
 #endif
 #ifdef USE_VAES_AVX2
   ctx->use_vaes_avx2 = (hwf & HWF_INTEL_VAES_VPCLMUL) && (hwf & HWF_INTEL_AVX2);
+  ctx->use_avx2 |= ctx->use_vaes_avx2;
 #endif
 #ifdef USE_GFNI_AVX2
   ctx->use_gfni_avx2 = (hwf & HWF_INTEL_GFNI) && (hwf & HWF_INTEL_AVX2);
+  ctx->use_avx2 |= ctx->use_gfni_avx2;
 #endif
 #ifdef USE_GFNI_AVX512
   ctx->use_gfni_avx512 = (hwf & HWF_INTEL_GFNI) && (hwf & HWF_INTEL_AVX512);
@@ -838,7 +842,7 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
 #endif
 
 #ifdef USE_AESNI_AVX2
-  if (ctx->use_aesni_avx2)
+  if (ctx->use_avx2)
     {
       int did_use_aesni_avx2 = 0;
       typeof (&_gcry_camellia_aesni_avx2_ctr_enc) bulk_ctr_fn =
@@ -956,7 +960,7 @@ _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
 #endif
 
 #ifdef USE_AESNI_AVX2
-  if (ctx->use_aesni_avx2)
+  if (ctx->use_avx2)
     {
       int did_use_aesni_avx2 = 0;
       typeof (&_gcry_camellia_aesni_avx2_cbc_dec) bulk_cbc_fn =
@@ -1074,7 +1078,7 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
 #endif
 
 #ifdef USE_AESNI_AVX2
-  if (ctx->use_aesni_avx2)
+  if (ctx->use_avx2)
     {
       int did_use_aesni_avx2 = 0;
       typeof (&_gcry_camellia_aesni_avx2_cfb_dec) bulk_cfb_fn =
@@ -1301,7 +1305,7 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 #endif
 
 #ifdef USE_AESNI_AVX2
-  if (ctx->use_aesni_avx2)
+  if (ctx->use_avx2)
     {
       int did_use_aesni_avx2 = 0;
       u64 Ls[32];
@@ -1435,7 +1439,7 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 #endif
 
 #ifdef USE_AESNI_AVX2
-  if (ctx->use_aesni_avx2)
+  if (ctx->use_avx2)
     {
       int did_use_aesni_avx2 = 0;
       u64 Ls[32];

@@ -689,6 +689,35 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 		    BV8(0, 0, 0, 1, 1, 1, 0, 0),
 		    BV8(0, 0, 0, 0, 0, 0, 0, 1))
 
+/* CTR byte addition constants */
+.align 64
+.Lbige_addb_0_1:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+.Lbige_addb_2_3:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3
+.Lbige_addb_4_5:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5
+.Lbige_addb_6_7:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7
+.Lbige_addb_8_9:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9
+.Lbige_addb_10_11:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11
+.Lbige_addb_12_13:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13
+.Lbige_addb_14_15:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15
+.Lbige_addb_16:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16
+
 ELF(.size _gcry_camellia_gfni_avx512__constants,.-_gcry_camellia_gfni_avx512__constants;)
 
 .text
@@ -836,6 +865,14 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	CFI_STARTPROC();
 	spec_stop_avx512;
 
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
+
+	cmpb $(0x100 - 64), 15(%rcx);
+	jbe .Lctr_byteadd;
+
 	vbroadcasti64x2 .Lbswap128_mask rRIP, %zmm19;
 	vmovdqa64 .Lcounter0123_lo rRIP, %zmm21;
 	vbroadcasti64x2 .Lcounter4444_lo rRIP, %zmm22;
@@ -850,11 +887,6 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	bswapq %r10;
 	vbroadcasti64x2 (%rcx), %zmm0;
 	vpshufb %zmm19, %zmm0, %zmm0;
-
-	cmpl $128, key_bitlength(CTX);
-	movl $32, %r8d;
-	movl $24, %eax;
-	cmovel %eax, %r8d; /* max */
 
 	/* check need for handling 64-bit overflow and carry */
 	cmpq $(0xffffffffffffffff - 64), %r11;
@@ -901,8 +933,9 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 
 .align 4
 .Lload_ctr_done:
+	vbroadcasti64x2 .Lpack_bswap rRIP, %zmm17;
 	vpbroadcastq (key_table)(CTX), %zmm16;
-	vpshufb .Lpack_bswap rRIP, %zmm16, %zmm16;
+	vpshufb %zmm17, %zmm16, %zmm16;
 
 	/* Byte-swap IVs and update counter. */
 	addq $64, %r11;
@@ -928,6 +961,8 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	movq %r11, 8(%rcx);
 	movq %r10, (%rcx);
 
+.align 16
+.Lctr_inpack64_pre:
 	/* inpack64_pre: */
 	vpxorq %zmm0, %zmm16, %zmm0;
 	vpxorq %zmm1, %zmm16, %zmm1;
@@ -972,6 +1007,56 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	clear_regs();
 
 	ret_spec_stop;
+
+.align 16
+.Lctr_byteadd_full_ctr_carry:
+	movq 8(%rcx), %r11;
+	movq (%rcx), %r10;
+	bswapq %r11;
+	bswapq %r10;
+	addq $64, %r11;
+	adcq $0, %r10;
+	bswapq %r11;
+	bswapq %r10;
+	movq %r11, 8(%rcx);
+	movq %r10, (%rcx);
+	jmp .Lctr_byteadd_zmm;
+.align 16
+.Lctr_byteadd:
+	vbroadcasti64x2 (%rcx), %zmm12;
+	je .Lctr_byteadd_full_ctr_carry;
+	addb $64, 15(%rcx);
+.Lctr_byteadd_zmm:
+	vbroadcasti64x2 .Lbige_addb_16 rRIP, %zmm16;
+	vmovdqa64 .Lbige_addb_0_1 rRIP, %zmm17;
+	vmovdqa64 .Lbige_addb_4_5 rRIP, %zmm18;
+	vmovdqa64 .Lbige_addb_8_9 rRIP, %zmm19;
+	vmovdqa64 .Lbige_addb_12_13 rRIP, %zmm20;
+	vpaddb %zmm16, %zmm12, %zmm8;
+	vpaddb %zmm17, %zmm12, %zmm15;
+	vpaddb %zmm18, %zmm12, %zmm14;
+	vpaddb %zmm19, %zmm12, %zmm13;
+	vpaddb %zmm20, %zmm12, %zmm12;
+	vpaddb %zmm16, %zmm8, %zmm4;
+	vpaddb %zmm17, %zmm8, %zmm11;
+	vpaddb %zmm18, %zmm8, %zmm10;
+	vpaddb %zmm19, %zmm8, %zmm9;
+	vpaddb %zmm20, %zmm8, %zmm8;
+	vpaddb %zmm16, %zmm4, %zmm0;
+	vpaddb %zmm17, %zmm4, %zmm7;
+	vpaddb %zmm18, %zmm4, %zmm6;
+	vpaddb %zmm19, %zmm4, %zmm5;
+	vpaddb %zmm20, %zmm4, %zmm4;
+	vpaddb %zmm17, %zmm0, %zmm3;
+	vpaddb %zmm18, %zmm0, %zmm2;
+	vpaddb %zmm19, %zmm0, %zmm1;
+	vpaddb %zmm20, %zmm0, %zmm0;
+
+	vbroadcasti64x2 .Lpack_bswap rRIP, %zmm17
+	vpbroadcastq (key_table)(CTX), %zmm16;
+	vpshufb %zmm17, %zmm16, %zmm16;
+
+	jmp .Lctr_inpack64_pre;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_ctr_enc,.-_gcry_camellia_gfni_avx512_ctr_enc;)
 
