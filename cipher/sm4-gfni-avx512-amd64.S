@@ -1,6 +1,6 @@
 /* sm4-gfni-avx512-amd64.S  -  GFNI/AVX512 implementation of SM4 cipher
  *
- * Copyright (C) 2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2022-2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -145,6 +145,35 @@ SECTION_RODATA
 	.quad 1, 0
 	.quad 2, 0
 	.quad 3, 0
+
+/* CTR byte addition constants */
+.align 64
+.Lbige_addb_0_1:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+.Lbige_addb_2_3:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3
+.Lbige_addb_4_5:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5
+.Lbige_addb_6_7:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7
+.Lbige_addb_8_9:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9
+.Lbige_addb_10_11:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11
+.Lbige_addb_12_13:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13
+.Lbige_addb_14_15:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15
+.Lbige_addb_16:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16
 
 .text
 
@@ -627,6 +656,9 @@ _gcry_sm4_gfni_avx512_ctr_enc:
 	CFI_STARTPROC();
 	spec_stop_avx512;
 
+	cmpb $(0x100 - 16), 15(%rcx);
+	jbe .Lctr_byteadd16;
+
 	vbroadcasti128 .Lbswap128_mask rRIP, RTMP0;
 	vmovdqa .Lcounter0123_lo rRIP, RTMP1;
 	vbroadcasti128 .Lcounter2222_lo rRIP, RTMP2;
@@ -695,6 +727,8 @@ _gcry_sm4_gfni_avx512_ctr_enc:
 	vpshufb RTMP0, RB2, RB2;
 	vpshufb RTMP0, RB3, RB3;
 
+.align 16
+.Lload_ctr_done16:
 	call __sm4_gfni_crypt_blk16;
 
 	vpxor (0 * 32)(%rdx), RA0, RA0;
@@ -719,6 +753,36 @@ _gcry_sm4_gfni_avx512_ctr_enc:
 	kxorq %k1, %k1, %k1;
 
 	ret_spec_stop;
+
+.align 16
+.Lctr_byteadd_full_ctr_carry16:
+	movq 8(%rcx), %r11;
+	movq (%rcx), %r10;
+	bswapq %r11;
+	bswapq %r10;
+	addq $16, %r11;
+	adcq $0, %r10;
+	bswapq %r11;
+	bswapq %r10;
+	movq %r11, 8(%rcx);
+	movq %r10, (%rcx);
+	jmp .Lctr_byteadd_ymm16;
+.align 16
+.Lctr_byteadd16:
+	vbroadcasti128 (%rcx), RB3;
+	je .Lctr_byteadd_full_ctr_carry16;
+	addb $16, 15(%rcx);
+.Lctr_byteadd_ymm16:
+	vpaddb .Lbige_addb_0_1 rRIP, RB3, RA0;
+	vpaddb .Lbige_addb_2_3 rRIP, RB3, RA1;
+	vpaddb .Lbige_addb_4_5 rRIP, RB3, RA2;
+	vpaddb .Lbige_addb_6_7 rRIP, RB3, RA3;
+	vpaddb .Lbige_addb_8_9 rRIP, RB3, RB0;
+	vpaddb .Lbige_addb_10_11 rRIP, RB3, RB1;
+	vpaddb .Lbige_addb_12_13 rRIP, RB3, RB2;
+	vpaddb .Lbige_addb_14_15 rRIP, RB3, RB3;
+
+	jmp .Lload_ctr_done16;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_gfni_avx512_ctr_enc,.-_gcry_sm4_gfni_avx512_ctr_enc;)
 
@@ -1304,6 +1368,9 @@ _gcry_sm4_gfni_avx512_ctr_enc_blk32:
 	CFI_STARTPROC();
 	spec_stop_avx512;
 
+	cmpb $(0x100 - 32), 15(%rcx);
+	jbe .Lctr_byteadd32;
+
 	vbroadcasti64x2 .Lbswap128_mask rRIP, RTMP0z;
 	vmovdqa32 .Lcounter0123_lo rRIP, RTMP1z;
 	vbroadcasti64x2 .Lcounter4444_lo rRIP, RTMP2z;
@@ -1372,6 +1439,8 @@ _gcry_sm4_gfni_avx512_ctr_enc_blk32:
 	vpshufb RTMP0z, RB2z, RB2z;
 	vpshufb RTMP0z, RB3z, RB3z;
 
+.align 16
+.Lload_ctr_done32:
 	call __sm4_gfni_crypt_blk32;
 
 	vpxord (0 * 64)(%rdx), RA0z, RA0z;
@@ -1396,6 +1465,38 @@ _gcry_sm4_gfni_avx512_ctr_enc_blk32:
 	kxorq %k1, %k1, %k1;
 
 	ret_spec_stop;
+
+.align 16
+.Lctr_byteadd_full_ctr_carry32:
+	movq 8(%rcx), %r11;
+	movq (%rcx), %r10;
+	bswapq %r11;
+	bswapq %r10;
+	addq $32, %r11;
+	adcq $0, %r10;
+	bswapq %r11;
+	bswapq %r10;
+	movq %r11, 8(%rcx);
+	movq %r10, (%rcx);
+	jmp .Lctr_byteadd_zmm32;
+.align 16
+.Lctr_byteadd32:
+	vbroadcasti64x2 (%rcx), RA3z;
+	je .Lctr_byteadd_full_ctr_carry32;
+	addb $32, 15(%rcx);
+.Lctr_byteadd_zmm32:
+	vbroadcasti64x2 .Lbige_addb_16 rRIP, RB3z;
+	vpaddb RB3z, RA3z, RB3z;
+	vpaddb .Lbige_addb_0_1 rRIP, RA3z, RA0z;
+	vpaddb .Lbige_addb_4_5 rRIP, RA3z, RA1z;
+	vpaddb .Lbige_addb_8_9 rRIP, RA3z, RA2z;
+	vpaddb .Lbige_addb_12_13 rRIP, RA3z, RA3z;
+	vpaddb .Lbige_addb_0_1 rRIP, RB3z, RB0z;
+	vpaddb .Lbige_addb_4_5 rRIP, RB3z, RB1z;
+	vpaddb .Lbige_addb_8_9 rRIP, RB3z, RB2z;
+	vpaddb .Lbige_addb_12_13 rRIP, RB3z, RB3z;
+
+	jmp .Lload_ctr_done32;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_gfni_avx512_ctr_enc_blk32,.-_gcry_sm4_gfni_avx512_ctr_enc_blk32;)
 

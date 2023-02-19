@@ -1,6 +1,6 @@
 /* sm4-avx-aesni-amd64.S  -  AES-NI/AVX implementation of SM4 cipher
  *
- * Copyright (C) 2020 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2020,2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -149,6 +149,38 @@ _sm4_aesni_avx_consts:
 /* For input word byte-swap */
 .Lbswap32_mask:
 	.byte 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12
+
+/* CTR byte addition constants */
+.Lbige_addb_1:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+.Lbige_addb_2:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
+.Lbige_addb_3:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3
+.Lbige_addb_4:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4
+.Lbige_addb_5:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5
+.Lbige_addb_6:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6
+.Lbige_addb_7:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7
+.Lbige_addb_8:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8
+.Lbige_addb_9:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9
+.Lbige_addb_10:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10
+.Lbige_addb_11:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11
+.Lbige_addb_12:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12
+.Lbige_addb_13:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13
+.Lbige_addb_14:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14
+.Lbige_addb_15:
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15
 
 .align 4
 /* 4-bit mask */
@@ -529,6 +561,9 @@ _gcry_sm4_aesni_avx_ctr_enc:
 	 */
 	CFI_STARTPROC();
 
+	cmpb $(0x100 - 8), 15(%rcx);
+	jbe .Lctr_byteadd;
+
 	/* load IV and byteswap */
 	vmovdqu (%rcx), RA0;
 
@@ -565,6 +600,8 @@ _gcry_sm4_aesni_avx_ctr_enc:
 	/* store new IV */
 	vmovdqu RTMP1, (%rcx);
 
+.align 8
+.Lload_ctr_done:
 	call __sm4_crypt_blk8;
 
 	vpxor (0 * 16)(%rdx), RA0, RA0;
@@ -588,6 +625,35 @@ _gcry_sm4_aesni_avx_ctr_enc:
 	vzeroall;
 
 	ret_spec_stop;
+	.align 8
+
+.Lctr_byteadd_full_ctr_carry:
+	movq 8(%rcx), %r11;
+	movq (%rcx), %r10;
+	bswapq %r11;
+	bswapq %r10;
+	addq $8, %r11;
+	adcq $0, %r10;
+	bswapq %r11;
+	bswapq %r10;
+	movq %r11, 8(%rcx);
+	movq %r10, (%rcx);
+	jmp .Lctr_byteadd_xmm;
+.align 8
+.Lctr_byteadd:
+	vmovdqu (%rcx), RA0;
+	je .Lctr_byteadd_full_ctr_carry;
+	addb $8, 15(%rcx);
+.Lctr_byteadd_xmm:
+	vpaddb .Lbige_addb_1 rRIP, RA0, RA1;
+	vpaddb .Lbige_addb_2 rRIP, RA0, RA2;
+	vpaddb .Lbige_addb_3 rRIP, RA0, RA3;
+	vpaddb .Lbige_addb_4 rRIP, RA0, RB0;
+	vpaddb .Lbige_addb_5 rRIP, RA0, RB1;
+	vpaddb .Lbige_addb_6 rRIP, RA0, RB2;
+	vpaddb .Lbige_addb_7 rRIP, RA0, RB3;
+
+	jmp .Lload_ctr_done;
 	CFI_ENDPROC();
 ELF(.size _gcry_sm4_aesni_avx_ctr_enc,.-_gcry_sm4_aesni_avx_ctr_enc;)
 
