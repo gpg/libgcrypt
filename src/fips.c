@@ -681,6 +681,8 @@ get_file_offset (FILE *fp, ElfW (Ehdr) *ehdr_p,
         return gpg_error_from_syserror ();
 
       off = ftell (fp);
+      if (off < 0)
+        return gpg_error_from_syserror ();
       if (shdr.sh_type == SHT_NOTE && shdr.sh_flags == 0 && shdr.sh_size == 48)
         {
           const char header_of_the_note[] = {
