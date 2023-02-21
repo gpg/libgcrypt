@@ -1,6 +1,6 @@
 /* camellia-aesni-avx2-amd64.h - AES-NI/VAES/GFNI/AVX2 implementation of Camellia
  *
- * Copyright (C) 2013-2015,2020-2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2015,2020-2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -145,8 +145,6 @@
 	vpbroadcastq .Lpost_filter_bitmatrix_s14 rRIP, t4; \
 	vpbroadcastq .Lpost_filter_bitmatrix_s2 rRIP, t3; \
 	vpbroadcastq .Lpost_filter_bitmatrix_s3 rRIP, t6; \
-	vpxor t7##_x, t7##_x, t7##_x; \
-	vpbroadcastq key, t0; /* higher 64-bit duplicate ignored */ \
 	\
 	/* prefilter sboxes */ \
 	vgf2p8affineqb $(pre_filter_constant_s1234), t5, x0, x0; \
@@ -172,10 +170,8 @@
 	vgf2p8affineinvqb $(post_filter_constant_s2), t3, x1, x1; \
 	vgf2p8affineinvqb $(post_filter_constant_s2), t3, x4, x4; \
 	\
-	vpsrldq $1, t0, t1; \
-	vpsrldq $2, t0, t2; \
-	vpshufb t7, t1, t1; \
-	vpsrldq $3, t0, t3; \
+	vpbroadcastb 7+key, t7; \
+	vpbroadcastb 6+key, t6; \
 	\
 	/* P-function */ \
 	vpxor x5, x0, x0; \
@@ -183,25 +179,24 @@
 	vpxor x7, x2, x2; \
 	vpxor x4, x3, x3; \
 	\
-	vpshufb t7, t2, t2; \
-	vpsrldq $4, t0, t4; \
-	vpshufb t7, t3, t3; \
-	vpsrldq $5, t0, t5; \
-	vpshufb t7, t4, t4; \
+	vpbroadcastb 5+key, t5; \
+	vpbroadcastb 4+key, t4; \
 	\
 	vpxor x2, x4, x4; \
 	vpxor x3, x5, x5; \
 	vpxor x0, x6, x6; \
 	vpxor x1, x7, x7; \
 	\
-	vpsrldq $6, t0, t6; \
-	vpshufb t7, t5, t5; \
-	vpshufb t7, t6, t6; \
+	vpbroadcastb 3+key, t3; \
+	vpbroadcastb 2+key, t2; \
 	\
 	vpxor x7, x0, x0; \
 	vpxor x4, x1, x1; \
 	vpxor x5, x2, x2; \
 	vpxor x6, x3, x3; \
+	\
+	vpbroadcastb 1+key, t1; \
+	vpbroadcastb 0+key, t0; \
 	\
 	vpxor x3, x4, x4; \
 	vpxor x0, x5, x5; \
@@ -210,15 +205,11 @@
 	\
 	/* Add key material and result to CD (x becomes new CD) */ \
 	\
-	vpxor t6, x1, x1; \
-	vpxor 5 * 32(mem_cd), x1, x1; \
-	\
-	vpsrldq $7, t0, t6; \
-	vpshufb t7, t0, t0; \
-	vpshufb t7, t6, t7; \
-	\
 	vpxor t7, x0, x0; \
 	vpxor 4 * 32(mem_cd), x0, x0; \
+	\
+	vpxor t6, x1, x1; \
+	vpxor 5 * 32(mem_cd), x1, x1; \
 	\
 	vpxor t5, x2, x2; \
 	vpxor 6 * 32(mem_cd), x2, x2; \
@@ -285,7 +276,7 @@
 	filter_8bit(x1, t5, t6, t7, t4); \
 	filter_8bit(x4, t5, t6, t7, t4); \
 	\
-	vpxor t4##_x, t4##_x, t4##_x; \
+	vpxor t4, t4, t4; \
 	\
 	/* AES subbytes + AES shift rows */ \
 	IF_AESNI(vextracti128 $1, x2, t6##_x; \
@@ -341,17 +332,12 @@
 	filter_8bit(x2, t2, t3, t7, t6); \
 	filter_8bit(x5, t2, t3, t7, t6); \
 	\
-	vpbroadcastq key, t0; /* higher 64-bit duplicate ignored */ \
-	\
 	/* postfilter sbox 2 */ \
 	filter_8bit(x1, t4, t5, t7, t2); \
 	filter_8bit(x4, t4, t5, t7, t2); \
-	vpxor t7##_x, t7##_x, t7##_x; \
 	\
-	vpsrldq $1, t0, t1; \
-	vpsrldq $2, t0, t2; \
-	vpshufb t7, t1, t1; \
-	vpsrldq $3, t0, t3; \
+	vpbroadcastb 7+key, t7; \
+	vpbroadcastb 6+key, t6; \
 	\
 	/* P-function */ \
 	vpxor x5, x0, x0; \
@@ -359,25 +345,24 @@
 	vpxor x7, x2, x2; \
 	vpxor x4, x3, x3; \
 	\
-	vpshufb t7, t2, t2; \
-	vpsrldq $4, t0, t4; \
-	vpshufb t7, t3, t3; \
-	vpsrldq $5, t0, t5; \
-	vpshufb t7, t4, t4; \
+	vpbroadcastb 5+key, t5; \
+	vpbroadcastb 4+key, t4; \
 	\
 	vpxor x2, x4, x4; \
 	vpxor x3, x5, x5; \
 	vpxor x0, x6, x6; \
 	vpxor x1, x7, x7; \
 	\
-	vpsrldq $6, t0, t6; \
-	vpshufb t7, t5, t5; \
-	vpshufb t7, t6, t6; \
+	vpbroadcastb 3+key, t3; \
+	vpbroadcastb 2+key, t2; \
 	\
 	vpxor x7, x0, x0; \
 	vpxor x4, x1, x1; \
 	vpxor x5, x2, x2; \
 	vpxor x6, x3, x3; \
+	\
+	vpbroadcastb 1+key, t1; \
+	vpbroadcastb 0+key, t0; \
 	\
 	vpxor x3, x4, x4; \
 	vpxor x0, x5, x5; \
@@ -386,15 +371,11 @@
 	\
 	/* Add key material and result to CD (x becomes new CD) */ \
 	\
-	vpxor t6, x1, x1; \
-	vpxor 5 * 32(mem_cd), x1, x1; \
-	\
-	vpsrldq $7, t0, t6; \
-	vpshufb t7, t0, t0; \
-	vpshufb t7, t6, t7; \
-	\
 	vpxor t7, x0, x0; \
 	vpxor 4 * 32(mem_cd), x0, x0; \
+	\
+	vpxor t6, x1, x1; \
+	vpxor 5 * 32(mem_cd), x1, x1; \
 	\
 	vpxor t5, x2, x2; \
 	vpxor 6 * 32(mem_cd), x2, x2; \
@@ -515,15 +496,11 @@
 	 * t0 &= ll; \
 	 * lr ^= rol32(t0, 1); \
 	 */ \
-	vpbroadcastd kll, t0; /* only lowest 32-bit used */ \
 	vpxor tt0, tt0, tt0; \
-	vpshufb tt0, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t0; \
+	vpbroadcastb 0+kll, t3; \
+	vpbroadcastb 1+kll, t2; \
+	vpbroadcastb 2+kll, t1; \
+	vpbroadcastb 3+kll, t0; \
 	\
 	vpand l0, t0, t0; \
 	vpand l1, t1, t1; \
@@ -533,7 +510,6 @@
 	rol32_1_32(t3, t2, t1, t0, tt1, tt2, tt3, tt0); \
 	\
 	vpxor l4, t0, l4; \
-	vpbroadcastd krr, t0; /* only lowest 32-bit used */ \
 	vmovdqu l4, 4 * 32(l); \
 	vpxor l5, t1, l5; \
 	vmovdqu l5, 5 * 32(l); \
@@ -548,13 +524,10 @@
 	 * rl ^= t2; \
 	 */ \
 	\
-	vpshufb tt0, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t0; \
+	vpbroadcastb 0+krr, t3; \
+	vpbroadcastb 1+krr, t2; \
+	vpbroadcastb 2+krr, t1; \
+	vpbroadcastb 3+krr, t0; \
 	\
 	vpor 4 * 32(r), t0, t0; \
 	vpor 5 * 32(r), t1, t1; \
@@ -566,7 +539,6 @@
 	vpxor 2 * 32(r), t2, t2; \
 	vpxor 3 * 32(r), t3, t3; \
 	vmovdqu t0, 0 * 32(r); \
-	vpbroadcastd krl, t0; /* only lowest 32-bit used */ \
 	vmovdqu t1, 1 * 32(r); \
 	vmovdqu t2, 2 * 32(r); \
 	vmovdqu t3, 3 * 32(r); \
@@ -576,13 +548,10 @@
 	 * t2 &= rl; \
 	 * rr ^= rol32(t2, 1); \
 	 */ \
-	vpshufb tt0, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t0; \
+	vpbroadcastb 0+krl, t3; \
+	vpbroadcastb 1+krl, t2; \
+	vpbroadcastb 2+krl, t1; \
+	vpbroadcastb 3+krl, t0; \
 	\
 	vpand 0 * 32(r), t0, t0; \
 	vpand 1 * 32(r), t1, t1; \
@@ -596,7 +565,6 @@
 	vpxor 6 * 32(r), t2, t2; \
 	vpxor 7 * 32(r), t3, t3; \
 	vmovdqu t0, 4 * 32(r); \
-	vpbroadcastd klr, t0; /* only lowest 32-bit used */ \
 	vmovdqu t1, 5 * 32(r); \
 	vmovdqu t2, 6 * 32(r); \
 	vmovdqu t3, 7 * 32(r); \
@@ -607,13 +575,10 @@
 	 * ll ^= t0; \
 	 */ \
 	\
-	vpshufb tt0, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t0; \
+	vpbroadcastb 0+klr, t3; \
+	vpbroadcastb 1+klr, t2; \
+	vpbroadcastb 2+klr, t1; \
+	vpbroadcastb 3+klr, t0; \
 	\
 	vpor l4, t0, t0; \
 	vpor l5, t1, t1; \
@@ -837,6 +802,7 @@ ELF(.type   FUNC_NAME(_constants),@object;)
 
 #ifdef CAMELLIA_GFNI_BUILD
 
+.align 64
 /* Pre-filters and post-filters bit-matrixes for Camellia sboxes s1, s2, s3
  * and s4.
  *   See http://urn.fi/URN:NBN:fi:oulu-201305311409, pages 43-48.

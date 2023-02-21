@@ -630,27 +630,27 @@ camellia_encrypt_blk1_32 (void *priv, byte *outbuf, const byte *inbuf,
   gcry_assert (num_blks <= 32);
 
 #ifdef USE_GFNI_AVX2
-  if (ctx->use_gfni_avx2 && num_blks >= 3)
+  if (ctx->use_gfni_avx2 && num_blks >= 2)
     {
-      /* 3 or more parallel block GFNI processing is faster than
+      /* 2 or more parallel block GFNI processing is faster than
        * generic C implementation.  */
       _gcry_camellia_gfni_avx2_enc_blk1_32 (ctx, outbuf, inbuf, num_blks);
       return avx2_burn_stack_depth;
     }
 #endif
 #ifdef USE_VAES_AVX2
-  if (ctx->use_vaes_avx2 && num_blks >= 6)
+  if (ctx->use_vaes_avx2 && num_blks >= 4)
     {
-      /* 6 or more parallel block VAES processing is faster than
+      /* 4 or more parallel block VAES processing is faster than
        * generic C implementation.  */
       _gcry_camellia_vaes_avx2_enc_blk1_32 (ctx, outbuf, inbuf, num_blks);
       return avx2_burn_stack_depth;
     }
 #endif
 #ifdef USE_AESNI_AVX2
-  if (ctx->use_aesni_avx2 && num_blks >= 6)
+  if (ctx->use_aesni_avx2 && num_blks >= 5)
     {
-      /* 6 or more parallel block AESNI processing is faster than
+      /* 5 or more parallel block AESNI processing is faster than
        * generic C implementation.  */
       _gcry_camellia_aesni_avx2_enc_blk1_32 (ctx, outbuf, inbuf, num_blks);
       return avx2_burn_stack_depth;
@@ -721,27 +721,27 @@ camellia_decrypt_blk1_32 (void *priv, byte *outbuf, const byte *inbuf,
   gcry_assert (num_blks <= 32);
 
 #ifdef USE_GFNI_AVX2
-  if (ctx->use_gfni_avx2 && num_blks >= 3)
+  if (ctx->use_gfni_avx2 && num_blks >= 2)
     {
-      /* 3 or more parallel block GFNI processing is faster than
+      /* 2 or more parallel block GFNI processing is faster than
        * generic C implementation.  */
       _gcry_camellia_gfni_avx2_dec_blk1_32 (ctx, outbuf, inbuf, num_blks);
       return avx2_burn_stack_depth;
     }
 #endif
 #ifdef USE_VAES_AVX2
-  if (ctx->use_vaes_avx2 && num_blks >= 6)
+  if (ctx->use_vaes_avx2 && num_blks >= 4)
     {
-      /* 6 or more parallel block VAES processing is faster than
+      /* 4 or more parallel block VAES processing is faster than
        * generic C implementation.  */
       _gcry_camellia_vaes_avx2_dec_blk1_32 (ctx, outbuf, inbuf, num_blks);
       return avx2_burn_stack_depth;
     }
 #endif
 #ifdef USE_AESNI_AVX2
-  if (ctx->use_aesni_avx2 && num_blks >= 6)
+  if (ctx->use_aesni_avx2 && num_blks >= 5)
     {
-      /* 6 or more parallel block AESNI processing is faster than
+      /* 5 or more parallel block AESNI processing is faster than
        * generic C implementation.  */
       _gcry_camellia_aesni_avx2_dec_blk1_32 (ctx, outbuf, inbuf, num_blks);
       return avx2_burn_stack_depth;
