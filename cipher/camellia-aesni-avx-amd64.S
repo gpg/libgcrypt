@@ -1,6 +1,6 @@
 /* camellia-avx-aesni-amd64.S  -  AES-NI/AVX implementation of Camellia cipher
  *
- * Copyright (C) 2013-2015,2020 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2015,2020,2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -121,25 +121,14 @@
 	filter_8bit(x2, t2, t3, t7, t6); \
 	filter_8bit(x5, t2, t3, t7, t6); \
 	\
-	vpxor t6, t6, t6; \
 	vmovq key, t0; \
 	\
 	/* postfilter sbox 2 */ \
 	filter_8bit(x1, t4, t5, t7, t2); \
 	filter_8bit(x4, t4, t5, t7, t2); \
 	\
-	vpsrldq $5, t0, t5; \
-	vpsrldq $1, t0, t1; \
-	vpsrldq $2, t0, t2; \
-	vpsrldq $3, t0, t3; \
-	vpsrldq $4, t0, t4; \
-	vpshufb t6, t0, t0; \
-	vpshufb t6, t1, t1; \
-	vpshufb t6, t2, t2; \
-	vpshufb t6, t3, t3; \
-	vpshufb t6, t4, t4; \
-	vpsrldq $2, t5, t7; \
-	vpshufb t6, t7, t7; \
+	vpshufb .Lbyte_threes rRIP, t0, t3; \
+	vpshufb .Lbyte_twos rRIP, t0, t2; \
 	\
 	/* P-function */ \
 	vpxor x5, x0, x0; \
@@ -147,15 +136,22 @@
 	vpxor x7, x2, x2; \
 	vpxor x4, x3, x3; \
 	\
+	vpshufb .Lbyte_ones rRIP, t0, t1; \
+	vpshufb .Lbyte_sevens rRIP, t0, t7; \
+	\
 	vpxor x2, x4, x4; \
 	vpxor x3, x5, x5; \
 	vpxor x0, x6, x6; \
 	vpxor x1, x7, x7; \
 	\
+	vpshufb .Lbyte_sixs rRIP, t0, t6; \
+	vpshufb .Lbyte_fives rRIP, t0, t5; \
 	vpxor x7, x0, x0; \
 	vpxor x4, x1, x1; \
 	vpxor x5, x2, x2; \
 	vpxor x6, x3, x3; \
+	\
+	vpshufb .Lbyte_fours rRIP, t0, t4; \
 	\
 	vpxor x3, x4, x4; \
 	vpxor x0, x5, x5; \
@@ -165,14 +161,13 @@
 	/* Add key material and result to CD (x becomes new CD) */ \
 	\
 	vpxor t3, x4, x4; \
+	vpxor t3, t3, t3; \
 	vpxor 0 * 16(mem_cd), x4, x4; \
+	\
+	vpshufb t3, t0, t0; \
 	\
 	vpxor t2, x5, x5; \
 	vpxor 1 * 16(mem_cd), x5, x5; \
-	\
-	vpsrldq $1, t5, t3; \
-	vpshufb t6, t5, t5; \
-	vpshufb t6, t3, t6; \
 	\
 	vpxor t1, x6, x6; \
 	vpxor 2 * 16(mem_cd), x6, x6; \
@@ -294,12 +289,9 @@
 	vpxor tt0, tt0, tt0; \
 	vmovd kll, t0; \
 	vpshufb tt0, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t0; \
+	vpshufb .Lbyte_ones rRIP, t0, t2; \
+	vpshufb .Lbyte_twos rRIP, t0, t1; \
+	vpshufb .Lbyte_threes rRIP, t0, t0; \
 	\
 	vpand l0, t0, t0; \
 	vpand l1, t1, t1; \
@@ -325,12 +317,9 @@
 	\
 	vmovd krr, t0; \
 	vpshufb tt0, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t0; \
+	vpshufb .Lbyte_ones rRIP, t0, t2; \
+	vpshufb .Lbyte_twos rRIP, t0, t1; \
+	vpshufb .Lbyte_threes rRIP, t0, t0; \
 	\
 	vpor 4 * 16(r), t0, t0; \
 	vpor 5 * 16(r), t1, t1; \
@@ -353,12 +342,9 @@
 	 */ \
 	vmovd krl, t0; \
 	vpshufb tt0, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t0; \
+	vpshufb .Lbyte_ones rRIP, t0, t2; \
+	vpshufb .Lbyte_twos rRIP, t0, t1; \
+	vpshufb .Lbyte_threes rRIP, t0, t0; \
 	\
 	vpand 0 * 16(r), t0, t0; \
 	vpand 1 * 16(r), t1, t1; \
@@ -384,12 +370,9 @@
 	\
 	vmovd klr, t0; \
 	vpshufb tt0, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt0, t0, t0; \
+	vpshufb .Lbyte_ones rRIP, t0, t2; \
+	vpshufb .Lbyte_twos rRIP, t0, t1; \
+	vpshufb .Lbyte_threes rRIP, t0, t0; \
 	\
 	vpor l4, t0, t0; \
 	vpor l5, t1, t1; \
@@ -636,6 +619,28 @@ _camellia_aesni_avx_data:
 	.long 0x04050607
 	.long 0x80808080
 	.long 0x80808080
+
+.Lbyte_ones:
+	.quad 1 * 0x0101010101010101
+	.quad 1 * 0x0101010101010101
+.Lbyte_twos:
+	.quad 2 * 0x0101010101010101
+	.quad 2 * 0x0101010101010101
+.Lbyte_threes:
+	.quad 3 * 0x0101010101010101
+	.quad 3 * 0x0101010101010101
+.Lbyte_fours:
+	.quad 4 * 0x0101010101010101
+	.quad 4 * 0x0101010101010101
+.Lbyte_fives:
+	.quad 5 * 0x0101010101010101
+	.quad 5 * 0x0101010101010101
+.Lbyte_sixs:
+	.quad 6 * 0x0101010101010101
+	.quad 6 * 0x0101010101010101
+.Lbyte_sevens:
+	.quad 7 * 0x0101010101010101
+	.quad 7 * 0x0101010101010101
 
 /* For CTR-mode IV byteswap */
 .Lbswap128_mask:
