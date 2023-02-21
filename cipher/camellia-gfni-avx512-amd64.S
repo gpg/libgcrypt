@@ -1,6 +1,6 @@
 /* camellia-gfni-avx512-amd64.S - GFNI/AVX512 implementation of Camellia
  *
- * Copyright (C) 2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2022-2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -175,8 +175,6 @@
 	vpbroadcastq .Lpost_filter_bitmatrix_s14 rRIP, t4; \
 	vpbroadcastq .Lpost_filter_bitmatrix_s2 rRIP, t3; \
 	vpbroadcastq .Lpost_filter_bitmatrix_s3 rRIP, t6; \
-	vpxor t7##_x, t7##_x, t7##_x; \
-	vpbroadcastq key, t0; /* higher 64-bit duplicate ignored */ \
 	\
 	/* prefilter sboxes */ \
 	vgf2p8affineqb $(pre_filter_constant_s1234), t5, x0, x0; \
@@ -202,10 +200,8 @@
 	vgf2p8affineinvqb $(post_filter_constant_s2), t3, x1, x1; \
 	vgf2p8affineinvqb $(post_filter_constant_s2), t3, x4, x4; \
 	\
-	vpsrldq $1, t0, t1; \
-	vpsrldq $2, t0, t2; \
-	vpshufb t7, t1, t1; \
-	vpsrldq $3, t0, t3; \
+	vpbroadcastb 7+key, t7; \
+	vpbroadcastb 6+key, t6; \
 	\
 	/* P-function */ \
 	vpxorq x5, x0, x0; \
@@ -213,25 +209,24 @@
 	vpxorq x7, x2, x2; \
 	vpxorq x4, x3, x3; \
 	\
-	vpshufb t7, t2, t2; \
-	vpsrldq $4, t0, t4; \
-	vpshufb t7, t3, t3; \
-	vpsrldq $5, t0, t5; \
-	vpshufb t7, t4, t4; \
+	vpbroadcastb 5+key, t5; \
+	vpbroadcastb 4+key, t4; \
 	\
 	vpxorq x2, x4, x4; \
 	vpxorq x3, x5, x5; \
 	vpxorq x0, x6, x6; \
 	vpxorq x1, x7, x7; \
 	\
-	vpsrldq $6, t0, t6; \
-	vpshufb t7, t5, t5; \
-	vpshufb t7, t6, t6; \
+	vpbroadcastb 3+key, t3; \
+	vpbroadcastb 2+key, t2; \
 	\
 	vpxorq x7, x0, x0; \
 	vpxorq x4, x1, x1; \
 	vpxorq x5, x2, x2; \
 	vpxorq x6, x3, x3; \
+	\
+	vpbroadcastb 1+key, t1; \
+	vpbroadcastb 0+key, t0; \
 	\
 	vpxorq x3, x4, x4; \
 	vpxorq x0, x5, x5; \
@@ -240,13 +235,8 @@
 	\
 	/* Add key material and result to CD (x becomes new CD) */ \
 	\
-	vpternlogq $0x96, mem_cd##_5, t6, x1; \
-	\
-	vpsrldq $7, t0, t6; \
-	vpshufb t7, t0, t0; \
-	vpshufb t7, t6, t7; \
-	\
 	vpternlogq $0x96, mem_cd##_4, t7, x0; \
+	vpternlogq $0x96, mem_cd##_5, t6, x1; \
 	vpternlogq $0x96, mem_cd##_6, t5, x2; \
 	vpternlogq $0x96, mem_cd##_7, t4, x3; \
 	vpternlogq $0x96, mem_cd##_0, t3, x4; \
@@ -348,16 +338,12 @@
 	 * t0 &= ll; \
 	 * lr ^= rol32(t0, 1); \
 	 */ \
-	vpbroadcastd kll, t0; /* only lowest 32-bit used */ \
 	vpbroadcastq .Lbyte_ones rRIP, tmp; \
-	vpxor tt3##_x, tt3##_x, tt3##_x; \
-	vpshufb tt3, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t0; \
+	vpxor tt3##_y, tt3##_y, tt3##_y; \
+	vpbroadcastb 0+kll, t3; \
+	vpbroadcastb 1+kll, t2; \
+	vpbroadcastb 2+kll, t1; \
+	vpbroadcastb 3+kll, t0; \
 	\
 	vpandq l0, t0, t0; \
 	vpandq l1, t1, t1; \
@@ -367,7 +353,6 @@
 	rol32_1_64(t3, t2, t1, t0, tt0, tt1, tt2, tt3, tmp); \
 	\
 	vpternlogq $0x96, tt2, t0, l4; \
-	vpbroadcastd krr, t0; /* only lowest 32-bit used */ \
 	vmovdqu64 l4, l##_4; \
 	vpternlogq $0x96, tt1, t1, l5; \
 	vmovdqu64 l5, l##_5; \
@@ -375,7 +360,7 @@
 	vmovdqu64 l6, l##_6; \
 	vpternlogq $0x96, tt3, t3, l7; \
 	vmovdqu64 l7, l##_7; \
-	vpxor tt3##_x, tt3##_x, tt3##_x; \
+	vpxor tt3##_y, tt3##_y, tt3##_y; \
 	\
 	/* \
 	 * t2 = krr; \
@@ -383,16 +368,12 @@
 	 * rl ^= t2; \
 	 */ \
 	\
-	vpshufb tt3, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t0; \
+	vpbroadcastb 0+krr, t3; \
+	vpbroadcastb 1+krr, t2; \
+	vpbroadcastb 2+krr, t1; \
+	vpbroadcastb 3+krr, t0; \
 	\
 	vpternlogq $0x1e, r##_4, t0, r##_0; \
-	vpbroadcastd krl, t0; /* only lowest 32-bit used */ \
 	vpternlogq $0x1e, r##_5, t1, r##_1; \
 	vpternlogq $0x1e, r##_6, t2, r##_2; \
 	vpternlogq $0x1e, r##_7, t3, r##_3; \
@@ -402,13 +383,10 @@
 	 * t2 &= rl; \
 	 * rr ^= rol32(t2, 1); \
 	 */ \
-	vpshufb tt3, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t0; \
+	vpbroadcastb 0+krl, t3; \
+	vpbroadcastb 1+krl, t2; \
+	vpbroadcastb 2+krl, t1; \
+	vpbroadcastb 3+krl, t0; \
 	\
 	vpandq r##_0, t0, t0; \
 	vpandq r##_1, t1, t1; \
@@ -418,11 +396,10 @@
 	rol32_1_64(t3, t2, t1, t0, tt0, tt1, tt2, tt3, tmp); \
 	\
 	vpternlogq $0x96, tt2, t0, r##_4; \
-	vpbroadcastd klr, t0; /* only lowest 32-bit used */ \
 	vpternlogq $0x96, tt1, t1, r##_5; \
 	vpternlogq $0x96, tt0, t2, r##_6; \
 	vpternlogq $0x96, tt3, t3, r##_7; \
-	vpxor tt3##_x, tt3##_x, tt3##_x; \
+	vpxor tt3##_y, tt3##_y, tt3##_y; \
 	\
 	/* \
 	 * t0 = klr; \
@@ -430,13 +407,10 @@
 	 * ll ^= t0; \
 	 */ \
 	\
-	vpshufb tt3, t0, t3; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t2; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t1; \
-	vpsrldq $1, t0, t0; \
-	vpshufb tt3, t0, t0; \
+	vpbroadcastb 0+klr, t3; \
+	vpbroadcastb 1+klr, t2; \
+	vpbroadcastb 2+klr, t1; \
+	vpbroadcastb 3+klr, t0; \
 	\
 	vpternlogq $0x1e, l4, t0, l0; \
 	vmovdqu64 l0, l##_0; \
@@ -623,7 +597,7 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 	.byte 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 
 .Lbyte_ones:
-	.byte 1, 1, 1, 1, 1, 1, 1, 1
+	.quad 0x0101010101010101
 
 /* Pre-filters and post-filters bit-matrixes for Camellia sboxes s1, s2, s3
  * and s4.
