@@ -2127,12 +2127,9 @@ FUNC_NAME(enc_blk1_32):
 
 	cmpl $31, %ecx;
 	vpxor %xmm0, %xmm0, %xmm0;
-	ja 1f;
+	ja .Lenc_blk32;
 	jb 2f;
 	  vmovdqu 15 * 32(%rdx), %xmm0;
-	  jmp 2f;
-	1:
-	  vmovdqu 15 * 32(%rdx), %ymm0;
 	2:
 	  vmovdqu %ymm0, (%rax);
 
@@ -2195,12 +2192,28 @@ FUNC_NAME(enc_blk1_32):
 	STORE_OUTPUT(ymm9, 14);
 	STORE_OUTPUT(ymm8, 15);
 
+.align 8
 2:
+.Lenc_blk32_done:
 	vzeroall;
 
 	leave;
 	CFI_LEAVE();
 	ret_spec_stop;
+	CFI_ENDPROC();
+
+.align 8
+.Lenc_blk32:
+	inpack32_pre(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
+		     %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
+		     %ymm15, %rdx, (key_table)(CTX));
+
+	call FUNC_NAME(enc_blk32);
+
+	write_output(%ymm7, %ymm6, %ymm5, %ymm4, %ymm3, %ymm2, %ymm1, %ymm0,
+		     %ymm15, %ymm14, %ymm13, %ymm12, %ymm11, %ymm10, %ymm9,
+		     %ymm8, %rsi);
+	jmp .Lenc_blk32_done;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(enc_blk1_32),.-FUNC_NAME(enc_blk1_32);)
 
@@ -2235,12 +2248,9 @@ FUNC_NAME(dec_blk1_32):
 
 	cmpl $31, %ecx;
 	vpxor %xmm0, %xmm0, %xmm0;
-	ja 1f;
+	ja .Ldec_blk32;
 	jb 2f;
 	  vmovdqu 15 * 32(%rdx), %xmm0;
-	  jmp 2f;
-	1:
-	  vmovdqu 15 * 32(%rdx), %ymm0;
 	2:
 	  vmovdqu %ymm0, (%rax);
 
@@ -2284,12 +2294,27 @@ FUNC_NAME(dec_blk1_32):
 	STORE_OUTPUT(ymm9, 14);
 	STORE_OUTPUT(ymm8, 15);
 
+.align 8
 2:
+.Ldec_blk32_done:
 	vzeroall;
 
 	leave;
 	CFI_LEAVE();
 	ret_spec_stop;
+
+.align 8
+.Ldec_blk32:
+	inpack32_pre(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
+		     %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
+		     %ymm15, %rdx, (key_table)(CTX, %r8, 8));
+
+	call FUNC_NAME(dec_blk32);
+
+	write_output(%ymm7, %ymm6, %ymm5, %ymm4, %ymm3, %ymm2, %ymm1, %ymm0,
+		     %ymm15, %ymm14, %ymm13, %ymm12, %ymm11, %ymm10, %ymm9,
+		     %ymm8, %rsi);
+	jmp .Ldec_blk32_done;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(dec_blk1_32),.-FUNC_NAME(dec_blk1_32);)
 
