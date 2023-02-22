@@ -1030,6 +1030,98 @@ _gcry_camellia_aesni_avx_ctr_enc:
 ELF(.size _gcry_camellia_aesni_avx_ctr_enc,.-_gcry_camellia_aesni_avx_ctr_enc;)
 
 .align 16
+.globl _gcry_camellia_aesni_avx_ecb_enc
+ELF(.type   _gcry_camellia_aesni_avx_ecb_enc,@function;)
+
+_gcry_camellia_aesni_avx_ecb_enc:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (16 blocks)
+	 *	%rdx: src (16 blocks)
+	 */
+	CFI_STARTPROC();
+
+	pushq %rbp;
+	CFI_PUSH(%rbp);
+	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
+
+	vzeroupper;
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
+
+	inpack16_pre(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
+		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
+		     %xmm15, %rdx, (key_table)(CTX));
+
+	subq $(16 * 16), %rsp;
+	andq $~31, %rsp;
+	movq %rsp, %rax;
+
+	call __camellia_enc_blk16;
+
+	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
+		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
+		     %xmm8, %rsi);
+
+	vzeroall;
+
+	leave;
+	CFI_LEAVE();
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_camellia_aesni_avx_ecb_enc,.-_gcry_camellia_aesni_avx_ecb_enc;)
+
+.align 16
+.globl _gcry_camellia_aesni_avx_ecb_dec
+ELF(.type   _gcry_camellia_aesni_avx_ecb_dec,@function;)
+
+_gcry_camellia_aesni_avx_ecb_dec:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (16 blocks)
+	 *	%rdx: src (16 blocks)
+	 */
+	CFI_STARTPROC();
+
+	pushq %rbp;
+	CFI_PUSH(%rbp);
+	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
+
+	vzeroupper;
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
+
+	inpack16_pre(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
+		     %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
+		     %xmm15, %rdx, (key_table)(CTX, %r8, 8));
+
+	subq $(16 * 16), %rsp;
+	andq $~31, %rsp;
+	movq %rsp, %rax;
+
+	call __camellia_dec_blk16;
+
+	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
+		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
+		     %xmm8, %rsi);
+
+	vzeroall;
+
+	leave;
+	CFI_LEAVE();
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_camellia_aesni_avx_ecb_dec,.-_gcry_camellia_aesni_avx_ecb_dec;)
+
+.align 16
 .globl _gcry_camellia_aesni_avx_cbc_dec
 ELF(.type   _gcry_camellia_aesni_avx_cbc_dec,@function;)
 
