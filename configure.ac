@@ -1364,6 +1364,21 @@ CFLAGS="$CFLAGS -Werror"
 
 
 #
+# Check whether compiler supports 'optimize' function attribute
+#
+AC_CACHE_CHECK([whether compiler supports 'optimize' function attribute],
+       [gcry_cv_gcc_attribute_optimize],
+       [gcry_cv_gcc_attribute_optimize=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[int __attribute__ ((optimize("-O2"))) fn(int i){return i;}]])],
+          [gcry_cv_gcc_attribute_optimize=yes])])
+if test "$gcry_cv_gcc_attribute_optimize" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ATTRIBUTE_OPTIMIZE,1,
+     [Defined if compiler supports "__attribute__ ((optimize))" function attribute])
+fi
+
+
+#
 # Check whether compiler supports 'ms_abi' function attribute.
 #
 AC_CACHE_CHECK([whether compiler supports 'ms_abi' function attribute],
@@ -2251,6 +2266,28 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerISA 3.00 instructions
 if test "$gcry_cv_gcc_inline_asm_ppc_arch_3_00" = "yes" ; then
    AC_DEFINE(HAVE_GCC_INLINE_ASM_PPC_ARCH_3_00,1,
      [Defined if inline assembler supports PowerISA 3.00 instructions])
+fi
+
+
+#
+# Check whether compiler supports GCC PowerPC target attributes
+#
+AC_CACHE_CHECK([whether compiler supports GCC PowerPC target attributes],
+       [gcry_cv_gcc_attribute_ppc_target],
+       [if test "$mpi_cpu_arch" != "ppc" ; then
+          gcry_cv_gcc_attribute_ppc_target="n/a"
+        else
+          gcry_cv_gcc_attribute_ppc_target=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void __attribute__((target("cpu=power8"))) testfn8(void) {}
+            void __attribute__((target("cpu=power9"))) testfn9(void)
+            { testfn8(); }
+            ]], [ testfn9(); ])],
+          [gcry_cv_gcc_attribute_ppc_target=yes])
+        fi])
+if test "$gcry_cv_gcc_attribute_ppc_target" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ATTRIBUTE_PPC_TARGET,1,
+     [Defined if compiler supports GCC PowerPC target attributes])
 fi
 
 

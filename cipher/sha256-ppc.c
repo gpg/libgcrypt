@@ -1,5 +1,5 @@
 /* sha256-ppc.c - PowerPC vcrypto implementation of SHA-256 transform
- * Copyright (C) 2019 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2019,2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -42,26 +42,40 @@ typedef vector unsigned long long vector2x_u64;
 #define ASM_FUNC_ATTR_INLINE   ASM_FUNC_ATTR ALWAYS_INLINE
 #define ASM_FUNC_ATTR_NOINLINE ASM_FUNC_ATTR NO_INLINE
 
+#ifdef HAVE_GCC_ATTRIBUTE_OPTIMIZE
+# define FUNC_ATTR_OPT_O2 __attribute__((optimize("-O2")))
+#else
+# define FUNC_ATTR_OPT_O2
+#endif
 
-static const u32 K[64] =
+#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+# define FUNC_ATTR_TARGET_P8 __attribute__((target("cpu=power8")))
+# define FUNC_ATTR_TARGET_P9 __attribute__((target("cpu=power9")))
+#else
+# define FUNC_ATTR_TARGET_P8
+# define FUNC_ATTR_TARGET_P9
+#endif
+
+
+static const vector4x_u32 K[64 / 4] =
   {
 #define TBL(v) v
-    TBL(0x428a2f98), TBL(0x71374491), TBL(0xb5c0fbcf), TBL(0xe9b5dba5),
-    TBL(0x3956c25b), TBL(0x59f111f1), TBL(0x923f82a4), TBL(0xab1c5ed5),
-    TBL(0xd807aa98), TBL(0x12835b01), TBL(0x243185be), TBL(0x550c7dc3),
-    TBL(0x72be5d74), TBL(0x80deb1fe), TBL(0x9bdc06a7), TBL(0xc19bf174),
-    TBL(0xe49b69c1), TBL(0xefbe4786), TBL(0x0fc19dc6), TBL(0x240ca1cc),
-    TBL(0x2de92c6f), TBL(0x4a7484aa), TBL(0x5cb0a9dc), TBL(0x76f988da),
-    TBL(0x983e5152), TBL(0xa831c66d), TBL(0xb00327c8), TBL(0xbf597fc7),
-    TBL(0xc6e00bf3), TBL(0xd5a79147), TBL(0x06ca6351), TBL(0x14292967),
-    TBL(0x27b70a85), TBL(0x2e1b2138), TBL(0x4d2c6dfc), TBL(0x53380d13),
-    TBL(0x650a7354), TBL(0x766a0abb), TBL(0x81c2c92e), TBL(0x92722c85),
-    TBL(0xa2bfe8a1), TBL(0xa81a664b), TBL(0xc24b8b70), TBL(0xc76c51a3),
-    TBL(0xd192e819), TBL(0xd6990624), TBL(0xf40e3585), TBL(0x106aa070),
-    TBL(0x19a4c116), TBL(0x1e376c08), TBL(0x2748774c), TBL(0x34b0bcb5),
-    TBL(0x391c0cb3), TBL(0x4ed8aa4a), TBL(0x5b9cca4f), TBL(0x682e6ff3),
-    TBL(0x748f82ee), TBL(0x78a5636f), TBL(0x84c87814), TBL(0x8cc70208),
-    TBL(0x90befffa), TBL(0xa4506ceb), TBL(0xbef9a3f7), TBL(0xc67178f2)
+    { TBL(0x428a2f98), TBL(0x71374491), TBL(0xb5c0fbcf), TBL(0xe9b5dba5) },
+    { TBL(0x3956c25b), TBL(0x59f111f1), TBL(0x923f82a4), TBL(0xab1c5ed5) },
+    { TBL(0xd807aa98), TBL(0x12835b01), TBL(0x243185be), TBL(0x550c7dc3) },
+    { TBL(0x72be5d74), TBL(0x80deb1fe), TBL(0x9bdc06a7), TBL(0xc19bf174) },
+    { TBL(0xe49b69c1), TBL(0xefbe4786), TBL(0x0fc19dc6), TBL(0x240ca1cc) },
+    { TBL(0x2de92c6f), TBL(0x4a7484aa), TBL(0x5cb0a9dc), TBL(0x76f988da) },
+    { TBL(0x983e5152), TBL(0xa831c66d), TBL(0xb00327c8), TBL(0xbf597fc7) },
+    { TBL(0xc6e00bf3), TBL(0xd5a79147), TBL(0x06ca6351), TBL(0x14292967) },
+    { TBL(0x27b70a85), TBL(0x2e1b2138), TBL(0x4d2c6dfc), TBL(0x53380d13) },
+    { TBL(0x650a7354), TBL(0x766a0abb), TBL(0x81c2c92e), TBL(0x92722c85) },
+    { TBL(0xa2bfe8a1), TBL(0xa81a664b), TBL(0xc24b8b70), TBL(0xc76c51a3) },
+    { TBL(0xd192e819), TBL(0xd6990624), TBL(0xf40e3585), TBL(0x106aa070) },
+    { TBL(0x19a4c116), TBL(0x1e376c08), TBL(0x2748774c), TBL(0x34b0bcb5) },
+    { TBL(0x391c0cb3), TBL(0x4ed8aa4a), TBL(0x5b9cca4f), TBL(0x682e6ff3) },
+    { TBL(0x748f82ee), TBL(0x78a5636f), TBL(0x84c87814), TBL(0x8cc70208) },
+    { TBL(0x90befffa), TBL(0xa4506ceb), TBL(0xbef9a3f7), TBL(0xc67178f2) }
 #undef TBL
   };
 
@@ -97,18 +111,74 @@ vec_vshasigma_u32(vector4x_u32 v, unsigned int a, unsigned int b)
 }
 
 
+static ASM_FUNC_ATTR_INLINE vector4x_u32
+vec_add_u32(vector4x_u32 v, vector4x_u32 w)
+{
+  __asm__ ("vadduwm %0,%1,%2"
+	   : "=v" (v)
+	   : "v" (v), "v" (w)
+	   : "memory");
+  return v;
+}
+
+
+static ASM_FUNC_ATTR_INLINE vector4x_u32
+vec_u32_load_be(unsigned long offset, const void *ptr)
+{
+  vector4x_u32 vecu32;
+#if __GNUC__ >= 4
+  if (__builtin_constant_p (offset) && offset == 0)
+    __asm__ volatile ("lxvw4x %x0,0,%1\n\t"
+		      : "=wa" (vecu32)
+		      : "r" ((uintptr_t)ptr)
+		      : "memory");
+  else
+#endif
+    __asm__ volatile ("lxvw4x %x0,%1,%2\n\t"
+		      : "=wa" (vecu32)
+		      : "r" (offset), "r" ((uintptr_t)ptr)
+		      : "memory", "r0");
+#ifndef WORDS_BIGENDIAN
+  return (vector4x_u32)vec_reve((vector16x_u8)vecu32);
+#else
+  return vecu32;
+#endif
+}
+
+
 /* SHA2 round in vector registers */
-#define R(a,b,c,d,e,f,g,h,k,w) do                             \
+#define R(a,b,c,d,e,f,g,h,ki,w) do                            \
     {                                                         \
-      t1  = (h);                                              \
-      t1 += ((k) + (w));                                      \
-      t1 += Cho((e),(f),(g));                                 \
-      t1 += Sum1((e));                                        \
-      t2  = Sum0((a));                                        \
-      t2 += Maj((a),(b),(c));                                 \
-      d  += t1;                                               \
-      h   = t1 + t2;                                          \
+      t1 = vec_add_u32((h), (w));                             \
+      t2 = Cho((e),(f),(g));                                  \
+      t1 = vec_add_u32(t1, GETK(ki));                         \
+      t1 = vec_add_u32(t1, t2);                               \
+      t1 = Sum1add(t1, e);                                    \
+      t2 = Maj((a),(b),(c));                                  \
+      t2 = Sum0add(t2, a);                                    \
+      h  = vec_add_u32(t1, t2);                               \
+      d += t1;                                                \
     } while (0)
+
+#define GETK(kidx) \
+    ({ \
+      vector4x_u32 rk; \
+      if (((kidx) % 4) == 0) \
+	{ \
+	  rk = ktmp = *(kptr++); \
+	  if ((kidx) < 63) \
+	    asm volatile("" : "+r" (kptr) :: "memory"); \
+	} \
+      else if (((kidx) % 4) == 1) \
+	{ \
+	  rk = vec_mergeo(ktmp, ktmp); \
+	} \
+      else \
+	{ \
+	  rk = vec_rol_elems(ktmp, ((kidx) % 4)); \
+	} \
+      rk; \
+    })
 
 #define Cho(b, c, d)  (vec_sel(d, c, b))
 
@@ -118,52 +188,119 @@ vec_vshasigma_u32(vector4x_u32 v, unsigned int a, unsigned int b)
 
 #define Sum1(x)       (vec_vshasigma_u32(x, 1, 15))
 
+#define S0(x)         (vec_vshasigma_u32(x, 0, 0))
 
-/* Message expansion on general purpose registers */
-#define S0(x) (ror ((x), 7) ^ ror ((x), 18) ^ ((x) >> 3))
-#define S1(x) (ror ((x), 17) ^ ror ((x), 19) ^ ((x) >> 10))
+#define S1(x)         (vec_vshasigma_u32(x, 0, 15))
 
-#define I(i) ( w[i] = buf_get_be32(data + i * 4) )
-#define W(i) ({ w[i&0x0f] +=    w[(i-7) &0x0f];  \
-		w[i&0x0f] += S0(w[(i-15)&0x0f]); \
-		w[i&0x0f] += S1(w[(i-2) &0x0f]); \
-		w[i&0x0f]; })
+#define Xadd(X, d, x) vec_add_u32(d, X(x))
 
-#define I2(i) ( w2[i] = buf_get_be32(64 + data + i * 4), I(i) )
-#define W2(i) ({ w2[i]  = w2[i-7];       \
-		 w2[i] += S1(w2[i-2]);   \
-		 w2[i] += S0(w2[i-15]);  \
-		 w2[i] += w2[i-16];      \
-		 W(i); })
-#define R2(i) ( w2[i] )
+#define Sum0add(d, x) Xadd(Sum0, d, x)
 
+#define Sum1add(d, x) Xadd(Sum1, d, x)
 
-unsigned int ASM_FUNC_ATTR
-_gcry_sha256_transform_ppc8(u32 state[8], const unsigned char *data,
-			    size_t nblks)
+#define S0add(d, x)   Xadd(S0, d, x)
+
+#define S1add(d, x)   Xadd(S1, d, x)
+
+#define I(i) \
+    ({ \
+      if (((i) % 4) == 0) \
+	{ \
+	  w[i] = vec_u32_load_be(0, data); \
+	  data += 4 * 4; \
+	  if ((i) / 4 < 3) \
+	    asm volatile("" : "+r"(data) :: "memory"); \
+	} \
+      else if (((i) % 4) == 1) \
+	{ \
+	  w[i] = vec_mergeo(w[(i) - 1], w[(i) - 1]); \
+	} \
+      else \
+	{ \
+	  w[i] = vec_rol_elems(w[(i) - (i) % 4], (i)); \
+	} \
+    })
+
+#define WN(i) ({ w[(i)&0x0f] += w[((i)-7) &0x0f];  \
+		 w[(i)&0x0f] = S0add(w[(i)&0x0f], w[((i)-15)&0x0f]); \
+		 w[(i)&0x0f] = S1add(w[(i)&0x0f], w[((i)-2) &0x0f]); })
+
+#define W(i) ({ vector4x_u32 r = w[(i)&0x0f]; WN(i); r; })
+
+#define L(i) w[(i)&0x0f]
+
+#define I2(i) \
+    ({ \
+      if ((i) % 4 == 0) \
+	{ \
+	  vector4x_u32 iw = vec_u32_load_be(0, data); \
+	  vector4x_u32 iw2 = vec_u32_load_be(64, data); \
+	  if ((i) / 4 < 3) \
+	    { \
+	      data += 4 * 4; \
+	      asm volatile("" : "+r"(data) :: "memory"); \
+	    } \
+	  else \
+	    { \
+	      data += 4 * 4 + 64; \
+	      asm volatile("" : "+r"(data) :: "memory"); \
+	    } \
+	  w[(i) + 0] = vec_mergeh(iw, iw2); \
+	  w[(i) + 1] = vec_rol_elems(w[(i) + 0], 2); \
+	  w[(i) + 2] = vec_mergel(iw, iw2); \
+	  w[(i) + 3] = vec_rol_elems(w[(i) + 2], 2); \
+	} \
+    })
+
+#define W2(i) \
+    ({ \
+      vector4x_u32 wt1 = w[(i)&0x0f]; \
+      WN(i); \
+      w2[(i) / 2] = (((i) % 2) == 0) ? wt1 : vec_mergeo(w2[(i) / 2], wt1); \
+      wt1; \
+    })
+
+#define L2(i) \
+    ({ \
+      vector4x_u32 lt1 = w[(i)&0x0f]; \
+      w2[(i) / 2] = (((i) % 2) == 0) ? lt1 : vec_mergeo(w2[(i) / 2], lt1); \
+      lt1; \
+    })
+
+#define WL(i) \
+    ({ \
+      vector4x_u32 wlt1 = w2[(i) / 2]; \
+      if (((i) % 2) == 0 && (i) < 63) \
+	w2[(i) / 2] = vec_mergeo(wlt1, wlt1); \
+      wlt1; \
+    })
+
+static unsigned int ASM_FUNC_ATTR ASM_FUNC_ATTR_INLINE FUNC_ATTR_OPT_O2
+sha256_transform_ppc(u32 state[8], const unsigned char *data, size_t nblks)
 {
-  /* GPRs used for message expansion as vector intrinsics based generates
-   * slower code. */
   vector4x_u32 h0, h1, h2, h3, h4, h5, h6, h7;
   vector4x_u32 h0_h3, h4_h7;
   vector4x_u32 a, b, c, d, e, f, g, h, t1, t2;
-  u32 w[16];
-  u32 w2[64];
+  vector4x_u32 w[16];
+  vector4x_u32 w2[64 / 2];
 
   h0_h3 = vec_vsx_ld (4 * 0, state);
   h4_h7 = vec_vsx_ld (4 * 4, state);
 
   h0 = h0_h3;
-  h1 = vec_rol_elems (h0_h3, 1);
+  h1 = vec_mergeo (h0_h3, h0_h3);
   h2 = vec_rol_elems (h0_h3, 2);
   h3 = vec_rol_elems (h0_h3, 3);
   h4 = h4_h7;
-  h5 = vec_rol_elems (h4_h7, 1);
+  h5 = vec_mergeo (h4_h7, h4_h7);
   h6 = vec_rol_elems (h4_h7, 2);
   h7 = vec_rol_elems (h4_h7, 3);
 
   while (nblks >= 2)
     {
+      const vector4x_u32 *kptr = K;
+      vector4x_u32 ktmp;
+
       a = h0;
       b = h1;
       c = h2;
@@ -173,74 +310,78 @@ _gcry_sha256_transform_ppc8(u32 state[8], const unsigned char *data,
       g = h6;
       h = h7;
 
-      R(a, b, c, d, e, f, g, h, K[0], I2(0));
-      R(h, a, b, c, d, e, f, g, K[1], I2(1));
-      R(g, h, a, b, c, d, e, f, K[2], I2(2));
-      R(f, g, h, a, b, c, d, e, K[3], I2(3));
-      R(e, f, g, h, a, b, c, d, K[4], I2(4));
-      R(d, e, f, g, h, a, b, c, K[5], I2(5));
-      R(c, d, e, f, g, h, a, b, K[6], I2(6));
-      R(b, c, d, e, f, g, h, a, K[7], I2(7));
-      R(a, b, c, d, e, f, g, h, K[8], I2(8));
-      R(h, a, b, c, d, e, f, g, K[9], I2(9));
-      R(g, h, a, b, c, d, e, f, K[10], I2(10));
-      R(f, g, h, a, b, c, d, e, K[11], I2(11));
-      R(e, f, g, h, a, b, c, d, K[12], I2(12));
-      R(d, e, f, g, h, a, b, c, K[13], I2(13));
-      R(c, d, e, f, g, h, a, b, K[14], I2(14));
-      R(b, c, d, e, f, g, h, a, K[15], I2(15));
-      data += 64 * 2;
+      I2(0); I2(1); I2(2); I2(3);
+      I2(4); I2(5); I2(6); I2(7);
+      I2(8); I2(9); I2(10); I2(11);
+      I2(12); I2(13); I2(14); I2(15);
 
-      R(a, b, c, d, e, f, g, h, K[16], W2(16));
-      R(h, a, b, c, d, e, f, g, K[17], W2(17));
-      R(g, h, a, b, c, d, e, f, K[18], W2(18));
-      R(f, g, h, a, b, c, d, e, K[19], W2(19));
-      R(e, f, g, h, a, b, c, d, K[20], W2(20));
-      R(d, e, f, g, h, a, b, c, K[21], W2(21));
-      R(c, d, e, f, g, h, a, b, K[22], W2(22));
-      R(b, c, d, e, f, g, h, a, K[23], W2(23));
-      R(a, b, c, d, e, f, g, h, K[24], W2(24));
-      R(h, a, b, c, d, e, f, g, K[25], W2(25));
-      R(g, h, a, b, c, d, e, f, K[26], W2(26));
-      R(f, g, h, a, b, c, d, e, K[27], W2(27));
-      R(e, f, g, h, a, b, c, d, K[28], W2(28));
-      R(d, e, f, g, h, a, b, c, K[29], W2(29));
-      R(c, d, e, f, g, h, a, b, K[30], W2(30));
-      R(b, c, d, e, f, g, h, a, K[31], W2(31));
+      R(a, b, c, d, e, f, g, h, 0, W2(0));
+      R(h, a, b, c, d, e, f, g, 1, W2(1));
+      R(g, h, a, b, c, d, e, f, 2, W2(2));
+      R(f, g, h, a, b, c, d, e, 3, W2(3));
+      R(e, f, g, h, a, b, c, d, 4, W2(4));
+      R(d, e, f, g, h, a, b, c, 5, W2(5));
+      R(c, d, e, f, g, h, a, b, 6, W2(6));
+      R(b, c, d, e, f, g, h, a, 7, W2(7));
+      R(a, b, c, d, e, f, g, h, 8, W2(8));
+      R(h, a, b, c, d, e, f, g, 9, W2(9));
+      R(g, h, a, b, c, d, e, f, 10, W2(10));
+      R(f, g, h, a, b, c, d, e, 11, W2(11));
+      R(e, f, g, h, a, b, c, d, 12, W2(12));
+      R(d, e, f, g, h, a, b, c, 13, W2(13));
+      R(c, d, e, f, g, h, a, b, 14, W2(14));
+      R(b, c, d, e, f, g, h, a, 15, W2(15));
 
-      R(a, b, c, d, e, f, g, h, K[32], W2(32));
-      R(h, a, b, c, d, e, f, g, K[33], W2(33));
-      R(g, h, a, b, c, d, e, f, K[34], W2(34));
-      R(f, g, h, a, b, c, d, e, K[35], W2(35));
-      R(e, f, g, h, a, b, c, d, K[36], W2(36));
-      R(d, e, f, g, h, a, b, c, K[37], W2(37));
-      R(c, d, e, f, g, h, a, b, K[38], W2(38));
-      R(b, c, d, e, f, g, h, a, K[39], W2(39));
-      R(a, b, c, d, e, f, g, h, K[40], W2(40));
-      R(h, a, b, c, d, e, f, g, K[41], W2(41));
-      R(g, h, a, b, c, d, e, f, K[42], W2(42));
-      R(f, g, h, a, b, c, d, e, K[43], W2(43));
-      R(e, f, g, h, a, b, c, d, K[44], W2(44));
-      R(d, e, f, g, h, a, b, c, K[45], W2(45));
-      R(c, d, e, f, g, h, a, b, K[46], W2(46));
-      R(b, c, d, e, f, g, h, a, K[47], W2(47));
+      R(a, b, c, d, e, f, g, h, 16, W2(16));
+      R(h, a, b, c, d, e, f, g, 17, W2(17));
+      R(g, h, a, b, c, d, e, f, 18, W2(18));
+      R(f, g, h, a, b, c, d, e, 19, W2(19));
+      R(e, f, g, h, a, b, c, d, 20, W2(20));
+      R(d, e, f, g, h, a, b, c, 21, W2(21));
+      R(c, d, e, f, g, h, a, b, 22, W2(22));
+      R(b, c, d, e, f, g, h, a, 23, W2(23));
+      R(a, b, c, d, e, f, g, h, 24, W2(24));
+      R(h, a, b, c, d, e, f, g, 25, W2(25));
+      R(g, h, a, b, c, d, e, f, 26, W2(26));
+      R(f, g, h, a, b, c, d, e, 27, W2(27));
+      R(e, f, g, h, a, b, c, d, 28, W2(28));
+      R(d, e, f, g, h, a, b, c, 29, W2(29));
+      R(c, d, e, f, g, h, a, b, 30, W2(30));
+      R(b, c, d, e, f, g, h, a, 31, W2(31));
 
-      R(a, b, c, d, e, f, g, h, K[48], W2(48));
-      R(h, a, b, c, d, e, f, g, K[49], W2(49));
-      R(g, h, a, b, c, d, e, f, K[50], W2(50));
-      R(f, g, h, a, b, c, d, e, K[51], W2(51));
-      R(e, f, g, h, a, b, c, d, K[52], W2(52));
-      R(d, e, f, g, h, a, b, c, K[53], W2(53));
-      R(c, d, e, f, g, h, a, b, K[54], W2(54));
-      R(b, c, d, e, f, g, h, a, K[55], W2(55));
-      R(a, b, c, d, e, f, g, h, K[56], W2(56));
-      R(h, a, b, c, d, e, f, g, K[57], W2(57));
-      R(g, h, a, b, c, d, e, f, K[58], W2(58));
-      R(f, g, h, a, b, c, d, e, K[59], W2(59));
-      R(e, f, g, h, a, b, c, d, K[60], W2(60));
-      R(d, e, f, g, h, a, b, c, K[61], W2(61));
-      R(c, d, e, f, g, h, a, b, K[62], W2(62));
-      R(b, c, d, e, f, g, h, a, K[63], W2(63));
+      R(a, b, c, d, e, f, g, h, 32, W2(32));
+      R(h, a, b, c, d, e, f, g, 33, W2(33));
+      R(g, h, a, b, c, d, e, f, 34, W2(34));
+      R(f, g, h, a, b, c, d, e, 35, W2(35));
+      R(e, f, g, h, a, b, c, d, 36, W2(36));
+      R(d, e, f, g, h, a, b, c, 37, W2(37));
+      R(c, d, e, f, g, h, a, b, 38, W2(38));
+      R(b, c, d, e, f, g, h, a, 39, W2(39));
+      R(a, b, c, d, e, f, g, h, 40, W2(40));
+      R(h, a, b, c, d, e, f, g, 41, W2(41));
+      R(g, h, a, b, c, d, e, f, 42, W2(42));
+      R(f, g, h, a, b, c, d, e, 43, W2(43));
+      R(e, f, g, h, a, b, c, d, 44, W2(44));
+      R(d, e, f, g, h, a, b, c, 45, W2(45));
+      R(c, d, e, f, g, h, a, b, 46, W2(46));
+      R(b, c, d, e, f, g, h, a, 47, W2(47));
+
+      R(a, b, c, d, e, f, g, h, 48, L2(48));
+      R(h, a, b, c, d, e, f, g, 49, L2(49));
+      R(g, h, a, b, c, d, e, f, 50, L2(50));
+      R(f, g, h, a, b, c, d, e, 51, L2(51));
+      R(e, f, g, h, a, b, c, d, 52, L2(52));
+      R(d, e, f, g, h, a, b, c, 53, L2(53));
+      R(c, d, e, f, g, h, a, b, 54, L2(54));
+      R(b, c, d, e, f, g, h, a, 55, L2(55));
+      R(a, b, c, d, e, f, g, h, 56, L2(56));
+      R(h, a, b, c, d, e, f, g, 57, L2(57));
+      R(g, h, a, b, c, d, e, f, 58, L2(58));
+      R(f, g, h, a, b, c, d, e, 59, L2(59));
+      R(e, f, g, h, a, b, c, d, 60, L2(60));
+      R(d, e, f, g, h, a, b, c, 61, L2(61));
+      R(c, d, e, f, g, h, a, b, 62, L2(62));
+      R(b, c, d, e, f, g, h, a, 63, L2(63));
 
       h0 += a;
       h1 += b;
@@ -251,6 +392,8 @@ _gcry_sha256_transform_ppc8(u32 state[8], const unsigned char *data,
       h6 += g;
       h7 += h;
 
+      kptr = K;
+
       a = h0;
       b = h1;
       c = h2;
@@ -260,73 +403,73 @@ _gcry_sha256_transform_ppc8(u32 state[8], const unsigned char *data,
       g = h6;
       h = h7;
 
-      R(a, b, c, d, e, f, g, h, K[0], R2(0));
-      R(h, a, b, c, d, e, f, g, K[1], R2(1));
-      R(g, h, a, b, c, d, e, f, K[2], R2(2));
-      R(f, g, h, a, b, c, d, e, K[3], R2(3));
-      R(e, f, g, h, a, b, c, d, K[4], R2(4));
-      R(d, e, f, g, h, a, b, c, K[5], R2(5));
-      R(c, d, e, f, g, h, a, b, K[6], R2(6));
-      R(b, c, d, e, f, g, h, a, K[7], R2(7));
-      R(a, b, c, d, e, f, g, h, K[8], R2(8));
-      R(h, a, b, c, d, e, f, g, K[9], R2(9));
-      R(g, h, a, b, c, d, e, f, K[10], R2(10));
-      R(f, g, h, a, b, c, d, e, K[11], R2(11));
-      R(e, f, g, h, a, b, c, d, K[12], R2(12));
-      R(d, e, f, g, h, a, b, c, K[13], R2(13));
-      R(c, d, e, f, g, h, a, b, K[14], R2(14));
-      R(b, c, d, e, f, g, h, a, K[15], R2(15));
+      R(a, b, c, d, e, f, g, h, 0, WL(0));
+      R(h, a, b, c, d, e, f, g, 1, WL(1));
+      R(g, h, a, b, c, d, e, f, 2, WL(2));
+      R(f, g, h, a, b, c, d, e, 3, WL(3));
+      R(e, f, g, h, a, b, c, d, 4, WL(4));
+      R(d, e, f, g, h, a, b, c, 5, WL(5));
+      R(c, d, e, f, g, h, a, b, 6, WL(6));
+      R(b, c, d, e, f, g, h, a, 7, WL(7));
+      R(a, b, c, d, e, f, g, h, 8, WL(8));
+      R(h, a, b, c, d, e, f, g, 9, WL(9));
+      R(g, h, a, b, c, d, e, f, 10, WL(10));
+      R(f, g, h, a, b, c, d, e, 11, WL(11));
+      R(e, f, g, h, a, b, c, d, 12, WL(12));
+      R(d, e, f, g, h, a, b, c, 13, WL(13));
+      R(c, d, e, f, g, h, a, b, 14, WL(14));
+      R(b, c, d, e, f, g, h, a, 15, WL(15));
 
-      R(a, b, c, d, e, f, g, h, K[16], R2(16));
-      R(h, a, b, c, d, e, f, g, K[17], R2(17));
-      R(g, h, a, b, c, d, e, f, K[18], R2(18));
-      R(f, g, h, a, b, c, d, e, K[19], R2(19));
-      R(e, f, g, h, a, b, c, d, K[20], R2(20));
-      R(d, e, f, g, h, a, b, c, K[21], R2(21));
-      R(c, d, e, f, g, h, a, b, K[22], R2(22));
-      R(b, c, d, e, f, g, h, a, K[23], R2(23));
-      R(a, b, c, d, e, f, g, h, K[24], R2(24));
-      R(h, a, b, c, d, e, f, g, K[25], R2(25));
-      R(g, h, a, b, c, d, e, f, K[26], R2(26));
-      R(f, g, h, a, b, c, d, e, K[27], R2(27));
-      R(e, f, g, h, a, b, c, d, K[28], R2(28));
-      R(d, e, f, g, h, a, b, c, K[29], R2(29));
-      R(c, d, e, f, g, h, a, b, K[30], R2(30));
-      R(b, c, d, e, f, g, h, a, K[31], R2(31));
+      R(a, b, c, d, e, f, g, h, 16, WL(16));
+      R(h, a, b, c, d, e, f, g, 17, WL(17));
+      R(g, h, a, b, c, d, e, f, 18, WL(18));
+      R(f, g, h, a, b, c, d, e, 19, WL(19));
+      R(e, f, g, h, a, b, c, d, 20, WL(20));
+      R(d, e, f, g, h, a, b, c, 21, WL(21));
+      R(c, d, e, f, g, h, a, b, 22, WL(22));
+      R(b, c, d, e, f, g, h, a, 23, WL(23));
+      R(a, b, c, d, e, f, g, h, 24, WL(24));
+      R(h, a, b, c, d, e, f, g, 25, WL(25));
+      R(g, h, a, b, c, d, e, f, 26, WL(26));
+      R(f, g, h, a, b, c, d, e, 27, WL(27));
+      R(e, f, g, h, a, b, c, d, 28, WL(28));
+      R(d, e, f, g, h, a, b, c, 29, WL(29));
+      R(c, d, e, f, g, h, a, b, 30, WL(30));
+      R(b, c, d, e, f, g, h, a, 31, WL(31));
 
-      R(a, b, c, d, e, f, g, h, K[32], R2(32));
-      R(h, a, b, c, d, e, f, g, K[33], R2(33));
-      R(g, h, a, b, c, d, e, f, K[34], R2(34));
-      R(f, g, h, a, b, c, d, e, K[35], R2(35));
-      R(e, f, g, h, a, b, c, d, K[36], R2(36));
-      R(d, e, f, g, h, a, b, c, K[37], R2(37));
-      R(c, d, e, f, g, h, a, b, K[38], R2(38));
-      R(b, c, d, e, f, g, h, a, K[39], R2(39));
-      R(a, b, c, d, e, f, g, h, K[40], R2(40));
-      R(h, a, b, c, d, e, f, g, K[41], R2(41));
-      R(g, h, a, b, c, d, e, f, K[42], R2(42));
-      R(f, g, h, a, b, c, d, e, K[43], R2(43));
-      R(e, f, g, h, a, b, c, d, K[44], R2(44));
-      R(d, e, f, g, h, a, b, c, K[45], R2(45));
-      R(c, d, e, f, g, h, a, b, K[46], R2(46));
-      R(b, c, d, e, f, g, h, a, K[47], R2(47));
+      R(a, b, c, d, e, f, g, h, 32, WL(32));
+      R(h, a, b, c, d, e, f, g, 33, WL(33));
+      R(g, h, a, b, c, d, e, f, 34, WL(34));
+      R(f, g, h, a, b, c, d, e, 35, WL(35));
+      R(e, f, g, h, a, b, c, d, 36, WL(36));
+      R(d, e, f, g, h, a, b, c, 37, WL(37));
+      R(c, d, e, f, g, h, a, b, 38, WL(38));
+      R(b, c, d, e, f, g, h, a, 39, WL(39));
+      R(a, b, c, d, e, f, g, h, 40, WL(40));
+      R(h, a, b, c, d, e, f, g, 41, WL(41));
+      R(g, h, a, b, c, d, e, f, 42, WL(42));
+      R(f, g, h, a, b, c, d, e, 43, WL(43));
+      R(e, f, g, h, a, b, c, d, 44, WL(44));
+      R(d, e, f, g, h, a, b, c, 45, WL(45));
+      R(c, d, e, f, g, h, a, b, 46, WL(46));
+      R(b, c, d, e, f, g, h, a, 47, WL(47));
 
-      R(a, b, c, d, e, f, g, h, K[48], R2(48));
-      R(h, a, b, c, d, e, f, g, K[49], R2(49));
-      R(g, h, a, b, c, d, e, f, K[50], R2(50));
-      R(f, g, h, a, b, c, d, e, K[51], R2(51));
-      R(e, f, g, h, a, b, c, d, K[52], R2(52));
-      R(d, e, f, g, h, a, b, c, K[53], R2(53));
-      R(c, d, e, f, g, h, a, b, K[54], R2(54));
-      R(b, c, d, e, f, g, h, a, K[55], R2(55));
-      R(a, b, c, d, e, f, g, h, K[56], R2(56));
-      R(h, a, b, c, d, e, f, g, K[57], R2(57));
-      R(g, h, a, b, c, d, e, f, K[58], R2(58));
-      R(f, g, h, a, b, c, d, e, K[59], R2(59));
-      R(e, f, g, h, a, b, c, d, K[60], R2(60));
-      R(d, e, f, g, h, a, b, c, K[61], R2(61));
-      R(c, d, e, f, g, h, a, b, K[62], R2(62));
-      R(b, c, d, e, f, g, h, a, K[63], R2(63));
+      R(a, b, c, d, e, f, g, h, 48, WL(48));
+      R(h, a, b, c, d, e, f, g, 49, WL(49));
+      R(g, h, a, b, c, d, e, f, 50, WL(50));
+      R(f, g, h, a, b, c, d, e, 51, WL(51));
+      R(e, f, g, h, a, b, c, d, 52, WL(52));
+      R(d, e, f, g, h, a, b, c, 53, WL(53));
+      R(c, d, e, f, g, h, a, b, 54, WL(54));
+      R(b, c, d, e, f, g, h, a, 55, WL(55));
+      R(a, b, c, d, e, f, g, h, 56, WL(56));
+      R(h, a, b, c, d, e, f, g, 57, WL(57));
+      R(g, h, a, b, c, d, e, f, 58, WL(58));
+      R(f, g, h, a, b, c, d, e, 59, WL(59));
+      R(e, f, g, h, a, b, c, d, 60, WL(60));
+      R(d, e, f, g, h, a, b, c, 61, WL(61));
+      R(c, d, e, f, g, h, a, b, 62, WL(62));
+      R(b, c, d, e, f, g, h, a, 63, WL(63));
 
       h0 += a;
       h1 += b;
@@ -340,8 +483,11 @@ _gcry_sha256_transform_ppc8(u32 state[8], const unsigned char *data,
       nblks -= 2;
     }
 
-  while (nblks)
+  if (nblks)
     {
+      const vector4x_u32 *kptr = K;
+      vector4x_u32 ktmp;
+
       a = h0;
       b = h1;
       c = h2;
@@ -351,74 +497,78 @@ _gcry_sha256_transform_ppc8(u32 state[8], const unsigned char *data,
       g = h6;
       h = h7;
 
-      R(a, b, c, d, e, f, g, h, K[0], I(0));
-      R(h, a, b, c, d, e, f, g, K[1], I(1));
-      R(g, h, a, b, c, d, e, f, K[2], I(2));
-      R(f, g, h, a, b, c, d, e, K[3], I(3));
-      R(e, f, g, h, a, b, c, d, K[4], I(4));
-      R(d, e, f, g, h, a, b, c, K[5], I(5));
-      R(c, d, e, f, g, h, a, b, K[6], I(6));
-      R(b, c, d, e, f, g, h, a, K[7], I(7));
-      R(a, b, c, d, e, f, g, h, K[8], I(8));
-      R(h, a, b, c, d, e, f, g, K[9], I(9));
-      R(g, h, a, b, c, d, e, f, K[10], I(10));
-      R(f, g, h, a, b, c, d, e, K[11], I(11));
-      R(e, f, g, h, a, b, c, d, K[12], I(12));
-      R(d, e, f, g, h, a, b, c, K[13], I(13));
-      R(c, d, e, f, g, h, a, b, K[14], I(14));
-      R(b, c, d, e, f, g, h, a, K[15], I(15));
-      data += 64;
+      I(0); I(1); I(2); I(3);
+      I(4); I(5); I(6); I(7);
+      I(8); I(9); I(10); I(11);
+      I(12); I(13); I(14); I(15);
 
-      R(a, b, c, d, e, f, g, h, K[16], W(16));
-      R(h, a, b, c, d, e, f, g, K[17], W(17));
-      R(g, h, a, b, c, d, e, f, K[18], W(18));
-      R(f, g, h, a, b, c, d, e, K[19], W(19));
-      R(e, f, g, h, a, b, c, d, K[20], W(20));
-      R(d, e, f, g, h, a, b, c, K[21], W(21));
-      R(c, d, e, f, g, h, a, b, K[22], W(22));
-      R(b, c, d, e, f, g, h, a, K[23], W(23));
-      R(a, b, c, d, e, f, g, h, K[24], W(24));
-      R(h, a, b, c, d, e, f, g, K[25], W(25));
-      R(g, h, a, b, c, d, e, f, K[26], W(26));
-      R(f, g, h, a, b, c, d, e, K[27], W(27));
-      R(e, f, g, h, a, b, c, d, K[28], W(28));
-      R(d, e, f, g, h, a, b, c, K[29], W(29));
-      R(c, d, e, f, g, h, a, b, K[30], W(30));
-      R(b, c, d, e, f, g, h, a, K[31], W(31));
+      R(a, b, c, d, e, f, g, h, 0, W(0));
+      R(h, a, b, c, d, e, f, g, 1, W(1));
+      R(g, h, a, b, c, d, e, f, 2, W(2));
+      R(f, g, h, a, b, c, d, e, 3, W(3));
+      R(e, f, g, h, a, b, c, d, 4, W(4));
+      R(d, e, f, g, h, a, b, c, 5, W(5));
+      R(c, d, e, f, g, h, a, b, 6, W(6));
+      R(b, c, d, e, f, g, h, a, 7, W(7));
+      R(a, b, c, d, e, f, g, h, 8, W(8));
+      R(h, a, b, c, d, e, f, g, 9, W(9));
+      R(g, h, a, b, c, d, e, f, 10, W(10));
+      R(f, g, h, a, b, c, d, e, 11, W(11));
+      R(e, f, g, h, a, b, c, d, 12, W(12));
+      R(d, e, f, g, h, a, b, c, 13, W(13));
+      R(c, d, e, f, g, h, a, b, 14, W(14));
+      R(b, c, d, e, f, g, h, a, 15, W(15));
 
-      R(a, b, c, d, e, f, g, h, K[32], W(32));
-      R(h, a, b, c, d, e, f, g, K[33], W(33));
-      R(g, h, a, b, c, d, e, f, K[34], W(34));
-      R(f, g, h, a, b, c, d, e, K[35], W(35));
-      R(e, f, g, h, a, b, c, d, K[36], W(36));
-      R(d, e, f, g, h, a, b, c, K[37], W(37));
-      R(c, d, e, f, g, h, a, b, K[38], W(38));
-      R(b, c, d, e, f, g, h, a, K[39], W(39));
-      R(a, b, c, d, e, f, g, h, K[40], W(40));
-      R(h, a, b, c, d, e, f, g, K[41], W(41));
-      R(g, h, a, b, c, d, e, f, K[42], W(42));
-      R(f, g, h, a, b, c, d, e, K[43], W(43));
-      R(e, f, g, h, a, b, c, d, K[44], W(44));
-      R(d, e, f, g, h, a, b, c, K[45], W(45));
-      R(c, d, e, f, g, h, a, b, K[46], W(46));
-      R(b, c, d, e, f, g, h, a, K[47], W(47));
+      R(a, b, c, d, e, f, g, h, 16, W(16));
+      R(h, a, b, c, d, e, f, g, 17, W(17));
+      R(g, h, a, b, c, d, e, f, 18, W(18));
+      R(f, g, h, a, b, c, d, e, 19, W(19));
+      R(e, f, g, h, a, b, c, d, 20, W(20));
+      R(d, e, f, g, h, a, b, c, 21, W(21));
+      R(c, d, e, f, g, h, a, b, 22, W(22));
+      R(b, c, d, e, f, g, h, a, 23, W(23));
+      R(a, b, c, d, e, f, g, h, 24, W(24));
+      R(h, a, b, c, d, e, f, g, 25, W(25));
+      R(g, h, a, b, c, d, e, f, 26, W(26));
+      R(f, g, h, a, b, c, d, e, 27, W(27));
+      R(e, f, g, h, a, b, c, d, 28, W(28));
+      R(d, e, f, g, h, a, b, c, 29, W(29));
+      R(c, d, e, f, g, h, a, b, 30, W(30));
+      R(b, c, d, e, f, g, h, a, 31, W(31));
 
-      R(a, b, c, d, e, f, g, h, K[48], W(48));
-      R(h, a, b, c, d, e, f, g, K[49], W(49));
-      R(g, h, a, b, c, d, e, f, K[50], W(50));
-      R(f, g, h, a, b, c, d, e, K[51], W(51));
-      R(e, f, g, h, a, b, c, d, K[52], W(52));
-      R(d, e, f, g, h, a, b, c, K[53], W(53));
-      R(c, d, e, f, g, h, a, b, K[54], W(54));
-      R(b, c, d, e, f, g, h, a, K[55], W(55));
-      R(a, b, c, d, e, f, g, h, K[56], W(56));
-      R(h, a, b, c, d, e, f, g, K[57], W(57));
-      R(g, h, a, b, c, d, e, f, K[58], W(58));
-      R(f, g, h, a, b, c, d, e, K[59], W(59));
-      R(e, f, g, h, a, b, c, d, K[60], W(60));
-      R(d, e, f, g, h, a, b, c, K[61], W(61));
-      R(c, d, e, f, g, h, a, b, K[62], W(62));
-      R(b, c, d, e, f, g, h, a, K[63], W(63));
+      R(a, b, c, d, e, f, g, h, 32, W(32));
+      R(h, a, b, c, d, e, f, g, 33, W(33));
+      R(g, h, a, b, c, d, e, f, 34, W(34));
+      R(f, g, h, a, b, c, d, e, 35, W(35));
+      R(e, f, g, h, a, b, c, d, 36, W(36));
+      R(d, e, f, g, h, a, b, c, 37, W(37));
+      R(c, d, e, f, g, h, a, b, 38, W(38));
+      R(b, c, d, e, f, g, h, a, 39, W(39));
+      R(a, b, c, d, e, f, g, h, 40, W(40));
+      R(h, a, b, c, d, e, f, g, 41, W(41));
+      R(g, h, a, b, c, d, e, f, 42, W(42));
+      R(f, g, h, a, b, c, d, e, 43, W(43));
+      R(e, f, g, h, a, b, c, d, 44, W(44));
+      R(d, e, f, g, h, a, b, c, 45, W(45));
+      R(c, d, e, f, g, h, a, b, 46, W(46));
+      R(b, c, d, e, f, g, h, a, 47, W(47));
+
+      R(a, b, c, d, e, f, g, h, 48, L(48));
+      R(h, a, b, c, d, e, f, g, 49, L(49));
+      R(g, h, a, b, c, d, e, f, 50, L(50));
+      R(f, g, h, a, b, c, d, e, 51, L(51));
+      R(e, f, g, h, a, b, c, d, 52, L(52));
+      R(d, e, f, g, h, a, b, c, 53, L(53));
+      R(c, d, e, f, g, h, a, b, 54, L(54));
+      R(b, c, d, e, f, g, h, a, 55, L(55));
+      R(a, b, c, d, e, f, g, h, 56, L(56));
+      R(h, a, b, c, d, e, f, g, 57, L(57));
+      R(g, h, a, b, c, d, e, f, 58, L(58));
+      R(f, g, h, a, b, c, d, e, 59, L(59));
+      R(e, f, g, h, a, b, c, d, 60, L(60));
+      R(d, e, f, g, h, a, b, c, 61, L(61));
+      R(c, d, e, f, g, h, a, b, 62, L(62));
+      R(b, c, d, e, f, g, h, a, 63, L(63));
 
       h0 += a;
       h1 += b;
@@ -439,350 +589,19 @@ _gcry_sha256_transform_ppc8(u32 state[8], const unsigned char *data,
 
   return sizeof(w2) + sizeof(w);
 }
-#undef R
-#undef Cho
-#undef Maj
-#undef Sum0
-#undef Sum1
-#undef S0
-#undef S1
-#undef I
-#undef W
-#undef I2
-#undef W2
-#undef R2
 
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P8 FUNC_ATTR_OPT_O2
+_gcry_sha256_transform_ppc8(u32 state[8], const unsigned char *data,
+			    size_t nblks)
+{
+  return sha256_transform_ppc(state, data, nblks);
+}
 
-/* SHA2 round in general purpose registers */
-#define R(a,b,c,d,e,f,g,h,k,w) do                                 \
-          {                                                       \
-            t1 = (h) + Sum1((e)) + Cho((e),(f),(g)) + ((k) + (w));\
-            t2 = Sum0((a)) + Maj((a),(b),(c));                    \
-            d += t1;                                              \
-            h  = t1 + t2;                                         \
-          } while (0)
-
-#define Cho(x, y, z)  ((x & y) + (~x & z))
-
-#define Maj(z, x, y)  ((x & y) + (z & (x ^ y)))
-
-#define Sum0(x)       (ror (x, 2) ^ ror (x ^ ror (x, 22-13), 13))
-
-#define Sum1(x)       (ror (x, 6) ^ ror (x, 11) ^ ror (x, 25))
-
-
-/* Message expansion on general purpose registers */
-#define S0(x) (ror ((x), 7) ^ ror ((x), 18) ^ ((x) >> 3))
-#define S1(x) (ror ((x), 17) ^ ror ((x), 19) ^ ((x) >> 10))
-
-#define I(i) ( w[i] = buf_get_be32(data + i * 4) )
-#define WN(i) ({ w[i&0x0f] +=    w[(i-7) &0x0f];  \
-		 w[i&0x0f] += S0(w[(i-15)&0x0f]); \
-		 w[i&0x0f] += S1(w[(i-2) &0x0f]); \
-		 w[i&0x0f]; })
-#define W(i) ({ u32 r = w[i&0x0f]; WN(i); r; })
-#define L(i) w[i&0x0f]
-
-
-unsigned int ASM_FUNC_ATTR
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P9 FUNC_ATTR_OPT_O2
 _gcry_sha256_transform_ppc9(u32 state[8], const unsigned char *data,
 			    size_t nblks)
 {
-  /* GPRs used for round function and message expansion as vector intrinsics
-   * based generates slower code for POWER9. */
-  u32 a, b, c, d, e, f, g, h, t1, t2;
-  u32 w[16];
-
-  a = state[0];
-  b = state[1];
-  c = state[2];
-  d = state[3];
-  e = state[4];
-  f = state[5];
-  g = state[6];
-  h = state[7];
-
-  while (nblks >= 2)
-    {
-      I(0); I(1); I(2); I(3);
-      I(4); I(5); I(6); I(7);
-      I(8); I(9); I(10); I(11);
-      I(12); I(13); I(14); I(15);
-      data += 64;
-      R(a, b, c, d, e, f, g, h, K[0], W(0));
-      R(h, a, b, c, d, e, f, g, K[1], W(1));
-      R(g, h, a, b, c, d, e, f, K[2], W(2));
-      R(f, g, h, a, b, c, d, e, K[3], W(3));
-      R(e, f, g, h, a, b, c, d, K[4], W(4));
-      R(d, e, f, g, h, a, b, c, K[5], W(5));
-      R(c, d, e, f, g, h, a, b, K[6], W(6));
-      R(b, c, d, e, f, g, h, a, K[7], W(7));
-      R(a, b, c, d, e, f, g, h, K[8], W(8));
-      R(h, a, b, c, d, e, f, g, K[9], W(9));
-      R(g, h, a, b, c, d, e, f, K[10], W(10));
-      R(f, g, h, a, b, c, d, e, K[11], W(11));
-      R(e, f, g, h, a, b, c, d, K[12], W(12));
-      R(d, e, f, g, h, a, b, c, K[13], W(13));
-      R(c, d, e, f, g, h, a, b, K[14], W(14));
-      R(b, c, d, e, f, g, h, a, K[15], W(15));
-
-      R(a, b, c, d, e, f, g, h, K[16], W(16));
-      R(h, a, b, c, d, e, f, g, K[17], W(17));
-      R(g, h, a, b, c, d, e, f, K[18], W(18));
-      R(f, g, h, a, b, c, d, e, K[19], W(19));
-      R(e, f, g, h, a, b, c, d, K[20], W(20));
-      R(d, e, f, g, h, a, b, c, K[21], W(21));
-      R(c, d, e, f, g, h, a, b, K[22], W(22));
-      R(b, c, d, e, f, g, h, a, K[23], W(23));
-      R(a, b, c, d, e, f, g, h, K[24], W(24));
-      R(h, a, b, c, d, e, f, g, K[25], W(25));
-      R(g, h, a, b, c, d, e, f, K[26], W(26));
-      R(f, g, h, a, b, c, d, e, K[27], W(27));
-      R(e, f, g, h, a, b, c, d, K[28], W(28));
-      R(d, e, f, g, h, a, b, c, K[29], W(29));
-      R(c, d, e, f, g, h, a, b, K[30], W(30));
-      R(b, c, d, e, f, g, h, a, K[31], W(31));
-
-      R(a, b, c, d, e, f, g, h, K[32], W(32));
-      R(h, a, b, c, d, e, f, g, K[33], W(33));
-      R(g, h, a, b, c, d, e, f, K[34], W(34));
-      R(f, g, h, a, b, c, d, e, K[35], W(35));
-      R(e, f, g, h, a, b, c, d, K[36], W(36));
-      R(d, e, f, g, h, a, b, c, K[37], W(37));
-      R(c, d, e, f, g, h, a, b, K[38], W(38));
-      R(b, c, d, e, f, g, h, a, K[39], W(39));
-      R(a, b, c, d, e, f, g, h, K[40], W(40));
-      R(h, a, b, c, d, e, f, g, K[41], W(41));
-      R(g, h, a, b, c, d, e, f, K[42], W(42));
-      R(f, g, h, a, b, c, d, e, K[43], W(43));
-      R(e, f, g, h, a, b, c, d, K[44], W(44));
-      R(d, e, f, g, h, a, b, c, K[45], W(45));
-      R(c, d, e, f, g, h, a, b, K[46], W(46));
-      R(b, c, d, e, f, g, h, a, K[47], W(47));
-
-      R(a, b, c, d, e, f, g, h, K[48], L(48));
-      R(h, a, b, c, d, e, f, g, K[49], L(49));
-      R(g, h, a, b, c, d, e, f, K[50], L(50));
-      R(f, g, h, a, b, c, d, e, K[51], L(51));
-      I(0); I(1); I(2); I(3);
-      R(e, f, g, h, a, b, c, d, K[52], L(52));
-      R(d, e, f, g, h, a, b, c, K[53], L(53));
-      R(c, d, e, f, g, h, a, b, K[54], L(54));
-      R(b, c, d, e, f, g, h, a, K[55], L(55));
-      I(4); I(5); I(6); I(7);
-      R(a, b, c, d, e, f, g, h, K[56], L(56));
-      R(h, a, b, c, d, e, f, g, K[57], L(57));
-      R(g, h, a, b, c, d, e, f, K[58], L(58));
-      R(f, g, h, a, b, c, d, e, K[59], L(59));
-      I(8); I(9); I(10); I(11);
-      R(e, f, g, h, a, b, c, d, K[60], L(60));
-      R(d, e, f, g, h, a, b, c, K[61], L(61));
-      R(c, d, e, f, g, h, a, b, K[62], L(62));
-      R(b, c, d, e, f, g, h, a, K[63], L(63));
-      I(12); I(13); I(14); I(15);
-      data += 64;
-
-      a += state[0];
-      b += state[1];
-      c += state[2];
-      d += state[3];
-      e += state[4];
-      f += state[5];
-      g += state[6];
-      h += state[7];
-      state[0] = a;
-      state[1] = b;
-      state[2] = c;
-      state[3] = d;
-      state[4] = e;
-      state[5] = f;
-      state[6] = g;
-      state[7] = h;
-
-      R(a, b, c, d, e, f, g, h, K[0], W(0));
-      R(h, a, b, c, d, e, f, g, K[1], W(1));
-      R(g, h, a, b, c, d, e, f, K[2], W(2));
-      R(f, g, h, a, b, c, d, e, K[3], W(3));
-      R(e, f, g, h, a, b, c, d, K[4], W(4));
-      R(d, e, f, g, h, a, b, c, K[5], W(5));
-      R(c, d, e, f, g, h, a, b, K[6], W(6));
-      R(b, c, d, e, f, g, h, a, K[7], W(7));
-      R(a, b, c, d, e, f, g, h, K[8], W(8));
-      R(h, a, b, c, d, e, f, g, K[9], W(9));
-      R(g, h, a, b, c, d, e, f, K[10], W(10));
-      R(f, g, h, a, b, c, d, e, K[11], W(11));
-      R(e, f, g, h, a, b, c, d, K[12], W(12));
-      R(d, e, f, g, h, a, b, c, K[13], W(13));
-      R(c, d, e, f, g, h, a, b, K[14], W(14));
-      R(b, c, d, e, f, g, h, a, K[15], W(15));
-
-      R(a, b, c, d, e, f, g, h, K[16], W(16));
-      R(h, a, b, c, d, e, f, g, K[17], W(17));
-      R(g, h, a, b, c, d, e, f, K[18], W(18));
-      R(f, g, h, a, b, c, d, e, K[19], W(19));
-      R(e, f, g, h, a, b, c, d, K[20], W(20));
-      R(d, e, f, g, h, a, b, c, K[21], W(21));
-      R(c, d, e, f, g, h, a, b, K[22], W(22));
-      R(b, c, d, e, f, g, h, a, K[23], W(23));
-      R(a, b, c, d, e, f, g, h, K[24], W(24));
-      R(h, a, b, c, d, e, f, g, K[25], W(25));
-      R(g, h, a, b, c, d, e, f, K[26], W(26));
-      R(f, g, h, a, b, c, d, e, K[27], W(27));
-      R(e, f, g, h, a, b, c, d, K[28], W(28));
-      R(d, e, f, g, h, a, b, c, K[29], W(29));
-      R(c, d, e, f, g, h, a, b, K[30], W(30));
-      R(b, c, d, e, f, g, h, a, K[31], W(31));
-
-      R(a, b, c, d, e, f, g, h, K[32], W(32));
-      R(h, a, b, c, d, e, f, g, K[33], W(33));
-      R(g, h, a, b, c, d, e, f, K[34], W(34));
-      R(f, g, h, a, b, c, d, e, K[35], W(35));
-      R(e, f, g, h, a, b, c, d, K[36], W(36));
-      R(d, e, f, g, h, a, b, c, K[37], W(37));
-      R(c, d, e, f, g, h, a, b, K[38], W(38));
-      R(b, c, d, e, f, g, h, a, K[39], W(39));
-      R(a, b, c, d, e, f, g, h, K[40], W(40));
-      R(h, a, b, c, d, e, f, g, K[41], W(41));
-      R(g, h, a, b, c, d, e, f, K[42], W(42));
-      R(f, g, h, a, b, c, d, e, K[43], W(43));
-      R(e, f, g, h, a, b, c, d, K[44], W(44));
-      R(d, e, f, g, h, a, b, c, K[45], W(45));
-      R(c, d, e, f, g, h, a, b, K[46], W(46));
-      R(b, c, d, e, f, g, h, a, K[47], W(47));
-
-      R(a, b, c, d, e, f, g, h, K[48], L(48));
-      R(h, a, b, c, d, e, f, g, K[49], L(49));
-      R(g, h, a, b, c, d, e, f, K[50], L(50));
-      R(f, g, h, a, b, c, d, e, K[51], L(51));
-      R(e, f, g, h, a, b, c, d, K[52], L(52));
-      R(d, e, f, g, h, a, b, c, K[53], L(53));
-      R(c, d, e, f, g, h, a, b, K[54], L(54));
-      R(b, c, d, e, f, g, h, a, K[55], L(55));
-      R(a, b, c, d, e, f, g, h, K[56], L(56));
-      R(h, a, b, c, d, e, f, g, K[57], L(57));
-      R(g, h, a, b, c, d, e, f, K[58], L(58));
-      R(f, g, h, a, b, c, d, e, K[59], L(59));
-      R(e, f, g, h, a, b, c, d, K[60], L(60));
-      R(d, e, f, g, h, a, b, c, K[61], L(61));
-      R(c, d, e, f, g, h, a, b, K[62], L(62));
-      R(b, c, d, e, f, g, h, a, K[63], L(63));
-
-      a += state[0];
-      b += state[1];
-      c += state[2];
-      d += state[3];
-      e += state[4];
-      f += state[5];
-      g += state[6];
-      h += state[7];
-      state[0] = a;
-      state[1] = b;
-      state[2] = c;
-      state[3] = d;
-      state[4] = e;
-      state[5] = f;
-      state[6] = g;
-      state[7] = h;
-
-      nblks -= 2;
-    }
-
-  while (nblks)
-    {
-      I(0); I(1); I(2); I(3);
-      I(4); I(5); I(6); I(7);
-      I(8); I(9); I(10); I(11);
-      I(12); I(13); I(14); I(15);
-      data += 64;
-      R(a, b, c, d, e, f, g, h, K[0], W(0));
-      R(h, a, b, c, d, e, f, g, K[1], W(1));
-      R(g, h, a, b, c, d, e, f, K[2], W(2));
-      R(f, g, h, a, b, c, d, e, K[3], W(3));
-      R(e, f, g, h, a, b, c, d, K[4], W(4));
-      R(d, e, f, g, h, a, b, c, K[5], W(5));
-      R(c, d, e, f, g, h, a, b, K[6], W(6));
-      R(b, c, d, e, f, g, h, a, K[7], W(7));
-      R(a, b, c, d, e, f, g, h, K[8], W(8));
-      R(h, a, b, c, d, e, f, g, K[9], W(9));
-      R(g, h, a, b, c, d, e, f, K[10], W(10));
-      R(f, g, h, a, b, c, d, e, K[11], W(11));
-      R(e, f, g, h, a, b, c, d, K[12], W(12));
-      R(d, e, f, g, h, a, b, c, K[13], W(13));
-      R(c, d, e, f, g, h, a, b, K[14], W(14));
-      R(b, c, d, e, f, g, h, a, K[15], W(15));
-
-      R(a, b, c, d, e, f, g, h, K[16], W(16));
-      R(h, a, b, c, d, e, f, g, K[17], W(17));
-      R(g, h, a, b, c, d, e, f, K[18], W(18));
-      R(f, g, h, a, b, c, d, e, K[19], W(19));
-      R(e, f, g, h, a, b, c, d, K[20], W(20));
-      R(d, e, f, g, h, a, b, c, K[21], W(21));
-      R(c, d, e, f, g, h, a, b, K[22], W(22));
-      R(b, c, d, e, f, g, h, a, K[23], W(23));
-      R(a, b, c, d, e, f, g, h, K[24], W(24));
-      R(h, a, b, c, d, e, f, g, K[25], W(25));
-      R(g, h, a, b, c, d, e, f, K[26], W(26));
-      R(f, g, h, a, b, c, d, e, K[27], W(27));
-      R(e, f, g, h, a, b, c, d, K[28], W(28));
-      R(d, e, f, g, h, a, b, c, K[29], W(29));
-      R(c, d, e, f, g, h, a, b, K[30], W(30));
-      R(b, c, d, e, f, g, h, a, K[31], W(31));
-
-      R(a, b, c, d, e, f, g, h, K[32], W(32));
-      R(h, a, b, c, d, e, f, g, K[33], W(33));
-      R(g, h, a, b, c, d, e, f, K[34], W(34));
-      R(f, g, h, a, b, c, d, e, K[35], W(35));
-      R(e, f, g, h, a, b, c, d, K[36], W(36));
-      R(d, e, f, g, h, a, b, c, K[37], W(37));
-      R(c, d, e, f, g, h, a, b, K[38], W(38));
-      R(b, c, d, e, f, g, h, a, K[39], W(39));
-      R(a, b, c, d, e, f, g, h, K[40], W(40));
-      R(h, a, b, c, d, e, f, g, K[41], W(41));
-      R(g, h, a, b, c, d, e, f, K[42], W(42));
-      R(f, g, h, a, b, c, d, e, K[43], W(43));
-      R(e, f, g, h, a, b, c, d, K[44], W(44));
-      R(d, e, f, g, h, a, b, c, K[45], W(45));
-      R(c, d, e, f, g, h, a, b, K[46], W(46));
-      R(b, c, d, e, f, g, h, a, K[47], W(47));
-
-      R(a, b, c, d, e, f, g, h, K[48], L(48));
-      R(h, a, b, c, d, e, f, g, K[49], L(49));
-      R(g, h, a, b, c, d, e, f, K[50], L(50));
-      R(f, g, h, a, b, c, d, e, K[51], L(51));
-      R(e, f, g, h, a, b, c, d, K[52], L(52));
-      R(d, e, f, g, h, a, b, c, K[53], L(53));
-      R(c, d, e, f, g, h, a, b, K[54], L(54));
-      R(b, c, d, e, f, g, h, a, K[55], L(55));
-      R(a, b, c, d, e, f, g, h, K[56], L(56));
-      R(h, a, b, c, d, e, f, g, K[57], L(57));
-      R(g, h, a, b, c, d, e, f, K[58], L(58));
-      R(f, g, h, a, b, c, d, e, K[59], L(59));
-      R(e, f, g, h, a, b, c, d, K[60], L(60));
-      R(d, e, f, g, h, a, b, c, K[61], L(61));
-      R(c, d, e, f, g, h, a, b, K[62], L(62));
-      R(b, c, d, e, f, g, h, a, K[63], L(63));
-
-      a += state[0];
-      b += state[1];
-      c += state[2];
-      d += state[3];
-      e += state[4];
-      f += state[5];
-      g += state[6];
-      h += state[7];
-      state[0] = a;
-      state[1] = b;
-      state[2] = c;
-      state[3] = d;
-      state[4] = e;
-      state[5] = f;
-      state[6] = g;
-      state[7] = h;
-
-      nblks--;
-    }
-
-  return sizeof(w);
+  return sha256_transform_ppc(state, data, nblks);
 }
 
 #endif /* ENABLE_PPC_CRYPTO_SUPPORT */
