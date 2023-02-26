@@ -1,5 +1,5 @@
 /* VAES/AVX2 AMD64 accelerated AES for Libgcrypt
- * Copyright (C) 2021 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2021,2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -2682,7 +2682,7 @@ _gcry_vaes_avx2_xts_crypt_amd64:
 .align 8
 .Lxts_crypt_blk4:
 	/* Try exit early as typically input length is large power of 2. */
-	cmpq $0, %r8;
+	cmpq $1, %r8;
 	jb .Ldone_xts_crypt;
 	cmpq $4, %r8;
 	jb .Lxts_crypt_blk1;
