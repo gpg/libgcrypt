@@ -88,6 +88,7 @@ asm_store_be_noswap(block vec, unsigned long offset, void *ptr)
 #define GCRY_AES_PPC9LE 1
 #define ENCRYPT_BLOCK_FUNC	_gcry_aes_ppc9le_encrypt
 #define DECRYPT_BLOCK_FUNC	_gcry_aes_ppc9le_decrypt
+#define ECB_CRYPT_FUNC		_gcry_aes_ppc9le_ecb_crypt
 #define CFB_ENC_FUNC		_gcry_aes_ppc9le_cfb_enc
 #define CFB_DEC_FUNC		_gcry_aes_ppc9le_cfb_dec
 #define CBC_ENC_FUNC		_gcry_aes_ppc9le_cbc_enc

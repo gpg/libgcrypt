@@ -250,6 +250,10 @@ extern unsigned int _gcry_aes_ppc8_decrypt(const RIJNDAEL_context *ctx,
 					   unsigned char *dst,
 					   const unsigned char *src);
 
+extern void _gcry_aes_ppc8_ecb_crypt (void *context, void *outbuf_arg,
+				      const void *inbuf_arg, size_t nblocks,
+				      int encrypt);
+
 extern void _gcry_aes_ppc8_cfb_enc (void *context, unsigned char *iv,
 				    void *outbuf_arg, const void *inbuf_arg,
 				    size_t nblocks);
@@ -286,6 +290,10 @@ extern unsigned int _gcry_aes_ppc9le_encrypt(const RIJNDAEL_context *ctx,
 extern unsigned int _gcry_aes_ppc9le_decrypt(const RIJNDAEL_context *ctx,
 					    unsigned char *dst,
 					    const unsigned char *src);
+
+extern void _gcry_aes_ppc9le_ecb_crypt (void *context, void *outbuf_arg,
+					const void *inbuf_arg, size_t nblocks,
+					int encrypt);
 
 extern void _gcry_aes_ppc9le_cfb_enc (void *context, unsigned char *iv,
 				      void *outbuf_arg, const void *inbuf_arg,
@@ -616,6 +624,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prepare_decryption = _gcry_aes_ppc8_prepare_decryption;
 
       /* Setup PPC9LE bulk encryption routines.  */
+      bulk_ops->ecb_crypt = _gcry_aes_ppc9le_ecb_crypt;
       bulk_ops->cfb_enc = _gcry_aes_ppc9le_cfb_enc;
       bulk_ops->cfb_dec = _gcry_aes_ppc9le_cfb_dec;
       bulk_ops->cbc_enc = _gcry_aes_ppc9le_cbc_enc;
@@ -645,6 +654,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       ctx->prepare_decryption = _gcry_aes_ppc8_prepare_decryption;
 
       /* Setup PPC8 bulk encryption routines.  */
+      bulk_ops->ecb_crypt = _gcry_aes_ppc8_ecb_crypt;
       bulk_ops->cfb_enc = _gcry_aes_ppc8_cfb_enc;
       bulk_ops->cfb_dec = _gcry_aes_ppc8_cfb_dec;
       bulk_ops->cbc_enc = _gcry_aes_ppc8_cbc_enc;

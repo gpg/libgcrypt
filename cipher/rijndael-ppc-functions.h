@@ -118,6 +118,263 @@ void CFB_ENC_FUNC (void *context, unsigned char *iv_arg,
   VEC_STORE_BE (iv_arg, 0, outiv, bige_const);
 }
 
+
+void ECB_CRYPT_FUNC (void *context, void *outbuf_arg, const void *inbuf_arg,
+		     size_t nblocks, int encrypt)
+{
+  const block bige_const = asm_load_be_const();
+  RIJNDAEL_context *ctx = context;
+  const u128_t *rk = encrypt ? (u128_t *)&ctx->keyschenc
+			     : (u128_t *)&ctx->keyschdec;
+  const u128_t *in = (const u128_t *)inbuf_arg;
+  u128_t *out = (u128_t *)outbuf_arg;
+  int rounds = ctx->rounds;
+  ROUND_KEY_VARIABLES;
+  block b0, b1, b2, b3, b4, b5, b6, b7;
+  block rkey;
+
+  if (!encrypt && !ctx->decryption_prepared)
+    {
+      internal_aes_ppc_prepare_decryption (ctx);
+      ctx->decryption_prepared = 1;
+    }
+
+  PRELOAD_ROUND_KEYS (rounds);
+
+  for (; nblocks >= 8; nblocks -= 8)
+    {
+      b0 = VEC_LOAD_BE (in, 0, bige_const);
+      b1 = VEC_LOAD_BE (in, 1, bige_const);
+      b2 = VEC_LOAD_BE (in, 2, bige_const);
+      b3 = VEC_LOAD_BE (in, 3, bige_const);
+      b0 = asm_xor (rkey0, b0);
+      b1 = asm_xor (rkey0, b1);
+      b4 = VEC_LOAD_BE (in, 4, bige_const);
+      b5 = VEC_LOAD_BE (in, 5, bige_const);
+      b2 = asm_xor (rkey0, b2);
+      b3 = asm_xor (rkey0, b3);
+      b6 = VEC_LOAD_BE (in, 6, bige_const);
+      b7 = VEC_LOAD_BE (in, 7, bige_const);
+      in += 8;
+      b4 = asm_xor (rkey0, b4);
+      b5 = asm_xor (rkey0, b5);
+      b6 = asm_xor (rkey0, b6);
+      b7 = asm_xor (rkey0, b7);
+
+      if (encrypt)
+	{
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey); \
+	      b4 = asm_cipher_be (b4, rkey); \
+	      b5 = asm_cipher_be (b5, rkey); \
+	      b6 = asm_cipher_be (b6, rkey); \
+	      b7 = asm_cipher_be (b7, rkey);
+
+	  DO_ROUND(1);
+	  DO_ROUND(2);
+	  DO_ROUND(3);
+	  DO_ROUND(4);
+	  DO_ROUND(5);
+	  DO_ROUND(6);
+	  DO_ROUND(7);
+	  DO_ROUND(8);
+	  DO_ROUND(9);
+	  if (rounds >= 12)
+	    {
+	      DO_ROUND(10);
+	      DO_ROUND(11);
+	      if (rounds > 12)
+		{
+		  DO_ROUND(12);
+		  DO_ROUND(13);
+		}
+	    }
+
+#undef DO_ROUND
+
+	  b0 = asm_cipherlast_be (b0, rkeylast);
+	  b1 = asm_cipherlast_be (b1, rkeylast);
+	  b2 = asm_cipherlast_be (b2, rkeylast);
+	  b3 = asm_cipherlast_be (b3, rkeylast);
+	  b4 = asm_cipherlast_be (b4, rkeylast);
+	  b5 = asm_cipherlast_be (b5, rkeylast);
+	  b6 = asm_cipherlast_be (b6, rkeylast);
+	  b7 = asm_cipherlast_be (b7, rkeylast);
+	}
+      else
+	{
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_ncipher_be (b0, rkey); \
+	      b1 = asm_ncipher_be (b1, rkey); \
+	      b2 = asm_ncipher_be (b2, rkey); \
+	      b3 = asm_ncipher_be (b3, rkey); \
+	      b4 = asm_ncipher_be (b4, rkey); \
+	      b5 = asm_ncipher_be (b5, rkey); \
+	      b6 = asm_ncipher_be (b6, rkey); \
+	      b7 = asm_ncipher_be (b7, rkey);
+
+	  DO_ROUND(1);
+	  DO_ROUND(2);
+	  DO_ROUND(3);
+	  DO_ROUND(4);
+	  DO_ROUND(5);
+	  DO_ROUND(6);
+	  DO_ROUND(7);
+	  DO_ROUND(8);
+	  DO_ROUND(9);
+	  if (rounds >= 12)
+	    {
+	      DO_ROUND(10);
+	      DO_ROUND(11);
+	      if (rounds > 12)
+		{
+		  DO_ROUND(12);
+		  DO_ROUND(13);
+		}
+	    }
+
+#undef DO_ROUND
+
+	  b0 = asm_ncipherlast_be (b0, rkeylast);
+	  b1 = asm_ncipherlast_be (b1, rkeylast);
+	  b2 = asm_ncipherlast_be (b2, rkeylast);
+	  b3 = asm_ncipherlast_be (b3, rkeylast);
+	  b4 = asm_ncipherlast_be (b4, rkeylast);
+	  b5 = asm_ncipherlast_be (b5, rkeylast);
+	  b6 = asm_ncipherlast_be (b6, rkeylast);
+	  b7 = asm_ncipherlast_be (b7, rkeylast);
+	}
+
+      VEC_STORE_BE (out, 0, b0, bige_const);
+      VEC_STORE_BE (out, 1, b1, bige_const);
+      VEC_STORE_BE (out, 2, b2, bige_const);
+      VEC_STORE_BE (out, 3, b3, bige_const);
+      VEC_STORE_BE (out, 4, b4, bige_const);
+      VEC_STORE_BE (out, 5, b5, bige_const);
+      VEC_STORE_BE (out, 6, b6, bige_const);
+      VEC_STORE_BE (out, 7, b7, bige_const);
+      out += 8;
+    }
+
+  if (nblocks >= 4)
+    {
+      b0 = VEC_LOAD_BE (in, 0, bige_const);
+      b1 = VEC_LOAD_BE (in, 1, bige_const);
+      b2 = VEC_LOAD_BE (in, 2, bige_const);
+      b3 = VEC_LOAD_BE (in, 3, bige_const);
+
+      b0 = asm_xor (rkey0, b0);
+      b1 = asm_xor (rkey0, b1);
+      b2 = asm_xor (rkey0, b2);
+      b3 = asm_xor (rkey0, b3);
+
+      if (encrypt)
+	{
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_cipher_be (b0, rkey); \
+	      b1 = asm_cipher_be (b1, rkey); \
+	      b2 = asm_cipher_be (b2, rkey); \
+	      b3 = asm_cipher_be (b3, rkey);
+
+	  DO_ROUND(1);
+	  DO_ROUND(2);
+	  DO_ROUND(3);
+	  DO_ROUND(4);
+	  DO_ROUND(5);
+	  DO_ROUND(6);
+	  DO_ROUND(7);
+	  DO_ROUND(8);
+	  DO_ROUND(9);
+	  if (rounds >= 12)
+	    {
+	      DO_ROUND(10);
+	      DO_ROUND(11);
+	      if (rounds > 12)
+		{
+		  DO_ROUND(12);
+		  DO_ROUND(13);
+		}
+	    }
+#undef DO_ROUND
+
+	  b0 = asm_cipherlast_be (b0, rkeylast);
+	  b1 = asm_cipherlast_be (b1, rkeylast);
+	  b2 = asm_cipherlast_be (b2, rkeylast);
+	  b3 = asm_cipherlast_be (b3, rkeylast);
+	}
+      else
+        {
+#define DO_ROUND(r) \
+	      rkey = ALIGNED_LOAD (rk, r); \
+	      b0 = asm_ncipher_be (b0, rkey); \
+	      b1 = asm_ncipher_be (b1, rkey); \
+	      b2 = asm_ncipher_be (b2, rkey); \
+	      b3 = asm_ncipher_be (b3, rkey);
+
+	  DO_ROUND(1);
+	  DO_ROUND(2);
+	  DO_ROUND(3);
+	  DO_ROUND(4);
+	  DO_ROUND(5);
+	  DO_ROUND(6);
+	  DO_ROUND(7);
+	  DO_ROUND(8);
+	  DO_ROUND(9);
+	  if (rounds >= 12)
+	    {
+	      DO_ROUND(10);
+	      DO_ROUND(11);
+	      if (rounds > 12)
+		{
+		  DO_ROUND(12);
+		  DO_ROUND(13);
+		}
+	    }
+#undef DO_ROUND
+
+	  b0 = asm_ncipherlast_be (b0, rkeylast);
+	  b1 = asm_ncipherlast_be (b1, rkeylast);
+	  b2 = asm_ncipherlast_be (b2, rkeylast);
+	  b3 = asm_ncipherlast_be (b3, rkeylast);
+	}
+
+      VEC_STORE_BE (out, 0, b0, bige_const);
+      VEC_STORE_BE (out, 1, b1, bige_const);
+      VEC_STORE_BE (out, 2, b2, bige_const);
+      VEC_STORE_BE (out, 3, b3, bige_const);
+
+      in += 4;
+      out += 4;
+      nblocks -= 4;
+    }
+
+  for (; nblocks; nblocks--)
+    {
+      b0 = VEC_LOAD_BE (in, 0, bige_const);
+
+      if (encrypt)
+	{
+	  AES_ENCRYPT (b0, rounds);
+	}
+      else
+	{
+	  AES_DECRYPT (b0, rounds);
+	}
+
+      VEC_STORE_BE (out, 0, b0, bige_const);
+
+      out++;
+      in++;
+    }
+}
+
+
 void CFB_DEC_FUNC (void *context, unsigned char *iv_arg,
 		   void *outbuf_arg, const void *inbuf_arg,
 		   size_t nblocks)

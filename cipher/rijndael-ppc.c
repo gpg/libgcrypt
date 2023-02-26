@@ -189,6 +189,7 @@ _gcry_aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
 #define GCRY_AES_PPC8 1
 #define ENCRYPT_BLOCK_FUNC	_gcry_aes_ppc8_encrypt
 #define DECRYPT_BLOCK_FUNC	_gcry_aes_ppc8_decrypt
+#define ECB_CRYPT_FUNC		_gcry_aes_ppc8_ecb_crypt
 #define CFB_ENC_FUNC		_gcry_aes_ppc8_cfb_enc
 #define CFB_DEC_FUNC		_gcry_aes_ppc8_cfb_dec
 #define CBC_ENC_FUNC		_gcry_aes_ppc8_cbc_enc
