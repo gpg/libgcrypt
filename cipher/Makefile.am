@@ -148,7 +148,7 @@ EXTRA_libcipher_la_SOURCES = \
 	camellia-aesni-avx2-amd64.h \
 	camellia-gfni-avx2-amd64.S camellia-gfni-avx512-amd64.S \
 	camellia-vaes-avx2-amd64.S camellia-aesni-avx2-amd64.S \
-	camellia-arm.S camellia-aarch64.S \
+	camellia-arm.S camellia-aarch64.S camellia-aarch64-ce.c \
 	camellia-simd128.h camellia-ppc8le.c camellia-ppc9le.c \
 	blake2.c \
 	blake2b-amd64-avx2.S blake2b-amd64-avx512.S \
@@ -238,6 +238,12 @@ else
 ppc_vcrypto_cflags =
 endif
 
+if ENABLE_AARCH64_NEON_INTRINSICS_EXTRA_CFLAGS
+aarch64_neon_cflags = -O2 -march=armv8-a+crypto
+else
+aarch64_neon_cflags =
+endif
+
 rijndael-ppc.o: $(srcdir)/rijndael-ppc.c Makefile
 	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
 
@@ -297,3 +303,9 @@ camellia-ppc9le.o: $(srcdir)/camellia-ppc9le.c Makefile
 
 camellia-ppc9le.lo: $(srcdir)/camellia-ppc9le.c Makefile
 	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+camellia-aarch64-ce.o: $(srcdir)/camellia-aarch64-ce.c Makefile
+	`echo $(COMPILE) $(aarch64_neon_cflags) -c $< | $(instrumentation_munging) `
+
+camellia-aarch64-ce.lo: $(srcdir)/camellia-aarch64-ce.c Makefile
+	`echo $(LTCOMPILE) $(aarch64_neon_cflags) -c $< | $(instrumentation_munging) `

@@ -2136,7 +2136,103 @@ fi
 
 
 #
-# Check whether PowerPC AltiVec/VSX intrinsics
+# Check whether compiler supports AArch64/NEON/crypto intrinsics
+#
+AC_CACHE_CHECK([whether compiler supports AArch64/NEON/crypto intrinsics],
+      [gcry_cv_cc_aarch64_neon_intrinsics],
+      [if test "$mpi_cpu_arch" != "aarch64" ||
+	  test "$try_asm_modules" != "yes" ; then
+	gcry_cv_cc_aarch64_neon_intrinsics="n/a"
+      else
+	gcry_cv_cc_aarch64_neon_intrinsics=no
+	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	[[#include <arm_neon.h>
+	  #define __m128i uint64x2_t
+	  #define vpsrldq128(s, a, o) \
+	    ({ uint64x2_t __tmp = { 0, 0 }; \
+		o = (__m128i)vextq_u8((uint8x16_t)a, \
+				      (uint8x16_t)__tmp, (s) & 15); })
+	  #define vaesenclast128(a, b, o) \
+	    (o = (__m128i)vaeseq_u8((uint8x16_t)b, (uint8x16_t)a))
+	  #define memory_barrier_with_vec(a) __asm__("" : "+w"(a) :: "memory")
+	  static inline __attribute__((always_inline)) __m128i
+	  fn2(__m128i a)
+	  {
+	    vpsrldq128(2, a, a);
+	    return a;
+	  }
+	  __m128i fn(__m128i in)
+	  {
+	    __m128i x;
+	    memory_barrier_with_vec(in);
+	    x = fn2(in);
+	    memory_barrier_with_vec(x);
+	    vaesenclast128(in, x, in);
+	    memory_barrier_with_vec(in);
+	    return in;
+	  }
+	  ]])],
+	[gcry_cv_cc_aarch64_neon_intrinsics=yes])
+      fi])
+if test "$gcry_cv_cc_aarch64_neon_intrinsics" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_AARCH64_NEON_INTRINSICS,1,
+	    [Defined if underlying compiler supports AArch64/NEON/crypto intrinsics])
+fi
+
+_gcc_cflags_save=$CFLAGS
+CFLAGS="$CFLAGS -O2 -march=armv8-a+crypto"
+
+if test "$gcry_cv_cc_aarch64_neon_intrinsics" = "no" &&
+   test "$mpi_cpu_arch" = "aarch64" &&
+   test "$try_asm_modules" = "yes" ; then
+  AC_CACHE_CHECK([whether compiler supports AArch64/NEON/crypto intrinsics with extra GCC flags],
+    [gcry_cv_cc_aarch64_neon_intrinsics_cflags],
+    [gcry_cv_cc_aarch64_neon_intrinsics_cflags=no
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+      [[#include <arm_neon.h>
+	#define __m128i uint64x2_t
+	#define vpsrldq128(s, a, o) \
+	  ({ uint64x2_t __tmp = { 0, 0 }; \
+	      o = (__m128i)vextq_u8((uint8x16_t)a, \
+				    (uint8x16_t)__tmp, (s) & 15); })
+	#define vaesenclast128(a, b, o) \
+	  (o = (__m128i)vaeseq_u8((uint8x16_t)b, (uint8x16_t)a))
+	#define memory_barrier_with_vec(a) __asm__("" : "+w"(a) :: "memory")
+	static inline __attribute__((always_inline)) __m128i
+	fn2(__m128i a)
+	{
+	  vpsrldq128(2, a, a);
+	  return a;
+	}
+	__m128i fn(__m128i in)
+	{
+	  __m128i x;
+	  memory_barrier_with_vec(in);
+	  x = fn2(in);
+	  memory_barrier_with_vec(x);
+	  vaesenclast128(in, x, in);
+	  memory_barrier_with_vec(in);
+	  return in;
+	}
+	]])],
+      [gcry_cv_cc_aarch64_neon_intrinsics_cflags=yes])])
+  if test "$gcry_cv_cc_aarch64_neon_intrinsics_cflags" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_AARCH64_NEON_INTRINSICS,1,
+	      [Defined if underlying compiler supports AArch64/NEON/crypto intrinsics])
+    AC_DEFINE(HAVE_COMPATIBLE_CC_AARCH64_NEON_INTRINSICS_WITH_CFLAGS,1,
+	      [Defined if underlying compiler supports AArch64/NEON/crypto intrinsics with extra GCC flags])
+  fi
+fi
+
+AM_CONDITIONAL(ENABLE_AARCH64_NEON_INTRINSICS_EXTRA_CFLAGS,
+	       test "$gcry_cv_cc_aarch64_neon_intrinsics_cflags" = "yes")
+
+# Restore flags.
+CFLAGS=$_gcc_cflags_save;
+
+
+#
+# Check whether compiler supports PowerPC AltiVec/VSX intrinsics
 #
 AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics],
       [gcry_cv_cc_ppc_altivec],
@@ -2173,8 +2269,8 @@ _gcc_cflags_save=$CFLAGS
 CFLAGS="$CFLAGS -O2 -maltivec -mvsx -mcrypto"
 
 if test "$gcry_cv_cc_ppc_altivec" = "no" &&
-    test "$mpi_cpu_arch" = "ppc" &&
-    test "$try_asm_modules" == "yes" ; then
+   test "$mpi_cpu_arch" = "ppc" &&
+   test "$try_asm_modules" = "yes" ; then
   AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics with extra GCC flags],
     [gcry_cv_cc_ppc_altivec_cflags],
     [gcry_cv_cc_ppc_altivec_cflags=no
@@ -2193,7 +2289,8 @@ if test "$gcry_cv_cc_ppc_altivec" = "no" &&
 	  vecu32 y = vec_vsx_ld (0, (unsigned int*)0);
 	  y = vec_sld_u32 (y, y, 3);
 	  return vec_cipher_be (t, in) ^ (block)y;
-	}]])],
+	}
+	]])],
       [gcry_cv_cc_ppc_altivec_cflags=yes])])
   if test "$gcry_cv_cc_ppc_altivec_cflags" = "yes" ; then
     AC_DEFINE(HAVE_COMPATIBLE_CC_PPC_ALTIVEC,1,
@@ -2966,6 +3063,7 @@ if test "$found" = "1" ; then
       aarch64-*-*)
          # Build with the assembly implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-aarch64.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-aarch64-ce.lo"
       ;;
       powerpc64le-*-*)
          # Build with the POWER vector implementations

@@ -119,6 +119,16 @@
 # define USE_PPC_CRYPTO 1
 #endif
 
+/* USE_AARCH64_CE indicates whether to enable ARMv8/CE accelerated code. */
+#undef USE_AARCH64_CE
+#if defined(__AARCH64EL__) && \
+    defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO) && \
+    defined(HAVE_COMPATIBLE_CC_AARCH64_NEON_INTRINSICS) && \
+    (__GNUC__ >= 4)
+# define USE_AARCH64_CE 1
+#endif
+
 typedef struct
 {
   KEY_TABLE_TYPE keytable;
@@ -138,6 +148,9 @@ typedef struct
   unsigned int use_ppc8:1;
   unsigned int use_ppc9:1;
 #endif /*USE_PPC_CRYPTO*/
+#ifdef USE_AARCH64_CE
+  unsigned int use_aarch64ce:1;
+#endif /*USE_AARCH64_CE*/
 } CAMELLIA_context;
 
 /* Assembly implementations use SystemV ABI, ABI conversion and additional
@@ -472,6 +485,36 @@ static const int ppc_burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE + 16 +
                                         2 * sizeof(void *);
 #endif /*USE_PPC_CRYPTO*/
 
+#ifdef USE_AARCH64_CE
+extern void _gcry_camellia_aarch64ce_encrypt_blk16(const void *key_table,
+						   void *out, const void *in,
+						   int key_length);
+
+extern void _gcry_camellia_aarch64ce_decrypt_blk16(const void *key_table,
+						   void *out, const void *in,
+						   int key_length);
+
+extern void _gcry_camellia_aarch64ce_keygen(void *key_table, const void *vkey,
+					    unsigned int keylen);
+
+void camellia_aarch64ce_enc_blk16(const CAMELLIA_context *ctx,
+				  unsigned char *out, const unsigned char *in)
+{
+  _gcry_camellia_aarch64ce_encrypt_blk16 (ctx->keytable, out, in,
+					  ctx->keybitlength / 8);
+}
+
+void camellia_aarch64ce_dec_blk16(const CAMELLIA_context *ctx,
+				  unsigned char *out, const unsigned char *in)
+{
+  _gcry_camellia_aarch64ce_decrypt_blk16 (ctx->keytable, out, in,
+					  ctx->keybitlength / 8);
+}
+
+static const int aarch64ce_burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE + 16 +
+					      2 * sizeof(void *);
+#endif /*USE_AARCH64_CE*/
+
 static const char *selftest(void);
 
 static void _gcry_camellia_ctr_enc (void *context, unsigned char *ctr,
@@ -549,6 +592,9 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
   ctx->use_ppc9 = (hwf & HWF_PPC_VCRYPTO) && (hwf & HWF_PPC_ARCH_3_00);
   ctx->use_ppc = ctx->use_ppc8 || ctx->use_ppc9;
 #endif
+#ifdef USE_AARCH64_CE
+  ctx->use_aarch64ce = (hwf & HWF_ARM_AES) != 0;
+#endif
 
   ctx->keybitlength=keylen*8;
 
@@ -574,6 +620,10 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
     _gcry_camellia_ppc9_keygen(ctx->keytable, key, keylen);
   else if (ctx->use_ppc8)
     _gcry_camellia_ppc8_keygen(ctx->keytable, key, keylen);
+#endif
+#ifdef USE_AARCH64_CE
+  else if (ctx->use_aarch64ce)
+    _gcry_camellia_aarch64ce_keygen(ctx->keytable, key, keylen);
 #endif
   else
     {
@@ -754,6 +804,16 @@ camellia_encrypt_blk1_32 (void *priv, byte *outbuf, const byte *inbuf,
       num_blks -= 16;
     }
 #endif
+#ifdef USE_AARCH64_CE
+  while (ctx->use_aarch64ce && num_blks >= 16)
+    {
+      camellia_aarch64ce_enc_blk16 (ctx, outbuf, inbuf);
+      stack_burn_size = aarch64ce_burn_stack_depth;
+      outbuf += CAMELLIA_BLOCK_SIZE * 16;
+      inbuf += CAMELLIA_BLOCK_SIZE * 16;
+      num_blks -= 16;
+    }
+#endif
 
   while (num_blks)
     {
@@ -850,6 +910,16 @@ camellia_decrypt_blk1_32 (void *priv, byte *outbuf, const byte *inbuf,
     {
       camellia_ppc_dec_blk16 (ctx, outbuf, inbuf);
       stack_burn_size = ppc_burn_stack_depth;
+      outbuf += CAMELLIA_BLOCK_SIZE * 16;
+      inbuf += CAMELLIA_BLOCK_SIZE * 16;
+      num_blks -= 16;
+    }
+#endif
+#ifdef USE_AARCH64_CE
+  while (ctx->use_aarch64ce && num_blks >= 16)
+    {
+      camellia_aarch64ce_dec_blk16 (ctx, outbuf, inbuf);
+      stack_burn_size = aarch64ce_burn_stack_depth;
       outbuf += CAMELLIA_BLOCK_SIZE * 16;
       inbuf += CAMELLIA_BLOCK_SIZE * 16;
       num_blks -= 16;
