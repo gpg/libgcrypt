@@ -198,6 +198,7 @@ _gcry_aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
 #define OCB_CRYPT_FUNC		_gcry_aes_ppc8_ocb_crypt
 #define OCB_AUTH_FUNC		_gcry_aes_ppc8_ocb_auth
 #define XTS_CRYPT_FUNC		_gcry_aes_ppc8_xts_crypt
+#define CTR32LE_ENC_FUNC	_gcry_aes_ppc8_ctr32le_enc
 
 #include <rijndael-ppc-functions.h>
 

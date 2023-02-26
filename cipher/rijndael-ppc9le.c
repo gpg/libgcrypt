@@ -97,6 +97,7 @@ asm_store_be_noswap(block vec, unsigned long offset, void *ptr)
 #define OCB_CRYPT_FUNC		_gcry_aes_ppc9le_ocb_crypt
 #define OCB_AUTH_FUNC		_gcry_aes_ppc9le_ocb_auth
 #define XTS_CRYPT_FUNC		_gcry_aes_ppc9le_xts_crypt
+#define CTR32LE_ENC_FUNC	_gcry_aes_ppc9le_ctr32le_enc
 
 #include <rijndael-ppc-functions.h>
 
