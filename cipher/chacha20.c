@@ -134,6 +134,7 @@ typedef struct CHACHA20_context_s
   unsigned int use_avx512:1;
   unsigned int use_neon:1;
   unsigned int use_ppc:1;
+  unsigned int use_p9:1;
   unsigned int use_p10:1;
   unsigned int use_s390x:1;
 } CHACHA20_context_t;
@@ -195,10 +196,22 @@ unsigned int _gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst,
 					 const byte *src,
 					 size_t nblks);
 
+unsigned int _gcry_chacha20_ppc9_blocks4(u32 *state, byte *dst,
+					 const byte *src,
+					 size_t nblks);
+
+unsigned int _gcry_chacha20_ppc9_blocks1(u32 *state, byte *dst,
+					 const byte *src,
+					 size_t nblks);
+
 #undef USE_PPC_VEC_POLY1305
 #if SIZEOF_UNSIGNED_LONG == 8
 #define USE_PPC_VEC_POLY1305 1
 unsigned int _gcry_chacha20_poly1305_ppc8_blocks4(
+		u32 *state, byte *dst, const byte *src, size_t nblks,
+		POLY1305_STATE *st, const byte *poly1305_src);
+
+unsigned int _gcry_chacha20_poly1305_ppc9_blocks4(
 		u32 *state, byte *dst, const byte *src, size_t nblks,
 		POLY1305_STATE *st, const byte *poly1305_src);
 #endif /* SIZEOF_UNSIGNED_LONG == 8 */
@@ -369,7 +382,10 @@ chacha20_blocks (CHACHA20_context_t *ctx, byte *dst, const byte *src,
 #ifdef USE_PPC_VEC
   if (ctx->use_ppc)
     {
-      return _gcry_chacha20_ppc8_blocks1(ctx->input, dst, src, nblks);
+      if (ctx->use_p9)
+	return _gcry_chacha20_ppc9_blocks1(ctx->input, dst, src, nblks);
+      else
+	return _gcry_chacha20_ppc8_blocks1(ctx->input, dst, src, nblks);
     }
 #endif
 
@@ -509,6 +525,7 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 #endif
 #ifdef USE_PPC_VEC
   ctx->use_ppc = (features & HWF_PPC_ARCH_2_07) != 0;
+  ctx->use_p9  = (features & HWF_PPC_ARCH_3_00) != 0;
 # ifndef WORDS_BIGENDIAN
   ctx->use_p10 = (features & HWF_PPC_ARCH_3_10) != 0;
 #  ifdef ENABLE_FORCE_SOFT_HWFEATURES
@@ -626,18 +643,25 @@ do_chacha20_encrypt_stream_tail (CHACHA20_context_t *ctx, byte *outbuf,
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
       nblocks -= nblocks % 4;
+      if (0)
+        {}
 #ifndef WORDS_BIGENDIAN
       /*
        * A workaround to skip counter overflow. This is rare.
        */
-      if (ctx->use_p10 && nblocks >= 8
-          && ((u64)ctx->input[12] + nblocks) <= 0xffffffffU)
+      else if (ctx->use_p10 && nblocks >= 8
+               && ((u64)ctx->input[12] + nblocks) <= 0xffffffffU)
         {
           size_t len = nblocks * CHACHA20_BLOCK_SIZE;
           nburn = _gcry_chacha20_p10le_8x(ctx->input, outbuf, inbuf, len);
         }
-      else
 #endif
+      else if (ctx->use_p9)
+        {
+          nburn = _gcry_chacha20_ppc9_blocks4(ctx->input, outbuf, inbuf,
+                                              nblocks);
+        }
+      else
         {
           nburn = _gcry_chacha20_ppc8_blocks4(ctx->input, outbuf, inbuf,
                                               nblocks);
@@ -844,7 +868,10 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
     }
   else if (ctx->use_ppc && length >= CHACHA20_BLOCK_SIZE * 4)
     {
-      nburn = _gcry_chacha20_ppc8_blocks4(ctx->input, outbuf, inbuf, 4);
+      if (ctx->use_p9)
+        nburn = _gcry_chacha20_ppc9_blocks4(ctx->input, outbuf, inbuf, 4);
+      else
+	nburn = _gcry_chacha20_ppc8_blocks4(ctx->input, outbuf, inbuf, 4);
       burn = nburn > burn ? nburn : burn;
 
       authptr = outbuf;
@@ -986,7 +1013,12 @@ _gcry_chacha20_poly1305_encrypt(gcry_cipher_hd_t c, byte *outbuf,
 	  size_t nblocks = length / CHACHA20_BLOCK_SIZE;
 	  nblocks -= nblocks % 4;
 
-	  nburn = _gcry_chacha20_poly1305_ppc8_blocks4(
+	  if (ctx->use_p9)
+	    nburn = _gcry_chacha20_poly1305_ppc9_blocks4(
+		      ctx->input, outbuf, inbuf, nblocks,
+		      &c->u_mode.poly1305.ctx.state, authptr);
+	  else
+	    nburn = _gcry_chacha20_poly1305_ppc8_blocks4(
 		      ctx->input, outbuf, inbuf, nblocks,
 		      &c->u_mode.poly1305.ctx.state, authptr);
 	  burn = nburn > burn ? nburn : burn;
@@ -1212,9 +1244,14 @@ _gcry_chacha20_poly1305_decrypt(gcry_cipher_hd_t c, byte *outbuf,
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
       nblocks -= nblocks % 4;
 
-      nburn = _gcry_chacha20_poly1305_ppc8_blocks4(
-			ctx->input, outbuf, inbuf, nblocks,
-			&c->u_mode.poly1305.ctx.state, inbuf);
+      if (ctx->use_p9)
+	nburn = _gcry_chacha20_poly1305_ppc9_blocks4(
+			  ctx->input, outbuf, inbuf, nblocks,
+			  &c->u_mode.poly1305.ctx.state, inbuf);
+      else
+	nburn = _gcry_chacha20_poly1305_ppc8_blocks4(
+			  ctx->input, outbuf, inbuf, nblocks,
+			  &c->u_mode.poly1305.ctx.state, inbuf);
       burn = nburn > burn ? nburn : burn;
 
       length -= nblocks * CHACHA20_BLOCK_SIZE;

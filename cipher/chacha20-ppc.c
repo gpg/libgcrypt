@@ -136,9 +136,8 @@ vec_add_ctr_u64(vector4x_u32 v, vector4x_u32 a)
 #define ADD_U64(v,a) \
 	(v = vec_add_ctr_u64(v, a))
 
-unsigned int ASM_FUNC_ATTR
-_gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst, const byte *src,
-			    size_t nblks)
+static unsigned int ASM_FUNC_ATTR_INLINE
+chacha20_ppc_blocks1(u32 *state, byte *dst, const byte *src, size_t nblks)
 {
   vector4x_u32 counter_1 = { 1, 0, 0, 0 };
   vector4x_u32 rotate_16 = { 16, 16, 16, 16 };
@@ -283,9 +282,8 @@ _gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst, const byte *src,
 	PLUS(c1,d1); PLUS(c2,d2); XOR(b1,c1); XOR(b2,c2);	\
 	    ROTATE(b1, rotate_7); ROTATE(b2, rotate_7);
 
-unsigned int ASM_FUNC_ATTR
-_gcry_chacha20_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
-			    size_t nblks)
+static unsigned int ASM_FUNC_ATTR_INLINE
+chacha20_ppc_blocks4(u32 *state, byte *dst, const byte *src, size_t nblks)
 {
   vector4x_u32 counters_0123 = { 0, 1, 2, 3 };
   vector4x_u32 counter_4 = { 4, 0, 0, 0 };
@@ -470,10 +468,10 @@ _gcry_chacha20_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
     MUL_MOD_1305_64_PART2(h2, h1, h0, r1, r0, r1_mult5); \
   } while (0)
 
-unsigned int ASM_FUNC_ATTR
-_gcry_chacha20_poly1305_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
-				     size_t nblks, POLY1305_STATE *st,
-				     const byte *poly1305_src)
+static unsigned int ASM_FUNC_ATTR_INLINE
+chacha20_poly1305_ppc_blocks4(u32 *state, byte *dst, const byte *src,
+			      size_t nblks, POLY1305_STATE *st,
+			      const byte *poly1305_src)
 {
   vector4x_u32 counters_0123 = { 0, 1, 2, 3 };
   vector4x_u32 counter_4 = { 4, 0, 0, 0 };
@@ -641,6 +639,106 @@ _gcry_chacha20_poly1305_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
   return 0;
 }
 
+#else
+
+static unsigned int ASM_FUNC_ATTR_INLINE
+chacha20_poly1305_ppc_blocks4(u32 *state, byte *dst, const byte *src,
+			      size_t nblks, POLY1305_STATE *st,
+			      const byte *poly1305_src)
+{
+}
+
 #endif /* SIZEOF_UNSIGNED_LONG == 8 */
+
+
+#ifdef HAVE_GCC_ATTRIBUTE_OPTIMIZE
+# define FUNC_ATTR_OPT_O2 __attribute__((optimize("-O2")))
+#else
+# define FUNC_ATTR_OPT_O2
+#endif
+
+#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+# define FUNC_ATTR_TARGET_P8 __attribute__((target("cpu=power8")))
+# define FUNC_ATTR_TARGET_P9 __attribute__((target("cpu=power9")))
+#else
+# define FUNC_ATTR_TARGET_P8
+# define FUNC_ATTR_TARGET_P9
+#endif
+
+
+/* Functions targetting POWER8. */
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P8 FUNC_ATTR_OPT_O2
+_gcry_chacha20_ppc8_blocks1(u32 *state, byte *dst, const byte *src,
+			    size_t nblks)
+{
+  return chacha20_ppc_blocks1(state, dst, src, nblks);
+}
+
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P8 FUNC_ATTR_OPT_O2
+_gcry_chacha20_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
+			    size_t nblks)
+{
+  return chacha20_ppc_blocks4(state, dst, src, nblks);
+}
+
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P8 FUNC_ATTR_OPT_O2
+_gcry_chacha20_poly1305_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
+				     size_t nblks, POLY1305_STATE *st,
+				     const byte *poly1305_src)
+{
+  return chacha20_poly1305_ppc_blocks4(state, dst, src, nblks, st,
+				       poly1305_src);
+}
+
+#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+/* Functions targetting POWER9. */
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P9 FUNC_ATTR_OPT_O2
+_gcry_chacha20_ppc9_blocks1(u32 *state, byte *dst, const byte *src,
+			    size_t nblks)
+{
+  return chacha20_ppc_blocks1(state, dst, src, nblks);
+}
+
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P9 FUNC_ATTR_OPT_O2
+_gcry_chacha20_ppc9_blocks4(u32 *state, byte *dst, const byte *src,
+			    size_t nblks)
+{
+  return chacha20_ppc_blocks4(state, dst, src, nblks);
+}
+
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P9 FUNC_ATTR_OPT_O2
+_gcry_chacha20_poly1305_ppc9_blocks4(u32 *state, byte *dst, const byte *src,
+				     size_t nblks, POLY1305_STATE *st,
+				     const byte *poly1305_src)
+{
+  return chacha20_poly1305_ppc_blocks4(state, dst, src, nblks, st,
+				       poly1305_src);
+}
+#else
+/* Compiler does not support target attribute, use same functions for POWER9
+ * as for POWER8. */
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P9 FUNC_ATTR_OPT_O2
+_gcry_chacha20_ppc9_blocks1(u32 *state, byte *dst, const byte *src,
+			    size_t nblks)
+{
+  return _gcry_chacha20_ppc8_blocks1(state, dst, src, nblks);
+}
+
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P9 FUNC_ATTR_OPT_O2
+_gcry_chacha20_ppc9_blocks4(u32 *state, byte *dst, const byte *src,
+			    size_t nblks)
+{
+  return _gcry_chacha20_ppc8_blocks4(state, dst, src, nblks);
+}
+
+unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P9 FUNC_ATTR_OPT_O2
+_gcry_chacha20_poly1305_ppc9_blocks4(u32 *state, byte *dst, const byte *src,
+				     size_t nblks, POLY1305_STATE *st,
+				     const byte *poly1305_src)
+{
+  return _gcry_chacha20_poly1305_ppc8_blocks4(state, dst, src, nblks, st,
+					      poly1305_src);
+}
+#endif /* HAVE_GCC_ATTRIBUTE_PPC_TARGET */
 
 #endif /* ENABLE_PPC_CRYPTO_SUPPORT */
