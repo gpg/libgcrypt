@@ -2967,6 +2967,11 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-aarch64.lo"
       ;;
+      powerpc64le-*-*)
+         # Build with the POWER vector implementations
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-ppc8le.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-ppc9le.lo"
+      ;;
    esac
 
    if test x"$avxsupport" = xyes ; then

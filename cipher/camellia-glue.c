@@ -109,6 +109,16 @@
 # define USE_GFNI_AVX512 1
 #endif
 
+/* USE_PPC_CRYPTO indicates whether to enable PowerPC vector crypto
+ * accelerated code. */
+#undef USE_PPC_CRYPTO
+#if !defined(WORDS_BIGENDIAN) && defined(ENABLE_PPC_CRYPTO_SUPPORT) && \
+    defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+    defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC) && \
+    (SIZEOF_UNSIGNED_LONG == 8) && (__GNUC__ >= 4)
+# define USE_PPC_CRYPTO 1
+#endif
+
 typedef struct
 {
   KEY_TABLE_TYPE keytable;
@@ -123,6 +133,11 @@ typedef struct
   unsigned int use_gfni_avx2:1; /* GFNI/AVX2 implementation shall be used.  */
   unsigned int use_gfni_avx512:1; /* GFNI/AVX512 implementation shall be used.  */
 #endif /*USE_AESNI_AVX2*/
+#ifdef USE_PPC_CRYPTO
+  unsigned int use_ppc:1;
+  unsigned int use_ppc8:1;
+  unsigned int use_ppc9:1;
+#endif /*USE_PPC_CRYPTO*/
 } CAMELLIA_context;
 
 /* Assembly implementations use SystemV ABI, ABI conversion and additional
@@ -404,6 +419,59 @@ extern void _gcry_camellia_gfni_avx512_dec_blk64(const CAMELLIA_context *ctx,
 static const int avx512_burn_stack_depth = 0;
 #endif
 
+#ifdef USE_PPC_CRYPTO
+extern void _gcry_camellia_ppc8_encrypt_blk16(const void *key_table,
+					      void *out,
+					      const void *in,
+					      int key_length);
+
+extern void _gcry_camellia_ppc8_decrypt_blk16(const void *key_table,
+					      void *out,
+					      const void *in,
+					      int key_length);
+
+extern void _gcry_camellia_ppc9_encrypt_blk16(const void *key_table,
+					      void *out,
+					      const void *in,
+					      int key_length);
+
+extern void _gcry_camellia_ppc9_decrypt_blk16(const void *key_table,
+					      void *out,
+					      const void *in,
+					      int key_length);
+
+extern void _gcry_camellia_ppc8_keygen(void *key_table, const void *vkey,
+				       unsigned int keylen);
+
+extern void _gcry_camellia_ppc9_keygen(void *key_table, const void *vkey,
+				       unsigned int keylen);
+
+void camellia_ppc_enc_blk16(const CAMELLIA_context *ctx, unsigned char *out,
+                            const unsigned char *in)
+{
+  if (ctx->use_ppc9)
+    _gcry_camellia_ppc9_encrypt_blk16 (ctx->keytable, out, in,
+				       ctx->keybitlength / 8);
+  else
+    _gcry_camellia_ppc8_encrypt_blk16 (ctx->keytable, out, in,
+				       ctx->keybitlength / 8);
+}
+
+void camellia_ppc_dec_blk16(const CAMELLIA_context *ctx, unsigned char *out,
+                            const unsigned char *in)
+{
+  if (ctx->use_ppc9)
+    _gcry_camellia_ppc9_decrypt_blk16 (ctx->keytable, out, in,
+				       ctx->keybitlength / 8);
+  else
+    _gcry_camellia_ppc8_decrypt_blk16 (ctx->keytable, out, in,
+				       ctx->keybitlength / 8);
+}
+
+static const int ppc_burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE + 16 +
+                                        2 * sizeof(void *);
+#endif /*USE_PPC_CRYPTO*/
+
 static const char *selftest(void);
 
 static void _gcry_camellia_ctr_enc (void *context, unsigned char *ctr,
@@ -437,10 +505,9 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
   CAMELLIA_context *ctx=c;
   static int initialized=0;
   static const char *selftest_failed=NULL;
-#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2) \
-    || defined(USE_VAES_AVX2) || defined(USE_GFNI_AVX2)
   unsigned int hwf = _gcry_get_hw_features ();
-#endif
+
+  (void)hwf;
 
   if(keylen!=16 && keylen!=24 && keylen!=32)
     return GPG_ERR_INV_KEYLEN;
@@ -477,6 +544,11 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
 #ifdef USE_GFNI_AVX512
   ctx->use_gfni_avx512 = (hwf & HWF_INTEL_GFNI) && (hwf & HWF_INTEL_AVX512);
 #endif
+#ifdef USE_PPC_CRYPTO
+  ctx->use_ppc8 = (hwf & HWF_PPC_VCRYPTO) != 0;
+  ctx->use_ppc9 = (hwf & HWF_PPC_VCRYPTO) && (hwf & HWF_PPC_ARCH_3_00);
+  ctx->use_ppc = ctx->use_ppc8 || ctx->use_ppc9;
+#endif
 
   ctx->keybitlength=keylen*8;
 
@@ -496,8 +568,14 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
 #ifdef USE_AESNI_AVX
   else if (ctx->use_aesni_avx)
     _gcry_camellia_aesni_avx_keygen(ctx, key, keylen);
-  else
 #endif
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc9)
+    _gcry_camellia_ppc9_keygen(ctx->keytable, key, keylen);
+  else if (ctx->use_ppc8)
+    _gcry_camellia_ppc8_keygen(ctx->keytable, key, keylen);
+#endif
+  else
     {
       Camellia_Ekeygen(ctx->keybitlength,key,ctx->keytable);
       _gcry_burn_stack
@@ -666,6 +744,16 @@ camellia_encrypt_blk1_32 (void *priv, byte *outbuf, const byte *inbuf,
       num_blks -= 16;
     }
 #endif
+#ifdef USE_PPC_CRYPTO
+  while (ctx->use_ppc && num_blks >= 16)
+    {
+      camellia_ppc_enc_blk16 (ctx, outbuf, inbuf);
+      stack_burn_size = ppc_burn_stack_depth;
+      outbuf += CAMELLIA_BLOCK_SIZE * 16;
+      inbuf += CAMELLIA_BLOCK_SIZE * 16;
+      num_blks -= 16;
+    }
+#endif
 
   while (num_blks)
     {
@@ -752,6 +840,16 @@ camellia_decrypt_blk1_32 (void *priv, byte *outbuf, const byte *inbuf,
     {
       _gcry_camellia_aesni_avx_ecb_dec (ctx, outbuf, inbuf);
       stack_burn_size = avx_burn_stack_depth;
+      outbuf += CAMELLIA_BLOCK_SIZE * 16;
+      inbuf += CAMELLIA_BLOCK_SIZE * 16;
+      num_blks -= 16;
+    }
+#endif
+#ifdef USE_PPC_CRYPTO
+  while (ctx->use_ppc && num_blks >= 16)
+    {
+      camellia_ppc_dec_blk16 (ctx, outbuf, inbuf);
+      stack_burn_size = ppc_burn_stack_depth;
       outbuf += CAMELLIA_BLOCK_SIZE * 16;
       inbuf += CAMELLIA_BLOCK_SIZE * 16;
       num_blks -= 16;
@@ -1251,7 +1349,7 @@ static size_t
 _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 			  const void *inbuf_arg, size_t nblocks, int encrypt)
 {
-#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
+#if defined(USE_PPC_CRYPTO) || defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
   CAMELLIA_context *ctx = (void *)&c->context.c;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
@@ -1395,7 +1493,7 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     }
 #endif
 
-#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
+#if defined(USE_PPC_CRYPTO) || defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
   /* Process remaining blocks. */
   if (nblocks)
     {
@@ -1428,7 +1526,7 @@ static size_t
 _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 			 size_t nblocks)
 {
-#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
+#if defined(USE_PPC_CRYPTO) || defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
   CAMELLIA_context *ctx = (void *)&c->context.c;
   const unsigned char *abuf = abuf_arg;
   int burn_stack_depth = 0;
@@ -1523,7 +1621,7 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     }
 #endif
 
-#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
+#if defined(USE_PPC_CRYPTO) || defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
   /* Process remaining blocks. */
   if (nblocks)
     {

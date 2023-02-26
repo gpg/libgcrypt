@@ -149,6 +149,7 @@ EXTRA_libcipher_la_SOURCES = \
 	camellia-gfni-avx2-amd64.S camellia-gfni-avx512-amd64.S \
 	camellia-vaes-avx2-amd64.S camellia-aesni-avx2-amd64.S \
 	camellia-arm.S camellia-aarch64.S \
+	camellia-simd128.h camellia-ppc8le.c camellia-ppc9le.c \
 	blake2.c \
 	blake2b-amd64-avx2.S blake2b-amd64-avx512.S \
 	blake2s-amd64-avx.S blake2s-amd64-avx512.S
@@ -283,4 +284,16 @@ cipher-gcm-ppc.o: $(srcdir)/cipher-gcm-ppc.c Makefile
 	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
 
 cipher-gcm-ppc.lo: $(srcdir)/cipher-gcm-ppc.c Makefile
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+camellia-ppc8le.o: $(srcdir)/camellia-ppc8le.c Makefile
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+camellia-ppc8le.lo: $(srcdir)/camellia-ppc8le.c Makefile
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+camellia-ppc9le.o: $(srcdir)/camellia-ppc9le.c Makefile
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+camellia-ppc9le.lo: $(srcdir)/camellia-ppc9le.c Makefile
 	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
