@@ -34,6 +34,19 @@
 #include "rijndael-ppc-common.h"
 
 
+#ifdef HAVE_GCC_ATTRIBUTE_OPTIMIZE
+# define FUNC_ATTR_OPT __attribute__((optimize("-O2")))
+#else
+# define FUNC_ATTR_OPT
+#endif
+
+#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+# define PPC_OPT_ATTR __attribute__((target("cpu=power8"))) FUNC_ATTR_OPT
+#else
+# define PPC_OPT_ATTR FUNC_ATTR_OPT
+#endif
+
+
 #ifndef WORDS_BIGENDIAN
 static const block vec_bswap32_const_neg =
   { ~3, ~2, ~1, ~0, ~7, ~6, ~5, ~4, ~11, ~10, ~9, ~8, ~15, ~14, ~13, ~12 };
@@ -124,7 +137,7 @@ keysched_idx(unsigned int in)
 }
 
 
-void
+void PPC_OPT_ATTR
 _gcry_aes_ppc8_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
   u32 tk_u32[MAXKC];
@@ -179,7 +192,7 @@ _gcry_aes_ppc8_setkey (RIJNDAEL_context *ctx, const byte *key)
 }
 
 
-void
+void PPC_OPT_ATTR
 _gcry_aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
 {
   internal_aes_ppc_prepare_decryption (ctx);

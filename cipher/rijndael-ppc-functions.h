@@ -1,6 +1,6 @@
 /* Rijndael (AES) for GnuPG - PowerPC Vector Crypto AES implementation
  * Copyright (C) 2019 Shawn Landden <shawn@git.icu>
- * Copyright (C) 2019-2020, 2022 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2019-2020, 2022-2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -23,9 +23,9 @@
  * is released under.
  */
 
-unsigned int ENCRYPT_BLOCK_FUNC (const RIJNDAEL_context *ctx,
-				 unsigned char *out,
-				 const unsigned char *in)
+unsigned int PPC_OPT_ATTR
+ENCRYPT_BLOCK_FUNC (const RIJNDAEL_context *ctx, unsigned char *out,
+		    const unsigned char *in)
 {
   const block bige_const = asm_load_be_const();
   const u128_t *rk = (u128_t *)&ctx->keyschenc;
@@ -44,9 +44,9 @@ unsigned int ENCRYPT_BLOCK_FUNC (const RIJNDAEL_context *ctx,
 }
 
 
-unsigned int DECRYPT_BLOCK_FUNC (const RIJNDAEL_context *ctx,
-				 unsigned char *out,
-				 const unsigned char *in)
+unsigned int PPC_OPT_ATTR
+DECRYPT_BLOCK_FUNC (const RIJNDAEL_context *ctx, unsigned char *out,
+		    const unsigned char *in)
 {
   const block bige_const = asm_load_be_const();
   const u128_t *rk = (u128_t *)&ctx->keyschdec;
@@ -65,9 +65,9 @@ unsigned int DECRYPT_BLOCK_FUNC (const RIJNDAEL_context *ctx,
 }
 
 
-void CFB_ENC_FUNC (void *context, unsigned char *iv_arg,
-		   void *outbuf_arg, const void *inbuf_arg,
-		   size_t nblocks)
+void PPC_OPT_ATTR
+CFB_ENC_FUNC (void *context, unsigned char *iv_arg, void *outbuf_arg,
+	      const void *inbuf_arg, size_t nblocks)
 {
   const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
@@ -119,8 +119,9 @@ void CFB_ENC_FUNC (void *context, unsigned char *iv_arg,
 }
 
 
-void ECB_CRYPT_FUNC (void *context, void *outbuf_arg, const void *inbuf_arg,
-		     size_t nblocks, int encrypt)
+void PPC_OPT_ATTR
+ECB_CRYPT_FUNC (void *context, void *outbuf_arg, const void *inbuf_arg,
+		size_t nblocks, int encrypt)
 {
   const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
@@ -375,9 +376,9 @@ void ECB_CRYPT_FUNC (void *context, void *outbuf_arg, const void *inbuf_arg,
 }
 
 
-void CFB_DEC_FUNC (void *context, unsigned char *iv_arg,
-		   void *outbuf_arg, const void *inbuf_arg,
-		   size_t nblocks)
+void PPC_OPT_ATTR
+CFB_DEC_FUNC (void *context, unsigned char *iv_arg, void *outbuf_arg,
+	      const void *inbuf_arg, size_t nblocks)
 {
   const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
@@ -573,9 +574,9 @@ void CFB_DEC_FUNC (void *context, unsigned char *iv_arg,
 }
 
 
-void CBC_ENC_FUNC (void *context, unsigned char *iv_arg,
-		   void *outbuf_arg, const void *inbuf_arg,
-		   size_t nblocks, int cbc_mac)
+void PPC_OPT_ATTR
+CBC_ENC_FUNC (void *context, unsigned char *iv_arg, void *outbuf_arg,
+	      const void *inbuf_arg, size_t nblocks, int cbc_mac)
 {
   const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
@@ -641,9 +642,10 @@ void CBC_ENC_FUNC (void *context, unsigned char *iv_arg,
   VEC_STORE_BE (iv_arg, 0, outiv, bige_const);
 }
 
-void CBC_DEC_FUNC (void *context, unsigned char *iv_arg,
-		   void *outbuf_arg, const void *inbuf_arg,
-		   size_t nblocks)
+
+void PPC_OPT_ATTR
+CBC_DEC_FUNC (void *context, unsigned char *iv_arg, void *outbuf_arg,
+	      const void *inbuf_arg, size_t nblocks)
 {
   const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = context;
@@ -846,9 +848,9 @@ void CBC_DEC_FUNC (void *context, unsigned char *iv_arg,
 }
 
 
-void CTR_ENC_FUNC (void *context, unsigned char *ctr_arg,
-		   void *outbuf_arg, const void *inbuf_arg,
-		   size_t nblocks)
+void PPC_OPT_ATTR
+CTR_ENC_FUNC (void *context, unsigned char *ctr_arg, void *outbuf_arg,
+	      const void *inbuf_arg, size_t nblocks)
 {
   static const unsigned char vec_one_const[16] =
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
@@ -1079,9 +1081,9 @@ void CTR_ENC_FUNC (void *context, unsigned char *ctr_arg,
 }
 
 
-size_t OCB_CRYPT_FUNC (gcry_cipher_hd_t c, void *outbuf_arg,
-		       const void *inbuf_arg, size_t nblocks,
-		       int encrypt)
+size_t PPC_OPT_ATTR
+OCB_CRYPT_FUNC (gcry_cipher_hd_t c, void *outbuf_arg, const void *inbuf_arg,
+		size_t nblocks, int encrypt)
 {
   const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = (void *)&c->context.c;
@@ -1585,7 +1587,9 @@ size_t OCB_CRYPT_FUNC (gcry_cipher_hd_t c, void *outbuf_arg,
   return 0;
 }
 
-size_t OCB_AUTH_FUNC (gcry_cipher_hd_t c, void *abuf_arg, size_t nblocks)
+
+size_t PPC_OPT_ATTR
+OCB_AUTH_FUNC (gcry_cipher_hd_t c, void *abuf_arg, size_t nblocks)
 {
   const block bige_const = asm_load_be_const();
   RIJNDAEL_context *ctx = (void *)&c->context.c;
@@ -1794,9 +1798,9 @@ size_t OCB_AUTH_FUNC (gcry_cipher_hd_t c, void *abuf_arg, size_t nblocks)
 }
 
 
-void XTS_CRYPT_FUNC (void *context, unsigned char *tweak_arg,
-		     void *outbuf_arg, const void *inbuf_arg,
-		     size_t nblocks, int encrypt)
+void PPC_OPT_ATTR
+XTS_CRYPT_FUNC (void *context, unsigned char *tweak_arg, void *outbuf_arg,
+		const void *inbuf_arg, size_t nblocks, int encrypt)
 {
 #ifdef WORDS_BIGENDIAN
   static const block vec_bswap128_const =
@@ -2294,8 +2298,9 @@ void XTS_CRYPT_FUNC (void *context, unsigned char *tweak_arg,
 }
 
 
-void CTR32LE_ENC_FUNC(void *context, unsigned char *ctr_arg, void *outbuf_arg,
-		      const void *inbuf_arg, size_t nblocks)
+void PPC_OPT_ATTR
+CTR32LE_ENC_FUNC(void *context, unsigned char *ctr_arg, void *outbuf_arg,
+		 const void *inbuf_arg, size_t nblocks)
 {
 #ifndef WORDS_BIGENDIAN
   static const vec_u32 vec_u32_one = { 1, 0, 0, 0 };

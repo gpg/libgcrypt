@@ -34,6 +34,19 @@
 #include "rijndael-ppc-common.h"
 
 
+#ifdef HAVE_GCC_ATTRIBUTE_OPTIMIZE
+# define FUNC_ATTR_OPT __attribute__((optimize("-O2")))
+#else
+# define FUNC_ATTR_OPT
+#endif
+
+#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+# define PPC_OPT_ATTR __attribute__((target("cpu=power9"))) FUNC_ATTR_OPT
+#else
+# define PPC_OPT_ATTR FUNC_ATTR_OPT
+#endif
+
+
 static ASM_FUNC_ATTR_INLINE block
 asm_load_be_const(void)
 {
