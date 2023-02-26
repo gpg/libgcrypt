@@ -2292,6 +2292,28 @@ fi
 
 
 #
+# Check whether compiler supports clang PowerPC target attributes
+#
+AC_CACHE_CHECK([whether compiler supports clang PowerPC target attributes],
+       [gcry_cv_clang_attribute_ppc_target],
+       [if test "$mpi_cpu_arch" != "ppc" ; then
+          gcry_cv_clang_attribute_ppc_target="n/a"
+        else
+          gcry_cv_clang_attribute_ppc_target=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void __attribute__((target("arch=pwr8"))) testfn8(void) {}
+            void __attribute__((target("arch=pwr9"))) testfn9(void)
+            { testfn8(); }
+            ]], [ testfn9(); ])],
+          [gcry_cv_clang_attribute_ppc_target=yes])
+        fi])
+if test "$gcry_cv_clang_attribute_ppc_target" = "yes" ; then
+   AC_DEFINE(HAVE_CLANG_ATTRIBUTE_PPC_TARGET,1,
+     [Defined if compiler supports clang PowerPC target attributes])
+fi
+
+
+#
 # Check whether GCC inline assembler supports zSeries instructions
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports zSeries instructions],

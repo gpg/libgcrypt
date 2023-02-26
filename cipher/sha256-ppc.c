@@ -48,7 +48,10 @@ typedef vector unsigned long long vector2x_u64;
 # define FUNC_ATTR_OPT_O2
 #endif
 
-#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+#if defined(__clang__) && defined(HAVE_CLANG_ATTRIBUTE_PPC_TARGET)
+# define FUNC_ATTR_TARGET_P8 __attribute__((target("arch=pwr8")))
+# define FUNC_ATTR_TARGET_P9 __attribute__((target("arch=pwr9")))
+#elif defined(HAVE_GCC_ATTRIBUTE_PPC_TARGET)
 # define FUNC_ATTR_TARGET_P8 __attribute__((target("cpu=power8")))
 # define FUNC_ATTR_TARGET_P9 __attribute__((target("cpu=power9")))
 #else

@@ -40,7 +40,9 @@
 # define FUNC_ATTR_OPT
 #endif
 
-#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+#if defined(__clang__) && defined(HAVE_CLANG_ATTRIBUTE_PPC_TARGET)
+# define PPC_OPT_ATTR __attribute__((target("arch=pwr9"))) FUNC_ATTR_OPT
+#elif defined(HAVE_GCC_ATTRIBUTE_PPC_TARGET)
 # define PPC_OPT_ATTR __attribute__((target("cpu=power9"))) FUNC_ATTR_OPT
 #else
 # define PPC_OPT_ATTR FUNC_ATTR_OPT

@@ -47,7 +47,11 @@ typedef vector unsigned long long vector2x_u64;
 # define FUNC_ATTR_OPT_O2
 #endif
 
-#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+
+#if defined(__clang__) && defined(HAVE_CLANG_ATTRIBUTE_PPC_TARGET)
+# define FUNC_ATTR_TARGET_P8 __attribute__((target("arch=pwr8")))
+# define FUNC_ATTR_TARGET_P9 __attribute__((target("arch=pwr9")))
+#elif defined(HAVE_GCC_ATTRIBUTE_PPC_TARGET)
 # define FUNC_ATTR_TARGET_P8 __attribute__((target("cpu=power8")))
 # define FUNC_ATTR_TARGET_P9 __attribute__((target("cpu=power9")))
 #else
@@ -99,13 +103,6 @@ static const vector2x_u64 K[80] =
     { U64_C(0x4cc5d4becb3e42b6), U64_C(0x597f299cfc657e2a) },
     { U64_C(0x5fcb6fab3ad6faec), U64_C(0x6c44198c4a475817) }
   };
-
-
-static ASM_FUNC_ATTR_INLINE u64
-ror64 (u64 v, u64 shift)
-{
-  return (v >> (shift & 63)) ^ (v << ((64 - shift) & 63));
-}
 
 
 static ASM_FUNC_ATTR_INLINE vector2x_u64
