@@ -2059,17 +2059,25 @@ check_one (int algo, int hash_algo,
 {
   unsigned char key[512]; /* hardcoded to avoid allocation */
   size_t keysize = expectlen;
-
-  /* Skip test with shoter passphrase in FIPS mode.  */
-  if (fips_mode () && passphraselen < 14)
-    return NULL;
+  int rv;
 
   if (keysize > sizeof(key))
     return "invalid tests data";
 
-  if (_gcry_kdf_derive (passphrase, passphraselen, algo,
-                        hash_algo, salt, saltlen, iterations,
-                        keysize, key))
+  rv = _gcry_kdf_derive (passphrase, passphraselen, algo,
+                         hash_algo, salt, saltlen, iterations,
+                         keysize, key);
+  /* In fips mode we have special requirements for the input and
+   * output parameters */
+  if (fips_mode ())
+    {
+      if (rv && (passphraselen < 8 || saltlen < 16 ||
+                 iterations < 1000 || expectlen < 14))
+        return NULL;
+      else if (rv)
+        return "gcry_kdf_derive unexpectedly failed in FIPS Mode";
+    }
+  else if (rv)
     return "gcry_kdf_derive failed";
 
   if (memcmp (key, expect, expectlen))
