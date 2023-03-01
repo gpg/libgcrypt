@@ -677,7 +677,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         log_debug ("ecgen result  using Ed25519+EdDSA\n");
     }
 
-  if (!(flags & PUBKEY_FLAG_NO_KEYTEST) && fips_mode ())
+  if (fips_mode ())
     test_keys_fips (*r_skey);
 
  leave:
