@@ -136,7 +136,7 @@ vec_add_ctr_u64(vector4x_u32 v, vector4x_u32 a)
 #define ADD_U64(v,a) \
 	(v = vec_add_ctr_u64(v, a))
 
-static unsigned int ASM_FUNC_ATTR_INLINE
+static ASM_FUNC_ATTR_INLINE unsigned int
 chacha20_ppc_blocks1(u32 *state, byte *dst, const byte *src, size_t nblks)
 {
   vector4x_u32 counter_1 = { 1, 0, 0, 0 };
@@ -282,7 +282,7 @@ chacha20_ppc_blocks1(u32 *state, byte *dst, const byte *src, size_t nblks)
 	PLUS(c1,d1); PLUS(c2,d2); XOR(b1,c1); XOR(b2,c2);	\
 	    ROTATE(b1, rotate_7); ROTATE(b2, rotate_7);
 
-static unsigned int ASM_FUNC_ATTR_INLINE
+static ASM_FUNC_ATTR_INLINE unsigned int
 chacha20_ppc_blocks4(u32 *state, byte *dst, const byte *src, size_t nblks)
 {
   vector4x_u32 counters_0123 = { 0, 1, 2, 3 };
@@ -468,7 +468,7 @@ chacha20_ppc_blocks4(u32 *state, byte *dst, const byte *src, size_t nblks)
     MUL_MOD_1305_64_PART2(h2, h1, h0, r1, r0, r1_mult5); \
   } while (0)
 
-static unsigned int ASM_FUNC_ATTR_INLINE
+static ASM_FUNC_ATTR_INLINE unsigned int
 chacha20_poly1305_ppc_blocks4(u32 *state, byte *dst, const byte *src,
 			      size_t nblks, POLY1305_STATE *st,
 			      const byte *poly1305_src)
@@ -641,7 +641,7 @@ chacha20_poly1305_ppc_blocks4(u32 *state, byte *dst, const byte *src,
 
 #else
 
-static unsigned int ASM_FUNC_ATTR_INLINE
+static ASM_FUNC_ATTR_INLINE unsigned int
 chacha20_poly1305_ppc_blocks4(u32 *state, byte *dst, const byte *src,
 			      size_t nblks, POLY1305_STATE *st,
 			      const byte *poly1305_src)

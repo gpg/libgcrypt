@@ -339,7 +339,7 @@ vec_u64_load_be(unsigned long offset, const void *ptr)
       wlt1; \
     })
 
-static unsigned int ASM_FUNC_ATTR_INLINE FUNC_ATTR_OPT_O2
+static ASM_FUNC_ATTR_INLINE FUNC_ATTR_OPT_O2 unsigned int
 sha512_transform_ppc(u64 state[8], const unsigned char *data, size_t nblks)
 {
   vector2x_u64 h0, h1, h2, h3, h4, h5, h6, h7;
