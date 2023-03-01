@@ -115,6 +115,14 @@
 # endif
 #endif
 
+#undef USE_PPC_CRYPTO
+#if defined(ENABLE_PPC_CRYPTO_SUPPORT) && \
+    defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+    defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC) && \
+    !defined(WORDS_BIGENDIAN) && (__GNUC__ >= 4)
+# define USE_PPC_CRYPTO 1
+#endif
+
 static const char *sm4_selftest (void);
 
 static void _gcry_sm4_ctr_enc (void *context, unsigned char *ctr,
@@ -168,6 +176,10 @@ typedef struct
 #endif
 #ifdef USE_ARM_SVE_CE
   unsigned int use_arm_sve_ce:1;
+#endif
+#ifdef USE_PPC_CRYPTO
+  unsigned int use_ppc8le:1;
+  unsigned int use_ppc9le:1;
 #endif
 } SM4_context;
 
@@ -598,6 +610,28 @@ sm4_armv9_sve_ce_crypt_blk1_16(void *rk, byte *out, const byte *in,
 extern unsigned int _gcry_sm4_armv9_sve_get_vl(void);
 #endif /* USE_ARM_SVE_CE */
 
+#ifdef USE_PPC_CRYPTO
+extern void _gcry_sm4_ppc8le_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
+					   size_t num_blks);
+
+extern void _gcry_sm4_ppc9le_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
+					   size_t num_blks);
+
+static inline unsigned int
+sm4_ppc8le_crypt_blk1_16(void *rk, byte *out, const byte *in, size_t num_blks)
+{
+  _gcry_sm4_ppc8le_crypt_blk1_16(rk, out, in, num_blks);
+  return 0;
+}
+
+static inline unsigned int
+sm4_ppc9le_crypt_blk1_16(void *rk, byte *out, const byte *in, size_t num_blks)
+{
+  _gcry_sm4_ppc9le_crypt_blk1_16(rk, out, in, num_blks);
+  return 0;
+}
+#endif /* USE_PPC_CRYPTO */
+
 static inline void prefetch_sbox_table(void)
 {
   const volatile byte *vtab = (void *)&sbox_table;
@@ -774,6 +808,10 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
   /* Only enabled when the SVE vector length is greater than 128 bits */
   ctx->use_arm_sve_ce = (hwf & HWF_ARM_SVE2) && (hwf & HWF_ARM_SVESM4)
 		&& _gcry_sm4_armv9_sve_get_vl() > 16;
+#endif
+#ifdef USE_PPC_CRYPTO
+  ctx->use_ppc8le = (hwf & HWF_PPC_VCRYPTO) != 0;
+  ctx->use_ppc9le = (hwf & HWF_PPC_VCRYPTO) && (hwf & HWF_PPC_ARCH_3_00);
 #endif
 
 #ifdef USE_GFNI_AVX2
@@ -1007,6 +1045,16 @@ sm4_get_crypt_blk1_16_fn(SM4_context *ctx)
   else if (ctx->use_aarch64_simd)
     {
       return &sm4_aarch64_crypt_blk1_16;
+    }
+#endif
+#ifdef USE_PPC_CRYPTO
+  else if (ctx->use_ppc9le)
+    {
+      return &sm4_ppc9le_crypt_blk1_16;
+    }
+  else if (ctx->use_ppc8le)
+    {
+      return &sm4_ppc8le_crypt_blk1_16;
     }
 #endif
   else

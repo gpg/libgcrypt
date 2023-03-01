@@ -3191,6 +3191,11 @@ if test "$found" = "1" ; then
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-aarch64.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-armv8-aarch64-ce.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-armv9-aarch64-sve-ce.lo"
+      ;;
+      powerpc64le-*-*)
+         # Build with the ppc64le vector implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-ppc.lo"
+      ;;
    esac
 fi
 

@@ -123,6 +123,7 @@ EXTRA_libcipher_la_SOURCES = \
 	sm4.c sm4-aesni-avx-amd64.S sm4-aesni-avx2-amd64.S \
 	sm4-gfni-avx2-amd64.S sm4-gfni-avx512-amd64.S \
 	sm4-aarch64.S sm4-armv8-aarch64-ce.S sm4-armv9-aarch64-sve-ce.S \
+	sm4-ppc.c \
 	serpent-avx2-amd64.S serpent-armv7-neon.S \
 	sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
 	sha1-avx2-bmi2-amd64.S sha1-armv7-neon.S sha1-armv8-aarch32-ce.S \
@@ -309,3 +310,9 @@ camellia-aarch64-ce.o: $(srcdir)/camellia-aarch64-ce.c Makefile
 
 camellia-aarch64-ce.lo: $(srcdir)/camellia-aarch64-ce.c Makefile
 	`echo $(LTCOMPILE) $(aarch64_neon_cflags) -c $< | $(instrumentation_munging) `
+
+sm4-ppc.o: $(srcdir)/sm4-ppc.c Makefile
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+sm4-ppc.lo: $(srcdir)/sm4-ppc.c Makefile
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
