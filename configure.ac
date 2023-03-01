@@ -2376,10 +2376,11 @@ AC_CACHE_CHECK([whether compiler supports GCC PowerPC target attributes],
         else
           gcry_cv_gcc_attribute_ppc_target=no
           AC_LINK_IFELSE([AC_LANG_PROGRAM(
-          [[void __attribute__((target("cpu=power8"))) testfn8(void) {}
+          [[void __attribute__((always_inline)) inline aifn(void) {}
+            void __attribute__((target("cpu=power8"))) testfn8(void) {aifn();}
             void __attribute__((target("cpu=power9"))) testfn9(void)
-            { testfn8(); }
-            ]], [ testfn9(); ])],
+            { testfn8(); aifn(); }
+            ]], [ testfn9(); aifn(); ])],
           [gcry_cv_gcc_attribute_ppc_target=yes])
         fi])
 if test "$gcry_cv_gcc_attribute_ppc_target" = "yes" ; then
@@ -2398,10 +2399,11 @@ AC_CACHE_CHECK([whether compiler supports clang PowerPC target attributes],
         else
           gcry_cv_clang_attribute_ppc_target=no
           AC_LINK_IFELSE([AC_LANG_PROGRAM(
-          [[void __attribute__((target("arch=pwr8"))) testfn8(void) {}
+          [[void __attribute__((always_inline)) inline aifn(void) {}
+            void __attribute__((target("arch=pwr8"))) testfn8(void) {aifn();}
             void __attribute__((target("arch=pwr9"))) testfn9(void)
-            { testfn8(); }
-            ]], [ testfn9(); ])],
+            { testfn8(); aifn(); }
+            ]], [ testfn9(); aifn(); ])],
           [gcry_cv_clang_attribute_ppc_target=yes])
         fi])
 if test "$gcry_cv_clang_attribute_ppc_target" = "yes" ; then
