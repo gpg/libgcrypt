@@ -101,7 +101,7 @@ static void *progress_cb_data;
 
 /* Local prototypes. */
 static void test_keys (mpi_ec_t ec, unsigned int nbits);
-static void test_keys_fips (gcry_sexp_t skey);
+static int test_keys_fips (gcry_sexp_t skey);
 static void test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags);
 static unsigned int ecc_get_nbits (gcry_sexp_t parms);
 
@@ -308,9 +308,10 @@ test_keys (mpi_ec_t ec, unsigned int nbits)
 /* We should get here only with the NIST curves as they are the only ones
  * having the fips bit set in ecc_domain_parms_t struct so this is slightly
  * simpler than the whole ecc_generate function */
-static void
+static int
 test_keys_fips (gcry_sexp_t skey)
 {
+  int result = -1; /* Default to failure */
   gcry_md_hd_t hd = NULL;
   const char *data_tmpl = "(data (flags rfc6979) (hash %s %b))";
   gcry_sexp_t sig = NULL;
@@ -323,18 +324,27 @@ test_keys_fips (gcry_sexp_t skey)
   /* Open MD context and feed the random data in */
   rc = _gcry_md_open (&hd, GCRY_MD_SHA256, 0);
   if (rc)
-    log_fatal ("ECDSA operation: failed to initialize MD context: %s\n", gpg_strerror (rc));
+    {
+      log_error ("ECDSA operation: failed to initialize MD context: %s\n", gpg_strerror (rc));
+      goto leave;
+    }
   _gcry_md_write (hd, plaintext, sizeof(plaintext));
 
   /* Sign the data */
   rc = _gcry_pk_sign_md (&sig, data_tmpl, hd, skey, NULL);
   if (rc)
-    log_fatal ("ECDSA operation: signing failed: %s\n", gpg_strerror (rc));
+    {
+      log_error ("ECDSA operation: signing failed: %s\n", gpg_strerror (rc));
+      goto leave;
+    }
 
   /* Verify this signature.  */
   rc = _gcry_pk_verify_md (sig, data_tmpl, hd, skey, NULL);
   if (rc)
-    log_fatal ("ECDSA operation: verification failed: %s\n", gpg_strerror (rc));
+    {
+      log_error ("ECDSA operation: verification failed: %s\n", gpg_strerror (rc));
+      goto leave;
+    }
 
   /* Modify the data and check that the signing fails.  */
   _gcry_md_reset(hd);
@@ -342,10 +352,16 @@ test_keys_fips (gcry_sexp_t skey)
   _gcry_md_write (hd, plaintext, sizeof(plaintext));
   rc = _gcry_pk_verify_md (sig, data_tmpl, hd, skey, NULL);
   if (rc != GPG_ERR_BAD_SIGNATURE)
-    log_fatal ("ECDSA operation: signature verification worked on modified data\n");
+    {
+      log_error ("ECDSA operation: signature verification worked on modified data\n");
+      goto leave;
+    }
 
+  result = 0;
+leave:
   _gcry_md_close (hd);
   sexp_release (sig);
+  return result;
 }
 
 
@@ -677,8 +693,12 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         log_debug ("ecgen result  using Ed25519+EdDSA\n");
     }
 
-  if (fips_mode ())
-    test_keys_fips (*r_skey);
+  if (fips_mode () && test_keys_fips (*r_skey))
+    {
+      sexp_release (*r_skey); r_skey = NULL;
+      fips_signal_error ("self-test after key generation failed");
+      rc = GPG_ERR_SELFTEST_FAILED;
+    }
 
  leave:
   mpi_free (public);
