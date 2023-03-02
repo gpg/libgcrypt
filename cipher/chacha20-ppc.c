@@ -660,12 +660,15 @@ chacha20_poly1305_ppc_blocks4(u32 *state, byte *dst, const byte *src,
 #if defined(__clang__) && defined(HAVE_CLANG_ATTRIBUTE_PPC_TARGET)
 # define FUNC_ATTR_TARGET_P8 __attribute__((target("arch=pwr8")))
 # define FUNC_ATTR_TARGET_P9 __attribute__((target("arch=pwr9")))
+# define HAVE_FUNC_ATTR_TARGET 1
 #elif defined(HAVE_GCC_ATTRIBUTE_PPC_TARGET)
 # define FUNC_ATTR_TARGET_P8 __attribute__((target("cpu=power8")))
 # define FUNC_ATTR_TARGET_P9 __attribute__((target("cpu=power9")))
+# define HAVE_FUNC_ATTR_TARGET 1
 #else
 # define FUNC_ATTR_TARGET_P8
 # define FUNC_ATTR_TARGET_P9
+# undef HAVE_FUNC_ATTR_TARGET
 #endif
 
 
@@ -693,7 +696,7 @@ _gcry_chacha20_poly1305_ppc8_blocks4(u32 *state, byte *dst, const byte *src,
 				       poly1305_src);
 }
 
-#ifdef HAVE_GCC_ATTRIBUTE_PPC_TARGET
+#ifdef HAVE_FUNC_ATTR_TARGET
 /* Functions targetting POWER9. */
 unsigned int ASM_FUNC_ATTR FUNC_ATTR_TARGET_P9 FUNC_ATTR_OPT_O2
 _gcry_chacha20_ppc9_blocks1(u32 *state, byte *dst, const byte *src,
