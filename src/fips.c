@@ -450,7 +450,8 @@ _gcry_fips_indicator_function (va_list arg_ptr)
   if (strcmp (function, "gcry_pk_sign") == 0 ||
       strcmp (function, "gcry_pk_verify") == 0 ||
       strcmp (function, "gcry_pk_encrypt") == 0 ||
-      strcmp (function, "gcry_pk_decrypt") == 0)
+      strcmp (function, "gcry_pk_decrypt") == 0 ||
+      strcmp (function, "gcry_pk_random_override_new") == 0)
     return GPG_ERR_NOT_SUPPORTED;
 
   return GPG_ERR_NO_ERROR;
