@@ -116,18 +116,6 @@ asm_store_be_noswap(block vec, unsigned long offset, void *ptr)
 }
 
 
-static ASM_FUNC_ATTR_INLINE u32
-_gcry_aes_sbox4_ppc8(u32 fourbytes)
-{
-  vec_u32 vec_fourbyte = { fourbytes, fourbytes, fourbytes, fourbytes };
-#ifdef WORDS_BIGENDIAN
-  return ((vec_u32)asm_sbox_be((block)vec_fourbyte))[1];
-#else
-  return ((vec_u32)asm_sbox_be((block)vec_fourbyte))[2];
-#endif
-}
-
-
 static ASM_FUNC_ATTR_INLINE unsigned int
 keysched_idx(unsigned int in)
 {
@@ -139,58 +127,80 @@ keysched_idx(unsigned int in)
 }
 
 
+static ASM_FUNC_ATTR_INLINE vec_u32
+bcast_u32_to_vec(u32 x)
+{
+  vec_u32 v = { x, x, x, x };
+  return v;
+}
+
+
+static ASM_FUNC_ATTR_INLINE u32
+u32_from_vec(vec_u32 x)
+{
+#ifdef WORDS_BIGENDIAN
+  return x[1];
+#else
+  return x[2];
+#endif
+}
+
+
 void PPC_OPT_ATTR
 _gcry_aes_ppc8_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
-  u32 tk_u32[MAXKC];
+  static const vec_u32 rotate24 = { 24, 24, 24, 24 };
+  static const vec_u32 rcon_const = { 0x1b, 0x1b, 0x1b, 0x1b };
+  vec_u32 tk_vu32[MAXKC];
   unsigned int rounds = ctx->rounds;
   unsigned int KC = rounds - 6;
   u32 *W_u32 = ctx->keyschenc32b;
   unsigned int i, j;
-  u32 tk_prev;
-  byte rcon = 1;
+  vec_u32 tk_prev;
+  vec_u32 rcon = { 1, 1, 1, 1 };
 
   for (i = 0; i < KC; i += 2)
     {
       unsigned int idx0 = keysched_idx(i + 0);
       unsigned int idx1 = keysched_idx(i + 1);
-      tk_u32[i + 0] = buf_get_le32(key + i * 4 + 0);
-      tk_u32[i + 1] = buf_get_le32(key + i * 4 + 4);
-      W_u32[idx0] = _gcry_bswap32(tk_u32[i + 0]);
-      W_u32[idx1] = _gcry_bswap32(tk_u32[i + 1]);
+      tk_vu32[i + 0] = bcast_u32_to_vec(buf_get_le32(key + i * 4 + 0));
+      tk_vu32[i + 1] = bcast_u32_to_vec(buf_get_le32(key + i * 4 + 4));
+      W_u32[idx0] = u32_from_vec(vec_revb(tk_vu32[i + 0]));
+      W_u32[idx1] = u32_from_vec(vec_revb(tk_vu32[i + 1]));
     }
 
-  for (i = KC, j = KC, tk_prev = tk_u32[KC - 1];
+  for (i = KC, j = KC, tk_prev = tk_vu32[KC - 1];
        i < 4 * (rounds + 1);
        i += 2, j += 2)
     {
       unsigned int idx0 = keysched_idx(i + 0);
       unsigned int idx1 = keysched_idx(i + 1);
-      u32 temp0 = tk_prev;
-      u32 temp1;
+      vec_u32 temp0 = tk_prev;
+      vec_u32 temp1;
 
       if (j == KC)
         {
           j = 0;
-          temp0 = _gcry_aes_sbox4_ppc8(rol(temp0, 24)) ^ rcon;
-          rcon = ((rcon << 1) ^ (-(rcon >> 7) & 0x1b)) & 0xff;
+          temp0 = (vec_u32)(asm_sbox_be((block)vec_rl(temp0, rotate24))) ^ rcon;
+          rcon = (vec_u32)(((block)rcon << 1)
+                           ^ (-((block)rcon >> 7) & (block)rcon_const));
         }
       else if (KC == 8 && j == 4)
         {
-          temp0 = _gcry_aes_sbox4_ppc8(temp0);
+          temp0 = (vec_u32)asm_sbox_be((block)temp0);
         }
 
-      temp1 = tk_u32[j + 0];
+      temp1 = tk_vu32[j + 0];
 
-      tk_u32[j + 0] = temp0 ^ temp1;
-      tk_u32[j + 1] ^= temp0 ^ temp1;
-      tk_prev = tk_u32[j + 1];
+      tk_vu32[j + 0] = temp0 ^ temp1;
+      tk_vu32[j + 1] ^= temp0 ^ temp1;
+      tk_prev = tk_vu32[j + 1];
 
-      W_u32[idx0] = _gcry_bswap32(tk_u32[j + 0]);
-      W_u32[idx1] = _gcry_bswap32(tk_u32[j + 1]);
+      W_u32[idx0] = u32_from_vec(vec_revb(tk_vu32[j + 0]));
+      W_u32[idx1] = u32_from_vec(vec_revb(tk_vu32[j + 1]));
     }
 
-  wipememory(tk_u32, sizeof(tk_u32));
+  wipememory(tk_vu32, sizeof(tk_vu32));
 }
 
 
