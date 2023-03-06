@@ -13645,6 +13645,12 @@ check_digests (void)
         {
           if (in_fips_mode)
             {
+              err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_MD, algos[i].md);
+              if (err == GPG_ERR_NO_ERROR)
+                {
+                  fail ("algo %d, gcry_md_test_algo failed while it should"
+                        " have worked in FIPS mode\n", algos[i].md);
+                }
               if (verbose)
                 fprintf (stderr, "  algorithm %d not available in fips mode\n",
                          algos[i].md);
@@ -15223,6 +15229,7 @@ check_mac (void)
 #endif /* USE_GOST28147 */
       { 0 },
     };
+  gcry_error_t err;
   int i;
 
   if (verbose)
@@ -15236,6 +15243,12 @@ check_mac (void)
         {
           if (in_fips_mode)
             {
+              err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_MAC, algos[i].algo);
+              if (err == GPG_ERR_NO_ERROR)
+                {
+                  fail ("algo %d, gcry_mac_test_algo failed while it should"
+                        " have worked in FIPS mode\n", algos[i].algo);
+                }
               if (verbose)
                 fprintf (stderr, "  algorithm %d not available in fips mode\n",
                          algos[i].algo);
