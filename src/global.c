@@ -818,6 +818,13 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       rc = _gcry_fips_indicator_function (arg_ptr);
       break;
 
+    case GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS:
+      /* Get FIPS Service Indicator for a public key operation flags.
+       * Returns GPG_ERR_NO_ERROR if the flag is allowed to be used or
+       * GPG_ERR_NOT_SUPPORTED otherwise */
+      rc = _gcry_fips_indicator_pk_flags (arg_ptr);
+      break;
+
     case PRIV_CTL_INIT_EXTRNG_TEST:  /* Init external random test.  */
       rc = GPG_ERR_NOT_SUPPORTED;
       break;
