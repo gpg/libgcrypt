@@ -457,6 +457,21 @@ _gcry_fips_indicator_function (va_list arg_ptr)
 }
 
 
+int
+_gcry_fips_indicator_pk_flags (va_list arg_ptr)
+{
+  const char *flag = va_arg (arg_ptr, const char *);
+
+  if (strcmp (flag, "param") == 0 ||
+      strcmp (flag, "raw") == 0 ||
+      strcmp (flag, "no-blinding") == 0 ||
+      strcmp (flag, "pss") == 0)
+    return GPG_ERR_NO_ERROR;
+
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+
 /* This is a test on whether the library is in the error or
    operational state. */
 int
