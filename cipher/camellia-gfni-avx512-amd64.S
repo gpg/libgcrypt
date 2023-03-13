@@ -105,7 +105,6 @@
 	clear_vec4(%ymm19, %ymm23, %ymm27, %ymm31)
 
 #define clear_regs() \
-	kxorq %k1, %k1, %k1; \
 	vzeroall; \
 	clear_zmm16_zmm31()
 
@@ -307,22 +306,18 @@
  *  v0..3: (IN << 1)
  *  t0, t1, t2, zero: (IN >> 7)
  */
-#define rol32_1_64(v0, v1, v2, v3, t0, t1, t2, zero, one) \
-	vpcmpltb zero, v0, %k1; \
+#define rol32_1_64(v0, v1, v2, v3, t0, t1, t2, t3, right_shift_by_7) \
+	vgf2p8affineqb $0, right_shift_by_7, v0, t0; \
 	vpaddb v0, v0, v0; \
-	vpaddb one, zero, t0{%k1}{z}; \
 	\
-	vpcmpltb zero, v1, %k1; \
+	vgf2p8affineqb $0, right_shift_by_7, v1, t1; \
 	vpaddb v1, v1, v1; \
-	vpaddb one, zero, t1{%k1}{z}; \
 	\
-	vpcmpltb zero, v2, %k1; \
+	vgf2p8affineqb $0, right_shift_by_7, v2, t2; \
 	vpaddb v2, v2, v2; \
-	vpaddb one, zero, t2{%k1}{z}; \
 	\
-	vpcmpltb zero, v3, %k1; \
-	vpaddb v3, v3, v3; \
-	vpaddb one, zero, zero{%k1}{z};
+	vgf2p8affineqb $0, right_shift_by_7, v3, t3; \
+	vpaddb v3, v3, v3;
 
 /*
  * IN:
@@ -338,8 +333,7 @@
 	 * t0 &= ll; \
 	 * lr ^= rol32(t0, 1); \
 	 */ \
-	vpbroadcastq .Lbyte_ones rRIP, tmp; \
-	vpxor tt3##_y, tt3##_y, tt3##_y; \
+	vpbroadcastq .Lright_shift_by_7 rRIP, tmp; \
 	vpbroadcastb 0+kll, t3; \
 	vpbroadcastb 1+kll, t2; \
 	vpbroadcastb 2+kll, t1; \
@@ -360,7 +354,6 @@
 	vmovdqu64 l6, l##_6; \
 	vpternlogq $0x96, tt3, t3, l7; \
 	vmovdqu64 l7, l##_7; \
-	vpxor tt3##_y, tt3##_y, tt3##_y; \
 	\
 	/* \
 	 * t2 = krr; \
@@ -399,7 +392,6 @@
 	vpternlogq $0x96, tt1, t1, r##_5; \
 	vpternlogq $0x96, tt0, t2, r##_6; \
 	vpternlogq $0x96, tt3, t3, r##_7; \
-	vpxor tt3##_y, tt3##_y, tt3##_y; \
 	\
 	/* \
 	 * t0 = klr; \
@@ -596,9 +588,6 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 .Lbswap128_mask:
 	.byte 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 
-.Lbyte_ones:
-	.quad 0x0101010101010101
-
 /* Pre-filters and post-filters bit-matrixes for Camellia sboxes s1, s2, s3
  * and s4.
  *   See http://urn.fi/URN:NBN:fi:oulu-201305311409, pages 43-48.
@@ -662,6 +651,17 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 		    BV8(0, 1, 1, 1, 1, 1, 1, 1),
 		    BV8(0, 0, 0, 1, 1, 1, 0, 0),
 		    BV8(0, 0, 0, 0, 0, 0, 0, 1))
+
+/* Bit-matrix for right shifting uint8_t values in vector by 7. */
+.Lright_shift_by_7:
+	.quad BM8X8(BV8(0, 0, 0, 0, 0, 0, 0, 1),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0))
 
 /* CTR byte addition constants */
 .align 64
@@ -904,6 +904,7 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	add_le128(%zmm2, %zmm6, %zmm24, %zmm25); /* +52... */
 	add_le128(%zmm1, %zmm5, %zmm24, %zmm25); /* +56... */
 	add_le128(%zmm0, %zmm4, %zmm24, %zmm25); /* +60... */
+	kxorq %k1, %k1, %k1;
 
 .align 4
 .Lload_ctr_done:

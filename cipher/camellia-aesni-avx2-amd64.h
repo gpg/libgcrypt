@@ -73,6 +73,14 @@
 # define IF_VAES(...)
 #endif
 
+#ifdef CAMELLIA_GFNI_BUILD
+# define IF_GFNI(...) __VA_ARGS__
+# define IF_NOT_GFNI(...)
+#else
+# define IF_GFNI(...)
+# define IF_NOT_GFNI(...) __VA_ARGS__
+#endif
+
 /**********************************************************************
   GFNI helper macros and constants
  **********************************************************************/
@@ -459,6 +467,26 @@
  * OUT:
  *  v0..3: (IN <<< 1)
  */
+#ifdef CAMELLIA_GFNI_BUILD
+#define rol32_1_32(v0, v1, v2, v3, t0, t1, t2, right_shift_by_7) \
+	vgf2p8affineqb $0, right_shift_by_7, v0, t0; \
+	vpaddb v0, v0, v0; \
+	\
+	vgf2p8affineqb $0, right_shift_by_7, v1, t1; \
+	vpaddb v1, v1, v1; \
+	\
+	vgf2p8affineqb $0, right_shift_by_7, v2, t2; \
+	vpaddb v2, v2, v2; \
+	\
+	vpor t0, v1, v1; \
+	\
+	vgf2p8affineqb $0, right_shift_by_7, v3, t0; \
+	vpaddb v3, v3, v3; \
+	\
+	vpor t1, v2, v2; \
+	vpor t2, v3, v3; \
+	vpor t0, v0, v0;
+#else
 #define rol32_1_32(v0, v1, v2, v3, t0, t1, t2, zero) \
 	vpcmpgtb v0, zero, t0; \
 	vpaddb v0, v0, v0; \
@@ -481,6 +509,7 @@
 	vpor t1, v2, v2; \
 	vpor t2, v3, v3; \
 	vpor t0, v0, v0;
+#endif
 
 /*
  * IN:
@@ -496,7 +525,8 @@
 	 * t0 &= ll; \
 	 * lr ^= rol32(t0, 1); \
 	 */ \
-	vpxor tt0, tt0, tt0; \
+	IF_NOT_GFNI(vpxor tt0, tt0, tt0); \
+	IF_GFNI(vpbroadcastq .Lright_shift_by_7 rRIP, tt0); \
 	vpbroadcastb 0+kll, t3; \
 	vpbroadcastb 1+kll, t2; \
 	vpbroadcastb 2+kll, t1; \
@@ -866,6 +896,17 @@ ELF(.type   FUNC_NAME(_constants),@object;)
 		    BV8(0, 1, 1, 1, 1, 1, 1, 1),
 		    BV8(0, 0, 0, 1, 1, 1, 0, 0),
 		    BV8(0, 0, 0, 0, 0, 0, 0, 1))
+
+/* Bit-matrix for right shifting uint8_t values in vector by 7. */
+.Lright_shift_by_7:
+	.quad BM8X8(BV8(0, 0, 0, 0, 0, 0, 0, 1),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0),
+		    BV8(0, 0, 0, 0, 0, 0, 0, 0))
 
 #else /* CAMELLIA_GFNI_BUILD */
 
