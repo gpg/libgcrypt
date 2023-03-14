@@ -593,23 +593,27 @@ static const uint8x16_t shift_row =
  *  v0..3: (IN <<< 1)
  */
 #define rol32_1_16(v0, v1, v2, v3, t0, t1, t2, zero) \
-	vpcmpgtb128(v0, zero, t0); \
+	if_vpsrlb128(vpsrlb128(7, v0, t0)); \
+	if_not_vpsrlb128(vpcmpgtb128(v0, zero, t0)); \
 	vpaddb128(v0, v0, v0); \
-	vpabsb128(t0, t0); \
+	if_not_vpsrlb128(vpabsb128(t0, t0)); \
 	\
-	vpcmpgtb128(v1, zero, t1); \
+	if_vpsrlb128(vpsrlb128(7, v1, t1)); \
+	if_not_vpsrlb128(vpcmpgtb128(v1, zero, t1)); \
 	vpaddb128(v1, v1, v1); \
-	vpabsb128(t1, t1); \
+	if_not_vpsrlb128(vpabsb128(t1, t1)); \
 	\
-	vpcmpgtb128(v2, zero, t2); \
+	if_vpsrlb128(vpsrlb128(7, v2, t2)); \
+	if_not_vpsrlb128(vpcmpgtb128(v2, zero, t2)); \
 	vpaddb128(v2, v2, v2); \
-	vpabsb128(t2, t2); \
+	if_not_vpsrlb128(vpabsb128(t2, t2)); \
 	\
 	vpor128(t0, v1, v1); \
 	\
-	vpcmpgtb128(v3, zero, t0); \
+	if_vpsrlb128(vpsrlb128(7, v3, t0)); \
+	if_not_vpsrlb128(vpcmpgtb128(v3, zero, t0)); \
 	vpaddb128(v3, v3, v3); \
-	vpabsb128(t0, t0); \
+	if_not_vpsrlb128(vpabsb128(t0, t0)); \
 	\
 	vpor128(t1, v2, v2); \
 	vpor128(t2, v3, v3); \
