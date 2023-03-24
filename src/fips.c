@@ -457,16 +457,49 @@ _gcry_fips_indicator_function (va_list arg_ptr)
   return GPG_ERR_NO_ERROR;
 }
 
+/* Note: the array should be sorted.  */
+static const char *valid_string_in_sexp[] = {
+  "curve",
+  "d",
+  "data",
+  "e",
+  "ecdsa",
+  "flags",
+  "genkey",
+  "hash",
+  "n",
+  "nbits",
+  "pkcs1",
+  "private-key",
+  "pss",
+  "public-key",
+  "q",
+  "r",
+  "raw",
+  "rsa",
+  "rsa-use-e",
+  "s",
+  "salt-length",
+  "sig-val",
+  "value"
+};
+
+static int
+compare_string (const void *v1, const void *v2)
+{
+  const char * const *p_str1 = v1;
+  const char * const *p_str2 = v2;
+
+  return strcmp (*p_str1, *p_str2);
+}
 
 int
 _gcry_fips_indicator_pk_flags (va_list arg_ptr)
 {
   const char *flag = va_arg (arg_ptr, const char *);
 
-  if (strcmp (flag, "param") == 0 ||
-      strcmp (flag, "raw") == 0 ||
-      strcmp (flag, "no-blinding") == 0 ||
-      strcmp (flag, "pss") == 0)
+  if (bsearch (&flag, valid_string_in_sexp, DIM (valid_string_in_sexp),
+               sizeof (char *), compare_string))
     return GPG_ERR_NO_ERROR;
 
   return GPG_ERR_NOT_SUPPORTED;

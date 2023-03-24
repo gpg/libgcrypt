@@ -1007,9 +1007,45 @@ FIPS 140-3 certification. If the algorithm is approved, this function returns
 
 @item GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS; Arguments: const char *
 
-Check if the given public key operation flag is approved under the current
-FIPS 140-3 certification. If the flag is approved, this function returns
-@code{GPG_ERR_NO_ERROR}. Otherwise @code{GPG_ERR_NOT_SUPPORTED} is returned.
+Check if the given public key operation flag or s-expression object name is
+approved under the current FIPS 140-3 certification.  If the flag is
+approved, this function returns @code{GPG_ERR_NO_ERROR}.
+
+Otherwise @code{GPG_ERR_NOT_SUPPORTED} is returned.
+
+For compound s-expression objects, if the object name is allowed, the user
+is responsible to check also the internal members.  For example:
+
+@example
+  gcry_sexp_t s_sig = NULL;
+  gcry_md_hd_t hd = NULL;
+  gcry_sexp_t s_sk = NULL;
+  const char *data_tmpl = "(data(flags pss)(hash %s %b)(salt-length 1:0))";
+
+  if (err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_FUNCTION, "gcry_md_open") &&
+      err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_MD, GCRY_MD_SHA512) &&
+      err = gcry_md_open (&hd, GCRY_MD_SHA512, 0))
+    @{
+      printf ("gcry_md_open failed: %s", gpg_strerror (err));
+      return;
+    @}
+  gcry_md_write (hd, buffer, buflen);
+
+  /* initialize the key in s_sk */
+
+  if (err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_FUNCTION, "gcry_pk_hash_sign") &&
+      err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS, "data") &&
+      err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS, "flags") &&
+      err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS, "pss") &&
+      err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS, "hash") &&
+      err = gcry_control(GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS, "salt-length")
+      err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, hd, NULL))
+    @{
+      printf ("gcry_pk_hash_sign failed: %s", gpg_strerror (err));
+      return;
+    @}
+  /* ok */
+@end example
 
 @end table
 
