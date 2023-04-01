@@ -10,7 +10,7 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
-# Last-changed: 2023-03-23
+# Last-changed: 2023-04-01
 
 dnl
 dnl Find gpg-error-config, for backward compatibility
@@ -131,6 +131,7 @@ AC_DEFUN([_AM_PATH_GPGRT_CONFIG],[dnl
       AC_MSG_NOTICE([Use gpgrt-config with $gpgrt_libdir as gpg-error-config])
       gpg_error_config_version=`$GPG_ERROR_CONFIG --modversion`
     else
+      gpg_error_config_version=`$GPG_ERROR_CONFIG --version`
       unset GPGRT_CONFIG
     fi
   elif test "$GPG_ERROR_CONFIG" != "no"; then
