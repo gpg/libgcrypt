@@ -437,6 +437,7 @@ _gcry_ghash_ppc_vpmsum (byte *result, void *gcm_table,
       in1 = vec_load_he (16, buf);
       in2 = vec_load_he (32, buf);
       in3 = vec_load_he (48, buf);
+      buf += 64;
       in0 = vec_be_swap(in0, bswap_const);
       in1 = vec_be_swap(in1, bswap_const);
       in2 = vec_be_swap(in2, bswap_const);
@@ -464,17 +465,13 @@ _gcry_ghash_ppc_vpmsum (byte *result, void *gcm_table,
       Xh3 = asm_xor (Xh3, Xh1);
 
       /* Gerald Estrin's scheme for parallel multiplication of polynomials */
-      while (1)
+      for (; blocks_remaining > 4; blocks_remaining -= 4)
         {
-	  buf += 64;
-	  blocks_remaining -= 4;
-	  if (!blocks_remaining)
-	    break;
-
 	  in0 = vec_load_he (0, buf);
 	  in1 = vec_load_he (16, buf);
 	  in2 = vec_load_he (32, buf);
 	  in3 = vec_load_he (48, buf);
+	  buf += 64;
 	  in1 = vec_be_swap(in1, bswap_const);
 	  in2 = vec_be_swap(in2, bswap_const);
 	  in3 = vec_be_swap(in3, bswap_const);
