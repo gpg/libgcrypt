@@ -5181,7 +5181,8 @@ Simple unsigned integer.
 
 @noindent
 Note that all of the above formats store the integer in big-endian
-format (MSB first).
+format (MSB first).  Leading zeroes are stripped unless they are
+required to keep a value positive.
 @end deftypefun
 
 
