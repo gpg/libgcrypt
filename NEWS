@@ -1,5 +1,74 @@
-Noteworthy changes in version 1.10.2 (unreleased)  [C24/A4/R_]
+Noteworthy changes in version 1.10.2 (2023-04-06)  [C24/A4/R2]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix Argon2 for the case output > 64.  [rC13b5454d26]
+
+   - Fix missing HWF_PPC_ARCH_3_10 in HW feature.  [rCe073f0ed44]
+
+   - Fix RSA key generation failure in forced FIPS mode.  [T5919]
+
+   - Fix gcry_pk_hash_verify for explicit hash.  [T6066]
+
+   - Fix a wrong result of gcry_mpi_invm.  [T5970]
+
+   - Allow building with --disable-asm for HPPA.  [T5976]
+
+   - Fix Jitter RNG for building native on Windows.  [T5891]
+
+   - Allow building with -Oz.  [T6432]
+
+   - Enable the fast path to ChaCha20 only when supported.  [T6384]
+
+   - Use size_t to avoid counter overflow in Keccak when directly
+     feeding more than 4GiB.  [T6217]
+
+ * Other:
+
+   - Do not use secure memory for a DRBG instance.  [T5933]
+
+   - Do not allow PKCS#1.5 padding for encryption in FIPS mode.
+     [T5918]
+
+   - Fix the behaviour for child process re-seeding in the DRBG.
+     [rC019a40c990]
+
+   - Allow verification of small RSA signatures in FIPS mode.  [T5975]
+
+   - Allow the use of a shorter salt for KDFs in FIPS mode.  [T6039]
+
+   - Run digest+sign self tests for RSA and ECC in FIPS mode.
+     [rC06c9350165]
+
+   - Add function-name based FIPS indicator function.
+     GCRYCTL_FIPS_SERVICE_INDICATOR_FUNCTION.  This is not considered
+     an ABI changes because the new FIPS features were not yet
+     approved.  [rC822ee57f07]
+
+   - Improve PCT in FIPS mode.  [rC285bf54b1a, rC4963c127ae, T6397]
+
+   - Use getrandom (GRND_RANDOM) in FIPS mode.  [rCcf10c74bd9]
+
+   - Disable RSA-OAEP padding in FIPS mode.  [rCe5bfda492a]
+
+   - Check minimum allowed key size in PBKDF in FIPS mode.
+     [T6039,T6219]
+
+   - Get maximum 32B of entropy at once in FIPS mode.  [rCce0df08bba]
+
+   - Prefer gpgrt-config when available.  [T5034]
+
+   - Mark AESWRAP as approved FIPS algorithm.  [T5512]
+
+   - Prevent usage of long salt for PSS in FIPS mode.  [rCfdd2a8b332]
+
+   - Prevent usage of X9.31 keygen in FIPS mode.  [rC392e0ccd25]
+
+   - Remove GCM mode from the allowed FIPS indicators.  [rC1540698389]
+
+   - Add explicit FIPS indicators for hash and MAC algorithms. [T6376]
+
 
  Release-info: https://dev.gnupg.org/T5905
 
