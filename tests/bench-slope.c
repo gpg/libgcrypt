@@ -2933,13 +2933,310 @@ ecc_bench (char **argv, int argc)
 #endif
 }
 
+/************************************************************ MPI benchmarks. */
+
+#define MPI_START_SIZE 64
+#define MPI_END_SIZE 1024
+#define MPI_STEP_SIZE 8
+#define MPI_NUM_STEPS (((MPI_END_SIZE - MPI_START_SIZE) / MPI_STEP_SIZE) + 1)
+
+enum bench_mpi_test
+{
+  MPI_TEST_ADD = 0,
+  MPI_TEST_SUB,
+  MPI_TEST_RSHIFT3,
+  MPI_TEST_LSHIFT3,
+  MPI_TEST_RSHIFT65,
+  MPI_TEST_LSHIFT65,
+  MPI_TEST_MUL4,
+  MPI_TEST_MUL8,
+  MPI_TEST_MUL16,
+  MPI_TEST_MUL32,
+  MPI_TEST_DIV4,
+  MPI_TEST_DIV8,
+  MPI_TEST_DIV16,
+  MPI_TEST_DIV32,
+  MPI_TEST_MOD4,
+  MPI_TEST_MOD8,
+  MPI_TEST_MOD16,
+  MPI_TEST_MOD32,
+  __MAX_MPI_TEST
+};
+
+static const char * const mpi_test_names[] =
+{
+  "add",
+  "sub",
+  "rshift3",
+  "lshift3",
+  "rshift65",
+  "lshift65",
+  "mul4",
+  "mul8",
+  "mul16",
+  "mul32",
+  "div4",
+  "div8",
+  "div16",
+  "div32",
+  "mod4",
+  "mod8",
+  "mod16",
+  "mod32",
+  NULL,
+};
+
+struct bench_mpi_mode
+{
+  const char *name;
+  struct bench_ops *ops;
+
+  enum bench_mpi_test test_id;
+};
+
+struct bench_mpi_hd
+{
+  gcry_mpi_t bytes[MPI_NUM_STEPS + 1];
+  gcry_mpi_t y;
+};
+
+static int
+bench_mpi_init (struct bench_obj *obj)
+{
+  struct bench_mpi_mode *mode = obj->priv;
+  struct bench_mpi_hd *hd;
+  int y_bytes;
+  int i, j;
+
+  (void)mode;
+
+  obj->min_bufsize = MPI_START_SIZE;
+  obj->max_bufsize = MPI_END_SIZE;
+  obj->step_size = MPI_STEP_SIZE;
+  obj->num_measure_repetitions = num_measurement_repetitions;
+
+  hd = calloc (1, sizeof(*hd));
+  if (!hd)
+    return -1;
+
+  /* Generate input MPIs for benchmark. */
+  for (i = MPI_START_SIZE, j = 0; j < DIM(hd->bytes); i += MPI_STEP_SIZE, j++)
+    {
+      hd->bytes[j] = gcry_mpi_new (i * 8);
+      gcry_mpi_randomize (hd->bytes[j], i * 8, GCRY_WEAK_RANDOM);
+      gcry_mpi_set_bit (hd->bytes[j], i * 8 - 1);
+    }
+
+  switch (mode->test_id)
+    {
+      case MPI_TEST_MUL4:
+      case MPI_TEST_DIV4:
+      case MPI_TEST_MOD4:
+	y_bytes = 4;
+	break;
+
+      case MPI_TEST_MUL8:
+      case MPI_TEST_DIV8:
+      case MPI_TEST_MOD8:
+	y_bytes = 8;
+	break;
+
+      case MPI_TEST_MUL16:
+      case MPI_TEST_DIV16:
+      case MPI_TEST_MOD16:
+	y_bytes = 16;
+	break;
+
+      case MPI_TEST_MUL32:
+      case MPI_TEST_DIV32:
+      case MPI_TEST_MOD32:
+	y_bytes = 32;
+	break;
+
+      default:
+	y_bytes = 0;
+	break;
+    }
+
+  hd->y = gcry_mpi_new (y_bytes * 8);
+  if (y_bytes)
+    {
+      gcry_mpi_randomize (hd->y, y_bytes * 8, GCRY_WEAK_RANDOM);
+      gcry_mpi_set_bit (hd->y, y_bytes * 8 - 1);
+    }
+
+  obj->hd = hd;
+  return 0;
+}
+
+static void
+bench_mpi_free (struct bench_obj *obj)
+{
+  struct bench_mpi_hd *hd = obj->hd;
+  int i;
+
+  gcry_mpi_release (hd->y);
+  for (i = DIM(hd->bytes) - 1; i >= 0; i--)
+    gcry_mpi_release (hd->bytes[i]);
+
+  free(hd);
+}
+
+static void
+bench_mpi_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
+{
+  struct bench_mpi_hd *hd = obj->hd;
+  struct bench_mpi_mode *mode = obj->priv;
+  int bytes_idx = (buflen - MPI_START_SIZE) / MPI_STEP_SIZE;
+  gcry_mpi_t x;
+
+  (void)buf;
+
+  x = gcry_mpi_new (2 * (MPI_END_SIZE + 1) * 8);
+
+  switch (mode->test_id)
+    {
+      case MPI_TEST_ADD:
+	gcry_mpi_add (x, hd->bytes[bytes_idx], hd->bytes[bytes_idx]);
+	break;
+
+      case MPI_TEST_SUB:
+	gcry_mpi_sub (x, hd->bytes[bytes_idx + 1], hd->bytes[bytes_idx]);
+	break;
+
+      case MPI_TEST_RSHIFT3:
+	gcry_mpi_rshift (x, hd->bytes[bytes_idx], 3);
+	break;
+
+      case MPI_TEST_LSHIFT3:
+	gcry_mpi_lshift (x, hd->bytes[bytes_idx], 3);
+	break;
+
+      case MPI_TEST_RSHIFT65:
+	gcry_mpi_rshift (x, hd->bytes[bytes_idx], 65);
+	break;
+
+      case MPI_TEST_LSHIFT65:
+	gcry_mpi_lshift (x, hd->bytes[bytes_idx], 65);
+	break;
+
+      case MPI_TEST_MUL4:
+      case MPI_TEST_MUL8:
+      case MPI_TEST_MUL16:
+      case MPI_TEST_MUL32:
+	gcry_mpi_mul (x, hd->bytes[bytes_idx], hd->y);
+	break;
+
+      case MPI_TEST_DIV4:
+      case MPI_TEST_DIV8:
+      case MPI_TEST_DIV16:
+      case MPI_TEST_DIV32:
+	gcry_mpi_div (x, NULL, hd->bytes[bytes_idx], hd->y, 0);
+	break;
+
+      case MPI_TEST_MOD4:
+      case MPI_TEST_MOD8:
+      case MPI_TEST_MOD16:
+      case MPI_TEST_MOD32:
+	gcry_mpi_mod (x, hd->bytes[bytes_idx], hd->y);
+	break;
+
+      default:
+	break;
+    }
+
+  gcry_mpi_release (x);
+}
+
+static struct bench_ops mpi_ops = {
+  &bench_mpi_init,
+  &bench_mpi_free,
+  &bench_mpi_do_bench
+};
+
+
+static struct bench_mpi_mode mpi_modes[] = {
+  {"", &mpi_ops},
+  {0},
+};
+
+
+static void
+mpi_bench_one (int test_id, struct bench_mpi_mode *pmode)
+{
+  struct bench_mpi_mode mode = *pmode;
+  struct bench_obj obj = { 0 };
+  double result;
+
+  mode.test_id = test_id;
+
+  if (mode.name[0] == '\0')
+    bench_print_algo (-18, mpi_test_names[test_id]);
+  else
+    bench_print_algo (18, mode.name);
+
+  obj.ops = mode.ops;
+  obj.priv = &mode;
+
+  result = do_slope_benchmark (&obj);
+
+  bench_print_result (result);
+}
+
+static void
+_mpi_bench (int test_id)
+{
+  int i;
+
+  for (i = 0; mpi_modes[i].name; i++)
+    mpi_bench_one (test_id, &mpi_modes[i]);
+}
+
+static int
+mpi_match_test(const char *name)
+{
+  int i;
+
+  for (i = 0; i < __MAX_MPI_TEST; i++)
+    if (strcmp(name, mpi_test_names[i]) == 0)
+      return i;
+
+  return -1;
+}
+
+void
+mpi_bench (char **argv, int argc)
+{
+  int i, test_id;
+
+  bench_print_section ("mpi", "MPI");
+  bench_print_header (18, "");
+
+  if (argv && argc)
+    {
+      for (i = 0; i < argc; i++)
+	{
+	  test_id = mpi_match_test (argv[i]);
+	  if (test_id >= 0)
+	    _mpi_bench (test_id);
+	}
+    }
+  else
+    {
+      for (i = 0; i < __MAX_MPI_TEST; i++)
+	_mpi_bench (i);
+    }
+
+  bench_print_footer (18);
+}
+
 /************************************************************** Main program. */
 
 void
 print_help (void)
 {
   static const char *help_lines[] = {
-    "usage: bench-slope [options] [hash|mac|cipher|kdf|ecc [algonames]]",
+    "usage: bench-slope [options] [hash|mac|cipher|kdf|ecc|mpi [algonames]]",
     "",
     " options:",
     "   --cpu-mhz <mhz>           Set CPU speed for calculating cycles",
@@ -3128,6 +3425,7 @@ main (int argc, char **argv)
       cipher_bench (NULL, 0);
       kdf_bench (NULL, 0);
       ecc_bench (NULL, 0);
+      mpi_bench (NULL, 0);
     }
   else if (!strcmp (*argv, "hash"))
     {
@@ -3168,6 +3466,14 @@ main (int argc, char **argv)
 
       warm_up_cpu ();
       ecc_bench ((argc == 0) ? NULL : argv, argc);
+    }
+  else if (!strcmp (*argv, "mpi"))
+    {
+      argc--;
+      argv++;
+
+      warm_up_cpu ();
+      mpi_bench ((argc == 0) ? NULL : argv, argc);
     }
   else
     {
