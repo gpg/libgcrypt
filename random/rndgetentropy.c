@@ -81,6 +81,7 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
       do
         {
           _gcry_pre_syscall ();
+#ifdef GRND_RANDOM
           if (fips_mode ())
             {
               /* DRBG chaining defined in SP 800-90A (rev 1) specify
@@ -98,6 +99,7 @@ _gcry_rndgetentropy_gather_random (void (*add)(const void*, size_t,
               ret = getrandom (buffer, nbytes, GRND_RANDOM);
             }
           else
+#endif
             {
               nbytes = length < sizeof (buffer) ? length : sizeof (buffer);
               ret = getentropy (buffer, nbytes);
