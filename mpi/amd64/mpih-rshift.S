@@ -52,7 +52,7 @@ C_SYMBOL_NAME(_gcry_mpih_rshift:)
 	movd	%eax, %xmm0
 	movdqa	%xmm4, %xmm3
 	psllq	%xmm0, %xmm4
-	movd	%xmm4, %rax
+	movq	%xmm4, %rax
 	leaq	(%rsi,%rdx,8), %rsi
 	leaq	(%rdi,%rdx,8), %rdi
 	negq	%rdx

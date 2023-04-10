@@ -52,7 +52,7 @@ C_SYMBOL_NAME(_gcry_mpih_lshift:)
 	movd	%eax, %xmm0
 	movdqa	%xmm4, %xmm3
 	psrlq	%xmm0, %xmm4
-	movd	%xmm4, %rax
+	movq	%xmm4, %rax
 	subq	$2, %rdx
 	jl	.Lendo
 
