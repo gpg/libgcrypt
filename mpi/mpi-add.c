@@ -84,8 +84,8 @@ _gcry_mpi_add_ui (gcry_mpi_t w, gcry_mpi_t u, unsigned long v )
 }
 
 
-void
-_gcry_mpi_add(gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
+static void
+_gcry_mpi_add_inv_sign(gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, int inv_v_sign)
 {
     mpi_ptr_t wp, up, vp;
     mpi_size_t usize, vsize, wsize;
@@ -93,7 +93,7 @@ _gcry_mpi_add(gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 
     if( u->nlimbs < v->nlimbs ) { /* Swap U and V. */
 	usize = v->nlimbs;
-	usign = v->sign;
+	usign = v->sign ^ inv_v_sign;
 	vsize = u->nlimbs;
 	vsign = u->sign;
 	wsize = usize + 1;
@@ -106,7 +106,7 @@ _gcry_mpi_add(gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 	usize = u->nlimbs;
 	usign = u->sign;
 	vsize = v->nlimbs;
-	vsign = v->sign;
+	vsign = v->sign ^ inv_v_sign;
 	wsize = usize + 1;
 	RESIZE_IF_NEEDED(w, wsize);
 	/* These must be after realloc (u or v may be the same as w).  */
@@ -212,12 +212,15 @@ _gcry_mpi_sub_ui(gcry_mpi_t w, gcry_mpi_t u, unsigned long v )
 }
 
 void
+_gcry_mpi_add(gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
+{
+  _gcry_mpi_add_inv_sign (w, u, v, 0);
+}
+
+void
 _gcry_mpi_sub(gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 {
-  gcry_mpi_t vv = mpi_copy (v);
-  vv->sign = ! vv->sign;
-  mpi_add (w, u, vv);
-  mpi_free (vv);
+  _gcry_mpi_add_inv_sign (w, u, v, 1);
 }
 
 
