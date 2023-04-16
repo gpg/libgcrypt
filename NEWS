@@ -1,6 +1,10 @@
 Noteworthy changes in version 1.11.0 (unreleased)  [C25/A5/R0]
 -------------------------------------------------
 
+ * Bug fixes:
+
+   - Handle GCRYCTL_SET_ALLOW_WEAK_KEY correctly for CBC mode.  [T6451]
+
  * Other features:
 
    - The control code GCRYCTL_ENABLE_M_GUARD is deprecated and not
