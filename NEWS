@@ -1,6 +1,10 @@
 Noteworthy changes in version 1.10.3 (unreleased)  [C24/A4/R_]
 -------------------------------------------------
 
+ * Bug fixes:
+
+   - Handle GCRYCTL_SET_ALLOW_WEAK_KEY correctly for CBC mode.  [T6451]
+
 
 Noteworthy changes in version 1.10.2 (2023-04-06)  [C24/A4/R2]
 -------------------------------------------------
