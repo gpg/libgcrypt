@@ -2139,6 +2139,28 @@ handle @var{h}.  Please see the comments in the source code
 (@code{src/global.c}) for details.
 @end deftypefun
 
+@c begin constants for gcry_cipher_ctl
+@table @code
+
+@item GCRYCTL_SET_ALLOW_WEAK_KEY:
+
+This may be used to allow use of weak keys for certain block ciphers.
+@var{buffer} must be given as @code{NULL}.  To allow weak keys for
+a cipher context @var{h}, set @var{buflen} to '1'.  To disallow weak
+keys, set @var{buflen} to '0'.
+
+Default setting for a cipher context is to disallow weak keys.
+
+Note that even if weak keys are allowed, @code{gcry_cipher_setkey} will
+return error code @code{GPG_ERR_WEAK_KEY} if a weak key is detected.
+However, the cipher context is configured with the weak key and can
+proceed with encryption/decryption.  When weak keys are disallowed,
+error code @code{GPG_ERR_WEAK_KEY} is returned and the cipher context
+is cannot be used for encryption/decryption.
+
+@end table
+@c end constants for gcry_cipher_info
+
 @deftypefun gcry_error_t gcry_cipher_info (gcry_cipher_hd_t @var{h}, @
               int @var{what}, void *@var{buffer}, size_t *@var{nbytes})
 
