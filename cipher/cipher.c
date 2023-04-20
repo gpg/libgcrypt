@@ -785,7 +785,6 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
               c->spec->contextsize);
       c->marks.key = 1;
 
-      rc = 0;  /* Clear in case of allow_weak_key.  */
       switch (c->mode)
         {
         case GCRY_CIPHER_MODE_CMAC:
