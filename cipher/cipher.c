@@ -779,6 +779,8 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
   rc = c->spec->setkey (&c->context.c, key, keylen, &c->bulk);
   if (!rc || (c->marks.allow_weak_key && rc == GPG_ERR_WEAK_KEY))
     {
+      int is_weak_key = (rc == GPG_ERR_WEAK_KEY);
+
       /* Duplicate initial context.  */
       memcpy ((void *) ((char *) &c->context.c + c->spec->contextsize),
               (void *) &c->context.c,
@@ -801,7 +803,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 
         case GCRY_CIPHER_MODE_GCM_SIV:
           rc = _gcry_cipher_gcm_siv_setkey (c, keylen);
-          if (rc)
+          if (rc && !(c->marks.allow_weak_key && rc == GPG_ERR_WEAK_KEY))
 	    c->marks.key = 0;
           break;
 
@@ -843,6 +845,11 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
         default:
           break;
         }
+
+      /* Restore "weak key" error-code in case mode specific setkey
+       * returned success. */
+      if (!rc && is_weak_key)
+	rc = GPG_ERR_WEAK_KEY;
     }
   else
     c->marks.key = 0;
