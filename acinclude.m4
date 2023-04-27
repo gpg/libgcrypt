@@ -16,8 +16,8 @@ dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 dnl GNU Lesser General Public License for more details.
 dnl
 dnl You should have received a copy of the GNU Lesser General Public
-dnl License along with this program; if not, write to the Free Software
-dnl Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+dnl License along with this program; if not, see <https://www.gnu.org/licenses/>.
+dnl SPDX-License-Identifier: LGPL-2.1-or-later
 
 dnl GCRY_MSG_SHOW(PREFIX,STRING)
 dnl Print a message with a prefix.
