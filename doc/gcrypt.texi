@@ -7323,8 +7323,16 @@ memory and thus also the encryption contexts with these keys.
 @c **********************************************************
 @c *************  Appendices (license etc.)  ****************
 @c **********************************************************
+@node Library Copying
+@unnumbered GNU Lesser General Public License
+
+@cindex LGPL, GNU Lesser General Public License
 @include lgpl.texi
 
+@node Copying
+@unnumbered GNU General Public License
+
+@cindex GPL, GNU General Public License
 @include gpl.texi
 
 @node Figures and Tables
