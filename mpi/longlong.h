@@ -16,9 +16,9 @@ or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
 License for more details.
 
 You should have received a copy of the GNU Library General Public License
-along with this file; see the file COPYING.LIB.  If not, write to
-the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
-MA 02111-1307, USA. */
+along with this file; see the file COPYING.LIB.  If not, see <https://www.gnu.org/licenses/>.
+SPDX-License-Identifier: LGPL-2.1-or-later
+*/
 
 /* On 32-bit, use 64-bit 'unsigned long long' for UDWtype, if available. */
 #if !defined (UDWtype) && SIZEOF_UNSIGNED_LONG_LONG * 8 == W_TYPE_SIZE * 2
