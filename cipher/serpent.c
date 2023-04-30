@@ -32,19 +32,28 @@
 #include "bulkhelp.h"
 
 
-/* USE_SSE2 indicates whether to compile with AMD64 SSE2 code. */
+/* USE_SSE2 indicates whether to compile with x86-64 SSE2 code. */
 #undef USE_SSE2
 #if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_SSE2 1
 #endif
 
-/* USE_AVX2 indicates whether to compile with AMD64 AVX2 code. */
+/* USE_AVX2 indicates whether to compile with x86-64 AVX2 code. */
 #undef USE_AVX2
 #if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # if defined(ENABLE_AVX2_SUPPORT)
 #  define USE_AVX2 1
+# endif
+#endif
+
+/* USE_AVX512 indicates whether to compile with x86 AVX512 code. */
+#undef USE_AVX512
+#if (defined(__x86_64) || defined(__i386)) && \
+    defined(HAVE_COMPATIBLE_CC_X86_AVX512_INTRINSICS)
+# if defined(ENABLE_AVX512_SUPPORT)
+#  define USE_AVX512 1
 # endif
 #endif
 
@@ -81,6 +90,9 @@ typedef struct serpent_context
 
 #ifdef USE_AVX2
   int use_avx2;
+#endif
+#ifdef USE_AVX512
+  int use_avx512;
 #endif
 #ifdef USE_NEON
   int use_neon;
@@ -184,6 +196,38 @@ extern void _gcry_serpent_avx2_ocb_auth(serpent_context_t *ctx,
 
 extern void _gcry_serpent_avx2_blk16(const serpent_context_t *c, byte *out,
 				     const byte *in, int encrypt) ASM_FUNC_ABI;
+#endif
+
+#ifdef USE_AVX512
+/* Assembler implementations of Serpent using AVX512.  Processing 32 blocks in
+   parallel.
+ */
+extern void _gcry_serpent_avx512_cbc_dec(const void *ctx,
+					 unsigned char *out,
+					 const unsigned char *in,
+					 unsigned char *iv);
+
+extern void _gcry_serpent_avx512_cfb_dec(const void *ctx,
+					 unsigned char *out,
+					 const unsigned char *in,
+					 unsigned char *iv);
+
+extern void _gcry_serpent_avx512_ctr_enc(const void *ctx,
+					 unsigned char *out,
+					 const unsigned char *in,
+					 unsigned char *ctr);
+
+extern void _gcry_serpent_avx512_ocb_crypt(const void *ctx,
+					   unsigned char *out,
+					   const unsigned char *in,
+					   unsigned char *offset,
+					   unsigned char *checksum,
+					   const ocb_L_uintptr_t Ls[32],
+					   int encrypt);
+
+extern void _gcry_serpent_avx512_blk32(const void *c, byte *out,
+				       const byte *in,
+				       int encrypt);
 #endif
 
 #ifdef USE_NEON
@@ -758,6 +802,14 @@ serpent_setkey_internal (serpent_context_t *context,
   serpent_key_prepare (key, key_length, key_prepared);
   serpent_subkeys_generate (key_prepared, context->keys);
 
+#ifdef USE_AVX512
+  context->use_avx512 = 0;
+  if ((_gcry_get_hw_features () & HWF_INTEL_AVX512))
+    {
+      context->use_avx512 = 1;
+    }
+#endif
+
 #ifdef USE_AVX2
   context->use_avx2 = 0;
   if ((_gcry_get_hw_features () & HWF_INTEL_AVX2))
@@ -954,6 +1006,34 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
   unsigned char tmpbuf[sizeof(serpent_block_t)];
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
 
+#ifdef USE_AVX512
+  if (ctx->use_avx512)
+    {
+      int did_use_avx512 = 0;
+
+      /* Process data in 32 block chunks. */
+      while (nblocks >= 32)
+        {
+          _gcry_serpent_avx512_ctr_enc(ctx, outbuf, inbuf, ctr);
+
+          nblocks -= 32;
+          outbuf += 32 * sizeof(serpent_block_t);
+          inbuf  += 32 * sizeof(serpent_block_t);
+          did_use_avx512 = 1;
+        }
+
+      if (did_use_avx512)
+        {
+          /* serpent-avx512 code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic/avx2/sse2 code to handle smaller chunks... */
+      /* TODO: use caching instead? */
+    }
+#endif
+
 #ifdef USE_AVX2
   if (ctx->use_avx2)
     {
@@ -1066,6 +1146,33 @@ _gcry_serpent_cbc_dec(void *context, unsigned char *iv,
   unsigned char savebuf[sizeof(serpent_block_t)];
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
 
+#ifdef USE_AVX512
+  if (ctx->use_avx512)
+    {
+      int did_use_avx512 = 0;
+
+      /* Process data in 32 block chunks. */
+      while (nblocks >= 32)
+        {
+          _gcry_serpent_avx512_cbc_dec(ctx, outbuf, inbuf, iv);
+
+          nblocks -= 32;
+          outbuf += 32 * sizeof(serpent_block_t);
+          inbuf  += 32 * sizeof(serpent_block_t);
+          did_use_avx512 = 1;
+        }
+
+      if (did_use_avx512)
+        {
+          /* serpent-avx512 code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic/avx2/sse2 code to handle smaller chunks... */
+    }
+#endif
+
 #ifdef USE_AVX2
   if (ctx->use_avx2)
     {
@@ -1174,6 +1281,33 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
   const unsigned char *inbuf = inbuf_arg;
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
 
+#ifdef USE_AVX512
+  if (ctx->use_avx512)
+    {
+      int did_use_avx512 = 0;
+
+      /* Process data in 32 block chunks. */
+      while (nblocks >= 32)
+        {
+          _gcry_serpent_avx512_cfb_dec(ctx, outbuf, inbuf, iv);
+
+          nblocks -= 32;
+          outbuf += 32 * sizeof(serpent_block_t);
+          inbuf  += 32 * sizeof(serpent_block_t);
+          did_use_avx512 = 1;
+        }
+
+      if (did_use_avx512)
+        {
+          /* serpent-avx512 code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic/avx2/sse2 code to handle smaller chunks... */
+    }
+#endif
+
 #ifdef USE_AVX2
   if (ctx->use_avx2)
     {
@@ -1270,7 +1404,8 @@ static size_t
 _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 			const void *inbuf_arg, size_t nblocks, int encrypt)
 {
-#if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
+#if defined(USE_AVX512) || defined(USE_AVX2) || defined(USE_SSE2) \
+    || defined(USE_NEON)
   serpent_context_t *ctx = (void *)&c->context.c;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
@@ -1281,6 +1416,44 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   (void)outbuf_arg;
   (void)inbuf_arg;
   (void)encrypt;
+#endif
+
+#ifdef USE_AVX512
+  if (ctx->use_avx512)
+    {
+      int did_use_avx512 = 0;
+      ocb_L_uintptr_t Ls[32];
+      ocb_L_uintptr_t *l;
+
+      if (nblocks >= 32)
+	{
+          l = bulk_ocb_prepare_L_pointers_array_blk32 (c, Ls, blkn);
+
+	  /* Process data in 32 block chunks. */
+	  while (nblocks >= 32)
+	    {
+	      blkn += 32;
+	      *l = (uintptr_t)(void *)ocb_get_l(c, blkn - blkn % 32);
+
+	      _gcry_serpent_avx512_ocb_crypt(ctx, outbuf, inbuf, c->u_iv.iv,
+					     c->u_ctr.ctr, Ls, encrypt);
+
+	      nblocks -= 32;
+	      outbuf += 32 * sizeof(serpent_block_t);
+	      inbuf  += 32 * sizeof(serpent_block_t);
+	      did_use_avx512 = 1;
+	    }
+	}
+
+      if (did_use_avx512)
+	{
+	  /* serpent-avx512 code does not use stack */
+	  if (nblocks == 0)
+	    burn_stack_depth = 0;
+	}
+
+      /* Use generic code to handle smaller chunks... */
+    }
 #endif
 
 #ifdef USE_AVX2
@@ -1408,7 +1581,8 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     }
 #endif
 
-#if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
+#if defined(USE_AVX512) || defined(USE_AVX2) || defined(USE_SSE2) \
+    || defined(USE_NEON)
   c->u_mode.ocb.data_nblocks = blkn;
 
   if (burn_stack_depth)
@@ -1556,17 +1730,27 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
 
 static unsigned int
-serpent_crypt_blk1_16(void *context, byte *out, const byte *in,
+serpent_crypt_blk1_32(void *context, byte *out, const byte *in,
 		      size_t num_blks, int encrypt)
 {
   serpent_context_t *ctx = context;
   unsigned int burn, burn_stack_depth = 0;
 
+#ifdef USE_AVX512
+  if (num_blks == 32 && ctx->use_avx512)
+    {
+      _gcry_serpent_avx512_blk32 (ctx, out, in, encrypt);
+      return 0;
+    }
+#endif
+
 #ifdef USE_AVX2
-  if (num_blks == 16 && ctx->use_avx2)
+  while (num_blks == 16 && ctx->use_avx2)
     {
       _gcry_serpent_avx2_blk16 (ctx, out, in, encrypt);
-      return 0;
+      out += 16 * sizeof(serpent_block_t);
+      in += 16 * sizeof(serpent_block_t);
+      num_blks -= 16;
     }
 #endif
 
@@ -1611,17 +1795,17 @@ serpent_crypt_blk1_16(void *context, byte *out, const byte *in,
 }
 
 static unsigned int
-serpent_encrypt_blk1_16(void *ctx, byte *out, const byte *in,
+serpent_encrypt_blk1_32(void *ctx, byte *out, const byte *in,
 			size_t num_blks)
 {
-  return serpent_crypt_blk1_16 (ctx, out, in, num_blks, 1);
+  return serpent_crypt_blk1_32 (ctx, out, in, num_blks, 1);
 }
 
 static unsigned int
-serpent_decrypt_blk1_16(void *ctx, byte *out, const byte *in,
+serpent_decrypt_blk1_32(void *ctx, byte *out, const byte *in,
 			size_t num_blks)
 {
-  return serpent_crypt_blk1_16 (ctx, out, in, num_blks, 0);
+  return serpent_crypt_blk1_32 (ctx, out, in, num_blks, 0);
 }
 
 
@@ -1638,12 +1822,12 @@ _gcry_serpent_xts_crypt (void *context, unsigned char *tweak, void *outbuf_arg,
   /* Process remaining blocks. */
   if (nblocks)
     {
-      unsigned char tmpbuf[16 * 16];
+      unsigned char tmpbuf[32 * 16];
       unsigned int tmp_used = 16;
       size_t nburn;
 
-      nburn = bulk_xts_crypt_128(ctx, encrypt ? serpent_encrypt_blk1_16
-                                              : serpent_decrypt_blk1_16,
+      nburn = bulk_xts_crypt_128(ctx, encrypt ? serpent_encrypt_blk1_32
+                                              : serpent_decrypt_blk1_32,
                                  outbuf, inbuf, nblocks,
                                  tweak, tmpbuf, sizeof(tmpbuf) / 16,
                                  &tmp_used);
@@ -1672,9 +1856,9 @@ _gcry_serpent_ecb_crypt (void *context, void *outbuf_arg, const void *inbuf_arg,
     {
       size_t nburn;
 
-      nburn = bulk_ecb_crypt_128(ctx, encrypt ? serpent_encrypt_blk1_16
-                                              : serpent_decrypt_blk1_16,
-                                 outbuf, inbuf, nblocks, 16);
+      nburn = bulk_ecb_crypt_128(ctx, encrypt ? serpent_encrypt_blk1_32
+                                              : serpent_decrypt_blk1_32,
+                                 outbuf, inbuf, nblocks, 32);
       burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
     }
 

@@ -119,12 +119,12 @@ EXTRA_libcipher_la_SOURCES = \
 	salsa20.c salsa20-amd64.S salsa20-armv7-neon.S \
 	scrypt.c \
 	seed.c \
-	serpent.c serpent-sse2-amd64.S \
+	serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S \
+	serpent-avx512-x86.c serpent-armv7-neon.S \
 	sm4.c sm4-aesni-avx-amd64.S sm4-aesni-avx2-amd64.S \
 	sm4-gfni-avx2-amd64.S sm4-gfni-avx512-amd64.S \
 	sm4-aarch64.S sm4-armv8-aarch64-ce.S sm4-armv9-aarch64-sve-ce.S \
 	sm4-ppc.c \
-	serpent-avx2-amd64.S serpent-armv7-neon.S \
 	sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
 	sha1-avx2-bmi2-amd64.S sha1-armv7-neon.S sha1-armv8-aarch32-ce.S \
 	sha1-armv8-aarch64-ce.S sha1-intel-shaext.c \
@@ -316,3 +316,16 @@ sm4-ppc.o: $(srcdir)/sm4-ppc.c Makefile
 
 sm4-ppc.lo: $(srcdir)/sm4-ppc.c Makefile
 	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+
+
+if ENABLE_X86_AVX512_INTRINSICS_EXTRA_CFLAGS
+avx512f_cflags = -mavx512f
+else
+avx512f_cflags =
+endif
+
+serpent-avx512-x86.o: $(srcdir)/serpent-avx512-x86.c Makefile
+	`echo $(COMPILE) $(avx512f_cflags) -c $< | $(instrumentation_munging) `
+
+serpent-avx512-x86.lo: $(srcdir)/serpent-avx512-x86.c Makefile
+	`echo $(LTCOMPILE) $(avx512f_cflags) -c $< | $(instrumentation_munging) `

@@ -589,8 +589,8 @@ ELF(.type   _gcry_serpent_avx2_blk16,@function;)
 _gcry_serpent_avx2_blk16:
 	/* input:
 	 *	%rdi: ctx, CTX
-	 *	%rsi: dst (8 blocks)
-	 *	%rdx: src (8 blocks)
+	 *	%rsi: dst (16 blocks)
+	 *	%rdx: src (16 blocks)
 	 *	%ecx: encrypt
 	 */
 	CFI_STARTPROC();

@@ -1705,6 +1705,46 @@ fi
 
 
 #
+# Check whether compiler supports x86/AVX512 intrinsics
+#
+_gcc_cflags_save=$CFLAGS
+CFLAGS="$CFLAGS -mavx512f"
+
+AC_CACHE_CHECK([whether compiler supports x86/AVX512 intrinsics],
+      [gcry_cv_cc_x86_avx512_intrinsics],
+      [if test "$mpi_cpu_arch" != "x86" ||
+	  test "$try_asm_modules" != "yes" ; then
+	gcry_cv_cc_x86_avx512_intrinsics="n/a"
+      else
+	gcry_cv_cc_x86_avx512_intrinsics=no
+	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	[[#include <immintrin.h>
+	  __m512i fn(void *in, __m128i y)
+	  {
+	    __m512i x;
+	    x = _mm512_maskz_loadu_epi32(_cvtu32_mask16(0xfff0), in)
+		  ^ _mm512_castsi128_si512(y);
+	    asm volatile ("vinserti32x4 \$3, %0, %%zmm6, %%zmm6;\n\t"
+			  "vpxord %%zmm6, %%zmm6, %%zmm6"
+			  ::"x"(y),"r"(in):"memory","xmm6");
+	    return x;
+	  }
+	  ]])],
+	[gcry_cv_cc_x86_avx512_intrinsics=yes])
+      fi])
+if test "$gcry_cv_cc_x86_avx512_intrinsics" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_X86_AVX512_INTRINSICS,1,
+	    [Defined if underlying compiler supports x86/AVX512 intrinsics])
+fi
+
+AM_CONDITIONAL(ENABLE_X86_AVX512_INTRINSICS_EXTRA_CFLAGS,
+	       test "$gcry_cv_cc_x86_avx512_intrinsics" = "yes")
+
+# Restore flags.
+CFLAGS=$_gcc_cflags_save;
+
+
+#
 # Check whether GCC assembler needs "-Wa,--divide" to correctly handle
 # constant division
 #
@@ -3032,6 +3072,11 @@ if test "$found" = "1" ; then
    if test x"$avx2support" = xyes ; then
       # Build with the AVX2 implementation
       GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-avx2-amd64.lo"
+   fi
+
+   if test x"$avx512support" = xyes ; then
+      # Build with the AVX512 implementation
+      GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-avx512-x86.lo"
    fi
 
    if test x"$neonsupport" = xyes ; then
