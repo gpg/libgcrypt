@@ -264,16 +264,16 @@ init_system_rng (void)
   if (!hAdvAPI32)
     return;
 
-  pCryptAcquireContext = (CRYPTACQUIRECONTEXT)
+  pCryptAcquireContext = (CRYPTACQUIRECONTEXT)(void *)
     GetProcAddress (hAdvAPI32, "CryptAcquireContextA");
-  pCryptGenRandom = (CRYPTGENRANDOM)
+  pCryptGenRandom = (CRYPTGENRANDOM)(void *)
     GetProcAddress (hAdvAPI32, "CryptGenRandom");
-  pCryptReleaseContext = (CRYPTRELEASECONTEXT)
+  pCryptReleaseContext = (CRYPTRELEASECONTEXT)(void *)
     GetProcAddress (hAdvAPI32, "CryptReleaseContext");
 
   /* Get a pointer to the native randomness function if it's available.
      This isn't exported by name, so we have to get it by ordinal.  */
-  pRtlGenRandom = (RTLGENRANDOM)
+  pRtlGenRandom = (RTLGENRANDOM)(void *)
     GetProcAddress (hAdvAPI32, "SystemFunction036");
 
   /* Try and connect to the PIII RNG CSP.  The AMD 768 southbridge (from
@@ -536,11 +536,11 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
         {
           if (debug_me)
             log_debug ("rndw32#slow_gatherer: netapi32 loaded\n" );
-          pNetStatisticsGet = (NETSTATISTICSGET)
+          pNetStatisticsGet = (NETSTATISTICSGET)(void *)
             GetProcAddress (hNetAPI32, "NetStatisticsGet");
-          pNetApiBufferSize = (NETAPIBUFFERSIZE)
+          pNetApiBufferSize = (NETAPIBUFFERSIZE)(void *)
             GetProcAddress (hNetAPI32, "NetApiBufferSize");
-          pNetApiBufferFree = (NETAPIBUFFERFREE)
+          pNetApiBufferFree = (NETAPIBUFFERFREE)(void *)
             GetProcAddress (hNetAPI32, "NetApiBufferFree");
 
           if (!pNetStatisticsGet || !pNetApiBufferSize || !pNetApiBufferFree)
@@ -556,11 +556,11 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
       if (hNTAPI)
         {
           /* Get a pointer to the NT native information query functions */
-          pNtQuerySystemInformation = (NTQUERYSYSTEMINFORMATION)
+          pNtQuerySystemInformation = (NTQUERYSYSTEMINFORMATION)(void *)
             GetProcAddress (hNTAPI, "NtQuerySystemInformation");
-          pNtQueryInformationProcess = (NTQUERYINFORMATIONPROCESS)
+          pNtQueryInformationProcess = (NTQUERYINFORMATIONPROCESS)(void *)
             GetProcAddress (hNTAPI, "NtQueryInformationProcess");
-          pNtPowerInformation = (NTPOWERINFORMATION)
+          pNtPowerInformation = (NTPOWERINFORMATION)(void *)
             GetProcAddress(hNTAPI, "NtPowerInformation");
 
           if (!pNtQuerySystemInformation || !pNtQueryInformationProcess)
