@@ -61,7 +61,11 @@ TESTS_ENVIRONMENT = GCRYPT_IN_REGRESSION_TEST=1
 # a built header.
 AM_CPPFLAGS = -I../src -I$(top_srcdir)/src
 AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+if HAVE_W32_SYSTEM
+AM_LDFLAGS = -no-fast-install
+else
 AM_LDFLAGS = -no-install
+endif
 
 standard_ldadd = \
 	../src/libgcrypt.la \
