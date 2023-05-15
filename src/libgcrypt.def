@@ -298,4 +298,8 @@ EXPORTS
       gcry_kdf_final            @260
       gcry_kdf_close            @261
 
+      gcry_kem_keypair          @262
+      gcry_kem_enc              @263
+      gcry_kem_dec              @264
+
 ;; end of file with public symbols for Windows.

@@ -102,6 +102,7 @@ tests/t-convert
 tests/t-cv25519
 tests/t-ed25519
 tests/t-kdf
+tests/t-kem
 tests/t-lock
 tests/t-mpi-bit
 tests/t-mpi-point

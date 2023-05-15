@@ -220,6 +220,18 @@ gpg_err_code_t _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
 void _gcry_kdf_close (gcry_kdf_hd_t h);
 
 
+gcry_err_code_t _gcry_kem_keypair (int algo,
+				   void *pubkey,
+				   void *seckey);
+gcry_err_code_t _gcry_kem_enc (int algo,
+			       const void *pubkey,
+			       void *ciphertext,
+			       void *key);
+gcry_err_code_t _gcry_kem_dec (int algo,
+			       const void *ciphertext,
+			       const void *seckey,
+			       void *key);
+
 gpg_err_code_t _gcry_prime_generate (gcry_mpi_t *prime,
                                      unsigned int prime_bits,
                                      unsigned int factor_bits,

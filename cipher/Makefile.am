@@ -62,6 +62,7 @@ libcipher_la_SOURCES = \
 	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
 	poly1305.c poly1305-internal.h \
 	kdf.c kdf-internal.h \
+	kem.c sntrup761.c sntrup761.h \
 	bithelp.h  \
 	bufhelp.h  \
 	primegen.c  \
