@@ -1679,6 +1679,39 @@ gcry_error_t gcry_kdf_compute (gcry_kdf_hd_t h,
                                const gcry_kdf_thread_ops_t *ops);
 gcry_error_t gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result);
 void gcry_kdf_close (gcry_kdf_hd_t h);
+
+
+/******************************
+ *                            *
+ *  Key Encapsulation methods *
+ *                            *
+ ******************************/
+
+/* Algorithm IDs for the KEMs.  */
+enum gcry_kem_algos
+  {
+    GCRY_KEM_SNTRUP761 = 761,
+  };
+
+#define GCRY_KEM_SNTRUP761_SECRETKEY_SIZE 1763
+#define GCRY_KEM_SNTRUP761_PUBLICKEY_SIZE 1158
+#define GCRY_KEM_SNTRUP761_CIPHERTEXT_SIZE 1039
+#define GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE 32
+
+gcry_error_t gcry_kem_keypair (int algo,
+			       void *pubkey,
+			       void *seckey);
+
+gcry_error_t gcry_kem_enc (int algo,
+			   const void *pubkey,
+			   void *ciphertext,
+			   void *ss);
+
+gcry_error_t gcry_kem_dec (int algo,
+			   const void *ciphertext,
+			   const void *seckey,
+			   void *ss);
+
 
 /************************************
  *                                  *

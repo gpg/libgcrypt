@@ -179,6 +179,10 @@ MARK_VISIBLEX (gcry_kdf_compute)
 MARK_VISIBLEX (gcry_kdf_final)
 MARK_VISIBLEX (gcry_kdf_close)
 
+MARK_VISIBLEX (gcry_kem_keypair)
+MARK_VISIBLEX (gcry_kem_enc)
+MARK_VISIBLEX (gcry_kem_dec)
+
 MARK_VISIBLEX (gcry_prime_check)
 MARK_VISIBLEX (gcry_prime_generate)
 MARK_VISIBLEX (gcry_prime_group_generator)

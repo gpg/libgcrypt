@@ -301,4 +301,8 @@ EXPORTS
       gcry_cipher_setup_geniv   @262
       gcry_cipher_geniv         @263
 
+      gcry_kem_keypair          @264
+      gcry_kem_enc              @265
+      gcry_kem_dec              @266
+
 ;; end of file with public symbols for Windows.
