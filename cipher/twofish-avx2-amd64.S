@@ -39,8 +39,8 @@
 /* register macros */
 #define CTX	%rdi
 
-#define RROUND  %rbp
-#define RROUNDd %ebp
+#define RROUND  %r12
+#define RROUNDd %r12d
 #define RS0	CTX
 #define RS1	%r8
 #define RS2	%r9
@@ -154,9 +154,9 @@
 #define encrypt_round_end16(a, b, c, d, nk, r) \
 	vpaddd RY0, RX0, RX0; \
 	vpaddd RX0, RY0, RY0; \
-	vpbroadcastd ((nk)+((r)*8))(RK), RT0; \
+	vpbroadcastd ((nk))(RK,r), RT0; \
 	vpaddd RT0, RX0, RX0; \
-	vpbroadcastd 4+((nk)+((r)*8))(RK), RT0; \
+	vpbroadcastd 4+((nk))(RK,r), RT0; \
 	vpaddd RT0, RY0, RY0; \
 	\
 	vpxor RY0, d ## 0, d ## 0; \
@@ -168,9 +168,9 @@
 	\
 		vpaddd RY1, RX1, RX1; \
 		vpaddd RX1, RY1, RY1; \
-		vpbroadcastd ((nk)+((r)*8))(RK), RT0; \
+		vpbroadcastd ((nk))(RK,r), RT0; \
 		vpaddd RT0, RX1, RX1; \
-		vpbroadcastd 4+((nk)+((r)*8))(RK), RT0; \
+		vpbroadcastd 4+((nk))(RK,r), RT0; \
 		vpaddd RT0, RY1, RY1; \
 		\
 		vpxor RY1, d ## 1, d ## 1; \
@@ -216,9 +216,9 @@
 #define decrypt_round_end16(a, b, c, d, nk, r) \
 	vpaddd RY0, RX0, RX0; \
 	vpaddd RX0, RY0, RY0; \
-	vpbroadcastd ((nk)+((r)*8))(RK), RT0; \
+	vpbroadcastd ((nk))(RK,r), RT0; \
 	vpaddd RT0, RX0, RX0; \
-	vpbroadcastd 4+((nk)+((r)*8))(RK), RT0; \
+	vpbroadcastd 4+((nk))(RK,r), RT0; \
 	vpaddd RT0, RY0, RY0; \
 	\
 	vpxor RX0, c ## 0, c ## 0; \
@@ -230,9 +230,9 @@
 	\
 		vpaddd RY1, RX1, RX1; \
 		vpaddd RX1, RY1, RY1; \
-		vpbroadcastd ((nk)+((r)*8))(RK), RT0; \
+		vpbroadcastd ((nk))(RK,r), RT0; \
 		vpaddd RT0, RX1, RX1; \
-		vpbroadcastd 4+((nk)+((r)*8))(RK), RT0; \
+		vpbroadcastd 4+((nk))(RK,r), RT0; \
 		vpaddd RT0, RY1, RY1; \
 		\
 		vpxor RX1, c ## 1, c ## 1; \
@@ -275,30 +275,6 @@
 	\
 	decrypt_round_end16(a, b, c, d, nk, r);
 
-#define encrypt_cycle16(r) \
-	encrypt_round16(RA, RB, RC, RD, 0, r); \
-	encrypt_round16(RC, RD, RA, RB, 8, r);
-
-#define encrypt_cycle_first16(r) \
-	encrypt_round_first16(RA, RB, RC, RD, 0, r); \
-	encrypt_round16(RC, RD, RA, RB, 8, r);
-
-#define encrypt_cycle_last16(r) \
-	encrypt_round16(RA, RB, RC, RD, 0, r); \
-	encrypt_round_last16(RC, RD, RA, RB, 8, r);
-
-#define decrypt_cycle16(r) \
-	decrypt_round16(RC, RD, RA, RB, 8, r); \
-	decrypt_round16(RA, RB, RC, RD, 0, r);
-
-#define decrypt_cycle_first16(r) \
-	decrypt_round_first16(RC, RD, RA, RB, 8, r); \
-	decrypt_round16(RA, RB, RC, RD, 0, r);
-
-#define decrypt_cycle_last16(r) \
-	decrypt_round16(RC, RD, RA, RB, 8, r); \
-	decrypt_round_last16(RA, RB, RC, RD, 0, r);
-
 #define transpose_4x4(x0,x1,x2,x3,t1,t2) \
 	vpunpckhdq x1, x0, t2; \
 	vpunpckldq x1, x0, x0; \
@@ -311,22 +287,6 @@
 	\
 	vpunpckhqdq x2, t2, x3; \
 	vpunpcklqdq x2,	t2, x2;
-
-#define read_blocks8(offs,a,b,c,d) \
-	vmovdqu 16*offs(RIO), a; \
-	vmovdqu 16*offs+32(RIO), b; \
-	vmovdqu 16*offs+64(RIO), c; \
-	vmovdqu 16*offs+96(RIO), d; \
-	\
-	transpose_4x4(a, b, c, d, RX0, RY0);
-
-#define write_blocks8(offs,a,b,c,d) \
-	transpose_4x4(a, b, c, d, RX0, RY0); \
-	\
-	vmovdqu a, 16*offs(RIO); \
-	vmovdqu b, 16*offs+32(RIO); \
-	vmovdqu c, 16*offs+64(RIO); \
-	vmovdqu d, 16*offs+96(RIO);
 
 #define inpack_enc8(a,b,c,d) \
 	vpbroadcastd 4*0(RW), RT0; \
@@ -414,22 +374,34 @@ __twofish_enc_blk16:
 	 *						ciphertext blocks
 	 */
 	CFI_STARTPROC();
+
+	pushq RROUND;
+	CFI_PUSH(RROUND);
+
 	init_round_constants();
 
 	transpose4x4_16(RA, RB, RC, RD);
 	inpack_enc16(RA, RB, RC, RD);
 
-	encrypt_cycle_first16(0);
-	encrypt_cycle16(2);
-	encrypt_cycle16(4);
-	encrypt_cycle16(6);
-	encrypt_cycle16(8);
-	encrypt_cycle16(10);
-	encrypt_cycle16(12);
-	encrypt_cycle_last16(14);
+	xorl RROUNDd, RROUNDd;
+
+	encrypt_round_first16(RA, RB, RC, RD, 0, RROUND);
+
+.align 16
+.Loop_enc16:
+	encrypt_round16(RC, RD, RA, RB, 8, RROUND);
+	encrypt_round16(RA, RB, RC, RD, 16, RROUND);
+	leal 16(RROUNDd), RROUNDd;
+	cmpl $8*14, RROUNDd;
+	jb .Loop_enc16;
+
+	encrypt_round_last16(RC, RD, RA, RB, 8, RROUND);
 
 	outunpack_enc16(RA, RB, RC, RD);
 	transpose4x4_16(RA, RB, RC, RD);
+
+	popq RROUND;
+	CFI_POP(RROUND);
 
 	ret_spec_stop;
 	CFI_ENDPROC();
@@ -447,22 +419,33 @@ __twofish_dec_blk16:
 	 *						ciphertext blocks
 	 */
 	CFI_STARTPROC();
+
+	pushq RROUND;
+	CFI_PUSH(RROUND);
+
 	init_round_constants();
 
 	transpose4x4_16(RA, RB, RC, RD);
 	inpack_dec16(RA, RB, RC, RD);
 
-	decrypt_cycle_first16(14);
-	decrypt_cycle16(12);
-	decrypt_cycle16(10);
-	decrypt_cycle16(8);
-	decrypt_cycle16(6);
-	decrypt_cycle16(4);
-	decrypt_cycle16(2);
-	decrypt_cycle_last16(0);
+	movl $14*8, RROUNDd;
+
+	decrypt_round_first16(RC, RD, RA, RB, 8, RROUND);
+
+.align 16
+.Loop_dec16:
+	decrypt_round16(RA, RB, RC, RD, 0, RROUND);
+	decrypt_round16(RC, RD, RA, RB, -8, RROUND);
+	subl $16, RROUNDd;
+	jnz .Loop_dec16;
+
+	decrypt_round_last16(RA, RB, RC, RD, 0, RROUND);
 
 	outunpack_dec16(RA, RB, RC, RD);
 	transpose4x4_16(RA, RB, RC, RD);
+
+	popq RROUND;
+	CFI_POP(RROUND);
 
 	ret_spec_stop;
 	CFI_ENDPROC();
