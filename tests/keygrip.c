@@ -207,8 +207,7 @@ static struct
       "     47BD24842905C049257673B3F5249524E0A41FAA17B25B818D0F97E625F1A1D0#)"
       "     ))",
       "\x0C\xCA\xB2\xFD\x48\x9A\x33\x40\x2C\xE8"
-      "\xE0\x4A\x1F\xB2\x45\xEA\x80\x3D\x0A\xF1",
-      1
+      "\xE0\x4A\x1F\xB2\x45\xEA\x80\x3D\x0A\xF1"
     },
     { /* Ed25519+EdDSA */
       GCRY_PK_ECC,
@@ -218,8 +217,7 @@ static struct
       " (q #773E72848C1FD5F9652B29E2E7AF79571A04990E96F2016BF4E0EC1890C2B7DB#)"
       " ))",
       "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
-      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47",
-      1
+      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
     },
     { /* Ed25519+EdDSA (with compression prefix) */
       GCRY_PK_ECC,
@@ -230,8 +228,7 @@ static struct
       "     773E72848C1FD5F9652B29E2E7AF79571A04990E96F2016BF4E0EC1890C2B7DB#)"
       " ))",
       "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
-      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47",
-      1
+      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
     },
     { /* Ed25519+EdDSA  (same but uncompressed)*/
       GCRY_PK_ECC,
@@ -243,8 +240,7 @@ static struct
       "     5bb7c29018ece0f46b01f2960e99041a5779afe7e2292b65f9d51f8c84723e77#)"
       " ))",
       "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
-      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47",
-      1
+      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
     },
     { /* Cv25519 */
       GCRY_PK_ECC,

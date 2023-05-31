@@ -1373,8 +1373,7 @@ main (int argc, char **argv)
 
 #ifdef USE_ECC
   check_ecc_sample_key ();
-  if (!in_fips_mode)
-    check_ed25519ecdsa_sample_key ();
+  check_ed25519ecdsa_sample_key ();
 #endif /* USE_ECC */
 
   return !!error_count;

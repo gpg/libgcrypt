@@ -1538,10 +1538,9 @@ ecc_bench (int iterations, int print_header)
       is_ed448 = !strcmp (p_sizes[testno], "Ed448");
       is_gost = !strncmp (p_sizes[testno], "gost", 4);
 
-      /* Only P-{224,256,384,521} are allowed in fips mode */
+      /* Only P-{224,256,384,521} and EdDSA curves are allowed in fips mode */
       if (gcry_fips_mode_active()
-          && (is_ed25519 || is_ed448 || is_gost
-              || !strcmp (p_sizes[testno], "192")))
+          && (is_gost || !strcmp (p_sizes[testno], "192")))
          continue;
 
       if (is_ed25519)

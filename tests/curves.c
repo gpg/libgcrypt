@@ -144,18 +144,18 @@ check_get_params (void)
     int flags;
   } tv[] =
       {
-       { GCRY_PK_ECC, "Ed25519", TEST_NOFIPS },
-       { GCRY_PK_ECC, "1.3.6.1.4.1.11591.15.1", TEST_NOFIPS },
-       { GCRY_PK_ECC, "1.3.101.112", TEST_NOFIPS },
+       { GCRY_PK_ECC, "Ed25519" },
+       { GCRY_PK_ECC, "1.3.6.1.4.1.11591.15.1" },
+       { GCRY_PK_ECC, "1.3.101.112" },
 
        { GCRY_PK_ECC, "Curve25519", TEST_NOFIPS },
        { GCRY_PK_ECC, "1.3.6.1.4.1.3029.1.5.1", TEST_NOFIPS },
        { GCRY_PK_ECC, "1.3.101.110", TEST_NOFIPS },
        { GCRY_PK_ECC, "X25519", TEST_NOFIPS },
 
-       { GCRY_PK_ECC, "Ed448", TEST_NOFIPS },
+       { GCRY_PK_ECC, "Ed448" },
+       { GCRY_PK_ECC, "1.3.101.113" },
        { GCRY_PK_ECC, "X448", TEST_NOFIPS  },
-       { GCRY_PK_ECC, "1.3.101.113", TEST_NOFIPS },
        { GCRY_PK_ECC, "1.3.101.111", TEST_NOFIPS },
 
        { GCRY_PK_ECC, "NIST P-192", TEST_NOFIPS },
@@ -254,9 +254,9 @@ check_get_params (void)
        { GCRY_PK_ECC, "1.2.156.10197.1.301", TEST_NOFIPS },
 
        /* Check also the ECC algo mapping.  */
-       { GCRY_PK_ECDSA, "Ed25519", TEST_NOFIPS },
-       { GCRY_PK_EDDSA, "Ed25519", TEST_NOFIPS },
-       { GCRY_PK_ECDH,  "Ed25519", TEST_NOFIPS },
+       { GCRY_PK_ECDSA, "Ed25519" },
+       { GCRY_PK_EDDSA, "Ed25519" },
+       { GCRY_PK_ECDH,  "Ed25519" },
        { GCRY_PK_ECDSA, "Curve25519", TEST_NOFIPS },
        { GCRY_PK_EDDSA, "Curve25519", TEST_NOFIPS },
        { GCRY_PK_ECDH,  "Curve25519", TEST_NOFIPS },

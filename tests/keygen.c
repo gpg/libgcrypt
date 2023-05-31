@@ -453,9 +453,6 @@ check_ecc_keys (void)
         info ("creating ECC key using curve %s\n", curves[testno]);
       if (!strcmp (curves[testno], "Ed25519"))
         {
-          /* Ed25519 isn't allowed in fips mode */
-          if (in_fips_mode)
-            continue;
           rc = gcry_sexp_build (&keyparm, NULL,
                                 "(genkey(ecc(curve %s)(flags param eddsa)))",
                                 curves[testno]);
@@ -487,15 +484,9 @@ check_ecc_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc && !in_fips_mode)
+  if (rc)
     die ("error generating ECC key using curve Ed25519 for ECDSA: %s\n",
          gpg_strerror (rc));
-  else if (!rc && in_fips_mode)
-    fail ("generating Ed25519 key must not work!");
-
-  if (verbose && rc && in_fips_mode)
-    info ("... correctly rejected key creation in FIPS mode (%s)\n",
-          gpg_strerror (rc));
 
   if (!rc)
     {
@@ -514,16 +505,11 @@ check_ecc_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc && !in_fips_mode)
+  if (rc)
     die ("error generating ECC key using curve Ed25519 for ECDSA"
          " (nocomp): %s\n",
          gpg_strerror (rc));
-  else if (!rc && in_fips_mode)
-    fail ("generating Ed25519 key must not work in FIPS mode!");
 
-  if (verbose && rc && in_fips_mode)
-    info ("... correctly rejected key creation in FIPS mode (%s)\n",
-          gpg_strerror (rc));
   gcry_sexp_release (key);
 
   if (verbose)
@@ -575,16 +561,10 @@ check_ecc_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc && !in_fips_mode)
+  if (rc)
     die ("error generating ECC key using curve Ed25519 for ECDSA"
          " (transient-key): %s\n",
          gpg_strerror (rc));
-  else if (!rc && in_fips_mode)
-    fail ("generating Ed25519 key must not work in FIPS mode!");
-
-  if (verbose && rc && in_fips_mode)
-    info ("... correctly rejected key creation in FIPS mode (%s)\n",
-          gpg_strerror (rc));
 
   if (!rc)
     {
@@ -604,16 +584,10 @@ check_ecc_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc && !in_fips_mode)
+  if (rc)
     die ("error generating ECC key using curve Ed25519 for ECDSA"
          " (transient-key no-keytest): %s\n",
          gpg_strerror (rc));
-  else if (!rc && in_fips_mode)
-    fail ("generating Ed25519 key must not work in FIPS mode!");
-
-  if (verbose && rc && in_fips_mode)
-    info ("... correctly rejected key creation in FIPS mode (%s)\n",
-          gpg_strerror (rc));
 
   if (!rc)
     {

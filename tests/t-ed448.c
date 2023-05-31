@@ -36,7 +36,6 @@
 static int sign_with_pk;
 static int no_verify;
 static int custom_data_file;
-static int in_fips_mode;
 
 
 static void
@@ -299,15 +298,6 @@ one_test (int testno, int ph, const char *sk, const char *pk,
     }
 
   err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, NULL, ctx);
-  if (in_fips_mode)
-    {
-      if (!err)
-        fail ("gcry_pk_sign is not expected to work in FIPS mode for test %d",
-              testno);
-      if (verbose > 1)
-        info ("not executed in FIPS mode\n");
-      goto leave;
-    }
   if (err)
     fail ("gcry_pk_sign failed for test %d: %s", testno, gpg_strerror (err));
   if (debug)
@@ -526,9 +516,6 @@ main (int argc, char **argv)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
-
-  if (gcry_fips_mode_active ())
-    in_fips_mode = 1;
 
   start_timer ();
   check_ed448 (fname);

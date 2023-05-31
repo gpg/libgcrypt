@@ -2369,16 +2369,16 @@ ecc_algo_fips_allowed (int algo)
       case ECC_ALGO_NIST_P256:
       case ECC_ALGO_NIST_P384:
       case ECC_ALGO_NIST_P521:
-	return 1;
-      case ECC_ALGO_SECP256K1:
-      case ECC_ALGO_BRAINP256R1:
       case ECC_ALGO_ED25519:
       case ECC_ALGO_ED448:
+        return 1;
+      case ECC_ALGO_SECP256K1:
+      case ECC_ALGO_BRAINP256R1:
       case ECC_ALGO_X25519:
       case ECC_ALGO_X448:
       case ECC_ALGO_NIST_P192:
       default:
-	return 0;
+        return 0;
     }
 }
 

@@ -37,7 +37,6 @@ static int sign_with_pk;
 static int no_verify;
 static int no_fips;
 static int custom_data_file;
-static int in_fips_mode;
 
 
 static void
@@ -496,9 +495,6 @@ main (int argc, char **argv)
     }
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
-
-  if (gcry_fips_mode_active ())
-    in_fips_mode = 1;
 
   start_timer ();
   check_ed25519 (fname);
