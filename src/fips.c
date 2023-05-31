@@ -464,6 +464,7 @@ static const char *valid_string_in_sexp[] = {
   "data",
   "e",
   "ecdsa",
+  "eddsa",
   "flags",
   "genkey",
   "hash",

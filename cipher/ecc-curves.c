@@ -147,7 +147,7 @@ static const ecc_domain_parms_t domain_parms[] =
   {
     {
       /* (-x^2 + y^2 = 1 + dx^2y^2) */
-      "Ed25519", 255, 0,
+      "Ed25519", 255, 1,
       MPI_EC_EDWARDS, ECC_DIALECT_ED25519,
       "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
       "-0x01",
@@ -176,7 +176,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
     {
       /* (x^2 + y^2 = 1 + dx^2y^2) */
-      "Ed448", 448, 0,
+      "Ed448", 448, 1,
       MPI_EC_EDWARDS, ECC_DIALECT_SAFECURVE,
       "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"
       "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
