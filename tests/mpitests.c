@@ -687,6 +687,58 @@ test_powm (void)
 }
 
 
+/* What we test here is that using the same mpi for divider and result
+   works.  */
+static int
+test_addm_subm_mulm (void)
+{
+  int i;
+
+  for (i = 0; i < 3; i++)
+    {
+      unsigned int expect;
+      const char *func;
+      gcry_mpi_t A;
+      gcry_mpi_t B;
+      gcry_mpi_t C;
+
+      A = gcry_mpi_set_ui (NULL, 2);
+      B = gcry_mpi_set_ui (NULL, 4);
+      C = gcry_mpi_set_ui (NULL, 7);
+
+      if (i == 0)
+	{
+	  func = "mpi_addm";
+	  expect = 6;
+	  gcry_mpi_addm(C, A, B, C);
+	}
+      else if (i == 1)
+	{
+	  func = "mpi_subm";
+	  expect = 5;
+	  gcry_mpi_subm(C, A, B, C);
+	}
+      else if (i == 2)
+	{
+	  func = "mpi_mulm";
+	  expect = 1;
+	  gcry_mpi_mulm(C, A, B, C);
+	}
+
+      if (gcry_mpi_is_neg (C) || gcry_mpi_cmp_ui (C, expect))
+	{
+	  die ("test_addm_subm_mulm failed for %s at %d\n", func, __LINE__);
+	}
+
+      gcry_mpi_release(A);
+      gcry_mpi_release(B);
+      gcry_mpi_release(C);
+    }
+
+  return 1;
+}
+
+
 int
 main (int argc, char* argv[])
 {
@@ -710,6 +762,7 @@ main (int argc, char* argv[])
   test_sub ();
   test_mul ();
   test_powm ();
+  test_addm_subm_mulm ();
 
   return !!error_count;
 }

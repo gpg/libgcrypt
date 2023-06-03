@@ -227,13 +227,35 @@ _gcry_mpi_sub(gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 void
 _gcry_mpi_addm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
 {
+  gcry_mpi_t temp_m = NULL;
+
+  if (w == m)
+    {
+      temp_m = mpi_copy (m);
+      m = temp_m;
+    }
+
   mpi_add (w, u, v);
   mpi_mod (w, w, m);
+
+  if (temp_m)
+    mpi_free(temp_m);
 }
 
 void
 _gcry_mpi_subm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
 {
+  gcry_mpi_t temp_m = NULL;
+
+  if (w == m)
+    {
+      temp_m = mpi_copy (m);
+      m = temp_m;
+    }
+
   mpi_sub (w, u, v);
   mpi_mod (w, w, m);
+
+  if (temp_m)
+    mpi_free(temp_m);
 }
