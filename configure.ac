@@ -1781,17 +1781,17 @@ fi
 
 
 #
-# Check whether GCC assembler supports features needed for our amd64
+# Check whether GCC assembler supports features needed for our i386/amd64
 # implementations
 #
 if test $amd64_as_feature_detection = yes; then
-  AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
-       [gcry_cv_gcc_amd64_platform_as_ok],
+  AC_CACHE_CHECK([whether GCC assembler is compatible for i386/amd64 assembly implementations],
+       [gcry_cv_gcc_x86_platform_as_ok],
        [if test "$mpi_cpu_arch" != "x86" ||
            test "$try_asm_modules" != "yes" ; then
-          gcry_cv_gcc_amd64_platform_as_ok="n/a"
+          gcry_cv_gcc_x86_platform_as_ok="n/a"
         else
-          gcry_cv_gcc_amd64_platform_as_ok=no
+          gcry_cv_gcc_x86_platform_as_ok=no
           AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [[__asm__(
                 /* Test if '.type' and '.size' are supported.  */
@@ -1807,13 +1807,19 @@ if test $amd64_as_feature_detection = yes; then
                  "xorl \$(123456789/12345678), %ebp;\n\t"
             );
             void asmfunc(void);]], [ asmfunc(); ])],
-          [gcry_cv_gcc_amd64_platform_as_ok=yes])
+          [gcry_cv_gcc_x86_platform_as_ok=yes])
         fi])
-  if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
-     AC_DEFINE(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS,1,
+  if test "$gcry_cv_gcc_x86_platform_as_ok" = "yes" &&
+     test "$ac_cv_sizeof_unsigned_long" = "8"; then
+    AC_DEFINE(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS,1,
               [Defined if underlying assembler is compatible with amd64 assembly implementations])
   fi
-  if test "$gcry_cv_gcc_amd64_platform_as_ok" = "no" &&
+  if test "$gcry_cv_gcc_x86_platform_as_ok" = "yes" &&
+     test "$ac_cv_sizeof_unsigned_long" = "4"; then
+    AC_DEFINE(HAVE_COMPATIBLE_GCC_I386_PLATFORM_AS,1,
+              [Defined if underlying assembler is compatible with i386 assembly implementations])
+  fi
+  if test "$gcry_cv_gcc_x86_platform_as_ok" = "no" &&
      test "$gcry_cv_gcc_attribute_sysv_abi" = "yes" &&
      test "$gcry_cv_gcc_default_abi_is_ms_abi" = "yes"; then
     AC_CACHE_CHECK([whether GCC assembler is compatible for WIN64 assembly implementations],
@@ -1831,6 +1837,25 @@ if test $amd64_as_feature_detection = yes; then
     if test "$gcry_cv_gcc_win64_platform_as_ok" = "yes" ; then
       AC_DEFINE(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS,1,
                 [Defined if underlying assembler is compatible with WIN64 assembly implementations])
+    fi
+  fi
+  if test "$gcry_cv_gcc_x86_platform_as_ok" = "no" &&
+     test "$ac_cv_sizeof_unsigned_long" = "4"; then
+    AC_CACHE_CHECK([whether GCC assembler is compatible for WIN32 assembly implementations],
+      [gcry_cv_gcc_win32_platform_as_ok],
+      [gcry_cv_gcc_win32_platform_as_ok=no
+      AC_LINK_IFELSE([AC_LANG_PROGRAM(
+        [[__asm__(
+              ".text\n\t"
+              ".globl _asmfunc\n\t"
+              "_asmfunc:\n\t"
+              "xorl \$(1234), %ebp;\n\t"
+          );
+          void asmfunc(void);]], [ asmfunc(); ])],
+        [gcry_cv_gcc_win32_platform_as_ok=yes])])
+    if test "$gcry_cv_gcc_win32_platform_as_ok" = "yes" ; then
+      AC_DEFINE(HAVE_COMPATIBLE_GCC_WIN32_PLATFORM_AS,1,
+                [Defined if underlying assembler is compatible with WIN32 assembly implementations])
     fi
   fi
 fi
@@ -3028,6 +3053,10 @@ if test "$found" = "1" ; then
 
          # Build with the Padlock implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-padlock.lo"
+
+         # Build with the VAES/AVX2 implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes-i386.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes-avx2-i386.lo"
       ;;
    esac
 fi

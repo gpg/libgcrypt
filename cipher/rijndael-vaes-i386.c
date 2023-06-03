@@ -1,5 +1,5 @@
-/* VAES/AVX2 AMD64 accelerated AES for Libgcrypt
- * Copyright (C) 2021 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+/* VAES/AVX2 i386 accelerated AES for Libgcrypt
+ * Copyright (C) 2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -30,73 +30,65 @@
 #include "./cipher-internal.h"
 
 
-#ifdef USE_VAES
+#ifdef USE_VAES_I386
 
 
-# ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
-#  define ASM_FUNC_ABI __attribute__((sysv_abi))
-# else
-#  define ASM_FUNC_ABI
-# endif
+extern void _gcry_aes_aesni_prepare_decryption(RIJNDAEL_context *ctx);
 
 
-extern void _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx);
+extern void _gcry_vaes_avx2_cbc_dec_i386 (const void *keysched,
+					  unsigned char *iv,
+					  void *outbuf_arg,
+					  const void *inbuf_arg,
+					  size_t nblocks,
+					  unsigned int nrounds);
 
+extern void _gcry_vaes_avx2_cfb_dec_i386 (const void *keysched,
+					  unsigned char *iv,
+					  void *outbuf_arg,
+					  const void *inbuf_arg,
+					  size_t nblocks,
+					  unsigned int nrounds);
 
-extern void _gcry_vaes_avx2_cbc_dec_amd64 (const void *keysched,
-					   unsigned char *iv,
-					   void *outbuf_arg,
-					   const void *inbuf_arg,
-					   size_t nblocks,
-					   unsigned int nrounds) ASM_FUNC_ABI;
+extern void _gcry_vaes_avx2_ctr_enc_i386 (const void *keysched,
+					  unsigned char *ctr,
+					  void *outbuf_arg,
+					  const void *inbuf_arg,
+					  size_t nblocks,
+					  unsigned int nrounds);
 
-extern void _gcry_vaes_avx2_cfb_dec_amd64 (const void *keysched,
-					   unsigned char *iv,
-					   void *outbuf_arg,
-					   const void *inbuf_arg,
-					   size_t nblocks,
-					   unsigned int nrounds) ASM_FUNC_ABI;
+extern void _gcry_vaes_avx2_ctr32le_enc_i386 (const void *keysched,
+					      unsigned char *ctr,
+					      void *outbuf_arg,
+					      const void *inbuf_arg,
+					      size_t nblocks,
+					      unsigned int nrounds);
 
-extern void _gcry_vaes_avx2_ctr_enc_amd64 (const void *keysched,
-					   unsigned char *ctr,
-					   void *outbuf_arg,
-					   const void *inbuf_arg,
-					   size_t nblocks,
-					   unsigned int nrounds) ASM_FUNC_ABI;
+extern size_t _gcry_vaes_avx2_ocb_crypt_i386 (const void *keysched,
+					      void *outbuf_arg,
+					      const void *inbuf_arg,
+					      size_t nblocks,
+					      unsigned int nrounds,
+					      unsigned char *offset,
+					      unsigned char *checksum,
+					      unsigned int blkn,
+					      const void *L_table,
+					      int enc_dec_or_auth);
 
-extern void _gcry_vaes_avx2_ctr32le_enc_amd64 (const void *keysched,
-					       unsigned char *ctr,
-					       void *outbuf_arg,
-					       const void *inbuf_arg,
-					       size_t nblocks,
-					       unsigned int nrounds)
-						ASM_FUNC_ABI;
+extern void _gcry_vaes_avx2_xts_crypt_i386 (const void *keysched,
+					    unsigned char *tweak,
+					    void *outbuf_arg,
+					    const void *inbuf_arg,
+					    size_t nblocks,
+					    unsigned int nrounds,
+					    int encrypt);
 
-extern size_t _gcry_vaes_avx2_ocb_crypt_amd64 (const void *keysched,
-					       unsigned int blkn,
-					       void *outbuf_arg,
-					       const void *inbuf_arg,
-					       size_t nblocks,
-					       unsigned int nrounds,
-					       unsigned char *offset,
-					       unsigned char *checksum,
-					       unsigned char *L_table,
-					       int enc_dec_auth) ASM_FUNC_ABI;
-
-extern void _gcry_vaes_avx2_xts_crypt_amd64 (const void *keysched,
-					     unsigned char *tweak,
-					     void *outbuf_arg,
-					     const void *inbuf_arg,
-					     size_t nblocks,
-					     unsigned int nrounds,
-					     int encrypt) ASM_FUNC_ABI;
-
-extern void _gcry_vaes_avx2_ecb_crypt_amd64 (const void *keysched,
-					     int encrypt,
-					     void *outbuf_arg,
-					     const void *inbuf_arg,
-					     size_t nblocks,
-					     unsigned int nrounds) ASM_FUNC_ABI;
+extern void _gcry_vaes_avx2_ecb_crypt_i386 (const void *keysched,
+					    int encrypt,
+					    void *outbuf_arg,
+					    const void *inbuf_arg,
+					    size_t nblocks,
+					    unsigned int nrounds);
 
 
 void
@@ -114,7 +106,7 @@ _gcry_aes_vaes_ecb_crypt (void *context, void *outbuf,
       ctx->decryption_prepared = 1;
     }
 
-  _gcry_vaes_avx2_ecb_crypt_amd64 (keysched, encrypt, outbuf, inbuf,
+  _gcry_vaes_avx2_ecb_crypt_i386 (keysched, encrypt, outbuf, inbuf,
 				   nblocks, nrounds);
 }
 
@@ -133,7 +125,7 @@ _gcry_aes_vaes_cbc_dec (void *context, unsigned char *iv,
       ctx->decryption_prepared = 1;
     }
 
-  _gcry_vaes_avx2_cbc_dec_amd64 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
+  _gcry_vaes_avx2_cbc_dec_i386 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
 }
 
 void
@@ -145,7 +137,7 @@ _gcry_aes_vaes_cfb_dec (void *context, unsigned char *iv,
   const void *keysched = ctx->keyschenc32;
   unsigned int nrounds = ctx->rounds;
 
-  _gcry_vaes_avx2_cfb_dec_amd64 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
+  _gcry_vaes_avx2_cfb_dec_i386 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
 }
 
 void
@@ -157,7 +149,7 @@ _gcry_aes_vaes_ctr_enc (void *context, unsigned char *iv,
   const void *keysched = ctx->keyschenc32;
   unsigned int nrounds = ctx->rounds;
 
-  _gcry_vaes_avx2_ctr_enc_amd64 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
+  _gcry_vaes_avx2_ctr_enc_i386 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
 }
 
 void
@@ -169,7 +161,7 @@ _gcry_aes_vaes_ctr32le_enc (void *context, unsigned char *iv,
   const void *keysched = ctx->keyschenc32;
   unsigned int nrounds = ctx->rounds;
 
-  _gcry_vaes_avx2_ctr32le_enc_amd64 (keysched, iv, outbuf, inbuf, nblocks,
+  _gcry_vaes_avx2_ctr32le_enc_i386 (keysched, iv, outbuf, inbuf, nblocks,
 				     nrounds);
 }
 
@@ -182,8 +174,7 @@ _gcry_aes_vaes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   const void *keysched = encrypt ? ctx->keyschenc32 : ctx->keyschdec32;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned int nrounds = ctx->rounds;
-  u64 blkn = c->u_mode.ocb.data_nblocks;
+  u64 blkn;
 
   if (!encrypt && !ctx->decryption_prepared)
     {
@@ -191,12 +182,13 @@ _gcry_aes_vaes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       ctx->decryption_prepared = 1;
     }
 
+  blkn = c->u_mode.ocb.data_nblocks;
   c->u_mode.ocb.data_nblocks = blkn + nblocks;
 
-  return _gcry_vaes_avx2_ocb_crypt_amd64 (keysched, (unsigned int)blkn, outbuf,
-					  inbuf, nblocks, nrounds, c->u_iv.iv,
-					  c->u_ctr.ctr, c->u_mode.ocb.L[0],
-					  encrypt);
+  return _gcry_vaes_avx2_ocb_crypt_i386 (keysched, outbuf, inbuf, nblocks,
+					 ctx->rounds, c->u_iv.iv, c->u_ctr.ctr,
+					 (unsigned int)blkn,
+					 &c->u_mode.ocb.L[0], encrypt);
 }
 
 size_t
@@ -206,16 +198,15 @@ _gcry_aes_vaes_ocb_auth (gcry_cipher_hd_t c, const void *inbuf_arg,
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   const void *keysched = ctx->keyschenc32;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned int nrounds = ctx->rounds;
   u64 blkn = c->u_mode.ocb.aad_nblocks;
 
   c->u_mode.ocb.aad_nblocks = blkn + nblocks;
 
-  return _gcry_vaes_avx2_ocb_crypt_amd64 (keysched, (unsigned int)blkn, NULL,
-					  inbuf, nblocks, nrounds,
-					  c->u_mode.ocb.aad_offset,
-					  c->u_mode.ocb.aad_sum,
-					  c->u_mode.ocb.L[0], 2);
+  return _gcry_vaes_avx2_ocb_crypt_i386 (keysched, NULL, inbuf, nblocks,
+					 ctx->rounds, c->u_mode.ocb.aad_offset,
+					 c->u_mode.ocb.aad_sum,
+					 (unsigned int)blkn,
+					 &c->u_mode.ocb.L[0], 2);
 }
 
 void
@@ -233,8 +224,8 @@ _gcry_aes_vaes_xts_crypt (void *context, unsigned char *tweak,
       ctx->decryption_prepared = 1;
     }
 
-  _gcry_vaes_avx2_xts_crypt_amd64 (keysched, tweak, outbuf, inbuf, nblocks,
+  _gcry_vaes_avx2_xts_crypt_i386 (keysched, tweak, outbuf, inbuf, nblocks,
 				   nrounds, encrypt);
 }
 
-#endif /* USE_VAES */
+#endif /* USE_VAES_I386 */

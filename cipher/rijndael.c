@@ -107,8 +107,8 @@ extern void _gcry_aes_aesni_ecb_crypt (void *context, void *outbuf_arg,
 				       int encrypt);
 #endif
 
-#ifdef USE_VAES
-/* VAES (AMD64) accelerated implementation of AES */
+#if defined(USE_VAES_I386) || defined(USE_VAES)
+/* VAES (i386/AMD64) accelerated implementation of AES */
 
 extern void _gcry_aes_vaes_cfb_dec (void *context, unsigned char *iv,
 				    void *outbuf_arg, const void *inbuf_arg,
@@ -556,6 +556,21 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->ecb_crypt = _gcry_aes_aesni_ecb_crypt;
 
 #ifdef USE_VAES
+      if ((hwfeatures & HWF_INTEL_VAES_VPCLMUL) &&
+	  (hwfeatures & HWF_INTEL_AVX2))
+	{
+	  /* Setup VAES bulk encryption routines.  */
+	  bulk_ops->cfb_dec = _gcry_aes_vaes_cfb_dec;
+	  bulk_ops->cbc_dec = _gcry_aes_vaes_cbc_dec;
+	  bulk_ops->ctr_enc = _gcry_aes_vaes_ctr_enc;
+	  bulk_ops->ctr32le_enc = _gcry_aes_vaes_ctr32le_enc;
+	  bulk_ops->ocb_crypt = _gcry_aes_vaes_ocb_crypt;
+	  bulk_ops->ocb_auth = _gcry_aes_vaes_ocb_auth;
+	  bulk_ops->xts_crypt = _gcry_aes_vaes_xts_crypt;
+	  bulk_ops->ecb_crypt = _gcry_aes_vaes_ecb_crypt;
+	}
+#endif
+#ifdef USE_VAES_I386
       if ((hwfeatures & HWF_INTEL_VAES_VPCLMUL) &&
 	  (hwfeatures & HWF_INTEL_AVX2))
 	{
