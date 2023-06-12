@@ -452,22 +452,16 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 }
 
 
-gcry_err_code_t
-_gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
-                  gcry_sexp_t s_skey, gcry_ctx_t ctx)
+static gcry_err_code_t
+prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
+                               gcry_ctx_t ctx, gcry_sexp_t *s_data_p)
 {
-  gcry_err_code_t rc;
-  gcry_pk_spec_t *spec;
-  gcry_sexp_t keyparms = NULL;
-  gcry_sexp_t s_hash = NULL;
-  int algo;
-  const unsigned char *digest;
-  gcry_error_t err;
-  gcry_md_hd_t hd;
   const char *s;
-  char *hash_name;
-
-  *r_sig = NULL;
+  const char *digest_name = NULL;
+  const unsigned char *digest;
+  int digest_size;
+  int algo;
+  gcry_err_code_t rc;
 
   /* Check if it has fixed hash name or %s */
   s = strstr (tmpl, "(hash ");
@@ -476,42 +470,6 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
 
   s += 6;
   if (!strncmp (s, "%s", 2))
-    hash_name = NULL;
-  else
-    {
-      const char *p;
-
-      for (p = s; *p && *p != ' '; p++)
-	;
-
-      hash_name = xtrymalloc (p - s + 1);
-      if (!hash_name)
-	return gpg_error_from_syserror ();
-      memcpy (hash_name, s, p - s);
-      hash_name[p - s] = 0;
-    }
-
-  err = _gcry_md_copy (&hd, hd_orig);
-  if (err)
-    {
-      xfree (hash_name);
-      return gpg_err_code (err);
-    }
-
-  if (hash_name)
-    {
-      algo = _gcry_md_map_name (hash_name);
-      if (algo == 0
-          || (fips_mode () && algo == GCRY_MD_SHA1))
-	{
-	  xfree (hash_name);
-	  _gcry_md_close (hd);
-	  return GPG_ERR_DIGEST_ALGO;
-	}
-
-      digest = _gcry_md_read (hd, algo);
-    }
-  else
     {
       algo = _gcry_md_get_algo (hd);
 
@@ -521,27 +479,51 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
           return GPG_ERR_DIGEST_ALGO;
         }
 
+      digest_name = _gcry_md_algo_name (algo);
+      digest_size = (int)_gcry_md_get_algo_dlen (algo);
       digest = _gcry_md_read (hd, 0);
+    }
+  else
+    {
+      const char *p;
+      char *digest_name_supplied;
+
+      for (p = s; *p && *p != ' '; p++)
+	;
+
+      digest_name_supplied = xtrymalloc (p - s + 1);
+      if (!digest_name_supplied)
+	return gpg_error_from_syserror ();
+      memcpy (digest_name_supplied, s, p - s);
+      digest_name_supplied[p - s] = 0;
+
+      algo = _gcry_md_map_name (digest_name_supplied);
+      xfree (digest_name_supplied);
+      if (algo == 0
+          || (fips_mode () && algo == GCRY_MD_SHA1))
+	{
+	  _gcry_md_close (hd);
+	  return GPG_ERR_DIGEST_ALGO;
+	}
+
+      digest_size = (int)_gcry_md_get_algo_dlen (algo);
+      digest = _gcry_md_read (hd, algo);
     }
 
   if (!digest)
     {
-      xfree (hash_name);
       _gcry_md_close (hd);
       return GPG_ERR_NOT_IMPLEMENTED;
     }
 
   if (!ctx)
     {
-      if (hash_name)
-	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-			       (int) _gcry_md_get_algo_dlen (algo),
-			       digest);
+      if (!digest_name)
+	rc = _gcry_sexp_build (s_data_p, NULL, tmpl,
+			       digest_size, digest);
       else
-	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-			       _gcry_md_algo_name (algo),
-			       (int) _gcry_md_get_algo_dlen (algo),
-			       digest);
+	rc = _gcry_sexp_build (s_data_p, NULL, tmpl, digest_name,
+			       digest_size, digest);
     }
   else
     {
@@ -550,26 +532,39 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
 
       rc = _gcry_pk_get_random_override (ctx, &p, &len);
       if (rc)
-        {
-          _gcry_md_close (hd);
-          return rc;
-        }
+        return rc;
 
-      if (hash_name)
-	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-			       (int) _gcry_md_get_algo_dlen (algo),
-			       digest,
-			       (int) len, p);
+      if (!digest_name)
+	rc = _gcry_sexp_build (s_data_p, NULL, tmpl,
+                               digest_size, digest, (int) len, p);
       else
-	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-			       _gcry_md_algo_name (algo),
-			       (int) _gcry_md_get_algo_dlen (algo),
-			       digest,
-			       (int) len, p);
+	rc = _gcry_sexp_build (s_data_p, NULL, tmpl, digest_name,
+                               digest_size, digest, (int) len, p);
     }
 
-  xfree (hash_name);
   _gcry_md_close (hd);
+  return rc;
+}
+
+
+gcry_err_code_t
+_gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
+                  gcry_sexp_t s_skey, gcry_ctx_t ctx)
+{
+  gcry_err_code_t rc;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms = NULL;
+  gcry_sexp_t s_data = NULL;
+  gcry_error_t err;
+  gcry_md_hd_t hd;
+
+  *r_sig = NULL;
+
+  err = _gcry_md_copy (&hd, hd_orig);
+  if (err)
+    return gpg_err_code (err);
+
+  rc = prepare_datasexp_to_be_signed (tmpl, hd, ctx, &s_data);
   if (rc)
     return rc;
 
@@ -582,12 +577,12 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else if (!spec->flags.fips && fips_mode ())
     rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->sign)
-    rc = spec->sign (r_sig, s_hash, keyparms);
+    rc = spec->sign (r_sig, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
 
  leave:
-  sexp_release (s_hash);
+  sexp_release (s_data);
   sexp_release (keyparms);
   return rc;
 }
@@ -633,115 +628,15 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   gcry_err_code_t rc;
   gcry_pk_spec_t *spec;
   gcry_sexp_t keyparms = NULL;
-  gcry_sexp_t s_hash = NULL;
-  int algo;
-  const unsigned char *digest;
+  gcry_sexp_t s_data = NULL;
   gcry_error_t err;
   gcry_md_hd_t hd;
-  const char *s;
-  char *hash_name;
-
-  /* Check if it has fixed hash name or %s */
-  s = strstr (tmpl, "(hash ");
-  if (s == NULL)
-    return GPG_ERR_DIGEST_ALGO;
-
-  s += 6;
-  if (!strncmp (s, "%s", 2))
-    hash_name = NULL;
-  else
-    {
-      const char *p;
-
-      for (p = s; *p && *p != ' '; p++)
-        ;
-
-      hash_name = xtrymalloc (p - s + 1);
-      if (!hash_name)
-        return gpg_error_from_syserror ();
-      memcpy (hash_name, s, p - s);
-      hash_name[p - s] = 0;
-    }
 
   err = _gcry_md_copy (&hd, hd_orig);
   if (err)
-    {
-      xfree (hash_name);
-      return gpg_err_code (err);
-    }
+    return gpg_err_code (err);
 
-  if (hash_name)
-    {
-      algo = _gcry_md_map_name (hash_name);
-      if (algo == 0
-          || (fips_mode () && algo == GCRY_MD_SHA1))
-        {
-          xfree (hash_name);
-          _gcry_md_close (hd);
-          return GPG_ERR_DIGEST_ALGO;
-        }
-
-      digest = _gcry_md_read (hd, algo);
-    }
-  else
-    {
-      algo = _gcry_md_get_algo (hd);
-
-      if (fips_mode () && algo == GCRY_MD_SHA1)
-        {
-          _gcry_md_close (hd);
-          return GPG_ERR_DIGEST_ALGO;
-        }
-
-      digest = _gcry_md_read (hd, 0);
-    }
-
-  if (!digest)
-    {
-      xfree (hash_name);
-      _gcry_md_close (hd);
-      return GPG_ERR_DIGEST_ALGO;
-    }
-
-  if (!ctx)
-    {
-      if (hash_name)
-        rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-                               (int) _gcry_md_get_algo_dlen (algo),
-                               digest);
-      else
-        rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-                               _gcry_md_algo_name (algo),
-                               (int) _gcry_md_get_algo_dlen (algo),
-                               digest);
-    }
-  else
-    {
-      const unsigned char *p;
-      size_t len;
-
-      rc = _gcry_pk_get_random_override (ctx, &p, &len);
-      if (rc)
-        {
-          _gcry_md_close (hd);
-          return rc;
-        }
-
-      if (hash_name)
-        rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-                               (int) _gcry_md_get_algo_dlen (algo),
-                               digest,
-                               (int) len, p);
-      else
-        rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-                               _gcry_md_algo_name (algo),
-                               (int) _gcry_md_get_algo_dlen (algo),
-                               digest,
-                               (int) len, p);
-    }
-
-  xfree (hash_name);
-  _gcry_md_close (hd);
+  rc = prepare_datasexp_to_be_signed (tmpl, hd, ctx, &s_data);
   if (rc)
     return rc;
 
@@ -754,12 +649,12 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else if (!spec->flags.fips && fips_mode ())
     rc = GPG_ERR_PUBKEY_ALGO;
   else if (spec->verify)
-    rc = spec->verify (s_sig, s_hash, keyparms);
+    rc = spec->verify (s_sig, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
 
  leave:
-  sexp_release (s_hash);
+  sexp_release (s_data);
   sexp_release (keyparms);
   return rc;
 }
