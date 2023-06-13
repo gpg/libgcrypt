@@ -325,12 +325,21 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
     {
       gcry_mpi_t a;
       unsigned char *digest;
+      int b;
+
+      b = (ec->nbits+7)/8;
+      if (ec->nbits == 255)
+        ;
+      else if (ec->nbits == 448)
+        b++;
+      else
+        return NULL;            /* Not implemented.  */
 
       if (_gcry_ecc_eddsa_compute_h_d (&digest, ec))
         return NULL;
 
       a = mpi_snew (0);
-      _gcry_mpi_set_buffer (a, digest, 32, 0);
+      _gcry_mpi_set_buffer (a, digest, b, 0);
       xfree (digest);
 
       /* And finally the public key.  */
