@@ -1216,7 +1216,7 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 struct pk_single_data {
   gcry_ctx_t ctx_next;
   size_t len;
-  unsigned char area[];
+  unsigned char area[1];  /* In future, we may use flexible array member.  */
 };
 
 static void
@@ -1254,7 +1254,8 @@ _gcry_pk_single_data_push (gcry_ctx_t *r_ctx,
   if (!p)
     return GPG_ERR_EINVAL;
 
-  ctx = _gcry_ctx_alloc (data_type, sizeof (struct pk_single_data) + len,
+  ctx = _gcry_ctx_alloc (data_type,
+			 offsetof (struct pk_single_data, area) + len,
                          release_single_data);
   if (!ctx)
     return gpg_err_code_from_syserror ();
