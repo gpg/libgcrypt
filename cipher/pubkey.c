@@ -1275,7 +1275,7 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 
 struct pk_random_override {
   size_t len;
-  unsigned char area[];
+  unsigned char area[1];  /* In future, we may use flexible array member.  */
 };
 
 gpg_err_code_t
@@ -1290,7 +1290,8 @@ _gcry_pk_random_override_new (gcry_ctx_t *r_ctx,
     return GPG_ERR_EINVAL;
 
   ctx = _gcry_ctx_alloc (CONTEXT_TYPE_RANDOM_OVERRIDE,
-                         sizeof (size_t) + len, NULL);
+                         offsetof (struct pk_random_override, area) + len,
+                         NULL);
   if (!ctx)
     return gpg_err_code_from_syserror ();
   pro = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_RANDOM_OVERRIDE);
