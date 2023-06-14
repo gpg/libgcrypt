@@ -58,7 +58,7 @@ _gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*))
   switch (type)
     {
     case CONTEXT_TYPE_EC:
-    case CONTEXT_TYPE_RANDOM_OVERRIDE:
+    case CONTEXT_TYPE_SINGLE_DATA:
       break;
     default:
       log_bug ("bad context type %d given to _gcry_ctx_alloc\n", type);
@@ -126,7 +126,7 @@ _gcry_ctx_release (gcry_ctx_t ctx)
   switch (ctx->type)
     {
     case CONTEXT_TYPE_EC:
-    case CONTEXT_TYPE_RANDOM_OVERRIDE:
+    case CONTEXT_TYPE_SINGLE_DATA:
       break;
     default:
       log_fatal ("bad context type %d detected in gcry_ctx_relase\n",

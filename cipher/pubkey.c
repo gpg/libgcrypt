@@ -452,6 +452,8 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 }
 
 
+#define MAX_CONTEXTS 2 /* Currently, input data and random_override */
+
 static gcry_err_code_t
 prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
                                gcry_ctx_t ctx, gcry_sexp_t *s_data_p)
@@ -462,6 +464,39 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
   int digest_size;
   int algo;
   gcry_err_code_t rc;
+
+  if (hd == NULL)
+    {
+      const unsigned char *data[MAX_CONTEXTS];
+      int data_size[MAX_CONTEXTS];
+      int i = 0;
+      void *argv[MAX_CONTEXTS*2];
+
+      while (1)
+        {
+          size_t len;
+
+          rc = _gcry_pk_get_single_data (&ctx, &data[i/2], &len);
+          if (rc)
+            return rc;
+
+          data_size[i/2] = (int)len;
+
+          argv[i] = (void *)&data_size[i/2];
+          argv[i+1] = (void *)&data[i/2];
+
+          i += 2;
+
+          if (!ctx)
+            break;
+
+          if (i >= MAX_CONTEXTS*2)
+            return GPG_ERR_EINVAL;
+        }
+
+      rc = _gcry_sexp_build_array (s_data_p, NULL, tmpl, argv);
+      return rc;
+    }
 
   /* Check if it has fixed hash name or %s */
   s = strstr (tmpl, "(hash ");
@@ -530,7 +565,7 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
       const unsigned char *p;
       size_t len;
 
-      rc = _gcry_pk_get_random_override (ctx, &p, &len);
+      rc = _gcry_pk_get_single_data (&ctx, &p, &len);
       if (rc)
         return rc;
 
@@ -560,9 +595,14 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
 
   *r_sig = NULL;
 
-  err = _gcry_md_copy (&hd, hd_orig);
-  if (err)
-    return gpg_err_code (err);
+  if (!hd_orig)
+    hd = NULL;
+  else
+    {
+      err = _gcry_md_copy (&hd, hd_orig);
+      if (err)
+        return gpg_err_code (err);
+    }
 
   rc = prepare_datasexp_to_be_signed (tmpl, hd, ctx, &s_data);
   if (rc)
@@ -632,9 +672,14 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   gcry_error_t err;
   gcry_md_hd_t hd;
 
-  err = _gcry_md_copy (&hd, hd_orig);
-  if (err)
-    return gpg_err_code (err);
+  if (!hd_orig)
+    hd = NULL;
+  else
+    {
+      err = _gcry_md_copy (&hd, hd_orig);
+      if (err)
+        return gpg_err_code (err);
+    }
 
   rc = prepare_datasexp_to_be_signed (tmpl, hd, ctx, &s_data);
   if (rc)
@@ -1168,46 +1213,75 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 }
 
 
-struct pk_random_override {
+struct pk_single_data {
+  gcry_ctx_t ctx_next;
   size_t len;
   unsigned char area[];
 };
 
+static void
+release_single_data (void *p)
+{
+  struct pk_single_data *psd = p;
+  int data_type = CONTEXT_TYPE_SINGLE_DATA;
+  gcry_ctx_t ctx_next;
+
+  if (!psd)
+    return;
+
+  ctx_next = psd->ctx_next;
+  while (ctx_next)
+    {
+      gcry_ctx_t ctx = ctx_next;
+
+      psd = _gcry_ctx_find_pointer (ctx, data_type);
+      if (!psd)
+        break;                  /* something went wrong.  */
+
+      ctx_next = psd->ctx_next;
+      xfree (ctx);
+    }
+}
+
 gpg_err_code_t
-_gcry_pk_random_override_new (gcry_ctx_t *r_ctx,
-                              const unsigned char *p, size_t len)
+_gcry_pk_single_data_push (gcry_ctx_t *r_ctx,
+                          const unsigned char *p, size_t len)
 {
   gcry_ctx_t ctx;
-  struct pk_random_override *pro;
+  struct pk_single_data *psd;
+  int data_type = CONTEXT_TYPE_SINGLE_DATA;
 
-  *r_ctx = NULL;
   if (!p)
     return GPG_ERR_EINVAL;
 
-  ctx = _gcry_ctx_alloc (CONTEXT_TYPE_RANDOM_OVERRIDE,
-                         sizeof (size_t) + len, NULL);
+  ctx = _gcry_ctx_alloc (data_type, sizeof (struct pk_single_data) + len,
+                         release_single_data);
   if (!ctx)
     return gpg_err_code_from_syserror ();
-  pro = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_RANDOM_OVERRIDE);
-  pro->len = len;
-  memcpy (pro->area, p, len);
+  psd = _gcry_ctx_get_pointer (ctx, data_type);
+  psd->ctx_next = *r_ctx;
+  psd->len = len;
+  memcpy (psd->area, p, len);
 
   *r_ctx = ctx;
   return 0;
 }
 
 gpg_err_code_t
-_gcry_pk_get_random_override (gcry_ctx_t ctx,
-                              const unsigned char **r_p, size_t *r_len)
+_gcry_pk_get_single_data (gcry_ctx_t *r_ctx,
+                          const unsigned char **r_p, size_t *r_len)
 {
-  struct pk_random_override *pro;
+  struct pk_single_data *psd;
+  int data_type = CONTEXT_TYPE_SINGLE_DATA;
+  gcry_ctx_t ctx = *r_ctx;
 
-  pro = _gcry_ctx_find_pointer (ctx, CONTEXT_TYPE_RANDOM_OVERRIDE);
-  if (!pro)
+  psd = _gcry_ctx_find_pointer (ctx, data_type);
+  if (!psd)
     return GPG_ERR_EINVAL;
 
-  *r_p = pro->area;
-  *r_len = pro->len;
+  *r_p = psd->area;
+  *r_len = psd->len;
+  *r_ctx = psd->ctx_next;
 
   return 0;
 }

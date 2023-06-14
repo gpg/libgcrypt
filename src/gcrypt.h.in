@@ -1938,6 +1938,7 @@ gcry_error_t gcry_pk_hash_verify (gcry_sexp_t sigval,
 
 gcry_error_t gcry_pk_random_override_new (gcry_ctx_t *r_ctx,
                                           const unsigned char *p, size_t len);
+#define gcry_pk_input_data_push gcry_pk_random_override_new
 
 #if 0 /* (Keep Emacsens' auto-indent happy.) */
 {

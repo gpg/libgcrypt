@@ -193,10 +193,11 @@ one_test (int testno, const char *sk, const char *pk,
   void *buffer = NULL;
   void *buffer2 = NULL;
   size_t buflen, buflen2;
+  gcry_ctx_t ctx = NULL;
+  const char *data_tmpl;
   gcry_sexp_t s_tmp, s_tmp2;
   gcry_sexp_t s_sk = NULL;
   gcry_sexp_t s_pk = NULL;
-  gcry_sexp_t s_msg= NULL;
   gcry_sexp_t s_sig= NULL;
   unsigned char *sig_r = NULL;
   unsigned char *sig_s = NULL;
@@ -262,25 +263,19 @@ one_test (int testno, const char *sk, const char *pk,
             testno, "msg", "invalid hex string");
       goto leave;
     }
-  if ((err = gcry_sexp_build (&s_msg, NULL,
-                              "(data"
-                              " (flags eddsa)"
-                              " (hash-algo sha512)"
-                              " (value %b))",  (int)buflen, buffer)))
+  err = gcry_pk_input_data_push (&ctx, buffer, buflen);
+  if (err)
     {
-      fail ("error building s-exp for test %d, %s: %s",
-            testno, "msg", gpg_strerror (err));
+      fail ("error setting input data for test: %s",
+	    gpg_strerror (err));
       goto leave;
     }
 
-  err = gcry_pk_sign (&s_sig, s_msg, s_sk);
-  if (in_fips_mode)
+  data_tmpl = "(data(value %b))";
+  err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, NULL, ctx);
+  if (err)
     {
-      if (!err)
-        fail ("gcry_pk_sign is not expected to work in FIPS mode for test %d",
-              testno);
-      if (verbose > 1)
-        info ("not executed in FIPS mode\n");
+      fail ("gcry_pk_hash_sign failed: %s", gpg_strerror (err));
       goto leave;
     }
   if (err)
@@ -335,16 +330,15 @@ one_test (int testno, const char *sk, const char *pk,
     }
 
   if (!no_verify)
-    if ((err = gcry_pk_verify (s_sig, s_msg, s_pk)))
+    if ((err = gcry_pk_hash_verify (s_sig, data_tmpl, s_pk, NULL, ctx)))
       fail ("gcry_pk_verify failed for test %d: %s",
             testno, gpg_strerror (err));
 
-
  leave:
+  gcry_ctx_release (ctx);
   gcry_sexp_release (s_sig);
   gcry_sexp_release (s_sk);
   gcry_sexp_release (s_pk);
-  gcry_sexp_release (s_msg);
   xfree (buffer);
   xfree (buffer2);
   xfree (sig_r);

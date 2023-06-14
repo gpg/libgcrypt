@@ -1078,7 +1078,7 @@ gcry_pk_hash_verify (gcry_sexp_t sigval, const char *data_tmpl, gcry_sexp_t pkey
 gcry_error_t
 gcry_pk_random_override_new (gcry_ctx_t *r_ctx, const unsigned char *p, size_t len)
 {
-  return gpg_error (_gcry_pk_random_override_new (r_ctx, p, len));
+  return gpg_error (_gcry_pk_single_data_push (r_ctx, p, len));
 }
 
 gcry_error_t

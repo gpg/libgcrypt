@@ -184,7 +184,7 @@ hexdowncase (char *string)
 
 static void
 one_test (int testno, int ph, const char *sk, const char *pk,
-          const char *msg, const char *ctx, const char *sig)
+          const char *msg, const char *ctx_str, const char *sig)
 {
   gpg_error_t err;
   int i;
@@ -192,10 +192,11 @@ one_test (int testno, int ph, const char *sk, const char *pk,
   void *buffer = NULL;
   void *buffer2 = NULL;
   size_t buflen, buflen2;
+  gcry_ctx_t ctx = NULL;
+  const char *data_tmpl;
   gcry_sexp_t s_tmp, s_tmp2;
   gcry_sexp_t s_sk = NULL;
   gcry_sexp_t s_pk = NULL;
-  gcry_sexp_t s_msg= NULL;
   gcry_sexp_t s_sig= NULL;
   unsigned char *sig_r = NULL;
   unsigned char *sig_s = NULL;
@@ -258,52 +259,46 @@ one_test (int testno, int ph, const char *sk, const char *pk,
             testno, "msg", "invalid hex string");
       goto leave;
     }
-  if (ctx)
+  err = gcry_pk_input_data_push (&ctx, buffer, buflen);
+  if (err)
+    {
+      fail ("error setting input data for test: %s",
+            gpg_strerror (err));
+      goto leave;
+    }
+
+  if (ctx_str)
     {
       xfree (buffer2);
-      if (!(buffer2 = hex2buffer (ctx, &buflen2)))
+      if (!(buffer2 = hex2buffer (ctx_str, &buflen2)))
         {
           fail ("error building s-exp for test %d, %s: %s",
                 testno, "ctx", "invalid hex string");
           goto leave;
         }
 
-      if ((err = gcry_sexp_build (&s_msg, NULL,
-                                  ph ?
-                                  "(data"
-                                  " (flags prehash)"
-                                  " (label %b)"
-                                  " (value %b))"
-                                  :
-                                  "(data"
-                                  " (label %b)"
-                                  " (value %b))",
-                                  (int)buflen2, buffer2,
-                                  (int)buflen, buffer)))
+      err = gcry_pk_input_data_push (&ctx, buffer2, buflen2);
+      if (err)
         {
-          fail ("error building s-exp for test %d, %s: %s",
-                testno, "msg", gpg_strerror (err));
+          fail ("error setting ctx for test: %s",
+                gpg_strerror (err));
           goto leave;
         }
+
+      if (ph)
+        data_tmpl = "(data(flags prehash)(label %b)(value %b))";
+      else
+        data_tmpl = "(data(label %b)(value %b))";
     }
   else
     {
-      if ((err = gcry_sexp_build (&s_msg, NULL,
-                                  ph ?
-                                  "(data"
-                                  " (flags prehash)"
-                                  " (value %b))"
-                                  :
-                                  "(data"
-                                  " (value %b))",  (int)buflen, buffer)))
-        {
-          fail ("error building s-exp for test %d, %s: %s",
-                testno, "msg", gpg_strerror (err));
-          goto leave;
-        }
+      if (ph)
+        data_tmpl = "(data(flags prehash)(value %b))";
+      else
+        data_tmpl = "(data(value %b))";
     }
 
-  err = gcry_pk_sign (&s_sig, s_msg, s_sk);
+  err = gcry_pk_hash_sign (&s_sig, data_tmpl, s_sk, NULL, ctx);
   if (in_fips_mode)
     {
       if (!err)
@@ -365,16 +360,16 @@ one_test (int testno, int ph, const char *sk, const char *pk,
     }
 
   if (!no_verify)
-    if ((err = gcry_pk_verify (s_sig, s_msg, s_pk)))
+    if ((err = gcry_pk_hash_verify (s_sig, data_tmpl, s_pk, NULL, ctx)))
       fail ("gcry_pk_verify failed for test %d: %s",
             testno, gpg_strerror (err));
 
 
  leave:
+  gcry_ctx_release (ctx);
   gcry_sexp_release (s_sig);
   gcry_sexp_release (s_sk);
   gcry_sexp_release (s_pk);
-  gcry_sexp_release (s_msg);
   xfree (buffer);
   xfree (buffer2);
   xfree (sig_r);
