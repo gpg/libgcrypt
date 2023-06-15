@@ -1214,34 +1214,9 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 
 
 struct pk_single_data {
-  gcry_ctx_t ctx_next;
   size_t len;
   unsigned char area[1];  /* In future, we may use flexible array member.  */
 };
-
-static void
-release_single_data (void *p)
-{
-  struct pk_single_data *psd = p;
-  int data_type = CONTEXT_TYPE_SINGLE_DATA;
-  gcry_ctx_t ctx_next;
-
-  if (!psd)
-    return;
-
-  ctx_next = psd->ctx_next;
-  while (ctx_next)
-    {
-      gcry_ctx_t ctx = ctx_next;
-
-      psd = _gcry_ctx_find_pointer (ctx, data_type);
-      if (!psd)
-        break;                  /* something went wrong.  */
-
-      ctx_next = psd->ctx_next;
-      xfree (ctx);
-    }
-}
 
 gpg_err_code_t
 _gcry_pk_single_data_push (gcry_ctx_t *r_ctx,
@@ -1256,11 +1231,10 @@ _gcry_pk_single_data_push (gcry_ctx_t *r_ctx,
 
   ctx = _gcry_ctx_alloc (data_type,
 			 offsetof (struct pk_single_data, area) + len,
-                         release_single_data);
+                         NULL, *r_ctx);
   if (!ctx)
     return gpg_err_code_from_syserror ();
   psd = _gcry_ctx_get_pointer (ctx, data_type);
-  psd->ctx_next = *r_ctx;
   psd->len = len;
   memcpy (psd->area, p, len);
 
@@ -1282,7 +1256,7 @@ _gcry_pk_get_single_data (gcry_ctx_t *r_ctx,
 
   *r_p = psd->area;
   *r_len = psd->len;
-  *r_ctx = psd->ctx_next;
+  *r_ctx = _gcry_ctx_get_pointer (ctx, 0);
 
   return 0;
 }

@@ -1024,7 +1024,7 @@ _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
   if (!p || !a)
     return GPG_ERR_EINVAL;
 
-  ctx = _gcry_ctx_alloc (CONTEXT_TYPE_EC, sizeof *ec, ec_deinit);
+  ctx = _gcry_ctx_alloc (CONTEXT_TYPE_EC, sizeof *ec, ec_deinit, NULL);
   if (!ctx)
     return gpg_err_code_from_syserror ();
   ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);

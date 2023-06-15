@@ -36,6 +36,7 @@
    gcry_ctx_t is used to access it.  */
 struct gcry_context
 {
+  struct gcry_context *next;
   char magic[CTX_MAGIC_LEN]; /* Magic value to cross check that this
                                 is really a context object. */
   char type;     /* The type of the context (CONTEXT_TYPE_foo).  */
@@ -51,7 +52,8 @@ struct gcry_context
    NULL if de-initialization is not required.  Returns NULL and sets
    ERRNO if memory allocation failed.  */
 gcry_ctx_t
-_gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*))
+_gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*),
+                 gcry_ctx_t next)
 {
   gcry_ctx_t ctx;
 
@@ -74,6 +76,7 @@ _gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*))
   memcpy (ctx->magic, CTX_MAGIC, CTX_MAGIC_LEN);
   ctx->type = type;
   ctx->deinit = deinit;
+  ctx->next = next;
 
   return ctx;
 }
@@ -83,12 +86,18 @@ _gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*))
    the requested context type.  Using an explicit type allows to cross
    check the type and eventually allows to store several private
    contexts in one context object.  The function does not return an
-   error but aborts if the provided CTX is not valid.  */
+   error but aborts if the provided CTX is not valid.
+   Special usage: using TYPE with 0, which returns CTX->NEXT.
+  */
 void *
 _gcry_ctx_get_pointer (gcry_ctx_t ctx, int type)
 {
   if (!ctx || memcmp (ctx->magic, CTX_MAGIC, CTX_MAGIC_LEN))
     log_fatal ("bad pointer %p passed to _gcry_ctx_get_pointer\n", ctx);
+
+  if (type == 0)
+    return ctx->next;
+
   if (ctx->type != type)
     log_fatal ("wrong context type %d request for context %p of type %d\n",
                type, ctx, ctx->type);
@@ -119,6 +128,9 @@ _gcry_ctx_find_pointer (gcry_ctx_t ctx, int type)
 void
 _gcry_ctx_release (gcry_ctx_t ctx)
 {
+  gcry_ctx_t ctx_next;
+
+ again:
   if (!ctx)
     return;
   if (memcmp (ctx->magic, CTX_MAGIC, CTX_MAGIC_LEN))
@@ -135,5 +147,8 @@ _gcry_ctx_release (gcry_ctx_t ctx)
     }
   if (ctx->deinit)
     ctx->deinit (&ctx->u);
+  ctx_next = ctx->next;
   xfree (ctx);
+  ctx = ctx_next;
+  goto again;
 }
