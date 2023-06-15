@@ -527,10 +527,7 @@ check_secret_key (mpi_ec_t ec, int flags)
       goto leave;
     }
 
-  if ((flags & PUBKEY_FLAG_EDDSA)
-      || (ec->model == MPI_EC_EDWARDS && ec->dialect == ECC_DIALECT_SAFECURVE))
-    ; /* Fixme: EdDSA is special.  */
-  else if (!mpi_cmp_ui (ec->Q->z, 1))
+  if (!mpi_cmp_ui (ec->Q->z, 1))
     {
       /* Fast path if Q is already in affine coordinates.  */
       if (mpi_cmp (x1, ec->Q->x) || (y1 && mpi_cmp (y1, ec->Q->y)))
