@@ -979,11 +979,8 @@ _gcry_set_outofcore_handler (int (*f)(void*, size_t, unsigned int), void *value)
 {
   global_init ();
 
-  if (fips_mode () )
-    {
-      log_info ("out of core handler ignored in FIPS mode\n");
-      return;
-    }
+  if (fips_mode ())
+    return;
 
   outofcore_handler = f;
   outofcore_handler_value = value;
