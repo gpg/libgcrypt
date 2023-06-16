@@ -2181,9 +2181,11 @@ bench_kdf_init (struct bench_obj *obj)
 
   if (mode->algo == GCRY_KDF_PBKDF2)
     {
-      obj->min_bufsize = 2;
-      obj->max_bufsize = 2 * 32;
-      obj->step_size = 2;
+      int n = in_fips_mode ? 1000 : 2;
+
+      obj->min_bufsize = n;
+      obj->max_bufsize = n * 32;
+      obj->step_size = n;
     }
 
   obj->num_measure_repetitions = num_measurement_repetitions;
@@ -2207,8 +2209,9 @@ bench_kdf_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
 
   if (mode->algo == GCRY_KDF_PBKDF2)
     {
-      gcry_kdf_derive("qwerty", 6, mode->algo, mode->subalgo, "01234567", 8,
-		      buflen, sizeof(keybuf), keybuf);
+      gcry_kdf_derive("qwertyuiop", 10, mode->algo, mode->subalgo,
+                      "0123456789ABCDEF", 16,
+                      buflen, sizeof(keybuf), keybuf);
     }
 }
 
