@@ -430,6 +430,7 @@ gcry_err_code_t _gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff,
 char *_gcry_sexp_nth_string (const gcry_sexp_t list, int number);
 gpg_err_code_t _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                                           const char *list, va_list arg_ptr);
+void *_gcry_hex2buffer (const char *string, size_t *r_length);
 
 
 /*-- fips.c --*/

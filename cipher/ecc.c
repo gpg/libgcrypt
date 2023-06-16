@@ -115,6 +115,65 @@ static const char ecdsa_sample_data_string[] = "sample";
 static const char ecdsa_sample_data_bad_string[] = "sbmple";
 
 
+/* Ed25519 test vector from RFC 8032 7.1.  */
+static const char ed25519_sample_public_key[] =
+  "(public-key"
+  " (ecc"
+  "  (curve Ed25519)"
+  "  (flags eddsa)"
+  "  (q #3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c#)))";
+static const char ed25519_sample_secret_key[] =
+  "(private-key"
+  " (ecc"
+  "  (curve Ed25519)"
+  "  (flags eddsa)"
+  "  (d #4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb#)"
+  "  (q #3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c#)))";
+static const char ed25519_sample_data[] =
+  "(data (value #72#))";
+static const char ed25519_sample_data_bad[] =
+  "(data (value #72727272#))";
+static const char ed25519_signature_r[] =
+  "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da";
+static const char ed25519_signature_s[] =
+  "085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00";
+static const char *ed25519_data_tmpl = "(data (value %b))";
+/* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
+static const char ed25519_sample_data_string[] = "\x72";
+static const char ed25519_sample_data_bad_string[] = "\x72\x72\x72\x72";
+
+
+/* Ed448 test vector from RFC 8032 7.4.  */
+static const char ed448_sample_public_key[] =
+  "(public-key"
+  " (ecc"
+  "  (curve Ed448)"
+  "  (q #43ba28f430cdff456ae531545f7ecd0ac834a55d9358c0372bfa0c6c6798c086"
+  /**/  "6aea01eb00742802b8438ea4cb82169c235160627b4c3a9480#)))";
+static const char ed448_sample_secret_key[] =
+  "(private-key"
+  " (ecc"
+  "  (curve Ed448)"
+  "  (d #c4eab05d357007c632f3dbb48489924d552b08fe0c353a0d4a1f00acda2c463a"
+  /**/  "fbea67c5e8d2877c5e3bc397a659949ef8021e954e0a12274e#)"
+  "  (q #43ba28f430cdff456ae531545f7ecd0ac834a55d9358c0372bfa0c6c6798c086"
+  /**/  "6aea01eb00742802b8438ea4cb82169c235160627b4c3a9480#)))";
+static const char ed448_sample_data[] =
+  "(data (value #03#))";
+static const char ed448_sample_data_bad[] =
+  "(data (value #030303#))";
+static const char ed448_signature_r[] =
+  "26b8f91727bd62897af15e41eb43c377efb9c610d48f2335cb0bd0087810f435"
+  "2541b143c4b981b7e18f62de8ccdf633fc1bf037ab7cd77980";
+static const char ed448_signature_s[] =
+  "5e0dbcc0aae1cbcee1afb2e027df36bc04dcecbf154336c19f0af7e0a6472905"
+  "e799f1953d2a0ff3348ab21aa4adafd1d234441cf807c03a00";
+static const char *ed448_data_tmpl = "(data (value %b))";
+/* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
+static const char ed448_sample_data_string[] = "\x03";
+static const char ed448_sample_data_bad_string[] = "\x03\x03\x03";
+
+
 /* Registered progress function and its callback value. */
 static void (*progress_cb) (void *, const char*, int, int, int);
 static void *progress_cb_data;
@@ -1875,6 +1934,121 @@ selftest_hash_sign (gcry_sexp_t pkey, gcry_sexp_t skey, const char *tmpl,
 
 
 static const char *
+selftest_hash_sign_eddsa (gcry_sexp_t pkey, gcry_sexp_t skey, const char *tmpl,
+                          const char *input_str, const char *input_bad_str,
+                          const char *signature_r, const char *signature_s)
+{
+  gcry_ctx_t ctx = NULL;
+  const char *errtxt = NULL;
+  gcry_error_t err;
+  gcry_sexp_t sig = NULL;
+  gcry_sexp_t l1 = NULL;
+  gcry_sexp_t l2 = NULL;
+  unsigned char *r = NULL;
+  unsigned char *s = NULL;
+  size_t r_len, s_len;
+  unsigned char *calculated_r = NULL;
+  unsigned char *calculated_s = NULL;
+  size_t calculated_r_len, calculated_s_len;
+
+  err = _gcry_pk_single_data_push (&ctx, (void *)input_str, strlen (input_str));
+  if (err)
+    {
+      errtxt ="error setting input data";
+      goto leave;
+    }
+
+  r = _gcry_hex2buffer (signature_r, &r_len);
+  s = _gcry_hex2buffer (signature_s, &s_len);
+  if (!r || !s)
+    {
+      errtxt = "converting data failed";
+      goto leave;
+    }
+
+  err = _gcry_pk_sign_md (&sig, tmpl, NULL, skey, ctx);
+  if (err)
+    {
+      errtxt = "signing failed";
+      goto leave;
+    }
+
+  /* check against known signature */
+  errtxt = "signature validity failed";
+  l1 = _gcry_sexp_find_token (sig, "sig-val", 0);
+  if (!l1)
+    goto leave;
+
+  /* Here, we have the ECC name like: "ecdsa", "eddsa"...,
+     But we skip parsing the name.  */
+
+  l2 = _gcry_sexp_find_token (l1, "r", 0);
+  if (!l2)
+    goto leave;
+  calculated_r = _gcry_sexp_nth_buffer (l2, 1, &calculated_r_len);
+  if (!calculated_r)
+    goto leave;
+
+  sexp_release (l2);
+  l2 = _gcry_sexp_find_token (l1, "s", 0);
+  if (!l2)
+    goto leave;
+  calculated_s = _gcry_sexp_nth_buffer (l2, 1, &calculated_s_len);
+  if (!calculated_s)
+    goto leave;
+
+  errtxt = "known sig check failed";
+
+  if (r_len != calculated_r_len)
+    goto leave;
+  if (s_len != calculated_s_len)
+    goto leave;
+  if (memcmp (r, calculated_r, r_len))
+    goto leave;
+  if (memcmp (s, calculated_s, s_len))
+    goto leave;
+
+  errtxt = NULL;
+
+  /* verify generated signature */
+  err = _gcry_pk_verify_md (sig, tmpl, NULL, pkey, ctx);
+  if (err)
+    {
+      errtxt = "verify failed";
+      goto leave;
+    }
+
+  _gcry_ctx_release (ctx);
+  ctx = NULL;
+  err = _gcry_pk_single_data_push (&ctx, (void *)input_bad_str,
+                                   strlen (input_bad_str));
+  if (err)
+    {
+      errtxt ="error setting input data";
+      goto leave;
+    }
+
+  err = _gcry_pk_verify_md (sig, tmpl, NULL, pkey, ctx);
+  if (gcry_err_code (err) != GPG_ERR_BAD_SIGNATURE)
+    {
+      errtxt = "bad signature not detected";
+      goto leave;
+    }
+
+ leave:
+  _gcry_ctx_release (ctx);
+  sexp_release (sig);
+  sexp_release (l1);
+  sexp_release (l2);
+  xfree (r);
+  xfree (s);
+  xfree (calculated_r);
+  xfree (calculated_s);
+  return errtxt;
+}
+
+
+static const char *
 selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey,
                const char *input, const char *input_bad,
                const char *signature_r, const char *signature_s)
@@ -1979,7 +2153,7 @@ selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey,
 
 
 static gpg_err_code_t
-selftests_ecc (selftest_report_func_t report, int extended,
+selftests_ecc (selftest_report_func_t report, int extended, int is_eddsa,
                const char *secret_key, const char *public_key,
                const char *input, const char *input_bad,
                const char *tmpl,
@@ -2020,8 +2194,14 @@ selftests_ecc (selftest_report_func_t report, int extended,
     }
 
   what = "digest sign";
-  errtxt = selftest_hash_sign (pkey, skey, tmpl, input_str, input_bad_str,
-                               ecdsa_signature_r, ecdsa_signature_s);
+  if (is_eddsa)
+    errtxt = selftest_hash_sign_eddsa (pkey, skey, tmpl,
+                                       input_str, input_bad_str,
+                                       signature_r, signature_s);
+  else
+    errtxt = selftest_hash_sign (pkey, skey, tmpl,
+                                 input_str, input_bad_str,
+                                 signature_r, signature_s);
   if (errtxt)
     goto failed;
 
@@ -2042,16 +2222,39 @@ selftests_ecc (selftest_report_func_t report, int extended,
 static gpg_err_code_t
 run_selftests (int algo, int extended, selftest_report_func_t report)
 {
+  int r;
+
   if (algo != GCRY_PK_ECC)
     return GPG_ERR_PUBKEY_ALGO;
 
-  return selftests_ecc (report, extended,
-                        ecdsa_sample_secret_key_secp256,
-                        ecdsa_sample_public_key_secp256,
-                        ecdsa_sample_data, ecdsa_sample_data_bad,
-                        ecdsa_data_tmpl,
-                        ecdsa_sample_data_string, ecdsa_sample_data_bad_string,
-                        ecdsa_signature_r, ecdsa_signature_s);
+  r = selftests_ecc (report, extended, 0,
+                     ecdsa_sample_secret_key_secp256,
+                     ecdsa_sample_public_key_secp256,
+                     ecdsa_sample_data, ecdsa_sample_data_bad,
+                     ecdsa_data_tmpl,
+                     ecdsa_sample_data_string, ecdsa_sample_data_bad_string,
+                     ecdsa_signature_r, ecdsa_signature_s);
+  if (r)
+    return r;
+
+  r = selftests_ecc (report, extended, 1,
+                     ed25519_sample_secret_key,
+                     ed25519_sample_public_key,
+                     ed25519_sample_data, ed25519_sample_data_bad,
+                     ed25519_data_tmpl,
+                     ed25519_sample_data_string, ed25519_sample_data_bad_string,
+                     ed25519_signature_r, ed25519_signature_s);
+  if (r)
+    return r;
+
+  r = selftests_ecc (report, extended, 1,
+                     ed448_sample_secret_key,
+                     ed448_sample_public_key,
+                     ed448_sample_data, ed448_sample_data_bad,
+                     ed448_data_tmpl,
+                     ed448_sample_data_string, ed448_sample_data_bad_string,
+                     ed448_signature_r, ed448_signature_s);
+  return r;
 }
 
 gcry_pk_spec_t _gcry_pubkey_spec_ecc =

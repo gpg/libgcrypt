@@ -126,8 +126,8 @@ gcry_err_code_t _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl,
                                     gcry_md_hd_t hd, gcry_sexp_t s_pkey,
                                     gcry_ctx_t ctx);
 gpg_err_code_t _gcry_pk_single_data_push (gcry_ctx_t *r_ctx,
-                                        const unsigned char *p,
-                                        size_t len);
+                                          const unsigned char *p,
+                                          size_t len);
 gpg_err_code_t _gcry_pk_get_single_data (gcry_ctx_t *r_ctx,
                                          const unsigned char **r_p,
                                          size_t *r_len);
