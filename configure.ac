@@ -1722,6 +1722,7 @@ AC_CACHE_CHECK([whether compiler supports x86/AVX512 intrinsics],
 	  __m512i fn(void *in, __m128i y)
 	  {
 	    __m512i x;
+            x = _mm512_loadu_epi32 (in); /* check the GCC bug 90980. */
 	    x = _mm512_maskz_loadu_epi32(_cvtu32_mask16(0xfff0), in)
 		  ^ _mm512_castsi128_si512(y);
 	    asm volatile ("vinserti32x4 \$3, %0, %%zmm6, %%zmm6;\n\t"
