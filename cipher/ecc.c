@@ -445,6 +445,70 @@ leave:
   return result;
 }
 
+static int
+test_keys_eddsa_fips (gcry_sexp_t skey)
+{
+  int result = -1; /* Default to failure */
+  gcry_ctx_t ctx = NULL;
+  const char *data_tmpl = "(data (value %b))";
+  gcry_sexp_t sig = NULL;
+  char plaintext[128];
+  int rc;
+
+  /* Create a random plaintext.  */
+  _gcry_randomize (plaintext, sizeof plaintext, GCRY_WEAK_RANDOM);
+
+  rc = _gcry_pk_single_data_push (&ctx, (void *)plaintext, sizeof(plaintext));
+  if (rc)
+    {
+      log_error ("EdDSA operation: failed to push input data: %s\n",
+                 gpg_strerror (rc));
+      goto leave;
+    }
+
+  /* Sign the data */
+  rc = _gcry_pk_sign_md (&sig, data_tmpl, NULL, skey, ctx);
+  if (rc)
+    {
+      log_error ("EdDSA operation: signing failed: %s\n", gpg_strerror (rc));
+      goto leave;
+    }
+
+  /* Verify this signature.  */
+  rc = _gcry_pk_verify_md (sig, data_tmpl, NULL, skey, ctx);
+  if (rc)
+    {
+      log_error ("EdDSA operation: verification failed: %s\n", gpg_strerror (rc));
+      goto leave;
+    }
+
+  _gcry_ctx_release (ctx);
+  ctx = NULL;
+
+  /* Modify the data and check that the signing fails.  */
+  plaintext[sizeof plaintext / 2] ^= 1;
+  rc = _gcry_pk_single_data_push (&ctx, (void *)plaintext, sizeof(plaintext));
+  if (rc)
+    {
+      log_error ("EdDSA operation: failed to push input data: %s\n",
+                 gpg_strerror (rc));
+      goto leave;
+    }
+
+  rc = _gcry_pk_verify_md (sig, data_tmpl, NULL, skey, ctx);
+  if (rc != GPG_ERR_BAD_SIGNATURE)
+    {
+      log_error ("EdDSA operation: signature verification worked on modified data\n");
+      goto leave;
+    }
+
+  result = 0;
+leave:
+  _gcry_ctx_release (ctx);
+  sexp_release (sig);
+  return result;
+}
+
 
 static void
 test_ecdh_only_keys (mpi_ec_t ec, unsigned int nbits, int flags)
@@ -771,11 +835,21 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         log_debug ("ecgen result  using Ed25519+EdDSA\n");
     }
 
-  if (fips_mode () && test_keys_fips (*r_skey))
+  if (fips_mode ())
     {
-      sexp_release (*r_skey); r_skey = NULL;
-      fips_signal_error ("self-test after key generation failed");
-      rc = GPG_ERR_SELFTEST_FAILED;
+      int result;
+
+      if (ec->model == MPI_EC_EDWARDS)
+        result = test_keys_eddsa_fips (*r_skey);
+      else
+        result = test_keys_fips (*r_skey);
+      if (result)
+        {
+          sexp_release (*r_skey);
+          *r_skey = NULL;
+          fips_signal_error ("self-test after key generation failed");
+          rc = GPG_ERR_SELFTEST_FAILED;
+        }
     }
 
  leave:
