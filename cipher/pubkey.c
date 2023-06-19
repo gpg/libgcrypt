@@ -462,6 +462,7 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   gcry_sexp_t s_hash = NULL;
   int algo;
   const unsigned char *digest;
+  int digest_size;
   gcry_error_t err;
   gcry_md_hd_t hd;
   const char *s;
@@ -501,7 +502,9 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (hash_name)
     {
       algo = _gcry_md_map_name (hash_name);
-      if (algo == 0
+      digest_size = (int) _gcry_md_get_algo_dlen (algo);
+
+      if (algo == 0 || digest_size == 0
           || (fips_mode () && algo == GCRY_MD_SHA1))
 	{
 	  xfree (hash_name);
@@ -514,8 +517,9 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else
     {
       algo = _gcry_md_get_algo (hd);
+      digest_size = (int) _gcry_md_get_algo_dlen (algo);
 
-      if (fips_mode () && algo == GCRY_MD_SHA1)
+      if (digest_size == 0 || (fips_mode () && algo == GCRY_MD_SHA1))
         {
           _gcry_md_close (hd);
           return GPG_ERR_DIGEST_ALGO;
@@ -535,13 +539,11 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
     {
       if (hash_name)
 	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-			       (int) _gcry_md_get_algo_dlen (algo),
-			       digest);
+			       digest_size, digest);
       else
 	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
 			       _gcry_md_algo_name (algo),
-			       (int) _gcry_md_get_algo_dlen (algo),
-			       digest);
+			       digest_size, digest);
     }
   else
     {
@@ -557,14 +559,12 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
 
       if (hash_name)
 	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-			       (int) _gcry_md_get_algo_dlen (algo),
-			       digest,
+			       digest_size, digest,
 			       (int) len, p);
       else
 	rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
 			       _gcry_md_algo_name (algo),
-			       (int) _gcry_md_get_algo_dlen (algo),
-			       digest,
+			       digest_size, digest,
 			       (int) len, p);
     }
 
@@ -636,6 +636,7 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   gcry_sexp_t s_hash = NULL;
   int algo;
   const unsigned char *digest;
+  int digest_size;
   gcry_error_t err;
   gcry_md_hd_t hd;
   const char *s;
@@ -673,7 +674,9 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (hash_name)
     {
       algo = _gcry_md_map_name (hash_name);
-      if (algo == 0
+      digest_size = (int) _gcry_md_get_algo_dlen (algo);
+
+      if (algo == 0 || digest_size == 0
           || (fips_mode () && algo == GCRY_MD_SHA1))
         {
           xfree (hash_name);
@@ -686,8 +689,9 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else
     {
       algo = _gcry_md_get_algo (hd);
+      digest_size = (int) _gcry_md_get_algo_dlen (algo);
 
-      if (fips_mode () && algo == GCRY_MD_SHA1)
+      if (digest_size == 0 || (fips_mode () && algo == GCRY_MD_SHA1))
         {
           _gcry_md_close (hd);
           return GPG_ERR_DIGEST_ALGO;
@@ -707,13 +711,11 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
     {
       if (hash_name)
         rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-                               (int) _gcry_md_get_algo_dlen (algo),
-                               digest);
+                               digest_size, digest);
       else
         rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
                                _gcry_md_algo_name (algo),
-                               (int) _gcry_md_get_algo_dlen (algo),
-                               digest);
+                               digest_size, digest);
     }
   else
     {
@@ -729,14 +731,12 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
 
       if (hash_name)
         rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
-                               (int) _gcry_md_get_algo_dlen (algo),
-                               digest,
+                               digest_size, digest,
                                (int) len, p);
       else
         rc = _gcry_sexp_build (&s_hash, NULL, tmpl,
                                _gcry_md_algo_name (algo),
-                               (int) _gcry_md_get_algo_dlen (algo),
-                               digest,
+                               digest_size, digest,
                                (int) len, p);
     }
 
