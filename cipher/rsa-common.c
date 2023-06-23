@@ -806,7 +806,12 @@ _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
     return rc;
 
   /* Get the length of the digest.  */
-  hlen = _gcry_md_get_algo_dlen (algo);
+  if (algo == GCRY_MD_SHAKE128)
+    hlen = 32;
+  else if (algo == GCRY_MD_SHAKE256)
+    hlen = 64;
+  else
+    hlen = _gcry_md_get_algo_dlen (algo);
   gcry_assert (hlen);  /* We expect a valid ALGO here.  */
 
   /* The FIPS 186-4 Section 5.5 allows only 0 <= sLen <= hLen */
@@ -886,7 +891,20 @@ _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   memcpy (p, salt, saltlen);
 
   /* Step 9: dbmask = MGF(H, emlen - hlen - 1).  */
-  mgf1 (dbmask, emlen - hlen - 1, h, hlen, algo);
+  if (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256)
+    {
+      gcry_buffer_t iov;
+
+      iov.size = 0;
+      iov.data = (void *)h;
+      iov.off = 0;
+      iov.len = hlen;
+
+      _gcry_md_hash_buffers_extract (algo, 0, dbmask, emlen - hlen - 1,
+                                     &iov, 1);
+    }
+  else
+    mgf1 (dbmask, emlen - hlen - 1, h, hlen, algo);
 
   /* Step 10: maskedDB = DB ^ dbMask */
   for (n = 0, p = dbmask; n < emlen - hlen - 1; n++, p++)
@@ -954,7 +972,12 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
     return rc;
 
   /* Get the length of the digest.  */
-  hlen = _gcry_md_get_algo_dlen (algo);
+  if (algo == GCRY_MD_SHAKE128)
+    hlen = 32;
+  else if (algo == GCRY_MD_SHAKE256)
+    hlen = 64;
+  else
+    hlen = _gcry_md_get_algo_dlen (algo);
   gcry_assert (hlen);  /* We expect a valid ALGO here.  */
 
   /* The FIPS 186-4 Section 5.5 allows only 0 <= sLen <= hLen */
@@ -1042,7 +1065,20 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
     }
 
   /* Step 7: dbmask = MGF(H, emlen - hlen - 1).  */
-  mgf1 (dbmask, emlen - hlen - 1, h, hlen, algo);
+  if (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256)
+    {
+      gcry_buffer_t iov;
+
+      iov.size = 0;
+      iov.data = (void *)h;
+      iov.off = 0;
+      iov.len = hlen;
+
+      _gcry_md_hash_buffers_extract (algo, 0, dbmask, emlen - hlen - 1,
+                                     &iov, 1);
+    }
+  else
+    mgf1 (dbmask, emlen - hlen - 1, h, hlen, algo);
 
   /* Step 8: maskedDB = DB ^ dbMask.  */
   for (n = 0, p = dbmask; n < emlen - hlen - 1; n++, p++)
