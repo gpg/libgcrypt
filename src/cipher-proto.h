@@ -216,7 +216,8 @@ typedef void (*gcry_md_final_t) (void *c);
 typedef unsigned char *(*gcry_md_read_t) (void *c);
 
 /* Type for the md_extract function.  */
-typedef void (*gcry_md_extract_t) (void *c, void *outbuf, size_t nbytes);
+typedef gpg_err_code_t (*gcry_md_extract_t) (void *c, void *outbuf,
+					     size_t nbytes);
 
 /* Type for the md_hash_buffers function. */
 typedef void (*gcry_md_hash_buffers_t) (void *outbuf, size_t nbytes,

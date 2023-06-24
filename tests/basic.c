@@ -13604,18 +13604,16 @@ check_one_md (int algo, const char *data, int len, const char *expect, int elen,
     }
 
   mdlen = gcry_md_get_algo_dlen (algo);
-  if (mdlen < 1 || mdlen > 500)
+  if (elen != 0 && mdlen != elen
+      && (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256))
     {
-      if (mdlen == 0 && (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256))
-        {
-          xof = 1;
-        }
-      else
-        {
-	  gcry_md_close (hd);
-          fail ("algo %d, gcry_md_get_algo_dlen failed: %d\n", algo, mdlen);
-          return;
-        }
+      xof = 1;
+    }
+  else if (mdlen < 1 || mdlen > 500)
+    {
+      gcry_md_close (hd);
+      fail ("algo %d, gcry_md_get_algo_dlen failed: %d\n", algo, mdlen);
+      return;
     }
 
   if (key && klen)
@@ -13942,7 +13940,8 @@ check_one_md (int algo, const char *data, int len, const char *expect, int elen,
 
 
 static void
-check_one_md_multi (int algo, const char *data, int len, const char *expect)
+check_one_md_multi (int algo, const char *data, int len, const char *expect,
+		    int elen)
 {
   gpg_error_t err;
   gcry_buffer_t iov[3];
@@ -13954,13 +13953,14 @@ check_one_md_multi (int algo, const char *data, int len, const char *expect)
   mdlen = gcry_md_get_algo_dlen (algo);
   if (mdlen < 1 || mdlen > 64)
     {
-      if (mdlen == 0 && (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256))
-        return;
-
       fail ("check_one_md_multi: algo %d, gcry_md_get_algo_dlen failed: %d\n",
             algo, mdlen);
       return;
     }
+
+  if (elen != 0 && elen != mdlen
+      && (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256))
+    return;
 
   if (*data == '!' && !data[1])
     return;  /* We can't do that here.  */
@@ -14717,6 +14717,11 @@ check_digests (void)
 	"\xDD\xA2\x52\x98\x33\x46\x2B\x71\xA4\x1A\x45\xBE\x97\x29\x0B\x6F",
 	0, 512, },
       { GCRY_MD_SHAKE128,
+	"",
+	"\x7F\x9C\x2B\xA4\xE8\x8F\x82\x7D\x61\x60\x45\x50\x76\x05\x85\x3E"
+	"\xD7\x3B\x80\x93\xF6\xEF\xBC\x88\xEB\x1A\x6E\xAC\xFA\x66\xEF\x26",
+	0, 0, /* test md_read interface */ },
+      { GCRY_MD_SHAKE128,
 	"\x5A\xAB\x62\x75\x6D\x30\x7A\x66\x9D\x14\x6A\xBA\x98\x8D\x90\x74"
 	"\xC5\xA1\x59\xB3\xDE\x85\x15\x1A\x81\x9B\x11\x7C\xA1\xFF\x65\x97"
 	"\xF6\x15\x6E\x80\xFD\xD2\x8C\x9C\x31\x76\x83\x51\x64\xD3\x7D\xA7"
@@ -14834,6 +14839,13 @@ check_digests (void)
 	"\xAB\x0B\xAE\x31\x63\x39\x89\x43\x04\xE3\x58\x77\xB0\xC2\x8A\x9B"
 	"\x1F\xD1\x66\xC7\x96\xB9\xCC\x25\x8A\x06\x4A\x8F\x57\xE2\x7F\x2A",
 	0, 512, },
+      { GCRY_MD_SHAKE256,
+	"",
+	"\x46\xB9\xDD\x2B\x0B\xA8\x8D\x13\x23\x3B\x3F\xEB\x74\x3E\xEB\x24"
+	"\x3F\xCD\x52\xEA\x62\xB8\x1B\x82\xB5\x0C\x27\x64\x6E\xD5\x76\x2F"
+	"\xD7\x5D\xC4\xDD\xD8\xC0\xF2\x00\xCB\x05\x01\x9D\x67\xB5\x92\xF6"
+	"\xFC\x82\x1C\x49\x47\x9A\xB4\x86\x40\x29\x2E\xAC\xB3\xB7\xC4\xBE",
+	0, 0, /* test md_read interface */ },
       { GCRY_MD_SHAKE256,
 	"\xB3\x2D\x95\xB0\xB9\xAA\xD2\xA8\x81\x6D\xE6\xD0\x6D\x1F\x86\x00"
 	"\x85\x05\xBD\x8C\x14\x12\x4F\x6E\x9A\x16\x3B\x5A\x2A\xDE\x55\xF8"
@@ -15416,7 +15428,7 @@ check_digests (void)
       check_one_md_multi (algos[i].md, algos[i].data,
 			  algos[i].datalen > 0 ? algos[i].datalen
 					       : strlen (algos[i].data),
-			  algos[i].expect);
+			  algos[i].expect, algos[i].expectlen);
     }
 
   /* Check the Whirlpool bug emulation.  */

@@ -143,7 +143,9 @@ typedef struct KECCAK_CONTEXT_S
   unsigned int outlen;
   unsigned int blocksize;
   unsigned int count;
-  unsigned int suffix;
+  unsigned int suffix:8;
+  unsigned int shake_in_extract_mode:1;
+  unsigned int shake_in_read_mode:1;
   const keccak_ops_t *ops;
 #ifdef USE_S390X_CRYPTO
   unsigned int kimd_func;
@@ -966,6 +968,8 @@ keccak_init (int algo, void *context, unsigned int flags)
   memset (hd, 0, sizeof *hd);
 
   ctx->count = 0;
+  ctx->shake_in_extract_mode = 0;
+  ctx->shake_in_read_mode = 0;
 
   /* Select generic implementation. */
 #ifdef USE_64BIT
@@ -1024,12 +1028,12 @@ keccak_init (int algo, void *context, unsigned int flags)
     case GCRY_MD_SHAKE128:
       ctx->suffix = SHAKE_DELIMITED_SUFFIX;
       ctx->blocksize = 1344 / 8;
-      ctx->outlen = 0;
+      ctx->outlen = 256 / 8;
       break;
     case GCRY_MD_SHAKE256:
       ctx->suffix = SHAKE_DELIMITED_SUFFIX;
       ctx->blocksize = 1088 / 8;
-      ctx->outlen = 0;
+      ctx->outlen = 512 / 8;
       break;
     default:
       BUG();
@@ -1181,8 +1185,8 @@ keccak_read (void *context)
 }
 
 
-static void
-keccak_extract (void *context, void *out, size_t outlen)
+static gcry_err_code_t
+do_keccak_extract (void *context, void *out, size_t outlen)
 {
   KECCAK_CONTEXT *ctx = context;
   KECCAK_STATE *hd = &ctx->state;
@@ -1199,7 +1203,7 @@ keccak_extract (void *context, void *out, size_t outlen)
   if (ctx->kimd_func)
     {
       keccak_extract_s390x (context, out, outlen);
-      return;
+      return 0;
     }
 #endif
 
@@ -1304,6 +1308,52 @@ keccak_extract (void *context, void *out, size_t outlen)
 
   if (burn)
     _gcry_burn_stack (burn);
+
+  return 0;
+}
+
+
+static gcry_err_code_t
+keccak_extract (void *context, void *out, size_t outlen)
+{
+  KECCAK_CONTEXT *ctx = context;
+
+  if (ctx->shake_in_read_mode)
+    return GPG_ERR_INV_STATE;
+  if (!ctx->shake_in_extract_mode)
+    ctx->shake_in_extract_mode = 1;
+
+  return do_keccak_extract (context, out, outlen);
+}
+
+
+static byte *
+keccak_shake_read (void *context)
+{
+  KECCAK_CONTEXT *ctx = (KECCAK_CONTEXT *) context;
+  KECCAK_STATE *hd = &ctx->state;
+
+  if (ctx->shake_in_extract_mode)
+    {
+      /* Already in extract mode. */
+      return NULL;
+    }
+
+  if (!ctx->shake_in_read_mode)
+    {
+      byte tmpbuf[64];
+
+      gcry_assert(sizeof(tmpbuf) >= ctx->outlen);
+
+      ctx->shake_in_read_mode = 1;
+
+      do_keccak_extract (context, tmpbuf, ctx->outlen);
+      buf_cpy (&hd->u, tmpbuf, ctx->outlen);
+
+      wipememory(tmpbuf, sizeof(tmpbuf));
+    }
+
+  return (byte *)&hd->u;
 }
 
 
@@ -1318,10 +1368,10 @@ _gcry_sha3_hash_buffers (void *outbuf, size_t nbytes, const gcry_buffer_t *iov,
   for (;iovcnt > 0; iov++, iovcnt--)
     keccak_write (&hd, (const char*)iov[0].data + iov[0].off, iov[0].len);
   keccak_final (&hd);
-  if (spec->mdlen > 0)
+  if (hd.suffix == SHA3_DELIMITED_SUFFIX)
     memcpy (outbuf, keccak_read (&hd), spec->mdlen);
   else
-    keccak_extract (&hd, outbuf, nbytes);
+    do_keccak_extract (&hd, outbuf, nbytes);
 }
 
 
@@ -1630,8 +1680,9 @@ const gcry_md_spec_t _gcry_digest_spec_sha3_512 =
 const gcry_md_spec_t _gcry_digest_spec_shake128 =
   {
     GCRY_MD_SHAKE128, {0, 1},
-    "SHAKE128", shake128_asn, DIM (shake128_asn), oid_spec_shake128, 0,
-    shake128_init, keccak_write, keccak_final, NULL, keccak_extract,
+    "SHAKE128", shake128_asn, DIM (shake128_asn), oid_spec_shake128, 32,
+    shake128_init, keccak_write, keccak_final, keccak_shake_read,
+    keccak_extract,
     _gcry_shake128_hash_buffers,
     sizeof (KECCAK_CONTEXT),
     run_selftests
@@ -1639,8 +1690,9 @@ const gcry_md_spec_t _gcry_digest_spec_shake128 =
 const gcry_md_spec_t _gcry_digest_spec_shake256 =
   {
     GCRY_MD_SHAKE256, {0, 1},
-    "SHAKE256", shake256_asn, DIM (shake256_asn), oid_spec_shake256, 0,
-    shake256_init, keccak_write, keccak_final, NULL, keccak_extract,
+    "SHAKE256", shake256_asn, DIM (shake256_asn), oid_spec_shake256, 64,
+    shake256_init, keccak_write, keccak_final, keccak_shake_read,
+    keccak_extract,
     _gcry_shake256_hash_buffers,
     sizeof (KECCAK_CONTEXT),
     run_selftests

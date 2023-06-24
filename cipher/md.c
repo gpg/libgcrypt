@@ -1125,8 +1125,8 @@ md_extract(gcry_md_hd_t a, int algo, void *out, size_t outlen)
 	{
 	  if (r->next)
 	    log_debug ("more than one algorithm in md_extract(0)\n");
-	  r->spec->extract (r->context, out, outlen);
-	  return 0;
+
+	  return r->spec->extract (r->context, out, outlen);
 	}
     }
   else
@@ -1134,8 +1134,7 @@ md_extract(gcry_md_hd_t a, int algo, void *out, size_t outlen)
       for (r = a->ctx->list; r; r = r->next)
 	if (r->spec->algo == algo && r->spec->extract)
 	  {
-	    r->spec->extract (r->context, out, outlen);
-	    return 0;
+	    return r->spec->extract (r->context, out, outlen);
 	  }
     }
 
@@ -1248,6 +1247,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 			       int iovcnt)
 {
   const gcry_md_spec_t *spec;
+  int is_xof;
   int hmac;
 
   if (!iov || iovcnt < 0)
@@ -1266,10 +1266,12 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
       return GPG_ERR_DIGEST_ALGO;
     }
 
-  if (spec->mdlen > 0 && digestlen != -1 && digestlen != spec->mdlen)
+  is_xof = spec->extract != NULL;
+  if (!is_xof && digestlen != -1 && digestlen != spec->mdlen)
     return GPG_ERR_DIGEST_ALGO;
-  if (spec->mdlen == 0 && digestlen == -1)
-    return GPG_ERR_DIGEST_ALGO;
+
+  if (digestlen == -1)
+    digestlen = spec->mdlen;
 
   if (!hmac && spec->hash_buffers)
     {
@@ -1304,7 +1306,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
       for (;iovcnt; iov++, iovcnt--)
         md_write (h, (const char*)iov[0].data + iov[0].off, iov[0].len);
       md_final (h);
-      if (spec->mdlen > 0)
+      if (digestlen == spec->mdlen)
 	memcpy (digest, md_read (h, algo), spec->mdlen);
       else if (digestlen > 0)
 	md_extract (h, algo, digest, digestlen);

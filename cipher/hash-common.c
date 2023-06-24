@@ -51,12 +51,10 @@ _gcry_hash_selftest_check_one (int algo,
   gcry_md_hd_t hd;
   unsigned char *digest;
   char aaa[1000];
-  int xof = 0;
+  int expect_xof = 0;
 
-  if (_gcry_md_get_algo_dlen (algo) == 0)
-    xof = 1;
-  else if (_gcry_md_get_algo_dlen (algo) != expectlen)
-    return "digest size does not match expected size";
+  if (_gcry_md_get_algo_dlen (algo) != expectlen)
+    expect_xof = 1;
 
   err = _gcry_md_open (&hd, algo, 0);
   if (err)
@@ -85,7 +83,7 @@ _gcry_hash_selftest_check_one (int algo,
 
   if (!result)
     {
-      if (!xof)
+      if (!expect_xof)
 	{
 	  digest = _gcry_md_read (hd, algo);
 
