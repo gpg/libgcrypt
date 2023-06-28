@@ -941,13 +941,28 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (rc)
     goto leave;
 
-  /* Hash algo is determined by curve in EdDSA.  Fill it if not specified.  */
-  if ((ctx.flags & PUBKEY_FLAG_EDDSA) && !ctx.hash_algo)
+  /* Hash algo is determined by curve in EdDSA.  */
+  if ((ctx.flags & PUBKEY_FLAG_EDDSA))
     {
-      if (ec->dialect == ECC_DIALECT_ED25519)
-        ctx.hash_algo = GCRY_MD_SHA512;
-      else if (ec->dialect == ECC_DIALECT_SAFECURVE)
-        ctx.hash_algo = GCRY_MD_SHAKE256;
+      if (ctx.hash_algo)
+        {
+          if (fips_mode ()
+              && ((ec->dialect == ECC_DIALECT_ED25519
+                   &&ctx.hash_algo != GCRY_MD_SHA512)
+                  || (ec->dialect == ECC_DIALECT_SAFECURVE
+                      && ctx.hash_algo != GCRY_MD_SHAKE256)))
+            {
+              rc = GPG_ERR_DIGEST_ALGO;
+              goto leave;
+            }
+        }
+      else
+        {
+          if (ec->dialect == ECC_DIALECT_ED25519)
+            ctx.hash_algo = GCRY_MD_SHA512;
+          else if (ec->dialect == ECC_DIALECT_SAFECURVE)
+            ctx.hash_algo = GCRY_MD_SHAKE256;
+        }
     }
 
   sig_r = mpi_new (0);
@@ -1048,13 +1063,28 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   if (DBG_CIPHER)
     log_mpidump ("ecc_verify data", data);
 
-  /* Hash algo is determined by curve in EdDSA.  Fill it if not specified.  */
-  if ((ctx.flags & PUBKEY_FLAG_EDDSA) && !ctx.hash_algo)
+  /* Hash algo is determined by curve in EdDSA.  */
+  if ((ctx.flags & PUBKEY_FLAG_EDDSA))
     {
-      if (ec->dialect == ECC_DIALECT_ED25519)
-        ctx.hash_algo = GCRY_MD_SHA512;
-      else if (ec->dialect == ECC_DIALECT_SAFECURVE)
-        ctx.hash_algo = GCRY_MD_SHAKE256;
+      if (ctx.hash_algo)
+        {
+          if (fips_mode ()
+              && ((ec->dialect == ECC_DIALECT_ED25519
+                   &&ctx.hash_algo != GCRY_MD_SHA512)
+                  || (ec->dialect == ECC_DIALECT_SAFECURVE
+                      && ctx.hash_algo != GCRY_MD_SHAKE256)))
+            {
+              rc = GPG_ERR_DIGEST_ALGO;
+              goto leave;
+            }
+        }
+      else
+        {
+          if (ec->dialect == ECC_DIALECT_ED25519)
+            ctx.hash_algo = GCRY_MD_SHA512;
+          else if (ec->dialect == ECC_DIALECT_SAFECURVE)
+            ctx.hash_algo = GCRY_MD_SHAKE256;
+        }
     }
 
   /*
