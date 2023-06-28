@@ -106,6 +106,14 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, gcry_mpi_t k_supplied, mpi_ec_t ec,
               k = NULL;
               if ((flags & PUBKEY_FLAG_RFC6979) && hashalgo)
                 {
+                  if (fips_mode () &&
+                      (hashalgo == GCRY_MD_SHAKE128
+                       || hashalgo == GCRY_MD_SHAKE256))
+                    {
+                      rc = GPG_ERR_DIGEST_ALGO;
+                      goto leave;
+                    }
+
                   /* Use Pornin's method for deterministic DSA.  If this
                      flag is set, it is expected that HASH is an opaque
                      MPI with the to be signed hash.  That hash is also
