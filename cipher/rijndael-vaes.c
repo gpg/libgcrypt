@@ -40,7 +40,7 @@
 # endif
 
 
-extern void _gcry_aes_aesni_prepare_decryption(RIJNDAEL_context *ctx);
+extern void _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx);
 
 
 extern void _gcry_vaes_avx2_cbc_dec_amd64 (const void *keysched,
@@ -72,16 +72,16 @@ extern void _gcry_vaes_avx2_ctr32le_enc_amd64 (const void *keysched,
 					       unsigned int nrounds)
 						ASM_FUNC_ABI;
 
-extern void _gcry_vaes_avx2_ocb_crypt_amd64 (const void *keysched,
-					     unsigned int blkn,
-					     void *outbuf_arg,
-					     const void *inbuf_arg,
-					     size_t nblocks,
-					     unsigned int nrounds,
-					     unsigned char *offset,
-					     unsigned char *checksum,
-					     unsigned char *L_table,
-					     int encrypt) ASM_FUNC_ABI;
+extern size_t _gcry_vaes_avx2_ocb_crypt_amd64 (const void *keysched,
+					       unsigned int blkn,
+					       void *outbuf_arg,
+					       const void *inbuf_arg,
+					       size_t nblocks,
+					       unsigned int nrounds,
+					       unsigned char *offset,
+					       unsigned char *checksum,
+					       unsigned char *L_table,
+					       int encrypt) ASM_FUNC_ABI;
 
 extern void _gcry_vaes_avx2_xts_crypt_amd64 (const void *keysched,
 					     unsigned char *tweak,
@@ -193,11 +193,29 @@ _gcry_aes_vaes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
   c->u_mode.ocb.data_nblocks = blkn + nblocks;
 
-  _gcry_vaes_avx2_ocb_crypt_amd64 (keysched, (unsigned int)blkn, outbuf, inbuf,
-				   nblocks, nrounds, c->u_iv.iv, c->u_ctr.ctr,
-				   c->u_mode.ocb.L[0], encrypt);
+  return _gcry_vaes_avx2_ocb_crypt_amd64 (keysched, (unsigned int)blkn, outbuf,
+					  inbuf, nblocks, nrounds, c->u_iv.iv,
+					  c->u_ctr.ctr, c->u_mode.ocb.L[0],
+					  encrypt);
+}
 
-  return 0;
+size_t
+_gcry_aes_vaes_ocb_auth (gcry_cipher_hd_t c, const void *inbuf_arg,
+			 size_t nblocks)
+{
+  RIJNDAEL_context *ctx = (void *)&c->context.c;
+  const void *keysched = ctx->keyschenc32;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned int nrounds = ctx->rounds;
+  u64 blkn = c->u_mode.ocb.aad_nblocks;
+
+  c->u_mode.ocb.aad_nblocks = blkn + nblocks;
+
+  return _gcry_vaes_avx2_ocb_crypt_amd64 (keysched, (unsigned int)blkn, NULL,
+					  inbuf, nblocks, nrounds,
+					  c->u_mode.ocb.aad_offset,
+					  c->u_mode.ocb.aad_sum,
+					  c->u_mode.ocb.L[0], 2);
 }
 
 void

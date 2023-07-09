@@ -125,6 +125,9 @@ extern void _gcry_aes_vaes_ctr32le_enc (void *context, unsigned char *ctr,
 extern size_t _gcry_aes_vaes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 					const void *inbuf_arg, size_t nblocks,
 					int encrypt);
+extern size_t _gcry_aes_vaes_ocb_auth (gcry_cipher_hd_t c,
+				       const void *inbuf_arg,
+				       size_t nblocks);
 extern void _gcry_aes_vaes_xts_crypt (void *context, unsigned char *tweak,
 				      void *outbuf_arg, const void *inbuf_arg,
 				      size_t nblocks, int encrypt);
@@ -562,6 +565,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
 	  bulk_ops->ctr_enc = _gcry_aes_vaes_ctr_enc;
 	  bulk_ops->ctr32le_enc = _gcry_aes_vaes_ctr32le_enc;
 	  bulk_ops->ocb_crypt = _gcry_aes_vaes_ocb_crypt;
+	  bulk_ops->ocb_auth = _gcry_aes_vaes_ocb_auth;
 	  bulk_ops->xts_crypt = _gcry_aes_vaes_xts_crypt;
 	  bulk_ops->ecb_crypt = _gcry_aes_vaes_ecb_crypt;
 	}

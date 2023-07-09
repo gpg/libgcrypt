@@ -1402,7 +1402,7 @@ _gcry_vaes_avx2_ctr32le_enc_amd64:
 ELF(.size _gcry_vaes_avx2_ctr32le_enc_amd64,.-_gcry_vaes_avx2_ctr32le_enc_amd64)
 
 /**********************************************************************
-  OCB-mode encryption/decryption
+  OCB-mode encryption/decryption/authentication
  **********************************************************************/
 ELF(.type _gcry_vaes_avx2_ocb_crypt_amd64,@function)
 .globl _gcry_vaes_avx2_ocb_crypt_amd64
@@ -1418,7 +1418,7 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	 *	16(%rbp): offset
 	 *	24(%rbp): checksum
 	 *	32(%rbp): L-array
-	 *	40(%rbp): encrypt (%r15d)
+	 *	40(%rbp): decrypt/encrypt/auth (%r15d)
 	 */
 	CFI_STARTPROC();
 
@@ -1427,7 +1427,7 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 #define OFFSET_PTR_Q   16(%rbp)
 #define CHECKSUM_PTR_Q 24(%rbp)
 #define L_ARRAY_PTR_L  32(%rbp)
-#define ENCRYPT_FLAG_L 40(%rbp)
+#define OPER_MODE_L    40(%rbp)
 
 	pushq %rbp;
 	CFI_PUSH(%rbp);
@@ -1448,7 +1448,7 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	movq %rbx, (STACK_REGS_POS + 4 * 8)(%rsp);
 	CFI_REG_ON_STACK(rbx, STACK_REGS_POS + 4 * 8);
 
-	movl ENCRYPT_FLAG_L, %r15d; /* encrypt-flag. */
+	movl OPER_MODE_L, %r15d; /* decrypt/encrypt/auth-mode. */
 	movq OFFSET_PTR_Q, %r14; /* offset ptr. */
 	movq CHECKSUM_PTR_Q, %rbx; /* checksum ptr. */
 
@@ -1531,8 +1531,9 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	vinserti128 $1, %xmm10, %ymm9, %ymm7;
 	vinserti128 $1, %xmm15, %ymm11, %ymm8;
 
-	testl %r15d, %r15d;
-	jz .Locb_unaligned_blk8_dec;
+	cmpl $1, %r15d;
+	jb .Locb_unaligned_blk8_dec;
+	ja .Locb_unaligned_blk8_auth;
 		vmovdqu (0 * 16)(%rcx), %ymm0;
 		vmovdqu (2 * 16)(%rcx), %ymm1;
 		vmovdqu (4 * 16)(%rcx), %ymm2;
@@ -1595,6 +1596,59 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 		vmovdqu %ymm2, (4 * 16)(%rdx);
 		vmovdqu %ymm3, (6 * 16)(%rdx);
 		leaq (8 * 16)(%rdx), %rdx;
+
+		jmp .Locb_unaligned_blk8;
+
+	.align 8
+	.Locb_unaligned_blk8_auth:
+		vpxor (0 * 16)(%rcx), %ymm5, %ymm0;
+		vpxor (2 * 16)(%rcx), %ymm6, %ymm1;
+		vpxor (4 * 16)(%rcx), %ymm7, %ymm2;
+		vpxor (6 * 16)(%rcx), %ymm8, %ymm3;
+		leaq (8 * 16)(%rcx), %rcx;
+
+		/* AES rounds */
+		vbroadcasti128 (1 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (2 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (3 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (4 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (5 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (6 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (7 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (8 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (9 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (10 * 16)(%rdi), %ymm4;
+		cmpl $12, %r9d;
+		jb .Locb_unaligned_blk8_auth_last;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (11 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (12 * 16)(%rdi), %ymm4;
+		jz .Locb_unaligned_blk8_auth_last;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (13 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (14 * 16)(%rdi), %ymm4;
+
+		/* Last round and output handling. */
+	.Locb_unaligned_blk8_auth_last:
+		vaesenclast %ymm4, %ymm0, %ymm0;
+		vaesenclast %ymm4, %ymm1, %ymm1;
+		vaesenclast %ymm4, %ymm2, %ymm2;
+		vaesenclast %ymm4, %ymm3, %ymm3;
+		vpxor %ymm0, %ymm14, %ymm14;
+		vpxor %ymm1, %ymm13, %ymm13;
+		vpxor %ymm2, %ymm14, %ymm14;
+		vpxor %ymm3, %ymm13, %ymm13;
 
 		jmp .Locb_unaligned_blk8;
 
@@ -1690,8 +1744,9 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	vpxor (%r14, %rax), %xmm7, %xmm15;
 	vinserti128 $1, %xmm15, %ymm7, %ymm6;
 
-	testl %r15d, %r15d;
-	jz .Locb_unaligned_blk4_dec;
+	cmpl $1, %r15d;
+	jb .Locb_unaligned_blk4_dec;
+	ja .Locb_unaligned_blk4_auth;
 		vmovdqu (0 * 16)(%rcx), %ymm0;
 		vmovdqu (2 * 16)(%rcx), %ymm1;
 		leaq (4 * 16)(%rcx), %rcx;
@@ -1741,6 +1796,53 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 		vmovdqu %ymm0, (0 * 16)(%rdx);
 		vmovdqu %ymm1, (2 * 16)(%rdx);
 		leaq (4 * 16)(%rdx), %rdx;
+
+		jmp .Locb_unaligned_blk1;
+
+	.align 8
+	.Locb_unaligned_blk4_auth:
+		vpxor (0 * 16)(%rcx), %ymm5, %ymm0;
+		vpxor (2 * 16)(%rcx), %ymm6, %ymm1;
+		leaq (4 * 16)(%rcx), %rcx;
+
+		/* AES rounds */
+		vbroadcasti128 (1 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (2 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (3 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (4 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (5 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (6 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (7 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (8 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (9 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (10 * 16)(%rdi), %ymm4;
+		cmpl $12, %r9d;
+		jb .Locb_unaligned_blk4_auth_last;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (11 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (12 * 16)(%rdi), %ymm4;
+		jz .Locb_unaligned_blk4_auth_last;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (13 * 16)(%rdi), %ymm4;
+		VAESENC2(%ymm4, %ymm0, %ymm1);
+		vbroadcasti128 (14 * 16)(%rdi), %ymm4;
+
+	      /* Last round and output handling. */
+	.Locb_unaligned_blk4_auth_last:
+		vaesenclast %ymm4, %ymm0, %ymm0;
+		vaesenclast %ymm4, %ymm1, %ymm1;
+		vpxor %ymm0, %ymm14, %ymm14;
+		vpxor %ymm1, %ymm13, %ymm13;
 
 		jmp .Locb_unaligned_blk1;
 
@@ -1808,8 +1910,9 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	shll $4, %r11d;
 	vpxor (%r14, %r11), %xmm15, %xmm15;
 
-	testl %r15d, %r15d;
-	jz .Locb_unaligned_blk1_dec;
+	cmpl $1, %r15d;
+	jb .Locb_unaligned_blk1_dec;
+	ja .Locb_unaligned_blk1_auth;
 		vmovdqu (%rcx), %xmm0;
 		vpxor %ymm0, %ymm14, %ymm14;
 		vpxor %xmm15, %xmm0, %xmm0;
@@ -1839,6 +1942,39 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 		vaesenclast %xmm1, %xmm0, %xmm0;
 		vmovdqu %xmm0, (%rdx);
 		leaq 16(%rdx), %rdx;
+
+		jmp .Locb_unaligned_blk1;
+
+	.align 8
+	.Locb_unaligned_blk1_auth:
+		vpxor (%rcx), %xmm15, %xmm0;
+		leaq 16(%rcx), %rcx;
+
+		/* AES rounds. */
+		vaesenc (1 * 16)(%rdi), %xmm0, %xmm0;
+		vaesenc (2 * 16)(%rdi), %xmm0, %xmm0;
+		vaesenc (3 * 16)(%rdi), %xmm0, %xmm0;
+		vaesenc (4 * 16)(%rdi), %xmm0, %xmm0;
+		vaesenc (5 * 16)(%rdi), %xmm0, %xmm0;
+		vaesenc (6 * 16)(%rdi), %xmm0, %xmm0;
+		vaesenc (7 * 16)(%rdi), %xmm0, %xmm0;
+		vaesenc (8 * 16)(%rdi), %xmm0, %xmm0;
+		vaesenc (9 * 16)(%rdi), %xmm0, %xmm0;
+		vmovdqa (10 * 16)(%rdi), %xmm1;
+		cmpl $12, %r9d;
+		jb .Locb_unaligned_blk1_auth_last;
+		vaesenc %xmm1, %xmm0, %xmm0;
+		vaesenc (11 * 16)(%rdi), %xmm0, %xmm0;
+		vmovdqa (12 * 16)(%rdi), %xmm1;
+		jz .Locb_unaligned_blk1_auth_last;
+		vaesenc %xmm1, %xmm0, %xmm0;
+		vaesenc (13 * 16)(%rdi), %xmm0, %xmm0;
+		vmovdqa (14 * 16)(%rdi), %xmm1;
+
+		/* Last round and output handling. */
+	.Locb_unaligned_blk1_auth_last:
+		vaesenclast %xmm1, %xmm0, %xmm0;
+		vpxor %ymm0, %ymm14, %ymm14;
 
 		jmp .Locb_unaligned_blk1;
 
@@ -1961,8 +2097,9 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	vpxor (%r14, %rax), %xmm13, %xmm14; /* offset ^ first key ^ L[3] ^ L[ntz{nblk+16}] */
 	vinserti128 $1, %xmm14, %ymm13, %ymm14;
 
-	testl %r15d, %r15d;
-	jz .Locb_aligned_blk16_dec;
+	cmpl $1, %r15d;
+	jb .Locb_aligned_blk16_dec;
+	ja .Locb_aligned_blk16_auth;
 		vmovdqu (0 * 16)(%rcx), %ymm0;
 		vmovdqu (2 * 16)(%rcx), %ymm1;
 		vmovdqu (4 * 16)(%rcx), %ymm2;
@@ -2054,6 +2191,81 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 		vmovdqu %ymm6, (12 * 16)(%rdx);
 		vmovdqu %ymm7, (14 * 16)(%rdx);
 		leaq (16 * 16)(%rdx), %rdx;
+
+		jmp .Locb_aligned_blk16;
+
+	.align 8
+	.Locb_aligned_blk16_auth:
+		vpxor (10 * 16)(%rsp), %ymm15, %ymm13;
+		vpxor (14 * 16)(%rcx), %ymm14, %ymm7;
+
+		vpxor (0 * 16)(%rcx), %ymm8, %ymm0;
+		vpxor (2 * 16)(%rcx), %ymm9, %ymm1;
+		vpxor (4 * 16)(%rcx), %ymm10, %ymm2;
+		vpxor (6 * 16)(%rcx), %ymm11, %ymm3;
+		vpxor (8 * 16)(%rcx), %ymm12, %ymm4;
+		vpxor (10 * 16)(%rcx), %ymm13, %ymm5;
+		vmovdqa %ymm13, (16 * 16)(%rsp);
+		vpxor (12 * 16)(%rsp), %ymm15, %ymm13;
+		vpxor (12 * 16)(%rcx), %ymm13, %ymm6;
+		vmovdqa %ymm13, (18 * 16)(%rsp);
+
+		leaq (16 * 16)(%rcx), %rcx;
+
+		vperm2i128 $0x11, %ymm14, %ymm14, %ymm15;
+
+		/* AES rounds */
+		vbroadcasti128 (1 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (2 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (3 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (4 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (5 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (6 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (7 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (8 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (9 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (10 * 16)(%rdi), %ymm13;
+		cmpl $12, %r9d;
+		jb .Locb_aligned_blk16_auth_last;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (11 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (12 * 16)(%rdi), %ymm13;
+		jz .Locb_aligned_blk16_auth_last;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (13 * 16)(%rdi), %ymm13;
+		VAESENC8(%ymm13, %ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7);
+		vbroadcasti128 (14 * 16)(%rdi), %ymm13;
+
+		/* Last round and output handling. */
+	.Locb_aligned_blk16_auth_last:
+		vaesenclast %ymm13, %ymm0, %ymm0;
+		vaesenclast %ymm13, %ymm1, %ymm1;
+		vaesenclast %ymm13, %ymm2, %ymm2;
+		vaesenclast %ymm13, %ymm3, %ymm3;
+		vaesenclast %ymm13, %ymm4, %ymm4;
+		vaesenclast %ymm13, %ymm5, %ymm5;
+		vaesenclast %ymm13, %ymm6, %ymm6;
+		vaesenclast %ymm13, %ymm7, %ymm7;
+
+		vpxor %ymm1, %ymm0, %ymm0;
+		vpxor %ymm3, %ymm2, %ymm2;
+		vpxor %ymm5, %ymm4, %ymm4;
+		vpxor %ymm7, %ymm6, %ymm6;
+		vpxor %ymm2, %ymm0, %ymm0;
+		vpxor %ymm6, %ymm4, %ymm4;
+		vpxor %ymm4, %ymm0, %ymm0;
+		vpxor (20 * 16)(%rsp), %ymm0, %ymm0;
+		vmovdqa %ymm0, (20 * 16)(%rsp);
 
 		jmp .Locb_aligned_blk16;
 
@@ -2169,8 +2381,9 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	vpxor (%r14, %rax), %xmm13, %xmm14; /* offset ^ first key ^ L[2] ^ L[ntz{nblk+8}] */
 	vinserti128 $1, %xmm14, %ymm13, %ymm14;
 
-	testl %r15d, %r15d;
-	jz .Locb_aligned_blk8_dec;
+	cmpl $1, %r15d;
+	jb .Locb_aligned_blk8_dec;
+	ja .Locb_aligned_blk8_auth;
 		vmovdqu (0 * 16)(%rcx), %ymm0;
 		vmovdqu (2 * 16)(%rcx), %ymm1;
 		vmovdqu (4 * 16)(%rcx), %ymm2;
@@ -2237,6 +2450,63 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 		vmovdqu %ymm2, (4 * 16)(%rdx);
 		vmovdqu %ymm3, (6 * 16)(%rdx);
 		leaq (8 * 16)(%rdx), %rdx;
+
+		jmp .Locb_aligned_done;
+
+	.align 8
+	.Locb_aligned_blk8_auth:
+		vpxor (0 * 16)(%rcx), %ymm5, %ymm0;
+		vpxor (2 * 16)(%rcx), %ymm6, %ymm1;
+		vpxor (4 * 16)(%rcx), %ymm7, %ymm2;
+		vpxor (6 * 16)(%rcx), %ymm14, %ymm3;
+		leaq (8 * 16)(%rcx), %rcx;
+
+		vperm2i128 $0x11, %ymm14, %ymm14, %ymm15;
+
+		/* AES rounds */
+		vbroadcasti128 (1 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (2 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (3 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (4 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (5 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (6 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (7 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (8 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (9 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (10 * 16)(%rdi), %ymm4;
+		cmpl $12, %r9d;
+		jb .Locb_aligned_blk8_auth_last;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (11 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (12 * 16)(%rdi), %ymm4;
+		jz .Locb_aligned_blk8_auth_last;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (13 * 16)(%rdi), %ymm4;
+		VAESENC4(%ymm4, %ymm0, %ymm1, %ymm2, %ymm3);
+		vbroadcasti128 (14 * 16)(%rdi), %ymm4;
+
+		/* Last round and output handling. */
+	.Locb_aligned_blk8_auth_last:
+		vaesenclast %ymm4, %ymm0, %ymm0;
+		vaesenclast %ymm4, %ymm1, %ymm1;
+		vaesenclast %ymm4, %ymm2, %ymm2;
+		vaesenclast %ymm4, %ymm3, %ymm3;
+
+		vpxor %ymm1, %ymm0, %ymm0;
+		vpxor %ymm3, %ymm2, %ymm2;
+		vpxor %ymm2, %ymm0, %ymm0;
+		vpxor (20 * 16)(%rsp), %ymm0, %ymm0;
+		vmovdqa %ymm0, (20 * 16)(%rsp);
 
 		jmp .Locb_aligned_done;
 
@@ -2356,6 +2626,8 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	CFI_RESTORE(%r15);
 	movq (STACK_REGS_POS + 4 * 8)(%rsp), %rbx;
 	CFI_RESTORE(%rbx);
+
+	xorl %eax, %eax;
 
 	leave;
 	CFI_LEAVE();
