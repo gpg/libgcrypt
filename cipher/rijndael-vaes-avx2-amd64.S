@@ -119,6 +119,7 @@ _gcry_vaes_avx2_cbc_dec_amd64:
 	vmovdqu (10 * 16)(%rcx), %ymm5;
 	vmovdqu (12 * 16)(%rcx), %ymm6;
 	vmovdqu (14 * 16)(%rcx), %ymm7;
+	vinserti128 $1, %xmm0, %ymm15, %ymm9;
 	vpxor %ymm8, %ymm0, %ymm0;
 	vpxor %ymm8, %ymm1, %ymm1;
 	vpxor %ymm8, %ymm2, %ymm2;
@@ -128,7 +129,6 @@ _gcry_vaes_avx2_cbc_dec_amd64:
 	vpxor %ymm8, %ymm6, %ymm6;
 	vpxor %ymm8, %ymm7, %ymm7;
 	vbroadcasti128 (1 * 16)(%rdi), %ymm8;
-	vinserti128 $1, (0 * 16)(%rcx), %ymm15, %ymm9;
 	vmovdqu (1 * 16)(%rcx), %ymm10;
 	vmovdqu (3 * 16)(%rcx), %ymm11;
 	vmovdqu (5 * 16)(%rcx), %ymm12;
@@ -212,12 +212,12 @@ _gcry_vaes_avx2_cbc_dec_amd64:
 	vmovdqu (2 * 16)(%rcx), %ymm1;
 	vmovdqu (4 * 16)(%rcx), %ymm2;
 	vmovdqu (6 * 16)(%rcx), %ymm3;
+	vinserti128 $1, %xmm0, %ymm15, %ymm10;
 	vpxor %ymm4, %ymm0, %ymm0;
 	vpxor %ymm4, %ymm1, %ymm1;
 	vpxor %ymm4, %ymm2, %ymm2;
 	vpxor %ymm4, %ymm3, %ymm3;
 	vbroadcasti128 (1 * 16)(%rdi), %ymm4;
-	vinserti128 $1, (0 * 16)(%rcx), %ymm15, %ymm10;
 	vmovdqu (1 * 16)(%rcx), %ymm11;
 	vmovdqu (3 * 16)(%rcx), %ymm12;
 	vmovdqu (5 * 16)(%rcx), %ymm13;
@@ -283,10 +283,10 @@ _gcry_vaes_avx2_cbc_dec_amd64:
 	vbroadcasti128 (0 * 16)(%rdi), %ymm4;
 	vmovdqu (0 * 16)(%rcx), %ymm0;
 	vmovdqu (2 * 16)(%rcx), %ymm1;
+	vinserti128 $1, %xmm0, %ymm15, %ymm10;
 	vpxor %ymm4, %ymm0, %ymm0;
 	vpxor %ymm4, %ymm1, %ymm1;
 	vbroadcasti128 (1 * 16)(%rdi), %ymm4;
-	vinserti128 $1, (0 * 16)(%rcx), %ymm15, %ymm10;
 	vmovdqu (1 * 16)(%rcx), %ymm11;
 	vmovdqu (3 * 16)(%rcx), %xmm15;
 	leaq (4 * 16)(%rcx), %rcx;
@@ -418,7 +418,8 @@ _gcry_vaes_avx2_cfb_dec_amd64:
 
 	/* Load input and xor first key. Update IV. */
 	vbroadcasti128 (0 * 16)(%rdi), %ymm8;
-	vinserti128 $1, (0 * 16)(%rcx), %ymm15, %ymm0;
+	vmovdqu (0 * 16)(%rcx), %ymm9;
+	vinserti128 $1, %xmm9, %ymm15, %ymm0;
 	vmovdqu (1 * 16)(%rcx), %ymm1;
 	vmovdqu (3 * 16)(%rcx), %ymm2;
 	vmovdqu (5 * 16)(%rcx), %ymm3;
@@ -436,7 +437,6 @@ _gcry_vaes_avx2_cfb_dec_amd64:
 	vpxor %ymm8, %ymm6, %ymm6;
 	vpxor %ymm8, %ymm7, %ymm7;
 	vbroadcasti128 (1 * 16)(%rdi), %ymm8;
-	vmovdqu (0 * 16)(%rcx), %ymm9;
 	vmovdqu (2 * 16)(%rcx), %ymm10;
 	vmovdqu (4 * 16)(%rcx), %ymm11;
 	vmovdqu (6 * 16)(%rcx), %ymm12;
@@ -516,7 +516,8 @@ _gcry_vaes_avx2_cfb_dec_amd64:
 
 	/* Load input and xor first key. Update IV. */
 	vbroadcasti128 (0 * 16)(%rdi), %ymm4;
-	vinserti128 $1, (0 * 16)(%rcx), %ymm15, %ymm0;
+	vmovdqu (0 * 16)(%rcx), %ymm10;
+	vinserti128 $1, %xmm10, %ymm15, %ymm0;
 	vmovdqu (1 * 16)(%rcx), %ymm1;
 	vmovdqu (3 * 16)(%rcx), %ymm2;
 	vmovdqu (5 * 16)(%rcx), %ymm3;
@@ -526,7 +527,6 @@ _gcry_vaes_avx2_cfb_dec_amd64:
 	vpxor %ymm4, %ymm2, %ymm2;
 	vpxor %ymm4, %ymm3, %ymm3;
 	vbroadcasti128 (1 * 16)(%rdi), %ymm4;
-	vmovdqu (0 * 16)(%rcx), %ymm10;
 	vmovdqu (2 * 16)(%rcx), %ymm11;
 	vmovdqu (4 * 16)(%rcx), %ymm12;
 	vmovdqu (6 * 16)(%rcx), %ymm13;
@@ -590,13 +590,13 @@ _gcry_vaes_avx2_cfb_dec_amd64:
 
 	/* Load input and xor first key. Update IV. */
 	vbroadcasti128 (0 * 16)(%rdi), %ymm4;
-	vinserti128 $1, (0 * 16)(%rcx), %ymm15, %ymm0;
+	vmovdqu (0 * 16)(%rcx), %ymm10;
+	vinserti128 $1, %xmm10, %ymm15, %ymm0;
 	vmovdqu (1 * 16)(%rcx), %ymm1;
 	vmovdqu (3 * 16)(%rcx), %xmm15;
 	vpxor %ymm4, %ymm0, %ymm0;
 	vpxor %ymm4, %ymm1, %ymm1;
 	vbroadcasti128 (1 * 16)(%rdi), %ymm4;
-	vmovdqu (0 * 16)(%rcx), %ymm10;
 	vmovdqu (2 * 16)(%rcx), %ymm11;
 
 	leaq (4 * 16)(%rcx), %rcx;
