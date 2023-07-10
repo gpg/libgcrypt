@@ -1244,8 +1244,7 @@ AC_CACHE_CHECK([whether GCC assembler supports for CFI directives],
                 ".cfi_restore_state\n\t"
                 ".long 0\n\t"
                 ".cfi_endproc\n\t"
-            );
-            void asmfunc(void)]])],
+            );]])],
           [gcry_cv_gcc_asm_cfi_directives=yes])])
 if test "$gcry_cv_gcc_asm_cfi_directives" = "yes" ; then
    AC_DEFINE(HAVE_GCC_ASM_CFI_DIRECTIVES,1,

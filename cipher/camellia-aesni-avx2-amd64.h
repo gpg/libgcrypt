@@ -2198,16 +2198,7 @@ FUNC_NAME(enc_blk1_32):
 	STORE_OUTPUT(ymm10, 13);
 	STORE_OUTPUT(ymm9, 14);
 	STORE_OUTPUT(ymm8, 15);
-
-.align 8
-2:
-.Lenc_blk32_done:
-	vzeroall;
-
-	leave;
-	CFI_LEAVE();
-	ret_spec_stop;
-	CFI_ENDPROC();
+	jmp .Lenc_blk32_done;
 
 .align 8
 .Lenc_blk32:
@@ -2220,7 +2211,15 @@ FUNC_NAME(enc_blk1_32):
 	write_output(%ymm7, %ymm6, %ymm5, %ymm4, %ymm3, %ymm2, %ymm1, %ymm0,
 		     %ymm15, %ymm14, %ymm13, %ymm12, %ymm11, %ymm10, %ymm9,
 		     %ymm8, %rsi);
-	jmp .Lenc_blk32_done;
+
+.align 8
+2:
+.Lenc_blk32_done:
+	vzeroall;
+
+	leave;
+	CFI_LEAVE();
+	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(enc_blk1_32),.-FUNC_NAME(enc_blk1_32);)
 
