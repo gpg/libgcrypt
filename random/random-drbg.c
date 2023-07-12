@@ -291,7 +291,7 @@ struct drbg_state_ops_s
 struct drbg_test_data_s
 {
   drbg_string_t *testentropy;	/* TEST PARAMETER: test entropy */
-  int fail_seed_source:1;	/* If set, the seed function will
+  unsigned int fail_seed_source:1; /* If set, the seed function will
                                  * return an error. */
 };
 
@@ -308,8 +308,8 @@ struct drbg_state_s
 				 * operation -- allocated during init */
   void *priv_data;		/* Cipher handle */
   gcry_cipher_hd_t ctr_handle;	/* CTR mode cipher handle */
-  int seeded:1;			/* DRBG fully seeded? */
-  int pr:1;			/* Prediction resistance enabled? */
+  unsigned int seeded:1;	/* DRBG fully seeded? */
+  unsigned int pr:1;		/* Prediction resistance enabled? */
   /* Taken from libgcrypt ANSI X9.31 DRNG: We need to keep track of the
    * process which did the initialization so that we can detect a fork.
    * The volatile modifier is required so that the compiler does not

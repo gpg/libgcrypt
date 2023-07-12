@@ -103,8 +103,8 @@ struct hmac256_context
   u32  h0, h1, h2, h3, h4, h5, h6, h7;
   u32  nblocks;
   int  count;
-  int  finalized:1;
-  int  use_hmac:1;
+  unsigned int  finalized:1;
+  unsigned int  use_hmac:1;
   unsigned char buf[64];
   unsigned char opad[64];
 };
