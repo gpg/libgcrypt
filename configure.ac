@@ -3811,7 +3811,7 @@ fi
 
 if test "$gcry_cv_gcc_attribute_aligned" != "yes" ; then
 cat <<G10EOF
-   Please not that your compiler does not support the GCC style
+   Please note that your compiler does not support the GCC style
    aligned attribute. Using this software may evoke bus errors.
 
 G10EOF
