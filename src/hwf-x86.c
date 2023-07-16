@@ -39,14 +39,17 @@
 #if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
 # define HAS_X86_CPUID 1
 
-#if _GCRY_GCC_VERSION >= 40700 /* 4.7 */
-# define FORCE_FUNC_FRAME_POINTER \
-	__attribute__ ((optimize("no-omit-frame-pointer")))
+#ifdef HAVE_GCC_ASM_CFI_DIRECTIVES
+# define CFI_ADJUST_CFA_OFFSET(off) ".cfi_adjust_cfa_offset " #off "\n\t"
+# define CFI_PUSH4 CFI_ADJUST_CFA_OFFSET(4)
+# define CFI_POP4 CFI_ADJUST_CFA_OFFSET(-4)
 #else
-# define FORCE_FUNC_FRAME_POINTER
+# define CFI_ADJUST_CFA_OFFSET(off)
+# define CFI_PUSH4
+# define CFI_POP4
 #endif
 
-static FORCE_FUNC_FRAME_POINTER int
+static int
 is_cpuid_available(void)
 {
   int has_cpuid = 0;
@@ -55,15 +58,23 @@ is_cpuid_available(void)
      vs 32 bit pushf/popf). */
   asm volatile
     ("pushf\n\t"                 /* Copy flags to EAX.  */
+     CFI_PUSH4
      "popl %%eax\n\t"
+     CFI_POP4
      "movl %%eax, %%ecx\n\t"     /* Save flags into ECX.  */
      "xorl $0x200000, %%eax\n\t" /* Toggle ID bit and copy it to the flags.  */
      "pushl %%eax\n\t"
+     CFI_PUSH4
      "popf\n\t"
+     CFI_POP4
      "pushf\n\t"                 /* Copy changed flags again to EAX.  */
+     CFI_PUSH4
      "popl %%eax\n\t"
+     CFI_POP4
      "pushl %%ecx\n\t"           /* Restore flags from ECX.  */
+     CFI_PUSH4
      "popf\n\t"
+     CFI_POP4
      "xorl %%eax, %%ecx\n\t"     /* Compare flags against saved flags.  */
      "jz .Lno_cpuid%=\n\t"       /* Toggling did not work, thus no CPUID.  */
      "movl $1, %0\n"             /* Worked. true -> HAS_CPUID.  */
