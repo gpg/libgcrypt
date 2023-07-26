@@ -55,7 +55,7 @@ yat2m$(EXEEXT_FOR_BUILD): yat2m.c
 .fig.pdf:
 	fig2dev -L pdf `test -f '$<' || echo '$(srcdir)/'`$< $@
 
-yat2m-stamp: $(myman_sources)
+yat2m-stamp: $(myman_sources) $(srcdir)/version.texi
 	@rm -f yat2m-stamp.tmp
 	@touch yat2m-stamp.tmp
 	for file in $(myman_sources) ; do \
