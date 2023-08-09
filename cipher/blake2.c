@@ -494,7 +494,8 @@ static gcry_err_code_t blake2b_init_ctx(void *ctx, unsigned int flags,
   c->use_avx2 = !!(features & HWF_INTEL_AVX2);
 #endif
 #ifdef USE_AVX512
-  c->use_avx512 = !!(features & HWF_INTEL_AVX512);
+  c->use_avx512 = (features & HWF_INTEL_AVX512)
+		  && (features & HWF_INTEL_FAST_VPGATHER);
 #endif
 
   c->outlen = dbits / 8;

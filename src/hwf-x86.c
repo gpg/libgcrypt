@@ -424,6 +424,36 @@ detect_x86_gnuc (void)
 	  avoid_vpgather |= 1;
 	  break;
 	}
+
+      /* These Intel Core processors (skylake to tigerlake) have slow VPGATHER
+       * because of mitigation introduced by new microcode (2023-08-08) for
+       * "Downfall" speculative execution vulnerability. */
+      switch (model)
+	{
+	/* Skylake, Cascade Lake, Cooper Lake */
+	case 0x4E:
+	case 0x5E:
+	case 0x55:
+	/* Kaby Lake, Coffee Lake, Whiskey Lake, Amber Lake */
+	case 0x8E:
+	case 0x9E:
+	/* Cannon Lake */
+	case 0x66:
+	/* Comet Lake */
+	case 0xA5:
+	case 0xA6:
+	/* Ice Lake */
+	case 0x7E:
+	case 0x6A:
+	case 0x6C:
+	/* Tiger Lake */
+	case 0x8C:
+	case 0x8D:
+	/* Rocket Lake */
+	case 0xA7:
+	  avoid_vpgather |= 1;
+	  break;
+	}
     }
   else if (is_amd_cpu)
     {
