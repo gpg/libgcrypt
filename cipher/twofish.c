@@ -767,11 +767,7 @@ twofish_setkey (void *context, const byte *key, unsigned int keylen,
   rc = do_twofish_setkey (ctx, key, keylen);
 
 #ifdef USE_AVX2
-  ctx->use_avx2 = 0;
-  if ((hwfeatures & HWF_INTEL_AVX2) && (hwfeatures & HWF_INTEL_FAST_VPGATHER))
-    {
-      ctx->use_avx2 = 1;
-    }
+  ctx->use_avx2 = (hwfeatures & HWF_INTEL_AVX2) != 0;
 #endif
 
   /* Setup bulk encryption routines.  */

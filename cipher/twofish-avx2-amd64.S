@@ -39,14 +39,20 @@
 /* register macros */
 #define CTX	%rdi
 
-#define RROUND  %r12
-#define RROUNDd %r12d
+#define RROUND  %r13
+#define RROUNDd %r13d
 #define RS0	CTX
 #define RS1	%r8
 #define RS2	%r9
 #define RS3	%r10
 #define RK	%r11
-#define RW	%rax
+#define RW	%r12
+#define RIDX0	%rax
+#define RIDX0d	%eax
+#define RIDX1	%rbx
+#define RIDX1d	%ebx
+#define RIDX2	%r14
+#define RIDX3	%r15
 
 #define RA0	%ymm8
 #define RB0	%ymm9
@@ -63,14 +69,14 @@
 #define RX1	%ymm2
 #define RY1	%ymm3
 #define RT0	%ymm4
-#define RIDX	%ymm5
+#define RT1	%ymm5
 
 #define RX0x	%xmm0
 #define RY0x	%xmm1
 #define RX1x	%xmm2
 #define RY1x	%xmm3
 #define RT0x	%xmm4
-#define RIDXx	%xmm5
+#define RT1x	%xmm5
 
 #define RTMP0   RX0
 #define RTMP0x  RX0x
@@ -80,8 +86,8 @@
 #define RTMP2x  RY0x
 #define RTMP3   RY1
 #define RTMP3x  RY1x
-#define RTMP4   RIDX
-#define RTMP4x  RIDXx
+#define RTMP4   RT1
+#define RTMP4x  RT1x
 
 /* vpgatherdd mask and '-1' */
 #define RNOT	%ymm6
@@ -102,48 +108,42 @@
 	leaq s2(CTX), RS2; \
 	leaq s3(CTX), RS3; \
 
+#define do_gather(stoffs, byteoffs, rs, out) \
+	movzbl (stoffs + 0*4 + byteoffs)(%rsp), RIDX0d; \
+	movzbl (stoffs + 1*4 + byteoffs)(%rsp), RIDX1d; \
+	movzbq (stoffs + 2*4 + byteoffs)(%rsp), RIDX2; \
+	movzbq (stoffs + 3*4 + byteoffs)(%rsp), RIDX3; \
+	vmovd (rs, RIDX0, 4), RT1x; \
+	movzbl (stoffs + 4*4 + byteoffs)(%rsp), RIDX0d; \
+	vmovd (rs, RIDX0, 4), RT0x; \
+	vpinsrd $1, (rs, RIDX1, 4), RT1x, RT1x; \
+	movzbl (stoffs + 5*4 + byteoffs)(%rsp), RIDX1d; \
+	vpinsrd $1, (rs, RIDX1, 4), RT0x, RT0x; \
+	vpinsrd $2, (rs, RIDX2, 4), RT1x, RT1x; \
+	movzbq (stoffs + 6*4 + byteoffs)(%rsp), RIDX2; \
+	vpinsrd $2, (rs, RIDX2, 4), RT0x, RT0x; \
+	vpinsrd $3, (rs, RIDX3, 4), RT1x, RT1x; \
+	movzbq (stoffs + 7*4 + byteoffs)(%rsp), RIDX3; \
+	vpinsrd $3, (rs, RIDX3, 4), RT0x, RT0x; \
+	vinserti128 $1, RT0x, RT1, out;
+
 #define g16(ab, rs0, rs1, rs2, rs3, xy) \
-	vpand RBYTE, ab ## 0, RIDX; \
-	vpgatherdd RNOT, (rs0, RIDX, 4), xy ## 0; \
-	vpcmpeqd RNOT, RNOT, RNOT; \
-		\
-		vpand RBYTE, ab ## 1, RIDX; \
-		vpgatherdd RNOT, (rs0, RIDX, 4), xy ## 1; \
-		vpcmpeqd RNOT, RNOT, RNOT; \
-	\
-	vpsrld $8, ab ## 0, RIDX; \
-	vpand RBYTE, RIDX, RIDX; \
-	vpgatherdd RNOT, (rs1, RIDX, 4), RT0; \
-	vpcmpeqd RNOT, RNOT, RNOT; \
-	vpxor RT0, xy ## 0, xy ## 0; \
-		\
-		vpsrld $8, ab ## 1, RIDX; \
-		vpand RBYTE, RIDX, RIDX; \
-		vpgatherdd RNOT, (rs1, RIDX, 4), RT0; \
-		vpcmpeqd RNOT, RNOT, RNOT; \
-		vpxor RT0, xy ## 1, xy ## 1; \
-	\
-	vpsrld $16, ab ## 0, RIDX; \
-	vpand RBYTE, RIDX, RIDX; \
-	vpgatherdd RNOT, (rs2, RIDX, 4), RT0; \
-	vpcmpeqd RNOT, RNOT, RNOT; \
-	vpxor RT0, xy ## 0, xy ## 0; \
-		\
-		vpsrld $16, ab ## 1, RIDX; \
-		vpand RBYTE, RIDX, RIDX; \
-		vpgatherdd RNOT, (rs2, RIDX, 4), RT0; \
-		vpcmpeqd RNOT, RNOT, RNOT; \
-		vpxor RT0, xy ## 1, xy ## 1; \
-	\
-	vpsrld $24, ab ## 0, RIDX; \
-	vpgatherdd RNOT, (rs3, RIDX, 4), RT0; \
-	vpcmpeqd RNOT, RNOT, RNOT; \
-	vpxor RT0, xy ## 0, xy ## 0; \
-		\
-		vpsrld $24, ab ## 1, RIDX; \
-		vpgatherdd RNOT, (rs3, RIDX, 4), RT0; \
-		vpcmpeqd RNOT, RNOT, RNOT; \
-		vpxor RT0, xy ## 1, xy ## 1;
+	vmovdqa ab ## 0, 0(%rsp); \
+	vmovdqa ab ## 1, 32(%rsp); \
+	do_gather(0*32, 0, rs0, xy ## 0); \
+		do_gather(1*32, 0, rs0, xy ## 1); \
+	do_gather(0*32, 1, rs1, RT1); \
+	vpxor RT1, xy ## 0, xy ## 0; \
+		do_gather(1*32, 1, rs1, RT1); \
+		vpxor RT1, xy ## 1, xy ## 1; \
+	do_gather(0*32, 2, rs2, RT1); \
+	vpxor RT1, xy ## 0, xy ## 0; \
+		do_gather(1*32, 2, rs2, RT1); \
+		vpxor RT1, xy ## 1, xy ## 1; \
+	do_gather(0*32, 3, rs3, RT1); \
+	vpxor RT1, xy ## 0, xy ## 0; \
+		do_gather(1*32, 3, rs3, RT1); \
+		vpxor RT1, xy ## 1, xy ## 1;
 
 #define g1_16(a, x) \
 	g16(a, RS0, RS1, RS2, RS3, x);
@@ -375,8 +375,23 @@ __twofish_enc_blk16:
 	 */
 	CFI_STARTPROC();
 
-	pushq RROUND;
-	CFI_PUSH(RROUND);
+	pushq %rbp;
+	CFI_PUSH(%rbp);
+	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
+	subq $(64 + 5 * 8), %rsp;
+	andq $-64, %rsp;
+
+	movq %rbx, (64 + 0 * 8)(%rsp);
+	movq %r12, (64 + 1 * 8)(%rsp);
+	movq %r13, (64 + 2 * 8)(%rsp);
+	movq %r14, (64 + 3 * 8)(%rsp);
+	movq %r15, (64 + 4 * 8)(%rsp);
+	CFI_REG_ON_STACK(rbx, 64 + 0 * 8);
+	CFI_REG_ON_STACK(r12, 64 + 1 * 8);
+	CFI_REG_ON_STACK(r13, 64 + 2 * 8);
+	CFI_REG_ON_STACK(r14, 64 + 3 * 8);
+	CFI_REG_ON_STACK(r15, 64 + 4 * 8);
 
 	init_round_constants();
 
@@ -400,8 +415,21 @@ __twofish_enc_blk16:
 	outunpack_enc16(RA, RB, RC, RD);
 	transpose4x4_16(RA, RB, RC, RD);
 
-	popq RROUND;
-	CFI_POP(RROUND);
+	movq (64 + 0 * 8)(%rsp), %rbx;
+	movq (64 + 1 * 8)(%rsp), %r12;
+	movq (64 + 2 * 8)(%rsp), %r13;
+	movq (64 + 3 * 8)(%rsp), %r14;
+	movq (64 + 4 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
+	vpxor RT0, RT0, RT0;
+	vmovdqa RT0, 0(%rsp);
+	vmovdqa RT0, 32(%rsp);
+	leave;
+	CFI_LEAVE();
 
 	ret_spec_stop;
 	CFI_ENDPROC();
@@ -420,8 +448,23 @@ __twofish_dec_blk16:
 	 */
 	CFI_STARTPROC();
 
-	pushq RROUND;
-	CFI_PUSH(RROUND);
+	pushq %rbp;
+	CFI_PUSH(%rbp);
+	movq %rsp, %rbp;
+	CFI_DEF_CFA_REGISTER(%rbp);
+	subq $(64 + 5 * 8), %rsp;
+	andq $-64, %rsp;
+
+	movq %rbx, (64 + 0 * 8)(%rsp);
+	movq %r12, (64 + 1 * 8)(%rsp);
+	movq %r13, (64 + 2 * 8)(%rsp);
+	movq %r14, (64 + 3 * 8)(%rsp);
+	movq %r15, (64 + 4 * 8)(%rsp);
+	CFI_REG_ON_STACK(rbx, 64 + 0 * 8);
+	CFI_REG_ON_STACK(r12, 64 + 1 * 8);
+	CFI_REG_ON_STACK(r13, 64 + 2 * 8);
+	CFI_REG_ON_STACK(r14, 64 + 3 * 8);
+	CFI_REG_ON_STACK(r15, 64 + 4 * 8);
 
 	init_round_constants();
 
@@ -444,8 +487,21 @@ __twofish_dec_blk16:
 	outunpack_dec16(RA, RB, RC, RD);
 	transpose4x4_16(RA, RB, RC, RD);
 
-	popq RROUND;
-	CFI_POP(RROUND);
+	movq (64 + 0 * 8)(%rsp), %rbx;
+	movq (64 + 1 * 8)(%rsp), %r12;
+	movq (64 + 2 * 8)(%rsp), %r13;
+	movq (64 + 3 * 8)(%rsp), %r14;
+	movq (64 + 4 * 8)(%rsp), %r15;
+	CFI_RESTORE(%rbx);
+	CFI_RESTORE(%r12);
+	CFI_RESTORE(%r13);
+	CFI_RESTORE(%r14);
+	CFI_RESTORE(%r15);
+	vpxor RT0, RT0, RT0;
+	vmovdqa RT0, 0(%rsp);
+	vmovdqa RT0, 32(%rsp);
+	leave;
+	CFI_LEAVE();
 
 	ret_spec_stop;
 	CFI_ENDPROC();
