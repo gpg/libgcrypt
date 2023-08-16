@@ -44,11 +44,12 @@ endif
 DIST_SUBDIRS = m4 compat mpi cipher random src doc tests
 SUBDIRS =         compat mpi cipher random src $(doc) tests
 
-EXTRA_DIST = autogen.sh autogen.rc README.GIT LICENSES      	           \
-             ChangeLog-2011 build-aux/ChangeLog-2011 doc/ChangeLog-2011    \
-             m4/ChangeLog-2011 cipher/ChangeLog-2011 src/ChangeLog-2011    \
-             random/ChangeLog-2011 tests/ChangeLog-2011 mpi/ChangeLog-2011 \
-             build-aux/git-log-footer build-aux/git-log-fix VERSION
+EXTRA_DIST = autogen.sh autogen.rc README.GIT LICENSES			   \
+	     ChangeLog-2011 build-aux/ChangeLog-2011 doc/ChangeLog-2011	   \
+	     m4/ChangeLog-2011 cipher/ChangeLog-2011 src/ChangeLog-2011	   \
+	     random/ChangeLog-2011 tests/ChangeLog-2011 mpi/ChangeLog-2011 \
+	     build-aux/libtool-patch.sed 				   \
+	     build-aux/git-log-footer build-aux/git-log-fix VERSION
 
 DISTCLEANFILES =
 
