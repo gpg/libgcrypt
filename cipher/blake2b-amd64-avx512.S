@@ -49,6 +49,7 @@
 #define ROW4  %ymm3
 #define TMP1  %ymm4
 #define TMP1x %xmm4
+#define R16   %ymm13
 
 #define MA1   %ymm5
 #define MA2   %ymm6
@@ -72,64 +73,65 @@
   blake2b/AVX2
  **********************************************************************/
 
-#define GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, gather_masks) \
-        vmovdqa gather_masks + (4*4) * 0 rRIP, m2x; \
-          vmovdqa gather_masks + (4*4) * 1 rRIP, m3x; \
-            vmovdqa gather_masks + (4*4) * 2 rRIP, m4x; \
-              vmovdqa gather_masks + (4*4) * 3 rRIP, TMP1x; \
-        vpgatherdq (RINBLKS, m2x), m1 {%k1}; \
-          vpgatherdq (RINBLKS, m3x), m2 {%k2}; \
-            vpgatherdq (RINBLKS, m4x), m3 {%k3}; \
-              vpgatherdq (RINBLKS, TMP1x), m4 {%k4}
+/* Load one qword value at memory location MEM to specific element in
+ * target register VREG. Note, KPOS needs to contain value "(1 << QPOS)". */
+#define VPINSRQ_KMASK(kpos, qpos, mem, vreg) \
+        vmovdqu64 -((qpos) * 8) + mem, vreg {kpos}
 
-#define GEN_GMASK(s0, s1, s2, s3, s4, s5, s6, s7, \
-                  s8, s9, s10, s11, s12, s13, s14, s15) \
-        .long (s0)*8, (s2)*8, (s4)*8, (s6)*8, \
-              (s1)*8, (s3)*8, (s5)*8, (s7)*8, \
-              (s8)*8, (s10)*8, (s12)*8, (s14)*8, \
-              (s9)*8, (s11)*8, (s13)*8, (s15)*8
-
-#define RESET_KMASKS() \
-        kmovw %k0, %k1; \
-        kmovw %k0, %k2; \
-        kmovw %k0, %k3; \
-        kmovw %k0, %k4
+#define GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                   s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                   s9, s10, s11, s12, s13, s14, s15) \
+        vmovq (s0)*8(RINBLKS), m1x; \
+          vmovq (s1)*8(RINBLKS), m2x; \
+            vmovq (s8)*8(RINBLKS), m3x; \
+              vmovq (s9)*8(RINBLKS), m4x; \
+        VPINSRQ_KMASK(%k1, 1, (s2)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k1, 1, (s3)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k1, 1, (s10)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k1, 1, (s11)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k2, 2, (s4)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k2, 2, (s5)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k2, 2, (s12)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k2, 2, (s13)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k3, 3, (s6)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k3, 3, (s7)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k3, 3, (s14)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k3, 3, (s15)*8(RINBLKS), m4);
 
 #define LOAD_MSG_0(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask0); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                    0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15)
 #define LOAD_MSG_1(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask1); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                   14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3)
 #define LOAD_MSG_2(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask2); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                   11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4)
 #define LOAD_MSG_3(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask3); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                    7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8)
 #define LOAD_MSG_4(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask4); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                    9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13)
 #define LOAD_MSG_5(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask5); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                    2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9)
 #define LOAD_MSG_6(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask6); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                   12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11)
 #define LOAD_MSG_7(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask7); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                   13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10)
 #define LOAD_MSG_8(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask8); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                    6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5)
 #define LOAD_MSG_9(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask9); \
-        RESET_KMASKS()
+        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                   10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0)
 #define LOAD_MSG_10(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask0); \
-        RESET_KMASKS()
+        LOAD_MSG_0(m1, m2, m3, m4, m1x, m2x, m3x, m4x)
 #define LOAD_MSG_11(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, .Lgmask1);
+        LOAD_MSG_1(m1, m2, m3, m4, m1x, m2x, m3x, m4x)
 
 #define LOAD_MSG(r, m1, m2, m3, m4) \
         LOAD_MSG_##r(m1, m2, m3, m4, m1##x, m2##x, m3##x, m4##x)
@@ -138,7 +140,7 @@
 
 #define ROR_24(in, out) vprorq $24, in, out
 
-#define ROR_16(in, out) vprorq $16, in, out
+#define ROR_16(in, out) vpshufb R16, in, out
 
 #define ROR_63(in, out) vprorq $63, in, out
 
@@ -188,26 +190,10 @@ _blake2b_avx512_data:
         .quad 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1
         .quad 0x510e527fade682d1, 0x9b05688c2b3e6c1f
         .quad 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
-.Lgmask0:
-        GEN_GMASK(0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15)
-.Lgmask1:
-        GEN_GMASK(14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3)
-.Lgmask2:
-        GEN_GMASK(11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4)
-.Lgmask3:
-        GEN_GMASK(7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8)
-.Lgmask4:
-        GEN_GMASK(9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13)
-.Lgmask5:
-        GEN_GMASK(2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9)
-.Lgmask6:
-        GEN_GMASK(12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11)
-.Lgmask7:
-        GEN_GMASK(13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10)
-.Lgmask8:
-        GEN_GMASK(6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5)
-.Lgmask9:
-        GEN_GMASK(10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0)
+.Lshuf_ror16:
+        .byte 2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9
+.Lk1_mask:
+	.byte (1 << 1)
 
 .text
 
@@ -225,13 +211,14 @@ _gcry_blake2b_transform_amd64_avx512:
 
         spec_stop_avx512;
 
-        movl $0xf, %eax;
-        kmovw %eax, %k0;
-        xorl %eax, %eax;
-        RESET_KMASKS();
+        kmovb .Lk1_mask rRIP, %k1;
+        kshiftlb $1, %k1, %k2;
+        kshiftlb $2, %k1, %k3;
 
         addq $128, (STATE_T + 0)(RSTATE);
         adcq $0, (STATE_T + 8)(RSTATE);
+
+        vbroadcasti128 .Lshuf_ror16 rRIP, R16;
 
         vmovdqa .Liv+(0 * 8) rRIP, ROW3;
         vmovdqa .Liv+(4 * 8) rRIP, ROW4;
@@ -243,9 +230,8 @@ _gcry_blake2b_transform_amd64_avx512:
 
         LOAD_MSG(0, MA1, MA2, MA3, MA4);
         LOAD_MSG(1, MB1, MB2, MB3, MB4);
-        jmp .Loop;
 
-.align 64, 0xcc
+.align 16
 .Loop:
         ROUND(0, MA1, MA2, MA3, MA4);
                                       LOAD_MSG(2, MA1, MA2, MA3, MA4);
@@ -269,7 +255,6 @@ _gcry_blake2b_transform_amd64_avx512:
                                       LOAD_MSG(11, MB1, MB2, MB3, MB4);
         sub $1, RNBLKS;
         jz .Loop_end;
-                                      RESET_KMASKS();
 
         lea 128(RINBLKS), RINBLKS;
         addq $128, (STATE_T + 0)(RSTATE);
@@ -293,7 +278,7 @@ _gcry_blake2b_transform_amd64_avx512:
 
         jmp .Loop;
 
-.align 64, 0xcc
+.align 16
 .Loop_end:
         ROUND(10, MA1, MA2, MA3, MA4);
         ROUND(11, MB1, MB2, MB3, MB4);
@@ -304,9 +289,12 @@ _gcry_blake2b_transform_amd64_avx512:
         vmovdqu ROW1, (STATE_H + 0 * 8)(RSTATE);
         vmovdqu ROW2, (STATE_H + 4 * 8)(RSTATE);
 
-        kxorw %k0, %k0, %k0;
+        xorl %eax, %eax;
+        kxord %k1, %k1, %k1;
+        kxord %k2, %k2, %k2;
+        kxord %k3, %k3, %k3;
+
         vzeroall;
-        RESET_KMASKS();
         ret_spec_stop;
         CFI_ENDPROC();
 ELF(.size _gcry_blake2b_transform_amd64_avx512,
