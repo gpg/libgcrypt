@@ -73,8 +73,6 @@
   blake2b/AVX2
  **********************************************************************/
 
-/* Load one qword value at memory location MEM to specific element in
- * target register VREG. Note, KPOS needs to contain value "(1 << QPOS)". */
 #define VPINSRQ_KMASK(kpos, qpos, mem, vreg) \
         vmovdqu64 -((qpos) * 8) + mem, vreg {kpos}
 
@@ -98,6 +96,117 @@
             VPINSRQ_KMASK(%k3, 3, (s14)*8(RINBLKS), m3); \
               VPINSRQ_KMASK(%k3, 3, (s15)*8(RINBLKS), m4);
 
+#define GATHER_MSG_2(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                     s9, s10, s11, s12, s13, s14, s15) \
+        vmovdqu (s0)*8(RINBLKS), m1x; /* merged load */ \
+          vmovq (s1)*8(RINBLKS), m2x; \
+            vmovq (s8)*8(RINBLKS), m3x; \
+              vmovq (s9)*8(RINBLKS), m4x; \
+          VPINSRQ_KMASK(%k1, 1, (s3)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k1, 1, (s10)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k1, 1, (s11)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k2, 2, (s4)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k2, 2, (s5)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k2, 2, (s12)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k2, 2, (s13)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k3, 3, (s6)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k3, 3, (s7)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k3, 3, (s14)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k3, 3, (s15)*8(RINBLKS), m4);
+
+#define GATHER_MSG_3(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                     s9, s10, s11, s12, s13, s14, s15) \
+        vmovq (s0)*8(RINBLKS), m1x; \
+          vmovq (s1)*8(RINBLKS), m2x; \
+            vmovdqu64 (s8)*8(RINBLKS), m3 {%k4}{z}; /* merged load */ \
+              vmovq (s9)*8(RINBLKS), m4x; \
+        VPINSRQ_KMASK(%k1, 1, (s2)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k1, 1, (s3)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k1, 1, (s10)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k1, 1, (s11)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k2, 2, (s4)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k2, 2, (s5)*8(RINBLKS), m2); \
+              VPINSRQ_KMASK(%k2, 2, (s13)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k3, 3, (s6)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k3, 3, (s7)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k3, 3, (s14)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k3, 3, (s15)*8(RINBLKS), m4);
+
+#define GATHER_MSG_5(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                     s9, s10, s11, s12, s13, s14, s15) \
+        vmovq (s0)*8(RINBLKS), m1x; \
+          vmovq (s1)*8(RINBLKS), m2x; \
+            vmovq (s8)*8(RINBLKS), m3x; \
+              vmovq (s9)*8(RINBLKS), m4x; \
+        VPINSRQ_KMASK(%k5, 1, (s2)*8(RINBLKS), m1); /* merged load */ \
+          VPINSRQ_KMASK(%k6, 1, (s3)*8(RINBLKS), m2); /* merged load */ \
+            VPINSRQ_KMASK(%k1, 1, (s10)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k1, 1, (s11)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k2, 2, (s4)*8(RINBLKS), m1); \
+            VPINSRQ_KMASK(%k2, 2, (s12)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k2, 2, (s13)*8(RINBLKS), m4); \
+          VPINSRQ_KMASK(%k3, 3, (s7)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k3, 3, (s14)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k3, 3, (s15)*8(RINBLKS), m4);
+
+#define GATHER_MSG_6(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                     s9, s10, s11, s12, s13, s14, s15) \
+        vmovdqu64 (s0)*8(RINBLKS), m1 {%k4}{z}; /* merged load */; \
+          vmovq (s1)*8(RINBLKS), m2x; \
+            vmovq (s8)*8(RINBLKS), m3x; \
+              vmovq (s9)*8(RINBLKS), m4x; \
+        VPINSRQ_KMASK(%k1, 1, (s2)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k1, 1, (s3)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k5, 1, (s10)*8(RINBLKS), m3); /* merged load */ \
+              VPINSRQ_KMASK(%k1, 1, (s11)*8(RINBLKS), m4); \
+          VPINSRQ_KMASK(%k2, 2, (s5)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k2, 2, (s12)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k2, 2, (s13)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k3, 3, (s6)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k3, 3, (s7)*8(RINBLKS), m2); \
+              VPINSRQ_KMASK(%k3, 3, (s15)*8(RINBLKS), m4);
+
+#define GATHER_MSG_8(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                     s9, s10, s11, s12, s13, s14, s15) \
+        vmovq (s0)*8(RINBLKS), m1x; \
+          vmovq (s1)*8(RINBLKS), m2x; \
+            vmovdqu (s8)*8(RINBLKS), m3x; /* merged load */ \
+              vmovq (s9)*8(RINBLKS), m4x; \
+        VPINSRQ_KMASK(%k1, 1, (s2)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k1, 1, (s3)*8(RINBLKS), m2); \
+              VPINSRQ_KMASK(%k1, 1, (s11)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k2, 2, (s4)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k2, 2, (s5)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k2, 2, (s12)*8(RINBLKS), m3); \
+              vinserti64x2 $1, (s13)*8(RINBLKS), m4, m4; /* merged load */ \
+        VPINSRQ_KMASK(%k3, 3, (s6)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k3, 3, (s7)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k3, 3, (s14)*8(RINBLKS), m3);
+
+#define GATHER_MSG_9(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                     s9, s10, s11, s12, s13, s14, s15) \
+        vmovq (s0)*8(RINBLKS), m1x; \
+          vmovdqu64 (s1)*8(RINBLKS), m2 {%k7}{z}; /* merged load */; \
+            vmovq (s8)*8(RINBLKS), m3x; \
+              vmovq (s9)*8(RINBLKS), m4x; \
+        VPINSRQ_KMASK(%k1, 1, (s2)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k1, 1, (s3)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k1, 1, (s10)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k1, 1, (s11)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k2, 2, (s4)*8(RINBLKS), m1); \
+          VPINSRQ_KMASK(%k2, 2, (s5)*8(RINBLKS), m2); \
+            VPINSRQ_KMASK(%k2, 2, (s12)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k2, 2, (s13)*8(RINBLKS), m4); \
+        VPINSRQ_KMASK(%k3, 3, (s6)*8(RINBLKS), m1); \
+            VPINSRQ_KMASK(%k3, 3, (s14)*8(RINBLKS), m3); \
+              VPINSRQ_KMASK(%k3, 3, (s15)*8(RINBLKS), m4);
+
 #define LOAD_MSG_0(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
         GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
                     0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15)
@@ -105,29 +214,29 @@
         GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
                    14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3)
 #define LOAD_MSG_2(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
-                   11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4)
+        GATHER_MSG_2(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4)
 #define LOAD_MSG_3(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
-                    7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8)
+        GATHER_MSG_3(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8)
 #define LOAD_MSG_4(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
         GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
                     9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13)
 #define LOAD_MSG_5(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
-                    2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9)
+        GATHER_MSG_5(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9)
 #define LOAD_MSG_6(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
-                   12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11)
+        GATHER_MSG_6(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11)
 #define LOAD_MSG_7(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
         GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
                    13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10)
 #define LOAD_MSG_8(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
-                    6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5)
+        GATHER_MSG_8(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5)
 #define LOAD_MSG_9(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
-        GATHER_MSG(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
-                   10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0)
+        GATHER_MSG_9(m1, m2, m3, m4, m1x, m2x, m3x, m4x, \
+                     10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0)
 #define LOAD_MSG_10(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
         LOAD_MSG_0(m1, m2, m3, m4, m1x, m2x, m3x, m4x)
 #define LOAD_MSG_11(m1, m2, m3, m4, m1x, m2x, m3x, m4x) \
@@ -194,6 +303,14 @@ _blake2b_avx512_data:
         .byte 2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9
 .Lk1_mask:
 	.byte (1 << 1)
+.Lk4_mask:
+	.byte (1 << 0) + (1 << 2)
+.Lk5_mask:
+	.byte (1 << 1) + (1 << 3)
+.Lk6_mask:
+	.byte (1 << 1) + (1 << 2)
+.Lk7_mask:
+	.byte (1 << 0) + (1 << 3)
 
 .text
 
@@ -214,6 +331,10 @@ _gcry_blake2b_transform_amd64_avx512:
         kmovb .Lk1_mask rRIP, %k1;
         kshiftlb $1, %k1, %k2;
         kshiftlb $2, %k1, %k3;
+        kmovb .Lk4_mask rRIP, %k4;
+        kmovb .Lk5_mask rRIP, %k5;
+        kmovb .Lk6_mask rRIP, %k6;
+        kmovb .Lk7_mask rRIP, %k7;
 
         addq $128, (STATE_T + 0)(RSTATE);
         adcq $0, (STATE_T + 8)(RSTATE);
@@ -293,6 +414,10 @@ _gcry_blake2b_transform_amd64_avx512:
         kxord %k1, %k1, %k1;
         kxord %k2, %k2, %k2;
         kxord %k3, %k3, %k3;
+        kxord %k4, %k4, %k4;
+        kxord %k5, %k5, %k5;
+        kxord %k6, %k6, %k6;
+        kxord %k7, %k7, %k7;
 
         vzeroall;
         ret_spec_stop;

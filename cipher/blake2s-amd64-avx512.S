@@ -64,7 +64,9 @@
   blake2s/AVX
  **********************************************************************/
 
-/* On Intel tigerlake, vmovd+vpinsrd approach is faster than vpgatherdd. */
+#define VPINSRD_KMASK(kpos, dpos, mem, vreg) \
+        vmovdqu32 -((dpos) * 4) + mem, vreg {kpos}
+
 #define GATHER_MSG(m1, m2, m3, m4, \
                    s0, s1, s2, s3, s4, s5, s6, s7, s8, \
                    s9, s10, s11, s12, s13, s14, s15) \
@@ -85,6 +87,118 @@
             vpinsrd $3, (s14)*4(RINBLKS), m3, m3; \
               vpinsrd $3, (s15)*4(RINBLKS), m4, m4;
 
+#define GATHER_MSG_2(m1, m2, m3, m4, \
+                   s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                   s9, s10, s11, s12, s13, s14, s15) \
+        vmovq (s0)*4(RINBLKS), m1; /* merged load */ \
+          vmovd (s1)*4(RINBLKS), m2; \
+            vmovd (s8)*4(RINBLKS), m3; \
+              vmovd (s9)*4(RINBLKS), m4; \
+          vpinsrd $1, (s3)*4(RINBLKS), m2, m2; \
+            vpinsrd $1, (s10)*4(RINBLKS), m3, m3; \
+              vpinsrd $1, (s11)*4(RINBLKS), m4, m4; \
+        vpinsrd $2, (s4)*4(RINBLKS), m1, m1; \
+          vpinsrd $2, (s5)*4(RINBLKS), m2, m2; \
+            vpinsrd $2, (s12)*4(RINBLKS), m3, m3; \
+              vpinsrd $2, (s13)*4(RINBLKS), m4, m4; \
+        vpinsrd $3, (s6)*4(RINBLKS), m1, m1; \
+          vpinsrd $3, (s7)*4(RINBLKS), m2, m2; \
+            vpinsrd $3, (s14)*4(RINBLKS), m3, m3; \
+              vpinsrd $3, (s15)*4(RINBLKS), m4, m4;
+
+#define GATHER_MSG_3(m1, m2, m3, m4, \
+                   s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                   s9, s10, s11, s12, s13, s14, s15) \
+        vmovd (s0)*4(RINBLKS), m1; \
+          vmovd (s1)*4(RINBLKS), m2; \
+            vmovdqu32 (s8)*4(RINBLKS), m3 {%k4}{z}; /* merged load */ \
+              vmovd (s9)*4(RINBLKS), m4; \
+        vpinsrd $1, (s2)*4(RINBLKS), m1, m1; \
+          vpinsrd $1, (s3)*4(RINBLKS), m2, m2; \
+            vpinsrd $1, (s10)*4(RINBLKS), m3, m3; \
+              vpinsrd $1, (s11)*4(RINBLKS), m4, m4; \
+        vpinsrd $2, (s4)*4(RINBLKS), m1, m1; \
+          vpinsrd $2, (s5)*4(RINBLKS), m2, m2; \
+            vpinsrd $2, (s12)*4(RINBLKS), m3, m3; \
+              vpinsrd $2, (s13)*4(RINBLKS), m4, m4; \
+        vpinsrd $3, (s6)*4(RINBLKS), m1, m1; \
+          vpinsrd $3, (s7)*4(RINBLKS), m2, m2; \
+            vpinsrd $3, (s14)*4(RINBLKS), m3, m3; \
+              vpinsrd $3, (s15)*4(RINBLKS), m4, m4;
+
+#define GATHER_MSG_5(m1, m2, m3, m4, \
+                   s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                   s9, s10, s11, s12, s13, s14, s15) \
+        vmovd (s0)*4(RINBLKS), m1; \
+          vmovd (s1)*4(RINBLKS), m2; \
+            vmovd (s8)*4(RINBLKS), m3; \
+              vmovd (s9)*4(RINBLKS), m4; \
+        VPINSRD_KMASK(%k5, 1, (s2)*4(RINBLKS), m1); /* merged load */ \
+          VPINSRD_KMASK(%k6, 1, (s3)*4(RINBLKS), m2); /* merged load */ \
+            vpinsrd $1, (s10)*4(RINBLKS), m3, m3; \
+              vpinsrd $1, (s11)*4(RINBLKS), m4, m4; \
+        vpinsrd $2, (s4)*4(RINBLKS), m1, m1; \
+            vpinsrd $2, (s12)*4(RINBLKS), m3, m3; \
+              vpinsrd $2, (s13)*4(RINBLKS), m4, m4; \
+          vpinsrd $3, (s7)*4(RINBLKS), m2, m2; \
+            vpinsrd $3, (s14)*4(RINBLKS), m3, m3; \
+              vpinsrd $3, (s15)*4(RINBLKS), m4, m4;
+
+#define GATHER_MSG_6(m1, m2, m3, m4, \
+                   s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                   s9, s10, s11, s12, s13, s14, s15) \
+        vmovdqu32 (s0)*4(RINBLKS), m1 {%k4}{z}; /* merged load */; \
+          vmovd (s1)*4(RINBLKS), m2; \
+            vmovd (s8)*4(RINBLKS), m3; \
+              vmovd (s9)*4(RINBLKS), m4; \
+        vpinsrd $1, (s2)*4(RINBLKS), m1, m1; \
+          vpinsrd $1, (s3)*4(RINBLKS), m2, m2; \
+            VPINSRD_KMASK(%k5, 1, (s10)*4(RINBLKS), m3); /* merged load */ \
+              vpinsrd $1, (s11)*4(RINBLKS), m4, m4; \
+          vpinsrd $2, (s5)*4(RINBLKS), m2, m2; \
+            vpinsrd $2, (s12)*4(RINBLKS), m3, m3; \
+              vpinsrd $2, (s13)*4(RINBLKS), m4, m4; \
+        vpinsrd $3, (s6)*4(RINBLKS), m1, m1; \
+          vpinsrd $3, (s7)*4(RINBLKS), m2, m2; \
+              vpinsrd $3, (s15)*4(RINBLKS), m4, m4;
+
+#define GATHER_MSG_8(m1, m2, m3, m4, \
+                   s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                   s9, s10, s11, s12, s13, s14, s15) \
+        vmovd (s0)*4(RINBLKS), m1; \
+          vmovd (s1)*4(RINBLKS), m2; \
+            vmovq (s8)*4(RINBLKS), m3; \
+              vmovd (s9)*4(RINBLKS), m4; \
+        vpinsrd $1, (s2)*4(RINBLKS), m1, m1; \
+          vpinsrd $1, (s3)*4(RINBLKS), m2, m2; \
+              vpinsrd $1, (s11)*4(RINBLKS), m4, m4; \
+        vpinsrd $2, (s4)*4(RINBLKS), m1, m1; \
+          vpinsrd $2, (s5)*4(RINBLKS), m2, m2; \
+            vpinsrd $2, (s12)*4(RINBLKS), m3, m3; \
+              vpinsrq $1, (s13)*4(RINBLKS), m4, m4; \
+        vpinsrd $3, (s6)*4(RINBLKS), m1, m1; \
+          vpinsrd $3, (s7)*4(RINBLKS), m2, m2; \
+            vpinsrd $3, (s14)*4(RINBLKS), m3, m3;
+
+#define GATHER_MSG_9(m1, m2, m3, m4, \
+                   s0, s1, s2, s3, s4, s5, s6, s7, s8, \
+                   s9, s10, s11, s12, s13, s14, s15) \
+        vmovd (s0)*4(RINBLKS), m1; \
+          vmovdqu32 (s1)*4(RINBLKS), m2 {%k7}{z}; /* merged load */; \
+            vmovd (s8)*4(RINBLKS), m3; \
+              vmovd (s9)*4(RINBLKS), m4; \
+        vpinsrd $1, (s2)*4(RINBLKS), m1, m1; \
+          vpinsrd $1, (s3)*4(RINBLKS), m2, m2; \
+            vpinsrd $1, (s10)*4(RINBLKS), m3, m3; \
+              vpinsrd $1, (s11)*4(RINBLKS), m4, m4; \
+        vpinsrd $2, (s4)*4(RINBLKS), m1, m1; \
+          vpinsrd $2, (s5)*4(RINBLKS), m2, m2; \
+            vpinsrd $2, (s12)*4(RINBLKS), m3, m3; \
+              vpinsrd $2, (s13)*4(RINBLKS), m4, m4; \
+        vpinsrd $3, (s6)*4(RINBLKS), m1, m1; \
+            vpinsrd $3, (s14)*4(RINBLKS), m3, m3; \
+              vpinsrd $3, (s15)*4(RINBLKS), m4, m4;
+
 #define LOAD_MSG_0(m1, m2, m3, m4) \
         GATHER_MSG(m1, m2, m3, m4, \
                     0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15)
@@ -92,29 +206,29 @@
         GATHER_MSG(m1, m2, m3, m4, \
                    14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3)
 #define LOAD_MSG_2(m1, m2, m3, m4) \
-        GATHER_MSG(m1, m2, m3, m4, \
-                   11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4)
+        GATHER_MSG_2(m1, m2, m3, m4, \
+                     11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4)
 #define LOAD_MSG_3(m1, m2, m3, m4) \
-        GATHER_MSG(m1, m2, m3, m4, \
-                    7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8)
+        GATHER_MSG_3(m1, m2, m3, m4, \
+                     7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8)
 #define LOAD_MSG_4(m1, m2, m3, m4) \
         GATHER_MSG(m1, m2, m3, m4, \
                     9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13)
 #define LOAD_MSG_5(m1, m2, m3, m4) \
-        GATHER_MSG(m1, m2, m3, m4, \
-                    2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9)
+        GATHER_MSG_5(m1, m2, m3, m4, \
+                     2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9)
 #define LOAD_MSG_6(m1, m2, m3, m4) \
-        GATHER_MSG(m1, m2, m3, m4, \
-                   12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11)
+        GATHER_MSG_6(m1, m2, m3, m4, \
+                     12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11)
 #define LOAD_MSG_7(m1, m2, m3, m4) \
         GATHER_MSG(m1, m2, m3, m4, \
                    13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10)
 #define LOAD_MSG_8(m1, m2, m3, m4) \
-        GATHER_MSG(m1, m2, m3, m4, \
-                    6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5)
+        GATHER_MSG_8(m1, m2, m3, m4, \
+                     6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5)
 #define LOAD_MSG_9(m1, m2, m3, m4) \
-        GATHER_MSG(m1, m2, m3, m4, \
-                   10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0)
+        GATHER_MSG_9(m1, m2, m3, m4, \
+                     10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0)
 
 #define LOAD_MSG(r, m1, m2, m3, m4) LOAD_MSG_##r(m1, m2, m3, m4)
 
@@ -170,6 +284,14 @@ _blake2s_avx512_data:
 .Liv:
         .long 0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A
         .long 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+.Lk4_mask:
+	.byte (1 << 0) + (1 << 2)
+.Lk5_mask:
+	.byte (1 << 1) + (1 << 3)
+.Lk6_mask:
+	.byte (1 << 1) + (1 << 2)
+.Lk7_mask:
+	.byte (1 << 0) + (1 << 3)
 
 .text
 
@@ -186,6 +308,11 @@ _gcry_blake2s_transform_amd64_avx512:
         CFI_STARTPROC();
 
         spec_stop_avx512;
+
+        kmovb .Lk4_mask rRIP, %k4;
+        kmovb .Lk5_mask rRIP, %k5;
+        kmovb .Lk6_mask rRIP, %k6;
+        kmovb .Lk7_mask rRIP, %k7;
 
         addq $64, (STATE_T + 0)(RSTATE);
 
@@ -255,6 +382,11 @@ _gcry_blake2s_transform_amd64_avx512:
         vmovdqu ROW2, (STATE_H + 4 * 4)(RSTATE);
 
         xorl %eax, %eax;
+        kxord %k4, %k4, %k4;
+        kxord %k5, %k5, %k5;
+        kxord %k6, %k6, %k6;
+        kxord %k7, %k7, %k7;
+
         vzeroall;
         ret_spec_stop;
         CFI_ENDPROC();
