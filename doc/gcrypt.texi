@@ -408,7 +408,7 @@ and freed memory, you need to initialize Libgcrypt this way:
     @}
 
 @anchor{sample-use-suspend-secmem}
-  /* We don't want to see any warnings, e.g. because we have not yet
+  /* We don't want to see any warnings, e.g., because we have not yet
      parsed program options which might be used to suppress such
      warnings. */
   gcry_control (GCRYCTL_SUSPEND_SECMEM_WARN);
@@ -512,7 +512,7 @@ Libgcrypt into this mode:
 If the file @file{/proc/sys/crypto/fips_enabled} exists and contains a
 numeric value other than @code{0}, Libgcrypt is put into FIPS mode at
 initialization time.  Obviously this works only on systems with a
-@code{proc} file system (i.e. GNU/Linux).
+@code{proc} file system (i.e., GNU/Linux).
 
 @item
 If the file @file{/etc/gcrypt/fips_enabled} exists, Libgcrypt is put
@@ -526,7 +526,7 @@ Libgcrypt is put into FIPS mode at initialization time.
 @item
 If the application requests FIPS mode using the control command
 @code{GCRYCTL_FORCE_FIPS_MODE}.  This must be done prior to any
-initialization (i.e. before @code{gcry_check_version}).
+initialization (i.e., before @code{gcry_check_version}).
 
 @end itemize
 
@@ -546,7 +546,7 @@ is provided to switch Libgcrypt into non-FIPS mode:
 @item
 If the application requests non-FIPS mode using the control command
 @code{GCRYCTL_NO_FIPS_MODE}.  This must be done prior to any
-initialization (i.e. before @code{gcry_check_version}).
+initialization (i.e., before @code{gcry_check_version}).
 @end itemize
 
 
@@ -719,7 +719,7 @@ privileges.
 @item GCRYCTL_INIT_SECMEM; Arguments: unsigned int nbytes
 This command is used to allocate a pool of secure memory and thus
 enabling the use of secure memory.  It also drops all extra privileges
-the process has (i.e. if it is run as setuid (root)).  If the argument
+the process has (i.e., if it is run as setuid (root)).  If the argument
 @var{nbytes} is 0, secure memory will be disabled.  The minimum amount
 of secure memory allocated is currently 16384 bytes; you may thus use a
 value of 1 to request that default size.
@@ -947,7 +947,7 @@ success or an error code on failure.
 
 Libgcrypt detects certain features of the CPU at startup time.  For
 performance tests it is sometimes required not to use such a feature.
-This option may be used to disable a certain feature; i.e. Libgcrypt
+This option may be used to disable a certain feature; i.e., Libgcrypt
 behaves as if this feature has not been detected.  This call can be
 used several times to disable a set of features, or features may be
 given as a colon or comma delimited string.  The special feature
@@ -955,7 +955,7 @@ given as a colon or comma delimited string.  The special feature
 
 Note that the detection code might be run if the feature has been
 disabled.  This command must be used at initialization time;
-i.e. before calling @code{gcry_check_version}.
+i.e., before calling @code{gcry_check_version}.
 
 @item GCRYCTL_REINIT_SYSCALL_CLAMP; Arguments: none
 
@@ -1603,7 +1603,7 @@ function may and should be used prior to calling
 @chapter Symmetric cryptography
 
 The cipher functions are used for symmetrical cryptography,
-i.e. cryptography using a shared key.  The programming model follows
+i.e., cryptography using a shared key.  The programming model follows
 an open/process/close paradigm and is in that similar to other
 building blocks provided by Libgcrypt.
 
@@ -1768,7 +1768,7 @@ Electronic Codebook mode.
 @item GCRY_CIPHER_MODE_CFB8
 @cindex CFB, Cipher Feedback mode
 Cipher Feedback mode.  For @code{GCRY_CIPHER_MODE_CFB} the shift size equals
-the block size of the cipher (e.g. for AES it is CFB-128).  For
+the block size of the cipher (e.g., for AES it is CFB-128).  For
 @code{GCRY_CIPHER_MODE_CFB8} the shift size is 8 bits but that variant is not
 yet available.
 
@@ -2004,7 +2004,7 @@ needs to be called after setting the key.
 Set the counter vector used for encryption or decryption. The counter
 is passed as the buffer @var{c} of length @var{l} bytes and copied to
 internal data structures.  The function checks that the counter
-matches the requirement of the selected algorithm (i.e., it must have
+matches the requirement of the selected algorithm (i.e.,, it must have
 the same size as the block size).
 @end deftypefun
 
@@ -2818,7 +2818,7 @@ expected as an appropriate S-expression (see above) in @var{pkey}.
 The data to be encrypted can either be in the simple old format, which
 is a very simple S-expression consisting only of one MPI, or it may be
 a more complex S-expression which also allows to specify flags for
-operation, like e.g. padding rules.
+operation, like e.g., padding rules.
 
 @noindent
 If you don't want to let Libgcrypt handle the padding, you must pass an
@@ -2915,7 +2915,7 @@ type 2 padding, or @code{oaep} for RSA-OAEP padding.
 The function returns 0 on success or an error code.  The variable at the
 address of @var{r_plain} will be set to @code{NULL} on error or receive the
 decrypted value on success.  The format of @var{r_plain} is a
-simple S-expression part (i.e. not a valid one) with just one MPI if
+simple S-expression part (i.e., not a valid one) with just one MPI if
 there was no @code{flags} element in @var{data}; if at least an empty
 @code{flags} is passed in @var{data}, the format is:
 
@@ -3026,7 +3026,7 @@ is not as secure as the other algorithms), the same format is used
 with "elg" replacing "dsa"; for ECDSA signing, the same format is used
 with "ecdsa" replacing "dsa".
 
-For the EdDSA algorithm (cf. Ed25515) the required input parameters are:
+For the EdDSA algorithm (cf.@: Ed25519) the required input parameters are:
 
 @example
 (data
@@ -3062,7 +3062,7 @@ signature, in a format as created by @code{gcry_pk_sign}, is passed to
 the function in @var{sig}.
 
 @noindent
-The result is 0 for success (i.e. the data matches the signature), or an
+The result is 0 for success (i.e., the data matches the signature), or an
 error code where the most relevant code is @code{GCRY_ERR_BAD_SIGNATURE}
 to indicate that the signature does not match the provided data.
 
@@ -3349,7 +3349,7 @@ Use the given value.
 @noindent
 If this parameter is not used, Libgcrypt uses for historic reasons
 65537.  Note that the value must fit into a 32 bit unsigned variable
-and that the usual C prefixes are considered (e.g. 017 gives 15).
+and that the usual C prefixes are considered (e.g., 017 gives 15).
 
 
 @item qbits @var{n}
@@ -3528,7 +3528,7 @@ elliptic curve key generation:
 @noindent
 As you can see, some of the information is duplicated, but this
 provides an easy way to extract either the public or the private key.
-Note that the order of the elements is not defined, e.g. the private
+Note that the order of the elements is not defined, e.g., the private
 key may be stored before the public key. @var{n1 n2 ... nn} is a list
 of prime numbers used to composite @var{p-mpi}; this is in general not
 a very useful information and only available if the key generation
@@ -4102,7 +4102,7 @@ The following macro might also be useful:
 @deftypefun int gcry_md_is_secure (gcry_md_hd_t @var{h})
 
 This function returns true when the digest object @var{h} is allocated
-in "secure memory"; i.e. @var{h} was created with the
+in "secure memory"; i.e., @var{h} was created with the
 @code{GCRY_MD_FLAG_SECURE}.
 @end deftypefun
 
@@ -4608,17 +4608,17 @@ Currently supported KDFs (parameter @var{algo}):
 
 @table @code
 @item GCRY_KDF_SIMPLE_S2K
-The OpenPGP simple S2K algorithm (cf. RFC4880).  Its use is strongly
+The OpenPGP simple S2K algorithm (cf.@: RFC4880).  Its use is strongly
 deprecated.  @var{salt} and @var{iterations} are not needed and may be
 passed as @code{NULL}/@code{0}.
 
 @item GCRY_KDF_SALTED_S2K
-The OpenPGP salted S2K algorithm (cf. RFC4880).  Usually not used.
+The OpenPGP salted S2K algorithm (cf.@: RFC4880).  Usually not used.
 @var{iterations} is not needed and may be passed as @code{0}.  @var{saltlen}
 must be given as 8.
 
 @item GCRY_KDF_ITERSALTED_S2K
-The OpenPGP iterated+salted S2K algorithm (cf. RFC4880).  This is the
+The OpenPGP iterated+salted S2K algorithm (cf.@: RFC4880).  This is the
 default for most OpenPGP applications.  @var{saltlen} must be given as
 8.  Note that OpenPGP defines a special encoding of the
 @var{iterations}; however this function takes the plain decoded
@@ -4714,7 +4714,7 @@ and does not drain the precious entropy pool.
 
 S-expressions are used by the public key functions to pass complex data
 structures around.  These LISP like objects are used by some
-cryptographic protocols (cf. RFC-2692) and Libgcrypt provides functions
+cryptographic protocols (cf.@: RFC-2692) and Libgcrypt provides functions
 to parse and construct them.  For detailed information, see
 @cite{Ron Rivest, code and description of S-expressions,
 @uref{http://theory.lcs.mit.edu/~rivest/sexp.html}}.
@@ -5410,7 +5410,7 @@ The next 2 functions are used to compare MPIs:
 Compare the multi-precision-integers number @var{u} and @var{v},
 returning 0 for equality, a positive value for @var{u} > @var{v} and a
 negative for @var{u} < @var{v}.  If both numbers are opaque values
-(cf. @code{gcry_mpi_set_opaque}), the comparison is done by checking the bit
+(cf.@: @code{gcry_mpi_set_opaque}), the comparison is done by checking the bit
 sizes using memcmp.  If only one number is an opaque value, the opaque
 value is less than the other number.
 @end deftypefun
@@ -5565,7 +5565,7 @@ reference, the string @var{curvename} is used to fill in missing
 parameters.  If only @var{curvename} is given, the context is
 initialized for this named curve.
 
-If a parameter specifying a point (e.g. @code{g} or @code{q}) is not
+If a parameter specifying a point (e.g., @code{g} or @code{q}) is not
 found, the parser looks for a non-encoded point by appending
 @code{.x}, @code{.y}, and @code{.z} to the parameter name and looking
 them all up to create a point.  A parameter with the suffix @code{.z}
@@ -5711,7 +5711,7 @@ value.  Two functions implement this kludge:
 @deftypefun gcry_mpi_t gcry_mpi_set_opaque (@w{gcry_mpi_t @var{a}}, @w{void *@var{p}}, @w{unsigned int @var{nbits}})
 
 Store @var{nbits} of the value @var{p} points to in @var{a} and mark
-@var{a} as an opaque value (i.e. an value that can't be used for any
+@var{a} as an opaque value (i.e., an value that can't be used for any
 math calculation and is only used to store an arbitrary bit pattern in
 @var{a}).  Ownership of @var{p} is taken by this function and thus the
 user may not dereference the passed value anymore.  It is required
@@ -5885,7 +5885,7 @@ Like @code{gcry_malloc}, but uses secure memory.
 
 @deftypefun {void *} gcry_calloc (size_t @var{n}, size_t @var{m})
 
-This function allocates a cleared block of memory (i.e. initialized with
+This function allocates a cleared block of memory (i.e., initialized with
 zero bytes) long enough to contain a vector of @var{n} elements, each of
 size @var{m} bytes.  On success it returns a pointer to the memory
 block; in an out-of-core condition, it returns @code{NULL}.
@@ -5964,7 +5964,7 @@ program.  This can be accomplished by using this function:
 This function returns a malloced string with colon delimited configure
 options.  With a value of 0 for @var{mode} this string resembles the
 output of @code{GCRYCTL_PRINT_CONFIG}.  However, if @var{what} is not
-@code{NULL}, only the line where the first field (e.g. "cpu-arch") matches
+@code{NULL}, only the line where the first field (e.g., "cpu-arch") matches
 @var{what} is returned.
 
 Other values than 0 for @var{mode} are not defined.  The caller shall
