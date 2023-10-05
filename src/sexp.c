@@ -1859,6 +1859,8 @@ suitable_encoding (const unsigned char *buffer, size_t length)
 
   for (s=buffer; length; s++, length--)
     {
+      if (!*s)
+        return 0; /*binary*/
       if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0))
            && !strchr ("\b\t\v\n\f\r\"\'\\", *s))
         return 0; /*binary*/
