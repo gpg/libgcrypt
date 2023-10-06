@@ -2881,7 +2881,35 @@ Where @var{a-mpi} and @var{b-mpi} are MPIs with the result of the
 Elgamal encryption operation.
 @end deftypefun
 @c end gcry_pk_encrypt
+@deftypefun gcry_error_t gcry_pk_encap (@w{gcry_sexp_t *@var{r_ciph},} @w{gcry_sexp_t* @var{r_shared_key},} @w{gcry_sexp_t @var{pkey}})
 
+
+
+This function performs KEM encapsulation which accepts a public
+key (PKEY) and outputs the ciphertext (R_CIPH) and the shared key
+(R_SHARED_KEY) that is encrypted by it. It is expected as an
+appropriate S-expression (see above) in PKEY.
+
+If the function could successfully perform the encryption, the
+return value will be 0 and a new S-expression with the encrypted
+result and the shared key are allocated and assigned to the variable
+at the address of R_CIPH.  The caller is responsible to release these
+values using 'gcry_sexp_release'. In case of an error, an error code
+is returned and R_CIPH and R_SHARED_KEY will be set to 'NULL'.
+
+The returned S-expression for the ciphertext has this format when used with ML-KEM:
+@example
+  (value @var{mpi}))
+@end example
+
+
+The returned S-expression for the shared key has this format when used with ML-KEM:
+@example
+  (value @var{mpi}))
+@end example
+
+@end deftypefun
+@c end gcry_pk_encap
 @deftypefun gcry_error_t gcry_pk_decrypt (@w{gcry_sexp_t *@var{r_plain},} @w{gcry_sexp_t @var{data},} @w{gcry_sexp_t @var{skey}})
 
 Obviously a private key must be provided for decryption.  It is expected

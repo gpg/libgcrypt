@@ -157,6 +157,7 @@ MARK_VISIBLEX (gcry_pk_algo_name)
 MARK_VISIBLEX (gcry_pk_ctl)
 MARK_VISIBLEX (gcry_pk_decrypt)
 MARK_VISIBLEX (gcry_pk_encrypt)
+MARK_VISIBLEX (gcry_pk_encap)
 MARK_VISIBLEX (gcry_pk_genkey)
 MARK_VISIBLEX (gcry_pk_get_keygrip)
 MARK_VISIBLEX (gcry_pk_get_curve)
@@ -365,6 +366,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_pk_ctl                 _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_pk_decrypt             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_pk_encrypt             _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_pk_encap               _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_pk_genkey              _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_pk_get_keygrip         _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_pk_get_curve           _gcry_USE_THE_UNDERSCORED_FUNCTION

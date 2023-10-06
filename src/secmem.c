@@ -45,7 +45,7 @@
 #endif
 
 #define MINIMUM_POOL_SIZE 16384
-#define STANDARD_POOL_SIZE 32768
+#define STANDARD_POOL_SIZE 65536
 #define DEFAULT_PAGE_SIZE 4096
 
 typedef struct memblock
@@ -82,6 +82,8 @@ typedef struct pooldesc_s
   /* The number of allocated bytes and the number of used blocks in
    * this pool.  */
   unsigned int cur_alloced, cur_blocks;
+
+  unsigned int peak_alloced;
 } pooldesc_t;
 
 
@@ -176,6 +178,7 @@ stats_update (pooldesc_t *pool, size_t add, size_t sub)
       pool->cur_alloced -= sub;
       pool->cur_blocks--;
     }
+  pool->peak_alloced = pool->cur_alloced > pool->peak_alloced ? pool->cur_alloced : pool->peak_alloced;
 }
 
 /* Return the block following MB or NULL, if MB is the last block.  */
@@ -869,6 +872,15 @@ _gcry_secmem_dump_stats (int extended)
 }
 
 
+void
+_gcry_secmem_reset_peak()
+{
+  SECMEM_LOCK;
+  mainpool.peak_alloced = mainpool.cur_alloced;
+  SECMEM_UNLOCK;
+}
+
+
 static void
 secmem_dump_stats_internal (int extended)
 {
@@ -881,10 +893,10 @@ secmem_dump_stats_internal (int extended)
       if (!extended)
         {
           if (pool->okay)
-            log_info ("%-13s %u/%lu bytes in %u blocks\n",
+            log_info ("%-13s %u/%lu bytes in %u blocks, peak usage was %u bytes\n",
                       pool == &mainpool? "secmem usage:":"",
                       pool->cur_alloced, (unsigned long)pool->size,
-                      pool->cur_blocks);
+                      pool->cur_blocks, pool->peak_alloced);
         }
       else
         {

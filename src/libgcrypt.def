@@ -147,6 +147,7 @@ EXPORTS
       gcry_pk_map_name  @114
       gcry_pk_get_nbits  @115
       gcry_pk_get_keygrip  @116
+      gcry_pk_encap  @117
 
 ;; @117 used to be part of the module register interface
 

@@ -1144,6 +1144,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_elg =
     elg_generate,
     elg_check_secret_key,
     elg_encrypt,
+    NULL,
     elg_decrypt,
     elg_sign,
     elg_verify,

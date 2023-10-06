@@ -95,6 +95,7 @@ size_t _gcry_cipher_get_algo_blklen (int algo);
 
 gpg_err_code_t _gcry_pk_encrypt (gcry_sexp_t *result,
                                  gcry_sexp_t data, gcry_sexp_t pkey);
+gpg_err_code_t _gcry_pk_encap(gcry_sexp_t *r_ciph, gcry_sexp_t* shared_key, gcry_sexp_t s_pkey);
 gpg_err_code_t _gcry_pk_decrypt (gcry_sexp_t *result,
                                  gcry_sexp_t data, gcry_sexp_t skey);
 gpg_err_code_t _gcry_pk_sign (gcry_sexp_t *result,

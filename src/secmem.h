@@ -31,6 +31,7 @@ void _gcry_secmem_set_auto_expand (unsigned int chunksize);
 void _gcry_secmem_set_flags (unsigned flags);
 unsigned _gcry_secmem_get_flags(void);
 int _gcry_private_is_secure (const void *p);
+void _gcry_secmem_reset_peak(void);
 
 /* Flags for _gcry_secmem_{set,get}_flags.  */
 #define GCRY_SECMEM_FLAG_NO_WARNING      (1 << 0)

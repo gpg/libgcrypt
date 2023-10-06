@@ -58,6 +58,12 @@ typedef gcry_err_code_t (*gcry_pk_encrypt_t) (gcry_sexp_t *r_ciph,
                                               gcry_sexp_t s_data,
                                               gcry_sexp_t keyparms);
 
+
+/* Type for the pk_encap function for KEM encapsulation.  */
+typedef gcry_err_code_t (*gcry_pk_encap_t) (gcry_sexp_t *r_ciph,
+                                              gcry_sexp_t* shared_key,
+                                              gcry_sexp_t keyparms);
+
 /* Type for the pk_decrypt function.  */
 typedef gcry_err_code_t (*gcry_pk_decrypt_t) (gcry_sexp_t *r_plain,
                                               gcry_sexp_t s_data,
@@ -108,6 +114,7 @@ typedef struct gcry_pk_spec
   gcry_pk_generate_t generate;
   gcry_pk_check_secret_key_t check_secret_key;
   gcry_pk_encrypt_t encrypt;
+  gcry_pk_encap_t encap;
   gcry_pk_decrypt_t decrypt;
   gcry_pk_sign_t sign;
   gcry_pk_verify_t verify;

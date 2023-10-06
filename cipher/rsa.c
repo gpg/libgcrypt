@@ -2226,6 +2226,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_rsa =
     rsa_generate,
     rsa_check_secret_key,
     rsa_encrypt,
+    NULL,
     rsa_decrypt,
     rsa_sign,
     rsa_verify,

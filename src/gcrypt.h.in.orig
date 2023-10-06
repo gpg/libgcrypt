@@ -277,7 +277,6 @@ enum gcry_ctl_cmds
     GCRYCTL_DUMP_MEMORY_STATS = 23,
     GCRYCTL_INIT_SECMEM       = 24,
     GCRYCTL_TERM_SECMEM       = 25,
-    GCRYCTL_RST_SECMEM_PEAK_USG = 26,
     GCRYCTL_DISABLE_SECMEM_WARN = 27,
     GCRYCTL_SUSPEND_SECMEM_WARN = 28,
     GCRYCTL_RESUME_SECMEM_WARN  = 29,
@@ -1059,7 +1058,6 @@ gcry_error_t gcry_cipher_encrypt (gcry_cipher_hd_t h,
                                   void *out, size_t outsize,
                                   const void *in, size_t inlen);
 
-
 /* The counterpart to gcry_cipher_encrypt.  */
 gcry_error_t gcry_cipher_decrypt (gcry_cipher_hd_t h,
                                   void *out, size_t outsize,
@@ -1154,8 +1152,7 @@ enum gcry_pk_algos
     GCRY_PK_ELG   = 20,     /* Elgamal       */
     GCRY_PK_ECDSA = 301,    /* (only for external use).  */
     GCRY_PK_ECDH  = 302,    /* (only for external use).  */
-    GCRY_PK_EDDSA = 303,    /* (only for external use).  */
-    GCRY_PK_MLKEM = 401     /* ML-KEM (Crystals-Kyber) */
+    GCRY_PK_EDDSA = 303     /* (only for external use).  */
   };
 
 /* Flags describing usage capabilities of a PK algorithm. */
@@ -1163,7 +1160,6 @@ enum gcry_pk_algos
 #define GCRY_PK_USAGE_ENCR 2   /* Good for encryption. */
 #define GCRY_PK_USAGE_CERT 4   /* Good to certify other keys. */
 #define GCRY_PK_USAGE_AUTH 8   /* Good for authentication. */
-#define GCRY_PK_USAGE_ENCAP 16   /* Good for KEM encapsulation. */
 #define GCRY_PK_USAGE_UNKN 128 /* Unknown usage flag. */
 
 /* Modes used with gcry_pubkey_get_sexp.  */
@@ -1174,11 +1170,6 @@ enum gcry_pk_algos
    a newly created S-expression at RESULT. */
 gcry_error_t gcry_pk_encrypt (gcry_sexp_t *result,
                               gcry_sexp_t data, gcry_sexp_t pkey);
-
-/* Encrypt a newly generated random SHARED_KEY to the ciphertext CIPH using the public key PKEY. */
-gcry_error_t gcry_pk_encap(gcry_sexp_t *r_ciph,
-                           gcry_sexp_t* r_shared_key, gcry_sexp_t pkey);
-
 
 /* Decrypt the DATA using the private key SKEY and store the result as
    a newly created S-expression at RESULT. */

@@ -257,6 +257,31 @@ check_rsa_keys (void)
 
 
 static void
+check_mlkem_keys (void)
+{
+#if USE_MLKEM
+  gcry_sexp_t keyparm, key;
+  int rc;
+
+  if (verbose)
+    info ("creating ML-KEM-768 key\n");
+  rc = gcry_sexp_new (&keyparm,
+                      "(genkey\n"
+                      " (mlkem\n"
+                      "  (nbits 3:192)\n"
+                      " ))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating ML-KEM key: %s\n", gpg_strerror (rc));
+
+#endif /* USE_MLKEM */
+}
+
+
+static void
 check_elg_keys (void)
 {
 #if USE_ELGAMAL
@@ -758,6 +783,7 @@ main (int argc, char **argv)
       check_elg_keys ();
       check_dsa_keys ();
       check_ecc_keys ();
+      check_mlkem_keys ();
       check_nonce ();
     }
   else
@@ -771,6 +797,8 @@ main (int argc, char **argv)
           check_dsa_keys ();
         else if (!strcmp (*argv, "ecc"))
           check_ecc_keys ();
+        else if (!strcmp (*argv, "mlkem"))
+          check_mlkem_keys ();
         else if (!strcmp (*argv, "nonce"))
           check_nonce ();
         else

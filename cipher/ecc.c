@@ -2370,6 +2370,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecc =
     ecc_generate,
     ecc_check_secret_key,
     ecc_encrypt_raw,
+    NULL,
     ecc_decrypt_raw,
     ecc_sign,
     ecc_verify,

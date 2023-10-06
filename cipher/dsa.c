@@ -1449,6 +1449,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_dsa =
     dsa_check_secret_key,
     NULL,
     NULL,
+    NULL,
     dsa_sign,
     dsa_verify,
     dsa_get_nbits,

@@ -31,6 +31,10 @@ if USE_RSA
 tests_bin += pkcs1v2 t-rsa-pss t-rsa-15 t-rsa-testparm
 endif
 
+if USE_MLKEM
+tests_bin += mlkem-test
+endif
+
 if USE_DSA
 tests_bin += fips186-dsa dsa-rfc6979 t-dsa
 endif
@@ -83,7 +87,8 @@ EXTRA_DIST = README rsa-16k.key \
 	     t-ed25519.inp t-ed448.inp t-dsa.inp t-ecdsa.inp t-rsa-15.inp \
 	     t-rsa-pss.inp stopwatch.h hashtest-6g.in hashtest-256g.in \
 	     sha3-224.h sha3-256.h sha3-384.h sha3-512.h blake2b.h blake2s.h \
-	     basic-disable-all-hwf.in basic_all_hwfeature_combinations.sh
+	     basic-disable-all-hwf.in basic_all_hwfeature_combinations.sh \
+	     test-utils.h
 
 LDADD = $(standard_ldadd) $(GPG_ERROR_LIBS) @LDADD_FOR_TESTS_KLUDGE@
 pkbench_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@

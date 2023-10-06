@@ -550,6 +550,10 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       _gcry_secmem_dump_stats (0);
       break;
 
+    case GCRYCTL_RST_SECMEM_PEAK_USG:
+      _gcry_secmem_reset_peak();
+      break;
+
     case GCRYCTL_DROP_PRIVS:
       global_init ();
       _gcry_secmem_init (0);

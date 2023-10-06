@@ -1025,6 +1025,18 @@ gcry_pk_encrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t pkey)
 }
 
 gcry_error_t
+gcry_pk_encap(gcry_sexp_t *r_ciph, gcry_sexp_t* r_shared_key, gcry_sexp_t pkey)
+{
+  if (!fips_is_operational ())
+    {
+      *r_ciph = NULL;
+      *r_shared_key = NULL;
+      return gpg_error (fips_not_operational ());
+    }
+  return gpg_error (_gcry_pk_encap(r_ciph, r_shared_key, pkey));
+}
+
+gcry_error_t
 gcry_pk_decrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey)
 {
   if (!fips_is_operational ())
