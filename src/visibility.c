@@ -1371,6 +1371,7 @@ gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
   return gpg_error (_gcry_md_setkey (hd, key, keylen));
 }
 
+
 void
 gcry_md_debug (gcry_md_hd_t hd, const char *suffix)
 {

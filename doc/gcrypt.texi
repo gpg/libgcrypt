@@ -3606,7 +3606,7 @@ are also supported.
 @c begin table of hash algorithms
 @cindex SHA-1
 @cindex SHA-224, SHA-256, SHA-384, SHA-512, SHA-512/224, SHA-512/256
-@cindex SHA3-224, SHA3-256, SHA3-384, SHA3-512, SHAKE128, SHAKE256
+@cindex SHA3-224, SHA3-256, SHA3-384, SHA3-512, SHAKE128, SHAKE256, cSHAKE128, cSHAKE256
 @cindex RIPE-MD-160
 @cindex MD2, MD4, MD5
 @cindex TIGER, TIGER1, TIGER2
@@ -3715,6 +3715,21 @@ See FIPS 202 for the specification.
 This is the SHAKE256 extendable-output function (XOF) algorithm with 256 bit
 security strength.
 See FIPS 202 for the specification.
+
+@item GCRY_MD_CSHAKE128
+This is the cSHAKE128 extendable-output function (XOF) algorithm with 128 bit
+security strength defined in NIST SP 800-185. cSHAKE takes optional additional
+inputs N and S, which can be set by using _gcry_md_ctl() with the control
+commands GCRYCTL_CSHAKE_N and GCRYCTL_CSHAKE_S. If both N and S are set, then N
+has to be set before S. If chosen to be non-empty, N and/or S have to be set
+before the first call to _gcry_md_write(). The lengths of N or S is limited to
+a bit length which can be represented by a size_t and does not exceed a byte
+size of 2^(32) - 1.
+
+@item GCRY_MD_CSHAKE256
+This is the cSHAKE256 extendable-output function (XOF) algorithm with 256 bit
+security strength defined in NIST SP 800-185. Regarding the usage of the
+optional additional inputs N and S, see the above description of cSHAKE128.
 
 @item GCRY_MD_CRC32
 This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It yields
@@ -4394,6 +4409,18 @@ key and one-time nonce.
 @item GCRY_MAC_GOST28147_IMIT
 This is MAC construction defined in GOST 28147-89 (see RFC 5830 Section 8).
 
+@item GCRY_MAC_KMAC128_128
+This is the KMAC-128 message authentication code defined in NIST SP 800-185
+with an output length of 128 bits (i.e., L=128).  The length of the key and of
+the optional customisation string S, which is modelled as the IV, is limited to
+a bit length which can be represented by a size_t and does not exceed a byte
+length of 2^(32) - 1.
+
+@item GCRY_MAC_KMAC256_256
+This is the KMAC-256 message authentication code defined in NIST SP 800-185
+with an output length of 256 bits (i.e., L=256). Regarding the limitations of
+the key and the customization string S, see GCRY_MAC_KMAC128_128.
+
 @end table
 @c end table of MAC algorithms
 
@@ -4444,7 +4471,7 @@ which can be performed with function:
 
 @deftypefun gcry_error_t gcry_mac_setiv (gcry_mac_hd_t @var{h}, const void *@var{iv}, size_t @var{ivlen})
 
-Set the IV to the value of @var{iv} of length @var{ivlen} bytes.
+Set the IV to the value of @var{iv} of length @var{ivlen} bytes. For KMAC, this function is used to se the value of S, the optional customisation string.
 @end deftypefun
 
 

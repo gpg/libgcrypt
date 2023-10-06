@@ -407,6 +407,18 @@ static const gcry_mac_spec_t * const mac_list_algo501[] =
 #endif
   };
 
+/* KMAC algorithms start with index 601 (enum gcry_mac_algos). The postfixed number indicates the output length in bits. */
+static const gcry_mac_spec_t * const mac_list_algo601[] =
+  {
+#if USE_SHA3
+    &_gcry_mac_type_spec_kmac128_128,
+    &_gcry_mac_type_spec_kmac256_256
+#else
+    NULL,
+    NULL
+#endif
+  };
+
 
 
 
@@ -433,6 +445,8 @@ spec_from_algo (int algo)
     spec = mac_list_algo401[algo - 401];
   else if (algo >= 501 && algo < 501 + DIM(mac_list_algo501))
     spec = mac_list_algo501[algo - 501];
+  else if (algo >= 601 && algo < 601 + DIM(mac_list_algo601))
+    spec = mac_list_algo601[algo - 601];
 #if USE_GOST28147
   else if (algo == GCRY_MAC_GOST28147_IMIT)
     spec = &_gcry_mac_type_spec_gost28147_imit;

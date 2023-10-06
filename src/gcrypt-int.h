@@ -164,6 +164,7 @@ const char *_gcry_md_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
 int _gcry_md_map_name (const char* name) _GCRY_GCC_ATTR_PURE;
 gpg_err_code_t _gcry_md_setkey (gcry_md_hd_t hd,
                                 const void *key, size_t keylen);
+
 void _gcry_md_debug (gcry_md_hd_t hd, const char *suffix);
 
 #define _gcry_md_test_algo(a) \

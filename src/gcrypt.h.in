@@ -333,7 +333,9 @@ enum gcry_ctl_cmds
     GCRYCTL_FIPS_SERVICE_INDICATOR_FUNCTION = 84,
     GCRYCTL_FIPS_SERVICE_INDICATOR_MAC = 85,
     GCRYCTL_FIPS_SERVICE_INDICATOR_MD = 86,
-    GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS = 87
+    GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS = 87,
+    GCRYCTL_CSHAKE_N = 88,
+    GCRYCTL_CSHAKE_S = 89
   };
 
 /* Perform various operations defined by CMD. */
@@ -1304,7 +1306,9 @@ enum gcry_md_algos
     GCRY_MD_BLAKE2S_128   = 325,
     GCRY_MD_SM3           = 326,
     GCRY_MD_SHA512_256    = 327,
-    GCRY_MD_SHA512_224    = 328
+    GCRY_MD_SHA512_224    = 328,
+    GCRY_MD_CSHAKE128     = 329,
+    GCRY_MD_CSHAKE256     = 330
   };
 
 /* Flags used with the open function.  */
@@ -1314,6 +1318,7 @@ enum gcry_md_flags
     GCRY_MD_FLAG_HMAC   = 2,  /* Make an HMAC out of this algorithm.  */
     GCRY_MD_FLAG_BUGEMU1 = 0x0100
   };
+
 
 /* (Forward declaration.)  */
 struct gcry_md_context;
@@ -1533,7 +1538,10 @@ enum gcry_mac_algos
     GCRY_MAC_POLY1305_SERPENT   = 505,
     GCRY_MAC_POLY1305_SEED      = 506,
     GCRY_MAC_POLY1305_SM4       = 507,
-    GCRY_MAC_POLY1305_ARIA      = 508
+    GCRY_MAC_POLY1305_ARIA      = 508,
+
+    GCRY_MAC_KMAC128_128        = 601,
+    GCRY_MAC_KMAC256_256        = 602
   };
 
 /* Flags used with the open function.  */

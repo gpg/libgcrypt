@@ -129,6 +129,19 @@ struct gcry_mac_handle
       unsigned int count;
       unsigned char lastiv[8]; /* IMIT blocksize */
     } imit;
+    struct {
+      gcry_md_hd_t md_ctx;
+      unsigned char* computed_mac;
+      int have_computed_mac;
+      int md_algo;
+      unsigned cshake_rate_in_bytes;
+      unsigned char* buffered_key;
+      size_t buffered_key_len;
+      unsigned output_byte_len;
+      int s_set;
+      int key_set;
+      int finalized;
+    } kmac;
   } u;
 };
 
@@ -287,4 +300,13 @@ extern const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_sm4;
 #endif
 #if USE_ARIA
 extern const gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_aria;
+#endif
+
+/*
+ * KMAC algorithms (mac-kmac.c)
+ */
+
+#if USE_SHA3
+extern const gcry_mac_spec_t _gcry_mac_type_spec_kmac128_128;
+extern const gcry_mac_spec_t _gcry_mac_type_spec_kmac256_256;
 #endif

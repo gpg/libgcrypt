@@ -200,6 +200,8 @@ extern const gcry_md_spec_t _gcry_digest_spec_sha3_512;
 extern const gcry_md_spec_t _gcry_digest_spec_sha3_384;
 extern const gcry_md_spec_t _gcry_digest_spec_shake128;
 extern const gcry_md_spec_t _gcry_digest_spec_shake256;
+extern const gcry_md_spec_t _gcry_digest_spec_cshake128;
+extern const gcry_md_spec_t _gcry_digest_spec_cshake256;
 extern const gcry_md_spec_t _gcry_digest_spec_tiger;
 extern const gcry_md_spec_t _gcry_digest_spec_tiger1;
 extern const gcry_md_spec_t _gcry_digest_spec_tiger2;
