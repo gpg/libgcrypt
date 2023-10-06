@@ -1854,8 +1854,6 @@ suitable_encoding (const unsigned char *buffer, size_t length)
   if (*buffer & 0x80)
     return 0; /* If the MSB is set we assume that buffer represents a
                  negative number.  */
-  if (!*buffer)
-    return 0; /* Starting with a zero is pretty much a binary string.  */
 
   for (s=buffer; length; s++, length--)
     {
