@@ -31,30 +31,23 @@
 
 gcry_err_code_t _gcry_mlkem_kem_keypair_derand (uint8_t *pk,
                                                 uint8_t *sk,
-                                                gcry_mlkem_param_t *param,
+                                                const gcry_mlkem_param_t *param,
                                                 uint8_t *coins);
 
 
-gcry_err_code_t _gcry_mlkem_kem_keypair (uint8_t *pk,
-                                         uint8_t *sk,
-                                         gcry_mlkem_param_t *param);
+gcry_err_code_t mlkem_keypair (int algo, uint8_t *pk, uint8_t *sk);
 
 
 gcry_err_code_t _gcry_mlkem_kem_enc_derand (uint8_t *ct,
                                             uint8_t *ss,
                                             const uint8_t *pk,
-                                            gcry_mlkem_param_t *param,
+                                            const gcry_mlkem_param_t *param,
                                             uint8_t *coins);
 
-gcry_err_code_t _gcry_mlkem_kem_enc (uint8_t *ct,
-                                     uint8_t *ss,
-                                     const uint8_t *pk,
-                                     gcry_mlkem_param_t *param);
+gcry_err_code_t mlkem_encap (int algo, uint8_t *ct, uint8_t *ss,
+                             const uint8_t *pk);
 
-gcry_err_code_t _gcry_mlkem_kem_dec (uint8_t *ss,
-                                     const uint8_t *ct,
-                                     const uint8_t *sk,
-                                     gcry_mlkem_param_t *param);
-
+gcry_err_code_t mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct,
+                             const uint8_t *sk);
 
 #endif /* GCRYPT_MLKEM_COMMON_H */

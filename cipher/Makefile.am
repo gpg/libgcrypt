@@ -68,7 +68,8 @@ libcipher_la_SOURCES = \
 	primegen.c \
 	hash-common.c hash-common.h \
 	dsa-common.c rsa-common.c \
-	sha1.h
+	sha1.h \
+	consttime.c consttime.h
 
 EXTRA_libcipher_la_SOURCES = \
 	asm-common-aarch64.h \
@@ -156,6 +157,10 @@ EXTRA_libcipher_la_SOURCES = \
 	blake2.c \
 	blake2b-amd64-avx2.S blake2b-amd64-avx512.S \
 	blake2s-amd64-avx.S blake2s-amd64-avx512.S
+	mlkem-common.c \
+	mlkem.h mlkem-common.h \
+	mlkem-ntt.c mlkem-poly.c mlkem-polyvec.c mlkem-randombytes.c mlkem-symmetric.c \
+	mlkem-ntt.h mlkem-poly.h mlkem-polyvec.h mlkem-randombytes.h mlkem-symmetric.h
 
 gost28147.lo: gost-sb.h
 gost-sb.h: gost-s-box$(EXEEXT_FOR_BUILD)
