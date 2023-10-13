@@ -302,7 +302,7 @@ EXPORTS
       gcry_cipher_geniv         @263
 
       gcry_kem_keypair          @264
-      gcry_kem_enc              @265
-      gcry_kem_dec              @266
+      gcry_kem_encap            @265
+      gcry_kem_decap            @266
 
 ;; end of file with public symbols for Windows.
