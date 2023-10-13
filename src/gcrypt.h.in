@@ -1664,17 +1664,20 @@ enum gcry_kem_algos
 
 gcry_error_t gcry_kem_keypair (int algo,
 			       void *pubkey,
-			       void *seckey);
+			       void *seckey,
+                               gcry_ctx_t ctx);
 
-gcry_error_t gcry_kem_enc (int algo,
-			   const void *pubkey,
-			   void *ciphertext,
-			   void *ss);
+gcry_error_t gcry_kem_encap (int algo,
+                             const void *pubkey,
+                             void *ciphertext,
+                             void *shared_secret,
+                             gcry_ctx_t ctx);
 
-gcry_error_t gcry_kem_dec (int algo,
-			   const void *ciphertext,
-			   const void *seckey,
-			   void *ss);
+gcry_error_t gcry_kem_decap (int algo,
+                             const void *seckey,
+                             const void *ciphertext,
+                             void *shared_secret,
+                             gcry_ctx_t ctx);
 
 
 /************************************

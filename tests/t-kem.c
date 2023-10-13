@@ -59,21 +59,21 @@ test_kem (int testno)
   uint8_t key1[GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE];
   uint8_t key2[GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE];
 
-  err = gcry_kem_keypair (GCRY_KEM_SNTRUP761, pubkey, seckey);
+  err = gcry_kem_keypair (GCRY_KEM_SNTRUP761, pubkey, seckey, NULL);
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_enc (GCRY_KEM_SNTRUP761, pubkey, ciphertext, key1);
+  err = gcry_kem_encap (GCRY_KEM_SNTRUP761, pubkey, ciphertext, key1, NULL);
   if (err)
     {
       fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_dec (GCRY_KEM_SNTRUP761, ciphertext, seckey, key2);
+  err = gcry_kem_decap (GCRY_KEM_SNTRUP761, seckey, ciphertext, key2, NULL);
   if (err)
     {
       fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));

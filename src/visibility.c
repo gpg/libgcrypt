@@ -1411,33 +1411,37 @@ gcry_kdf_close (gcry_kdf_hd_t h)
 }
 
 gcry_error_t
-gcry_kem_keypair (int algo, void *pubkey, void *seckey)
+gcry_kem_keypair (int algo, void *pubkey, void *seckey, gcry_ctx_t ctx)
 {
-  return gpg_error (_gcry_kem_keypair (algo, pubkey, seckey));
+  return gpg_error (_gcry_kem_keypair (algo, pubkey, seckey, ctx));
 }
 
 gcry_error_t
-gcry_kem_enc (int algo,
-	      const void *pubkey,
-	      void *ciphertext,
-	      void *key)
+gcry_kem_encap (int algo,
+                const void *pubkey,
+                void *ciphertext,
+                void *shared_secret,
+                gcry_ctx_t ctx)
 {
-  return gpg_error (_gcry_kem_enc (algo,
-				   pubkey,
-				   ciphertext,
-				   key));
+  return gpg_error (_gcry_kem_encap (algo,
+                                     pubkey,
+                                     ciphertext,
+                                     shared_secret,
+                                     ctx));
 }
 
 gcry_error_t
-gcry_kem_dec (int algo,
-	      const void *ciphertext,
-	      const void *seckey,
-	      void *key)
+gcry_kem_decap (int algo,
+                const void *seckey,
+                const void *ciphertext,
+                void *shared_secret,
+                gcry_ctx_t ctx)
 {
-  return gpg_error (_gcry_kem_dec (algo,
-				   ciphertext,
-				   seckey,
-				   key));
+  return gpg_error (_gcry_kem_decap (algo,
+                                     seckey,
+                                     ciphertext,
+                                     shared_secret,
+                                     ctx));
 }
 
 void

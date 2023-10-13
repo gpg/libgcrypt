@@ -178,8 +178,8 @@ MARK_VISIBLEX (gcry_kdf_final)
 MARK_VISIBLEX (gcry_kdf_close)
 
 MARK_VISIBLEX (gcry_kem_keypair)
-MARK_VISIBLEX (gcry_kem_enc)
-MARK_VISIBLEX (gcry_kem_dec)
+MARK_VISIBLEX (gcry_kem_encap)
+MARK_VISIBLEX (gcry_kem_decap)
 
 MARK_VISIBLEX (gcry_prime_check)
 MARK_VISIBLEX (gcry_prime_generate)
@@ -424,6 +424,10 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_kdf_compute            _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_kdf_final              _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_kdf_close              _gcry_USE_THE_UNDERSCORED_FUNCTION
+
+#define gcry_kem_keypair            _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_kem_encap              _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_kem_decap              _gcry_USE_THE_UNDERSCORED_FUNCTION
 
 #define gcry_prime_check            _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_prime_generate         _gcry_USE_THE_UNDERSCORED_FUNCTION

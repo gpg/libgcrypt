@@ -44,10 +44,13 @@ _kem_random (void *ctx, size_t length, uint8_t * dst)
 }
 
 gcry_err_code_t
-_gcry_kem_keypair (int algo, void *pubkey, void *seckey)
+_gcry_kem_keypair (int algo, void *pubkey, void *seckey, gcry_ctx_t ctx)
 {
   if (algo != GCRY_KEM_SNTRUP761)
     return GPG_ERR_UNKNOWN_ALGORITHM;
+
+  if (ctx != NULL)
+    return GPG_ERR_INV_VALUE;
 
   sntrup761_keypair (pubkey, seckey, NULL, _kem_random);
 
@@ -55,29 +58,37 @@ _gcry_kem_keypair (int algo, void *pubkey, void *seckey)
 }
 
 gcry_err_code_t
-_gcry_kem_enc (int algo,
-	       const void *pubkey,
-	       void *ciphertext,
-	       void *key)
+_gcry_kem_encap (int algo,
+                 const void *pubkey,
+                 void *ciphertext,
+                 void *shared_secret,
+                 gcry_ctx_t ctx)
 {
   if (algo != GCRY_KEM_SNTRUP761)
     return GPG_ERR_UNKNOWN_ALGORITHM;
 
-  sntrup761_enc (ciphertext, key, pubkey, NULL, _kem_random);
+  if (ctx != NULL)
+    return GPG_ERR_INV_VALUE;
+
+  sntrup761_enc (ciphertext, shared_secret, pubkey, NULL, _kem_random);
 
   return GPG_ERR_NO_ERROR;
 }
 
 gcry_err_code_t
-_gcry_kem_dec (int algo,
-	       const void *ciphertext,
-	       const void *seckey,
-	       void *key)
+_gcry_kem_decap (int algo,
+                 const void *seckey,
+                 const void *ciphertext,
+                 void *shared_secret,
+                 gcry_ctx_t ctx)
 {
   if (algo != GCRY_KEM_SNTRUP761)
     return GPG_ERR_UNKNOWN_ALGORITHM;
 
-  sntrup761_dec (key, ciphertext, seckey);
+  if (ctx != NULL)
+    return GPG_ERR_INV_VALUE;
+
+  sntrup761_dec (shared_secret, ciphertext, seckey);
 
   return GPG_ERR_NO_ERROR;
 }
