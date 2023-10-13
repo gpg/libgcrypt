@@ -30,6 +30,15 @@
 
 #include <config.h>
 
+#include "g10lib.h"
+
+static void
+crypto_hash_sha512 (unsigned char *out,
+		    const unsigned char *in, unsigned long long inlen)
+{
+  _gcry_md_hash_buffer (GCRY_MD_SHA512, out, in, inlen);
+}
+
 #include "sntrup761.h"
 
 /* from supercop-20201130/crypto_sort/int32/portable4/int32_minmax.inc */
@@ -73,12 +82,14 @@ crypto_sort_int32 (void *array, long long n)
       j = 0;
       for (q = top; q > p; q >>= 1)
 	{
+          int32_t a;
+
 	  if (j != i)
 	    for (;;)
 	      {
 		if (j == n - q)
 		  goto done;
-		int32_t a = x[j + p];
+		a = x[j + p];
 		for (r = q; r > p; r >>= 1)
 		  int32_MINMAX (a, x[j + r]);
 		x[j + p] = a;
@@ -93,7 +104,7 @@ crypto_sort_int32 (void *array, long long n)
 	    {
 	      for (j = i; j < i + p; ++j)
 		{
-		  int32_t a = x[j + p];
+		  a = x[j + p];
 		  for (r = q; r > p; r >>= 1)
 		    int32_MINMAX (a, x[j + r]);
 		  x[j + p] = a;
@@ -104,7 +115,7 @@ crypto_sort_int32 (void *array, long long n)
 	  j = i;
 	  while (j < n - q)
 	    {
-	      int32_t a = x[j + p];
+	      a = x[j + p];
 	      for (r = q; r > p; r >>= 1)
 		int32_MINMAX (a, x[j + r]);
 	      x[j + p] = a;

@@ -28,13 +28,6 @@
 
 #include "sntrup761.h"
 
-void
-crypto_hash_sha512 (unsigned char *out,
-		    const unsigned char *in, unsigned long long inlen)
-{
-  _gcry_md_hash_buffer (GCRY_MD_SHA512, out, in, inlen);
-}
-
 static void
 _kem_random (void *ctx, size_t length, uint8_t * dst)
 {
