@@ -28,7 +28,8 @@
 
 #define PGM "t-kem"
 #include "t-common.h"
-#define N_TESTS 10
+#define N_TESTS_SNTRUP761 10
+#define N_TESTS_MLKEM 10
 
 static int in_fips_mode;
 
@@ -50,7 +51,7 @@ show_note (const char *format, ...)
 
 
 static void
-test_kem (int testno)
+test_kem_sntrup761 (int testno)
 {
   gcry_error_t err;
   uint8_t pubkey[GCRY_KEM_SNTRUP761_PUBLICKEY_SIZE];
@@ -97,19 +98,81 @@ test_kem (int testno)
 }
 
 static void
+test_kem_mlkem_sub (int testno, int algo, size_t size)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_MLKEM1024_PUBLICKEY_SIZE];
+  uint8_t seckey[GCRY_KEM_MLKEM1024_SECRETKEY_SIZE];
+  uint8_t ciphertext[GCRY_KEM_MLKEM1024_CIPHERTEXT_SIZE];
+  uint8_t key1[GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE];
+  uint8_t key2[GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE];
+
+  err = gcry_kem_keypair (algo, pubkey, seckey, NULL);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d %d: %s", testno, algo, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (algo, pubkey, ciphertext, key1, NULL);
+  if (err)
+    {
+      fail ("gcry_kem_enc %d %d: %s", testno, algo, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (algo, seckey, ciphertext, key2, NULL);
+  if (err)
+    {
+      fail ("gcry_kem_dec %d %d: %s", testno, algo, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, size) != 0)
+    {
+      size_t i;
+
+      fail ("mlkem %d test %d failed: mismatch\n", algo, testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < size; i++)
+	fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < size; i++)
+	fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+static void
+test_kem_mlkem (int testno)
+{
+  int algo[3] = { GCRY_KEM_MLKEM512, GCRY_KEM_MLKEM768, GCRY_KEM_MLKEM1024};
+  size_t size[3] = {
+    GCRY_KEM_MLKEM512_SHAREDSECRET_SIZE,
+    GCRY_KEM_MLKEM768_SHAREDSECRET_SIZE,
+    GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE
+  };
+  int i;
+
+  for (i = 0; i < 3; i++)
+    test_kem_mlkem_sub (testno, algo[i], size[i]);
+}
+
+static void
 check_kem (void)
 {
   int ntests;
 
   info ("Checking KEM.\n");
 
-  for (ntests = 0; ntests < N_TESTS; ntests++)
-    test_kem (ntests);
+  for (ntests = 0; ntests < N_TESTS_SNTRUP761; ntests++)
+    test_kem_sntrup761 (ntests);
 
-  if (ntests != N_TESTS)
-    fail ("did %d tests but expected %d", ntests, N_TESTS);
-  else if ((ntests % 256))
-    show_note ("%d tests done\n", ntests);
+  for (ntests = 0; ntests < N_TESTS_MLKEM; ntests++)
+    test_kem_mlkem (ntests + N_TESTS_SNTRUP761);
+
+  show_note ("%d tests done\n", ntests + N_TESTS_SNTRUP761);
 }
 
 int

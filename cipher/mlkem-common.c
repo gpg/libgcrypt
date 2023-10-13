@@ -555,7 +555,7 @@ leave:
 gcry_err_code_t
 _gcry_mlkem_kem_keypair_derand (uint8_t *pk,
                                 uint8_t *sk,
-                                gcry_mlkem_param_t *param,
+                                const gcry_mlkem_param_t *param,
                                 uint8_t *coins)
 {
   gpg_err_code_t ec = 0;
@@ -596,12 +596,50 @@ _gcry_mlkem_mlkem_shake256_rkprf (uint8_t out[GCRY_MLKEM_SSBYTES],
   return ec;
 }
 
+static const gcry_mlkem_param_t param_table[] = {
+  { GCRY_MLKEM_512, 2, 3, 2*GCRY_MLKEM_POLYBYTES, 128, 2*320,
+    2*GCRY_MLKEM_POLYBYTES+GCRY_MLKEM_SYMBYTES, 2*GCRY_MLKEM_POLYBYTES,
+    2*GCRY_MLKEM_POLYBYTES+2*GCRY_MLKEM_POLYBYTES+GCRY_MLKEM_SYMBYTES+2*GCRY_MLKEM_SYMBYTES,
+    128+2*320
+  },
+  { GCRY_MLKEM_768, 3, 2, 3*GCRY_MLKEM_POLYBYTES, 128, 3*320,
+    3*GCRY_MLKEM_POLYBYTES+GCRY_MLKEM_SYMBYTES, 3*GCRY_MLKEM_POLYBYTES,
+    3*GCRY_MLKEM_POLYBYTES+3*GCRY_MLKEM_POLYBYTES+GCRY_MLKEM_SYMBYTES+2*GCRY_MLKEM_SYMBYTES,
+    128+3*320,
+  },
+  { GCRY_MLKEM_1024, 4, 2, 4*GCRY_MLKEM_POLYBYTES, 160, 4*352,
+    4*GCRY_MLKEM_POLYBYTES+GCRY_MLKEM_SYMBYTES, 4*GCRY_MLKEM_POLYBYTES,
+    4*GCRY_MLKEM_POLYBYTES+4*GCRY_MLKEM_POLYBYTES+GCRY_MLKEM_SYMBYTES+2*GCRY_MLKEM_SYMBYTES,
+    160+4*352
+  }
+};
+
+static const gcry_mlkem_param_t *
+mlkem_get_param (int algo)
+{
+  switch (algo)
+    {
+    case GCRY_KEM_MLKEM512:
+      return &param_table[0];
+    case GCRY_KEM_MLKEM768:
+      return &param_table[1];
+    case GCRY_KEM_MLKEM1024:
+      return &param_table[2];
+    default:
+      return NULL;
+    }
+}
 
 gcry_err_code_t
-_gcry_mlkem_kem_keypair (uint8_t *pk, uint8_t *sk, gcry_mlkem_param_t *param)
+mlkem_keypair (int algo, uint8_t *pk, uint8_t *sk)
 {
   gcry_err_code_t ec = 0;
   uint8_t *coins     = NULL;
+  const gcry_mlkem_param_t *param = mlkem_get_param (algo);
+
+  if (!param)
+    return GPG_ERR_PUBKEY_ALGO;
+
   coins              = xtrymalloc_secure (GCRY_MLKEM_COINS_SIZE);
   if (!coins)
     {
@@ -616,20 +654,19 @@ leave:
 }
 
 gcry_err_code_t
-_gcry_mlkem_kem_dec (uint8_t *ss,
-                     const uint8_t *ct,
-                     const uint8_t *sk,
-                     gcry_mlkem_param_t *param)
+mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
 {
   gcry_err_code_t ec = 0;
   int fail;
+  const gcry_mlkem_param_t *param = mlkem_get_param (algo);
   uint8_t buf[2 * GCRY_MLKEM_SYMBYTES];
   /* Will contain key, coins */
   uint8_t kr[2 * GCRY_MLKEM_SYMBYTES];
-
   uint8_t *cmp = NULL;
-
   const uint8_t *pk = sk + param->indcpa_secret_key_bytes;
+
+  if (!param)
+    return GPG_ERR_PUBKEY_ALGO;
 
   ec = _gcry_mlkem_indcpa_dec (buf, ct, sk, param);
   if (ec)
@@ -679,12 +716,14 @@ end:
 }
 
 gcry_err_code_t
-_gcry_mlkem_kem_enc (uint8_t *ct,
-                     uint8_t *ss,
-                     const uint8_t *pk,
-                     gcry_mlkem_param_t *param)
+mlkem_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk)
 {
   uint8_t coins[GCRY_MLKEM_SYMBYTES];
+  const gcry_mlkem_param_t *param = mlkem_get_param (algo);
+
+  if (!param)
+    return GPG_ERR_PUBKEY_ALGO;
+
   _gcry_randomize (coins, GCRY_MLKEM_SYMBYTES, GCRY_VERY_STRONG_RANDOM);
   return _gcry_mlkem_kem_enc_derand (ct, ss, pk, param, coins);
 }
@@ -693,7 +732,7 @@ gcry_err_code_t
 _gcry_mlkem_kem_enc_derand (uint8_t *ct,
                             uint8_t *ss,
                             const uint8_t *pk,
-                            gcry_mlkem_param_t *param,
+                            const gcry_mlkem_param_t *param,
                             uint8_t *coins)
 {
   gpg_err_code_t ec = 0;

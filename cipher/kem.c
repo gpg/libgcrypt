@@ -27,6 +27,7 @@
 #include "cipher.h"
 
 #include "sntrup761.h"
+#include "mlkem-common.h"
 
 static void
 _kem_random (void *ctx, size_t length, uint8_t * dst)
@@ -39,15 +40,22 @@ _kem_random (void *ctx, size_t length, uint8_t * dst)
 gcry_err_code_t
 _gcry_kem_keypair (int algo, void *pubkey, void *seckey, gcry_ctx_t ctx)
 {
-  if (algo != GCRY_KEM_SNTRUP761)
-    return GPG_ERR_UNKNOWN_ALGORITHM;
-
   if (ctx != NULL)
     return GPG_ERR_INV_VALUE;
 
-  sntrup761_keypair (pubkey, seckey, NULL, _kem_random);
-
-  return GPG_ERR_NO_ERROR;
+  switch (algo)
+    {
+    case GCRY_KEM_SNTRUP761:
+      sntrup761_keypair (pubkey, seckey, NULL, _kem_random);
+      return GPG_ERR_NO_ERROR;
+    case GCRY_KEM_MLKEM512:
+    case GCRY_KEM_MLKEM768:
+    case GCRY_KEM_MLKEM1024:
+      mlkem_keypair (algo, pubkey, seckey);
+      return GPG_ERR_NO_ERROR;
+    default:
+      return GPG_ERR_UNKNOWN_ALGORITHM;
+    }
 }
 
 gcry_err_code_t
@@ -57,15 +65,21 @@ _gcry_kem_encap (int algo,
                  void *shared_secret,
                  gcry_ctx_t ctx)
 {
-  if (algo != GCRY_KEM_SNTRUP761)
-    return GPG_ERR_UNKNOWN_ALGORITHM;
-
   if (ctx != NULL)
     return GPG_ERR_INV_VALUE;
 
-  sntrup761_enc (ciphertext, shared_secret, pubkey, NULL, _kem_random);
-
-  return GPG_ERR_NO_ERROR;
+  switch (algo)
+    {
+    case GCRY_KEM_SNTRUP761:
+      sntrup761_enc (ciphertext, shared_secret, pubkey, NULL, _kem_random);
+      return GPG_ERR_NO_ERROR;
+    case GCRY_KEM_MLKEM512:
+    case GCRY_KEM_MLKEM768:
+    case GCRY_KEM_MLKEM1024:
+      return mlkem_encap (algo, ciphertext, shared_secret, pubkey);
+    default:
+      return GPG_ERR_UNKNOWN_ALGORITHM;
+    }
 }
 
 gcry_err_code_t
@@ -75,13 +89,19 @@ _gcry_kem_decap (int algo,
                  void *shared_secret,
                  gcry_ctx_t ctx)
 {
-  if (algo != GCRY_KEM_SNTRUP761)
-    return GPG_ERR_UNKNOWN_ALGORITHM;
-
   if (ctx != NULL)
     return GPG_ERR_INV_VALUE;
 
-  sntrup761_dec (shared_secret, ciphertext, seckey);
-
-  return GPG_ERR_NO_ERROR;
+  switch (algo)
+    {
+    case GCRY_KEM_SNTRUP761:
+      sntrup761_dec (shared_secret, ciphertext, seckey);
+      return GPG_ERR_NO_ERROR;
+    case GCRY_KEM_MLKEM512:
+    case GCRY_KEM_MLKEM768:
+    case GCRY_KEM_MLKEM1024:
+      return mlkem_decap (algo, shared_secret, ciphertext, seckey);
+    default:
+      return GPG_ERR_UNKNOWN_ALGORITHM;
+    }
 }
