@@ -60,21 +60,21 @@ test_kem_sntrup761 (int testno)
   uint8_t key1[GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE];
   uint8_t key2[GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE];
 
-  err = gcry_kem_keypair (GCRY_KEM_SNTRUP761, pubkey, seckey, NULL);
+  err = gcry_kem_keypair (GCRY_KEM_SNTRUP761, NULL, pubkey, seckey);
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_encap (GCRY_KEM_SNTRUP761, pubkey, ciphertext, key1, NULL);
+  err = gcry_kem_encap (GCRY_KEM_SNTRUP761, NULL, pubkey, ciphertext, key1);
   if (err)
     {
       fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (GCRY_KEM_SNTRUP761, seckey, ciphertext, key2, NULL);
+  err = gcry_kem_decap (GCRY_KEM_SNTRUP761, NULL, seckey, ciphertext, key2);
   if (err)
     {
       fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
@@ -107,21 +107,21 @@ test_kem_mlkem_sub (int testno, int algo, size_t size)
   uint8_t key1[GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE];
   uint8_t key2[GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE];
 
-  err = gcry_kem_keypair (algo, pubkey, seckey, NULL);
+  err = gcry_kem_keypair (algo, NULL, pubkey, seckey);
   if (err)
     {
       fail ("gcry_kem_keypair %d %d: %s", testno, algo, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_encap (algo, pubkey, ciphertext, key1, NULL);
+  err = gcry_kem_encap (algo, NULL, pubkey, ciphertext, key1);
   if (err)
     {
       fail ("gcry_kem_enc %d %d: %s", testno, algo, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (algo, seckey, ciphertext, key2, NULL);
+  err = gcry_kem_decap (algo, NULL, seckey, ciphertext, key2);
   if (err)
     {
       fail ("gcry_kem_dec %d %d: %s", testno, algo, gpg_strerror (err));

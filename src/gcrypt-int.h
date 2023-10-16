@@ -226,20 +226,17 @@ gpg_err_code_t _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
 void _gcry_kdf_close (gcry_kdf_hd_t h);
 
 
-gcry_err_code_t _gcry_kem_keypair (int algo,
+gcry_err_code_t _gcry_kem_keypair (int algo, const void *context,
                                    void *pubkey,
-                                   void *seckey,
-                                   gcry_ctx_t ctx);
-gcry_err_code_t _gcry_kem_encap (int algo,
+                                   void *seckey);
+gcry_err_code_t _gcry_kem_encap (int algo, const void *context,
                                  const void *pubkey,
                                  void *ciphertext,
-                                 void *shared_secret,
-                                 gcry_ctx_t ctx);
-gcry_err_code_t _gcry_kem_decap (int algo,
+                                 void *shared_secret);
+gcry_err_code_t _gcry_kem_decap (int algo, const void *context,
                                  const void *seckey,
                                  const void *ciphertext,
-                                 void *shared_secret,
-                                 gcry_ctx_t ctx);
+                                 void *shared_secret);
 
 gpg_err_code_t _gcry_prime_generate (gcry_mpi_t *prime,
                                      unsigned int prime_bits,
