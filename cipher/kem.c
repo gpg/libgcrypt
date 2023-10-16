@@ -38,19 +38,20 @@ _kem_random (void *ctx, size_t length, uint8_t * dst)
 }
 
 gcry_err_code_t
-_gcry_kem_keypair (int algo, void *pubkey, void *seckey, gcry_ctx_t ctx)
+_gcry_kem_keypair (int algo, const void *context, void *pubkey, void *seckey)
 {
-  if (ctx != NULL)
-    return GPG_ERR_INV_VALUE;
-
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
+      if (context != NULL)
+        return GPG_ERR_INV_VALUE;
       sntrup761_keypair (pubkey, seckey, NULL, _kem_random);
       return GPG_ERR_NO_ERROR;
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
+      if (context != NULL)
+        return GPG_ERR_INV_VALUE;
       mlkem_keypair (algo, pubkey, seckey);
       return GPG_ERR_NO_ERROR;
     default:
@@ -59,23 +60,23 @@ _gcry_kem_keypair (int algo, void *pubkey, void *seckey, gcry_ctx_t ctx)
 }
 
 gcry_err_code_t
-_gcry_kem_encap (int algo,
+_gcry_kem_encap (int algo, const void *context,
                  const void *pubkey,
                  void *ciphertext,
-                 void *shared_secret,
-                 gcry_ctx_t ctx)
+                 void *shared_secret)
 {
-  if (ctx != NULL)
-    return GPG_ERR_INV_VALUE;
-
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
+      if (context != NULL)
+        return GPG_ERR_INV_VALUE;
       sntrup761_enc (ciphertext, shared_secret, pubkey, NULL, _kem_random);
       return GPG_ERR_NO_ERROR;
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
+      if (context != NULL)
+        return GPG_ERR_INV_VALUE;
       return mlkem_encap (algo, ciphertext, shared_secret, pubkey);
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -83,23 +84,23 @@ _gcry_kem_encap (int algo,
 }
 
 gcry_err_code_t
-_gcry_kem_decap (int algo,
+_gcry_kem_decap (int algo, const void *context,
                  const void *seckey,
                  const void *ciphertext,
-                 void *shared_secret,
-                 gcry_ctx_t ctx)
+                 void *shared_secret)
 {
-  if (ctx != NULL)
-    return GPG_ERR_INV_VALUE;
-
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
+      if (context != NULL)
+        return GPG_ERR_INV_VALUE;
       sntrup761_dec (shared_secret, ciphertext, seckey);
       return GPG_ERR_NO_ERROR;
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
+      if (context != NULL)
+        return GPG_ERR_INV_VALUE;
       return mlkem_decap (algo, shared_secret, ciphertext, seckey);
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
