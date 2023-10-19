@@ -124,8 +124,8 @@ get_hwcap(unsigned int *hwcap, unsigned int *hwcap2)
       return 0;
     }
 
-#if 0 // TODO: configure.ac detection for __builtin_cpu_supports
-      // TODO: move to 'detect_ppc_builtin_cpu_supports'
+#if 0 /* TODO: configure.ac detection for __builtin_cpu_supports */
+      /* TODO: move to 'detect_ppc_builtin_cpu_supports' */
 #if defined(__GLIBC__) && defined(__GNUC__) && __GNUC__ >= 6
   /* __builtin_cpu_supports returns 0 if glibc support doesn't exist, so
    * we can only trust positive results. */
