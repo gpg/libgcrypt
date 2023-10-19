@@ -100,7 +100,7 @@ static void jent_lag_reset(struct rand_data *ec)
 	/* Reset Lag counters */
 	ec->lag_prediction_success_count = 0;
 	ec->lag_prediction_success_run = 0;
-	ec->lag_best_predictor = 0; //The first guess is basically arbitrary.
+	ec->lag_best_predictor = 0; /*The first guess is basically arbitrary.*/
 	ec->lag_observations = 0;
 
 	for (i = 0; i < JENT_LAG_HISTORY_SIZE; i++) {
@@ -292,21 +292,21 @@ static void jent_apt_insert(struct rand_data *ec, uint64_t current_delta)
 {
 	/* Initialize the base reference */
 	if (!ec->apt_base_set) {
-		ec->apt_base = current_delta;	// APT Step 1
-		ec->apt_base_set = 1;		// APT Step 2
+                ec->apt_base = current_delta;	/* APT Step 1 */
+		ec->apt_base_set = 1;		/* APT Step 2 */
 
 		/*
 		 * Reset APT counter
 		 * Note that we've taken in the first symbol in the window.
 		 */
-		ec->apt_count = 1;		// B = 1
+		ec->apt_count = 1;		/* B = 1 */
 		ec->apt_observations = 1;
 
 		return;
 	}
 
 	if (current_delta == ec->apt_base) {
-		ec->apt_count++;		// B = B + 1
+                ec->apt_count++;		/* B = B + 1 */
 
 		/* Note, ec->apt_count starts with one. */
 		if (ec->apt_count >= ec->apt_cutoff)
@@ -317,7 +317,7 @@ static void jent_apt_insert(struct rand_data *ec, uint64_t current_delta)
 
 	/* Completed one window, the next symbol input will be new apt_base. */
 	if (ec->apt_observations >= JENT_APT_WINDOW_SIZE)
-		jent_apt_reset(ec);		// APT Step 4
+                jent_apt_reset(ec);		/* APT Step 4 */
 }
 
 /***************************************************************************
