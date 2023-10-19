@@ -226,14 +226,14 @@ gpg_err_code_t _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result)
 void _gcry_kdf_close (gcry_kdf_hd_t h);
 
 
-gcry_err_code_t _gcry_kem_keypair (int algo, const void *context,
+gcry_err_code_t _gcry_kem_keypair (int algo,
                                    void *pubkey,
                                    void *seckey);
-gcry_err_code_t _gcry_kem_encap (int algo, const void *context,
+gcry_err_code_t _gcry_kem_encap (int algo,
                                  const void *pubkey,
                                  void *ciphertext,
                                  void *shared_secret);
-gcry_err_code_t _gcry_kem_decap (int algo, const void *context,
+gcry_err_code_t _gcry_kem_decap (int algo,
                                  const void *seckey,
                                  const void *ciphertext,
                                  void *shared_secret);

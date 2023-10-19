@@ -1716,16 +1716,16 @@ enum gcry_kem_algos
 #define GCRY_KEM_MLKEM1024_CIPHERTEXT_SIZE (160+4*352)
 #define GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE 32
 
-gcry_error_t gcry_kem_keypair (int algo, const void *context,
-			       void *pubkey,
-			       void *seckey);
+gcry_error_t gcry_kem_keypair (int algo,
+                               void *pubkey,
+                               void *seckey);
 
-gcry_error_t gcry_kem_encap (int algo, const void *context,
+gcry_error_t gcry_kem_encap (int algo,
                              const void *pubkey,
                              void *ciphertext,
                              void *shared_secret);
 
-gcry_error_t gcry_kem_decap (int algo, const void *context,
+gcry_error_t gcry_kem_decap (int algo,
                              const void *seckey,
                              const void *ciphertext,
                              void *shared_secret);

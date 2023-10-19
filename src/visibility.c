@@ -1429,30 +1429,30 @@ gcry_kdf_close (gcry_kdf_hd_t h)
 }
 
 gcry_error_t
-gcry_kem_keypair (int algo, const void *context, void *pubkey, void *seckey)
+gcry_kem_keypair (int algo, void *pubkey, void *seckey)
 {
-  return gpg_error (_gcry_kem_keypair (algo, context, pubkey, seckey));
+  return gpg_error (_gcry_kem_keypair (algo, pubkey, seckey));
 }
 
 gcry_error_t
-gcry_kem_encap (int algo, const void *context,
+gcry_kem_encap (int algo,
                 const void *pubkey,
                 void *ciphertext,
                 void *shared_secret)
 {
-  return gpg_error (_gcry_kem_encap (algo, context,
+  return gpg_error (_gcry_kem_encap (algo,
                                      pubkey,
                                      ciphertext,
                                      shared_secret));
 }
 
 gcry_error_t
-gcry_kem_decap (int algo,const void *context,
+gcry_kem_decap (int algo,
                 const void *seckey,
                 const void *ciphertext,
                 void *shared_secret)
 {
-  return gpg_error (_gcry_kem_decap (algo, context,
+  return gpg_error (_gcry_kem_decap (algo,
                                      seckey,
                                      ciphertext,
                                      shared_secret));
