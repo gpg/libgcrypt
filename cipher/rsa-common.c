@@ -27,6 +27,7 @@
 #include "mpi.h"
 #include "cipher.h"
 #include "pubkey-internal.h"
+#include "const-time.h"
 
 
 /* Turn VALUE into an octet string and store it in an allocated buffer
@@ -172,7 +173,9 @@ _gcry_rsa_pkcs1_decode_for_enc (unsigned char **r_result, size_t *r_resultlen,
   gcry_error_t err;
   unsigned char *frame = NULL;
   size_t nframe = (nbits+7) / 8;
-  size_t n;
+  size_t n, n0;
+  unsigned int failed = 0;
+  unsigned int not_found = 1;
 
   *r_result = NULL;
 
@@ -203,33 +206,31 @@ _gcry_rsa_pkcs1_decode_for_enc (unsigned char **r_result, size_t *r_resultlen,
   n = 0;
   if (!frame[0])
     n++;
-  if (frame[n++] != 0x02)
+  failed |= ct_not_equal_byte (frame[n++], 0x02);
+
+  /* Find the terminating zero byte.  */
+  n0 = n;
+  for (; n < nframe; n++)
     {
-      xfree (frame);
-      return GPG_ERR_ENCODING_PROBLEM;  /* Wrong block type.  */
+      not_found &= ct_not_equal_byte (frame[n], 0x00);
+      n0 += not_found;
     }
 
-  /* Skip the non-zero random bytes and the terminating zero byte.  */
-  for (; n < nframe && frame[n] != 0x00; n++)
-    ;
-  if (n+1 >= nframe)
-    {
-      xfree (frame);
-      return GPG_ERR_ENCODING_PROBLEM; /* No zero byte.  */
-    }
-  n++; /* Skip the zero byte.  */
+  failed |= not_found;
+  n0 += !not_found; /* Skip the zero byte.  */
 
   /* To avoid an extra allocation we reuse the frame buffer.  The only
      caller of this function will anyway free the result soon.  */
-  memmove (frame, frame + n, nframe - n);
+  memmove (frame, frame + n0, nframe - n0);
+
   *r_result = frame;
-  *r_resultlen = nframe - n;
+  *r_resultlen = nframe - n0;
 
   if (DBG_CIPHER)
     log_printhex ("value extracted from PKCS#1 block type 2 encoded data",
                   *r_result, *r_resultlen);
 
-  return 0;
+  return (0U - failed) & GPG_ERR_ENCODING_PROBLEM;
 }
 
 
@@ -616,7 +617,8 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
   size_t db_len;               /* Length of DB and masked_db.  */
   size_t nkey = (nbits+7)/8;   /* Length of the key in bytes.  */
   int failed = 0;              /* Error indicator.  */
-  size_t n;
+  size_t n, n1;
+  unsigned int not_found = 1;
 
   *r_result = NULL;
 
@@ -688,51 +690,43 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
   db_len      = nframe - 1 - hlen;
 
   /* Step 3c and 3d: seed = maskedSeed ^ mgf(maskedDB, hlen).  */
-  if (mgf1 (seed, hlen, masked_db, db_len, algo))
-    failed = 1;
+  failed |= (mgf1 (seed, hlen, masked_db, db_len, algo) != 0);
   for (n = 0; n < hlen; n++)
     seed[n] ^= masked_seed[n];
 
   /* Step 3e and 3f: db = maskedDB ^ mgf(seed, db_len).  */
-  if (mgf1 (db, db_len, seed, hlen, algo))
-    failed = 1;
+  failed |= (mgf1 (db, db_len, seed, hlen, algo) != 0);
   for (n = 0; n < db_len; n++)
     db[n] ^= masked_db[n];
 
   /* Step 3g: Check lhash, an possible empty padding string terminated
      by 0x01 and the first byte of EM being 0.  */
-  if (memcmp (lhash, db, hlen))
-    failed = 1;
-  for (n = hlen; n < db_len; n++)
-    if (db[n] == 0x01)
-      break;
-  if (n == db_len)
-    failed = 1;
-  if (frame[0])
-    failed = 1;
+  failed |= !ct_memequal (lhash, db, hlen);
+  for (n = n1 = hlen; n < db_len; n++)
+    {
+      not_found &= ct_not_equal_byte (db[n], 0x01);
+      n1 += not_found;
+    }
+  failed |= not_found;
+  failed |= ct_not_equal_byte (frame[0], 0x00);
 
   xfree (lhash);
   xfree (frame);
-  if (failed)
-    {
-      xfree (seed);
-      return GPG_ERR_ENCODING_PROBLEM;
-    }
 
   /* Step 4: Output M.  */
   /* To avoid an extra allocation we reuse the seed buffer.  The only
      caller of this function will anyway free the result soon.  */
-  n++;
-  memmove (seed, db + n, db_len - n);
+  n1 += !not_found;
+  memmove (seed, db + n1, db_len - n1);
   *r_result = seed;
-  *r_resultlen = db_len - n;
+  *r_resultlen = db_len - n1;
   seed = NULL;
 
   if (DBG_CIPHER)
     log_printhex ("value extracted from OAEP encoded data",
                   *r_result, *r_resultlen);
 
-  return 0;
+  return (0U - failed) & GPG_ERR_ENCODING_PROBLEM;
 }
 
 

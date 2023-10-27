@@ -63,7 +63,7 @@ libgcrypt_la_SOURCES = \
 	misc.c global.c sexp.c hwfeatures.c hwf-common.h \
 	stdmem.c stdmem.h secmem.c secmem.h \
 	mpi.h missing-string.c fips.c \
-	context.c context.h \
+	context.c context.h const-time.h const-time.c \
 	ec-context.h
 
 EXTRA_libgcrypt_la_SOURCES = hwf-x86.c hwf-arm.c hwf-ppc.c hwf-s390x.c
