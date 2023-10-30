@@ -29,16 +29,12 @@
 static inline unsigned int
 ct_not_equal_byte (unsigned char b0, unsigned char b1)
 {
-#ifdef POSSIBLE_CONDITIONAL_BRANCH_IN_BYTE_COMPARISON
   unsigned int diff;
 
   diff = b0;
   diff ^= b1;
 
   return (0U - diff) >> (sizeof (unsigned int)*8 - 1);
-#else
-  return b0 != b1;
-#endif
 }
 
 /* Compare byte-arrays of length LEN, return 1 if it's not same, 0
