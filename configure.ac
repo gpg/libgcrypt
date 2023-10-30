@@ -123,7 +123,7 @@ AH_BOTTOM([
 
 /* For some architectures or a specific compiler vendor, we need
    to care about possible conditional branch in byte comparison.  */
-#if defined(__vax__) || defined(_MSC_VER)
+#if defined(__vax__) || defined(AVR) || defined(_MSC_VER)
 # define POSSIBLE_CONDITIONAL_BRANCH_IN_BYTE_COMPARISON 1
 #endif
 #endif /*_GCRYPT_CONFIG_H_INCLUDED*/

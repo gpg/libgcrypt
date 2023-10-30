@@ -701,7 +701,7 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
 
   /* Step 3g: Check lhash, an possible empty padding string terminated
      by 0x01 and the first byte of EM being 0.  */
-  failed |= !ct_memequal (lhash, db, hlen);
+  failed |= ct_not_memequal (lhash, db, hlen);
   for (n = n1 = hlen; n < db_len; n++)
     {
       not_found &= ct_not_equal_byte (db[n], 0x01);
