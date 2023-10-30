@@ -1522,11 +1522,11 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_free (plain);
       plain = NULL;
       rc_sexp = sexp_build (&result, NULL, "(value %b)", (int)unpadlen, unpad);
-      *r_plain = sexp_null_cond (result, !!rc);
-      dummy = sexp_null_cond (result, !rc);
+      *r_plain = sexp_null_cond (result, ct_is_not_zero (rc));
+      dummy = sexp_null_cond (result, ct_is_zero (rc));
       sexp_release (dummy);
-      if (!rc && rc_sexp)
-        rc = rc_sexp;
+      rc = ct_ulong_select (rc_sexp, rc,
+			    ct_is_zero (rc) & ct_is_not_zero (rc_sexp));
       break;
 
     case PUBKEY_ENC_OAEP:
@@ -1536,11 +1536,11 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_free (plain);
       plain = NULL;
       rc_sexp = sexp_build (&result, NULL, "(value %b)", (int)unpadlen, unpad);
-      *r_plain = sexp_null_cond (result, !!rc);
-      dummy = sexp_null_cond (result,!rc);
+      *r_plain = sexp_null_cond (result, ct_is_not_zero (rc));
+      dummy = sexp_null_cond (result, ct_is_zero (rc));
       sexp_release (dummy);
-      if (!rc && rc_sexp)
-        rc = rc_sexp;
+      rc = ct_ulong_select (rc_sexp, rc,
+			    ct_is_zero (rc) & ct_is_not_zero (rc_sexp));
       break;
 
     default:

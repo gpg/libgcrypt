@@ -23,6 +23,14 @@
 #include "g10lib.h"
 #include "const-time.h"
 
+
+/* These variables are used to generate masks from conditional operation
+ * flag parameters.  Use of volatile prevents compiler optimizations from
+ * converting AND-masking to conditional branches.  */
+volatile unsigned int _gcry_ct_vzero = 0;
+volatile unsigned int _gcry_ct_vone = 1;
+
+
 /*
  * Compare byte arrays of length LEN, return 1 if it's not same,
  * 0, otherwise.

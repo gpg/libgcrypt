@@ -23,6 +23,34 @@
 #include "types.h"
 
 
+extern volatile unsigned int _gcry_ct_vzero;
+extern volatile unsigned int _gcry_ct_vone;
+
+
+/*
+ * Return 0 if A is 0 and return 1 otherwise.
+ */
+static inline unsigned int
+ct_is_not_zero (unsigned int a)
+{
+  /* Sign bit set if A != 0. */
+  a = a | (-a);
+
+  return a >> (sizeof(unsigned int) * 8 - 1);
+}
+
+/*
+ * Return 1 if A is 0 and return 0 otherwise.
+ */
+static inline unsigned int
+ct_is_zero (unsigned int a)
+{
+  /* Sign bit set if A == 0. */
+  a = ~a & ~(-a);
+
+  return a >> (sizeof(unsigned int) * 8 - 1);
+}
+
 /*
  * Return 1 if it's not same, 0 if same.
  */
@@ -48,16 +76,29 @@ unsigned int ct_not_memequal (const void *b1, const void *b2, size_t len);
 unsigned int ct_memequal (const void *b1, const void *b2, size_t len);
 
 /*
+ *  Return A when OP_ENABLED=1
+ *  otherwise, return B
+ */
+#define DEFINE_CT_TYPE_SELECT_FUNC(name, type) \
+  static inline type \
+  ct_##name##_select (type a, type b, unsigned long op_enable) \
+  { \
+    type mask_b = (type)op_enable - (type)_gcry_ct_vone; \
+    type mask_a = (type)_gcry_ct_vzero - (type)op_enable; \
+    return (mask_a & a) | (mask_b & b); \
+  }
+DEFINE_CT_TYPE_SELECT_FUNC(uintptr, uintptr_t)
+DEFINE_CT_TYPE_SELECT_FUNC(ulong, unsigned long)
+
+/*
  *  Return NULL when OP_ENABLED=1
  *  otherwise, return W
  */
 static inline gcry_sexp_t
 sexp_null_cond (gcry_sexp_t w, unsigned long op_enable)
 {
-  static volatile uintptr_t vone = 1;
-  size_t mask = (uintptr_t)op_enable - vone;
-
-  return (gcry_sexp_t)(void *)((uintptr_t)w & mask);
+  uintptr_t o = ct_uintptr_select((uintptr_t)NULL, (uintptr_t)w, op_enable);
+  return (gcry_sexp_t)(void *)o;
 }
 
 /*
