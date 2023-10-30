@@ -120,6 +120,11 @@ AH_BOTTOM([
    properly prefixed.  */
 #define CAMELLIA_EXT_SYM_PREFIX _gcry_
 
+/* For some architectures or a specific compiler vendor, we need
+   to care about possible conditional branch in byte comparison.  */
+#if defined(__vax__) || defined(_MSC_VER)
+# define POSSIBLE_CONDITIONAL_BRANCH_IN_BYTE_COMPARISON 1
+#endif
 #endif /*_GCRYPT_CONFIG_H_INCLUDED*/
 ])
 

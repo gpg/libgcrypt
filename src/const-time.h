@@ -23,7 +23,7 @@
 static inline unsigned int
 ct_not_equal_byte (unsigned char b0, unsigned char b1)
 {
-#ifdef POSSIBLE_BRANCH_IN_BYTE_COMPARISON
+#ifdef POSSIBLE_CONDITIONAL_BRANCH_IN_BYTE_COMPARISON
   unsigned int diff;
 
   diff = b0;
