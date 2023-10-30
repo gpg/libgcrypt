@@ -17,6 +17,12 @@
  * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef GCRY_CONST_TIME_H
+#define GCRY_CONST_TIME_H
+
+#include "types.h"
+
+
 /*
  * Return 1 if it's not same, 0 if same.
  */
@@ -40,6 +46,11 @@ ct_not_equal_byte (unsigned char b0, unsigned char b1)
    any structure.  */
 unsigned int ct_not_memequal (const void *b1, const void *b2, size_t len);
 
+/* Compare byte-arrays of length LEN, return 0 if it's not same, 1
+   otherwise.  We use pointer of void *, so that it can be used with
+   any structure.  */
+unsigned int ct_memequal (const void *b1, const void *b2, size_t len);
+
 /*
  *  Return NULL when OP_ENABLED=1
  *  otherwise, return W
@@ -60,3 +71,5 @@ sexp_null_cond (gcry_sexp_t w, unsigned long op_enable)
  */
 void ct_memmov_cond (void *dst, const void *src, size_t len,
                      unsigned long op_enable);
+
+#endif /*GCRY_CONST_TIME_H*/

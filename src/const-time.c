@@ -26,25 +26,35 @@
 /*
  * Compare byte arrays of length LEN, return 1 if it's not same,
  * 0, otherwise.
- *
- * Originally in NetBSD as "consttime_memequal" which is:
- *
- *   Written by Matthias Drochner <drochner@NetBSD.org>.
- *   Public domain.
- *
- * Modified the function name, return type to unsigned,
- * and return value (0 <-> 1).
  */
 unsigned int
 ct_not_memequal (const void *b1, const void *b2, size_t len)
 {
-  const unsigned char *c1 = b1, *c2 = b2;
-  unsigned int res = 0;
+  const byte *a = b1;
+  const byte *b = b2;
+  int ab, ba;
+  size_t i;
 
-  while (len--)
-    res |= *c1++ ^ *c2++;
+  /* Constant-time compare. */
+  for (i = 0, ab = 0, ba = 0; i < len; i++)
+    {
+      /* If a[i] != b[i], either ab or ba will be negative. */
+      ab |= a[i] - b[i];
+      ba |= b[i] - a[i];
+    }
 
-  return ct_not_equal_byte (res, 0);
+  /* 'ab | ba' is negative when buffers are not equal, extract sign bit.  */
+  return ((unsigned int)(ab | ba) >> (sizeof(unsigned int) * 8 - 1)) & 1;
+}
+
+/*
+ * Compare byte arrays of length LEN, return 0 if it's not same,
+ * 1, otherwise.
+ */
+unsigned int
+ct_memequal (const void *b1, const void *b2, size_t len)
+{
+  return ct_not_memequal (b1, b2, len) ^ 1;
 }
 
 /*
