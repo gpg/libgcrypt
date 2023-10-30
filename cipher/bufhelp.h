@@ -22,6 +22,7 @@
 
 #include "g10lib.h"
 #include "bithelp.h"
+#include "const-time.h"
 
 
 #undef BUFHELP_UNALIGNED_ACCESS
@@ -362,23 +363,9 @@ buf_xor_n_copy(void *_dst_xor, void *_srcdst_cpy, const void *_src, size_t len)
 /* Constant-time compare of two buffers.  Returns 1 if buffers are equal,
    and 0 if buffers differ.  */
 static inline int
-buf_eq_const(const void *_a, const void *_b, size_t len)
+buf_eq_const(const void *a, const void *b, size_t len)
 {
-  const byte *a = _a;
-  const byte *b = _b;
-  int ab, ba;
-  size_t i;
-
-  /* Constant-time compare. */
-  for (i = 0, ab = 0, ba = 0; i < len; i++)
-    {
-      /* If a[i] != b[i], either ab or ba will be negative. */
-      ab |= a[i] - b[i];
-      ba |= b[i] - a[i];
-    }
-
-  /* 'ab | ba' is negative when buffers are not equal. */
-  return (ab | ba) >= 0;
+  return ct_memequal (a, b, len);
 }
 
 
