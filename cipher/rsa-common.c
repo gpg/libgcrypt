@@ -246,7 +246,7 @@ _gcry_rsa_pkcs1_decode_for_enc (unsigned char **r_result, size_t *r_resultlen,
     }
 
   failed |= not_found;
-  n0 += !not_found; /* Skip the zero byte.  */
+  n0 += ct_is_zero (not_found); /* Skip the zero byte.  */
 
   /* To avoid an extra allocation we reuse the frame buffer.  The only
      caller of this function will anyway free the result soon.  */
