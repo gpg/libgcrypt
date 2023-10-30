@@ -48,6 +48,7 @@ sexp_null_cond (gcry_sexp_t w, unsigned long op_enable)
   return (gcry_sexp_t)(void *)((uintptr_t)w & mask);
 }
 
-/* Compare byte-arrays of length LEN, return 1 if it's same, 0 otherwise.
-   We use pointer of void *, so that it can be used with any structure.  */
-unsigned int ct_memequal (const void *b1, const void *b2, size_t len);
+/* Compare byte-arrays of length LEN, return 1 if it's not same, 0
+   otherwise.  We use pointer of void *, so that it can be used with
+   any structure.  */
+unsigned int ct_not_memequal (const void *b1, const void *b2, size_t len);
