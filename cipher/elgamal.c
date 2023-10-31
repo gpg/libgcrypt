@@ -31,6 +31,7 @@
 #include "mpi.h"
 #include "cipher.h"
 #include "pubkey-internal.h"
+#include "const-time.h"
 
 
 /* Blinding is used to mitigate side-channel attacks.  You may undef
@@ -872,7 +873,7 @@ elg_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 static gcry_err_code_t
 elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
-  gpg_err_code_t rc;
+  gpg_err_code_t rc, rc_sexp;
   struct pk_encoding_ctx ctx;
   gcry_sexp_t l1 = NULL;
   gcry_mpi_t data_a = NULL;
@@ -881,6 +882,8 @@ elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_mpi_t plain = NULL;
   unsigned char *unpad = NULL;
   size_t unpadlen = 0;
+  gcry_sexp_t result = NULL;
+  gcry_sexp_t dummy = NULL;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT,
                                    elg_get_nbits (keyparms));
@@ -929,8 +932,12 @@ elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     case PUBKEY_ENC_PKCS1:
       rc = _gcry_rsa_pkcs1_decode_for_enc (&unpad, &unpadlen, ctx.nbits, plain);
       mpi_free (plain); plain = NULL;
-      if (!rc)
-        rc = sexp_build (r_plain, NULL, "(value %b)", (int)unpadlen, unpad);
+      rc_sexp = sexp_build (&result, NULL, "(value %b)", (int)unpadlen, unpad);
+      *r_plain = sexp_null_cond (result, !!rc);
+      dummy = sexp_null_cond (result, !rc);
+      sexp_release (dummy);
+      if (!rc && rc_sexp)
+        rc = rc_sexp;
       break;
 
     case PUBKEY_ENC_OAEP:
@@ -938,8 +945,12 @@ elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                                   ctx.nbits, ctx.hash_algo, plain,
                                   ctx.label, ctx.labellen);
       mpi_free (plain); plain = NULL;
-      if (!rc)
-        rc = sexp_build (r_plain, NULL, "(value %b)", (int)unpadlen, unpad);
+      rc_sexp = sexp_build (&result, NULL, "(value %b)", (int)unpadlen, unpad);
+      *r_plain = sexp_null_cond (result, !!rc);
+      dummy = sexp_null_cond (result, !rc);
+      sexp_release (dummy);
+      if (!rc && rc_sexp)
+        rc = rc_sexp;
       break;
 
     default:
