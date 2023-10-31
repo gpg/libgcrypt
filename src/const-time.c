@@ -46,3 +46,22 @@ ct_not_memequal (const void *b1, const void *b2, size_t len)
 
   return ct_not_equal_byte (res, 0);
 }
+
+/*
+ * Copy LEN bytes from memory area SRC to memory area DST, when
+ * OP_ENABLED=1.  When DST <= SRC, the memory areas may overlap.  When
+ * DST > SRC, the memory areas must not overlap.
+ */
+void
+ct_memmov_cond (void *dst, const void *src, size_t len,
+                unsigned long op_enable)
+{
+  size_t i;
+  unsigned char mask;
+  unsigned char *b_dst = dst;
+  const unsigned char *b_src = src;
+
+  mask = -(unsigned char)op_enable;
+  for (i = 0; i < len; i++)
+    b_dst[i] ^= mask & (b_dst[i] ^ b_src[i]);
+}
