@@ -1436,7 +1436,7 @@ static gcry_err_code_t
 rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
 {
-  gpg_err_code_t rc;
+  gpg_err_code_t rc, rc_sexp;
   struct pk_encoding_ctx ctx;
   gcry_sexp_t l1 = NULL;
   gcry_mpi_t data = NULL;
@@ -1515,10 +1515,12 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       rc = _gcry_rsa_pkcs1_decode_for_enc (&unpad, &unpadlen, nbits, plain);
       mpi_free (plain);
       plain = NULL;
-      sexp_build (&result, NULL, "(value %b)", (int)unpadlen, unpad);
+      rc_sexp = sexp_build (&result, NULL, "(value %b)", (int)unpadlen, unpad);
       *r_plain = sexp_null_cond (result, !!rc);
       dummy = sexp_null_cond (result, !rc);
       sexp_release (dummy);
+      if (!rc && rc_sexp)
+        rc = rc_sexp;
       break;
 
     case PUBKEY_ENC_OAEP:
@@ -1527,10 +1529,12 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                                   plain, ctx.label, ctx.labellen);
       mpi_free (plain);
       plain = NULL;
-      sexp_build (&result, NULL, "(value %b)", (int)unpadlen, unpad);
+      rc_sexp = sexp_build (&result, NULL, "(value %b)", (int)unpadlen, unpad);
       *r_plain = sexp_null_cond (result, !!rc);
       dummy = sexp_null_cond (result,!rc);
       sexp_release (dummy);
+      if (!rc && rc_sexp)
+        rc = rc_sexp;
       break;
 
     default:
