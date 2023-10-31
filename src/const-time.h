@@ -35,6 +35,11 @@ ct_not_equal_byte (unsigned char b0, unsigned char b1)
 #endif
 }
 
+/* Compare byte-arrays of length LEN, return 1 if it's not same, 0
+   otherwise.  We use pointer of void *, so that it can be used with
+   any structure.  */
+unsigned int ct_not_memequal (const void *b1, const void *b2, size_t len);
+
 /*
  *  Return NULL when OP_ENABLED=1
  *  otherwise, return W
@@ -48,7 +53,10 @@ sexp_null_cond (gcry_sexp_t w, unsigned long op_enable)
   return (gcry_sexp_t)(void *)((uintptr_t)w & mask);
 }
 
-/* Compare byte-arrays of length LEN, return 1 if it's not same, 0
-   otherwise.  We use pointer of void *, so that it can be used with
-   any structure.  */
-unsigned int ct_not_memequal (const void *b1, const void *b2, size_t len);
+/*
+ * Copy LEN bytes from memory area SRC to memory area DST, when
+ * OP_ENABLED=1.  When DST <= SRC, the memory areas may overlap.  When
+ * DST > SRC, the memory areas must not overlap.
+ */
+void ct_memmov_cond (void *dst, const void *src, size_t len,
+                     unsigned long op_enable);

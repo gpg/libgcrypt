@@ -40,13 +40,10 @@ _gcry_mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
                      unsigned long op_enable)
 {
   mpi_size_t i;
-  mpi_limb_t mask1 = vzero - op_enable;
-  mpi_limb_t mask2 = op_enable - vone;
+  mpi_limb_t mask = vzero - op_enable;
 
   for (i = 0; i < usize; i++)
-    {
-      wp[i] = (wp[i] & mask2) | (up[i] & mask1);
-    }
+    wp[i] ^= mask & (wp[i] ^ up[i]);
 }
 
 
