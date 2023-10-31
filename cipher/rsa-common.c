@@ -162,6 +162,35 @@ _gcry_rsa_pkcs1_encode_for_enc (gcry_mpi_t *r_result, unsigned int nbits,
 }
 
 
+/*
+ *                    <--len-->
+ * DST-------v       v-------------SRC
+ *           [.................]
+ *            <---- buflen --->
+ *
+ * Copy the memory area SRC with LEN into another memory area DST.
+ * Conditions met:
+ *         the address SRC > DST
+ *         DST + BUFLEN == SRC + LEN.
+ *
+ * Memory access doesn't depends on LEN, but always done independently,
+ * sliding memory area by 1, 2, 4 ... until done.
+ */
+static void
+memmov_independently (void *dst, const void *src, size_t len, size_t buflen)
+{
+  size_t offset = (size_t)((char *)src - (char *)dst);
+  size_t shift;
+
+  (void)len; /* No dependency.  */
+  for (shift = 1; shift < buflen; shift <<= 1)
+    {
+      ct_memmov_cond (dst, (char *)dst + shift, buflen - shift, (offset&1));
+      offset >>= 1;
+    }
+}
+
+
 /* Decode a plaintext in VALUE assuming pkcs#1 block type 2 padding.
    NBITS is the size of the secret key.  On success the result is
    stored as a newly allocated buffer at R_RESULT and its valid length at
@@ -221,7 +250,7 @@ _gcry_rsa_pkcs1_decode_for_enc (unsigned char **r_result, size_t *r_resultlen,
 
   /* To avoid an extra allocation we reuse the frame buffer.  The only
      caller of this function will anyway free the result soon.  */
-  memmove (frame, frame + n0, nframe - n0);
+  memmov_independently (frame, frame + n0, nframe - n0, nframe);
 
   *r_result = frame;
   *r_resultlen = nframe - n0;
@@ -717,7 +746,7 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
   /* To avoid an extra allocation we reuse the seed buffer.  The only
      caller of this function will anyway free the result soon.  */
   n1 += !not_found;
-  memmove (seed, db + n1, db_len - n1);
+  memmov_independently (seed, db + n1, db_len - n1, nframe - 1);
   *r_result = seed;
   *r_resultlen = db_len - n1;
   seed = NULL;
