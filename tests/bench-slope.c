@@ -515,6 +515,8 @@ err_free:
 
 /********************************************* CPU frequency auto-detection. */
 
+static volatile size_t vone = 1;
+
 static int
 auto_ghz_init (struct bench_obj *obj)
 {
@@ -535,6 +537,9 @@ auto_ghz_free (struct bench_obj *obj)
 static void
 auto_ghz_bench (struct bench_obj *obj, void *buf, size_t buflen)
 {
+  size_t one = vone;
+  size_t two = one + vone;
+
   (void)obj;
   (void)buf;
 
@@ -544,21 +549,12 @@ auto_ghz_bench (struct bench_obj *obj, void *buf, size_t buflen)
    * function will give cycles/iteration result 1024.0 on high-end CPUs.
    * With turbo, result will be less and can be used detect turbo-clock. */
 
-#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
-  /* Auto-ghz operation takes two CPU cycles to perform. Memory barriers
-   * are used to prevent compiler from optimizing this loop away. */
-  #define AUTO_GHZ_OPERATION \
-	asm volatile ("":"+r"(buflen)::"memory"); \
-	buflen ^= 1; \
-	asm volatile ("":"+r"(buflen)::"memory"); \
-	buflen -= 2
-#else
-  /* TODO: Needs alternative way of preventing compiler optimizations.
-   *       Mix of XOR and subtraction appears to do the trick for now. */
-  #define AUTO_GHZ_OPERATION \
-	buflen ^= 1; \
-	buflen -= 2
-#endif
+  /* Auto-ghz operation takes two CPU cycles to perform. Variables are
+   * generated through volatile object and therefore compiler is unable
+   * to optimize these operations away. */
+#define AUTO_GHZ_OPERATION \
+	buflen ^= one; \
+	buflen -= two
 
 #define AUTO_GHZ_OPERATION_2 \
 	AUTO_GHZ_OPERATION; \
