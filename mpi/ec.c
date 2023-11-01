@@ -375,7 +375,7 @@ ec_addm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 
   _gcry_mpih_add_n (wp, up, vp, wsize);
   borrow = _gcry_mpih_sub_n (n, wp, ctx->p->d, wsize);
-  mpih_set_cond (wp, n, wsize, (borrow == 0UL));
+  mpih_set_cond (wp, n, wsize, mpih_limb_is_zero (borrow));
   wp[LIMB_SIZE_25519-1] &= ~((mpi_limb_t)1 << (255 % BITS_PER_MPI_LIMB));
 }
 
@@ -396,7 +396,7 @@ ec_subm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 
   borrow = _gcry_mpih_sub_n (wp, up, vp, wsize);
   _gcry_mpih_add_n (n, wp, ctx->p->d, wsize);
-  mpih_set_cond (wp, n, wsize, (borrow != 0UL));
+  mpih_set_cond (wp, n, wsize, mpih_limb_is_not_zero (borrow));
   wp[LIMB_SIZE_25519-1] &= ~((mpi_limb_t)1 << (255 % BITS_PER_MPI_LIMB));
 }
 
@@ -433,7 +433,7 @@ ec_mulm_25519 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   _gcry_mpih_add_n (wp, wp, n, wsize);
 
   cy = _gcry_mpih_sub_n (n, wp, ctx->p->d, wsize);
-  mpih_set_cond (wp, n, wsize, (cy == 0UL));
+  mpih_set_cond (wp, n, wsize, mpih_limb_is_zero (cy));
 }
 
 static void
@@ -470,7 +470,7 @@ ec_addm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 
   cy = _gcry_mpih_add_n (wp, up, vp, wsize);
   _gcry_mpih_sub_n (n, wp, ctx->p->d, wsize);
-  mpih_set_cond (wp, n, wsize, (cy != 0UL));
+  mpih_set_cond (wp, n, wsize, mpih_limb_is_not_zero (cy));
 }
 
 static void
@@ -490,7 +490,7 @@ ec_subm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 
   borrow = _gcry_mpih_sub_n (wp, up, vp, wsize);
   _gcry_mpih_add_n (n, wp, ctx->p->d, wsize);
-  mpih_set_cond (wp, n, wsize, (borrow != 0UL));
+  mpih_set_cond (wp, n, wsize, mpih_limb_is_not_zero (borrow));
 }
 
 static void
@@ -561,7 +561,7 @@ ec_mulm_448 (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   _gcry_mpih_add_n (wp, wp, n, wsize);
 
   cy = _gcry_mpih_sub_n (n, wp, ctx->p->d, wsize);
-  mpih_set_cond (wp, n, wsize, (cy == 0UL));
+  mpih_set_cond (wp, n, wsize, mpih_limb_is_zero (cy));
 }
 
 static void
@@ -622,7 +622,8 @@ ec_secp256k1_mod (gcry_mpi_t w, mpi_ec_t ctx)
   cy = _gcry_mpih_add_n (wp, wp, n, wsize);
 
   borrow = _gcry_mpih_sub_n (s, wp, ctx->p->d, wsize);
-  mpih_set_cond (wp, s, wsize, (cy != 0UL) | (borrow == 0UL));
+  mpih_set_cond (wp, s, wsize,
+		 mpih_limb_is_not_zero (cy) | mpih_limb_is_zero (borrow));
 
   w->nlimbs = wsize;
   MPN_NORMALIZE (wp, w->nlimbs);
