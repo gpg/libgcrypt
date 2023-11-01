@@ -36,7 +36,7 @@ volatile unsigned int _gcry_ct_vone = 1;
  * 0, otherwise.
  */
 unsigned int
-ct_not_memequal (const void *b1, const void *b2, size_t len)
+_gcry_ct_not_memequal (const void *b1, const void *b2, size_t len)
 {
   const byte *a = b1;
   const byte *b = b2;
@@ -60,9 +60,9 @@ ct_not_memequal (const void *b1, const void *b2, size_t len)
  * 1, otherwise.
  */
 unsigned int
-ct_memequal (const void *b1, const void *b2, size_t len)
+_gcry_ct_memequal (const void *b1, const void *b2, size_t len)
 {
-  return ct_not_memequal (b1, b2, len) ^ 1;
+  return _gcry_ct_not_memequal (b1, b2, len) ^ 1;
 }
 
 /*
@@ -71,8 +71,8 @@ ct_memequal (const void *b1, const void *b2, size_t len)
  * DST > SRC, the memory areas must not overlap.
  */
 void
-ct_memmov_cond (void *dst, const void *src, size_t len,
-                unsigned long op_enable)
+_gcry_ct_memmov_cond (void *dst, const void *src, size_t len,
+		      unsigned long op_enable)
 {
   size_t i;
   unsigned char mask;

@@ -23,6 +23,11 @@
 #include "types.h"
 
 
+#define ct_not_memequal _gcry_ct_not_memequal
+#define ct_memequal _gcry_ct_memequal
+#define ct_memmov_cond _gcry_ct_memmov_cond
+
+
 extern volatile unsigned int _gcry_ct_vzero;
 extern volatile unsigned int _gcry_ct_vone;
 
@@ -68,12 +73,12 @@ ct_not_equal_byte (unsigned char b0, unsigned char b1)
 /* Compare byte-arrays of length LEN, return 1 if it's not same, 0
    otherwise.  We use pointer of void *, so that it can be used with
    any structure.  */
-unsigned int ct_not_memequal (const void *b1, const void *b2, size_t len);
+unsigned int _gcry_ct_not_memequal (const void *b1, const void *b2, size_t len);
 
 /* Compare byte-arrays of length LEN, return 0 if it's not same, 1
    otherwise.  We use pointer of void *, so that it can be used with
    any structure.  */
-unsigned int ct_memequal (const void *b1, const void *b2, size_t len);
+unsigned int _gcry_ct_memequal (const void *b1, const void *b2, size_t len);
 
 /*
  *  Return A when OP_ENABLED=1
@@ -106,7 +111,7 @@ sexp_null_cond (gcry_sexp_t w, unsigned long op_enable)
  * OP_ENABLED=1.  When DST <= SRC, the memory areas may overlap.  When
  * DST > SRC, the memory areas must not overlap.
  */
-void ct_memmov_cond (void *dst, const void *src, size_t len,
-                     unsigned long op_enable);
+void _gcry_ct_memmov_cond (void *dst, const void *src, size_t len,
+			   unsigned long op_enable);
 
 #endif /*GCRY_CONST_TIME_H*/
