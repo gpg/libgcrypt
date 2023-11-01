@@ -74,12 +74,13 @@ void
 _gcry_ct_memmov_cond (void *dst, const void *src, size_t len,
 		      unsigned long op_enable)
 {
-  size_t i;
-  unsigned char mask;
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
+  unsigned char mask1 = _gcry_ct_vzero - op_enable;
+  unsigned char mask2 = op_enable - _gcry_ct_vone;
   unsigned char *b_dst = dst;
   const unsigned char *b_src = src;
+  size_t i;
 
-  mask = -(unsigned char)op_enable;
   for (i = 0; i < len; i++)
-    b_dst[i] ^= mask & (b_dst[i] ^ b_src[i]);
+    b_dst[i] = (b_dst[i] & mask2) | (b_src[i] & mask1);
 }
