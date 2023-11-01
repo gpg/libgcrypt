@@ -202,7 +202,7 @@ _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v)
   mpi_size_t i;
 
   for (i = 1; i < usize; i++)
-    is_all_zero &= (up[i] == 0);
+    is_all_zero &= mpih_limb_is_zero (up[i]);
 
   if (is_all_zero)
     {
