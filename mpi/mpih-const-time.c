@@ -39,11 +39,15 @@ void
 _gcry_mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
                      unsigned long op_enable)
 {
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
+  mpi_limb_t mask1 = vzero - op_enable;
+  mpi_limb_t mask2 = op_enable - vone;
   mpi_size_t i;
-  mpi_limb_t mask = vzero - op_enable;
 
   for (i = 0; i < usize; i++)
-    wp[i] ^= mask & (wp[i] ^ up[i]);
+    {
+      wp[i] = (wp[i] & mask2) | (up[i] & mask1);
+    }
 }
 
 
@@ -55,10 +59,11 @@ mpi_limb_t
 _gcry_mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
                        mpi_size_t usize, unsigned long op_enable)
 {
-  mpi_size_t i;
-  mpi_limb_t cy;
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
   mpi_limb_t mask1 = vzero - op_enable;
   mpi_limb_t mask2 = op_enable - vone;
+  mpi_size_t i;
+  mpi_limb_t cy;
 
   cy = 0;
   for (i = 0; i < usize; i++)
@@ -86,10 +91,11 @@ mpi_limb_t
 _gcry_mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
                        mpi_size_t usize, unsigned long op_enable)
 {
-  mpi_size_t i;
-  mpi_limb_t cy;
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
   mpi_limb_t mask1 = vzero - op_enable;
   mpi_limb_t mask2 = op_enable - vone;
+  mpi_size_t i;
+  mpi_limb_t cy;
 
   cy = 0;
   for (i = 0; i < usize; i++)
@@ -117,9 +123,10 @@ void
 _gcry_mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                       unsigned long op_enable)
 {
-  mpi_size_t i;
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
   mpi_limb_t mask1 = vzero - op_enable;
   mpi_limb_t mask2 = op_enable - vone;
+  mpi_size_t i;
 
   for (i = 0; i < usize; i++)
     {
@@ -139,10 +146,11 @@ void
 _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
                      unsigned long op_enable)
 {
-  mpi_size_t i;
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
   mpi_limb_t mask1 = vzero - op_enable;
   mpi_limb_t mask2 = op_enable - vone;
   mpi_limb_t cy = op_enable;
+  mpi_size_t i;
 
   for (i = 0; i < usize; i++)
     {
