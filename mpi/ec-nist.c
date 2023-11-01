@@ -808,7 +808,7 @@ _gcry_mpi_ec_nist521_mod (gcry_mpi_t w, mpi_ec_t ctx)
   /* "mod p" */
   cy = _gcry_mpih_sub_n (wp, wp, ctx->p->d, wsize);
   _gcry_mpih_add_n (s, wp, ctx->p->d, wsize);
-  mpih_set_cond (wp, s, wsize, (cy != 0UL));
+  mpih_set_cond (wp, s, wsize, mpih_limb_is_not_zero (cy));
 
   w->nlimbs = wsize;
   MPN_NORMALIZE (wp, w->nlimbs);

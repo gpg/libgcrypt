@@ -276,6 +276,15 @@ mpih_limb_is_zero (mpi_limb_t a)
   return a >> (BITS_PER_MPI_LIMB - 1);
 }
 
+static inline int
+mpih_limb_is_not_zero (mpi_limb_t a)
+{
+  /* Sign bit set if A != 0. */
+  a = a | (-a);
+
+  return a >> (BITS_PER_MPI_LIMB - 1);
+}
+
 void _gcry_mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
                           unsigned long op_enable);
 mpi_limb_t _gcry_mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
