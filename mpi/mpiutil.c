@@ -27,6 +27,7 @@
 #include "g10lib.h"
 #include "mpi-internal.h"
 #include "mod-source-info.h"
+#include "const-time.h"
 
 
 #if SIZEOF_UNSIGNED_INT == 2
@@ -45,12 +46,6 @@
 
 /* Constants allocated right away at startup.  */
 static gcry_mpi_t constants[MPI_NUMBER_OF_CONSTANTS];
-
-/* These variables are used to generate masks from conditional operation
- * flag parameters.  Use of volatile prevents compiler optimizations from
- * converting AND-masking to conditional branches.  */
-static volatile mpi_limb_t vzero = 0;
-static volatile mpi_limb_t vone = 1;
 
 
 const char *
@@ -513,10 +508,11 @@ _gcry_mpi_set (gcry_mpi_t w, gcry_mpi_t u)
 gcry_mpi_t
 _gcry_mpi_set_cond (gcry_mpi_t w, const gcry_mpi_t u, unsigned long set)
 {
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
+  mpi_limb_t mask1 = _gcry_ct_vzero - set;
+  mpi_limb_t mask2 = set - _gcry_ct_vone;
   mpi_size_t i;
   mpi_size_t nlimbs = u->alloced;
-  mpi_limb_t mask1 = vzero - set;
-  mpi_limb_t mask2 = set - vone;
   mpi_limb_t xu;
   mpi_limb_t xw;
   mpi_limb_t *uu = u->d;
@@ -614,10 +610,11 @@ _gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b)
 void
 _gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 {
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
+  mpi_limb_t mask1 = _gcry_ct_vzero - swap;
+  mpi_limb_t mask2 = swap - _gcry_ct_vone;
   mpi_size_t i;
   mpi_size_t nlimbs;
-  mpi_limb_t mask1 = vzero - swap;
-  mpi_limb_t mask2 = swap - vone;
   mpi_limb_t *ua = a->d;
   mpi_limb_t *ub = b->d;
   mpi_limb_t xa;
