@@ -24,11 +24,13 @@
 #include "const-time.h"
 
 
+#ifndef HAVE_GCC_ASM_VOLATILE_MEMORY
 /* These variables are used to generate masks from conditional operation
  * flag parameters.  Use of volatile prevents compiler optimizations from
  * converting AND-masking to conditional branches.  */
 volatile unsigned int _gcry_ct_vzero = 0;
 volatile unsigned int _gcry_ct_vone = 1;
+#endif
 
 
 /*
@@ -75,8 +77,8 @@ _gcry_ct_memmov_cond (void *dst, const void *src, size_t len,
 		      unsigned long op_enable)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  unsigned char mask1 = _gcry_ct_vzero - op_enable;
-  unsigned char mask2 = op_enable - _gcry_ct_vone;
+  unsigned char mask1 = ct_ulong_gen_mask(op_enable);
+  unsigned char mask2 = ct_ulong_gen_inv_mask(op_enable);
   unsigned char *b_dst = dst;
   const unsigned char *b_src = src;
   size_t i;

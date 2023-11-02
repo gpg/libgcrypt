@@ -516,8 +516,8 @@ gcry_mpi_t
 _gcry_mpi_set_cond (gcry_mpi_t w, const gcry_mpi_t u, unsigned long set)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  mpi_limb_t mask1 = _gcry_ct_vzero - set;
-  mpi_limb_t mask2 = set - _gcry_ct_vone;
+  mpi_limb_t mask1 = ct_limb_gen_mask(set);
+  mpi_limb_t mask2 = ct_limb_gen_inv_mask(set);
   mpi_size_t i;
   mpi_size_t nlimbs = u->alloced;
   mpi_limb_t xu;
@@ -618,8 +618,8 @@ void
 _gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  mpi_limb_t mask1 = _gcry_ct_vzero - swap;
-  mpi_limb_t mask2 = swap - _gcry_ct_vone;
+  mpi_limb_t mask1 = ct_limb_gen_mask(swap);
+  mpi_limb_t mask2 = ct_limb_gen_inv_mask(swap);
   mpi_size_t i;
   mpi_size_t nlimbs;
   mpi_limb_t *ua = a->d;

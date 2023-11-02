@@ -141,8 +141,8 @@ _gcry_mpi_ec_nist192_mod (gcry_mpi_t w, mpi_ec_t ctx)
 
   s_is_negative = LO32_LIMB64(s[3]) >> 31;
 
-  mask2 = _gcry_ct_vzero - s_is_negative;
-  mask1 = s_is_negative - _gcry_ct_vone;
+  mask2 = ct_limb_gen_mask(s_is_negative);
+  mask1 = ct_limb_gen_inv_mask(s_is_negative);
 
   STORE64_COND(wp, 0, mask2, o[0], mask1, s[0]);
   STORE64_COND(wp, 1, mask2, o[1], mask1, s[1]);
@@ -264,8 +264,8 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
 
   s_is_negative = (HI32_LIMB64(s[3]) >> 31);
 
-  mask2 = _gcry_ct_vzero - s_is_negative;
-  mask1 = s_is_negative - _gcry_ct_vone;
+  mask2 = ct_limb_gen_mask(s_is_negative);
+  mask1 = ct_limb_gen_inv_mask(s_is_negative);
 
   STORE64_COND(wp, 0, mask2, d[0], mask1, s[0]);
   STORE64_COND(wp, 1, mask2, d[1], mask1, s[1]);
@@ -493,9 +493,9 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
 
   s_is_negative = LO32_LIMB64(s[4]) >> 31;
   d_is_negative = LO32_LIMB64(d[4]) >> 31;
-  mask3 = _gcry_ct_vzero - d_is_negative;
-  mask2 = (_gcry_ct_vzero - s_is_negative) & ~mask3;
-  mask1 = (s_is_negative - _gcry_ct_vone) & ~mask3;
+  mask3 = ct_limb_gen_mask(d_is_negative);
+  mask2 = ct_limb_gen_mask(s_is_negative) & ~mask3;
+  mask1 = ct_limb_gen_inv_mask(s_is_negative) & ~mask3;
 
   s[0] = LIMB_OR64(MASK_AND64(mask2, d[0]), MASK_AND64(mask1, s[0]));
   s[1] = LIMB_OR64(MASK_AND64(mask2, d[1]), MASK_AND64(mask1, s[1]));
@@ -764,8 +764,8 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
 	       p_mult[0 + 3][1], p_mult[0 + 3][0]);
 
   s_is_negative = LO32_LIMB64(s[6]) >> 31;
-  mask2 = _gcry_ct_vzero - s_is_negative;
-  mask1 = s_is_negative - _gcry_ct_vone;
+  mask2 = ct_limb_gen_mask(s_is_negative);
+  mask1 = ct_limb_gen_inv_mask(s_is_negative);
 
   STORE64_COND(wp, 0, mask2, d[0], mask1, s[0]);
   STORE64_COND(wp, 1, mask2, d[1], mask1, s[1]);

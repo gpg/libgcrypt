@@ -36,8 +36,8 @@ _gcry_mpih_set_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
                      unsigned long op_enable)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  mpi_limb_t mask1 = _gcry_ct_vzero - op_enable;
-  mpi_limb_t mask2 = op_enable - _gcry_ct_vone;
+  mpi_limb_t mask1 = ct_limb_gen_mask(op_enable);
+  mpi_limb_t mask2 = ct_limb_gen_inv_mask(op_enable);
   mpi_size_t i;
 
   for (i = 0; i < usize; i++)
@@ -56,8 +56,8 @@ _gcry_mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
                        mpi_size_t usize, unsigned long op_enable)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  mpi_limb_t mask1 = _gcry_ct_vzero - op_enable;
-  mpi_limb_t mask2 = op_enable - _gcry_ct_vone;
+  mpi_limb_t mask1 = ct_limb_gen_mask(op_enable);
+  mpi_limb_t mask2 = ct_limb_gen_inv_mask(op_enable);
   mpi_size_t i;
   mpi_limb_t cy;
 
@@ -88,8 +88,8 @@ _gcry_mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
                        mpi_size_t usize, unsigned long op_enable)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  mpi_limb_t mask1 = _gcry_ct_vzero - op_enable;
-  mpi_limb_t mask2 = op_enable - _gcry_ct_vone;
+  mpi_limb_t mask1 = ct_limb_gen_mask(op_enable);
+  mpi_limb_t mask2 = ct_limb_gen_inv_mask(op_enable);
   mpi_size_t i;
   mpi_limb_t cy;
 
@@ -120,8 +120,8 @@ _gcry_mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                       unsigned long op_enable)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  mpi_limb_t mask1 = _gcry_ct_vzero - op_enable;
-  mpi_limb_t mask2 = op_enable - _gcry_ct_vone;
+  mpi_limb_t mask1 = ct_limb_gen_mask(op_enable);
+  mpi_limb_t mask2 = ct_limb_gen_inv_mask(op_enable);
   mpi_size_t i;
 
   for (i = 0; i < usize; i++)
@@ -143,8 +143,8 @@ _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
                      unsigned long op_enable)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  mpi_limb_t mask1 = _gcry_ct_vzero - op_enable;
-  mpi_limb_t mask2 = op_enable - _gcry_ct_vone;
+  mpi_limb_t mask1 = ct_limb_gen_mask(op_enable);
+  mpi_limb_t mask2 = ct_limb_gen_inv_mask(op_enable);
   mpi_limb_t cy = op_enable;
   mpi_size_t i;
 
