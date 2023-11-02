@@ -23,8 +23,31 @@
 #include "mpi-internal.h"
 #include "g10lib.h"
 #include "const-time.h"
+#include "longlong.h"
 
 #define A_LIMB_1 ((mpi_limb_t)1)
+
+
+/*
+ * Return 1 if X > Y and otherwise return 0.
+ */
+static inline mpi_limb_t
+mpih_ct_limb_greater_than (mpi_limb_t x, mpi_limb_t y)
+{
+  mpi_limb_t diff_hi, diff_lo;
+  sub_ddmmss (diff_hi, diff_lo, 0, y, 0, x);
+  return diff_hi >> (BITS_PER_MPI_LIMB - 1);
+}
+
+
+/*
+ * Return 1 if X < Y and otherwise return 0.
+ */
+static inline mpi_limb_t
+mpih_ct_limb_less_than (mpi_limb_t x, mpi_limb_t y)
+{
+  return mpih_ct_limb_greater_than (y, x);
+}
 
 
 /*
@@ -66,11 +89,11 @@ _gcry_mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
     {
       mpi_limb_t u = up[i];
       mpi_limb_t x = u + vp[i];
-      mpi_limb_t cy1 = x < u;
+      mpi_limb_t cy1 = mpih_ct_limb_less_than(x, u);
       mpi_limb_t cy2;
 
       x = x + cy;
-      cy2 = x < cy;
+      cy2 = mpih_ct_limb_less_than(x, cy);
       cy = cy1 | cy2;
       wp[i] = (u & mask2) | (x & mask1);
     }
@@ -98,10 +121,10 @@ _gcry_mpih_sub_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
     {
       mpi_limb_t u = up[i];
       mpi_limb_t x = u - vp[i];
-      mpi_limb_t cy1 = x > u;
+      mpi_limb_t cy1 = mpih_ct_limb_greater_than(x, u);
       mpi_limb_t cy2;
 
-      cy2 = x < cy;
+      cy2 = mpih_ct_limb_less_than(x, cy);
       x = x - cy;
       cy = cy1 | cy2;
       wp[i] = (u & mask2) | (x & mask1);
@@ -153,7 +176,7 @@ _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
       mpi_limb_t u = up[i];
       mpi_limb_t x = ~u + cy;
 
-      cy = (x < ~u);
+      cy = mpih_ct_limb_less_than(x, ~u);
       wp[i] = (u & mask2) | (x & mask1);
     }
 }
