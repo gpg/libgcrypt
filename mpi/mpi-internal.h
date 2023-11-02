@@ -50,6 +50,7 @@
 #endif /*BITS_PER_MPI_LIMB*/
 
 #include "mpi.h"
+#include "const-time.h"
 
 /* If KARATSUBA_THRESHOLD is not already defined, define it to a
  * value which is good on most machines.  */
@@ -266,6 +267,9 @@ mpi_limb_t _gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 #define mpih_swap_cond(u,v,s,o) _gcry_mpih_swap_cond ((u),(v),(s),(o))
 #define mpih_abs_cond(w,u,s,o) _gcry_mpih_abs_cond ((w),(u),(s),(o))
 #define mpih_mod(v,vs,u,us) _gcry_mpih_mod ((v),(vs),(u),(us))
+
+DEFINE_CT_TYPE_GEN_MASK(limb, mpi_limb_t)
+DEFINE_CT_TYPE_GEN_INV_MASK(limb, mpi_limb_t)
 
 static inline int
 mpih_limb_is_zero (mpi_limb_t a)

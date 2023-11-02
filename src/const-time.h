@@ -28,8 +28,10 @@
 #define ct_memmov_cond _gcry_ct_memmov_cond
 
 
+#ifndef HAVE_GCC_ASM_VOLATILE_MEMORY
 extern volatile unsigned int _gcry_ct_vzero;
 extern volatile unsigned int _gcry_ct_vone;
+#endif
 
 
 /*
@@ -81,6 +83,54 @@ unsigned int _gcry_ct_not_memequal (const void *b1, const void *b2, size_t len);
 unsigned int _gcry_ct_memequal (const void *b1, const void *b2, size_t len);
 
 /*
+ * Return all bits set if A is 1 and return 0 otherwise.
+ */
+#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
+#  define DEFINE_CT_TYPE_GEN_MASK(name, type) \
+     static inline type \
+     ct_##name##_gen_mask (unsigned long op_enable) \
+     { \
+       type mask = -(type)op_enable; \
+       asm volatile ("\n" : "+r" (mask) :: "memory"); \
+       return mask; \
+     }
+#else
+#  define DEFINE_CT_TYPE_GEN_MASK(name, type) \
+     static inline type \
+     ct_##name##_gen_mask (unsigned long op_enable) \
+     { \
+       type mask = (type)_gcry_ct_vzero - (type)op_enable; \
+       return mask; \
+     }
+#endif
+DEFINE_CT_TYPE_GEN_MASK(uintptr, uintptr_t)
+DEFINE_CT_TYPE_GEN_MASK(ulong, unsigned long)
+
+/*
+ * Return all bits set if A is 0 and return 1 otherwise.
+ */
+#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
+#  define DEFINE_CT_TYPE_GEN_INV_MASK(name, type) \
+     static inline type \
+     ct_##name##_gen_inv_mask (unsigned long op_enable) \
+     { \
+       type mask = (type)op_enable - (type)1; \
+       asm volatile ("\n" : "+r" (mask) :: "memory"); \
+       return mask; \
+     }
+#else
+#  define DEFINE_CT_TYPE_GEN_INV_MASK(name, type) \
+     static inline type \
+     ct_##name##_gen_inv_mask (unsigned long op_enable) \
+     { \
+       type mask = (type)op_enable - (type)_gcry_ct_vone; \
+       return mask; \
+     }
+#endif
+DEFINE_CT_TYPE_GEN_INV_MASK(uintptr, uintptr_t)
+DEFINE_CT_TYPE_GEN_INV_MASK(ulong, unsigned long)
+
+/*
  *  Return A when OP_ENABLED=1
  *  otherwise, return B
  */
@@ -88,8 +138,8 @@ unsigned int _gcry_ct_memequal (const void *b1, const void *b2, size_t len);
   static inline type \
   ct_##name##_select (type a, type b, unsigned long op_enable) \
   { \
-    type mask_b = (type)op_enable - (type)_gcry_ct_vone; \
-    type mask_a = (type)_gcry_ct_vzero - (type)op_enable; \
+    type mask_b = ct_##name##_gen_inv_mask(op_enable); \
+    type mask_a = ct_##name##_gen_mask(op_enable); \
     return (mask_a & a) | (mask_b & b); \
   }
 DEFINE_CT_TYPE_SELECT_FUNC(uintptr, uintptr_t)
