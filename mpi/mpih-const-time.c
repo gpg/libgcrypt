@@ -204,7 +204,7 @@ _gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
       unsigned int limbno = j / BITS_PER_MPI_LIMB;
       unsigned int bitno = j % BITS_PER_MPI_LIMB;
       mpi_limb_t limb = vp[limbno];
-      unsigned int the_bit = ((limb & (A_LIMB_1 << bitno)) ? 1 : 0);
+      unsigned int the_bit = (limb >> bitno) & 1;
       mpi_limb_t underflow;
       mpi_limb_t overflow;
 
