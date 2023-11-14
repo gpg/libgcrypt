@@ -1,5 +1,29 @@
-Noteworthy changes in version 1.10.3 (unreleased)  [C24/A4/R_]
+Noteworthy changes in version 1.10.3 (2023-11-14)  [C24/A4/R3]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix public key computation for other EdDSA curves.
+     [rC469919751d6e]
+
+   - Remove out of core handler diagnostic in FIPS mode.  [T6515]
+
+   - Check that the digest size is not zero in gcry_pk_sign_md and
+     gcry_pk_verify_md.  [T6539]
+
+   - Make store an s-exp with \0 is considered to be binary.  [T6747]
+
+   - Various constant-time improvements.
+
+ * Portability:
+
+   - Use getrandom call only when supported by the platform.  [T6442]
+
+   - Change the default for --with-libtool-modification to never.
+     [T6619]
+
+
+ Release-info: https://dev.gnupg.org/T6817
 
 
 Noteworthy changes in version 1.10.2 (2023-04-06)  [C24/A4/R2]
