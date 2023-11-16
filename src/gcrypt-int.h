@@ -116,9 +116,9 @@ gcry_sexp_t _gcry_pk_get_param (int algo, const char *name);
 gpg_err_code_t _gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp,
                                       int mode, gcry_ctx_t ctx);
 unsigned int _gcry_ecc_get_algo_keylen (int algo);
-gpg_error_t _gcry_ecc_mul_point (int algo, unsigned char *result,
-                                 const unsigned char *scalar,
-                                 const unsigned char *point);
+gpg_err_code_t _gcry_ecc_mul_point (int algo, unsigned char *result,
+                                    const unsigned char *scalar,
+                                    const unsigned char *point);
 gcry_err_code_t _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl,
                                   gcry_md_hd_t hd, gcry_sexp_t s_skey,
                                   gcry_ctx_t ctx);

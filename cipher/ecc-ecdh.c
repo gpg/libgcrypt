@@ -58,7 +58,7 @@ _gcry_ecc_get_algo_keylen (int curveid)
   return len;
 }
 
-gpg_error_t
+gpg_err_code_t
 _gcry_ecc_mul_point (int curveid, unsigned char *result,
                      const unsigned char *scalar, const unsigned char *point)
 {
@@ -111,7 +111,7 @@ _gcry_ecc_mul_point (int curveid, unsigned char *result,
 
   buf = _gcry_mpi_get_buffer (x, nbytes, &len, NULL);
   if (!buf)
-    err = gpg_error_from_syserror ();
+    err = gpg_err_code_from_syserror ();
   else
     {
       memcpy (result, buf, nbytes);

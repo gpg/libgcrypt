@@ -1193,7 +1193,7 @@ gpg_error_t
 gcry_ecc_mul_point (int curveid, unsigned char *result,
                     const unsigned char *scalar, const unsigned char *point)
 {
-  return _gcry_ecc_mul_point (curveid, result, scalar, point);
+  return gpg_error (_gcry_ecc_mul_point (curveid, result, scalar, point));
 }
 
 gcry_error_t
