@@ -1,5 +1,5 @@
 /* gcrypt.h -  GNU Cryptographic Library Interface              -*- c -*-
- * Copyright (C) 2012-2022 g10 Code GmbH
+ * Copyright (C) 2012-2023 g10 Code GmbH
  * Copyright (C) 1998-2018 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.

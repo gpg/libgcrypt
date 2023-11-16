@@ -1,8 +1,11 @@
-Noteworthy changes in version 1.8.11 (unreleased)  [C22/A2/R__]
+Noteworthy changes in version 1.8.11 (2023-11-16)  [C22/A2/R12]
 -------------------------------------------------
 
+ * Bug fixes:
 
-  Release-info: https://dev.gnupg.org/T6335
+   - Fix encoding glitch in gcry_sexp_sprint.  [T6747]
+
+ Release-info: https://dev.gnupg.org/T6335
 
 
 Noteworthy changes in version 1.8.10 (2023-01-05)  [C22/A2/R11]
