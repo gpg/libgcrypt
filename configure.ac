@@ -30,7 +30,7 @@ min_automake_version="1.14"
 # for the LT versions.
 m4_define(mym4_version_major, [1])
 m4_define(mym4_version_minor, [8])
-m4_define(mym4_version_micro, [11])
+m4_define(mym4_version_micro, [12])
 
 # Below is m4 magic to extract and compute the revision number, the
 # decimalized short revision number, a beta version string, and a flag
