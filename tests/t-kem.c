@@ -297,6 +297,88 @@ check_dhkem (void)
   show_note ("%d tests done\n", testno);
 }
 
+#define N_TESTS_OPENPGP 1
+
+static void
+check_openpgp (void)
+{
+  int testno;
+  gcry_error_t err;
+  /* Test seckey and ciphertext from openpgpjs/main/test/general/x25519.js */
+  const uint8_t seckey[N_TESTS_OPENPGP][32] = {
+    {
+      0x10, 0x44, 0xfa, 0x37, 0xf1, 0x8e, 0xac, 0x30,
+      0x3c, 0xd0, 0x16, 0x33, 0xbd, 0xd2, 0xa8, 0xe6,
+      0x19, 0xc0, 0x97, 0x3e, 0xca, 0xf4, 0xe1, 0x12,
+      0xc4, 0x78, 0xee, 0xe4, 0xe2, 0x88, 0x52, 0x4a
+    }
+  };
+  const uint8_t kdf_param[N_TESTS_OPENPGP][56] = {
+    {
+      0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0x97, 0x55,
+      0x01, 0x05, 0x01,
+      /**/
+      0x12,
+      /**/
+      0x03, 0x01, 0x08, 0x07,
+      /**/
+      0x41, 0x6e, 0x6f, 0x6e, 0x79, 0x6d, 0x6f, 0x75,
+      0x73, 0x20, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72,
+      0x20, 0x20, 0x20, 0x20,
+      /**/
+      0x25, 0xd4, 0x45, 0xfa, 0xc1, 0x96, 0x49, 0xc4,
+      0x6a, 0x6b, 0x2f, 0xb3, 0xcd, 0xfc, 0x22, 0x19,
+      0xc5, 0x53, 0xd3, 0x92
+    }
+  };
+  const uint8_t ciphertext[N_TESTS_OPENPGP][32] = {
+    {
+      0x7a, 0xd4, 0x96, 0xa2, 0xd8, 0x06, 0xd3, 0xe3,
+      0x13, 0x11, 0xfc, 0x8a, 0xbd, 0xa8, 0x2b, 0x1c,
+      0x07, 0x86, 0xc3, 0x40, 0xde, 0x9e, 0x3a, 0x61,
+      0xf8, 0xcb, 0xb6, 0x29, 0xca, 0x40, 0x6a, 0x32
+    }
+  };
+  const uint8_t key1[N_TESTS_OPENPGP][16] = {
+    {
+      0x31, 0x29, 0x49, 0x04, 0x63, 0x57, 0x24, 0xd6,
+      0xe3, 0x2f, 0xe3, 0x6d, 0x4a, 0xcc, 0xe1, 0x67
+    }
+  };
+  uint8_t key2[16];
+  size_t size = 16;
+
+  info ("Checking OpenPGP.\n");
+
+  for (testno = 0; testno < N_TESTS_OPENPGP; testno++)
+    {
+      err = gcry_kem_decap (GCRY_KEM_OPENPGP_X25519, seckey[testno],
+                            ciphertext[testno], key2, kdf_param[testno]);
+      if (err)
+        {
+          fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
+          return;
+        }
+      if (memcmp (key1[testno], key2, size) != 0)
+        {
+          size_t i;
+
+          fail ("OpenPGP test %d failed: mismatch\n", testno);
+          fputs ("key1:", stderr);
+          for (i = 0; i < size; i++)
+            fprintf (stderr, " %02x", key1[testno][i]);
+          putc ('\n', stderr);
+          fputs ("key2:", stderr);
+          for (i = 0; i < size; i++)
+            fprintf (stderr, " %02x", key2[i]);
+          putc ('\n', stderr);
+        }
+    }
+
+  show_note ("%d tests done\n", testno);
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -356,6 +438,7 @@ main (int argc, char **argv)
   start_timer ();
   check_kem ();
   check_dhkem ();
+  check_openpgp ();
   stop_timer ();
 
   info ("All tests completed in %s.  Errors: %d\n",
