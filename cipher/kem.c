@@ -55,7 +55,7 @@ ecc_kem_decap (int algo, const void *seckey, const void *ciphertext,
   gcry_kdf_hd_t hd;
   unsigned long param[1] = { 32 };
 
-  if (algo != GCRY_KEM_DHKEM_X25519_HKDF_SHA256)
+  if (algo != GCRY_KEM_DHKEM_X25519)
     return GPG_ERR_UNKNOWN_ALGORITHM;
 
   /* From here, it's only for the DHKEM(X25519, HKDF-SHA256).  */
@@ -123,7 +123,7 @@ _gcry_kem_keypair (int algo, void *pubkey, void *seckey)
     case GCRY_KEM_MLKEM1024:
       mlkem_keypair (algo, pubkey, seckey);
       return GPG_ERR_NO_ERROR;
-    case GCRY_KEM_DHKEM_X25519_HKDF_SHA256:
+    case GCRY_KEM_DHKEM_X25519:
       return GPG_ERR_NOT_IMPLEMENTED; /* Not yet.  */
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -145,7 +145,7 @@ _gcry_kem_encap (int algo,
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
       return mlkem_encap (algo, ciphertext, shared_secret, pubkey);
-    case GCRY_KEM_DHKEM_X25519_HKDF_SHA256:
+    case GCRY_KEM_DHKEM_X25519:
       return GPG_ERR_NOT_IMPLEMENTED; /* Not yet.  */
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -167,7 +167,7 @@ _gcry_kem_decap (int algo,
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
       return mlkem_decap (algo, shared_secret, ciphertext, seckey);
-    case GCRY_KEM_DHKEM_X25519_HKDF_SHA256:
+    case GCRY_KEM_DHKEM_X25519:
       return ecc_kem_decap (algo, seckey, ciphertext, shared_secret);
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;

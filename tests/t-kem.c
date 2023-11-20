@@ -251,7 +251,7 @@ check_dhkem (void)
 
   for (testno = 0; testno < N_TESTS_DHKEM; testno++)
     {
-      err = gcry_kem_decap (GCRY_KEM_DHKEM_X25519_HKDF_SHA256, seckey[testno],
+      err = gcry_kem_decap (GCRY_KEM_DHKEM_X25519, seckey[testno],
                             ciphertext[testno], key2);
       if (err)
         {
