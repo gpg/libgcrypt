@@ -299,6 +299,16 @@ check_dhkem (void)
 
 #define N_TESTS_OPENPGP 1
 
+/* In OpenPGP, symmetric key is wrapped by AESWRAP.
+ *
+ * Decapsulating results the key encrypted key for AESWRAP.
+ * This test does this phase of decapsulation.
+ *
+ * In the application, it does unwrap of encrypted data, by AESWRAP,
+ * which results PKCS5 padded 8-byte blocks of symmetric key algo +
+ * symmetric key.
+ */
+
 static void
 check_openpgp (void)
 {
@@ -320,15 +330,15 @@ check_openpgp (void)
       /**/
       0x12,
       /**/
-      0x03, 0x01, 0x08, 0x07,
+      0x03, 0x01, 0x08 /*SHA256*/, 0x07 /* AES128*/,
       /**/
       0x41, 0x6e, 0x6f, 0x6e, 0x79, 0x6d, 0x6f, 0x75,
       0x73, 0x20, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72,
-      0x20, 0x20, 0x20, 0x20,
+      0x20, 0x20, 0x20, 0x20, /* "Anonymous Sender    " */
       /**/
       0x25, 0xd4, 0x45, 0xfa, 0xc1, 0x96, 0x49, 0xc4,
       0x6a, 0x6b, 0x2f, 0xb3, 0xcd, 0xfc, 0x22, 0x19,
-      0xc5, 0x53, 0xd3, 0x92
+      0xc5, 0x53, 0xd3, 0x92  /* public key fingerprint */
     }
   };
   const uint8_t ciphertext[N_TESTS_OPENPGP][32] = {
@@ -339,13 +349,13 @@ check_openpgp (void)
       0xf8, 0xcb, 0xb6, 0x29, 0xca, 0x40, 0x6a, 0x32
     }
   };
-  const uint8_t key1[N_TESTS_OPENPGP][16] = {
+  const uint8_t kek1[N_TESTS_OPENPGP][16] = {
     {
       0x31, 0x29, 0x49, 0x04, 0x63, 0x57, 0x24, 0xd6,
       0xe3, 0x2f, 0xe3, 0x6d, 0x4a, 0xcc, 0xe1, 0x67
     }
   };
-  uint8_t key2[16];
+  uint8_t kek2[16];
   size_t size = 16;
 
   info ("Checking OpenPGP.\n");
@@ -353,24 +363,24 @@ check_openpgp (void)
   for (testno = 0; testno < N_TESTS_OPENPGP; testno++)
     {
       err = gcry_kem_decap (GCRY_KEM_OPENPGP_X25519, seckey[testno],
-                            ciphertext[testno], key2, kdf_param[testno]);
+                            ciphertext[testno], kek2, kdf_param[testno]);
       if (err)
         {
           fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
           return;
         }
-      if (memcmp (key1[testno], key2, size) != 0)
+      if (memcmp (kek1[testno], kek2, size) != 0)
         {
           size_t i;
 
           fail ("OpenPGP test %d failed: mismatch\n", testno);
-          fputs ("key1:", stderr);
+          fputs ("kek1:", stderr);
           for (i = 0; i < size; i++)
-            fprintf (stderr, " %02x", key1[testno][i]);
+            fprintf (stderr, " %02x", kek1[testno][i]);
           putc ('\n', stderr);
-          fputs ("key2:", stderr);
+          fputs ("kek2:", stderr);
           for (i = 0; i < size; i++)
-            fprintf (stderr, " %02x", key2[i]);
+            fprintf (stderr, " %02x", kek2[i]);
           putc ('\n', stderr);
         }
     }
