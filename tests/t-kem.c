@@ -67,14 +67,14 @@ test_kem_sntrup761 (int testno)
       return;
     }
 
-  err = gcry_kem_encap (GCRY_KEM_SNTRUP761, pubkey, ciphertext, key1);
+  err = gcry_kem_encap (GCRY_KEM_SNTRUP761, pubkey, ciphertext, key1, NULL);
   if (err)
     {
       fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (GCRY_KEM_SNTRUP761, seckey, ciphertext, key2);
+  err = gcry_kem_decap (GCRY_KEM_SNTRUP761, seckey, ciphertext, key2, NULL);
   if (err)
     {
       fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
@@ -114,14 +114,14 @@ test_kem_mlkem_sub (int testno, int algo, size_t size)
       return;
     }
 
-  err = gcry_kem_encap (algo, pubkey, ciphertext, key1);
+  err = gcry_kem_encap (algo, pubkey, ciphertext, key1, NULL);
   if (err)
     {
       fail ("gcry_kem_encap %d %d: %s", testno, algo, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (algo, seckey, ciphertext, key2);
+  err = gcry_kem_decap (algo, seckey, ciphertext, key2, NULL);
   if (err)
     {
       fail ("gcry_kem_decap %d %d: %s", testno, algo, gpg_strerror (err));
@@ -204,6 +204,26 @@ check_dhkem (void)
       0x2c, 0x17, 0x0d, 0x97, 0x2a, 0x81, 0x28, 0x48
     }
   };
+  const uint8_t pubkey[N_TESTS_DHKEM][32] = {
+    {
+      0x39, 0x48, 0xcf, 0xe0, 0xad, 0x1d, 0xdb, 0x69,
+      0x5d, 0x78, 0x0e, 0x59, 0x07, 0x71, 0x95, 0xda,
+      0x6c, 0x56, 0x50, 0x6b, 0x02, 0x73, 0x29, 0x79,
+      0x4a, 0xb0, 0x2b, 0xca, 0x80, 0x81, 0x5c, 0x4d
+    },
+    {
+      0x43, 0x10, 0xee, 0x97, 0xd8, 0x8c, 0xc1, 0xf0,
+      0x88, 0xa5, 0x57, 0x6c, 0x77, 0xab, 0x0c, 0xf5,
+      0xc3, 0xac, 0x79, 0x7f, 0x3d, 0x95, 0x13, 0x9c,
+      0x6c, 0x84, 0xb5, 0x42, 0x9c, 0x59, 0x66, 0x2a,
+    },
+    {
+      0x19, 0x41, 0x41, 0xca, 0x6c, 0x3c, 0x3b, 0xeb,
+      0x47, 0x92, 0xcd, 0x97, 0xba, 0x0e, 0xa1, 0xfa,
+      0xff, 0x09, 0xd9, 0x84, 0x35, 0x01, 0x23, 0x45,
+      0x76, 0x6e, 0xe3, 0x3a, 0xae, 0x2d, 0x76, 0x64
+    }
+  };
   const uint8_t ciphertext[N_TESTS_DHKEM][32] = {
     {
       0x37, 0xfd, 0xa3, 0x56, 0x7b, 0xdb, 0xd6, 0x28,
@@ -252,7 +272,7 @@ check_dhkem (void)
   for (testno = 0; testno < N_TESTS_DHKEM; testno++)
     {
       err = gcry_kem_decap (GCRY_KEM_DHKEM_X25519, seckey[testno],
-                            ciphertext[testno], key2);
+                            ciphertext[testno], key2, pubkey[testno]);
       if (err)
         {
           fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));

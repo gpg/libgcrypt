@@ -232,11 +232,11 @@ gcry_err_code_t _gcry_kem_keypair (int algo,
 gcry_err_code_t _gcry_kem_encap (int algo,
                                  const void *pubkey,
                                  void *ciphertext,
-                                 void *shared_secret);
+                                 void *shared_secret, const void *optional);
 gcry_err_code_t _gcry_kem_decap (int algo,
                                  const void *seckey,
                                  const void *ciphertext,
-                                 void *shared_secret);
+                                 void *shared_secret, const void *optional);
 
 gpg_err_code_t _gcry_prime_generate (gcry_mpi_t *prime,
                                      unsigned int prime_bits,

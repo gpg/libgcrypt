@@ -1438,24 +1438,26 @@ gcry_error_t
 gcry_kem_encap (int algo,
                 const void *pubkey,
                 void *ciphertext,
-                void *shared_secret)
+                void *shared_secret, const void *optional)
 {
   return gpg_error (_gcry_kem_encap (algo,
                                      pubkey,
                                      ciphertext,
-                                     shared_secret));
+                                     shared_secret,
+                                     optional));
 }
 
 gcry_error_t
 gcry_kem_decap (int algo,
                 const void *seckey,
                 const void *ciphertext,
-                void *shared_secret)
+                void *shared_secret, const void *optional)
 {
   return gpg_error (_gcry_kem_decap (algo,
                                      seckey,
                                      ciphertext,
-                                     shared_secret));
+                                     shared_secret,
+                                     optional));
 }
 
 void

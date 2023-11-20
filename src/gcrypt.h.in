@@ -1695,6 +1695,7 @@ enum gcry_kem_algos
     GCRY_KEM_MLKEM768,
     GCRY_KEM_MLKEM1024,
     GCRY_KEM_DHKEM_X25519, /* DHKEM with X25519, HKDF, and SHA256 */
+    GCRY_KEM_OPENPGP_X25519, /* For OpenPGP with X25519 */
   };
 
 #define GCRY_KEM_SNTRUP761_SECRETKEY_SIZE 1763
@@ -1724,12 +1725,12 @@ gcry_error_t gcry_kem_keypair (int algo,
 gcry_error_t gcry_kem_encap (int algo,
                              const void *pubkey,
                              void *ciphertext,
-                             void *shared_secret);
+                             void *shared_secret, const void *optional);
 
 gcry_error_t gcry_kem_decap (int algo,
                              const void *seckey,
                              const void *ciphertext,
-                             void *shared_secret);
+                             void *shared_secret, const void *optional);
 
 
 /************************************

@@ -38,16 +38,12 @@ _kem_random (void *ctx, size_t length, uint8_t * dst)
 }
 
 
-/* The generator of Curve25519.  */
-static unsigned char curve25519_G[32] = { 0x09 };
-
 static gpg_err_code_t
 ecc_kem_decap (int algo, const void *seckey, const void *ciphertext,
-               void *shared_secret)
+               void *shared_secret, const void *kdf_param)
 {
   gpg_err_code_t err;
   int curveid;
-  unsigned char public[32];
   unsigned char ecdh[32];
   unsigned char *p;
   unsigned char labeled_ikm[7+5+7+32];
@@ -61,11 +57,6 @@ ecc_kem_decap (int algo, const void *seckey, const void *ciphertext,
   /* From here, it's only for the DHKEM(X25519, HKDF-SHA256).  */
 
   curveid = GCRY_ECC_CURVE25519;
-
-  /* Compute the public key.  */
-  err = _gcry_ecc_mul_point (curveid, public, seckey, curve25519_G);
-  if (err)
-    return err;
 
   /* Do ECDH.  */
   err = _gcry_ecc_mul_point (curveid, ecdh, seckey, ciphertext);
@@ -93,7 +84,7 @@ ecc_kem_decap (int algo, const void *seckey, const void *ciphertext,
   /* kem_context */
   memcpy (p, ciphertext, 32);
   p += 32;
-  memcpy (p, public, 32);
+  memcpy (p, kdf_param, 32);
   p += 32;
 
   err = _gcry_kdf_open (&hd, GCRY_KDF_HKDF, GCRY_MAC_HMAC_SHA256, param, 1,
@@ -134,7 +125,8 @@ gcry_err_code_t
 _gcry_kem_encap (int algo,
                  const void *pubkey,
                  void *ciphertext,
-                 void *shared_secret)
+                 void *shared_secret,
+                 const void *kdf_param)
 {
   switch (algo)
     {
@@ -156,7 +148,8 @@ gcry_err_code_t
 _gcry_kem_decap (int algo,
                  const void *seckey,
                  const void *ciphertext,
-                 void *shared_secret)
+                 void *shared_secret,
+                 const void *kdf_param)
 {
   switch (algo)
     {
@@ -168,7 +161,7 @@ _gcry_kem_decap (int algo,
     case GCRY_KEM_MLKEM1024:
       return mlkem_decap (algo, shared_secret, ciphertext, seckey);
     case GCRY_KEM_DHKEM_X25519:
-      return ecc_kem_decap (algo, seckey, ciphertext, shared_secret);
+      return ecc_kem_decap (algo, seckey, ciphertext, shared_secret, kdf_param);
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
     }
