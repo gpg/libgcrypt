@@ -56,11 +56,11 @@ static void
 test_kem_sntrup761 (int testno)
 {
   gcry_error_t err;
-  uint8_t pubkey[GCRY_KEM_SNTRUP761_PUBLICKEY_SIZE];
-  uint8_t seckey[GCRY_KEM_SNTRUP761_SECRETKEY_SIZE];
-  uint8_t ciphertext[GCRY_KEM_SNTRUP761_CIPHERTEXT_SIZE];
-  uint8_t key1[GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE];
-  uint8_t key2[GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE];
+  uint8_t pubkey[GCRY_KEM_SNTRUP761_PUBKEY_SIZE];
+  uint8_t seckey[GCRY_KEM_SNTRUP761_SECKEY_SIZE];
+  uint8_t ciphertext[GCRY_KEM_SNTRUP761_ENCAPS_SIZE];
+  uint8_t key1[GCRY_KEM_SNTRUP761_SHARED_SIZE];
+  uint8_t key2[GCRY_KEM_SNTRUP761_SHARED_SIZE];
 
   err = gcry_kem_keypair (GCRY_KEM_SNTRUP761, pubkey, seckey);
   if (err)
@@ -83,17 +83,17 @@ test_kem_sntrup761 (int testno)
       return;
     }
 
-  if (memcmp (key1, key2, GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE) != 0)
+  if (memcmp (key1, key2, GCRY_KEM_SNTRUP761_SHARED_SIZE) != 0)
     {
       size_t i;
 
       fail ("sntrup761 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
-      for (i = 0; i < GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE; i++)
+      for (i = 0; i < GCRY_KEM_SNTRUP761_SHARED_SIZE; i++)
 	fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
-      for (i = 0; i < GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE; i++)
+      for (i = 0; i < GCRY_KEM_SNTRUP761_SHARED_SIZE; i++)
 	fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
@@ -103,11 +103,11 @@ static void
 test_kem_mlkem_sub (int testno, int algo, size_t size)
 {
   gcry_error_t err;
-  uint8_t pubkey[GCRY_KEM_MLKEM1024_PUBLICKEY_SIZE];
-  uint8_t seckey[GCRY_KEM_MLKEM1024_SECRETKEY_SIZE];
-  uint8_t ciphertext[GCRY_KEM_MLKEM1024_CIPHERTEXT_SIZE];
-  uint8_t key1[GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE];
-  uint8_t key2[GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE];
+  uint8_t pubkey[GCRY_KEM_MLKEM1024_PUBKEY_SIZE];
+  uint8_t seckey[GCRY_KEM_MLKEM1024_SECKEY_SIZE];
+  uint8_t ciphertext[GCRY_KEM_MLKEM1024_ENCAPS_SIZE];
+  uint8_t key1[GCRY_KEM_MLKEM1024_SHARED_SIZE];
+  uint8_t key2[GCRY_KEM_MLKEM1024_SHARED_SIZE];
 
   err = gcry_kem_keypair (algo, pubkey, seckey);
   if (err)
@@ -151,9 +151,9 @@ test_kem_mlkem (int testno)
 {
   int algo[3] = { GCRY_KEM_MLKEM512, GCRY_KEM_MLKEM768, GCRY_KEM_MLKEM1024};
   size_t size[3] = {
-    GCRY_KEM_MLKEM512_SHAREDSECRET_SIZE,
-    GCRY_KEM_MLKEM768_SHAREDSECRET_SIZE,
-    GCRY_KEM_MLKEM1024_SHAREDSECRET_SIZE
+    GCRY_KEM_MLKEM512_SHARED_SIZE,
+    GCRY_KEM_MLKEM768_SHARED_SIZE,
+    GCRY_KEM_MLKEM1024_SHARED_SIZE
   };
   int i;
 
@@ -165,44 +165,44 @@ static void
 test_kem_dhkem_x25519 (int testno)
 {
   gcry_error_t err;
-  uint8_t pubkey[GCRY_KEM_DHKEM_X25519_PUBLICKEY_SIZE];
-  uint8_t seckey[GCRY_KEM_DHKEM_X25519_SECRETKEY_SIZE];
-  uint8_t ciphertext[GCRY_KEM_DHKEM_X25519_CIPHERTEXT_SIZE];
-  uint8_t key1[GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE];
-  uint8_t key2[GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE];
+  uint8_t pubkey[GCRY_KEM_DHKEM25519_PUBKEY_SIZE];
+  uint8_t seckey[GCRY_KEM_DHKEM25519_SECKEY_SIZE];
+  uint8_t ciphertext[GCRY_KEM_DHKEM25519_ENCAPS_SIZE];
+  uint8_t key1[GCRY_KEM_DHKEM25519_SHARED_SIZE];
+  uint8_t key2[GCRY_KEM_DHKEM25519_SHARED_SIZE];
 
-  err = gcry_kem_keypair (GCRY_KEM_DHKEM_X25519, pubkey, seckey);
+  err = gcry_kem_keypair (GCRY_KEM_DHKEM25519, pubkey, seckey);
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_encap (GCRY_KEM_DHKEM_X25519, pubkey, ciphertext, key1, NULL);
+  err = gcry_kem_encap (GCRY_KEM_DHKEM25519, pubkey, ciphertext, key1, NULL);
   if (err)
     {
       fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (GCRY_KEM_DHKEM_X25519, seckey, ciphertext, key2, pubkey);
+  err = gcry_kem_decap (GCRY_KEM_DHKEM25519, seckey, ciphertext, key2, pubkey);
   if (err)
     {
       fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  if (memcmp (key1, key2, GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE) != 0)
+  if (memcmp (key1, key2, GCRY_KEM_DHKEM25519_SHARED_SIZE) != 0)
     {
       size_t i;
 
       fail ("dhkem-x25519 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
-      for (i = 0; i < GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE; i++)
+      for (i = 0; i < GCRY_KEM_DHKEM25519_SHARED_SIZE; i++)
 	fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
-      for (i = 0; i < GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE; i++)
+      for (i = 0; i < GCRY_KEM_DHKEM25519_SHARED_SIZE; i++)
 	fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
@@ -394,7 +394,7 @@ check_dhkem (void)
 
   for (testno = 0; testno < N_TESTS_DHKEM; testno++)
     {
-      err = gcry_kem_decap (GCRY_KEM_DHKEM_X25519, seckey[testno],
+      err = gcry_kem_decap (GCRY_KEM_DHKEM25519, seckey[testno],
                             ciphertext[testno], key2, pubkey[testno]);
       if (err)
         {
