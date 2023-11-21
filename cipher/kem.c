@@ -39,8 +39,8 @@ _kem_random (void *ctx, size_t length, uint8_t * dst)
 
 
 static gpg_err_code_t
-ecc_kem_decap (int algo, const void *seckey, const void *ciphertext,
-               void *shared_secret, const void *kdf_param)
+ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
+                 void *shared_secret, const void *optional)
 {
   gpg_err_code_t err;
   int curveid;
@@ -50,6 +50,7 @@ ecc_kem_decap (int algo, const void *seckey, const void *ciphertext,
   unsigned char labeled_info[2+7+5+13+32+32];
   gcry_kdf_hd_t hd;
   unsigned long param[1] = { 32 };
+  const unsigned char *pubkey = optional;
 
   if (algo != GCRY_KEM_DHKEM_X25519)
     return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -84,7 +85,7 @@ ecc_kem_decap (int algo, const void *seckey, const void *ciphertext,
   /* kem_context */
   memcpy (p, ciphertext, 32);
   p += 32;
-  memcpy (p, kdf_param, 32);
+  memcpy (p, pubkey, 32);
   p += 32;
 
   err = _gcry_kdf_open (&hd, GCRY_KDF_HKDF, GCRY_MAC_HMAC_SHA256, param, 1,
@@ -179,7 +180,7 @@ _gcry_kem_encap (int algo,
                  const void *pubkey,
                  void *ciphertext,
                  void *shared_secret,
-                 const void *kdf_param)
+                 const void *optional)
 {
   switch (algo)
     {
@@ -193,7 +194,7 @@ _gcry_kem_encap (int algo,
     case GCRY_KEM_DHKEM_X25519:
       return GPG_ERR_NOT_IMPLEMENTED; /* Not yet.  */
     case GCRY_KEM_OPENPGP_X25519:
-      (void)kdf_param;
+      (void)optional;
       return GPG_ERR_NOT_IMPLEMENTED; /* Not yet.  */
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -205,7 +206,7 @@ _gcry_kem_decap (int algo,
                  const void *seckey,
                  const void *ciphertext,
                  void *shared_secret,
-                 const void *kdf_param)
+                 const void *optional)
 {
   switch (algo)
     {
@@ -217,9 +218,11 @@ _gcry_kem_decap (int algo,
     case GCRY_KEM_MLKEM1024:
       return mlkem_decap (algo, shared_secret, ciphertext, seckey);
     case GCRY_KEM_DHKEM_X25519:
-      return ecc_kem_decap (algo, seckey, ciphertext, shared_secret, kdf_param);
+      return ecc_dhkem_decap (algo, seckey, ciphertext,
+                              shared_secret, optional);
     case GCRY_KEM_OPENPGP_X25519:
-      return openpgp_kem_decap (algo, seckey, ciphertext, shared_secret, kdf_param);
+      return openpgp_kem_decap (algo, seckey, ciphertext, shared_secret,
+                                optional);
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
     }
