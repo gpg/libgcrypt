@@ -30,6 +30,8 @@
 #include "t-common.h"
 #define N_TESTS_SNTRUP761 10
 #define N_TESTS_MLKEM 10
+#define N_TESTS_DHKEM_X25519 10
+#define N_TESTS_OPENPGP_X25519 10
 
 static int in_fips_mode;
 
@@ -160,7 +162,119 @@ test_kem_mlkem (int testno)
 }
 
 static void
-check_kem (void)
+test_kem_dhkem_x25519 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_DHKEM_X25519_PUBLICKEY_SIZE];
+  uint8_t seckey[GCRY_KEM_DHKEM_X25519_SECRETKEY_SIZE];
+  uint8_t ciphertext[GCRY_KEM_DHKEM_X25519_CIPHERTEXT_SIZE];
+  uint8_t key1[GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE];
+  uint8_t key2[GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE];
+
+  err = gcry_kem_keypair (GCRY_KEM_DHKEM_X25519, pubkey, seckey);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_DHKEM_X25519, pubkey, ciphertext, key1, NULL);
+  if (err)
+    {
+      fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_DHKEM_X25519, seckey, ciphertext, key2, pubkey);
+  if (err)
+    {
+      fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE) != 0)
+    {
+      size_t i;
+
+      fail ("dhkem-x25519 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE; i++)
+	fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_DHKEM_X25519_SHAREDSECRET_SIZE; i++)
+	fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+static void
+test_kem_openpgp_x25519 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[32];
+  uint8_t seckey[32];
+  uint8_t ciphertext[32];
+  uint8_t key1[16];
+  uint8_t key2[16];
+  const uint8_t kdf_param[56] = {
+    0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0x97, 0x55,
+    0x01, 0x05, 0x01,
+    /**/
+    0x12,
+    /**/
+    0x03, 0x01, 0x08 /*SHA256*/, 0x07 /* AES128 */,
+    /**/
+    0x41, 0x6e, 0x6f, 0x6e, 0x79, 0x6d, 0x6f, 0x75,
+    0x73, 0x20, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72,
+    0x20, 0x20, 0x20, 0x20, /* "Anonymous Sender    " */
+    /**/
+    0x25, 0xd4, 0x45, 0xfa, 0xc1, 0x96, 0x49, 0xc4,
+    0x6a, 0x6b, 0x2f, 0xb3, 0xcd, 0xfc, 0x22, 0x19,
+    0xc5, 0x53, 0xd3, 0x92  /* public key fingerprint */
+  };
+
+  err = gcry_kem_keypair (GCRY_KEM_OPENPGP_X25519, pubkey, seckey);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_OPENPGP_X25519, pubkey, ciphertext, key1,
+                        kdf_param);
+  if (err)
+    {
+      fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_OPENPGP_X25519, seckey, ciphertext, key2,
+                        kdf_param);
+  if (err)
+    {
+      fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, 16) != 0)
+    {
+      size_t i;
+
+      fail ("openpgp-x25519 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < 16; i++)
+	fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < 16; i++)
+	fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+static void
+check_kem_gen_encap_decap (void)
 {
   int ntests;
 
@@ -169,10 +283,19 @@ check_kem (void)
   for (ntests = 0; ntests < N_TESTS_SNTRUP761; ntests++)
     test_kem_sntrup761 (ntests);
 
-  for (ntests = 0; ntests < N_TESTS_MLKEM; ntests++)
-    test_kem_mlkem (ntests + N_TESTS_SNTRUP761);
+  for (; ntests < N_TESTS_SNTRUP761 + N_TESTS_MLKEM; ntests++)
+    test_kem_mlkem (ntests);
 
-  show_note ("%d tests done\n", ntests + N_TESTS_SNTRUP761);
+  for (; ntests < N_TESTS_SNTRUP761 + N_TESTS_MLKEM + N_TESTS_DHKEM_X25519;
+       ntests++)
+    test_kem_dhkem_x25519 (ntests);
+
+  for (; ntests < N_TESTS_SNTRUP761 + N_TESTS_MLKEM + N_TESTS_DHKEM_X25519
+         + N_TESTS_OPENPGP_X25519;
+       ntests++)
+    test_kem_openpgp_x25519 (ntests);
+
+  show_note ("%d tests done\n", ntests);
 }
 
 
@@ -267,7 +390,7 @@ check_dhkem (void)
   uint8_t key2[32];
   size_t size = 32;
 
-  info ("Checking DKEM.\n");
+  info ("Checking DHKEM KAT.\n");
 
   for (testno = 0; testno < N_TESTS_DHKEM; testno++)
     {
@@ -358,7 +481,7 @@ check_openpgp (void)
   uint8_t kek2[16];
   size_t size = 16;
 
-  info ("Checking OpenPGP.\n");
+  info ("Checking OpenPGP KAT.\n");
 
   for (testno = 0; testno < N_TESTS_OPENPGP; testno++)
     {
@@ -446,7 +569,7 @@ main (int argc, char **argv)
     in_fips_mode = 1;
 
   start_timer ();
-  check_kem ();
+  check_kem_gen_encap_decap ();
   check_dhkem ();
   check_openpgp ();
   stop_timer ();
