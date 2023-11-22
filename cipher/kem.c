@@ -109,7 +109,7 @@ ecc_dhkem_kdf (const unsigned char *ecdh, const unsigned char *ciphertext,
 static gpg_err_code_t
 ecc_dhkem_keypair (int algo, void *pubkey, void *seckey)
 {
-  if (algo != GCRY_KEM_DHKEM_X25519)
+  if (algo != GCRY_KEM_DHKEM25519)
     return GPG_ERR_UNKNOWN_ALGORITHM;
 
   /* From here, it's only for X25519.  */
@@ -131,7 +131,7 @@ ecc_dhkem_encap (int algo, const void *pubkey, void *ciphertext,
   if (err)
     return err;
 
-  if (algo != GCRY_KEM_DHKEM_X25519)
+  if (algo != GCRY_KEM_DHKEM25519)
     return GPG_ERR_UNKNOWN_ALGORITHM;
 
   /* From here, it's only for the DHKEM(X25519, HKDF-SHA256).  */
@@ -157,7 +157,7 @@ ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
   unsigned char pubkey_computed[32];
   const unsigned char *pubkey;
 
-  if (algo != GCRY_KEM_DHKEM_X25519)
+  if (algo != GCRY_KEM_DHKEM25519)
     return GPG_ERR_UNKNOWN_ALGORITHM;
 
   /* From here, it's only for the DHKEM(X25519, HKDF-SHA256).  */
@@ -311,7 +311,7 @@ _gcry_kem_keypair (int algo, void *pubkey, void *seckey)
     case GCRY_KEM_MLKEM1024:
       mlkem_keypair (algo, pubkey, seckey);
       return GPG_ERR_NO_ERROR;
-    case GCRY_KEM_DHKEM_X25519:
+    case GCRY_KEM_DHKEM25519:
       return ecc_dhkem_keypair (algo, pubkey, seckey);
     case GCRY_KEM_OPENPGP_X25519:
       return openpgp_kem_keypair (algo, pubkey, seckey);
@@ -340,7 +340,7 @@ _gcry_kem_encap (int algo,
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
       return mlkem_encap (algo, ciphertext, shared_secret, pubkey);
-    case GCRY_KEM_DHKEM_X25519:
+    case GCRY_KEM_DHKEM25519:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
       return ecc_dhkem_encap (algo, pubkey, ciphertext, shared_secret);
@@ -372,7 +372,7 @@ _gcry_kem_decap (int algo,
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
       return mlkem_decap (algo, shared_secret, ciphertext, seckey);
-    case GCRY_KEM_DHKEM_X25519:
+    case GCRY_KEM_DHKEM25519:
       return ecc_dhkem_decap (algo, seckey, ciphertext, shared_secret,
                               optional);
     case GCRY_KEM_OPENPGP_X25519:
