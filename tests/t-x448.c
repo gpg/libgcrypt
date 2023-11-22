@@ -271,7 +271,7 @@ test_cv_x448 (int testno, const char *k_str, const char *u_str,
   err = gcry_ecc_mul_point (GCRY_ECC_CURVE448, result, scalar, point);
   if (in_fips_mode)
     {
-      if (err != GPG_ERR_NOT_SUPPORTED)
+      if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
         fail ("gcry_ecc_mul_point is not expected to work in FIPS mode for test %d: %s",
               testno, gpg_strerror (err));
       if (verbose > 1)
