@@ -48,11 +48,6 @@ x25519_keypair (void *pubkey, void *seckey)
   int curveid = GCRY_ECC_CURVE25519;
 
   _gcry_randomize (seckey, 32, GCRY_STRONG_RANDOM);
-  seckey_byte[0] &= (256 - 8);  /* Curve25519 cofactor: 8 */
-  if ((255 % 8))                /* Curve25519: 255-bit */
-    seckey_byte[31] &= (1 << (255 % 8)) - 1;
-  seckey_byte[31] |= (1 << ((255 + 7) % 8)); /* Curve25519: 255-bit */
-
   return _gcry_ecc_mul_point (curveid, pubkey, seckey, curve25519_G);
 }
 
