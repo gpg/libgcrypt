@@ -14127,7 +14127,7 @@ check_digests (void)
 	"\xF9\x6B\x69\x7D\x7C\xB7\x93\x8D\x52\x5A\x2F\x31\xAA\xF1\x61\xD0" },
       { GCRY_MD_MD5,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14154,7 +14154,7 @@ check_digests (void)
 	"\x79\xec\x97\x3b\x98\x4c\x94\x75\xaa\x8f" },
       { GCRY_MD_SHA1,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14179,7 +14179,7 @@ check_digests (void)
 	"\x3b\xca\x70\x78\xf2\x44\xdf\x62\xab\x27\xb8\xda" },
       { GCRY_MD_SHA224,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14203,7 +14203,7 @@ check_digests (void)
 	"\xd2\x07\xf9\x3f\xc3\xdf\x04\xd7\x57\x2e\x63\x65\xaf\x69\xcd\x0d" },
       { GCRY_MD_SHA256,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14218,7 +14218,7 @@ check_digests (void)
 	"\x80\x86\x07\x2b\xa1\xe7\xcc\x23\x58\xba\xec\xa1\x34\xc8\x25\xa7" },
       { GCRY_MD_SHA384,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14243,7 +14243,7 @@ check_digests (void)
 	"\x45\x4D\x44\x23\x64\x3C\xE8\x0E\x2A\x9A\xC9\x4F\xA5\x4C\xA4\x9F" },
       { GCRY_MD_SHA512,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14388,7 +14388,7 @@ check_digests (void)
 	"\x81\xb1\x23\xa8\x5f\xfa\x21\x59\x5f\x36" },
       { GCRY_MD_RMD160,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14407,7 +14407,7 @@ check_digests (void)
       {	GCRY_MD_CRC32, "foo", "\x8c\x73\x65\x21" },
       { GCRY_MD_CRC32,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14509,7 +14509,7 @@ check_digests (void)
         "\xD3\x63\x02\xE9\xB3\xCE\xE0\xD2\xBC\x31\x4B\x41" },
       { GCRY_MD_TIGER1,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14584,7 +14584,7 @@ check_digests (void)
         "\x8C\x60\x08\xAD\x67\x7F\x77\x12\x69\x53\xB2\x26\xE4\xED\x8B\x01" },
       { GCRY_MD_WHIRLPOOL,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -14613,7 +14613,7 @@ check_digests (void)
 	"\xA7\xDB\xAF\x0E\x7E\xA7\x4E\x9F\xA6\x02\x41\x3C\x90\xA1\x29\xFA" },
       { GCRY_MD_GOSTR3411_94,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
@@ -15220,7 +15220,7 @@ check_digests (void)
 	"\xbc\x5d\x5e\x94\xea\x08\x86\x3d\xfb\xe4\x00\x5a\xd9\xed\x79\x26" },
       { GCRY_MD_SM3,
 	"Libgcrypt is free software; you can redistribute it and/or modif"
-	"y it under the terms of the GNU Lesser general Public License as"
+	"y it under the terms of the GNU Lesser General Public License as"
 	" published by the Free Software Foundation; either version 2.1 o"
 	"f the License, or (at your option) any later version.\nLibgcrypt"
 	" is distributed in the hope that it will be useful, but WITHOUT "
