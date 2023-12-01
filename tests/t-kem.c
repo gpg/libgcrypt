@@ -62,21 +62,26 @@ test_kem_sntrup761 (int testno)
   uint8_t key1[GCRY_KEM_SNTRUP761_SHARED_SIZE];
   uint8_t key2[GCRY_KEM_SNTRUP761_SHARED_SIZE];
 
-  err = gcry_kem_keypair (GCRY_KEM_SNTRUP761, pubkey, seckey);
+  err = gcry_kem_keypair (GCRY_KEM_SNTRUP761, pubkey, GCRY_KEM_SNTRUP761_PUBKEY_SIZE,
+                          seckey, GCRY_KEM_SNTRUP761_SECKEY_SIZE);
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_encap (GCRY_KEM_SNTRUP761, pubkey, ciphertext, key1, NULL);
+  err = gcry_kem_encap (GCRY_KEM_SNTRUP761, pubkey, GCRY_KEM_SNTRUP761_PUBKEY_SIZE,
+                        ciphertext, GCRY_KEM_SNTRUP761_ENCAPS_SIZE,
+                        key1, GCRY_KEM_SNTRUP761_SHARED_SIZE, NULL, 0);
   if (err)
     {
       fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (GCRY_KEM_SNTRUP761, seckey, ciphertext, key2, NULL);
+  err = gcry_kem_decap (GCRY_KEM_SNTRUP761, seckey, GCRY_KEM_SNTRUP761_SECKEY_SIZE,
+                        ciphertext, GCRY_KEM_SNTRUP761_ENCAPS_SIZE,
+                        key2, GCRY_KEM_SNTRUP761_SHARED_SIZE, NULL, 0);
   if (err)
     {
       fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
@@ -100,7 +105,7 @@ test_kem_sntrup761 (int testno)
 }
 
 static void
-test_kem_mlkem_sub (int testno, int algo, size_t size)
+test_kem_mlkem_sub (int testno, int algo)
 {
   gcry_error_t err;
   uint8_t pubkey[GCRY_KEM_MLKEM1024_PUBKEY_SIZE];
@@ -108,39 +113,67 @@ test_kem_mlkem_sub (int testno, int algo, size_t size)
   uint8_t ciphertext[GCRY_KEM_MLKEM1024_ENCAPS_SIZE];
   uint8_t key1[GCRY_KEM_MLKEM1024_SHARED_SIZE];
   uint8_t key2[GCRY_KEM_MLKEM1024_SHARED_SIZE];
+  size_t pubkey_len;
+  size_t seckey_len;
+  size_t ciphertext_len;
+  size_t shared_len;
 
-  err = gcry_kem_keypair (algo, pubkey, seckey);
+  if (algo == GCRY_KEM_MLKEM512)
+    {
+      pubkey_len = GCRY_KEM_MLKEM512_PUBKEY_SIZE;
+      seckey_len = GCRY_KEM_MLKEM512_SECKEY_SIZE;
+      ciphertext_len = GCRY_KEM_MLKEM512_ENCAPS_SIZE;
+      shared_len = GCRY_KEM_MLKEM512_SHARED_SIZE;
+    }
+  else if (algo == GCRY_KEM_MLKEM768)
+    {
+      pubkey_len = GCRY_KEM_MLKEM768_PUBKEY_SIZE;
+      seckey_len = GCRY_KEM_MLKEM768_SECKEY_SIZE;
+      ciphertext_len = GCRY_KEM_MLKEM768_ENCAPS_SIZE;
+      shared_len = GCRY_KEM_MLKEM768_SHARED_SIZE;
+    }
+  else if (algo == GCRY_KEM_MLKEM1024)
+    {
+      pubkey_len = GCRY_KEM_MLKEM1024_PUBKEY_SIZE;
+      seckey_len = GCRY_KEM_MLKEM1024_SECKEY_SIZE;
+      ciphertext_len = GCRY_KEM_MLKEM1024_ENCAPS_SIZE;
+      shared_len = GCRY_KEM_MLKEM1024_SHARED_SIZE;
+    }
+
+  err = gcry_kem_keypair (algo, pubkey, pubkey_len, seckey, seckey_len);
   if (err)
     {
       fail ("gcry_kem_keypair %d %d: %s", testno, algo, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_encap (algo, pubkey, ciphertext, key1, NULL);
+  err = gcry_kem_encap (algo, pubkey, pubkey_len, ciphertext, ciphertext_len,
+                        key1, shared_len, NULL, 0);
   if (err)
     {
       fail ("gcry_kem_encap %d %d: %s", testno, algo, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (algo, seckey, ciphertext, key2, NULL);
+  err = gcry_kem_decap (algo, seckey, seckey_len, ciphertext, ciphertext_len,
+                        key2, shared_len, NULL, 0);
   if (err)
     {
       fail ("gcry_kem_decap %d %d: %s", testno, algo, gpg_strerror (err));
       return;
     }
 
-  if (memcmp (key1, key2, size) != 0)
+  if (memcmp (key1, key2, shared_len) != 0)
     {
       size_t i;
 
       fail ("mlkem %d test %d failed: mismatch\n", algo, testno);
       fputs ("key1:", stderr);
-      for (i = 0; i < size; i++)
+      for (i = 0; i < shared_len; i++)
 	fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
-      for (i = 0; i < size; i++)
+      for (i = 0; i < shared_len; i++)
 	fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
@@ -150,15 +183,10 @@ static void
 test_kem_mlkem (int testno)
 {
   int algo[3] = { GCRY_KEM_MLKEM512, GCRY_KEM_MLKEM768, GCRY_KEM_MLKEM1024};
-  size_t size[3] = {
-    GCRY_KEM_MLKEM512_SHARED_SIZE,
-    GCRY_KEM_MLKEM768_SHARED_SIZE,
-    GCRY_KEM_MLKEM1024_SHARED_SIZE
-  };
   int i;
 
   for (i = 0; i < 3; i++)
-    test_kem_mlkem_sub (testno, algo[i], size[i]);
+    test_kem_mlkem_sub (testno, algo[i]);
 }
 
 static void
@@ -171,21 +199,29 @@ test_kem_dhkem_x25519 (int testno)
   uint8_t key1[GCRY_KEM_DHKEM25519_SHARED_SIZE];
   uint8_t key2[GCRY_KEM_DHKEM25519_SHARED_SIZE];
 
-  err = gcry_kem_keypair (GCRY_KEM_DHKEM25519, pubkey, seckey);
+  err = gcry_kem_keypair (GCRY_KEM_DHKEM25519, pubkey, GCRY_KEM_DHKEM25519_PUBKEY_SIZE,
+                          seckey, GCRY_KEM_DHKEM25519_SECKEY_SIZE);
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_encap (GCRY_KEM_DHKEM25519, pubkey, ciphertext, key1, NULL);
+  err = gcry_kem_encap (GCRY_KEM_DHKEM25519, pubkey, GCRY_KEM_DHKEM25519_PUBKEY_SIZE,
+                        ciphertext, GCRY_KEM_DHKEM25519_ENCAPS_SIZE,
+                        key1, GCRY_KEM_DHKEM25519_SHARED_SIZE,
+                        NULL, 0);
   if (err)
     {
       fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (GCRY_KEM_DHKEM25519, seckey, ciphertext, key2, pubkey);
+  err = gcry_kem_decap (GCRY_KEM_DHKEM25519,
+                        seckey, GCRY_KEM_DHKEM25519_SECKEY_SIZE,
+                        ciphertext, GCRY_KEM_DHKEM25519_ENCAPS_SIZE,
+                        key2, GCRY_KEM_DHKEM25519_SHARED_SIZE,
+                        pubkey, GCRY_KEM_DHKEM25519_SECKEY_SIZE);
   if (err)
     {
       fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
@@ -234,23 +270,26 @@ test_kem_openpgp_x25519 (int testno)
     0xc5, 0x53, 0xd3, 0x92  /* public key fingerprint */
   };
 
-  err = gcry_kem_keypair (GCRY_KEM_OPENPGP_X25519, pubkey, seckey);
+  err = gcry_kem_keypair (GCRY_KEM_OPENPGP_X25519,
+                          pubkey, 32, seckey, 32);
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_encap (GCRY_KEM_OPENPGP_X25519, pubkey, ciphertext, key1,
-                        kdf_param);
+  err = gcry_kem_encap (GCRY_KEM_OPENPGP_X25519,
+                        pubkey, 32, ciphertext, 32, key1, 16,
+                        kdf_param, sizeof (kdf_param));
   if (err)
     {
       fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_decap (GCRY_KEM_OPENPGP_X25519, seckey, ciphertext, key2,
-                        kdf_param);
+  err = gcry_kem_decap (GCRY_KEM_OPENPGP_X25519,
+                        seckey, 32, ciphertext, 32, key2, 16,
+                        kdf_param, sizeof (kdf_param));
   if (err)
     {
       fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
@@ -394,8 +433,10 @@ check_dhkem (void)
 
   for (testno = 0; testno < N_TESTS_DHKEM; testno++)
     {
-      err = gcry_kem_decap (GCRY_KEM_DHKEM25519, seckey[testno],
-                            ciphertext[testno], key2, pubkey[testno]);
+      err = gcry_kem_decap (GCRY_KEM_DHKEM25519, seckey[testno], GCRY_KEM_DHKEM25519_SECKEY_SIZE,
+                            ciphertext[testno], GCRY_KEM_DHKEM25519_ENCAPS_SIZE,
+                            key2, GCRY_KEM_DHKEM25519_SHARED_SIZE,
+                            pubkey[testno], GCRY_KEM_DHKEM25519_PUBKEY_SIZE);
       if (err)
         {
           fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
@@ -485,8 +526,9 @@ check_openpgp (void)
 
   for (testno = 0; testno < N_TESTS_OPENPGP; testno++)
     {
-      err = gcry_kem_decap (GCRY_KEM_OPENPGP_X25519, seckey[testno],
-                            ciphertext[testno], kek2, kdf_param[testno]);
+      err = gcry_kem_decap (GCRY_KEM_OPENPGP_X25519, seckey[testno], 32,
+                            ciphertext[testno], 32, kek2, 16,
+                            kdf_param[testno], 56);
       if (err)
         {
           fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));

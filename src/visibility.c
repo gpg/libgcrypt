@@ -1429,35 +1429,42 @@ gcry_kdf_close (gcry_kdf_hd_t h)
 }
 
 gcry_error_t
-gcry_kem_keypair (int algo, void *pubkey, void *seckey)
+gcry_kem_keypair (int algo,
+                  void *pubkey, size_t pubkey_len,
+                  void *seckey, size_t seckey_len)
+
 {
-  return gpg_error (_gcry_kem_keypair (algo, pubkey, seckey));
+  return gpg_error (_gcry_kem_keypair (algo,
+                                       pubkey, pubkey_len,
+                                       seckey, seckey_len));
 }
 
 gcry_error_t
 gcry_kem_encap (int algo,
-                const void *pubkey,
-                void *ciphertext,
-                void *shared_secret, const void *optional)
+                const void *pubkey, size_t pubkey_len,
+                void *ciphertext, size_t ciphertext_len,
+                void *shared, size_t shared_len,
+                void *optional, size_t optional_len)
 {
   return gpg_error (_gcry_kem_encap (algo,
-                                     pubkey,
-                                     ciphertext,
-                                     shared_secret,
-                                     optional));
+                                     pubkey, pubkey_len,
+                                     ciphertext, ciphertext_len,
+                                     shared, shared_len,
+                                     optional, optional_len));
 }
 
 gcry_error_t
 gcry_kem_decap (int algo,
-                const void *seckey,
-                const void *ciphertext,
-                void *shared_secret, const void *optional)
+                const void *seckey, size_t seckey_len,
+                const void *ciphertext, size_t ciphertext_len,
+                void *shared, size_t shared_len,
+                void *optional, size_t optional_len)
 {
   return gpg_error (_gcry_kem_decap (algo,
-                                     seckey,
-                                     ciphertext,
-                                     shared_secret,
-                                     optional));
+                                     seckey, seckey_len,
+                                     ciphertext, ciphertext_len,
+                                     shared, shared_len,
+                                     optional, optional_len));
 }
 
 void

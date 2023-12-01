@@ -1732,18 +1732,20 @@ enum gcry_kem_algos
 #define GCRY_KEM_DHKEM25519_SHARED_SIZE 32
 
 gcry_error_t gcry_kem_keypair (int algo,
-                               void *pubkey,
-                               void *seckey);
+                               void *pubkey, size_t pubkey_len,
+                               void *seckey, size_t seckey_len);
 
 gcry_error_t gcry_kem_encap (int algo,
-                             const void *pubkey,
-                             void *ciphertext,
-                             void *shared_secret, const void *optional);
+                             const void *pubkey, size_t pubkey_len,
+                             void *ciphertext, size_t ciphertext_len,
+                             void *shared, size_t shared_len,
+                             void *optional, size_t optional_len);
 
 gcry_error_t gcry_kem_decap (int algo,
-                             const void *seckey,
-                             const void *ciphertext,
-                             void *shared_secret, const void *optional);
+                             const void *seckey, size_t seckey_len,
+                             const void *ciphertext, size_t ciphertext_len,
+                             void *shared, size_t shared_len,
+                             void *optional, size_t optional_len);
 
 
 /************************************

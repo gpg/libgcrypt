@@ -37,6 +37,13 @@ _kem_random (void *ctx, size_t length, uint8_t * dst)
   _gcry_randomize (dst, length, GCRY_STRONG_RANDOM);
 }
 
+static gpg_err_code_t
+ecc_mul_point (int curveid, unsigned char *result,
+               const unsigned char *scalar, const unsigned char *point)
+{
+  return _gcry_ecc_mul_point (curveid, result, scalar, point);
+}
+
 
 /* The generator of Curve25519.  */
 static unsigned char curve25519_G[32] = { 0x09 };
@@ -48,13 +55,13 @@ x25519_keypair (void *pubkey, void *seckey)
   int curveid = GCRY_ECC_CURVE25519;
 
   _gcry_randomize (seckey, 32, GCRY_STRONG_RANDOM);
-  return _gcry_ecc_mul_point (curveid, pubkey, seckey, curve25519_G);
+  return _gcry_ecc_mul_point (curveid, pubkey, seckey_byte, curve25519_G);
 }
 
 
 static gpg_err_code_t
 ecc_dhkem_kdf (const unsigned char *ecdh, const unsigned char *ciphertext,
-               const unsigned char *pubkey, void *shared_secret)
+               const unsigned char *pubkey, void *shared)
 {
   gpg_err_code_t err;
   unsigned char *p;
@@ -95,7 +102,7 @@ ecc_dhkem_kdf (const unsigned char *ecdh, const unsigned char *ciphertext,
 
   err = _gcry_kdf_compute (hd, NULL);
   if (!err)
-    err = _gcry_kdf_final (hd, 32, shared_secret);
+    err = _gcry_kdf_final (hd, 32, shared);
   _gcry_kdf_close (hd);
   return err;
 }
@@ -114,7 +121,7 @@ ecc_dhkem_keypair (int algo, void *pubkey, void *seckey)
 
 static gpg_err_code_t
 ecc_dhkem_encap (int algo, const void *pubkey, void *ciphertext,
-                 void *shared_secret)
+                 void *shared)
 {
   gpg_err_code_t err;
   int curveid;
@@ -134,17 +141,17 @@ ecc_dhkem_encap (int algo, const void *pubkey, void *ciphertext,
   curveid = GCRY_ECC_CURVE25519;
 
   /* Do ECDH.  */
-  err = _gcry_ecc_mul_point (curveid, ecdh, seckey_ephemeral, pubkey);
+  err = ecc_mul_point (curveid, ecdh, seckey_ephemeral, pubkey);
   if (err)
     return err;
 
-  return ecc_dhkem_kdf (ecdh, ciphertext, pubkey, shared_secret);
+  return ecc_dhkem_kdf (ecdh, ciphertext, pubkey, shared);
 }
 
 
 static gpg_err_code_t
 ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
-                 void *shared_secret, const void *optional)
+                 void *shared, const void *optional)
 {
   gpg_err_code_t err;
   int curveid;
@@ -163,7 +170,7 @@ ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
     pubkey = optional;
   else
     {
-      err = _gcry_ecc_mul_point (curveid, pubkey_computed, seckey, curve25519_G);
+      err = ecc_mul_point (curveid, pubkey_computed, seckey, curve25519_G);
       if (err)
         return err;
 
@@ -171,11 +178,11 @@ ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
     }
 
   /* Do ECDH.  */
-  err = _gcry_ecc_mul_point (curveid, ecdh, seckey, ciphertext);
+  err = ecc_mul_point (curveid, ecdh, seckey, ciphertext);
   if (err)
     return err;
 
-  return ecc_dhkem_kdf (ecdh, ciphertext, pubkey, shared_secret);
+  return ecc_dhkem_kdf (ecdh, ciphertext, pubkey, shared);
 }
 
 static gpg_err_code_t
@@ -192,7 +199,7 @@ openpgp_kem_keypair (int algo, void *pubkey, void *seckey)
 
 static gpg_err_code_t
 openpgp_kem_kdf (const unsigned char *ecdh, size_t ecdh_len,
-                 const unsigned char *kdf_param, void *shared_secret)
+                 const unsigned char *kdf_param, void *shared)
 {
   gpg_err_code_t err;
   gcry_kdf_hd_t hd;
@@ -225,7 +232,7 @@ openpgp_kem_kdf (const unsigned char *ecdh, size_t ecdh_len,
 
   err = _gcry_kdf_compute (hd, NULL);
   if (!err)
-    err = _gcry_kdf_final (hd, z_len, shared_secret);
+    err = _gcry_kdf_final (hd, z_len, shared);
   _gcry_kdf_close (hd);
 
   return err;
@@ -236,7 +243,7 @@ openpgp_kem_kdf (const unsigned char *ecdh, size_t ecdh_len,
    the prefix.  */
 static gpg_err_code_t
 openpgp_kem_encap (int algo, const void *pubkey, void *ciphertext,
-                   void *shared_secret, const void *optional)
+                   void *shared, const void *optional)
 {
   gpg_err_code_t err;
   int curveid;
@@ -257,11 +264,11 @@ openpgp_kem_encap (int algo, const void *pubkey, void *ciphertext,
   curveid = GCRY_ECC_CURVE25519;
 
   /* Do ECDH.  */
-  err = _gcry_ecc_mul_point (curveid, ecdh, seckey_ephemeral, pubkey);
+  err = ecc_mul_point (curveid, ecdh, seckey_ephemeral, pubkey);
   if (err)
     return err;
 
-  return openpgp_kem_kdf (ecdh, sizeof (ecdh), kdf_param, shared_secret);
+  return openpgp_kem_kdf (ecdh, sizeof (ecdh), kdf_param, shared);
 }
 
 /* In OpenPGP v4, secret key is represented with big-endian MPI.
@@ -270,7 +277,7 @@ openpgp_kem_encap (int algo, const void *pubkey, void *ciphertext,
   */
 static gpg_err_code_t
 openpgp_kem_decap (int algo, const void *seckey, const void *ciphertext,
-                   void *shared_secret, const void *optional)
+                   void *shared, const void *optional)
 {
   gpg_err_code_t err;
   int curveid;
@@ -285,17 +292,22 @@ openpgp_kem_decap (int algo, const void *seckey, const void *ciphertext,
   curveid = GCRY_ECC_CURVE25519;
 
   /* Do ECDH.  */
-  err = _gcry_ecc_mul_point (curveid, ecdh, seckey, ciphertext);
+  err = ecc_mul_point (curveid, ecdh, seckey, ciphertext);
   if (err)
     return err;
 
-  return openpgp_kem_kdf (ecdh, sizeof (ecdh), kdf_param, shared_secret);
+  return openpgp_kem_kdf (ecdh, sizeof (ecdh), kdf_param, shared);
 }
 
 
 gcry_err_code_t
-_gcry_kem_keypair (int algo, void *pubkey, void *seckey)
+_gcry_kem_keypair (int algo,
+                   void *pubkey, size_t pubkey_len,
+                   void *seckey, size_t seckey_len)
 {
+  /*FIXME: runtime check for *_len */
+  (void)pubkey_len;
+  (void)seckey_len;
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
@@ -317,30 +329,35 @@ _gcry_kem_keypair (int algo, void *pubkey, void *seckey)
 
 gcry_err_code_t
 _gcry_kem_encap (int algo,
-                 const void *pubkey,
-                 void *ciphertext,
-                 void *shared_secret,
-                 const void *optional)
+                 const void *pubkey, size_t pubkey_len,
+                 void *ciphertext, size_t ciphertext_len,
+                 void *shared, size_t shared_len,
+                 void *optional, size_t optional_len)
 {
+  /*FIXME: runtime check for *_len */
+  (void)pubkey_len;
+  (void)ciphertext_len;
+  (void)shared_len;
+  (void)optional_len;
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
-      sntrup761_enc (ciphertext, shared_secret, pubkey, NULL, _kem_random);
+      sntrup761_enc (ciphertext, shared, pubkey, NULL, _kem_random);
       return GPG_ERR_NO_ERROR;
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
-      return mlkem_encap (algo, ciphertext, shared_secret, pubkey);
+      return mlkem_encap (algo, ciphertext, shared, pubkey);
     case GCRY_KEM_DHKEM25519:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
-      return ecc_dhkem_encap (algo, pubkey, ciphertext, shared_secret);
+      return ecc_dhkem_encap (algo, pubkey, ciphertext, shared);
     case GCRY_KEM_OPENPGP_X25519:
-      return openpgp_kem_encap (algo, pubkey, ciphertext, shared_secret,
+      return openpgp_kem_encap (algo, pubkey, ciphertext, shared,
                                 optional);
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -349,29 +366,34 @@ _gcry_kem_encap (int algo,
 
 gcry_err_code_t
 _gcry_kem_decap (int algo,
-                 const void *seckey,
-                 const void *ciphertext,
-                 void *shared_secret,
-                 const void *optional)
+                 const void *seckey, size_t seckey_len,
+                 const void *ciphertext, size_t ciphertext_len,
+                 void *shared, size_t shared_len,
+                 void *optional, size_t optional_len)
 {
+  /*FIXME: runtime check for *_len */
+  (void)seckey_len;
+  (void)ciphertext_len;
+  (void)shared_len;
+  (void)optional_len;
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
-      sntrup761_dec (shared_secret, ciphertext, seckey);
+      sntrup761_dec (shared, ciphertext, seckey);
       return GPG_ERR_NO_ERROR;
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
-      return mlkem_decap (algo, shared_secret, ciphertext, seckey);
+      return mlkem_decap (algo, shared, ciphertext, seckey);
     case GCRY_KEM_DHKEM25519:
-      return ecc_dhkem_decap (algo, seckey, ciphertext, shared_secret,
+      return ecc_dhkem_decap (algo, seckey, ciphertext, shared,
                               optional);
     case GCRY_KEM_OPENPGP_X25519:
-      return openpgp_kem_decap (algo, seckey, ciphertext, shared_secret,
+      return openpgp_kem_decap (algo, seckey, ciphertext, shared,
                                 optional);
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
