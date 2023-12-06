@@ -139,6 +139,11 @@ test_kem_mlkem_sub (int testno, int algo)
       ciphertext_len = GCRY_KEM_MLKEM1024_ENCAPS_SIZE;
       shared_len = GCRY_KEM_MLKEM1024_SHARED_SIZE;
     }
+  else
+    {
+      fail ("Algorithm not supported %d %d: %s", testno, algo);
+      return;
+    }
 
   err = gcry_kem_keypair (algo, pubkey, pubkey_len, seckey, seckey_len);
   if (err)

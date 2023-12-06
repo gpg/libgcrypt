@@ -332,7 +332,7 @@ _gcry_kem_encap (int algo,
                  const void *pubkey, size_t pubkey_len,
                  void *ciphertext, size_t ciphertext_len,
                  void *shared, size_t shared_len,
-                 void *optional, size_t optional_len)
+                 const void *optional, size_t optional_len)
 {
   /*FIXME: runtime check for *_len */
   (void)pubkey_len;
@@ -369,7 +369,7 @@ _gcry_kem_decap (int algo,
                  const void *seckey, size_t seckey_len,
                  const void *ciphertext, size_t ciphertext_len,
                  void *shared, size_t shared_len,
-                 void *optional, size_t optional_len)
+                 const void *optional, size_t optional_len)
 {
   /*FIXME: runtime check for *_len */
   (void)seckey_len;
