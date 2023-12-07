@@ -1428,6 +1428,45 @@ gcry_kdf_close (gcry_kdf_hd_t h)
   _gcry_kdf_close (h);
 }
 
+gcry_error_t
+gcry_kem_keypair (int algo,
+                  void *pubkey, size_t pubkey_len,
+                  void *seckey, size_t seckey_len)
+
+{
+  return gpg_error (_gcry_kem_keypair (algo,
+                                       pubkey, pubkey_len,
+                                       seckey, seckey_len));
+}
+
+gcry_error_t
+gcry_kem_encap (int algo,
+                const void *pubkey, size_t pubkey_len,
+                void *ciphertext, size_t ciphertext_len,
+                void *shared, size_t shared_len,
+                const void *optional, size_t optional_len)
+{
+  return gpg_error (_gcry_kem_encap (algo,
+                                     pubkey, pubkey_len,
+                                     ciphertext, ciphertext_len,
+                                     shared, shared_len,
+                                     optional, optional_len));
+}
+
+gcry_error_t
+gcry_kem_decap (int algo,
+                const void *seckey, size_t seckey_len,
+                const void *ciphertext, size_t ciphertext_len,
+                void *shared, size_t shared_len,
+                const void *optional, size_t optional_len)
+{
+  return gpg_error (_gcry_kem_decap (algo,
+                                     seckey, seckey_len,
+                                     ciphertext, ciphertext_len,
+                                     shared, shared_len,
+                                     optional, optional_len));
+}
+
 void
 gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {

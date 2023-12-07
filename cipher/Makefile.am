@@ -60,6 +60,7 @@ libcipher_la_SOURCES = \
 	mac.c mac-internal.h \
 	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
 	poly1305.c poly1305-internal.h \
+	kem.c \
 	kdf.c kdf-internal.h \
 	bithelp.h  \
 	bufhelp.h  \
