@@ -77,9 +77,11 @@ crypto_sort_int32 (void *array, long long n)
 	  if (j != i)
 	    for (;;)
 	      {
+                int32_t a;
+
 		if (j == n - q)
 		  goto done;
-		int32_t a = x[j + p];
+		a = x[j + p];
 		for (r = q; r > p; r >>= 1)
 		  int32_MINMAX (a, x[j + r]);
 		x[j + p] = a;
