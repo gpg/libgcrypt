@@ -14,7 +14,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * For a description of the algorithm, see:
  *   https://ntruprime.cr.yp.to/
@@ -34,10 +35,20 @@
 #include <string.h>
 #include <stdint.h>
 
-#define SNTRUP761_SECRETKEY_SIZE 1763
-#define SNTRUP761_PUBLICKEY_SIZE 1158
-#define SNTRUP761_CIPHERTEXT_SIZE 1039
-#define SNTRUP761_SIZE 32
+/**** Start of the glue code to libgcrypt ****/
+#include "gcrypt-int.h"
+
+static inline void
+crypto_hash_sha512 (unsigned char *out,
+		    const unsigned char *in, size_t inlen)
+{
+  _gcry_md_hash_buffer (GCRY_MD_SHA512, out, in, inlen);
+}
+
+#define sntrup761_keypair _gcry_sntrup761_keypair
+#define sntrup761_enc     _gcry_sntrup761_enc
+#define sntrup761_dec     _gcry_sntrup761_dec
+/**** End of the glue code ****/
 
 typedef void sntrup761_random_func (void *ctx, size_t length, uint8_t *dst);
 

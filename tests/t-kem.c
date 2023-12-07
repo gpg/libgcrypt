@@ -14,8 +14,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifdef HAVE_CONFIG_H
@@ -53,44 +53,54 @@ static void
 test_kem (int testno)
 {
   gcry_error_t err;
-  uint8_t pubkey[GCRY_KEM_SNTRUP761_PUBLICKEY_SIZE];
-  uint8_t seckey[GCRY_KEM_SNTRUP761_SECRETKEY_SIZE];
-  uint8_t ciphertext[GCRY_KEM_SNTRUP761_CIPHERTEXT_SIZE];
-  uint8_t key1[GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE];
-  uint8_t key2[GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE];
+  uint8_t pubkey[GCRY_KEM_SNTRUP761_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_SNTRUP761_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_SNTRUP761_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_SNTRUP761_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_SNTRUP761_SHARED_LEN];
 
-  err = gcry_kem_keypair (GCRY_KEM_SNTRUP761, pubkey, seckey);
+  err = gcry_kem_keypair (GCRY_KEM_SNTRUP761,
+                          pubkey, GCRY_KEM_SNTRUP761_PUBKEY_LEN,
+                          seckey, GCRY_KEM_SNTRUP761_SECKEY_LEN);
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_enc (GCRY_KEM_SNTRUP761, pubkey, ciphertext, key1);
+  err = gcry_kem_encap (GCRY_KEM_SNTRUP761,
+                        pubkey, GCRY_KEM_SNTRUP761_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_SNTRUP761_ENCAPS_LEN,
+                        key1, GCRY_KEM_SNTRUP761_SHARED_LEN,
+                        NULL, 0);
   if (err)
     {
       fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  err = gcry_kem_dec (GCRY_KEM_SNTRUP761, ciphertext, seckey, key2);
+  err = gcry_kem_decap (GCRY_KEM_SNTRUP761,
+                        seckey, GCRY_KEM_SNTRUP761_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_SNTRUP761_ENCAPS_LEN,
+                        key2, GCRY_KEM_SNTRUP761_SHARED_LEN,
+                        NULL, 0);
   if (err)
     {
       fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
       return;
     }
 
-  if (memcmp (key1, key2, GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE) != 0)
+  if (memcmp (key1, key2, GCRY_KEM_SNTRUP761_SHARED_LEN) != 0)
     {
       size_t i;
 
       fail ("sntrup761 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
-      for (i = 0; i < GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE; i++)
+      for (i = 0; i < GCRY_KEM_SNTRUP761_SHARED_LEN; i++)
 	fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
-      for (i = 0; i < GCRY_KEM_SNTRUP761_SHAREDSECRET_SIZE; i++)
+      for (i = 0; i < GCRY_KEM_SNTRUP761_SHARED_LEN; i++)
 	fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }

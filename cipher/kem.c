@@ -27,6 +27,15 @@
 
 #include "g10lib.h"
 #include "cipher.h"
+#include "sntrup761.h"
+
+static void
+sntrup761_random (void *ctx, size_t length, uint8_t *dst)
+{
+  (void)ctx;
+
+  _gcry_randomize (dst, length, GCRY_STRONG_RANDOM);
+}
 
 gcry_err_code_t
 _gcry_kem_keypair (int algo,
@@ -40,7 +49,8 @@ _gcry_kem_keypair (int algo,
       if (seckey_len != GCRY_KEM_SNTRUP761_SECKEY_LEN
           || pubkey_len != GCRY_KEM_SNTRUP761_PUBKEY_LEN)
         return GPG_ERR_INV_ARG;
-      return GPG_ERR_NOT_IMPLEMENTED;
+      sntrup761_keypair (pubkey, seckey, NULL, sntrup761_random);
+      return GPG_ERR_NO_ERROR;
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
@@ -71,7 +81,8 @@ _gcry_kem_encap (int algo,
           || ciphertext_len != GCRY_KEM_SNTRUP761_ENCAPS_LEN
           || shared_len != GCRY_KEM_SNTRUP761_SHARED_LEN)
         return GPG_ERR_INV_VALUE;
-      return GPG_ERR_NOT_IMPLEMENTED;
+      sntrup761_enc (ciphertext, shared, pubkey, NULL, sntrup761_random);
+      return GPG_ERR_NO_ERROR;
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
@@ -106,7 +117,8 @@ _gcry_kem_decap (int algo,
           || ciphertext_len != GCRY_KEM_SNTRUP761_ENCAPS_LEN
           || shared_len != GCRY_KEM_SNTRUP761_SHARED_LEN)
         return GPG_ERR_INV_VALUE;
-      return GPG_ERR_NOT_IMPLEMENTED;
+      sntrup761_dec (shared, ciphertext, seckey);
+      return GPG_ERR_NO_ERROR;
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
