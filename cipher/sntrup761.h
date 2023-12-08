@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#ifdef _GCRYPT_IN_LIBGCRYPT
 /**** Start of the glue code to libgcrypt ****/
 #include "gcrypt-int.h"
 
@@ -49,6 +50,12 @@ crypto_hash_sha512 (unsigned char *out,
 #define sntrup761_enc     _gcry_sntrup761_enc
 #define sntrup761_dec     _gcry_sntrup761_dec
 /**** End of the glue code ****/
+#else
+#define SNTRUP761_SECRETKEY_SIZE 1763
+#define SNTRUP761_PUBLICKEY_SIZE 1158
+#define SNTRUP761_CIPHERTEXT_SIZE 1039
+#define SNTRUP761_SIZE 32
+#endif
 
 typedef void sntrup761_random_func (void *ctx, size_t length, uint8_t *dst);
 
