@@ -32,7 +32,7 @@ List of Copyright holders
   Copyright (C) 2003 Nikos Mavroyanopoulos
   Copyright (c) 2006 CRYPTOGAMS
   Copyright (C) 2006-2007 NTT (Nippon Telegraph and Telephone Corporation)
-  Copyright (C) 2012-2021 g10 Code GmbH
+  Copyright (C) 2012-2023 g10 Code GmbH
   Copyright (C) 2012 Simon Josefsson, Niels Möller
   Copyright (c) 2012 Intel Corporation
   Copyright (C) 2013 Christian Grothoff
@@ -43,6 +43,7 @@ List of Copyright holders
   Copyright (C) 2018 Bundesamt für Sicherheit in der Informationstechnik
   Copyright (C) 2020 Alibaba Group.
   Copyright (C) 2020 Tianjia Zhang
+  Copyright (C) 2023 Simon Josefsson
 
 
 Authors with a FSF copyright assignment
@@ -256,6 +257,10 @@ security corporation.  See the file for details.
 
 The file salsa20.c is based on D.J. Bernstein's public domain code and
 taken from Nettle.  Copyright 2012 Simon Josefsson and Niels Möller.
+
+The sntrup761 code is based on public domain code written by Daniel
+J. Bernstein, Chitchanok Chuengsatiansup, Tanja Lange, and Christine
+van Vredendaal.  Copyright 2023 Simon Josefsson.
 
 
  This file is free software; as a special exception the author gives
