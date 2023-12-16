@@ -471,11 +471,15 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
 
   carry = LO32_LIMB64(s[4]);
 
+  /* Load values to stack to ease register pressure on i386. */
+  e[0] = p_mult[carry + 4][0];
+  e[1] = p_mult[carry + 4][1];
+  e[2] = p_mult[carry + 4][2];
+  e[3] = p_mult[carry + 4][3];
+  e[4] = p_mult[carry + 4][4];
   SUB5_LIMB64 (s[4], s[3], s[2], s[1], s[0],
 	       s[4], s[3], s[2], s[1], s[0],
-	       p_mult[carry + 4][4], p_mult[carry + 4][3],
-	       p_mult[carry + 4][2], p_mult[carry + 4][1],
-	       p_mult[carry + 4][0]);
+	       e[4], e[3], e[2], e[1], e[0]);
 
   /* Add 1*P */
   ADD5_LIMB64 (d[4], d[3], d[2], d[1], d[0],
@@ -749,12 +753,17 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
 
   carry = LO32_LIMB64(s[6]);
 
+  /* Load values to stack to ease register pressure on i386. */
+  x[0] = p_mult[carry + 3][0];
+  x[1] = p_mult[carry + 3][1];
+  x[2] = p_mult[carry + 3][2];
+  x[3] = p_mult[carry + 3][3];
+  x[4] = p_mult[carry + 3][4];
+  x[5] = p_mult[carry + 3][5];
+  x[6] = p_mult[carry + 3][6];
   SUB7_LIMB64 (s[6], s[5], s[4], s[3], s[2], s[1], s[0],
 	       s[6], s[5], s[4], s[3], s[2], s[1], s[0],
-	       p_mult[carry + 3][6], p_mult[carry + 3][5],
-	       p_mult[carry + 3][4], p_mult[carry + 3][3],
-	       p_mult[carry + 3][2], p_mult[carry + 3][1],
-	       p_mult[carry + 3][0]);
+	       x[6], x[5], x[4], x[3], x[2], x[1], x[0]);
 
   ADD7_LIMB64 (d[6], d[5], d[4], d[3], d[2], d[1], d[0],
 	       s[6], s[5], s[4], s[3], s[2], s[1], s[0],
