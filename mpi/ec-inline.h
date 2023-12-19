@@ -641,116 +641,192 @@ LIMB64_HILO(mpi_limb_t hi, mpi_limb_t lo)
 /* i386 addition/subtraction helpers.  */
 #if defined (__i386__) && defined(HAVE_CPU_ARCH_X86) && __GNUC__ >= 4
 
-#define ADD4_LIMB32(a3, a2, a1, a0, b3, b2, b1, b0, c3, c2, c1, c0) \
-  __asm__ ("addl %11, %3\n" \
-	   "adcl %10, %2\n" \
-	   "adcl %9, %1\n" \
-	   "adcl %8, %0\n" \
-	   : "=r" (a3), \
-	     "=&r" (a2), \
+#define ADD2_LIMB32_CARRY_OUT(carry, a1, a0, b1, b0, c1, c0) \
+  __asm__ ("addl %7, %2\n" \
+	   "adcl %6, %1\n" \
+	   "sbbl %0, %0\n" \
+	   : "=r" (carry), \
 	     "=&r" (a1), \
 	     "=&r" (a0) \
-	   : "0" ((mpi_limb_t)(b3)), \
-	     "1" ((mpi_limb_t)(b2)), \
-	     "2" ((mpi_limb_t)(b1)), \
-	     "3" ((mpi_limb_t)(b0)), \
-	     "g" ((mpi_limb_t)(c3)), \
-	     "g" ((mpi_limb_t)(c2)), \
-	     "g" ((mpi_limb_t)(c1)), \
-	     "g" ((mpi_limb_t)(c0)) \
+	   : "0" ((mpi_limb_t)(0)), \
+	     "1" ((mpi_limb_t)(b1)), \
+	     "2" ((mpi_limb_t)(b0)), \
+	     "re" ((mpi_limb_t)(c1)), \
+	     "re" ((mpi_limb_t)(c0)) \
 	   : "cc")
+
+#define ADD2_LIMB32_CARRY_IN_OUT(a1, a0, b1, b0, c1, c0, carry) \
+  __asm__ ("addl $1, %0\n" \
+	   "adcl %7, %2\n" \
+	   "adcl %6, %1\n" \
+	   "sbbl %0, %0\n" \
+	   : "=r" (carry), \
+	     "=&r" (a1), \
+	     "=&r" (a0) \
+	   : "0" ((mpi_limb_t)(carry)), \
+	     "1" ((mpi_limb_t)(b1)), \
+	     "2" ((mpi_limb_t)(b0)), \
+	     "re" ((mpi_limb_t)(c1)), \
+	     "re" ((mpi_limb_t)(c0)) \
+	   : "cc")
+
+#define ADD2_LIMB32_CARRY_IN(a1, a0, b1, b0, c1, c0, carry) \
+    __asm__ ("addl $1, %2\n" \
+	     "adcl %7, %1\n" \
+	     "adcl %6, %0\n" \
+	     : "=r" (a1), \
+	       "=&r" (a0), \
+	       "=&g" (carry) \
+	     : "0" ((mpi_limb_t)(b1)), \
+	       "1" ((mpi_limb_t)(b0)), \
+	       "2" ((mpi_limb_t)(carry)), \
+	       "re" ((mpi_limb_t)(c1)), \
+	       "re" ((mpi_limb_t)(c0)) \
+	   : "cc")
+
+#define ADD4_LIMB32(a3, a2, a1, a0, b3, b2, b1, b0, c3, c2, c1, c0) do { \
+    mpi_limb_t __carry4_32; \
+    ADD2_LIMB32_CARRY_OUT(__carry4_32, a1, a0, b1, b0, c1, c0); \
+    ADD2_LIMB32_CARRY_IN(a3, a2, b3, b2, c3, c2, __carry4_32); \
+  } while (0)
 
 #define ADD6_LIMB32(a5, a4, a3, a2, a1, a0, b5, b4, b3, b2, b1, b0, \
 		    c5, c4, c3, c2, c1, c0) do { \
     mpi_limb_t __carry6_32; \
-    __asm__ ("addl %10, %3\n" \
-	     "adcl %9, %2\n" \
-	     "adcl %8, %1\n" \
-	     "sbbl %0, %0\n" \
-	     : "=r" (__carry6_32), \
-	       "=&r" (a2), \
-	       "=&r" (a1), \
-	       "=&r" (a0) \
-	     : "0" ((mpi_limb_t)(0)), \
-	       "1" ((mpi_limb_t)(b2)), \
-	       "2" ((mpi_limb_t)(b1)), \
-	       "3" ((mpi_limb_t)(b0)), \
-	       "g" ((mpi_limb_t)(c2)), \
-	       "g" ((mpi_limb_t)(c1)), \
-	       "g" ((mpi_limb_t)(c0)) \
-	     : "cc"); \
-    __asm__ ("addl $1, %3\n" \
-	     "adcl %10, %2\n" \
-	     "adcl %9, %1\n" \
-	     "adcl %8, %0\n" \
-	     : "=r" (a5), \
-	       "=&r" (a4), \
-	       "=&r" (a3), \
-	       "=&r" (__carry6_32) \
-	     : "0" ((mpi_limb_t)(b5)), \
-	       "1" ((mpi_limb_t)(b4)), \
-	       "2" ((mpi_limb_t)(b3)), \
-	       "3" ((mpi_limb_t)(__carry6_32)), \
-	       "g" ((mpi_limb_t)(c5)), \
-	       "g" ((mpi_limb_t)(c4)), \
-	       "g" ((mpi_limb_t)(c3)) \
-	   : "cc"); \
+    ADD2_LIMB32_CARRY_OUT(__carry6_32, a1, a0, b1, b0, c1, c0); \
+    ADD2_LIMB32_CARRY_IN_OUT(a3, a2, b3, b2, c3, c2, __carry6_32); \
+    ADD2_LIMB32_CARRY_IN(a5, a4, b5, b4, c5, c4, __carry6_32); \
   } while (0)
 
-#define SUB4_LIMB32(a3, a2, a1, a0, b3, b2, b1, b0, c3, c2, c1, c0) \
-  __asm__ ("subl %11, %3\n" \
-	   "sbbl %10, %2\n" \
-	   "sbbl %9, %1\n" \
-	   "sbbl %8, %0\n" \
-	   : "=r" (a3), \
-	     "=&r" (a2), \
+#define ADD8_LIMB32(a7, a6, a5, a4, a3, a2, a1, a0, \
+		    b7, b6, b5, b4, b3, b2, b1, b0, \
+		    c7, c6, c5, c4, c3, c2, c1, c0) do { \
+    mpi_limb_t __carry8_32; \
+    ADD2_LIMB32_CARRY_OUT(__carry8_32, a1, a0, b1, b0, c1, c0); \
+    ADD2_LIMB32_CARRY_IN_OUT(a3, a2, b3, b2, c3, c2, __carry8_32); \
+    ADD2_LIMB32_CARRY_IN_OUT(a5, a4, b5, b4, c5, c4, __carry8_32); \
+    ADD2_LIMB32_CARRY_IN(a7, a6, b7, b6, c7, c6, __carry8_32); \
+  } while (0)
+
+#define ADD10_LIMB32(a9, a8, a7, a6, a5, a4, a3, a2, a1, a0, \
+		     b9, b8, b7, b6, b5, b4, b3, b2, b1, b0, \
+		     c9, c8, c7, c6, c5, c4, c3, c2, c1, c0) do { \
+    mpi_limb_t __carry10_32; \
+    ADD2_LIMB32_CARRY_OUT(__carry10_32, a1, a0, b1, b0, c1, c0); \
+    ADD2_LIMB32_CARRY_IN_OUT(a3, a2, b3, b2, c3, c2, __carry10_32); \
+    ADD2_LIMB32_CARRY_IN_OUT(a5, a4, b5, b4, c5, c4, __carry10_32); \
+    ADD2_LIMB32_CARRY_IN_OUT(a7, a6, b7, b6, c7, c6, __carry10_32); \
+    ADD2_LIMB32_CARRY_IN(a9, a8, b9, b8, c9, c8, __carry10_32); \
+  } while (0)
+
+#define ADD14_LIMB32(a13, a12, a11, a10, a9, a8, a7, \
+		     a6, a5, a4, a3, a2, a1, a0, \
+		     b13, b12, b11, b10, b9, b8, b7, \
+		     b6, b5, b4, b3, b2, b1, b0, \
+		     c13, c12, c11, c10, c9, c8, c7, \
+		     c6, c5, c4, c3, c2, c1, c0) do { \
+    mpi_limb_t __carry14_32; \
+    ADD2_LIMB32_CARRY_OUT(__carry14_32, a1, a0, b1, b0, c1, c0); \
+    ADD2_LIMB32_CARRY_IN_OUT(a3, a2, b3, b2, c3, c2, __carry14_32); \
+    ADD2_LIMB32_CARRY_IN_OUT(a5, a4, b5, b4, c5, c4, __carry14_32); \
+    ADD2_LIMB32_CARRY_IN_OUT(a7, a6, b7, b6, c7, c6, __carry14_32); \
+    ADD2_LIMB32_CARRY_IN_OUT(a9, a8, b9, b8, c9, c8, __carry14_32); \
+    ADD2_LIMB32_CARRY_IN_OUT(a11, a10, b11, b10, c11, c10, __carry14_32); \
+    ADD2_LIMB32_CARRY_IN(a13, a12, b13, b12, c13, c12, __carry14_32); \
+  } while (0)
+
+#define SUB2_LIMB32_CARRY_OUT(carry, a1, a0, b1, b0, c1, c0) \
+  __asm__ ("subl %7, %2\n" \
+	   "sbbl %6, %1\n" \
+	   "sbbl %0, %0\n" \
+	   : "=r" (carry), \
 	     "=&r" (a1), \
 	     "=&r" (a0) \
-	   : "0" ((mpi_limb_t)(b3)), \
-	     "1" ((mpi_limb_t)(b2)), \
-	     "2" ((mpi_limb_t)(b1)), \
-	     "3" ((mpi_limb_t)(b0)), \
-	     "g" ((mpi_limb_t)(c3)), \
-	     "g" ((mpi_limb_t)(c2)), \
-	     "g" ((mpi_limb_t)(c1)), \
-	     "g" ((mpi_limb_t)(c0)) \
+	   : "0" ((mpi_limb_t)(0)), \
+	     "1" ((mpi_limb_t)(b1)), \
+	     "2" ((mpi_limb_t)(b0)), \
+	     "re" ((mpi_limb_t)(c1)), \
+	     "re" ((mpi_limb_t)(c0)) \
 	   : "cc")
+
+#define SUB2_LIMB32_CARRY_IN_OUT(a1, a0, b1, b0, c1, c0, carry) \
+  __asm__ ("addl $1, %0\n" \
+	   "sbbl %7, %2\n" \
+	   "sbbl %6, %1\n" \
+	   "sbbl %0, %0\n" \
+	   : "=r" (carry), \
+	     "=&r" (a1), \
+	     "=&r" (a0) \
+	   : "0" ((mpi_limb_t)(carry)), \
+	     "1" ((mpi_limb_t)(b1)), \
+	     "2" ((mpi_limb_t)(b0)), \
+	     "re" ((mpi_limb_t)(c1)), \
+	     "re" ((mpi_limb_t)(c0)) \
+	   : "cc")
+
+#define SUB2_LIMB32_CARRY_IN(a1, a0, b1, b0, c1, c0, carry) \
+    __asm__ ("addl $1, %2\n" \
+	     "sbbl %7, %1\n" \
+	     "sbbl %6, %0\n" \
+	     : "=r" (a1), \
+	       "=&r" (a0), \
+	       "=&g" (carry) \
+	     : "0" ((mpi_limb_t)(b1)), \
+	       "1" ((mpi_limb_t)(b0)), \
+	       "2" ((mpi_limb_t)(carry)), \
+	       "re" ((mpi_limb_t)(c1)), \
+	       "re" ((mpi_limb_t)(c0)) \
+	   : "cc")
+
+#define SUB4_LIMB32(a3, a2, a1, a0, b3, b2, b1, b0, c3, c2, c1, c0) do { \
+    mpi_limb_t __carry4_32; \
+    SUB2_LIMB32_CARRY_OUT(__carry4_32, a1, a0, b1, b0, c1, c0); \
+    SUB2_LIMB32_CARRY_IN(a3, a2, b3, b2, c3, c2, __carry4_32); \
+  } while (0)
 
 #define SUB6_LIMB32(a5, a4, a3, a2, a1, a0, b5, b4, b3, b2, b1, b0, \
 		    c5, c4, c3, c2, c1, c0) do { \
-    mpi_limb_t __borrow6_32; \
-    __asm__ ("subl %10, %3\n" \
-	     "sbbl %9, %2\n" \
-	     "sbbl %8, %1\n" \
-	     "sbbl %0, %0\n" \
-	     : "=r" (__borrow6_32), \
-	       "=&r" (a2), \
-	       "=&r" (a1), \
-	       "=&r" (a0) \
-	     : "0" ((mpi_limb_t)(0)), \
-	       "1" ((mpi_limb_t)(b2)), \
-	       "2" ((mpi_limb_t)(b1)), \
-	       "3" ((mpi_limb_t)(b0)), \
-	       "g" ((mpi_limb_t)(c2)), \
-	       "g" ((mpi_limb_t)(c1)), \
-	       "g" ((mpi_limb_t)(c0)) \
-	     : "cc"); \
-    __asm__ ("addl $1, %3\n" \
-	     "sbbl %10, %2\n" \
-	     "sbbl %9, %1\n" \
-	     "sbbl %8, %0\n" \
-	     : "=r" (a5), \
-	       "=&r" (a4), \
-	       "=&r" (a3), \
-	       "=&r" (__borrow6_32) \
-	     : "0" ((mpi_limb_t)(b5)), \
-	       "1" ((mpi_limb_t)(b4)), \
-	       "2" ((mpi_limb_t)(b3)), \
-	       "3" ((mpi_limb_t)(__borrow6_32)), \
-	       "g" ((mpi_limb_t)(c5)), \
-	       "g" ((mpi_limb_t)(c4)), \
-	       "g" ((mpi_limb_t)(c3)) \
-	   : "cc"); \
+    mpi_limb_t __carry6_32; \
+    SUB2_LIMB32_CARRY_OUT(__carry6_32, a1, a0, b1, b0, c1, c0); \
+    SUB2_LIMB32_CARRY_IN_OUT(a3, a2, b3, b2, c3, c2, __carry6_32); \
+    SUB2_LIMB32_CARRY_IN(a5, a4, b5, b4, c5, c4, __carry6_32); \
+  } while (0)
+
+#define SUB8_LIMB32(a7, a6, a5, a4, a3, a2, a1, a0, \
+		    b7, b6, b5, b4, b3, b2, b1, b0, \
+		    c7, c6, c5, c4, c3, c2, c1, c0) do { \
+    mpi_limb_t __carry8_32; \
+    SUB2_LIMB32_CARRY_OUT(__carry8_32, a1, a0, b1, b0, c1, c0); \
+    SUB2_LIMB32_CARRY_IN_OUT(a3, a2, b3, b2, c3, c2, __carry8_32); \
+    SUB2_LIMB32_CARRY_IN_OUT(a5, a4, b5, b4, c5, c4, __carry8_32); \
+    SUB2_LIMB32_CARRY_IN(a7, a6, b7, b6, c7, c6, __carry8_32); \
+  } while (0)
+
+#define SUB10_LIMB32(a9, a8, a7, a6, a5, a4, a3, a2, a1, a0, \
+		     b9, b8, b7, b6, b5, b4, b3, b2, b1, b0, \
+		     c9, c8, c7, c6, c5, c4, c3, c2, c1, c0) do { \
+    mpi_limb_t __carry10_32; \
+    SUB2_LIMB32_CARRY_OUT(__carry10_32, a1, a0, b1, b0, c1, c0); \
+    SUB2_LIMB32_CARRY_IN_OUT(a3, a2, b3, b2, c3, c2, __carry10_32); \
+    SUB2_LIMB32_CARRY_IN_OUT(a5, a4, b5, b4, c5, c4, __carry10_32); \
+    SUB2_LIMB32_CARRY_IN_OUT(a7, a6, b7, b6, c7, c6, __carry10_32); \
+    SUB2_LIMB32_CARRY_IN(a9, a8, b9, b8, c9, c8, __carry10_32); \
+  } while (0)
+
+#define SUB14_LIMB32(a13, a12, a11, a10, a9, a8, a7, \
+		     a6, a5, a4, a3, a2, a1, a0, \
+		     b13, b12, b11, b10, b9, b8, b7, \
+		     b6, b5, b4, b3, b2, b1, b0, \
+		     c13, c12, c11, c10, c9, c8, c7, \
+		     c6, c5, c4, c3, c2, c1, c0) do { \
+    mpi_limb_t __carry14_32; \
+    SUB2_LIMB32_CARRY_OUT(__carry14_32, a1, a0, b1, b0, c1, c0); \
+    SUB2_LIMB32_CARRY_IN_OUT(a3, a2, b3, b2, c3, c2, __carry14_32); \
+    SUB2_LIMB32_CARRY_IN_OUT(a5, a4, b5, b4, c5, c4, __carry14_32); \
+    SUB2_LIMB32_CARRY_IN_OUT(a7, a6, b7, b6, c7, c6, __carry14_32); \
+    SUB2_LIMB32_CARRY_IN_OUT(a9, a8, b9, b8, c9, c8, __carry14_32); \
+    SUB2_LIMB32_CARRY_IN_OUT(a11, a10, b11, b10, c11, c10, __carry14_32); \
+    SUB2_LIMB32_CARRY_IN(a13, a12, b13, b12, c13, c12, __carry14_32); \
   } while (0)
 
 #endif /* __i386__ */
@@ -820,7 +896,6 @@ LIMB64_HILO(mpi_limb_t hi, mpi_limb_t lo)
 	     "Ir" ((mpi_limb_t)(C0)) \
 	   : "cc")
 
-
 #define SUB6_LIMB32(A5, A4, A3, A2, A1, A0, B5, B4, B3, B2, B1, B0, \
 		    C5, C4, C3, C2, C1, C0) do { \
     mpi_limb_t __borrow6_32; \
@@ -875,7 +950,13 @@ LIMB64_HILO(mpi_limb_t hi, mpi_limb_t lo)
 		    C2.hi, C2.lo, C1.hi, C1.lo, C0.hi, C0.lo)
 #endif
 
-#if defined(ADD6_LIMB32)
+#if defined(ADD8_LIMB32)
+/* A[0..3] = B[0..3] + C[0..3] */
+#define ADD4_LIMB64(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) \
+    ADD8_LIMB32(A3.hi, A3.lo, A2.hi, A2.lo, A1.hi, A1.lo, A0.hi, A0.lo, \
+		B3.hi, B3.lo, B2.hi, B2.lo, B1.hi, B1.lo, B0.hi, B0.lo, \
+		C3.hi, C3.lo, C2.hi, C2.lo, C1.hi, C1.lo, C0.hi, C0.lo)
+#elif defined(ADD6_LIMB32)
 /* A[0..3] = B[0..3] + C[0..3] */
 #define ADD4_LIMB64(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) do { \
     mpi_limb_t __carry4; \
@@ -886,6 +967,28 @@ LIMB64_HILO(mpi_limb_t hi, mpi_limb_t lo)
 		B3.hi, B3.lo, B2.hi, __carry4, \
 		C3.hi, C3.lo, C2.hi, 0xffffffffU); \
   } while (0)
+#endif
+
+#if defined(ADD10_LIMB32)
+/* A[0..4] = B[0..4] + C[0..4] */
+#define ADD5_LIMB64(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0, \
+		    C4, C3, C2, C1, C0) \
+    ADD10_LIMB32(A4.hi, A4.lo, A3.hi, A3.lo, A2.hi, A2.lo, A1.hi, A1.lo, \
+		 A0.hi, A0.lo, B4.hi, B4.lo, B3.hi, B3.lo, B2.hi, B2.lo, \
+		 B1.hi, B1.lo, B0.hi, B0.lo, C4.hi, C4.lo, C3.hi, C3.lo, \
+		 C2.hi, C2.lo, C1.hi, C1.lo, C0.hi, C0.lo)
+#endif
+
+#if defined(ADD14_LIMB32)
+/* A[0..6] = B[0..6] + C[0..6] */
+#define ADD7_LIMB64(A6, A5, A4, A3, A2, A1, A0, B6, B5, B4, B3, B2, B1, B0, \
+		    C6, C5, C4, C3, C2, C1, C0) \
+    ADD14_LIMB32(A6.hi, A6.lo, A5.hi, A5.lo, A4.hi, A4.lo, A3.hi, A3.lo, \
+		 A2.hi, A2.lo, A1.hi, A1.lo, A0.hi, A0.lo, B6.hi, B6.lo, \
+		 B5.hi, B5.lo, B4.hi, B4.lo, B3.hi, B3.lo, B2.hi, B2.lo, \
+		 B1.hi, B1.lo, B0.hi, B0.lo, C6.hi, C6.lo, C5.hi, C5.lo, \
+		 C4.hi, C4.lo, C3.hi, C3.lo, C2.hi, C2.lo, C1.hi, C1.lo, \
+		 C0.hi, C0.lo)
 #endif
 
 #if defined(SUB4_LIMB32)
@@ -914,7 +1017,13 @@ LIMB64_HILO(mpi_limb_t hi, mpi_limb_t lo)
 		    C2.hi, C2.lo, C1.hi, C1.lo, C0.hi, C0.lo)
 #endif
 
-#if defined(SUB6_LIMB32)
+#if defined(SUB8_LIMB32)
+/* A[0..3] = B[0..3] - C[0..3] */
+#define SUB4_LIMB64(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) \
+    SUB8_LIMB32(A3.hi, A3.lo, A2.hi, A2.lo, A1.hi, A1.lo, A0.hi, A0.lo, \
+		B3.hi, B3.lo, B2.hi, B2.lo, B1.hi, B1.lo, B0.hi, B0.lo, \
+		C3.hi, C3.lo, C2.hi, C2.lo, C1.hi, C1.lo, C0.hi, C0.lo)
+#elif defined(SUB6_LIMB32)
 /* A[0..3] = B[0..3] - C[0..3] */
 #define SUB4_LIMB64(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) do { \
     mpi_limb_t __borrow4; \
@@ -925,6 +1034,28 @@ LIMB64_HILO(mpi_limb_t hi, mpi_limb_t lo)
 		B3.hi, B3.lo, B2.hi, 0, \
 		C3.hi, C3.lo, C2.hi, -__borrow4); \
   } while (0)
+#endif
+
+#if defined(SUB10_LIMB32)
+/* A[0..4] = B[0..4] - C[0..4] */
+#define SUB5_LIMB64(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0, \
+		    C4, C3, C2, C1, C0) \
+    SUB10_LIMB32(A4.hi, A4.lo, A3.hi, A3.lo, A2.hi, A2.lo, A1.hi, A1.lo, \
+		 A0.hi, A0.lo, B4.hi, B4.lo, B3.hi, B3.lo, B2.hi, B2.lo, \
+		 B1.hi, B1.lo, B0.hi, B0.lo, C4.hi, C4.lo, C3.hi, C3.lo, \
+		 C2.hi, C2.lo, C1.hi, C1.lo, C0.hi, C0.lo)
+#endif
+
+#if defined(SUB14_LIMB32)
+/* A[0..6] = B[0..6] - C[0..6] */
+#define SUB7_LIMB64(A6, A5, A4, A3, A2, A1, A0, B6, B5, B4, B3, B2, B1, B0, \
+		    C6, C5, C4, C3, C2, C1, C0) \
+    SUB14_LIMB32(A6.hi, A6.lo, A5.hi, A5.lo, A4.hi, A4.lo, A3.hi, A3.lo, \
+		 A2.hi, A2.lo, A1.hi, A1.lo, A0.hi, A0.lo, B6.hi, B6.lo, \
+		 B5.hi, B5.lo, B4.hi, B4.lo, B3.hi, B3.lo, B2.hi, B2.lo, \
+		 B1.hi, B1.lo, B0.hi, B0.lo, C6.hi, C6.lo, C5.hi, C5.lo, \
+		 C4.hi, C4.lo, C3.hi, C3.lo, C2.hi, C2.lo, C1.hi, C1.lo, \
+		 C0.hi, C0.lo)
 #endif
 
 #endif /* BYTES_PER_MPI_LIMB == 4 */
