@@ -551,10 +551,22 @@ auto_ghz_bench (struct bench_obj *obj, void *buf, size_t buflen)
 
   /* Auto-ghz operation takes two CPU cycles to perform. Variables are
    * generated through volatile object and therefore compiler is unable
-   * to optimize these operations away. */
-#define AUTO_GHZ_OPERATION \
+   * to optimize these operations to immediate values. */
+#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
+  /* Auto-ghz operation takes two CPU cycles to perform. Memory barriers
+   * are used to prevent compiler from optimizing this loop away. */
+  #define AUTO_GHZ_OPERATION \
+	asm volatile ("":"+r"(buflen),"+r"(one),"+r"(two)::"memory"); \
+	buflen ^= one; \
+	asm volatile ("":"+r"(buflen),"+r"(one),"+r"(two)::"memory"); \
+	buflen -= two
+#else
+  /* TODO: Needs alternative way of preventing compiler optimizations.
+   *       Mix of XOR and subtraction appears to do the trick for now. */
+  #define AUTO_GHZ_OPERATION \
 	buflen ^= one; \
 	buflen -= two
+#endif
 
 #define AUTO_GHZ_OPERATION_2 \
 	AUTO_GHZ_OPERATION; \
