@@ -875,7 +875,7 @@ gcry_err_code_t
 mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
 {
   gcry_err_code_t ec = 0;
-  int fail;
+  unsigned int success;
   const gcry_mlkem_param_t *param = mlkem_get_param (algo);
   uint8_t buf[2 * GCRY_MLKEM_SYMBYTES];
   /* Will contain key, coins */
@@ -912,7 +912,7 @@ mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
       goto end;
     }
 
-  fail = _gcry_consttime_bytes_differ (ct, cmp, param->ciphertext_bytes);
+  success = ct_memequal (ct, cmp, param->ciphertext_bytes);
 
   ec = _gcry_mlkem_mlkem_shake256_rkprf (ss,
                                          sk + param->secret_key_bytes
@@ -925,8 +925,8 @@ mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
       goto end;
     }
 
-  /* Copy true key to return buffer if fail is false */
-  _gcry_consttime_cmov (ss, kr, GCRY_MLKEM_SYMBYTES, !fail);
+  /* Copy true key to return buffer if SUCCESS is true */
+  ct_memmov_cond (ss, kr, GCRY_MLKEM_SYMBYTES, success);
 
 end:
   xfree (cmp);
