@@ -513,7 +513,7 @@ _gcry_mlkem_gen_matrix (gcry_mlkem_polyvec *a,
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  *              - uint8_t *coins: random bytes of length GCRY_MLKEM_SYMBYTES
  **************************************************/
-static gcry_error_t
+static gcry_err_code_t
 _gcry_mlkem_indcpa_keypair (uint8_t *pk,
                             uint8_t *sk,
                             gcry_mlkem_param_t const *param,
@@ -526,7 +526,7 @@ _gcry_mlkem_indcpa_keypair (uint8_t *pk,
   uint8_t nonce             = 0;
   gcry_mlkem_polyvec *a = NULL, e = {.vec = NULL}, pkpv = {.vec = NULL},
                      skpv = {.vec = NULL};
-  gcry_error_t ec         = 0;
+  gcry_err_code_t ec         = 0;
 
   ec = _gcry_mlkem_polymatrix_create (&a, param);
   if (ec)
@@ -612,7 +612,7 @@ leave:
  *seed (of length GCRY_MLKEM_SYMBYTES) to deterministically generate all
  *randomness
  **************************************************/
-static gcry_error_t
+static gcry_err_code_t
 _gcry_mlkem_indcpa_enc (uint8_t *c,
                         const uint8_t *m,
                         const uint8_t *pk,
@@ -624,7 +624,7 @@ _gcry_mlkem_indcpa_enc (uint8_t *c,
   uint8_t nonce         = 0;
   gcry_mlkem_polyvec sp = {.vec = NULL}, pkpv = {.vec = NULL},
                      ep = {.vec = NULL}, *at = NULL, b = {.vec = NULL};
-  gcry_error_t ec = 0;
+  gcry_err_code_t ec = 0;
   gcry_mlkem_poly v, k, epp;
 
   ec = _gcry_mlkem_polyvec_create (&sp, param);
@@ -725,7 +725,7 @@ leave:
  *                                   (of length MLKEM_INDCPA_SECRETKEYBYTES)
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-static gcry_error_t
+static gcry_err_code_t
 _gcry_mlkem_indcpa_dec (uint8_t *m,
                         const uint8_t *c,
                         const uint8_t *sk,
@@ -733,18 +733,18 @@ _gcry_mlkem_indcpa_dec (uint8_t *m,
 {
   gcry_mlkem_polyvec b = {.vec = NULL}, skpv = {.vec = NULL};
   gcry_mlkem_poly v, mp;
-  gcry_error_t ec = 0;
+  gcry_err_code_t ec = 0;
 
   ec = _gcry_mlkem_polyvec_create (&b, param);
   if (ec)
     {
-      ec = gpg_error_from_syserror ();
+      ec = gpg_err_code_from_syserror ();
       goto leave;
     }
   ec = _gcry_mlkem_polyvec_create (&skpv, param);
   if (ec)
     {
-      ec = gpg_error_from_syserror ();
+      ec = gpg_err_code_from_syserror ();
       goto leave;
     }
 
@@ -776,7 +776,7 @@ _gcry_mlkem_kem_keypair_derand (uint8_t *pk,
                                 const gcry_mlkem_param_t *param,
                                 uint8_t *coins)
 {
-  gpg_err_code_t ec = 0;
+  gcry_err_code_t ec = 0;
   ec                = _gcry_mlkem_indcpa_keypair (pk, sk, param, coins);
   if (ec)
     {
@@ -1609,16 +1609,16 @@ _gcry_mlkem_poly_sub (gcry_mlkem_poly *r,
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-gcry_error_t
+gcry_err_code_t
 _gcry_mlkem_polymatrix_create (gcry_mlkem_polyvec **polymat,
                                gcry_mlkem_param_t const *param)
 {
-  gcry_error_t ec = 0;
+  gcry_err_code_t ec = 0;
   unsigned i;
   *polymat = xtrymalloc (sizeof (**polymat) * param->k);
   if (!polymat)
     {
-      ec = gpg_error_from_syserror ();
+      ec = gpg_err_code_from_syserror ();
       goto leave;
     }
   memset ((polymat)[0], 0, sizeof (**polymat) * param->k);
@@ -1653,7 +1653,7 @@ _gcry_mlkem_polymatrix_destroy (gcry_mlkem_polyvec **polymat,
   *polymat = NULL;
 }
 
-gcry_error_t
+gcry_err_code_t
 _gcry_mlkem_polyvec_create (gcry_mlkem_polyvec *polyvec,
                             gcry_mlkem_param_t const *param)
 {
