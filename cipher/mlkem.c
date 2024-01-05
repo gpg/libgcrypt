@@ -1,6 +1,7 @@
-/* mlkem-aux.c - Auxiliary functions for ML-KEM
+/* mlkem.c - ML-KEM implementation
  * Copyright (C) 2023 MTG AG
- * The code was created based on the reference implementation that is part of the ML-KEM NIST submission.
+ * The code was created based on the reference implementation that is
+ * part of the ML-KEM NIST submission.
  *
  * This file is part of Libgcrypt.
  *
@@ -15,7 +16,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -31,9 +32,199 @@
 #include "mlkem.h"
 #include "const-time.h"
 
+typedef enum
+{
+  GCRY_MLKEM_512,
+  GCRY_MLKEM_768,
+  GCRY_MLKEM_1024
+} gcry_mlkem_param_id;
+
+typedef struct
+{
+  gcry_mlkem_param_id id;
+  uint8_t k;
+  uint8_t eta1;
+  uint16_t polyvec_bytes;
+  uint8_t poly_compressed_bytes;
+  uint16_t polyvec_compressed_bytes;
+  uint16_t public_key_bytes;
+  uint16_t indcpa_secret_key_bytes;
+  uint16_t secret_key_bytes;
+  uint16_t ciphertext_bytes;
+
+} gcry_mlkem_param_t;
+
+
+#define GCRY_MLKEM_N 256
+#define GCRY_MLKEM_Q 3329
+
+#define GCRY_MLKEM_SYMBYTES 32 /* size in bytes of hashes, and seeds */
+#define GCRY_MLKEM_SSBYTES 32  /* size in bytes of shared key */
+
+#define GCRY_MLKEM_POLYBYTES 384
+#define GCRY_MLKEM_POLYVECBYTES (MLKEM_K * GCRY_MLKEM_POLYBYTES)
+
+
+#define GCRY_MLKEM_ETA1_MAX 3
+#define GCRY_MLKEM_ETA2 2
+
+#define GCRY_MLKEM_INDCPA_MSGBYTES (GCRY_MLKEM_SYMBYTES)
+#if (GCRY_MLKEM_INDCPA_MSGBYTES != GCRY_MLKEM_N / 8)
+#error "GCRY_MLKEM_INDCPA_MSGBYTES must be equal to GCRY_MLKEM_N/8 bytes!"
+#endif
+
+
+#define GCRY_MLKEM_COINS_SIZE (2 * GCRY_MLKEM_SYMBYTES)
+
+
+#define GCRY_SHAKE128_RATE 168
+#define GCRY_SHAKE256_RATE 136
+#define GCRY_SHA3_256_RATE 136
+#define GCRY_SHA3_512_RATE 72
+
+
+#define GCRY_MLKEM_XOF_BLOCKBYTES GCRY_SHAKE128_RATE
+
+/*
+ * Elements of R_q = Z_q[X]/(X^n + 1). Represents polynomial
+ * coeffs[0] + X*coeffs[1] + X^2*coeffs[2] + ... + X^{n-1}*coeffs[n-1]
+ */
+typedef struct
+{
+  int16_t coeffs[GCRY_MLKEM_N];
+} gcry_mlkem_poly;
+
+
+typedef struct
+{
+  gcry_mlkem_poly *vec;
+} gcry_mlkem_polyvec;
+
 #define MONT -1044 // 2^16 mod q
 #define QINV -3327 // q^-1 mod 2^16
 
+/* Forward declarations */
+static void _gcry_mlkem_shake128_absorb (
+    gcry_md_hd_t h,
+    const unsigned char seed[GCRY_MLKEM_SYMBYTES],
+    unsigned char x,
+    unsigned char y);
+
+static gcry_err_code_t _gcry_mlkem_shake256_prf (
+    uint8_t *out,
+    size_t outlen,
+    const uint8_t key[GCRY_MLKEM_SYMBYTES],
+    uint8_t nonce);
+
+static gcry_err_code_t _gcry_mlkem_shake128_squeezeblocks (gcry_md_hd_t h,
+                                                    uint8_t *out,
+                                                    size_t nblocks);
+
+static gcry_err_code_t _gcry_mlkem_prf (uint8_t *out,
+                                 size_t outlen,
+                                 const uint8_t key[GCRY_MLKEM_SYMBYTES],
+                                 uint8_t nonce);
+
+static gcry_error_t _gcry_mlkem_polymatrix_create (gcry_mlkem_polyvec **polymat,
+                                            gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polymatrix_destroy (gcry_mlkem_polyvec **polymat,
+                                     gcry_mlkem_param_t const *param);
+
+static gcry_error_t _gcry_mlkem_polyvec_create (gcry_mlkem_polyvec *polyvec,
+                                         gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polyvec_destroy (gcry_mlkem_polyvec *polyvec);
+
+static void _gcry_mlkem_polyvec_compress (uint8_t *r,
+                                   const gcry_mlkem_polyvec *a,
+                                   gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polyvec_decompress (gcry_mlkem_polyvec *r,
+                                     const uint8_t *a,
+                                     gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polyvec_tobytes (uint8_t *r,
+                                  const gcry_mlkem_polyvec *a,
+                                  gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polyvec_frombytes (gcry_mlkem_polyvec *r,
+                                    const uint8_t *a,
+                                    gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polyvec_ntt (gcry_mlkem_polyvec *r,
+                              gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polyvec_invntt_tomont (gcry_mlkem_polyvec *r,
+                                        gcry_mlkem_param_t const *param);
+
+static gcry_err_code_t _gcry_mlkem_polyvec_basemul_acc_montgomery (
+    gcry_mlkem_poly *r,
+    const gcry_mlkem_polyvec *a,
+    const gcry_mlkem_polyvec *b,
+    gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polyvec_reduce (gcry_mlkem_polyvec *r,
+                                 gcry_mlkem_param_t const *param);
+
+static void _gcry_mlkem_polyvec_add (gcry_mlkem_polyvec *r,
+                              const gcry_mlkem_polyvec *a,
+                              const gcry_mlkem_polyvec *b,
+                              gcry_mlkem_param_t const *param);
+
+static void
+_gcry_mlkem_poly_compress (unsigned char *r,
+                           const gcry_mlkem_poly *a,
+                           gcry_mlkem_param_t const *param);
+static void
+_gcry_mlkem_poly_decompress (gcry_mlkem_poly *r,
+                             const unsigned char *a,
+                             gcry_mlkem_param_t const *param);
+
+static void
+_gcry_mlkem_poly_frommsg (gcry_mlkem_poly *r,
+                          const unsigned char msg[GCRY_MLKEM_INDCPA_MSGBYTES]);
+
+static void
+_gcry_mlkem_poly_tomsg (unsigned char msg[GCRY_MLKEM_INDCPA_MSGBYTES],
+                        const gcry_mlkem_poly *a);
+
+static void
+_gcry_mlkem_poly_getnoise_eta1 (gcry_mlkem_poly *r,
+                                const unsigned char seed[GCRY_MLKEM_SYMBYTES],
+                                unsigned char nonce,
+                                gcry_mlkem_param_t const *param);
+
+static void
+_gcry_mlkem_poly_getnoise_eta2 (gcry_mlkem_poly *r,
+                                const unsigned char seed[GCRY_MLKEM_SYMBYTES],
+                                unsigned char nonce);
+
+static void
+_gcry_mlkem_poly_tomont (gcry_mlkem_poly *r);
+
+static void
+_gcry_mlkem_poly_reduce (gcry_mlkem_poly *r);
+
+static void
+_gcry_mlkem_poly_add (gcry_mlkem_poly *r,
+                      const gcry_mlkem_poly *a,
+                      const gcry_mlkem_poly *b);
+
+static void
+_gcry_mlkem_poly_sub (gcry_mlkem_poly *r,
+                      const gcry_mlkem_poly *a,
+                      const gcry_mlkem_poly *b);
+
+static void
+_gcry_mlkem_invntt (int16_t r[256]);
+
+static void
+_gcry_mlkem_poly_invntt_tomont (gcry_mlkem_poly *r);
+
+static void
+_gcry_mlkem_polyvec_invntt_tomont (gcry_mlkem_polyvec *r,
+                                   gcry_mlkem_param_t const *param);
 
 /*************************************************
  * Name:        _gcry_mlkem_montgomery_reduce
@@ -46,7 +237,7 @@
  *
  * Returns:     integer in {-q+1,...,q-1} congruent to a * R^-1 modulo q.
  **************************************************/
-int16_t
+static int16_t
 _gcry_mlkem_montgomery_reduce (int32_t a)
 {
   int16_t t;
@@ -67,7 +258,7 @@ _gcry_mlkem_montgomery_reduce (int32_t a)
  *
  * Returns:     integer in {-(q-1)/2,...,(q-1)/2} congruent to a modulo q.
  **************************************************/
-int16_t
+static int16_t
 _gcry_mlkem_barrett_reduce (int16_t a)
 {
   int16_t t;
@@ -77,26 +268,6 @@ _gcry_mlkem_barrett_reduce (int16_t a)
   t *= GCRY_MLKEM_Q;
   return a - t;
 }
-
-/* mlkem-cbd.c - centered binomial distribution functions for ML-KEM
- * Copyright (C) 2023 MTG AG
- * The code was created based on the reference implementation that is part of the ML-KEM NIST submission.
- *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * Libgcrypt is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
- */
 
 /*************************************************
  * Name:        load32_littleendian
@@ -207,7 +378,7 @@ cbd3 (gcry_mlkem_poly *r, const uint8_t buf[3 * GCRY_MLKEM_N / 4])
     }
 }
 
-void
+static void
 _gcry_mlkem_poly_cbd_eta1 (gcry_mlkem_poly *r,
                            const uint8_t *buf,
                            gcry_mlkem_param_t const *param)
@@ -222,39 +393,18 @@ _gcry_mlkem_poly_cbd_eta1 (gcry_mlkem_poly *r,
     }
 }
 
-void
+static void
 _gcry_mlkem_poly_cbd_eta2 (
     gcry_mlkem_poly *r, const uint8_t buf[GCRY_MLKEM_ETA2 * GCRY_MLKEM_N / 4])
 {
   cbd2 (r, buf);
 }
 
-
-/* mlkem-common.c - general functions for ML-KEM
- * Copyright (C) 2023 MTG AG
- * The code was created based on the reference implementation that is part of the ML-KEM NIST submission.
- *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * Libgcrypt is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
- */
-
-
 #define GEN_MATRIX_NBLOCKS                                                    \
   ((12 * GCRY_MLKEM_N / 8 * (1 << 12) / GCRY_MLKEM_Q                          \
     + GCRY_MLKEM_XOF_BLOCKBYTES)                                              \
    / GCRY_MLKEM_XOF_BLOCKBYTES)
+
 
 
 /*************************************************
@@ -770,7 +920,7 @@ leave:
 }
 
 
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_mlkem_kem_keypair_derand (uint8_t *pk,
                                 uint8_t *sk,
                                 const gcry_mlkem_param_t *param,
@@ -849,7 +999,7 @@ mlkem_get_param (int algo)
 }
 
 gcry_err_code_t
-mlkem_keypair (int algo, uint8_t *pk, uint8_t *sk)
+_gcry_mlkem_keypair (int algo, uint8_t *pk, uint8_t *sk)
 {
   gcry_err_code_t ec = 0;
   uint8_t *coins     = NULL;
@@ -872,7 +1022,7 @@ leave:
 }
 
 gcry_err_code_t
-mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
+_gcry_mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
 {
   gcry_err_code_t ec = 0;
   unsigned int success;
@@ -933,20 +1083,7 @@ end:
   return ec;
 }
 
-gcry_err_code_t
-mlkem_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk)
-{
-  uint8_t coins[GCRY_MLKEM_SYMBYTES];
-  const gcry_mlkem_param_t *param = mlkem_get_param (algo);
-
-  if (!param)
-    return GPG_ERR_PUBKEY_ALGO;
-
-  _gcry_randomize (coins, GCRY_MLKEM_SYMBYTES, GCRY_VERY_STRONG_RANDOM);
-  return _gcry_mlkem_kem_enc_derand (ct, ss, pk, param, coins);
-}
-
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_mlkem_kem_enc_derand (uint8_t *ct,
                             uint8_t *ss,
                             const uint8_t *pk,
@@ -982,26 +1119,19 @@ _gcry_mlkem_kem_enc_derand (uint8_t *ct,
 end:
   return ec;
 }
-
-/* mlkem-ntt.c - number-theoretic transform functions for ML-KEM
- * Copyright (C) 2023 MTG AG
- * The code was created based on the reference implementation that is part of the ML-KEM NIST submission.
- *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * Libgcrypt is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
- */
+
+gcry_err_code_t
+_gcry__gcry_mlkem_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk)
+{
+  uint8_t coins[GCRY_MLKEM_SYMBYTES];
+  const gcry_mlkem_param_t *param = mlkem_get_param (algo);
+
+  if (!param)
+    return GPG_ERR_PUBKEY_ALGO;
+
+  _gcry_randomize (coins, GCRY_MLKEM_SYMBYTES, GCRY_VERY_STRONG_RANDOM);
+  return _gcry_mlkem_kem_enc_derand (ct, ss, pk, param, coins);
+}
 
 /* For reference: code to generate zetas and zetas_inv used in the number-theoretic transform:
 
@@ -1075,7 +1205,7 @@ fqmul (int16_t a, int16_t b)
  * Arguments:   - int16_t r[256]: pointer to input/output vector of elements of
  *Zq
  **************************************************/
-void
+static void
 _gcry_mlkem_ntt (int16_t r[256])
 {
   unsigned int len, start, j, k;
@@ -1106,7 +1236,7 @@ _gcry_mlkem_ntt (int16_t r[256])
  *
  * Arguments:   - int16_t r[256]: pointer to input/output vector of elements of Zq
  **************************************************/
-void
+static void
 _gcry_mlkem_invntt (int16_t r[256])
 {
   unsigned int start, len, j, k;
@@ -1145,7 +1275,7 @@ _gcry_mlkem_invntt (int16_t r[256])
  *              - int zeta: integer defining the reduction polynomial as an offset into the zeta table
  *              - int sign: sign to apply to the zeta value
  **************************************************/
-void
+static void
 _gcry_mlkem_basemul (int16_t r[2],
                      const int16_t a[2],
                      const int16_t b[2],
@@ -1159,26 +1289,6 @@ _gcry_mlkem_basemul (int16_t r[2],
   r[1] = fqmul (a[0], b[1]);
   r[1] += fqmul (a[1], b[0]);
 }
-
-/* mlkem-poly.c - functions related to polynomials for ML-KEM
- * Copyright (C) 2023 MTG AG
- * The code was created based on the reference implementation that is part of the ML-KEM NIST submission.
- *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * Libgcrypt is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
- */
 
 /*************************************************
  * Name:        poly_compress
@@ -1190,7 +1300,7 @@ _gcry_mlkem_basemul (int16_t r[2],
  *              - const poly *a: pointer to input polynomial
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_compress (unsigned char *r,
                            const gcry_mlkem_poly *a,
                            gcry_mlkem_param_t const *param)
@@ -1253,7 +1363,7 @@ _gcry_mlkem_poly_compress (unsigned char *r,
  *                                  (of length MLKEM_POLYCOMPRESSEDBYTES bytes)
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_decompress (gcry_mlkem_poly *r,
                              const unsigned char *a,
                              gcry_mlkem_param_t const *param)
@@ -1305,7 +1415,7 @@ _gcry_mlkem_poly_decompress (gcry_mlkem_poly *r,
  *                            (needs space for GCRY_MLKEM_POLYBYTES bytes)
  *              - const gcry_mlkem_poly *a: pointer to input polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_tobytes (unsigned char r[GCRY_MLKEM_POLYBYTES],
                           const gcry_mlkem_poly *a)
 {
@@ -1335,7 +1445,7 @@ _gcry_mlkem_poly_tobytes (unsigned char r[GCRY_MLKEM_POLYBYTES],
  *              - const unsigned char *a: pointer to input byte array
  *                                  (of GCRY_MLKEM_POLYBYTES bytes)
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_frombytes (gcry_mlkem_poly *r,
                             const unsigned char a[GCRY_MLKEM_POLYBYTES])
 {
@@ -1357,7 +1467,7 @@ _gcry_mlkem_poly_frombytes (gcry_mlkem_poly *r,
  * Arguments:   - poly *r: pointer to output polynomial
  *              - const unsigned char *msg: pointer to input message
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_frommsg (gcry_mlkem_poly *r,
                           const unsigned char msg[GCRY_MLKEM_INDCPA_MSGBYTES])
 {
@@ -1383,7 +1493,7 @@ _gcry_mlkem_poly_frommsg (gcry_mlkem_poly *r,
  * Arguments:   - unsigned char *msg: pointer to output message
  *              - const gcry_mlkem_poly *a: pointer to input polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_tomsg (unsigned char msg[GCRY_MLKEM_INDCPA_MSGBYTES],
                         const gcry_mlkem_poly *a)
 {
@@ -1416,7 +1526,7 @@ _gcry_mlkem_poly_tomsg (unsigned char msg[GCRY_MLKEM_INDCPA_MSGBYTES],
  *              - unsigned char nonce: one-byte input nonce
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_getnoise_eta1 (gcry_mlkem_poly *r,
                                 const unsigned char seed[GCRY_MLKEM_SYMBYTES],
                                 unsigned char nonce,
@@ -1439,7 +1549,7 @@ _gcry_mlkem_poly_getnoise_eta1 (gcry_mlkem_poly *r,
  *                                     (of length GCRY_MLKEM_SYMBYTES bytes)
  *              - unsigned char nonce: one-byte input nonce
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_getnoise_eta2 (gcry_mlkem_poly *r,
                                 const unsigned char seed[GCRY_MLKEM_SYMBYTES],
                                 unsigned char nonce)
@@ -1460,7 +1570,7 @@ _gcry_mlkem_poly_getnoise_eta2 (gcry_mlkem_poly *r,
  *
  * Arguments:   - uint16_t *r: pointer to in/output polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_ntt (gcry_mlkem_poly *r)
 {
   _gcry_mlkem_ntt (r->coeffs);
@@ -1477,7 +1587,7 @@ _gcry_mlkem_poly_ntt (gcry_mlkem_poly *r)
  *
  * Arguments:   - uint16_t *a: pointer to in/output polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_invntt_tomont (gcry_mlkem_poly *r)
 {
   _gcry_mlkem_invntt (r->coeffs);
@@ -1492,7 +1602,7 @@ _gcry_mlkem_poly_invntt_tomont (gcry_mlkem_poly *r)
  *              - const gcry_mlkem_poly *a: pointer to first input polynomial
  *              - const gcry_mlkem_poly *b: pointer to second input polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_basemul_montgomery (gcry_mlkem_poly *r,
                                      const gcry_mlkem_poly *a,
                                      const gcry_mlkem_poly *b)
@@ -1518,7 +1628,7 @@ _gcry_mlkem_poly_basemul_montgomery (gcry_mlkem_poly *r,
  *
  * Arguments:   - gcry_mlkem_poly *r: pointer to input/output polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_tomont (gcry_mlkem_poly *r)
 {
   unsigned int i;
@@ -1537,7 +1647,7 @@ _gcry_mlkem_poly_tomont (gcry_mlkem_poly *r)
  *
  * Arguments:   - gcry_mlkem_poly *r: pointer to input/output polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_reduce (gcry_mlkem_poly *r)
 {
   unsigned int i;
@@ -1556,7 +1666,7 @@ _gcry_mlkem_poly_reduce (gcry_mlkem_poly *r)
  *            - const gcry_mlkem_poly *a: pointer to first input polynomial
  *            - const gcry_mlkem_poly *b: pointer to second input polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_add (gcry_mlkem_poly *r,
                       const gcry_mlkem_poly *a,
                       const gcry_mlkem_poly *b)
@@ -1577,7 +1687,7 @@ _gcry_mlkem_poly_add (gcry_mlkem_poly *r,
  *            - const gcry_mlkem_poly *a: pointer to first input polynomial
  *            - const gcry_mlkem_poly *b: pointer to second input polynomial
  **************************************************/
-void
+static void
 _gcry_mlkem_poly_sub (gcry_mlkem_poly *r,
                       const gcry_mlkem_poly *a,
                       const gcry_mlkem_poly *b)
@@ -1588,28 +1698,8 @@ _gcry_mlkem_poly_sub (gcry_mlkem_poly *r,
       r->coeffs[i] = a->coeffs[i] - b->coeffs[i];
     }
 }
-
-/* mlkem-polyvec.c - functions related to vectors of polynomials for ML-KEM
- * Copyright (C) 2023 MTG AG
- * The code was created based on the reference implementation that is part of the ML-KEM NIST submission.
- *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * Libgcrypt is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
- */
 
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_mlkem_polymatrix_create (gcry_mlkem_polyvec **polymat,
                                gcry_mlkem_param_t const *param)
 {
@@ -1636,7 +1726,7 @@ leave:
 }
 
 
-void
+static void
 _gcry_mlkem_polymatrix_destroy (gcry_mlkem_polyvec **polymat,
                                 gcry_mlkem_param_t const *param)
 {
@@ -1653,7 +1743,7 @@ _gcry_mlkem_polymatrix_destroy (gcry_mlkem_polyvec **polymat,
   *polymat = NULL;
 }
 
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_mlkem_polyvec_create (gcry_mlkem_polyvec *polyvec,
                             gcry_mlkem_param_t const *param)
 {
@@ -1666,7 +1756,7 @@ _gcry_mlkem_polyvec_create (gcry_mlkem_polyvec *polyvec,
   return 0;
 }
 
-void
+static void
 _gcry_mlkem_polyvec_destroy (gcry_mlkem_polyvec *polyvec)
 {
   xfree (polyvec->vec);
@@ -1682,7 +1772,7 @@ _gcry_mlkem_polyvec_destroy (gcry_mlkem_polyvec *polyvec)
  *              - const gcry_mlkem_polyvec *a: pointer to input vector of polynomials
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_polyvec_compress (uint8_t *r,
                               const gcry_mlkem_polyvec *a,
                               gcry_mlkem_param_t const *param)
@@ -1765,7 +1855,7 @@ _gcry_mlkem_polyvec_compress (uint8_t *r,
  *                                  (of length MLKEM_POLYVECCOMPRESSEDBYTES)
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_polyvec_decompress (gcry_mlkem_polyvec *r,
                                 const uint8_t *a,
                                 gcry_mlkem_param_t const *param)
@@ -1836,7 +1926,7 @@ _gcry_mlkem_polyvec_decompress (gcry_mlkem_polyvec *r,
  *              - const gcry_mlkem_polyvec *a: pointer to input vector of polynomials
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_polyvec_tobytes (uint8_t *r,
                              const gcry_mlkem_polyvec *a,
                              gcry_mlkem_param_t const *param)
@@ -1858,7 +1948,7 @@ _gcry_mlkem_polyvec_tobytes (uint8_t *r,
  *              - const gcry_mlkem_polyvec *a: pointer to input vector of polynomials (of length GCRY_MLKEM_POLYVECBYTES)
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_polyvec_frombytes (gcry_mlkem_polyvec *r,
                                const uint8_t *a,
                                gcry_mlkem_param_t const *param)
@@ -1878,7 +1968,7 @@ _gcry_mlkem_polyvec_frombytes (gcry_mlkem_polyvec *r,
  * Arguments:   - gcry_mlkem_polyvec *r: pointer to in/output vector of polynomials
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_polyvec_ntt (gcry_mlkem_polyvec *r,
                          gcry_mlkem_param_t const *param)
 {
@@ -1898,7 +1988,7 @@ _gcry_mlkem_polyvec_ntt (gcry_mlkem_polyvec *r,
  * Arguments:   - gcry_mlkem_polyvec *r: pointer to in/output vector of polynomials
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_polyvec_invntt_tomont (gcry_mlkem_polyvec *r,
                                    gcry_mlkem_param_t const *param)
 {
@@ -1920,7 +2010,7 @@ _gcry_mlkem_polyvec_invntt_tomont (gcry_mlkem_polyvec *r,
  *            - const gcry_mlkem_polyvec *b: pointer to second input vector of polynomials
  *            - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_mlkem_polyvec_basemul_acc_montgomery (gcry_mlkem_poly *r,
                                             const gcry_mlkem_polyvec *a,
                                             const gcry_mlkem_polyvec *b,
@@ -1960,7 +2050,7 @@ leave:
  * Arguments:   - gcry_mlkem_polyvec *r: pointer to input/output polynomial
  *              - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_polyvec_reduce (gcry_mlkem_polyvec *r,
                             gcry_mlkem_param_t const *param)
 {
@@ -1981,7 +2071,7 @@ _gcry_mlkem_polyvec_reduce (gcry_mlkem_polyvec *r,
  *            - const gcry_mlkem_polyvec *b: pointer to second input vector of polynomials
  *            - gcry_mlkem_param_t const *param: mlkem parameters
  **************************************************/
-void
+static void
 _gcry_mlkem_polyvec_add (gcry_mlkem_polyvec *r,
                          const gcry_mlkem_polyvec *a,
                          const gcry_mlkem_polyvec *b,
@@ -1993,30 +2083,8 @@ _gcry_mlkem_polyvec_add (gcry_mlkem_polyvec *r,
       _gcry_mlkem_poly_add (&r->vec[i], &a->vec[i], &b->vec[i]);
     }
 }
-
-/* mlkem-symmetric.c - functions wrapping symmetric primitives for ML-KEM
- * Copyright (C) 2023 MTG AG
- * The code was created based on the reference implementation that is part of the ML-KEM NIST submission.
- *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * Libgcrypt is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <http://www.gnu.org/licenses/>.
- */
 
-
-
-void
+static void
 _gcry_mlkem_shake128_absorb (gcry_md_hd_t h,
                              const unsigned char seed[GCRY_MLKEM_SYMBYTES],
                              unsigned char x,
@@ -2032,7 +2100,7 @@ _gcry_mlkem_shake128_absorb (gcry_md_hd_t h,
 }
 
 
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_mlkem_shake128_squeezeblocks (gcry_md_hd_t h,
                                     uint8_t *out,
                                     size_t nblocks)
@@ -2041,7 +2109,7 @@ _gcry_mlkem_shake128_squeezeblocks (gcry_md_hd_t h,
       h, GCRY_MD_SHAKE128, out, GCRY_SHAKE128_RATE * nblocks);
 }
 
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_mlkem_shake256_prf (unsigned char *out,
                           size_t outlen,
                           const unsigned char key[GCRY_MLKEM_SYMBYTES],
@@ -2064,7 +2132,7 @@ _gcry_mlkem_shake256_prf (unsigned char *out,
   return ec;
 }
 
-gcry_err_code_t
+static gcry_err_code_t
 _gcry_mlkem_prf (unsigned char *out,
                  size_t outlen,
                  const unsigned char key[GCRY_MLKEM_SYMBYTES],
