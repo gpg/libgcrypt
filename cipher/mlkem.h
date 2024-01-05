@@ -22,6 +22,16 @@
 #ifndef MLKEM_H
 #define MLKEM_H
 
+#ifdef _GCRYPT_IN_LIBGCRYPT
+/**** Start of the glue code to libgcrypt ****/
+#define mlkem_keypair _gcry_mlkem_keypair
+#define mlkem_encap   _gcry_mlkem_encap
+#define mlkem_decap   _gcry_mlkem_decap
+/**** End of the glue code ****/
+#else
+/**/
+#endif
+
 gcry_err_code_t _gcry_mlkem_keypair (int algo, uint8_t *pk, uint8_t *sk);
 
 

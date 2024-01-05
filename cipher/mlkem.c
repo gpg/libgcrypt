@@ -999,7 +999,7 @@ mlkem_get_param (int algo)
 }
 
 gcry_err_code_t
-_gcry_mlkem_keypair (int algo, uint8_t *pk, uint8_t *sk)
+mlkem_keypair (int algo, uint8_t *pk, uint8_t *sk)
 {
   gcry_err_code_t ec = 0;
   uint8_t *coins     = NULL;
@@ -1022,7 +1022,7 @@ leave:
 }
 
 gcry_err_code_t
-_gcry_mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
+mlkem_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
 {
   gcry_err_code_t ec = 0;
   unsigned int success;
@@ -1121,7 +1121,7 @@ end:
 }
 
 gcry_err_code_t
-_gcry__gcry_mlkem_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk)
+mlkem_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk)
 {
   uint8_t coins[GCRY_MLKEM_SYMBYTES];
   const gcry_mlkem_param_t *param = mlkem_get_param (algo);
