@@ -100,8 +100,8 @@ typedef struct
   gcry_mlkem_poly *vec;
 } gcry_mlkem_polyvec;
 
-#define MONT -1044 // 2^16 mod q
-#define QINV -3327 // q^-1 mod 2^16
+#define MONT -1044 /* 2^16 mod q    */
+#define QINV -3327 /* q^-1 mod 2^16 */
 
 /* Forward declarations */
 static void _gcry_mlkem_shake128_absorb (
@@ -387,7 +387,7 @@ _gcry_mlkem_poly_cbd_eta1 (gcry_mlkem_poly *r,
     {
       cbd2 (r, buf);
     }
-  else // eta1 = 3
+  else /* eta1 = 3 */
     {
       cbd3 (r, buf);
     }
@@ -719,7 +719,7 @@ _gcry_mlkem_indcpa_keypair (uint8_t *pk,
   _gcry_mlkem_polyvec_ntt (&skpv, param);
   _gcry_mlkem_polyvec_ntt (&e, param);
 
-  // matrix-vector multiplication
+  /* matrix-vector multiplication */
   for (i = 0; i < param->k; i++)
     {
       ec = _gcry_mlkem_polyvec_basemul_acc_montgomery (
@@ -823,7 +823,7 @@ _gcry_mlkem_indcpa_enc (uint8_t *c,
 
   _gcry_mlkem_polyvec_ntt (&sp, param);
 
-  // matrix-vector multiplication
+  /* matrix-vector multiplication */
   for (i = 0; i < param->k; i++)
     {
       ec = _gcry_mlkem_polyvec_basemul_acc_montgomery (
@@ -1241,7 +1241,7 @@ _gcry_mlkem_invntt (int16_t r[256])
 {
   unsigned int start, len, j, k;
   int16_t t, zeta;
-  const int16_t f = 1441; // mont^2/128
+  const int16_t f = 1441;       /* mont^2/128 */
 
   k = 127;
   for (len = 2; len <= 128; len <<= 1)
@@ -1315,7 +1315,7 @@ _gcry_mlkem_poly_compress (unsigned char *r,
         {
           for (j = 0; j < 8; j++)
             {
-              // map to positive standard representatives
+              /* map to positive standard representatives */
               u = a->coeffs[8 * i + j];
               u += (u >> 15) & GCRY_MLKEM_Q;
               t[j] = ((((uint16_t)u << 4) + GCRY_MLKEM_Q / 2) / GCRY_MLKEM_Q)
@@ -1335,7 +1335,7 @@ _gcry_mlkem_poly_compress (unsigned char *r,
         {
           for (j = 0; j < 8; j++)
             {
-              // map to positive standard representatives
+              /* map to positive standard representatives */
               u = a->coeffs[8 * i + j];
               u += (u >> 15) & GCRY_MLKEM_Q;
               t[j] = ((((uint32_t)u << 5) + GCRY_MLKEM_Q / 2) / GCRY_MLKEM_Q)
@@ -1424,7 +1424,7 @@ _gcry_mlkem_poly_tobytes (unsigned char r[GCRY_MLKEM_POLYBYTES],
 
   for (i = 0; i < GCRY_MLKEM_N / 2; i++)
     {
-      // map to positive standard representatives
+      /* map to positive standard representatives */
       t0 = a->coeffs[2 * i];
       t0 += ((int16_t)t0 >> 15) & GCRY_MLKEM_Q;
       t1 = a->coeffs[2 * i + 1];
