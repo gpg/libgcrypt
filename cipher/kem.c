@@ -28,6 +28,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "sntrup761.h"
+#include "mlkem.h"
 
 static void
 sntrup761_random (void *ctx, size_t length, uint8_t *dst)
@@ -54,7 +55,7 @@ _gcry_kem_keypair (int algo,
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
-      return GPG_ERR_NOT_IMPLEMENTED;
+      return mlkem_keypair (algo, pubkey, seckey);
     case GCRY_KEM_DHKEM25519:
       return GPG_ERR_NOT_IMPLEMENTED;
     case GCRY_KEM_OPENPGP_X25519:
@@ -88,7 +89,7 @@ _gcry_kem_encap (int algo,
     case GCRY_KEM_MLKEM1024:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
-      return GPG_ERR_NOT_IMPLEMENTED;
+      return mlkem_encap (algo, ciphertext, shared, pubkey);
     case GCRY_KEM_DHKEM25519:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
@@ -124,7 +125,7 @@ _gcry_kem_decap (int algo,
     case GCRY_KEM_MLKEM1024:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
-      return GPG_ERR_NOT_IMPLEMENTED;
+      return mlkem_decap (algo, shared, ciphertext, seckey);
     case GCRY_KEM_DHKEM25519:
       return GPG_ERR_NOT_IMPLEMENTED;
     case GCRY_KEM_OPENPGP_X25519:
