@@ -1632,7 +1632,7 @@ enum gcry_kdf_algos
      */
     GCRY_KDF_ONESTEP_KDF = 96, /* One-Step Key Derivation with hash */
     GCRY_KDF_ONESTEP_KDF_MAC = 97, /* One-Step Key Derivation with MAC */
-    GCRY_KDF_HKDF = 98,
+    GCRY_KDF_HKDF = 98
     /* Two-Step Key Derivation with HMAC */
     /* Two-Step Key Derivation with CMAC */
     /* KDF PRF in SP 800-108r1 */
@@ -1696,7 +1696,7 @@ enum gcry_kem_algos
     GCRY_KEM_MLKEM768,
     GCRY_KEM_MLKEM1024,
     GCRY_KEM_DHKEM25519,     /* DHKEM with X25519, HKDF, and SHA256 */
-    GCRY_KEM_OPENPGP_X25519, /* For OpenPGP with Curve25519 */
+    GCRY_KEM_OPENPGP_X25519  /* For OpenPGP with Curve25519 */
   };
 
 /*
