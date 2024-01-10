@@ -8,6 +8,174 @@
 #include "types.h"
 #include "g10lib.h"
 #include "gcrypt-int.h"
+#include "const-time.h"
+#include "kyber.h"
+
+static int crypto_kem_keypair_512(uint8_t *pk, uint8_t *sk);
+static int crypto_kem_keypair_768(uint8_t *pk, uint8_t *sk);
+static int crypto_kem_keypair_1024(uint8_t *pk, uint8_t *sk);
+
+static int crypto_kem_enc_512(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
+static int crypto_kem_enc_768(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
+static int crypto_kem_enc_1024(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
+
+static int crypto_kem_dec_512(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+static int crypto_kem_dec_768(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+static int crypto_kem_dec_1024(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+
+void
+kyber_keypair (int algo, uint8_t *pk, uint8_t *sk)
+{
+  switch (algo)
+    {
+    case GCRY_KEM_MLKEM512:
+      crypto_kem_keypair_512 (pk, sk);
+      break;
+    case GCRY_KEM_MLKEM768:
+    default:
+      crypto_kem_keypair_768 (pk, sk);
+      break;
+    case GCRY_KEM_MLKEM1024:
+      crypto_kem_keypair_1024 (pk, sk);
+      break;
+    }
+}
+
+void
+kyber_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk)
+{
+  switch (algo)
+    {
+    case GCRY_KEM_MLKEM512:
+      crypto_kem_enc_512 (ct, ss, pk);
+      break;
+    case GCRY_KEM_MLKEM768:
+    default:
+      crypto_kem_enc_768 (ct, ss, pk);
+      break;
+    case GCRY_KEM_MLKEM1024:
+      crypto_kem_enc_1024 (ct, ss, pk);
+      break;
+    }
+}
+
+void
+kyber_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
+{
+  switch (algo)
+    {
+    case GCRY_KEM_MLKEM512:
+      crypto_kem_dec_512 (ss, ct, sk);
+      break;
+    case GCRY_KEM_MLKEM768:
+    default:
+      crypto_kem_dec_768 (ss, ct, sk);
+      break;
+    case GCRY_KEM_MLKEM1024:
+      crypto_kem_dec_1024 (ss, ct, sk);
+      break;
+    }
+}
+
+static void
+randombytes (uint8_t *out, size_t outlen)
+{
+  _gcry_randomize (out, outlen, GCRY_VERY_STRONG_RANDOM);
+}
+
+typedef struct {
+  gcry_md_hd_t h;
+} keccak_state;
+
+static void
+shake128_absorb_once (keccak_state *state, const uint8_t *in, size_t inlen)
+{
+  gcry_err_code_t ec;
+
+  ec = _gcry_md_open (&state->h, GCRY_MD_SHAKE128, 0);
+  if (ec)
+    log_fatal ("internal md_open failed: %d\n", ec);
+  _gcry_md_write (state->h, in, inlen);
+}
+
+#define SHAKE128_RATE 168
+static void
+shake128_squeezeblocks (uint8_t *out, size_t nblocks, keccak_state *state)
+{
+  gcry_err_code_t ec;
+
+  ec = _gcry_md_extract (state->h, GCRY_MD_SHAKE128, out,
+                         SHAKE128_RATE * nblocks);
+  if (ec)
+    log_fatal ("internal md_extract failed: %d\n", ec);
+}
+
+static void
+shake128_close (keccak_state *state)
+{
+  _gcry_md_close (state->h);
+}
+
+static void
+shake256_init (keccak_state *state)
+{
+  gcry_err_code_t ec;
+
+  ec = _gcry_md_open (&state->h, GCRY_MD_SHAKE256, 0);
+  if (ec)
+    log_fatal ("internal md_open failed: %d\n", ec);
+}
+
+static void
+shake256_absorb (keccak_state *state, const uint8_t *in, size_t inlen)
+{
+  _gcry_md_write (state->h, in, inlen);
+}
+
+static void
+shake256_finalize (keccak_state *state)
+{
+  (void)state;
+}
+
+static void
+shake256_squeeze (uint8_t *out, size_t outlen, keccak_state *state)
+{
+  gcry_err_code_t ec;
+
+  ec = _gcry_md_extract (state->h, GCRY_MD_SHAKE256, out, outlen);
+  if (ec)
+    log_fatal ("internal md_extract failed: %d\n", ec);
+  _gcry_md_close (state->h);
+}
+
+static void
+shake256 (uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
+{
+  gcry_md_hd_t h;
+  gcry_err_code_t ec;
+
+  ec = _gcry_md_open (&h, GCRY_MD_SHAKE256, 0);
+  if (ec)
+    log_fatal ("internal md_open failed: %d\n", ec);
+  _gcry_md_write (h, in, inlen);
+  ec = _gcry_md_extract (h, GCRY_MD_SHAKE256, out, outlen);
+  if (ec)
+    log_fatal ("internal md_extract failed: %d\n", ec);
+  _gcry_md_close (h);
+}
+
+static void
+sha3_256 (uint8_t h[32], const uint8_t *in, size_t inlen)
+{
+  _gcry_md_hash_buffer (GCRY_MD_SHA3_256, h, in, inlen);
+}
+
+static void
+sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen)
+{
+  _gcry_md_hash_buffer (GCRY_MD_SHA3_512, h, in, inlen);
+}
 
 /*
   Code from:
@@ -37,6 +205,7 @@
 /*************** kyber/ref/fips202.h */
 #define SHAKE128_RATE 168
 
+#if 0
 typedef struct {
   uint64_t s[25];
   unsigned int pos;
@@ -53,6 +222,7 @@ void shake256_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
 void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
+#endif
 
 /*************** kyber/ref/params.h */
 #undef KYBER_K
@@ -261,7 +431,9 @@ static void invntt(int16_t poly[256]);
 static void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 
 /*************** kyber/ref/randombytes.h */
+#if 0
 void randombytes(uint8_t *out, size_t outlen);
+#endif
 
 /*************** kyber/ref/reduce.h */
 #define MONT -1044 // 2^16 mod q
@@ -297,9 +469,14 @@ static void kyber_shake256_rkprf4(uint8_t out[KYBER_SSBYTES], const uint8_t key[
 #define rkprf4(OUT, KEY, INPUT) kyber_shake256_rkprf4(OUT, KEY, INPUT)
 
 /*************** kyber/ref/verify.h */
+#if 0
 int verify(const uint8_t *a, const uint8_t *b, size_t len);
 
 void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
+#else
+#define verify ct_memequal
+#define cmov   ct_memmov_cond
+#endif
 
 /*************** kyber/ref/cbd.c */
 
@@ -664,6 +841,7 @@ static void gen_matrix_2(polyvec2 *a, const uint8_t seed[KYBER_SYMBYTES], int tr
       }
     }
   }
+  shake128_close (&state);
 }
 #undef KYBER_K
 
@@ -696,6 +874,7 @@ static void gen_matrix_3(polyvec3 *a, const uint8_t seed[KYBER_SYMBYTES], int tr
       }
     }
   }
+  shake128_close (&state);
 }
 #undef KYBER_K
 
@@ -728,6 +907,7 @@ static void gen_matrix_4(polyvec4 *a, const uint8_t seed[KYBER_SYMBYTES], int tr
       }
     }
   }
+  shake128_close (&state);
 }
 #undef KYBER_K
 
@@ -1313,7 +1493,7 @@ int crypto_kem_dec_512(uint8_t *ss,
                        const uint8_t *ct,
                        const uint8_t *sk)
 {
-  int fail;
+  unsigned int success;
   uint8_t buf[2*KYBER_SYMBYTES];
   /* Will contain key, coins */
   uint8_t kr[2*KYBER_SYMBYTES];
@@ -1329,13 +1509,13 @@ int crypto_kem_dec_512(uint8_t *ss,
   /* coins are in kr+KYBER_SYMBYTES */
   indcpa_enc_2(cmp, buf, pk, kr+KYBER_SYMBYTES);
 
-  fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES2);
+  success = verify(ct, cmp, KYBER_CIPHERTEXTBYTES2);
 
   /* Compute rejection key */
   rkprf2(ss,sk+KYBER_SECRETKEYBYTES2-KYBER_SYMBYTES,ct);
 
   /* Copy true key to return buffer if fail is false */
-  cmov(ss,kr,KYBER_SYMBYTES,!fail);
+  cmov(ss,kr,KYBER_SYMBYTES,success);
 
   return 0;
 }
@@ -1344,7 +1524,7 @@ int crypto_kem_dec_768(uint8_t *ss,
                        const uint8_t *ct,
                        const uint8_t *sk)
 {
-  int fail;
+  unsigned int success;
   uint8_t buf[2*KYBER_SYMBYTES];
   /* Will contain key, coins */
   uint8_t kr[2*KYBER_SYMBYTES];
@@ -1360,13 +1540,13 @@ int crypto_kem_dec_768(uint8_t *ss,
   /* coins are in kr+KYBER_SYMBYTES */
   indcpa_enc_3(cmp, buf, pk, kr+KYBER_SYMBYTES);
 
-  fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES3);
+  success = verify(ct, cmp, KYBER_CIPHERTEXTBYTES3);
 
   /* Compute rejection key */
   rkprf3(ss,sk+KYBER_SECRETKEYBYTES3-KYBER_SYMBYTES,ct);
 
   /* Copy true key to return buffer if fail is false */
-  cmov(ss,kr,KYBER_SYMBYTES,!fail);
+  cmov(ss,kr,KYBER_SYMBYTES,success);
 
   return 0;
 }
@@ -1375,7 +1555,7 @@ int crypto_kem_dec_1024(uint8_t *ss,
                         const uint8_t *ct,
                         const uint8_t *sk)
 {
-  int fail;
+  unsigned int success;
   uint8_t buf[2*KYBER_SYMBYTES];
   /* Will contain key, coins */
   uint8_t kr[2*KYBER_SYMBYTES];
@@ -1391,13 +1571,13 @@ int crypto_kem_dec_1024(uint8_t *ss,
   /* coins are in kr+KYBER_SYMBYTES */
   indcpa_enc_4(cmp, buf, pk, kr+KYBER_SYMBYTES);
 
-  fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES4);
+  success = verify(ct, cmp, KYBER_CIPHERTEXTBYTES4);
 
   /* Compute rejection key */
   rkprf4(ss,sk+KYBER_SECRETKEYBYTES4-KYBER_SYMBYTES,ct);
 
   /* Copy true key to return buffer if fail is false */
-  cmov(ss,kr,KYBER_SYMBYTES,!fail);
+  cmov(ss,kr,KYBER_SYMBYTES,success);
 
   return 0;
 }
