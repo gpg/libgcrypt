@@ -55,10 +55,7 @@ void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
 
 /*************** kyber/ref/params.h */
-#ifndef KYBER_K
-#define KYBER_K 3	/* Change this for different security strengths */
-#endif
-
+#undef KYBER_K
 
 #define KYBER_N 256
 #define KYBER_Q 3329
@@ -67,33 +64,63 @@ void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
 #define KYBER_SSBYTES  32   /* size in bytes of shared key */
 
 #define KYBER_POLYBYTES		384
-#define KYBER_POLYVECBYTES	(KYBER_K * KYBER_POLYBYTES)
+//#define KYBER_POLYVECBYTES	(KYBER_K * KYBER_POLYBYTES)
+#define KYBER_POLYVECBYTES2	(2 * KYBER_POLYBYTES)
+#define KYBER_POLYVECBYTES3	(3 * KYBER_POLYBYTES)
+#define KYBER_POLYVECBYTES4	(4 * KYBER_POLYBYTES)
 
+#define KYBER_ETA1_2   3
+#define KYBER_ETA1_3_4 2
+
+#if 0
 #if KYBER_K == 2
-#define KYBER_ETA1 3
 #define KYBER_POLYCOMPRESSEDBYTES    128
 #define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
 #elif KYBER_K == 3
-#define KYBER_ETA1 2
 #define KYBER_POLYCOMPRESSEDBYTES    128
 #define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
 #elif KYBER_K == 4
-#define KYBER_ETA1 2
 #define KYBER_POLYCOMPRESSEDBYTES    160
 #define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
 #endif
+#endif
+#define KYBER_POLYCOMPRESSEDBYTES2   128
+#define KYBER_POLYCOMPRESSEDBYTES3   128
+#define KYBER_POLYCOMPRESSEDBYTES4   160
+#define KYBER_POLYVECCOMPRESSEDBYTES2 (2 * 320)
+#define KYBER_POLYVECCOMPRESSEDBYTES3 (3 * 320)
+#define KYBER_POLYVECCOMPRESSEDBYTES4 (4 * 352)
 
 #define KYBER_ETA2 2
 
 #define KYBER_INDCPA_MSGBYTES       (KYBER_SYMBYTES)
-#define KYBER_INDCPA_PUBLICKEYBYTES (KYBER_POLYVECBYTES + KYBER_SYMBYTES)
-#define KYBER_INDCPA_SECRETKEYBYTES (KYBER_POLYVECBYTES)
-#define KYBER_INDCPA_BYTES          (KYBER_POLYVECCOMPRESSEDBYTES + KYBER_POLYCOMPRESSEDBYTES)
+//#define KYBER_INDCPA_PUBLICKEYBYTES (KYBER_POLYVECBYTES + KYBER_SYMBYTES)
+#define KYBER_INDCPA_PUBLICKEYBYTES2 (KYBER_POLYVECBYTES2 + KYBER_SYMBYTES)
+#define KYBER_INDCPA_PUBLICKEYBYTES3 (KYBER_POLYVECBYTES3 + KYBER_SYMBYTES)
+#define KYBER_INDCPA_PUBLICKEYBYTES4 (KYBER_POLYVECBYTES4 + KYBER_SYMBYTES)
 
-#define KYBER_PUBLICKEYBYTES  (KYBER_INDCPA_PUBLICKEYBYTES)
+//#define KYBER_INDCPA_SECRETKEYBYTES (KYBER_POLYVECBYTES)
+#define KYBER_INDCPA_SECRETKEYBYTES2 (KYBER_POLYVECBYTES2)
+#define KYBER_INDCPA_SECRETKEYBYTES3 (KYBER_POLYVECBYTES3)
+#define KYBER_INDCPA_SECRETKEYBYTES4 (KYBER_POLYVECBYTES4)
+//#define KYBER_INDCPA_BYTES          (KYBER_POLYVECCOMPRESSEDBYTES + KYBER_POLYCOMPRESSEDBYTES)
+#define KYBER_INDCPA_BYTES2      (KYBER_POLYVECCOMPRESSEDBYTES2 + KYBER_POLYCOMPRESSEDBYTES2)
+#define KYBER_INDCPA_BYTES3      (KYBER_POLYVECCOMPRESSEDBYTES3 + KYBER_POLYCOMPRESSEDBYTES3)
+#define KYBER_INDCPA_BYTES4      (KYBER_POLYVECCOMPRESSEDBYTES4 + KYBER_POLYCOMPRESSEDBYTES4)
+
+//#define KYBER_PUBLICKEYBYTES  (KYBER_INDCPA_PUBLICKEYBYTES)
+#define KYBER_PUBLICKEYBYTES2  (KYBER_INDCPA_PUBLICKEYBYTES2)
+#define KYBER_PUBLICKEYBYTES3  (KYBER_INDCPA_PUBLICKEYBYTES3)
+#define KYBER_PUBLICKEYBYTES4  (KYBER_INDCPA_PUBLICKEYBYTES4)
 /* 32 bytes of additional space to save H(pk) */
-#define KYBER_SECRETKEYBYTES  (KYBER_INDCPA_SECRETKEYBYTES + KYBER_INDCPA_PUBLICKEYBYTES + 2*KYBER_SYMBYTES)
-#define KYBER_CIPHERTEXTBYTES (KYBER_INDCPA_BYTES)
+//#define KYBER_SECRETKEYBYTES  (KYBER_INDCPA_SECRETKEYBYTES + KYBER_INDCPA_PUBLICKEYBYTES + 2*KYBER_SYMBYTES)
+#define KYBER_SECRETKEYBYTES2  (KYBER_INDCPA_SECRETKEYBYTES2 + KYBER_INDCPA_PUBLICKEYBYTES2 + 2*KYBER_SYMBYTES)
+#define KYBER_SECRETKEYBYTES3  (KYBER_INDCPA_SECRETKEYBYTES3 + KYBER_INDCPA_PUBLICKEYBYTES3 + 2*KYBER_SYMBYTES)
+#define KYBER_SECRETKEYBYTES4  (KYBER_INDCPA_SECRETKEYBYTES4 + KYBER_INDCPA_PUBLICKEYBYTES4 + 2*KYBER_SYMBYTES)
+//#define KYBER_CIPHERTEXTBYTES (KYBER_INDCPA_BYTES)
+#define KYBER_CIPHERTEXTBYTES2 (KYBER_INDCPA_BYTES2)
+#define KYBER_CIPHERTEXTBYTES3 (KYBER_INDCPA_BYTES3)
+#define KYBER_CIPHERTEXTBYTES4 (KYBER_INDCPA_BYTES4)
 
 /*************** kyber/ref/poly.h */
 /*
@@ -104,8 +131,10 @@ typedef struct{
   int16_t coeffs[KYBER_N];
 } poly;
 
-static void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a);
-static void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES]);
+static void poly_compress_128(uint8_t r[128], const poly *a);
+static void poly_compress_160(uint8_t r[160], const poly *a);
+static void poly_decompress_128(poly *r, const uint8_t a[128]);
+static void poly_decompress_160(poly *r, const uint8_t a[160]);
 
 static void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
 static void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
@@ -113,7 +142,8 @@ static void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
 static void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES]);
 static void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *r);
 
-static void poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+static void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+static void poly_getnoise_eta1_3_4(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 
 static void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 
@@ -129,39 +159,83 @@ static void poly_sub(poly *r, const poly *a, const poly *b);
 
 /*************** kyber/ref/polyvec.h */
 typedef struct{
-  poly vec[KYBER_K];
-} polyvec;
+  poly vec[2];
+} polyvec2;
 
-static void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a);
-static void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]);
+typedef struct{
+  poly vec[3];
+} polyvec3;
 
-static void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a);
-static void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES]);
+typedef struct{
+  poly vec[4];
+} polyvec4;
 
-static void polyvec_ntt(polyvec *r);
-static void polyvec_invntt_tomont(polyvec *r);
+static void polyvec_compress_2(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES2], const polyvec2 *a);
+static void polyvec_compress_3(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES3], const polyvec3 *a);
+static void polyvec_compress_4(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES4], const polyvec4 *a);
+static void polyvec_decompress_2(polyvec2 *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES2]);
+static void polyvec_decompress_3(polyvec3 *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES3]);
+static void polyvec_decompress_4(polyvec4 *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES4]);
 
-static void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b);
+static void polyvec_tobytes_2(uint8_t r[KYBER_POLYVECBYTES2], const polyvec2 *a);
+static void polyvec_tobytes_3(uint8_t r[KYBER_POLYVECBYTES3], const polyvec3 *a);
+static void polyvec_tobytes_4(uint8_t r[KYBER_POLYVECBYTES4], const polyvec4 *a);
+static void polyvec_frombytes_2(polyvec2 *r, const uint8_t a[KYBER_POLYVECBYTES2]);
+static void polyvec_frombytes_3(polyvec3 *r, const uint8_t a[KYBER_POLYVECBYTES3]);
+static void polyvec_frombytes_4(polyvec4 *r, const uint8_t a[KYBER_POLYVECBYTES4]);
 
-static void polyvec_reduce(polyvec *r);
+static void polyvec_ntt_2(polyvec2 *r);
+static void polyvec_ntt_3(polyvec3 *r);
+static void polyvec_ntt_4(polyvec4 *r);
+static void polyvec_invntt_tomont_2(polyvec2 *r);
+static void polyvec_invntt_tomont_3(polyvec3 *r);
+static void polyvec_invntt_tomont_4(polyvec4 *r);
 
-static void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
+static void polyvec_basemul_acc_montgomery_2(poly *r, const polyvec2 *a, const polyvec2 *b);
+static void polyvec_basemul_acc_montgomery_3(poly *r, const polyvec3 *a, const polyvec3 *b);
+static void polyvec_basemul_acc_montgomery_4(poly *r, const polyvec4 *a, const polyvec4 *b);
+
+static void polyvec_reduce_2(polyvec2 *r);
+static void polyvec_reduce_3(polyvec3 *r);
+static void polyvec_reduce_4(polyvec4 *r);
+
+static void polyvec_add_2(polyvec2 *r, const polyvec2 *a, const polyvec2 *b);
+static void polyvec_add_3(polyvec3 *r, const polyvec3 *a, const polyvec3 *b);
+static void polyvec_add_4(polyvec4 *r, const polyvec4 *a, const polyvec4 *b);
 
 /*************** kyber/ref/indcpa.h */
-static void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
+static void indcpa_keypair_derand_2(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES2],
+                                    uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES2],
+                                    const uint8_t coins[KYBER_SYMBYTES]);
+static void indcpa_keypair_derand_3(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES3],
+                                    uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES3],
+                                    const uint8_t coins[KYBER_SYMBYTES]);
+static void indcpa_keypair_derand_4(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES4],
+                                    uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES4],
+                                    const uint8_t coins[KYBER_SYMBYTES]);
 
-static void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-                           uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
-                           const uint8_t coins[KYBER_SYMBYTES]);
+static void indcpa_enc_2(uint8_t c[KYBER_INDCPA_BYTES2],
+                         const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                         const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES2],
+                         const uint8_t coins[KYBER_SYMBYTES]);
+static void indcpa_enc_3(uint8_t c[KYBER_INDCPA_BYTES3],
+                         const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                         const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES3],
+                         const uint8_t coins[KYBER_SYMBYTES]);
+static void indcpa_enc_4(uint8_t c[KYBER_INDCPA_BYTES4],
+                         const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                         const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES4],
+                         const uint8_t coins[KYBER_SYMBYTES]);
 
-static void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
-                const uint8_t m[KYBER_INDCPA_MSGBYTES],
-                const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-                const uint8_t coins[KYBER_SYMBYTES]);
-
-static void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
-                const uint8_t c[KYBER_INDCPA_BYTES],
-                const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
+static void indcpa_dec_2(uint8_t m[KYBER_INDCPA_MSGBYTES],
+                         const uint8_t c[KYBER_INDCPA_BYTES2],
+                         const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES2]);
+static void indcpa_dec_3(uint8_t m[KYBER_INDCPA_MSGBYTES],
+                         const uint8_t c[KYBER_INDCPA_BYTES3],
+                         const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES3]);
+static void indcpa_dec_4(uint8_t m[KYBER_INDCPA_MSGBYTES],
+                         const uint8_t c[KYBER_INDCPA_BYTES4],
+                         const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES4]);
 
 /*************** kyber/ref/kem.h */
 #define CRYPTO_SECRETKEYBYTES  KYBER_SECRETKEYBYTES
@@ -169,23 +243,13 @@ static void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 #define CRYPTO_CIPHERTEXTBYTES KYBER_CIPHERTEXTBYTES
 #define CRYPTO_BYTES           KYBER_SSBYTES
 
-#if   (KYBER_K == 2)
-#define CRYPTO_ALGNAME "Kyber512"
-#elif (KYBER_K == 3)
-#define CRYPTO_ALGNAME "Kyber768"
-#elif (KYBER_K == 4)
-#define CRYPTO_ALGNAME "Kyber1024"
-#endif
+static int crypto_kem_keypair_derand_2(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
+static int crypto_kem_keypair_derand_3(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
+static int crypto_kem_keypair_derand_4(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
 
-static int crypto_kem_keypair_derand(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
-
-int crypto_kem_keypair(uint8_t *pk, uint8_t *sk);
-
-static int crypto_kem_enc_derand(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
-
-int crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
-
-int crypto_kem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+static int crypto_kem_enc_derand_2(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
+static int crypto_kem_enc_derand_3(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
+static int crypto_kem_enc_derand_4(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
 
 /*************** kyber/ref/ntt.h */
 static const int16_t zetas[128];
@@ -217,7 +281,9 @@ static void kyber_shake128_absorb(keccak_state *s,
 
 static void kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES], uint8_t nonce);
 
-static void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES]);
+static void kyber_shake256_rkprf2(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES2]);
+static void kyber_shake256_rkprf3(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES3]);
+static void kyber_shake256_rkprf4(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES4]);
 
 #define XOF_BLOCKBYTES SHAKE128_RATE
 
@@ -226,7 +292,9 @@ static void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[K
 #define xof_absorb(STATE, SEED, X, Y) kyber_shake128_absorb(STATE, SEED, X, Y)
 #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeezeblocks(OUT, OUTBLOCKS, STATE)
 #define prf(OUT, OUTBYTES, KEY, NONCE) kyber_shake256_prf(OUT, OUTBYTES, KEY, NONCE)
-#define rkprf(OUT, KEY, INPUT) kyber_shake256_rkprf(OUT, KEY, INPUT)
+#define rkprf2(OUT, KEY, INPUT) kyber_shake256_rkprf2(OUT, KEY, INPUT)
+#define rkprf3(OUT, KEY, INPUT) kyber_shake256_rkprf3(OUT, KEY, INPUT)
+#define rkprf4(OUT, KEY, INPUT) kyber_shake256_rkprf4(OUT, KEY, INPUT)
 
 /*************** kyber/ref/verify.h */
 int verify(const uint8_t *a, const uint8_t *b, size_t len);
@@ -266,7 +334,6 @@ static uint32_t load32_littleendian(const uint8_t x[4])
 *
 * Returns 32-bit unsigned integer loaded from x (most significant byte is zero)
 **************************************************/
-#if KYBER_ETA1 == 3
 static uint32_t load24_littleendian(const uint8_t x[3])
 {
   uint32_t r;
@@ -275,7 +342,6 @@ static uint32_t load24_littleendian(const uint8_t x[3])
   r |= (uint32_t)x[2] << 16;
   return r;
 }
-#endif
 
 
 /*************************************************
@@ -318,7 +384,6 @@ static void cbd2(poly *r, const uint8_t buf[2*KYBER_N/4])
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *buf: pointer to input byte array
 **************************************************/
-#if KYBER_ETA1 == 3
 static void cbd3(poly *r, const uint8_t buf[3*KYBER_N/4])
 {
   unsigned int i,j;
@@ -338,27 +403,7 @@ static void cbd3(poly *r, const uint8_t buf[3*KYBER_N/4])
     }
   }
 }
-#endif
 
-void poly_cbd_eta1(poly *r, const uint8_t buf[KYBER_ETA1*KYBER_N/4])
-{
-#if KYBER_ETA1 == 2
-  cbd2(r, buf);
-#elif KYBER_ETA1 == 3
-  cbd3(r, buf);
-#else
-#error "This implementation requires eta1 in {2,3}"
-#endif
-}
-
-void poly_cbd_eta2(poly *r, const uint8_t buf[KYBER_ETA2*KYBER_N/4])
-{
-#if KYBER_ETA2 == 2
-  cbd2(r, buf);
-#else
-#error "This implementation requires eta2 = 2"
-#endif
-}
 /*************** kyber/ref/indcpa.c */
 
 /*************************************************
@@ -372,12 +417,28 @@ void poly_cbd_eta2(poly *r, const uint8_t buf[KYBER_ETA2*KYBER_N/4])
 *              polyvec *pk: pointer to the input public-key polyvec
 *              const uint8_t *seed: pointer to the input public seed
 **************************************************/
-static void pack_pk(uint8_t r[KYBER_INDCPA_PUBLICKEYBYTES],
-                    polyvec *pk,
-                    const uint8_t seed[KYBER_SYMBYTES])
+static void pack_pk_2(uint8_t r[KYBER_INDCPA_PUBLICKEYBYTES2],
+                      polyvec2 *pk,
+                      const uint8_t seed[KYBER_SYMBYTES])
 {
-  polyvec_tobytes(r, pk);
-  memcpy(r+KYBER_POLYVECBYTES, seed, KYBER_SYMBYTES);
+  polyvec_tobytes_2(r, pk);
+  memcpy(r+KYBER_POLYVECBYTES2, seed, KYBER_SYMBYTES);
+}
+
+static void pack_pk_3(uint8_t r[KYBER_INDCPA_PUBLICKEYBYTES3],
+                      polyvec3 *pk,
+                      const uint8_t seed[KYBER_SYMBYTES])
+{
+  polyvec_tobytes_3(r, pk);
+  memcpy(r+KYBER_POLYVECBYTES3, seed, KYBER_SYMBYTES);
+}
+
+static void pack_pk_4(uint8_t r[KYBER_INDCPA_PUBLICKEYBYTES4],
+                      polyvec4 *pk,
+                      const uint8_t seed[KYBER_SYMBYTES])
+{
+  polyvec_tobytes_4(r, pk);
+  memcpy(r+KYBER_POLYVECBYTES4, seed, KYBER_SYMBYTES);
 }
 
 /*************************************************
@@ -390,12 +451,28 @@ static void pack_pk(uint8_t r[KYBER_INDCPA_PUBLICKEYBYTES],
 *              - uint8_t *seed: pointer to output seed to generate matrix A
 *              - const uint8_t *packedpk: pointer to input serialized public key
 **************************************************/
-static void unpack_pk(polyvec *pk,
-                      uint8_t seed[KYBER_SYMBYTES],
-                      const uint8_t packedpk[KYBER_INDCPA_PUBLICKEYBYTES])
+static void unpack_pk_2(polyvec2 *pk,
+                        uint8_t seed[KYBER_SYMBYTES],
+                        const uint8_t packedpk[KYBER_INDCPA_PUBLICKEYBYTES2])
 {
-  polyvec_frombytes(pk, packedpk);
-  memcpy(seed, packedpk+KYBER_POLYVECBYTES, KYBER_SYMBYTES);
+  polyvec_frombytes_2(pk, packedpk);
+  memcpy(seed, packedpk+KYBER_POLYVECBYTES2, KYBER_SYMBYTES);
+}
+
+static void unpack_pk_3(polyvec3 *pk,
+                        uint8_t seed[KYBER_SYMBYTES],
+                        const uint8_t packedpk[KYBER_INDCPA_PUBLICKEYBYTES3])
+{
+  polyvec_frombytes_3(pk, packedpk);
+  memcpy(seed, packedpk+KYBER_POLYVECBYTES3, KYBER_SYMBYTES);
+}
+
+static void unpack_pk_4(polyvec4 *pk,
+                        uint8_t seed[KYBER_SYMBYTES],
+                        const uint8_t packedpk[KYBER_INDCPA_PUBLICKEYBYTES4])
+{
+  polyvec_frombytes_4(pk, packedpk);
+  memcpy(seed, packedpk+KYBER_POLYVECBYTES4, KYBER_SYMBYTES);
 }
 
 /*************************************************
@@ -406,9 +483,19 @@ static void unpack_pk(polyvec *pk,
 * Arguments:   - uint8_t *r: pointer to output serialized secret key
 *              - polyvec *sk: pointer to input vector of polynomials (secret key)
 **************************************************/
-static void pack_sk(uint8_t r[KYBER_INDCPA_SECRETKEYBYTES], polyvec *sk)
+static void pack_sk_2(uint8_t r[KYBER_INDCPA_SECRETKEYBYTES2], polyvec2 *sk)
 {
-  polyvec_tobytes(r, sk);
+  polyvec_tobytes_2(r, sk);
+}
+
+static void pack_sk_3(uint8_t r[KYBER_INDCPA_SECRETKEYBYTES3], polyvec3 *sk)
+{
+  polyvec_tobytes_3(r, sk);
+}
+
+static void pack_sk_4(uint8_t r[KYBER_INDCPA_SECRETKEYBYTES4], polyvec4 *sk)
+{
+  polyvec_tobytes_4(r, sk);
 }
 
 /*************************************************
@@ -419,9 +506,19 @@ static void pack_sk(uint8_t r[KYBER_INDCPA_SECRETKEYBYTES], polyvec *sk)
 * Arguments:   - polyvec *sk: pointer to output vector of polynomials (secret key)
 *              - const uint8_t *packedsk: pointer to input serialized secret key
 **************************************************/
-static void unpack_sk(polyvec *sk, const uint8_t packedsk[KYBER_INDCPA_SECRETKEYBYTES])
+static void unpack_sk_2(polyvec2 *sk, const uint8_t packedsk[KYBER_INDCPA_SECRETKEYBYTES2])
 {
-  polyvec_frombytes(sk, packedsk);
+  polyvec_frombytes_2(sk, packedsk);
+}
+
+static void unpack_sk_3(polyvec3 *sk, const uint8_t packedsk[KYBER_INDCPA_SECRETKEYBYTES3])
+{
+  polyvec_frombytes_3(sk, packedsk);
+}
+
+static void unpack_sk_4(polyvec4 *sk, const uint8_t packedsk[KYBER_INDCPA_SECRETKEYBYTES4])
+{
+  polyvec_frombytes_4(sk, packedsk);
 }
 
 /*************************************************
@@ -435,10 +532,22 @@ static void unpack_sk(polyvec *sk, const uint8_t packedsk[KYBER_INDCPA_SECRETKEY
 *              poly *pk: pointer to the input vector of polynomials b
 *              poly *v: pointer to the input polynomial v
 **************************************************/
-static void pack_ciphertext(uint8_t r[KYBER_INDCPA_BYTES], polyvec *b, poly *v)
+static void pack_ciphertext_2(uint8_t r[KYBER_INDCPA_BYTES2], polyvec2 *b, poly *v)
 {
-  polyvec_compress(r, b);
-  poly_compress(r+KYBER_POLYVECCOMPRESSEDBYTES, v);
+  polyvec_compress_2(r, b);
+  poly_compress_128(r+KYBER_POLYVECCOMPRESSEDBYTES2, v);
+}
+
+static void pack_ciphertext_3(uint8_t r[KYBER_INDCPA_BYTES3], polyvec3 *b, poly *v)
+{
+  polyvec_compress_3(r, b);
+  poly_compress_128(r+KYBER_POLYVECCOMPRESSEDBYTES3, v);
+}
+
+static void pack_ciphertext_4(uint8_t r[KYBER_INDCPA_BYTES4], polyvec4 *b, poly *v)
+{
+  polyvec_compress_4(r, b);
+  poly_compress_160(r+KYBER_POLYVECCOMPRESSEDBYTES4, v);
 }
 
 /*************************************************
@@ -451,10 +560,22 @@ static void pack_ciphertext(uint8_t r[KYBER_INDCPA_BYTES], polyvec *b, poly *v)
 *              - poly *v: pointer to the output polynomial v
 *              - const uint8_t *c: pointer to the input serialized ciphertext
 **************************************************/
-static void unpack_ciphertext(polyvec *b, poly *v, const uint8_t c[KYBER_INDCPA_BYTES])
+static void unpack_ciphertext_2(polyvec2 *b, poly *v, const uint8_t c[KYBER_INDCPA_BYTES2])
 {
-  polyvec_decompress(b, c);
-  poly_decompress(v, c+KYBER_POLYVECCOMPRESSEDBYTES);
+  polyvec_decompress_2(b, c);
+  poly_decompress_128(v, c+KYBER_POLYVECCOMPRESSEDBYTES2);
+}
+
+static void unpack_ciphertext_3(polyvec3 *b, poly *v, const uint8_t c[KYBER_INDCPA_BYTES3])
+{
+  polyvec_decompress_3(b, c);
+  poly_decompress_128(v, c+KYBER_POLYVECCOMPRESSEDBYTES3);
+}
+
+static void unpack_ciphertext_4(polyvec4 *b, poly *v, const uint8_t c[KYBER_INDCPA_BYTES4])
+{
+  polyvec_decompress_4(b, c);
+  poly_decompress_160(v, c+KYBER_POLYVECCOMPRESSEDBYTES4);
 }
 
 /*************************************************
@@ -493,8 +614,12 @@ static unsigned int rej_uniform(int16_t *r,
   return ctr;
 }
 
-#define gen_a(A,B)  gen_matrix(A,B,0)
-#define gen_at(A,B) gen_matrix(A,B,1)
+#define gen_a_2(A,B)  gen_matrix_2(A,B,0)
+#define gen_at_2(A,B) gen_matrix_2(A,B,1)
+#define gen_a_3(A,B)  gen_matrix_3(A,B,0)
+#define gen_at_3(A,B) gen_matrix_3(A,B,1)
+#define gen_a_4(A,B)  gen_matrix_4(A,B,0)
+#define gen_at_4(A,B) gen_matrix_4(A,B,1)
 
 /*************************************************
 * Name:        gen_matrix
@@ -509,7 +634,9 @@ static unsigned int rej_uniform(int16_t *r,
 *              - int transposed: boolean deciding whether A or A^T is generated
 **************************************************/
 #define GEN_MATRIX_NBLOCKS ((12*KYBER_N/8*(1 << 12)/KYBER_Q + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
-void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
+
+#define KYBER_K 2
+static void gen_matrix_2(polyvec2 *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 {
   unsigned int ctr, i, j, k;
   unsigned int buflen, off;
@@ -538,6 +665,71 @@ void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
     }
   }
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+static void gen_matrix_3(polyvec3 *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
+{
+  unsigned int ctr, i, j, k;
+  unsigned int buflen, off;
+  uint8_t buf[GEN_MATRIX_NBLOCKS*XOF_BLOCKBYTES+2];
+  xof_state state;
+
+  for(i=0;i<KYBER_K;i++) {
+    for(j=0;j<KYBER_K;j++) {
+      if(transposed)
+        xof_absorb(&state, seed, i, j);
+      else
+        xof_absorb(&state, seed, j, i);
+
+      xof_squeezeblocks(buf, GEN_MATRIX_NBLOCKS, &state);
+      buflen = GEN_MATRIX_NBLOCKS*XOF_BLOCKBYTES;
+      ctr = rej_uniform(a[i].vec[j].coeffs, KYBER_N, buf, buflen);
+
+      while(ctr < KYBER_N) {
+        off = buflen % 3;
+        for(k = 0; k < off; k++)
+          buf[k] = buf[buflen - off + k];
+        xof_squeezeblocks(buf + off, 1, &state);
+        buflen = off + XOF_BLOCKBYTES;
+        ctr += rej_uniform(a[i].vec[j].coeffs + ctr, KYBER_N - ctr, buf, buflen);
+      }
+    }
+  }
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+static void gen_matrix_4(polyvec4 *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
+{
+  unsigned int ctr, i, j, k;
+  unsigned int buflen, off;
+  uint8_t buf[GEN_MATRIX_NBLOCKS*XOF_BLOCKBYTES+2];
+  xof_state state;
+
+  for(i=0;i<KYBER_K;i++) {
+    for(j=0;j<KYBER_K;j++) {
+      if(transposed)
+        xof_absorb(&state, seed, i, j);
+      else
+        xof_absorb(&state, seed, j, i);
+
+      xof_squeezeblocks(buf, GEN_MATRIX_NBLOCKS, &state);
+      buflen = GEN_MATRIX_NBLOCKS*XOF_BLOCKBYTES;
+      ctr = rej_uniform(a[i].vec[j].coeffs, KYBER_N, buf, buflen);
+
+      while(ctr < KYBER_N) {
+        off = buflen % 3;
+        for(k = 0; k < off; k++)
+          buf[k] = buf[buflen - off + k];
+        xof_squeezeblocks(buf + off, 1, &state);
+        buflen = off + XOF_BLOCKBYTES;
+        ctr += rej_uniform(a[i].vec[j].coeffs + ctr, KYBER_N - ctr, buf, buflen);
+      }
+    }
+  }
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        indcpa_keypair_derand
@@ -552,42 +744,119 @@ void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 *              - const uint8_t *coins: pointer to input randomness
 *                             (of length KYBER_SYMBYTES bytes)
 **************************************************/
-void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-                           uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
-                           const uint8_t coins[KYBER_SYMBYTES])
+#define KYBER_K 2
+void indcpa_keypair_derand_2(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES2],
+                             uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES2],
+                             const uint8_t coins[KYBER_SYMBYTES])
 {
   unsigned int i;
   uint8_t buf[2*KYBER_SYMBYTES];
   const uint8_t *publicseed = buf;
   const uint8_t *noiseseed = buf+KYBER_SYMBYTES;
   uint8_t nonce = 0;
-  polyvec a[KYBER_K], e, pkpv, skpv;
+  polyvec2 a[KYBER_K], e, pkpv, skpv;
 
   hash_g(buf, coins, KYBER_SYMBYTES);
 
-  gen_a(a, publicseed);
+  gen_a_2(a, publicseed);
 
   for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(&skpv.vec[i], noiseseed, nonce++);
+    poly_getnoise_eta1_2(&skpv.vec[i], noiseseed, nonce++);
   for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(&e.vec[i], noiseseed, nonce++);
+    poly_getnoise_eta1_2(&e.vec[i], noiseseed, nonce++);
 
-  polyvec_ntt(&skpv);
-  polyvec_ntt(&e);
+  polyvec_ntt_2(&skpv);
+  polyvec_ntt_2(&e);
 
   // matrix-vector multiplication
   for(i=0;i<KYBER_K;i++) {
-    polyvec_basemul_acc_montgomery(&pkpv.vec[i], &a[i], &skpv);
+    polyvec_basemul_acc_montgomery_2(&pkpv.vec[i], &a[i], &skpv);
     poly_tomont(&pkpv.vec[i]);
   }
 
-  polyvec_add(&pkpv, &pkpv, &e);
-  polyvec_reduce(&pkpv);
+  polyvec_add_2(&pkpv, &pkpv, &e);
+  polyvec_reduce_2(&pkpv);
 
-  pack_sk(sk, &skpv);
-  pack_pk(pk, &pkpv, publicseed);
+  pack_sk_2(sk, &skpv);
+  pack_pk_2(pk, &pkpv, publicseed);
 }
+#undef KYBER_K
 
+#define KYBER_K 3
+void indcpa_keypair_derand_3(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES3],
+                             uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES3],
+                             const uint8_t coins[KYBER_SYMBYTES])
+{
+  unsigned int i;
+  uint8_t buf[2*KYBER_SYMBYTES];
+  const uint8_t *publicseed = buf;
+  const uint8_t *noiseseed = buf+KYBER_SYMBYTES;
+  uint8_t nonce = 0;
+  polyvec3 a[KYBER_K], e, pkpv, skpv;
+
+  hash_g(buf, coins, KYBER_SYMBYTES);
+
+  gen_a_3(a, publicseed);
+
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta1_3_4(&skpv.vec[i], noiseseed, nonce++);
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta1_3_4(&e.vec[i], noiseseed, nonce++);
+
+  polyvec_ntt_3(&skpv);
+  polyvec_ntt_3(&e);
+
+  // matrix-vector multiplication
+  for(i=0;i<KYBER_K;i++) {
+    polyvec_basemul_acc_montgomery_3(&pkpv.vec[i], &a[i], &skpv);
+    poly_tomont(&pkpv.vec[i]);
+  }
+
+  polyvec_add_3(&pkpv, &pkpv, &e);
+  polyvec_reduce_3(&pkpv);
+
+  pack_sk_3(sk, &skpv);
+  pack_pk_3(pk, &pkpv, publicseed);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void indcpa_keypair_derand_4(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES4],
+                             uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES4],
+                             const uint8_t coins[KYBER_SYMBYTES])
+{
+  unsigned int i;
+  uint8_t buf[2*KYBER_SYMBYTES];
+  const uint8_t *publicseed = buf;
+  const uint8_t *noiseseed = buf+KYBER_SYMBYTES;
+  uint8_t nonce = 0;
+  polyvec4 a[KYBER_K], e, pkpv, skpv;
+
+  hash_g(buf, coins, KYBER_SYMBYTES);
+
+  gen_a_4(a, publicseed);
+
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta1_3_4(&skpv.vec[i], noiseseed, nonce++);
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta1_3_4(&e.vec[i], noiseseed, nonce++);
+
+  polyvec_ntt_4(&skpv);
+  polyvec_ntt_4(&e);
+
+  // matrix-vector multiplication
+  for(i=0;i<KYBER_K;i++) {
+    polyvec_basemul_acc_montgomery_4(&pkpv.vec[i], &a[i], &skpv);
+    poly_tomont(&pkpv.vec[i]);
+  }
+
+  polyvec_add_4(&pkpv, &pkpv, &e);
+  polyvec_reduce_4(&pkpv);
+
+  pack_sk_4(sk, &skpv);
+  pack_pk_4(pk, &pkpv, publicseed);
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        indcpa_enc
@@ -605,46 +874,134 @@ void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
 *                                      (of length KYBER_SYMBYTES) to deterministically
 *                                      generate all randomness
 **************************************************/
-void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
-                const uint8_t m[KYBER_INDCPA_MSGBYTES],
-                const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-                const uint8_t coins[KYBER_SYMBYTES])
+#define KYBER_K 2
+void indcpa_enc_2(uint8_t c[KYBER_INDCPA_BYTES2],
+                  const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                  const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES2],
+                  const uint8_t coins[KYBER_SYMBYTES])
 {
   unsigned int i;
   uint8_t seed[KYBER_SYMBYTES];
   uint8_t nonce = 0;
-  polyvec sp, pkpv, ep, at[KYBER_K], b;
+  polyvec2 sp, pkpv, ep, at[KYBER_K], b;
   poly v, k, epp;
 
-  unpack_pk(&pkpv, seed, pk);
+  unpack_pk_2(&pkpv, seed, pk);
   poly_frommsg(&k, m);
-  gen_at(at, seed);
+  gen_at_2(at, seed);
 
   for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(sp.vec+i, coins, nonce++);
+    poly_getnoise_eta1_2(sp.vec+i, coins, nonce++);
   for(i=0;i<KYBER_K;i++)
     poly_getnoise_eta2(ep.vec+i, coins, nonce++);
   poly_getnoise_eta2(&epp, coins, nonce++);
 
-  polyvec_ntt(&sp);
+  polyvec_ntt_2(&sp);
 
   // matrix-vector multiplication
   for(i=0;i<KYBER_K;i++)
-    polyvec_basemul_acc_montgomery(&b.vec[i], &at[i], &sp);
+    polyvec_basemul_acc_montgomery_2(&b.vec[i], &at[i], &sp);
 
-  polyvec_basemul_acc_montgomery(&v, &pkpv, &sp);
+  polyvec_basemul_acc_montgomery_2(&v, &pkpv, &sp);
 
-  polyvec_invntt_tomont(&b);
+  polyvec_invntt_tomont_2(&b);
   poly_invntt_tomont(&v);
 
-  polyvec_add(&b, &b, &ep);
+  polyvec_add_2(&b, &b, &ep);
   poly_add(&v, &v, &epp);
   poly_add(&v, &v, &k);
-  polyvec_reduce(&b);
+  polyvec_reduce_2(&b);
   poly_reduce(&v);
 
-  pack_ciphertext(c, &b, &v);
+  pack_ciphertext_2(c, &b, &v);
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+void indcpa_enc_3(uint8_t c[KYBER_INDCPA_BYTES3],
+                  const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                  const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES3],
+                  const uint8_t coins[KYBER_SYMBYTES])
+{
+  unsigned int i;
+  uint8_t seed[KYBER_SYMBYTES];
+  uint8_t nonce = 0;
+  polyvec3 sp, pkpv, ep, at[KYBER_K], b;
+  poly v, k, epp;
+
+  unpack_pk_3(&pkpv, seed, pk);
+  poly_frommsg(&k, m);
+  gen_at_3(at, seed);
+
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta1_3_4(sp.vec+i, coins, nonce++);
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta2(ep.vec+i, coins, nonce++);
+  poly_getnoise_eta2(&epp, coins, nonce++);
+
+  polyvec_ntt_3(&sp);
+
+  // matrix-vector multiplication
+  for(i=0;i<KYBER_K;i++)
+    polyvec_basemul_acc_montgomery_3(&b.vec[i], &at[i], &sp);
+
+  polyvec_basemul_acc_montgomery_3(&v, &pkpv, &sp);
+
+  polyvec_invntt_tomont_3(&b);
+  poly_invntt_tomont(&v);
+
+  polyvec_add_3(&b, &b, &ep);
+  poly_add(&v, &v, &epp);
+  poly_add(&v, &v, &k);
+  polyvec_reduce_3(&b);
+  poly_reduce(&v);
+
+  pack_ciphertext_3(c, &b, &v);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void indcpa_enc_4(uint8_t c[KYBER_INDCPA_BYTES4],
+                  const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                  const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES4],
+                  const uint8_t coins[KYBER_SYMBYTES])
+{
+  unsigned int i;
+  uint8_t seed[KYBER_SYMBYTES];
+  uint8_t nonce = 0;
+  polyvec4 sp, pkpv, ep, at[KYBER_K], b;
+  poly v, k, epp;
+
+  unpack_pk_4(&pkpv, seed, pk);
+  poly_frommsg(&k, m);
+  gen_at_4(at, seed);
+
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta1_3_4(sp.vec+i, coins, nonce++);
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta2(ep.vec+i, coins, nonce++);
+  poly_getnoise_eta2(&epp, coins, nonce++);
+
+  polyvec_ntt_4(&sp);
+
+  // matrix-vector multiplication
+  for(i=0;i<KYBER_K;i++)
+    polyvec_basemul_acc_montgomery_4(&b.vec[i], &at[i], &sp);
+
+  polyvec_basemul_acc_montgomery_4(&v, &pkpv, &sp);
+
+  polyvec_invntt_tomont_4(&b);
+  poly_invntt_tomont(&v);
+
+  polyvec_add_4(&b, &b, &ep);
+  poly_add(&v, &v, &epp);
+  poly_add(&v, &v, &k);
+  polyvec_reduce_4(&b);
+  poly_reduce(&v);
+
+  pack_ciphertext_4(c, &b, &v);
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        indcpa_dec
@@ -659,18 +1016,58 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
 *              - const uint8_t *sk: pointer to input secret key
 *                                   (of length KYBER_INDCPA_SECRETKEYBYTES)
 **************************************************/
-void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
-                const uint8_t c[KYBER_INDCPA_BYTES],
-                const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES])
+void indcpa_dec_2(uint8_t m[KYBER_INDCPA_MSGBYTES],
+                  const uint8_t c[KYBER_INDCPA_BYTES2],
+                  const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES2])
 {
-  polyvec b, skpv;
+  polyvec2 b, skpv;
   poly v, mp;
 
-  unpack_ciphertext(&b, &v, c);
-  unpack_sk(&skpv, sk);
+  unpack_ciphertext_2(&b, &v, c);
+  unpack_sk_2(&skpv, sk);
 
-  polyvec_ntt(&b);
-  polyvec_basemul_acc_montgomery(&mp, &skpv, &b);
+  polyvec_ntt_2(&b);
+  polyvec_basemul_acc_montgomery_2(&mp, &skpv, &b);
+  poly_invntt_tomont(&mp);
+
+  poly_sub(&mp, &v, &mp);
+  poly_reduce(&mp);
+
+  poly_tomsg(m, &mp);
+}
+
+void indcpa_dec_3(uint8_t m[KYBER_INDCPA_MSGBYTES],
+                  const uint8_t c[KYBER_INDCPA_BYTES3],
+                  const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES3])
+{
+  polyvec3 b, skpv;
+  poly v, mp;
+
+  unpack_ciphertext_3(&b, &v, c);
+  unpack_sk_3(&skpv, sk);
+
+  polyvec_ntt_3(&b);
+  polyvec_basemul_acc_montgomery_3(&mp, &skpv, &b);
+  poly_invntt_tomont(&mp);
+
+  poly_sub(&mp, &v, &mp);
+  poly_reduce(&mp);
+
+  poly_tomsg(m, &mp);
+}
+
+void indcpa_dec_4(uint8_t m[KYBER_INDCPA_MSGBYTES],
+                  const uint8_t c[KYBER_INDCPA_BYTES4],
+                  const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES4])
+{
+  polyvec4 b, skpv;
+  poly v, mp;
+
+  unpack_ciphertext_4(&b, &v, c);
+  unpack_sk_4(&skpv, sk);
+
+  polyvec_ntt_4(&b);
+  polyvec_basemul_acc_montgomery_4(&mp, &skpv, &b);
   poly_invntt_tomont(&mp);
 
   poly_sub(&mp, &v, &mp);
@@ -694,15 +1091,39 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 **
 * Returns 0 (success)
 **************************************************/
-int crypto_kem_keypair_derand(uint8_t *pk,
-                              uint8_t *sk,
-                              const uint8_t *coins)
+int crypto_kem_keypair_derand_2(uint8_t *pk,
+                                uint8_t *sk,
+                                const uint8_t *coins)
 {
-  indcpa_keypair_derand(pk, sk, coins);
-  memcpy(sk+KYBER_INDCPA_SECRETKEYBYTES, pk, KYBER_PUBLICKEYBYTES);
-  hash_h(sk+KYBER_SECRETKEYBYTES-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
+  indcpa_keypair_derand_2(pk, sk, coins);
+  memcpy(sk+KYBER_INDCPA_SECRETKEYBYTES2, pk, KYBER_PUBLICKEYBYTES2);
+  hash_h(sk+KYBER_SECRETKEYBYTES2-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES2);
   /* Value z for pseudo-random output on reject */
-  memcpy(sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES, coins+KYBER_SYMBYTES, KYBER_SYMBYTES);
+  memcpy(sk+KYBER_SECRETKEYBYTES2-KYBER_SYMBYTES, coins+KYBER_SYMBYTES, KYBER_SYMBYTES);
+  return 0;
+}
+
+int crypto_kem_keypair_derand_3(uint8_t *pk,
+                                uint8_t *sk,
+                                const uint8_t *coins)
+{
+  indcpa_keypair_derand_3(pk, sk, coins);
+  memcpy(sk+KYBER_INDCPA_SECRETKEYBYTES3, pk, KYBER_PUBLICKEYBYTES3);
+  hash_h(sk+KYBER_SECRETKEYBYTES3-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES3);
+  /* Value z for pseudo-random output on reject */
+  memcpy(sk+KYBER_SECRETKEYBYTES3-KYBER_SYMBYTES, coins+KYBER_SYMBYTES, KYBER_SYMBYTES);
+  return 0;
+}
+
+int crypto_kem_keypair_derand_4(uint8_t *pk,
+                                uint8_t *sk,
+                                const uint8_t *coins)
+{
+  indcpa_keypair_derand_4(pk, sk, coins);
+  memcpy(sk+KYBER_INDCPA_SECRETKEYBYTES4, pk, KYBER_PUBLICKEYBYTES4);
+  hash_h(sk+KYBER_SECRETKEYBYTES4-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES4);
+  /* Value z for pseudo-random output on reject */
+  memcpy(sk+KYBER_SECRETKEYBYTES4-KYBER_SYMBYTES, coins+KYBER_SYMBYTES, KYBER_SYMBYTES);
   return 0;
 }
 
@@ -719,12 +1140,27 @@ int crypto_kem_keypair_derand(uint8_t *pk,
 *
 * Returns 0 (success)
 **************************************************/
-int crypto_kem_keypair(uint8_t *pk,
-                       uint8_t *sk)
+int crypto_kem_keypair_512(uint8_t *pk, uint8_t *sk)
 {
   uint8_t coins[2*KYBER_SYMBYTES];
   randombytes(coins, 2*KYBER_SYMBYTES);
-  crypto_kem_keypair_derand(pk, sk, coins);
+  crypto_kem_keypair_derand_2(pk, sk, coins);
+  return 0;
+}
+
+int crypto_kem_keypair_768(uint8_t *pk, uint8_t *sk)
+{
+  uint8_t coins[2*KYBER_SYMBYTES];
+  randombytes(coins, 2*KYBER_SYMBYTES);
+  crypto_kem_keypair_derand_3(pk, sk, coins);
+  return 0;
+}
+
+int crypto_kem_keypair_1024(uint8_t *pk, uint8_t *sk)
+{
+  uint8_t coins[2*KYBER_SYMBYTES];
+  randombytes(coins, 2*KYBER_SYMBYTES);
+  crypto_kem_keypair_derand_4(pk, sk, coins);
   return 0;
 }
 
@@ -745,10 +1181,10 @@ int crypto_kem_keypair(uint8_t *pk,
 **
 * Returns 0 (success)
 **************************************************/
-int crypto_kem_enc_derand(uint8_t *ct,
-                          uint8_t *ss,
-                          const uint8_t *pk,
-                          const uint8_t *coins)
+int crypto_kem_enc_derand_2(uint8_t *ct,
+                            uint8_t *ss,
+                            const uint8_t *pk,
+                            const uint8_t *coins)
 {
   uint8_t buf[2*KYBER_SYMBYTES];
   /* Will contain key, coins */
@@ -757,11 +1193,55 @@ int crypto_kem_enc_derand(uint8_t *ct,
   memcpy(buf, coins, KYBER_SYMBYTES);
 
   /* Multitarget countermeasure for coins + contributory KEM */
-  hash_h(buf+KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
+  hash_h(buf+KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES2);
   hash_g(kr, buf, 2*KYBER_SYMBYTES);
 
   /* coins are in kr+KYBER_SYMBYTES */
-  indcpa_enc(ct, buf, pk, kr+KYBER_SYMBYTES);
+  indcpa_enc_2(ct, buf, pk, kr+KYBER_SYMBYTES);
+
+  memcpy(ss,kr,KYBER_SYMBYTES);
+  return 0;
+}
+
+int crypto_kem_enc_derand_3(uint8_t *ct,
+                            uint8_t *ss,
+                            const uint8_t *pk,
+                            const uint8_t *coins)
+{
+  uint8_t buf[2*KYBER_SYMBYTES];
+  /* Will contain key, coins */
+  uint8_t kr[2*KYBER_SYMBYTES];
+
+  memcpy(buf, coins, KYBER_SYMBYTES);
+
+  /* Multitarget countermeasure for coins + contributory KEM */
+  hash_h(buf+KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES3);
+  hash_g(kr, buf, 2*KYBER_SYMBYTES);
+
+  /* coins are in kr+KYBER_SYMBYTES */
+  indcpa_enc_3(ct, buf, pk, kr+KYBER_SYMBYTES);
+
+  memcpy(ss,kr,KYBER_SYMBYTES);
+  return 0;
+}
+
+int crypto_kem_enc_derand_4(uint8_t *ct,
+                            uint8_t *ss,
+                            const uint8_t *pk,
+                            const uint8_t *coins)
+{
+  uint8_t buf[2*KYBER_SYMBYTES];
+  /* Will contain key, coins */
+  uint8_t kr[2*KYBER_SYMBYTES];
+
+  memcpy(buf, coins, KYBER_SYMBYTES);
+
+  /* Multitarget countermeasure for coins + contributory KEM */
+  hash_h(buf+KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES4);
+  hash_g(kr, buf, 2*KYBER_SYMBYTES);
+
+  /* coins are in kr+KYBER_SYMBYTES */
+  indcpa_enc_4(ct, buf, pk, kr+KYBER_SYMBYTES);
 
   memcpy(ss,kr,KYBER_SYMBYTES);
   return 0;
@@ -782,13 +1262,33 @@ int crypto_kem_enc_derand(uint8_t *ct,
 *
 * Returns 0 (success)
 **************************************************/
-int crypto_kem_enc(uint8_t *ct,
-                   uint8_t *ss,
-                   const uint8_t *pk)
+int crypto_kem_enc_512(uint8_t *ct,
+                       uint8_t *ss,
+                       const uint8_t *pk)
 {
   uint8_t coins[KYBER_SYMBYTES];
   randombytes(coins, KYBER_SYMBYTES);
-  crypto_kem_enc_derand(ct, ss, pk, coins);
+  crypto_kem_enc_derand_2(ct, ss, pk, coins);
+  return 0;
+}
+
+int crypto_kem_enc_768(uint8_t *ct,
+                       uint8_t *ss,
+                       const uint8_t *pk)
+{
+  uint8_t coins[KYBER_SYMBYTES];
+  randombytes(coins, KYBER_SYMBYTES);
+  crypto_kem_enc_derand_3(ct, ss, pk, coins);
+  return 0;
+}
+
+int crypto_kem_enc_1024(uint8_t *ct,
+                        uint8_t *ss,
+                        const uint8_t *pk)
+{
+  uint8_t coins[KYBER_SYMBYTES];
+  randombytes(coins, KYBER_SYMBYTES);
+  crypto_kem_enc_derand_4(ct, ss, pk, coins);
   return 0;
 }
 
@@ -809,30 +1309,92 @@ int crypto_kem_enc(uint8_t *ct,
 *
 * On failure, ss will contain a pseudo-random value.
 **************************************************/
-int crypto_kem_dec(uint8_t *ss,
-                   const uint8_t *ct,
-                   const uint8_t *sk)
+int crypto_kem_dec_512(uint8_t *ss,
+                       const uint8_t *ct,
+                       const uint8_t *sk)
 {
   int fail;
   uint8_t buf[2*KYBER_SYMBYTES];
   /* Will contain key, coins */
   uint8_t kr[2*KYBER_SYMBYTES];
-  uint8_t cmp[KYBER_CIPHERTEXTBYTES+KYBER_SYMBYTES];
-  const uint8_t *pk = sk+KYBER_INDCPA_SECRETKEYBYTES;
+  uint8_t cmp[KYBER_CIPHERTEXTBYTES2+KYBER_SYMBYTES];
+  const uint8_t *pk = sk+KYBER_INDCPA_SECRETKEYBYTES2;
 
-  indcpa_dec(buf, ct, sk);
+  indcpa_dec_2(buf, ct, sk);
 
   /* Multitarget countermeasure for coins + contributory KEM */
-  memcpy(buf+KYBER_SYMBYTES, sk+KYBER_SECRETKEYBYTES-2*KYBER_SYMBYTES, KYBER_SYMBYTES);
+  memcpy(buf+KYBER_SYMBYTES, sk+KYBER_SECRETKEYBYTES2-2*KYBER_SYMBYTES, KYBER_SYMBYTES);
   hash_g(kr, buf, 2*KYBER_SYMBYTES);
 
   /* coins are in kr+KYBER_SYMBYTES */
-  indcpa_enc(cmp, buf, pk, kr+KYBER_SYMBYTES);
+  indcpa_enc_2(cmp, buf, pk, kr+KYBER_SYMBYTES);
 
-  fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES);
+  fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES2);
 
   /* Compute rejection key */
-  rkprf(ss,sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES,ct);
+  rkprf2(ss,sk+KYBER_SECRETKEYBYTES2-KYBER_SYMBYTES,ct);
+
+  /* Copy true key to return buffer if fail is false */
+  cmov(ss,kr,KYBER_SYMBYTES,!fail);
+
+  return 0;
+}
+
+int crypto_kem_dec_768(uint8_t *ss,
+                       const uint8_t *ct,
+                       const uint8_t *sk)
+{
+  int fail;
+  uint8_t buf[2*KYBER_SYMBYTES];
+  /* Will contain key, coins */
+  uint8_t kr[2*KYBER_SYMBYTES];
+  uint8_t cmp[KYBER_CIPHERTEXTBYTES3+KYBER_SYMBYTES];
+  const uint8_t *pk = sk+KYBER_INDCPA_SECRETKEYBYTES3;
+
+  indcpa_dec_3(buf, ct, sk);
+
+  /* Multitarget countermeasure for coins + contributory KEM */
+  memcpy(buf+KYBER_SYMBYTES, sk+KYBER_SECRETKEYBYTES3-2*KYBER_SYMBYTES, KYBER_SYMBYTES);
+  hash_g(kr, buf, 2*KYBER_SYMBYTES);
+
+  /* coins are in kr+KYBER_SYMBYTES */
+  indcpa_enc_3(cmp, buf, pk, kr+KYBER_SYMBYTES);
+
+  fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES3);
+
+  /* Compute rejection key */
+  rkprf3(ss,sk+KYBER_SECRETKEYBYTES3-KYBER_SYMBYTES,ct);
+
+  /* Copy true key to return buffer if fail is false */
+  cmov(ss,kr,KYBER_SYMBYTES,!fail);
+
+  return 0;
+}
+
+int crypto_kem_dec_1024(uint8_t *ss,
+                        const uint8_t *ct,
+                        const uint8_t *sk)
+{
+  int fail;
+  uint8_t buf[2*KYBER_SYMBYTES];
+  /* Will contain key, coins */
+  uint8_t kr[2*KYBER_SYMBYTES];
+  uint8_t cmp[KYBER_CIPHERTEXTBYTES4+KYBER_SYMBYTES];
+  const uint8_t *pk = sk+KYBER_INDCPA_SECRETKEYBYTES4;
+
+  indcpa_dec_4(buf, ct, sk);
+
+  /* Multitarget countermeasure for coins + contributory KEM */
+  memcpy(buf+KYBER_SYMBYTES, sk+KYBER_SECRETKEYBYTES4-2*KYBER_SYMBYTES, KYBER_SYMBYTES);
+  hash_g(kr, buf, 2*KYBER_SYMBYTES);
+
+  /* coins are in kr+KYBER_SYMBYTES */
+  indcpa_enc_4(cmp, buf, pk, kr+KYBER_SYMBYTES);
+
+  fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES4);
+
+  /* Compute rejection key */
+  rkprf4(ss,sk+KYBER_SECRETKEYBYTES4-KYBER_SYMBYTES,ct);
 
   /* Copy true key to return buffer if fail is false */
   cmov(ss,kr,KYBER_SYMBYTES,!fail);
@@ -992,14 +1554,12 @@ void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
 *                            (of length KYBER_POLYCOMPRESSEDBYTES)
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
+void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES2], const poly *a)
 {
   unsigned int i,j;
   int32_t u;
   uint32_t d0;
   uint8_t t[8];
-
-#if (KYBER_POLYCOMPRESSEDBYTES == 128)
 
   for(i=0;i<KYBER_N/8;i++) {
     for(j=0;j<8;j++) {
@@ -1020,7 +1580,15 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
     r[3] = t[6] | (t[7] << 4);
     r += 4;
   }
-#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
+}
+
+void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a)
+{
+  unsigned int i,j;
+  int32_t u;
+  uint32_t d0;
+  uint8_t t[8];
+
   for(i=0;i<KYBER_N/8;i++) {
     for(j=0;j<8;j++) {
       // map to positive standard representatives
@@ -1041,9 +1609,6 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
     r[4] = (t[6] >> 2) | (t[7] << 3);
     r += 5;
   }
-#else
-#error "KYBER_POLYCOMPRESSEDBYTES needs to be in {128, 160}"
-#endif
 }
 
 /*************************************************
@@ -1056,17 +1621,19 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
 *              - const uint8_t *a: pointer to input byte array
 *                                  (of length KYBER_POLYCOMPRESSEDBYTES bytes)
 **************************************************/
-void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
+void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES2])
 {
   unsigned int i;
-
-#if (KYBER_POLYCOMPRESSEDBYTES == 128)
   for(i=0;i<KYBER_N/2;i++) {
     r->coeffs[2*i+0] = (((uint16_t)(a[0] & 15)*KYBER_Q) + 8) >> 4;
     r->coeffs[2*i+1] = (((uint16_t)(a[0] >> 4)*KYBER_Q) + 8) >> 4;
     a += 1;
   }
-#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
+}
+
+void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES4])
+{
+  unsigned int i;
   unsigned int j;
   uint8_t t[8];
   for(i=0;i<KYBER_N/8;i++) {
@@ -1083,9 +1650,6 @@ void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
     for(j=0;j<8;j++)
       r->coeffs[8*i+j] = ((uint32_t)(t[j] & 31)*KYBER_Q + 16) >> 5;
   }
-#else
-#error "KYBER_POLYCOMPRESSEDBYTES needs to be in {128, 160}"
-#endif
 }
 
 /*************************************************
@@ -1199,11 +1763,18 @@ void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
 *                                     (of length KYBER_SYMBYTES bytes)
 *              - uint8_t nonce: one-byte input nonce
 **************************************************/
-void poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
+void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 {
-  uint8_t buf[KYBER_ETA1*KYBER_N/4];
+  uint8_t buf[KYBER_ETA1_2*KYBER_N/4];
   prf(buf, sizeof(buf), seed, nonce);
-  poly_cbd_eta1(r, buf);
+  cbd3(r, buf);
+}
+
+void poly_getnoise_eta1_3_4(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
+{
+  uint8_t buf[KYBER_ETA1_3_4*KYBER_N/4];
+  prf(buf, sizeof(buf), seed, nonce);
+  cbd2(r, buf);
 }
 
 /*************************************************
@@ -1222,7 +1793,7 @@ void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t non
 {
   uint8_t buf[KYBER_ETA2*KYBER_N/4];
   prf(buf, sizeof(buf), seed, nonce);
-  poly_cbd_eta2(r, buf);
+  cbd2(r, buf);
 }
 
 
@@ -1346,12 +1917,73 @@ void poly_sub(poly *r, const poly *a, const poly *b)
 *                            (needs space for KYBER_POLYVECCOMPRESSEDBYTES)
 *              - const polyvec *a: pointer to input vector of polynomials
 **************************************************/
-void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a)
+#define KYBER_K 2
+void polyvec_compress_2(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES2], const polyvec2 *a)
 {
   unsigned int i,j,k;
   uint64_t d0;
+  uint16_t t[4];
+  for(i=0;i<KYBER_K;i++) {
+    for(j=0;j<KYBER_N/4;j++) {
+      for(k=0;k<4;k++) {
+        t[k]  = a->vec[i].coeffs[4*j+k];
+        t[k] += ((int16_t)t[k] >> 15) & KYBER_Q;
+/*      t[k]  = ((((uint32_t)t[k] << 10) + KYBER_Q/2)/ KYBER_Q) & 0x3ff; */
+        d0 = t[k];
+        d0 <<= 10;
+        d0 += 1665;
+        d0 *= 1290167;
+        d0 >>= 32;
+        t[k] = d0 & 0x3ff;
+      }
 
-#if (KYBER_POLYVECCOMPRESSEDBYTES == (KYBER_K * 352))
+      r[0] = (t[0] >> 0);
+      r[1] = (t[0] >> 8) | (t[1] << 2);
+      r[2] = (t[1] >> 6) | (t[2] << 4);
+      r[3] = (t[2] >> 4) | (t[3] << 6);
+      r[4] = (t[3] >> 2);
+      r += 5;
+    }
+  }
+}
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_compress_3(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES3], const polyvec3 *a)
+{
+  unsigned int i,j,k;
+  uint64_t d0;
+  uint16_t t[4];
+  for(i=0;i<KYBER_K;i++) {
+    for(j=0;j<KYBER_N/4;j++) {
+      for(k=0;k<4;k++) {
+        t[k]  = a->vec[i].coeffs[4*j+k];
+        t[k] += ((int16_t)t[k] >> 15) & KYBER_Q;
+/*      t[k]  = ((((uint32_t)t[k] << 10) + KYBER_Q/2)/ KYBER_Q) & 0x3ff; */
+        d0 = t[k];
+        d0 <<= 10;
+        d0 += 1665;
+        d0 *= 1290167;
+        d0 >>= 32;
+        t[k] = d0 & 0x3ff;
+      }
+
+      r[0] = (t[0] >> 0);
+      r[1] = (t[0] >> 8) | (t[1] << 2);
+      r[2] = (t[1] >> 6) | (t[2] << 4);
+      r[3] = (t[2] >> 4) | (t[3] << 6);
+      r[4] = (t[3] >> 2);
+      r += 5;
+    }
+  }
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_compress_4(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES4], const polyvec4 *a)
+{
+  unsigned int i,j,k;
+  uint64_t d0;
   uint16_t t[8];
   for(i=0;i<KYBER_K;i++) {
     for(j=0;j<KYBER_N/8;j++) {
@@ -1382,34 +2014,8 @@ void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a)
       r += 11;
     }
   }
-#elif (KYBER_POLYVECCOMPRESSEDBYTES == (KYBER_K * 320))
-  uint16_t t[4];
-  for(i=0;i<KYBER_K;i++) {
-    for(j=0;j<KYBER_N/4;j++) {
-      for(k=0;k<4;k++) {
-        t[k]  = a->vec[i].coeffs[4*j+k];
-        t[k] += ((int16_t)t[k] >> 15) & KYBER_Q;
-/*      t[k]  = ((((uint32_t)t[k] << 10) + KYBER_Q/2)/ KYBER_Q) & 0x3ff; */
-        d0 = t[k];
-        d0 <<= 10;
-        d0 += 1665;
-        d0 *= 1290167;
-        d0 >>= 32;
-        t[k] = d0 & 0x3ff;
-      }
-
-      r[0] = (t[0] >> 0);
-      r[1] = (t[0] >> 8) | (t[1] << 2);
-      r[2] = (t[1] >> 6) | (t[2] << 4);
-      r[3] = (t[2] >> 4) | (t[3] << 6);
-      r[4] = (t[3] >> 2);
-      r += 5;
-    }
-  }
-#else
-#error "KYBER_POLYVECCOMPRESSEDBYTES needs to be in {320*KYBER_K, 352*KYBER_K}"
-#endif
 }
+#undef KYBER_K
 
 /*************************************************
 * Name:        polyvec_decompress
@@ -1421,11 +2027,50 @@ void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a)
 *              - const uint8_t *a: pointer to input byte array
 *                                  (of length KYBER_POLYVECCOMPRESSEDBYTES)
 **************************************************/
-void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES])
+#define KYBER_K 2
+void polyvec_decompress_2(polyvec2 *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES2])
 {
   unsigned int i,j,k;
+  uint16_t t[4];
+  for(i=0;i<KYBER_K;i++) {
+    for(j=0;j<KYBER_N/4;j++) {
+      t[0] = (a[0] >> 0) | ((uint16_t)a[1] << 8);
+      t[1] = (a[1] >> 2) | ((uint16_t)a[2] << 6);
+      t[2] = (a[2] >> 4) | ((uint16_t)a[3] << 4);
+      t[3] = (a[3] >> 6) | ((uint16_t)a[4] << 2);
+      a += 5;
 
-#if (KYBER_POLYVECCOMPRESSEDBYTES == (KYBER_K * 352))
+      for(k=0;k<4;k++)
+        r->vec[i].coeffs[4*j+k] = ((uint32_t)(t[k] & 0x3FF)*KYBER_Q + 512) >> 10;
+    }
+  }
+}
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_decompress_3(polyvec3 *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES3])
+{
+  unsigned int i,j,k;
+  uint16_t t[4];
+  for(i=0;i<KYBER_K;i++) {
+    for(j=0;j<KYBER_N/4;j++) {
+      t[0] = (a[0] >> 0) | ((uint16_t)a[1] << 8);
+      t[1] = (a[1] >> 2) | ((uint16_t)a[2] << 6);
+      t[2] = (a[2] >> 4) | ((uint16_t)a[3] << 4);
+      t[3] = (a[3] >> 6) | ((uint16_t)a[4] << 2);
+      a += 5;
+
+      for(k=0;k<4;k++)
+        r->vec[i].coeffs[4*j+k] = ((uint32_t)(t[k] & 0x3FF)*KYBER_Q + 512) >> 10;
+    }
+  }
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_decompress_4(polyvec4 *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES4])
+{
+  unsigned int i,j,k;
   uint16_t t[8];
   for(i=0;i<KYBER_K;i++) {
     for(j=0;j<KYBER_N/8;j++) {
@@ -1443,24 +2088,8 @@ void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES
         r->vec[i].coeffs[8*j+k] = ((uint32_t)(t[k] & 0x7FF)*KYBER_Q + 1024) >> 11;
     }
   }
-#elif (KYBER_POLYVECCOMPRESSEDBYTES == (KYBER_K * 320))
-  uint16_t t[4];
-  for(i=0;i<KYBER_K;i++) {
-    for(j=0;j<KYBER_N/4;j++) {
-      t[0] = (a[0] >> 0) | ((uint16_t)a[1] << 8);
-      t[1] = (a[1] >> 2) | ((uint16_t)a[2] << 6);
-      t[2] = (a[2] >> 4) | ((uint16_t)a[3] << 4);
-      t[3] = (a[3] >> 6) | ((uint16_t)a[4] << 2);
-      a += 5;
-
-      for(k=0;k<4;k++)
-        r->vec[i].coeffs[4*j+k] = ((uint32_t)(t[k] & 0x3FF)*KYBER_Q + 512) >> 10;
-    }
-  }
-#else
-#error "KYBER_POLYVECCOMPRESSEDBYTES needs to be in {320*KYBER_K, 352*KYBER_K}"
-#endif
 }
+#undef KYBER_K
 
 /*************************************************
 * Name:        polyvec_tobytes
@@ -1471,12 +2100,32 @@ void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES
 *                            (needs space for KYBER_POLYVECBYTES)
 *              - const polyvec *a: pointer to input vector of polynomials
 **************************************************/
-void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a)
+#define KYBER_K 2
+void polyvec_tobytes_2(uint8_t r[KYBER_POLYVECBYTES2], const polyvec2 *a)
 {
   unsigned int i;
   for(i=0;i<KYBER_K;i++)
     poly_tobytes(r+i*KYBER_POLYBYTES, &a->vec[i]);
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_tobytes_3(uint8_t r[KYBER_POLYVECBYTES3], const polyvec3 *a)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_tobytes(r+i*KYBER_POLYBYTES, &a->vec[i]);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_tobytes_4(uint8_t r[KYBER_POLYVECBYTES4], const polyvec4 *a)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_tobytes(r+i*KYBER_POLYBYTES, &a->vec[i]);
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        polyvec_frombytes
@@ -1488,12 +2137,32 @@ void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a)
 *              - const polyvec *a: pointer to input vector of polynomials
 *                                  (of length KYBER_POLYVECBYTES)
 **************************************************/
-void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES])
+#define KYBER_K 2
+void polyvec_frombytes_2(polyvec2 *r, const uint8_t a[KYBER_POLYVECBYTES2])
 {
   unsigned int i;
   for(i=0;i<KYBER_K;i++)
     poly_frombytes(&r->vec[i], a+i*KYBER_POLYBYTES);
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_frombytes_3(polyvec3 *r, const uint8_t a[KYBER_POLYVECBYTES3])
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_frombytes(&r->vec[i], a+i*KYBER_POLYBYTES);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_frombytes_4(polyvec4 *r, const uint8_t a[KYBER_POLYVECBYTES4])
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_frombytes(&r->vec[i], a+i*KYBER_POLYBYTES);
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        polyvec_ntt
@@ -1502,12 +2171,32 @@ void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES])
 *
 * Arguments:   - polyvec *r: pointer to in/output vector of polynomials
 **************************************************/
-void polyvec_ntt(polyvec *r)
+#define KYBER_K 2
+void polyvec_ntt_2(polyvec2 *r)
 {
   unsigned int i;
   for(i=0;i<KYBER_K;i++)
     poly_ntt(&r->vec[i]);
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_ntt_3(polyvec3 *r)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_ntt(&r->vec[i]);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_ntt_4(polyvec4 *r)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_ntt(&r->vec[i]);
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        polyvec_invntt_tomont
@@ -1517,12 +2206,32 @@ void polyvec_ntt(polyvec *r)
 *
 * Arguments:   - polyvec *r: pointer to in/output vector of polynomials
 **************************************************/
-void polyvec_invntt_tomont(polyvec *r)
+#define KYBER_K 2
+void polyvec_invntt_tomont_2(polyvec2 *r)
 {
   unsigned int i;
   for(i=0;i<KYBER_K;i++)
     poly_invntt_tomont(&r->vec[i]);
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_invntt_tomont_3(polyvec3 *r)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_invntt_tomont(&r->vec[i]);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_invntt_tomont_4(polyvec4 *r)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_invntt_tomont(&r->vec[i]);
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        polyvec_basemul_acc_montgomery
@@ -1534,7 +2243,8 @@ void polyvec_invntt_tomont(polyvec *r)
 *            - const polyvec *a: pointer to first input vector of polynomials
 *            - const polyvec *b: pointer to second input vector of polynomials
 **************************************************/
-void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b)
+#define KYBER_K 2
+void polyvec_basemul_acc_montgomery_2(poly *r, const polyvec2 *a, const polyvec2 *b)
 {
   unsigned int i;
   poly t;
@@ -1547,6 +2257,39 @@ void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b)
 
   poly_reduce(r);
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_basemul_acc_montgomery_3(poly *r, const polyvec3 *a, const polyvec3 *b)
+{
+  unsigned int i;
+  poly t;
+
+  poly_basemul_montgomery(r, &a->vec[0], &b->vec[0]);
+  for(i=1;i<KYBER_K;i++) {
+    poly_basemul_montgomery(&t, &a->vec[i], &b->vec[i]);
+    poly_add(r, r, &t);
+  }
+
+  poly_reduce(r);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_basemul_acc_montgomery_4(poly *r, const polyvec4 *a, const polyvec4 *b)
+{
+  unsigned int i;
+  poly t;
+
+  poly_basemul_montgomery(r, &a->vec[0], &b->vec[0]);
+  for(i=1;i<KYBER_K;i++) {
+    poly_basemul_montgomery(&t, &a->vec[i], &b->vec[i]);
+    poly_add(r, r, &t);
+  }
+
+  poly_reduce(r);
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        polyvec_reduce
@@ -1557,12 +2300,32 @@ void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b)
 *
 * Arguments:   - polyvec *r: pointer to input/output polynomial
 **************************************************/
-void polyvec_reduce(polyvec *r)
+#define KYBER_K 2
+void polyvec_reduce_2(polyvec2 *r)
 {
   unsigned int i;
   for(i=0;i<KYBER_K;i++)
     poly_reduce(&r->vec[i]);
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_reduce_3(polyvec3 *r)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_reduce(&r->vec[i]);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_reduce_4(polyvec4 *r)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_reduce(&r->vec[i]);
+}
+#undef KYBER_K
 
 /*************************************************
 * Name:        polyvec_add
@@ -1573,12 +2336,33 @@ void polyvec_reduce(polyvec *r)
 *            - const polyvec *a: pointer to first input vector of polynomials
 *            - const polyvec *b: pointer to second input vector of polynomials
 **************************************************/
-void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
+#define KYBER_K 2
+void polyvec_add_2(polyvec2 *r, const polyvec2 *a, const polyvec2 *b)
 {
   unsigned int i;
   for(i=0;i<KYBER_K;i++)
     poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
 }
+#undef KYBER_K
+
+#define KYBER_K 3
+void polyvec_add_3(polyvec3 *r, const polyvec3 *a, const polyvec3 *b)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
+}
+#undef KYBER_K
+
+#define KYBER_K 4
+void polyvec_add_4(polyvec4 *r, const polyvec4 *a, const polyvec4 *b)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
+}
+#undef KYBER_K
+
 /*************** kyber/ref/reduce.c */
 
 /*************************************************
@@ -1677,13 +2461,35 @@ void kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYM
 *              - const uint8_t *key: pointer to the key (of length KYBER_SYMBYTES)
 *              - uint8_t nonce: single-byte nonce (public PRF input)
 **************************************************/
-void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES])
+void kyber_shake256_rkprf2(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES2])
 {
   keccak_state s;
 
   shake256_init(&s);
   shake256_absorb(&s, key, KYBER_SYMBYTES);
-  shake256_absorb(&s, input, KYBER_CIPHERTEXTBYTES);
+  shake256_absorb(&s, input, KYBER_CIPHERTEXTBYTES2);
+  shake256_finalize(&s);
+  shake256_squeeze(out, KYBER_SSBYTES, &s);
+}
+
+void kyber_shake256_rkprf3(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES3])
+{
+  keccak_state s;
+
+  shake256_init(&s);
+  shake256_absorb(&s, key, KYBER_SYMBYTES);
+  shake256_absorb(&s, input, KYBER_CIPHERTEXTBYTES3);
+  shake256_finalize(&s);
+  shake256_squeeze(out, KYBER_SSBYTES, &s);
+}
+
+void kyber_shake256_rkprf4(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES4])
+{
+  keccak_state s;
+
+  shake256_init(&s);
+  shake256_absorb(&s, key, KYBER_SYMBYTES);
+  shake256_absorb(&s, input, KYBER_CIPHERTEXTBYTES4);
   shake256_finalize(&s);
   shake256_squeeze(out, KYBER_SSBYTES, &s);
 }
