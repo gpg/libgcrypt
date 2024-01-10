@@ -196,3 +196,156 @@ split_fields_colon (char *string, char **array, int arraysize)
   return n;
 }
 #endif /*NEED_EXTRA_TEST_SUPPORT*/
+
+#ifdef NEED_SHOW_NOTE
+static void
+show_note (const char *format, ...)
+{
+  va_list arg_ptr;
+
+  if (!verbose && getenv ("srcdir"))
+    fputs ("      ", stderr);  /* To align above "PASS: ".  */
+  else
+    fprintf (stderr, "%s: ", PGM);
+  va_start (arg_ptr, format);
+  vfprintf (stderr, format, arg_ptr);
+  if (*format && format[strlen(format)-1] != '\n')
+    putc ('\n', stderr);
+  va_end (arg_ptr);
+}
+#endif
+
+#ifdef NEED_SHOW_SEXP
+static void
+show_sexp (const char *prefix, gcry_sexp_t a)
+{
+  char *buf;
+  size_t size;
+
+  fprintf (stderr, "%s: ", PGM);
+  if (prefix)
+    fputs (prefix, stderr);
+  size = gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+  buf = xmalloc (size);
+
+  gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size);
+  fprintf (stderr, "%.*s", (int)size, buf);
+  gcry_free (buf);
+}
+#endif
+
+#ifdef NEED_PREPEND_SRCDIR
+/* Prepend FNAME with the srcdir environment variable's value and
+ * return an allocated filename.  */
+static char *
+prepend_srcdir (const char *fname)
+{
+  static const char *srcdir;
+  char *result;
+
+  if (!srcdir && !(srcdir = getenv ("srcdir")))
+    srcdir = ".";
+
+  result = xmalloc (strlen (srcdir) + 1 + strlen (fname) + 1);
+  strcpy (result, srcdir);
+  strcat (result, "/");
+  strcat (result, fname);
+  return result;
+}
+#endif
+
+#ifdef NEED_READ_TEXTLINE
+/* Read next line but skip over empty and comment lines.  Caller must
+   xfree the result.  */
+static char *
+read_textline (FILE *fp, int *lineno)
+{
+  char line[8192];
+  char *p;
+
+  do
+    {
+      if (!fgets (line, sizeof line, fp))
+        {
+          if (feof (fp))
+            return NULL;
+          die ("error reading input line: %s\n", strerror (errno));
+        }
+      ++*lineno;
+      p = strchr (line, '\n');
+      if (!p)
+        die ("input line %d not terminated or too long\n", *lineno);
+      *p = 0;
+      for (p--;p > line && my_isascii (*p) && isspace (*p); p--)
+        *p = 0;
+    }
+  while (!*line || *line == '#');
+  /* if (debug) */
+  /*   info ("read line: '%s'\n", line); */
+  return xstrdup (line);
+}
+#endif
+
+#ifdef NEED_COPY_DATA
+/* Copy the data after the tag to BUFFER.  BUFFER will be allocated as
+   needed.  */
+static void
+copy_data (char **buffer, const char *line, int lineno)
+{
+  const char *s;
+
+  xfree (*buffer);
+  *buffer = NULL;
+
+  s = strchr (line, ':');
+  if (!s)
+    {
+      fail ("syntax error at input line %d", lineno);
+      return;
+    }
+  for (s++; my_isascii (*s) && isspace (*s); s++)
+    ;
+  *buffer = xstrdup (s);
+}
+#endif
+
+#ifdef NEED_HEX2BUFFER
+/* Convert STRING consisting of hex characters into its binary
+   representation and return it as an allocated buffer. The valid
+   length of the buffer is returned at R_LENGTH.  The string is
+   delimited by end of string.  The function returns NULL on
+   error.  */
+static unsigned char*
+hex2buffer (const char *string, size_t *r_length)
+{
+  const char *s;
+  unsigned char *buffer;
+  size_t length;
+
+  buffer = xmalloc (strlen(string)/2+1);
+  length = 0;
+  for (s=string; *s; s +=2 )
+    {
+      if (!hexdigitp (s) || !hexdigitp (s+1))
+        return NULL;           /* Invalid hex digits. */
+      buffer[length++] = xtoi_2 (s);
+    }
+  *r_length = length;
+  return buffer;
+}
+#endif
+
+#ifdef NEED_REVERSE_BUFFER
+static void
+reverse_buffer (unsigned char *buffer, unsigned int length)
+{
+  unsigned int tmp, i;
+
+  for (i=0; i < length/2; i++)
+    {
+      tmp = buffer[i];
+      buffer[i] = buffer[length-1-i];
+      buffer[length-1-i] = tmp;
+    }
+}
+#endif
