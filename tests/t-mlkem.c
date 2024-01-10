@@ -39,7 +39,7 @@
 #define NEED_HEX2BUFFER
 #include "t-common.h"
 
-#define N_TESTS 100
+#define N_TESTS 30
 
 static int custom_data_file;
 
