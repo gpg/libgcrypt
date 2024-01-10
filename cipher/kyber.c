@@ -114,62 +114,62 @@ typedef struct{
   int16_t coeffs[KYBER_N];
 } poly;
 
-void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a);
-void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES]);
+static void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a);
+static void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES]);
 
-void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
-void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
+static void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
+static void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
 
-void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES]);
-void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *r);
+static void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES]);
+static void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *r);
 
-void poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+static void poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 
-void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+static void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 
-void poly_ntt(poly *r);
-void poly_invntt_tomont(poly *r);
-void poly_basemul_montgomery(poly *r, const poly *a, const poly *b);
-void poly_tomont(poly *r);
+static void poly_ntt(poly *r);
+static void poly_invntt_tomont(poly *r);
+static void poly_basemul_montgomery(poly *r, const poly *a, const poly *b);
+static void poly_tomont(poly *r);
 
-void poly_reduce(poly *r);
+static void poly_reduce(poly *r);
 
-void poly_add(poly *r, const poly *a, const poly *b);
-void poly_sub(poly *r, const poly *a, const poly *b);
+static void poly_add(poly *r, const poly *a, const poly *b);
+static void poly_sub(poly *r, const poly *a, const poly *b);
 
 /*************** kyber/ref/polyvec.h */
 typedef struct{
   poly vec[KYBER_K];
 } polyvec;
 
-void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a);
-void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]);
+static void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a);
+static void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]);
 
-void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a);
-void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES]);
+static void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a);
+static void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES]);
 
-void polyvec_ntt(polyvec *r);
-void polyvec_invntt_tomont(polyvec *r);
+static void polyvec_ntt(polyvec *r);
+static void polyvec_invntt_tomont(polyvec *r);
 
-void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b);
+static void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b);
 
-void polyvec_reduce(polyvec *r);
+static void polyvec_reduce(polyvec *r);
 
-void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
+static void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
 
 /*************** kyber/ref/indcpa.h */
-void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
+static void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
 
-void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
+static void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                            uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
                            const uint8_t coins[KYBER_SYMBYTES]);
 
-void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
+static void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
                 const uint8_t m[KYBER_INDCPA_MSGBYTES],
                 const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                 const uint8_t coins[KYBER_SYMBYTES]);
 
-void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
+static void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
                 const uint8_t c[KYBER_INDCPA_BYTES],
                 const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
 
@@ -187,24 +187,24 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 #define CRYPTO_ALGNAME "Kyber1024"
 #endif
 
-int crypto_kem_keypair_derand(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
+static int crypto_kem_keypair_derand(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
 
 int crypto_kem_keypair(uint8_t *pk, uint8_t *sk);
 
-int crypto_kem_enc_derand(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
+static int crypto_kem_enc_derand(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
 
 int crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
 
 int crypto_kem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
 /*************** kyber/ref/ntt.h */
-extern const int16_t zetas[128];
+static const int16_t zetas[128];
 
-void ntt(int16_t poly[256]);
+static void ntt(int16_t poly[256]);
 
-void invntt(int16_t poly[256]);
+static void invntt(int16_t poly[256]);
 
-void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
+static void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 
 /*************** kyber/ref/randombytes.h */
 void randombytes(uint8_t *out, size_t outlen);
@@ -213,21 +213,21 @@ void randombytes(uint8_t *out, size_t outlen);
 #define MONT -1044 // 2^16 mod q
 #define QINV -3327 // q^-1 mod 2^16
 
-int16_t montgomery_reduce(int32_t a);
+static int16_t montgomery_reduce(int32_t a);
 
-int16_t barrett_reduce(int16_t a);
+static int16_t barrett_reduce(int16_t a);
 
 /*************** kyber/ref/symmetric.h */
 typedef keccak_state xof_state;
 
-void kyber_shake128_absorb(keccak_state *s,
+static void kyber_shake128_absorb(keccak_state *s,
                            const uint8_t seed[KYBER_SYMBYTES],
                            uint8_t x,
                            uint8_t y);
 
-void kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES], uint8_t nonce);
+static void kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES], uint8_t nonce);
 
-void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES]);
+static void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES]);
 
 #define XOF_BLOCKBYTES SHAKE128_RATE
 
