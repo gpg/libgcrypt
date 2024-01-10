@@ -35,79 +35,40 @@
  */
 
 /*************** kyber/ref/fips202.h */
-#ifndef FIPS202_H
-#define FIPS202_H
-
-#include <stddef.h>
-#include <stdint.h>
-
 #define SHAKE128_RATE 168
 #define SHAKE256_RATE 136
 #define SHA3_256_RATE 136
 #define SHA3_512_RATE 72
-
-#define FIPS202_NAMESPACE(s) pqcrystals_kyber_fips202_ref_##s
 
 typedef struct {
   uint64_t s[25];
   unsigned int pos;
 } keccak_state;
 
-#define shake128_init FIPS202_NAMESPACE(shake128_init)
 void shake128_init(keccak_state *state);
-#define shake128_absorb FIPS202_NAMESPACE(shake128_absorb)
 void shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
-#define shake128_finalize FIPS202_NAMESPACE(shake128_finalize)
 void shake128_finalize(keccak_state *state);
-#define shake128_squeeze FIPS202_NAMESPACE(shake128_squeeze)
 void shake128_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
-#define shake128_absorb_once FIPS202_NAMESPACE(shake128_absorb_once)
 void shake128_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen);
-#define shake128_squeezeblocks FIPS202_NAMESPACE(shake128_squeezeblocks)
 void shake128_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state);
 
-#define shake256_init FIPS202_NAMESPACE(shake256_init)
 void shake256_init(keccak_state *state);
-#define shake256_absorb FIPS202_NAMESPACE(shake256_absorb)
 void shake256_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
-#define shake256_finalize FIPS202_NAMESPACE(shake256_finalize)
 void shake256_finalize(keccak_state *state);
-#define shake256_squeeze FIPS202_NAMESPACE(shake256_squeeze)
 void shake256_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
-#define shake256_absorb_once FIPS202_NAMESPACE(shake256_absorb_once)
 void shake256_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen);
-#define shake256_squeezeblocks FIPS202_NAMESPACE(shake256_squeezeblocks)
 void shake256_squeezeblocks(uint8_t *out, size_t nblocks,  keccak_state *state);
 
-#define shake128 FIPS202_NAMESPACE(shake128)
 void shake128(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
-#define shake256 FIPS202_NAMESPACE(shake256)
 void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
-#define sha3_256 FIPS202_NAMESPACE(sha3_256)
 void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
-#define sha3_512 FIPS202_NAMESPACE(sha3_512)
 void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
 
-#endif
 /*************** kyber/ref/params.h */
-#ifndef PARAMS_H
-#define PARAMS_H
-
 #ifndef KYBER_K
 #define KYBER_K 3	/* Change this for different security strengths */
 #endif
 
-
-/* Don't change parameters below this line */
-#if   (KYBER_K == 2)
-#define KYBER_NAMESPACE(s) pqcrystals_kyber512_ref_##s
-#elif (KYBER_K == 3)
-#define KYBER_NAMESPACE(s) pqcrystals_kyber768_ref_##s
-#elif (KYBER_K == 4)
-#define KYBER_NAMESPACE(s) pqcrystals_kyber1024_ref_##s
-#else
-#error "KYBER_K must be in {2,3,4}"
-#endif
 
 #define KYBER_N 256
 #define KYBER_Q 3329
@@ -144,14 +105,7 @@ void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
 #define KYBER_SECRETKEYBYTES  (KYBER_INDCPA_SECRETKEYBYTES + KYBER_INDCPA_PUBLICKEYBYTES + 2*KYBER_SYMBYTES)
 #define KYBER_CIPHERTEXTBYTES (KYBER_INDCPA_BYTES)
 
-#endif
 /*************** kyber/ref/poly.h */
-#ifndef POLY_H
-#define POLY_H
-
-#include <stdint.h>
-#include "params.h"
-
 /*
  * Elements of R_q = Z_q[X]/(X^n + 1). Represents polynomial
  * coeffs[0] + X*coeffs[1] + X^2*coeffs[2] + ... + X^{n-1}*coeffs[n-1]
@@ -160,117 +114,66 @@ typedef struct{
   int16_t coeffs[KYBER_N];
 } poly;
 
-#define poly_compress KYBER_NAMESPACE(poly_compress)
 void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a);
-#define poly_decompress KYBER_NAMESPACE(poly_decompress)
 void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES]);
 
-#define poly_tobytes KYBER_NAMESPACE(poly_tobytes)
 void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
-#define poly_frombytes KYBER_NAMESPACE(poly_frombytes)
 void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
 
-#define poly_frommsg KYBER_NAMESPACE(poly_frommsg)
 void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES]);
-#define poly_tomsg KYBER_NAMESPACE(poly_tomsg)
 void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *r);
 
-#define poly_getnoise_eta1 KYBER_NAMESPACE(poly_getnoise_eta1)
 void poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 
-#define poly_getnoise_eta2 KYBER_NAMESPACE(poly_getnoise_eta2)
 void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 
-#define poly_ntt KYBER_NAMESPACE(poly_ntt)
 void poly_ntt(poly *r);
-#define poly_invntt_tomont KYBER_NAMESPACE(poly_invntt_tomont)
 void poly_invntt_tomont(poly *r);
-#define poly_basemul_montgomery KYBER_NAMESPACE(poly_basemul_montgomery)
 void poly_basemul_montgomery(poly *r, const poly *a, const poly *b);
-#define poly_tomont KYBER_NAMESPACE(poly_tomont)
 void poly_tomont(poly *r);
 
-#define poly_reduce KYBER_NAMESPACE(poly_reduce)
 void poly_reduce(poly *r);
 
-#define poly_add KYBER_NAMESPACE(poly_add)
 void poly_add(poly *r, const poly *a, const poly *b);
-#define poly_sub KYBER_NAMESPACE(poly_sub)
 void poly_sub(poly *r, const poly *a, const poly *b);
 
-#endif
 /*************** kyber/ref/polyvec.h */
-#ifndef POLYVEC_H
-#define POLYVEC_H
-
-#include <stdint.h>
-#include "params.h"
-#include "poly.h"
-
 typedef struct{
   poly vec[KYBER_K];
 } polyvec;
 
-#define polyvec_compress KYBER_NAMESPACE(polyvec_compress)
 void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a);
-#define polyvec_decompress KYBER_NAMESPACE(polyvec_decompress)
 void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]);
 
-#define polyvec_tobytes KYBER_NAMESPACE(polyvec_tobytes)
 void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a);
-#define polyvec_frombytes KYBER_NAMESPACE(polyvec_frombytes)
 void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES]);
 
-#define polyvec_ntt KYBER_NAMESPACE(polyvec_ntt)
 void polyvec_ntt(polyvec *r);
-#define polyvec_invntt_tomont KYBER_NAMESPACE(polyvec_invntt_tomont)
 void polyvec_invntt_tomont(polyvec *r);
 
-#define polyvec_basemul_acc_montgomery KYBER_NAMESPACE(polyvec_basemul_acc_montgomery)
 void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b);
 
-#define polyvec_reduce KYBER_NAMESPACE(polyvec_reduce)
 void polyvec_reduce(polyvec *r);
 
-#define polyvec_add KYBER_NAMESPACE(polyvec_add)
 void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
 
-#endif
 /*************** kyber/ref/indcpa.h */
-#ifndef INDCPA_H
-#define INDCPA_H
-
-#include <stdint.h>
-#include "params.h"
-#include "polyvec.h"
-
-#define gen_matrix KYBER_NAMESPACE(gen_matrix)
 void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
 
-#define indcpa_keypair_derand KYBER_NAMESPACE(indcpa_keypair_derand)
 void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                            uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
                            const uint8_t coins[KYBER_SYMBYTES]);
 
-#define indcpa_enc KYBER_NAMESPACE(indcpa_enc)
 void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
                 const uint8_t m[KYBER_INDCPA_MSGBYTES],
                 const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                 const uint8_t coins[KYBER_SYMBYTES]);
 
-#define indcpa_dec KYBER_NAMESPACE(indcpa_dec)
 void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
                 const uint8_t c[KYBER_INDCPA_BYTES],
                 const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
 
-#endif
 /*************** kyber/ref/kem.h */
-#ifndef KEM_H
-#define KEM_H
-
-#include <stdint.h>
-#include "params.h"
-
 #define CRYPTO_SECRETKEYBYTES  KYBER_SECRETKEYBYTES
 #define CRYPTO_PUBLICKEYBYTES  KYBER_PUBLICKEYBYTES
 #define CRYPTO_CIPHERTEXTBYTES KYBER_CIPHERTEXTBYTES
@@ -284,91 +187,46 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 #define CRYPTO_ALGNAME "Kyber1024"
 #endif
 
-#define crypto_kem_keypair_derand KYBER_NAMESPACE(keypair_derand)
 int crypto_kem_keypair_derand(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
 
-#define crypto_kem_keypair KYBER_NAMESPACE(keypair)
 int crypto_kem_keypair(uint8_t *pk, uint8_t *sk);
 
-#define crypto_kem_enc_derand KYBER_NAMESPACE(enc_derand)
 int crypto_kem_enc_derand(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
 
-#define crypto_kem_enc KYBER_NAMESPACE(enc)
 int crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
 
-#define crypto_kem_dec KYBER_NAMESPACE(dec)
 int crypto_kem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
-#endif
 /*************** kyber/ref/ntt.h */
-#ifndef NTT_H
-#define NTT_H
-
-#include <stdint.h>
-#include "params.h"
-
-#define zetas KYBER_NAMESPACE(zetas)
 extern const int16_t zetas[128];
 
-#define ntt KYBER_NAMESPACE(ntt)
 void ntt(int16_t poly[256]);
 
-#define invntt KYBER_NAMESPACE(invntt)
 void invntt(int16_t poly[256]);
 
-#define basemul KYBER_NAMESPACE(basemul)
 void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 
-#endif
 /*************** kyber/ref/randombytes.h */
-#ifndef RANDOMBYTES_H
-#define RANDOMBYTES_H
-
-#include <stddef.h>
-#include <stdint.h>
-
 void randombytes(uint8_t *out, size_t outlen);
 
-#endif
 /*************** kyber/ref/reduce.h */
-#ifndef REDUCE_H
-#define REDUCE_H
-
-#include <stdint.h>
-#include "params.h"
-
 #define MONT -1044 // 2^16 mod q
 #define QINV -3327 // q^-1 mod 2^16
 
-#define montgomery_reduce KYBER_NAMESPACE(montgomery_reduce)
 int16_t montgomery_reduce(int32_t a);
 
-#define barrett_reduce KYBER_NAMESPACE(barrett_reduce)
 int16_t barrett_reduce(int16_t a);
 
-#endif
 /*************** kyber/ref/symmetric.h */
-#ifndef SYMMETRIC_H
-#define SYMMETRIC_H
-
-#include <stddef.h>
-#include <stdint.h>
-#include "params.h"
-
-#include "fips202.h"
-
 typedef keccak_state xof_state;
 
-#define kyber_shake128_absorb KYBER_NAMESPACE(kyber_shake128_absorb)
 void kyber_shake128_absorb(keccak_state *s,
                            const uint8_t seed[KYBER_SYMBYTES],
                            uint8_t x,
                            uint8_t y);
 
-#define kyber_shake256_prf KYBER_NAMESPACE(kyber_shake256_prf)
 void kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES], uint8_t nonce);
 
-#define kyber_shake256_rkprf KYBER_NAMESPACE(kyber_shake256_rkprf)
 void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES]);
 
 #define XOF_BLOCKBYTES SHAKE128_RATE
@@ -380,22 +238,10 @@ void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SY
 #define prf(OUT, OUTBYTES, KEY, NONCE) kyber_shake256_prf(OUT, OUTBYTES, KEY, NONCE)
 #define rkprf(OUT, KEY, INPUT) kyber_shake256_rkprf(OUT, KEY, INPUT)
 
-#endif /* SYMMETRIC_H */
 /*************** kyber/ref/verify.h */
-#ifndef VERIFY_H
-#define VERIFY_H
-
-#include <stddef.h>
-#include <stdint.h>
-#include "params.h"
-
-#define verify KYBER_NAMESPACE(verify)
 int verify(const uint8_t *a, const uint8_t *b, size_t len);
 
-#define cmov KYBER_NAMESPACE(cmov)
 void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
-
-#endif
 
 /*************** kyber/ref/cbd.c */
 #include <stdint.h>
