@@ -36,19 +36,12 @@
 
 /*************** kyber/ref/fips202.h */
 #define SHAKE128_RATE 168
-#define SHAKE256_RATE 136
-#define SHA3_256_RATE 136
-#define SHA3_512_RATE 72
 
 typedef struct {
   uint64_t s[25];
   unsigned int pos;
 } keccak_state;
 
-void shake128_init(keccak_state *state);
-void shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
-void shake128_finalize(keccak_state *state);
-void shake128_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
 void shake128_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen);
 void shake128_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state);
 
@@ -56,10 +49,7 @@ void shake256_init(keccak_state *state);
 void shake256_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
 void shake256_finalize(keccak_state *state);
 void shake256_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
-void shake256_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen);
-void shake256_squeezeblocks(uint8_t *out, size_t nblocks,  keccak_state *state);
 
-void shake128(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
@@ -244,9 +234,6 @@ int verify(const uint8_t *a, const uint8_t *b, size_t len);
 void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 
 /*************** kyber/ref/cbd.c */
-#include <stdint.h>
-#include "params.h"
-#include "cbd.h"
 
 /*************************************************
 * Name:        load32_littleendian
@@ -373,16 +360,6 @@ void poly_cbd_eta2(poly *r, const uint8_t buf[KYBER_ETA2*KYBER_N/4])
 #endif
 }
 /*************** kyber/ref/indcpa.c */
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-#include "params.h"
-#include "indcpa.h"
-#include "polyvec.h"
-#include "poly.h"
-#include "ntt.h"
-#include "symmetric.h"
-#include "randombytes.h"
 
 /*************************************************
 * Name:        pack_pk
@@ -532,7 +509,6 @@ static unsigned int rej_uniform(int16_t *r,
 *              - int transposed: boolean deciding whether A or A^T is generated
 **************************************************/
 #define GEN_MATRIX_NBLOCKS ((12*KYBER_N/8*(1 << 12)/KYBER_Q + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
-// Not static for benchmarking
 void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 {
   unsigned int ctr, i, j, k;
@@ -703,15 +679,6 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
   poly_tomsg(m, &mp);
 }
 /*************** kyber/ref/kem.c */
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-#include "params.h"
-#include "kem.h"
-#include "indcpa.h"
-#include "verify.h"
-#include "symmetric.h"
-#include "randombytes.h"
 /*************************************************
 * Name:        crypto_kem_keypair_derand
 *
@@ -873,11 +840,6 @@ int crypto_kem_dec(uint8_t *ss,
   return 0;
 }
 /*************** kyber/ref/ntt.c */
-#include <stdint.h>
-#include "params.h"
-#include "ntt.h"
-#include "reduce.h"
-
 /* Code to generate zetas and zetas_inv used in the number-theoretic transform:
 
 #define KYBER_ROOT_OF_UNITY 17
@@ -911,7 +873,7 @@ void init_ntt() {
 }
 */
 
-const int16_t zetas[128] = {
+static const int16_t zetas[128] = {
   -1044,  -758,  -359, -1517,  1493,  1422,   287,   202,
    -171,   622,  1577,   182,   962, -1202, -1474,  1468,
     573, -1325,   264,   383,  -829,  1458, -1602,  -130,
@@ -1020,13 +982,6 @@ void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
   r[1] += fqmul(a[1], b[0]);
 }
 /*************** kyber/ref/poly.c */
-#include <stdint.h>
-#include "params.h"
-#include "poly.h"
-#include "ntt.h"
-#include "reduce.h"
-#include "cbd.h"
-#include "symmetric.h"
 
 /*************************************************
 * Name:        poly_compress
@@ -1381,10 +1336,6 @@ void poly_sub(poly *r, const poly *a, const poly *b)
     r->coeffs[i] = a->coeffs[i] - b->coeffs[i];
 }
 /*************** kyber/ref/polyvec.c */
-#include <stdint.h>
-#include "params.h"
-#include "poly.h"
-#include "polyvec.h"
 
 /*************************************************
 * Name:        polyvec_compress
@@ -1629,9 +1580,6 @@ void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
     poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
 }
 /*************** kyber/ref/reduce.c */
-#include <stdint.h>
-#include "params.h"
-#include "reduce.h"
 
 /*************************************************
 * Name:        montgomery_reduce
@@ -1672,12 +1620,6 @@ int16_t barrett_reduce(int16_t a) {
   return a - t;
 }
 /*************** kyber/ref/symmetric-shake.c */
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-#include "params.h"
-#include "symmetric.h"
-#include "fips202.h"
 
 /*************************************************
 * Name:        kyber_shake128_absorb
