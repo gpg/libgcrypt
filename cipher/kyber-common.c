@@ -74,6 +74,7 @@ static uint32_t load32_littleendian(const uint8_t x[4])
 *
 * Returns 32-bit unsigned integer loaded from x (most significant byte is zero)
 **************************************************/
+#if !defined(KYBER_K) || KYBER_K == 2
 static uint32_t load24_littleendian(const uint8_t x[3])
 {
   uint32_t r;
@@ -82,7 +83,7 @@ static uint32_t load24_littleendian(const uint8_t x[3])
   r |= (uint32_t)x[2] << 16;
   return r;
 }
-
+#endif
 
 /*************************************************
 * Name:        cbd2
@@ -124,6 +125,7 @@ static void cbd2(poly *r, const uint8_t buf[2*KYBER_N/4])
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *buf: pointer to input byte array
 **************************************************/
+#if !defined(KYBER_K) || KYBER_K == 2
 static void cbd3(poly *r, const uint8_t buf[3*KYBER_N/4])
 {
   unsigned int i,j;
@@ -143,6 +145,7 @@ static void cbd3(poly *r, const uint8_t buf[3*KYBER_N/4])
     }
   }
 }
+#endif
 
 /*************** kyber/ref/indcpa.c */
 /*************************************************
@@ -334,6 +337,7 @@ void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
 *                            (of length KYBER_POLYCOMPRESSEDBYTES)
 *              - const poly *a: pointer to input polynomial
 **************************************************/
+#if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
 void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES2], const poly *a)
 {
   unsigned int i,j;
@@ -361,7 +365,9 @@ void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES2], const poly *a)
     r += 4;
   }
 }
+#endif
 
+#if !defined(KYBER_K) || KYBER_K == 4
 void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a)
 {
   unsigned int i,j;
@@ -390,6 +396,7 @@ void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a)
     r += 5;
   }
 }
+#endif
 
 /*************************************************
 * Name:        poly_decompress
@@ -543,19 +550,23 @@ void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
 *                                     (of length KYBER_SYMBYTES bytes)
 *              - uint8_t nonce: one-byte input nonce
 **************************************************/
+#if !defined(KYBER_K) || KYBER_K == 2
 void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 {
   uint8_t buf[KYBER_ETA1_2*KYBER_N/4];
   prf(buf, sizeof(buf), seed, nonce);
   cbd3(r, buf);
 }
+#endif
 
+#if !defined(KYBER_K) || KYBER_K == 3 || KYBER_K == 4
 void poly_getnoise_eta1_3_4(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 {
   uint8_t buf[KYBER_ETA1_3_4*KYBER_N/4];
   prf(buf, sizeof(buf), seed, nonce);
   cbd2(r, buf);
 }
+#endif
 
 /*************************************************
 * Name:        poly_getnoise_eta2

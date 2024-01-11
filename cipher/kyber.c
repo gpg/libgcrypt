@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+
+#ifdef _GCRYPT_IN_LIBGCRYPT
 #include <stdarg.h>
 #include <gpg-error.h>
 
@@ -78,7 +80,6 @@ kyber_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
     }
 }
 
-#ifdef _GCRYPT_IN_LIBGCRYPT
 static void
 randombytes (uint8_t *out, size_t outlen)
 {
@@ -213,8 +214,6 @@ void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 #define SHAKE128_RATE 168
 
 /*************** kyber/ref/params.h */
-#undef KYBER_K
-
 #define KYBER_N 256
 #define KYBER_Q 3329
 
@@ -222,7 +221,6 @@ void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 #define KYBER_SSBYTES  32   /* size in bytes of shared key */
 
 #define KYBER_POLYBYTES		384
-//#define KYBER_POLYVECBYTES	(KYBER_K * KYBER_POLYBYTES)
 #define KYBER_POLYVECBYTES2	(2 * KYBER_POLYBYTES)
 #define KYBER_POLYVECBYTES3	(3 * KYBER_POLYBYTES)
 #define KYBER_POLYVECBYTES4	(4 * KYBER_POLYBYTES)
@@ -230,18 +228,6 @@ void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 #define KYBER_ETA1_2   3
 #define KYBER_ETA1_3_4 2
 
-#if 0
-#if KYBER_K == 2
-#define KYBER_POLYCOMPRESSEDBYTES    128
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
-#elif KYBER_K == 3
-#define KYBER_POLYCOMPRESSEDBYTES    128
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
-#elif KYBER_K == 4
-#define KYBER_POLYCOMPRESSEDBYTES    160
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
-#endif
-#endif
 #define KYBER_POLYCOMPRESSEDBYTES2   128
 #define KYBER_POLYCOMPRESSEDBYTES3   128
 #define KYBER_POLYCOMPRESSEDBYTES4   160
@@ -252,30 +238,24 @@ void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 #define KYBER_ETA2 2
 
 #define KYBER_INDCPA_MSGBYTES       (KYBER_SYMBYTES)
-//#define KYBER_INDCPA_PUBLICKEYBYTES (KYBER_POLYVECBYTES + KYBER_SYMBYTES)
 #define KYBER_INDCPA_PUBLICKEYBYTES2 (KYBER_POLYVECBYTES2 + KYBER_SYMBYTES)
 #define KYBER_INDCPA_PUBLICKEYBYTES3 (KYBER_POLYVECBYTES3 + KYBER_SYMBYTES)
 #define KYBER_INDCPA_PUBLICKEYBYTES4 (KYBER_POLYVECBYTES4 + KYBER_SYMBYTES)
 
-//#define KYBER_INDCPA_SECRETKEYBYTES (KYBER_POLYVECBYTES)
 #define KYBER_INDCPA_SECRETKEYBYTES2 (KYBER_POLYVECBYTES2)
 #define KYBER_INDCPA_SECRETKEYBYTES3 (KYBER_POLYVECBYTES3)
 #define KYBER_INDCPA_SECRETKEYBYTES4 (KYBER_POLYVECBYTES4)
-//#define KYBER_INDCPA_BYTES          (KYBER_POLYVECCOMPRESSEDBYTES + KYBER_POLYCOMPRESSEDBYTES)
 #define KYBER_INDCPA_BYTES2      (KYBER_POLYVECCOMPRESSEDBYTES2 + KYBER_POLYCOMPRESSEDBYTES2)
 #define KYBER_INDCPA_BYTES3      (KYBER_POLYVECCOMPRESSEDBYTES3 + KYBER_POLYCOMPRESSEDBYTES3)
 #define KYBER_INDCPA_BYTES4      (KYBER_POLYVECCOMPRESSEDBYTES4 + KYBER_POLYCOMPRESSEDBYTES4)
 
-//#define KYBER_PUBLICKEYBYTES  (KYBER_INDCPA_PUBLICKEYBYTES)
 #define KYBER_PUBLICKEYBYTES2  (KYBER_INDCPA_PUBLICKEYBYTES2)
 #define KYBER_PUBLICKEYBYTES3  (KYBER_INDCPA_PUBLICKEYBYTES3)
 #define KYBER_PUBLICKEYBYTES4  (KYBER_INDCPA_PUBLICKEYBYTES4)
 /* 32 bytes of additional space to save H(pk) */
-//#define KYBER_SECRETKEYBYTES  (KYBER_INDCPA_SECRETKEYBYTES + KYBER_INDCPA_PUBLICKEYBYTES + 2*KYBER_SYMBYTES)
 #define KYBER_SECRETKEYBYTES2  (KYBER_INDCPA_SECRETKEYBYTES2 + KYBER_INDCPA_PUBLICKEYBYTES2 + 2*KYBER_SYMBYTES)
 #define KYBER_SECRETKEYBYTES3  (KYBER_INDCPA_SECRETKEYBYTES3 + KYBER_INDCPA_PUBLICKEYBYTES3 + 2*KYBER_SYMBYTES)
 #define KYBER_SECRETKEYBYTES4  (KYBER_INDCPA_SECRETKEYBYTES4 + KYBER_INDCPA_PUBLICKEYBYTES4 + 2*KYBER_SYMBYTES)
-//#define KYBER_CIPHERTEXTBYTES (KYBER_INDCPA_BYTES)
 #define KYBER_CIPHERTEXTBYTES2 (KYBER_INDCPA_BYTES2)
 #define KYBER_CIPHERTEXTBYTES3 (KYBER_INDCPA_BYTES3)
 #define KYBER_CIPHERTEXTBYTES4 (KYBER_INDCPA_BYTES4)
@@ -289,16 +269,24 @@ typedef struct{
   int16_t coeffs[KYBER_N];
 } poly;
 
+#if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
 static void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES2], const poly *a);
-static void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a);
 static void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES2]);
+#endif
+#if !defined(KYBER_K) || KYBER_K == 4
+static void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a);
 static void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES4]);
+#endif
 static void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
 static void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
 static void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES]);
 static void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *r);
+#if !defined(KYBER_K) || KYBER_K == 2
 static void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+#endif
+#if !defined(KYBER_K) || KYBER_K == 3 || KYBER_K == 4
 static void poly_getnoise_eta1_3_4(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+#endif
 static void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 static void poly_ntt(poly *r);
 static void poly_invntt_tomont(poly *r);
@@ -397,102 +385,125 @@ void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nbl
 #define KYBER_PUBLICKEYBYTES  (KYBER_INDCPA_PUBLICKEYBYTES)
 #define KYBER_SECRETKEYBYTES  (KYBER_INDCPA_SECRETKEYBYTES + KYBER_INDCPA_PUBLICKEYBYTES + 2*KYBER_SYMBYTES)
 #define KYBER_CIPHERTEXTBYTES (KYBER_INDCPA_BYTES)
-
-#define KYBER_K 2
-#define KYBER_POLYCOMPRESSEDBYTES    128
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
-#define poly_compress poly_compress_128
-#define poly_decompress poly_decompress_128
-#define poly_getnoise_eta1 poly_getnoise_eta1_2
-#define crypto_kem_keypair_derand VARIANT2(crypto_kem_keypair_derand)
-#define crypto_kem_enc_derand VARIANT2(crypto_kem_enc_derand)
-#define crypto_kem_keypair VARIANT2(crypto_kem_keypair)
-#define crypto_kem_enc VARIANT2(crypto_kem_enc)
-#define crypto_kem_dec VARIANT2(crypto_kem_dec)
-#define polyvec VARIANT2(polyvec)
-#define polyvec_compress VARIANT2(polyvec_compress)
-#define polyvec_decompress VARIANT2(polyvec_decompress)
-#define polyvec_tobytes VARIANT2(polyvec_tobytes)
-#define polyvec_frombytes VARIANT2(polyvec_frombytes)
-#define polyvec_ntt VARIANT2(polyvec_ntt)
-#define polyvec_invntt_tomont VARIANT2(polyvec_invntt_tomont)
-#define polyvec_basemul_acc_montgomery VARIANT2(polyvec_basemul_acc_montgomery)
-#define polyvec_reduce VARIANT2(polyvec_reduce)
-#define polyvec_add VARIANT2(polyvec_add)
-#define pack_pk VARIANT2(pack_pk)
-#define unpack_pk VARIANT2(unpack_pk)
-#define pack_sk VARIANT2(pack_sk)
-#define unpack_sk VARIANT2(unpack_sk)
-#define pack_ciphertext VARIANT2(pack_ciphertext)
-#define unpack_ciphertext VARIANT2(unpack_ciphertext)
-#define gen_matrix VARIANT2(gen_matrix)
-#define indcpa_keypair_derand VARIANT2(indcpa_keypair_derand)
-#define indcpa_enc VARIANT2(indcpa_enc)
-#define indcpa_dec VARIANT2(indcpa_dec)
-#include "kyber-impl.c"
-
-#define KYBER_K 3
-#define KYBER_POLYCOMPRESSEDBYTES    128
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
-#define poly_compress poly_compress_128
-#define poly_decompress poly_decompress_128
-#define poly_getnoise_eta1 poly_getnoise_eta1_3_4
-#define crypto_kem_keypair_derand VARIANT3(crypto_kem_keypair_derand)
-#define crypto_kem_enc_derand VARIANT3(crypto_kem_enc_derand)
-#define crypto_kem_keypair VARIANT3(crypto_kem_keypair)
-#define crypto_kem_enc VARIANT3(crypto_kem_enc)
-#define crypto_kem_dec VARIANT3(crypto_kem_dec)
-#define polyvec VARIANT3(polyvec)
-#define polyvec_compress VARIANT3(polyvec_compress)
-#define polyvec_decompress VARIANT3(polyvec_decompress)
-#define polyvec_tobytes VARIANT3(polyvec_tobytes)
-#define polyvec_frombytes VARIANT3(polyvec_frombytes)
-#define polyvec_ntt VARIANT3(polyvec_ntt)
-#define polyvec_invntt_tomont VARIANT3(polyvec_invntt_tomont)
-#define polyvec_basemul_acc_montgomery VARIANT3(polyvec_basemul_acc_montgomery)
-#define polyvec_reduce VARIANT3(polyvec_reduce)
-#define polyvec_add VARIANT3(polyvec_add)
-#define pack_pk VARIANT3(pack_pk)
-#define unpack_pk VARIANT3(unpack_pk)
-#define pack_sk VARIANT3(pack_sk)
-#define unpack_sk VARIANT3(unpack_sk)
-#define pack_ciphertext VARIANT3(pack_ciphertext)
-#define unpack_ciphertext VARIANT3(unpack_ciphertext)
-#define gen_matrix VARIANT3(gen_matrix)
-#define indcpa_keypair_derand VARIANT3(indcpa_keypair_derand)
-#define indcpa_enc VARIANT3(indcpa_enc)
-#define indcpa_dec VARIANT3(indcpa_dec)
-#include "kyber-impl.c"
-
-#define KYBER_K 4
-#define KYBER_POLYCOMPRESSEDBYTES    160
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
-#define poly_compress poly_compress_160
-#define poly_decompress poly_decompress_160
-#define poly_getnoise_eta1 poly_getnoise_eta1_3_4
-#define crypto_kem_keypair_derand VARIANT4(crypto_kem_keypair_derand)
-#define crypto_kem_enc_derand VARIANT4(crypto_kem_enc_derand)
-#define crypto_kem_keypair VARIANT4(crypto_kem_keypair)
-#define crypto_kem_enc VARIANT4(crypto_kem_enc)
-#define crypto_kem_dec VARIANT4(crypto_kem_dec)
-#define polyvec VARIANT4(polyvec)
-#define polyvec_compress VARIANT4(polyvec_compress)
-#define polyvec_decompress VARIANT4(polyvec_decompress)
-#define polyvec_tobytes VARIANT4(polyvec_tobytes)
-#define polyvec_frombytes VARIANT4(polyvec_frombytes)
-#define polyvec_ntt VARIANT4(polyvec_ntt)
-#define polyvec_invntt_tomont VARIANT4(polyvec_invntt_tomont)
-#define polyvec_basemul_acc_montgomery VARIANT4(polyvec_basemul_acc_montgomery)
-#define polyvec_reduce VARIANT4(polyvec_reduce)
-#define polyvec_add VARIANT4(polyvec_add)
-#define pack_pk VARIANT4(pack_pk)
-#define unpack_pk VARIANT4(unpack_pk)
-#define pack_sk VARIANT4(pack_sk)
-#define unpack_sk VARIANT4(unpack_sk)
-#define pack_ciphertext VARIANT4(pack_ciphertext)
-#define unpack_ciphertext VARIANT4(unpack_ciphertext)
-#define gen_matrix VARIANT4(gen_matrix)
-#define indcpa_keypair_derand VARIANT4(indcpa_keypair_derand)
-#define indcpa_enc VARIANT4(indcpa_enc)
-#define indcpa_dec VARIANT4(indcpa_dec)
-#include "kyber-impl.c"
+
+#ifdef KYBER_K
+# if KYBER_K == 2
+#  define KYBER_POLYCOMPRESSEDBYTES    128
+#  define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
+#  define poly_compress poly_compress_128
+#  define poly_decompress poly_decompress_128
+#  define poly_getnoise_eta1 poly_getnoise_eta1_2
+# elif KYBER_K == 3
+#  define KYBER_POLYCOMPRESSEDBYTES    128
+#  define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
+#  define poly_compress poly_compress_128
+#  define poly_decompress poly_decompress_128
+#  define poly_getnoise_eta1 poly_getnoise_eta1_3_4
+# elif KYBER_K == 4
+#  define KYBER_POLYCOMPRESSEDBYTES    160
+#  define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
+#  define poly_compress poly_compress_160
+#  define poly_decompress poly_decompress_160
+#  define poly_getnoise_eta1 poly_getnoise_eta1_3_4
+# endif
+# include "kyber-impl.c"
+# else
+# define KYBER_K 2
+# define KYBER_POLYCOMPRESSEDBYTES    128
+# define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
+# define poly_compress poly_compress_128
+# define poly_decompress poly_decompress_128
+# define poly_getnoise_eta1 poly_getnoise_eta1_2
+# define crypto_kem_keypair_derand VARIANT2(crypto_kem_keypair_derand)
+# define crypto_kem_enc_derand VARIANT2(crypto_kem_enc_derand)
+# define crypto_kem_keypair VARIANT2(crypto_kem_keypair)
+# define crypto_kem_enc VARIANT2(crypto_kem_enc)
+# define crypto_kem_dec VARIANT2(crypto_kem_dec)
+# define polyvec VARIANT2(polyvec)
+# define polyvec_compress VARIANT2(polyvec_compress)
+# define polyvec_decompress VARIANT2(polyvec_decompress)
+# define polyvec_tobytes VARIANT2(polyvec_tobytes)
+# define polyvec_frombytes VARIANT2(polyvec_frombytes)
+# define polyvec_ntt VARIANT2(polyvec_ntt)
+# define polyvec_invntt_tomont VARIANT2(polyvec_invntt_tomont)
+# define polyvec_basemul_acc_montgomery VARIANT2(polyvec_basemul_acc_montgomery)
+# define polyvec_reduce VARIANT2(polyvec_reduce)
+# define polyvec_add VARIANT2(polyvec_add)
+# define pack_pk VARIANT2(pack_pk)
+# define unpack_pk VARIANT2(unpack_pk)
+# define pack_sk VARIANT2(pack_sk)
+# define unpack_sk VARIANT2(unpack_sk)
+# define pack_ciphertext VARIANT2(pack_ciphertext)
+# define unpack_ciphertext VARIANT2(unpack_ciphertext)
+# define gen_matrix VARIANT2(gen_matrix)
+# define indcpa_keypair_derand VARIANT2(indcpa_keypair_derand)
+# define indcpa_enc VARIANT2(indcpa_enc)
+# define indcpa_dec VARIANT2(indcpa_dec)
+# include "kyber-impl.c"
+
+# define KYBER_K 3
+# define KYBER_POLYCOMPRESSEDBYTES    128
+# define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
+# define poly_compress poly_compress_128
+# define poly_decompress poly_decompress_128
+# define poly_getnoise_eta1 poly_getnoise_eta1_3_4
+# define crypto_kem_keypair_derand VARIANT3(crypto_kem_keypair_derand)
+# define crypto_kem_enc_derand VARIANT3(crypto_kem_enc_derand)
+# define crypto_kem_keypair VARIANT3(crypto_kem_keypair)
+# define crypto_kem_enc VARIANT3(crypto_kem_enc)
+# define crypto_kem_dec VARIANT3(crypto_kem_dec)
+# define polyvec VARIANT3(polyvec)
+# define polyvec_compress VARIANT3(polyvec_compress)
+# define polyvec_decompress VARIANT3(polyvec_decompress)
+# define polyvec_tobytes VARIANT3(polyvec_tobytes)
+# define polyvec_frombytes VARIANT3(polyvec_frombytes)
+# define polyvec_ntt VARIANT3(polyvec_ntt)
+# define polyvec_invntt_tomont VARIANT3(polyvec_invntt_tomont)
+# define polyvec_basemul_acc_montgomery VARIANT3(polyvec_basemul_acc_montgomery)
+# define polyvec_reduce VARIANT3(polyvec_reduce)
+# define polyvec_add VARIANT3(polyvec_add)
+# define pack_pk VARIANT3(pack_pk)
+# define unpack_pk VARIANT3(unpack_pk)
+# define pack_sk VARIANT3(pack_sk)
+# define unpack_sk VARIANT3(unpack_sk)
+# define pack_ciphertext VARIANT3(pack_ciphertext)
+# define unpack_ciphertext VARIANT3(unpack_ciphertext)
+# define gen_matrix VARIANT3(gen_matrix)
+# define indcpa_keypair_derand VARIANT3(indcpa_keypair_derand)
+# define indcpa_enc VARIANT3(indcpa_enc)
+# define indcpa_dec VARIANT3(indcpa_dec)
+# include "kyber-impl.c"
+
+# define KYBER_K 4
+# define KYBER_POLYCOMPRESSEDBYTES    160
+# define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
+# define poly_compress poly_compress_160
+# define poly_decompress poly_decompress_160
+# define poly_getnoise_eta1 poly_getnoise_eta1_3_4
+# define crypto_kem_keypair_derand VARIANT4(crypto_kem_keypair_derand)
+# define crypto_kem_enc_derand VARIANT4(crypto_kem_enc_derand)
+# define crypto_kem_keypair VARIANT4(crypto_kem_keypair)
+# define crypto_kem_enc VARIANT4(crypto_kem_enc)
+# define crypto_kem_dec VARIANT4(crypto_kem_dec)
+# define polyvec VARIANT4(polyvec)
+# define polyvec_compress VARIANT4(polyvec_compress)
+# define polyvec_decompress VARIANT4(polyvec_decompress)
+# define polyvec_tobytes VARIANT4(polyvec_tobytes)
+# define polyvec_frombytes VARIANT4(polyvec_frombytes)
+# define polyvec_ntt VARIANT4(polyvec_ntt)
+# define polyvec_invntt_tomont VARIANT4(polyvec_invntt_tomont)
+# define polyvec_basemul_acc_montgomery VARIANT4(polyvec_basemul_acc_montgomery)
+# define polyvec_reduce VARIANT4(polyvec_reduce)
+# define polyvec_add VARIANT4(polyvec_add)
+# define pack_pk VARIANT4(pack_pk)
+# define unpack_pk VARIANT4(unpack_pk)
+# define pack_sk VARIANT4(pack_sk)
+# define unpack_sk VARIANT4(unpack_sk)
+# define pack_ciphertext VARIANT4(pack_ciphertext)
+# define unpack_ciphertext VARIANT4(unpack_ciphertext)
+# define gen_matrix VARIANT4(gen_matrix)
+# define indcpa_keypair_derand VARIANT4(indcpa_keypair_derand)
+# define indcpa_enc VARIANT4(indcpa_enc)
+# define indcpa_dec VARIANT4(indcpa_dec)
+# include "kyber-impl.c"
+#endif
