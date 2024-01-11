@@ -89,13 +89,18 @@ typedef struct {
 } keccak_state;
 
 static void
-shake128_absorb_once (keccak_state *state, const uint8_t *in, size_t inlen)
+shake128_init (keccak_state *state)
 {
   gcry_err_code_t ec;
 
   ec = _gcry_md_open (&state->h, GCRY_MD_SHAKE128, 0);
   if (ec)
     log_fatal ("internal md_open failed: %d\n", ec);
+}
+
+static void
+shake128_absorb (keccak_state *state, const uint8_t *in, size_t inlen)
+{
   _gcry_md_write (state->h, in, inlen);
 }
 
@@ -103,12 +108,8 @@ shake128_absorb_once (keccak_state *state, const uint8_t *in, size_t inlen)
 static void
 shake128_squeezeblocks (uint8_t *out, size_t nblocks, keccak_state *state)
 {
-  gcry_err_code_t ec;
-
-  ec = _gcry_md_extract (state->h, GCRY_MD_SHAKE128, out,
-                         SHAKE128_RATE * nblocks);
-  if (ec)
-    log_fatal ("internal md_extract failed: %d\n", ec);
+  _gcry_md_extract (state->h, GCRY_MD_SHAKE128, out,
+                    SHAKE128_RATE * nblocks);
 }
 
 static void
@@ -342,6 +343,8 @@ static void kyber_shake128_absorb(keccak_state *s,
 
 #define hash_h(OUT, IN, INBYTES) sha3_256(OUT, IN, INBYTES)
 #define hash_g(OUT, IN, INBYTES) sha3_512(OUT, IN, INBYTES)
+#define xof_init(STATE) shake128_init(STATE)
+#define xof_close(STATE) shake128_close(STATE)
 #define xof_absorb(STATE, SEED, X, Y) kyber_shake128_absorb(STATE, SEED, X, Y)
 #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeezeblocks(OUT, OUTBLOCKS, STATE)
 #define prf(OUT, OUTBYTES, KEY, NONCE) shake256v(OUT, OUTBYTES, KEY, KYBER_SYMBYTES, &nonce, 1, NULL, 0)
@@ -1066,7 +1069,7 @@ void kyber_shake128_absorb(keccak_state *state,
   extseed[KYBER_SYMBYTES+0] = x;
   extseed[KYBER_SYMBYTES+1] = y;
 
-  shake128_absorb_once(state, extseed, sizeof(extseed));
+  shake128_absorb (state, extseed, sizeof(extseed));
 }
 
 #define VARIANT2(name) name ## _2

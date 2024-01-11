@@ -160,6 +160,7 @@ static void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int trans
 
   for(i=0;i<KYBER_K;i++) {
     for(j=0;j<KYBER_K;j++) {
+      xof_init(&state);
       if(transposed)
         xof_absorb(&state, seed, i, j);
       else
@@ -177,9 +178,9 @@ static void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int trans
         buflen = off + XOF_BLOCKBYTES;
         ctr += rej_uniform(a[i].vec[j].coeffs + ctr, KYBER_N - ctr, buf, buflen);
       }
+      xof_close (&state);
     }
   }
-  shake128_close (&state);
 }
 
 /*************************************************
