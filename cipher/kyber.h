@@ -1,3 +1,52 @@
+/* kyber.h - the Kyber key encapsulation mechanism (header)
+ * Copyright (C) 2023 g10 Code GmbH
+ *
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser general Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ *
+ */
+/*
+  Original code from:
+
+  Repository: https://github.com/pq-crystals/kyber.git
+  Branch: standard
+  Commit: 11d00ff1f20cfca1f72d819e5a45165c1e0a2816
+
+  Licence:
+  Public Domain (https://creativecommons.org/share-your-work/public-domain/cc0/);
+  or Apache 2.0 License (https://www.apache.org/licenses/LICENSE-2.0.html).
+
+  Authors:
+	Joppe Bos
+	Léo Ducas
+	Eike Kiltz
+        Tancrède Lepoint
+	Vadim Lyubashevsky
+	John Schanck
+	Peter Schwabe
+        Gregor Seiler
+	Damien Stehlé
+
+  Kyber Home: https://www.pq-crystals.org/kyber/
+ */
+/* Standalone use is possible either with KYBER_K defined with the
+ * value (2, 3, or 4), or not defined.  For the latter, routines for
+ * three variants are available.
+ */
+
 #ifndef KYBER_H
 #define KYBER_H
 

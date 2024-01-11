@@ -1,3 +1,70 @@
+/* kyber.c - the Kyber key encapsulation mechanism (main part)
+ * Copyright (C) 2023 g10 Code GmbH
+ *
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser general Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ *
+ */
+/*
+  Original code from:
+
+  Repository: https://github.com/pq-crystals/kyber.git
+  Branch: standard
+  Commit: 11d00ff1f20cfca1f72d819e5a45165c1e0a2816
+
+  Licence:
+  Public Domain (https://creativecommons.org/share-your-work/public-domain/cc0/);
+  or Apache 2.0 License (https://www.apache.org/licenses/LICENSE-2.0.html).
+
+  Authors:
+	Joppe Bos
+	Léo Ducas
+	Eike Kiltz
+        Tancrède Lepoint
+	Vadim Lyubashevsky
+	John Schanck
+	Peter Schwabe
+        Gregor Seiler
+	Damien Stehlé
+
+  Kyber Home: https://www.pq-crystals.org/kyber/
+ */
+/*
+ * This implementation consists of four files: kyber.h (header),
+ * kyber.c (this), kyber-common.c (common part), and kyber-kdep.c
+ * (KYBER_K dependent part).
+ *
+ * It is for inclusion in libgcrypt library.  Also, standalone use of
+ * the implementation is possible.  With KYBER_K defined, it can offer
+ * the variant of that KYBER_K specified.  Otherwise, three variants
+ * are offered.
+ *
+ * From original code, following modification was made.
+ *
+ * - C++ style coomments are changed to C-style.
+ *
+ * - "verify" routine is changed to return 1 on success, and now has
+ *   new name "verify1", so that the use of the routine won't need
+ *   negation (since negation might result non-constant-time code with
+ *   branch by some compiler).
+ *
+ * - For "xof" routines, xof_init and xof_close are added, so that
+ *   memory will be possible to be cleared after its use.
+ */
+
 #include <config.h>
 
 #include <stddef.h>
@@ -164,7 +231,7 @@ sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen)
 #else
 #include "kyber.h"
 
-void randombytes(uint8_t *out, size_t outlen);
+void randombytes (uint8_t *out, size_t outlen);
 
 typedef struct {
   uint64_t s[25];
@@ -172,46 +239,21 @@ typedef struct {
 } keccak_state;
 
 void shake128_init (keccak_state *state);
-void shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
+void shake128_absorb (keccak_state *state, const uint8_t *in, size_t inlen);
 void shake128_squeeze (keccak_state *state, uint8_t *out, size_t outlen);
 void shake128_close (keccak_state *state);
 
 void shake256v (uint8_t *out, size_t outlen, ...);
-void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
-void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
-void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
+void shake256 (uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
+void sha3_256 (uint8_t h[32], const uint8_t *in, size_t inlen);
+void sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen);
 
 /* Return 1 when success, 0 otherwise.  */
-unsigned int verify1(const uint8_t *a, const uint8_t *b, size_t len);
+unsigned int verify1 (const uint8_t *a, const uint8_t *b, size_t len);
 /* Conditional move.  */
-void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
+void cmov (uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 #endif
 
-/*
-  Code from:
-
-  Repository: https://github.com/pq-crystals/kyber.git
-  Branch: standard
-  Commit: 11d00ff1f20cfca1f72d819e5a45165c1e0a2816
-
-  Licence:
-  Public Domain (https://creativecommons.org/share-your-work/public-domain/cc0/);
-  or Apache 2.0 License (https://www.apache.org/licenses/LICENSE-2.0.html).
-
-  Authors:
-	Joppe Bos
-	Léo Ducas
-	Eike Kiltz
-        Tancrède Lepoint
-	Vadim Lyubashevsky
-	John Schanck
-	Peter Schwabe
-        Gregor Seiler
-	Damien Stehlé
-
-  Kyber Home: https://www.pq-crystals.org/kyber/
- */
-
 /*************** kyber/ref/fips202.h */
 #define SHAKE128_RATE 168
 
@@ -305,22 +347,34 @@ static void invntt(int16_t poly[256]);
 static void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 
 /*************** kyber/ref/reduce.h */
-#define MONT -1044 // 2^16 mod q
-#define QINV -3327 // q^-1 mod 2^16
+#define MONT -1044 /* 2^16 mod q    */
+#define QINV -3327 /* q^-1 mod 2^16 */
 
 static int16_t montgomery_reduce(int32_t a);
 static int16_t barrett_reduce(int16_t a);
 
-/*************** adopted from kyber/ref/symmetric.h */
+/*************** kyber/ref/symmetric.h */
 typedef keccak_state xof_state;
 
-static void kyber_shake128_init (keccak_state *state);
-static void kyber_shake128_absorb(keccak_state *s,
-                                  const uint8_t seed[KYBER_SYMBYTES],
-                                  uint8_t x,
-                                  uint8_t y);
+#define kyber_shake128_init shake128_init
+#define kyber_shake128_close shake128_close
+static void kyber_shake128_absorb (keccak_state *s,
+                                   const uint8_t seed[KYBER_SYMBYTES],
+                                   uint8_t x, uint8_t y)
+{
+  uint8_t extseed[KYBER_SYMBYTES+2];
+
+  memcpy(extseed, seed, KYBER_SYMBYTES);
+  extseed[KYBER_SYMBYTES+0] = x;
+  extseed[KYBER_SYMBYTES+1] = y;
+
+  shake128_absorb (state, extseed, sizeof(extseed));
+}
+
 static void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nblocks);
-static void kyber_shake128_close (keccak_state *state);
+{
+  shake128_squeeze (state, out, SHAKE128_RATE * nblocks);
+}
 
 #define XOF_BLOCKBYTES SHAKE128_RATE
 
@@ -333,49 +387,8 @@ static void kyber_shake128_close (keccak_state *state);
 #define prf(OUT, OUTBYTES, KEY, NONCE) shake256v(OUT, OUTBYTES, KEY, KYBER_SYMBYTES, &nonce, 1, NULL, 0)
 #define rkprf(OUT, KEY, INPUT) shake256v(OUT, KYBER_SSBYTES, KEY, KYBER_SYMBYTES, INPUT, KYBER_CIPHERTEXTBYTES, NULL, 0)
 
-/*************** kyber/ref/symmetric-shake.c */
-
-void kyber_shake128_init (keccak_state *state)
-{
-  shake128_init (state);
-}
-
-void kyber_shake128_close (keccak_state *state)
-{
-  shake128_close (state);
-}
-
-/*************************************************
-* Name:        kyber_shake128_absorb
-*
-* Description: Absorb step of the SHAKE128 specialized for the Kyber context.
-*
-* Arguments:   - keccak_state *state: pointer to (uninitialized) output Keccak state
-*              - const uint8_t *seed: pointer to KYBER_SYMBYTES input to be absorbed into state
-*              - uint8_t i: additional byte of input
-*              - uint8_t j: additional byte of input
-**************************************************/
-void kyber_shake128_absorb(keccak_state *state,
-                           const uint8_t seed[KYBER_SYMBYTES],
-                           uint8_t x,
-                           uint8_t y)
-{
-  uint8_t extseed[KYBER_SYMBYTES+2];
-
-  memcpy(extseed, seed, KYBER_SYMBYTES);
-  extseed[KYBER_SYMBYTES+0] = x;
-  extseed[KYBER_SYMBYTES+1] = y;
-
-  shake128_absorb (state, extseed, sizeof(extseed));
-}
-
-void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nblocks)
-{
-  shake128_squeeze (state, out, SHAKE128_RATE * nblocks);
-}
-
 #include "kyber-common.c"
-
+
 #define VARIANT2(name) name ## _2
 #define VARIANT3(name) name ## _3
 #define VARIANT4(name) name ## _4
@@ -408,7 +421,7 @@ void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nbl
 #  define poly_decompress poly_decompress_160
 #  define poly_getnoise_eta1 poly_getnoise_eta1_3_4
 # endif
-# include "kyber-impl.c"
+# include "kyber-kdep.c"
 # else
 # define KYBER_K 2
 # define KYBER_POLYCOMPRESSEDBYTES    128
@@ -441,7 +454,7 @@ void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nbl
 # define indcpa_keypair_derand VARIANT2(indcpa_keypair_derand)
 # define indcpa_enc VARIANT2(indcpa_enc)
 # define indcpa_dec VARIANT2(indcpa_dec)
-# include "kyber-impl.c"
+# include "kyber-kdep.c"
 
 # define KYBER_K 3
 # define KYBER_POLYCOMPRESSEDBYTES    128
@@ -474,7 +487,7 @@ void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nbl
 # define indcpa_keypair_derand VARIANT3(indcpa_keypair_derand)
 # define indcpa_enc VARIANT3(indcpa_enc)
 # define indcpa_dec VARIANT3(indcpa_dec)
-# include "kyber-impl.c"
+# include "kyber-kdep.c"
 
 # define KYBER_K 4
 # define KYBER_POLYCOMPRESSEDBYTES    160
@@ -507,5 +520,5 @@ void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nbl
 # define indcpa_keypair_derand VARIANT4(indcpa_keypair_derand)
 # define indcpa_enc VARIANT4(indcpa_enc)
 # define indcpa_dec VARIANT4(indcpa_dec)
-# include "kyber-impl.c"
+# include "kyber-kdep.c"
 #endif

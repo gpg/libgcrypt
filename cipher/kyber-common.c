@@ -1,23 +1,25 @@
-/*
-kyber/ref/cbd.c:
-functions extracted (poly_cbd_eta1, poly_cbd_eta2 removed), modified cbd3
-
-kyber/ref/indcpa.c:
-a function rej_uniform extracted
-
-kyber/ref/ntt.c:
-modified zeta to be static
-
-kyber/ref/poly.c:
-poly_compress into poly_compress_128 and poly_compress_160
-poly_decompress into poly_decompress_128 and poly_decompress_160
-poly_getnoise_eta1 into poly_getnoise_eta1_2 and poly_getnoise_eta1_3_4
-modified poly_getnoise_eta2 directly use cbd2 function.
-
-kyber/ref/reduce.c
+/* kyber-common.c - the Kyber key encapsulation mechanism (common part)
+ * Copyright (C) 2023 g10 Code GmbH
+ *
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser general Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ *
  */
 /*
-  Code from:
+  Original code from:
 
   Repository: https://github.com/pq-crystals/kyber.git
   Branch: standard
@@ -39,6 +41,22 @@ kyber/ref/reduce.c
 	Damien Stehlé
 
   Kyber Home: https://www.pq-crystals.org/kyber/
+ */
+/*
+ * From original code, following modification was made.
+ *
+ * - C++ style coomments are changed to C-style.
+ *
+ * - Functions "poly_cbd_eta1" "poly_cbd_eta2" are removed.
+ *
+ * - Constant "zeta" is static, not available outside.
+ *
+ * - "poly_compress" and "poly_decompress" are now two variants _128
+ *   and _160.
+ *
+ * - "poly_getnoise_eta1" is now two variants _2 and _3_4.
+ *
+ * - "poly_getnoise_eta2" directly uses "cbd2" function.
  */
 
 /*************** kyber/ref/cbd.c */
@@ -288,7 +306,7 @@ void ntt(int16_t r[256]) {
 void invntt(int16_t r[256]) {
   unsigned int start, len, j, k;
   int16_t t, zeta;
-  const int16_t f = 1441; // mont^2/128
+  const int16_t f = 1441; /* mont^2/128 */
 
   k = 127;
   for(len = 2; len <= 128; len <<= 1) {
@@ -347,7 +365,7 @@ void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES2], const poly *a)
 
   for(i=0;i<KYBER_N/8;i++) {
     for(j=0;j<8;j++) {
-      // map to positive standard representatives
+      /* map to positive standard representatives */
       u  = a->coeffs[8*i+j];
       u += (u >> 15) & KYBER_Q;
 /*    t[j] = ((((uint16_t)u << 4) + KYBER_Q/2)/KYBER_Q) & 15; */
@@ -377,7 +395,7 @@ void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a)
 
   for(i=0;i<KYBER_N/8;i++) {
     for(j=0;j<8;j++) {
-      // map to positive standard representatives
+      /* map to positive standard representatives */
       u  = a->coeffs[8*i+j];
       u += (u >> 15) & KYBER_Q;
 /*    t[j] = ((((uint32_t)u << 5) + KYBER_Q/2)/KYBER_Q) & 31; */
@@ -458,7 +476,7 @@ void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a)
   uint16_t t0, t1;
 
   for(i=0;i<KYBER_N/2;i++) {
-    // map to positive standard representatives
+    /* map to positive standard representatives */
     t0  = a->coeffs[2*i];
     t0 += ((int16_t)t0 >> 15) & KYBER_Q;
     t1 = a->coeffs[2*i+1];
@@ -530,8 +548,8 @@ void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
     msg[i] = 0;
     for(j=0;j<8;j++) {
       t  = a->coeffs[8*i+j];
-      // t += ((int16_t)t >> 15) & KYBER_Q;
-      // t  = (((t << 1) + KYBER_Q/2)/KYBER_Q) & 1;
+      /* t += ((int16_t)t >> 15) & KYBER_Q; */
+      /* t  = (((t << 1) + KYBER_Q/2)/KYBER_Q) & 1; */
       t <<= 1;
       t += 1665;
       t *= 80635;
