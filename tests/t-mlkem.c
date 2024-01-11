@@ -276,7 +276,7 @@ main (int argc, char **argv)
     }
 
   if (!fname)
-    fname = prepend_srcdir ("mlkem.inp");
+    fname = prepend_srcdir ("t-mlkem.inp");
   else
     custom_data_file = 1;
 
