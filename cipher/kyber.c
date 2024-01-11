@@ -358,7 +358,7 @@ typedef keccak_state xof_state;
 
 #define kyber_shake128_init shake128_init
 #define kyber_shake128_close shake128_close
-static void kyber_shake128_absorb (keccak_state *s,
+static void kyber_shake128_absorb (keccak_state *state,
                                    const uint8_t seed[KYBER_SYMBYTES],
                                    uint8_t x, uint8_t y)
 {
@@ -371,7 +371,7 @@ static void kyber_shake128_absorb (keccak_state *s,
   shake128_absorb (state, extseed, sizeof(extseed));
 }
 
-static void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nblocks);
+static void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nblocks)
 {
   shake128_squeeze (state, out, SHAKE128_RATE * nblocks);
 }
