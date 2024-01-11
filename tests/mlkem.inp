@@ -1,3 +1,7 @@
+# mlkem.inp - 30 test data sets
+#
+# This has extracted from the result files of tvecs512, tvecs768, and tvecs1024
+# of the reference implementaton.  Each of 10 test vectors are taken.
 #
 [Kyber-512]
 #

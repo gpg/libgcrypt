@@ -1,5 +1,5 @@
 /* t-mlkem.c - Check the Crystal Kyber computation by Known Answers
- * Copyright (C) 2019 g10 Code GmbH
+ * Copyright (C) 2023 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
