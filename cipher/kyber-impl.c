@@ -473,7 +473,7 @@ int crypto_kem_dec(uint8_t *ss,
   /* coins are in kr+KYBER_SYMBYTES */
   indcpa_enc(cmp, buf, pk, kr+KYBER_SYMBYTES);
 
-  success = verify(ct, cmp, KYBER_CIPHERTEXTBYTES);
+  success = verify1(ct, cmp, KYBER_CIPHERTEXTBYTES);
 
   /* Compute rejection key */
   rkprf(ss,sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES,ct);
@@ -728,3 +728,36 @@ void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
   for(i=0;i<KYBER_K;i++)
     poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
 }
+
+/*****************/
+#undef KYBER_K
+#undef KYBER_POLYCOMPRESSEDBYTES
+#undef KYBER_POLYVECCOMPRESSEDBYTES
+#undef poly_compress
+#undef poly_decompress
+#undef poly_getnoise_eta1
+#undef crypto_kem_keypair_derand
+#undef crypto_kem_enc_derand
+#undef crypto_kem_keypair
+#undef crypto_kem_enc
+#undef crypto_kem_dec
+#undef polyvec
+#undef polyvec_compress
+#undef polyvec_decompress
+#undef polyvec_tobytes
+#undef polyvec_frombytes
+#undef polyvec_ntt
+#undef polyvec_invntt_tomont
+#undef polyvec_basemul_acc_montgomery
+#undef polyvec_reduce
+#undef polyvec_add
+#undef pack_pk
+#undef unpack_pk
+#undef pack_sk
+#undef unpack_sk
+#undef pack_ciphertext
+#undef unpack_ciphertext
+#undef gen_matrix
+#undef indcpa_keypair_derand
+#undef indcpa_enc
+#undef indcpa_dec
