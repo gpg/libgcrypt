@@ -162,6 +162,8 @@ sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen)
 #define verify1 ct_memequal
 #define cmov    ct_memmov_cond
 #else
+#include "kyber.h"
+
 void randombytes(uint8_t *out, size_t outlen);
 
 typedef struct {

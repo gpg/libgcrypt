@@ -408,6 +408,7 @@ void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a)
 *              - const uint8_t *a: pointer to input byte array
 *                                  (of length KYBER_POLYCOMPRESSEDBYTES bytes)
 **************************************************/
+#if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
 void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES2])
 {
   unsigned int i;
@@ -417,7 +418,9 @@ void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES2])
     a += 1;
   }
 }
+#endif
 
+#if !defined(KYBER_K) || KYBER_K == 4
 void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES4])
 {
   unsigned int i;
@@ -438,6 +441,7 @@ void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES4])
       r->coeffs[8*i+j] = ((uint32_t)(t[j] & 31)*KYBER_Q + 16) >> 5;
   }
 }
+#endif
 
 /*************************************************
 * Name:        poly_tobytes
