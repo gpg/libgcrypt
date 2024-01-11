@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdarg.h>
 #include <gpg-error.h>
 
 #include "types.h"
@@ -116,53 +117,33 @@ shake128_close (keccak_state *state)
   _gcry_md_close (state->h);
 }
 
+#define MAX_ARGS 16
 static void
-shake256_init (keccak_state *state)
+shake256v (uint8_t *out, size_t outlen, ...)
 {
-  gcry_err_code_t ec;
+  gcry_buffer_t iov[MAX_ARGS];
+  va_list ap;
+  int i;
+  void *p;
+  size_t len;
 
-  ec = _gcry_md_open (&state->h, GCRY_MD_SHAKE256, 0);
-  if (ec)
-    log_fatal ("internal md_open failed: %d\n", ec);
-}
+  va_start (ap, outlen);
+  for (i = 0; i < MAX_ARGS; i++)
+    {
+      p = va_arg (ap, void *);
+      len = va_arg (ap, size_t);
+      if (!p)
+        break;
 
-static void
-shake256_absorb (keccak_state *state, const uint8_t *in, size_t inlen)
-{
-  _gcry_md_write (state->h, in, inlen);
-}
+      iov[i].size = 0;
+      iov[i].data = p;
+      iov[i].off = 0;
+      iov[i].len = len;
+    }
+  va_end (ap);
 
-static void
-shake256_finalize (keccak_state *state)
-{
-  (void)state;
-}
-
-static void
-shake256_squeeze (uint8_t *out, size_t outlen, keccak_state *state)
-{
-  gcry_err_code_t ec;
-
-  ec = _gcry_md_extract (state->h, GCRY_MD_SHAKE256, out, outlen);
-  if (ec)
-    log_fatal ("internal md_extract failed: %d\n", ec);
-  _gcry_md_close (state->h);
-}
-
-static void
-shake256 (uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
-{
-  gcry_md_hd_t h;
-  gcry_err_code_t ec;
-
-  ec = _gcry_md_open (&h, GCRY_MD_SHAKE256, 0);
-  if (ec)
-    log_fatal ("internal md_open failed: %d\n", ec);
-  _gcry_md_write (h, in, inlen);
-  ec = _gcry_md_extract (h, GCRY_MD_SHAKE256, out, outlen);
-  if (ec)
-    log_fatal ("internal md_extract failed: %d\n", ec);
-  _gcry_md_close (h);
+  _gcry_md_hash_buffers_extract (GCRY_MD_SHAKE256, 0, out, outlen,
+                                 iov, i);
 }
 
 static void
@@ -357,17 +338,14 @@ static void kyber_shake128_absorb(keccak_state *s,
                            uint8_t x,
                            uint8_t y);
 
-static void kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES], uint8_t nonce);
-static void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t *input, size_t len);
-
 #define XOF_BLOCKBYTES SHAKE128_RATE
 
 #define hash_h(OUT, IN, INBYTES) sha3_256(OUT, IN, INBYTES)
 #define hash_g(OUT, IN, INBYTES) sha3_512(OUT, IN, INBYTES)
 #define xof_absorb(STATE, SEED, X, Y) kyber_shake128_absorb(STATE, SEED, X, Y)
 #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeezeblocks(OUT, OUTBLOCKS, STATE)
-#define prf(OUT, OUTBYTES, KEY, NONCE) kyber_shake256_prf(OUT, OUTBYTES, KEY, NONCE)
-#define rkprf(OUT, KEY, INPUT, LEN) kyber_shake256_rkprf(OUT, KEY, INPUT, LEN)
+#define prf(OUT, OUTBYTES, KEY, NONCE) shake256v(OUT, OUTBYTES, KEY, KYBER_SYMBYTES, &nonce, 1, NULL, 0)
+#define rkprf(OUT, KEY, INPUT) shake256v(OUT, KYBER_SSBYTES, KEY, KYBER_SYMBYTES, INPUT, KYBER_CIPHERTEXTBYTES, NULL, 0)
 
 /*************** kyber/ref/verify.h */
 #if 0
@@ -1089,49 +1067,6 @@ void kyber_shake128_absorb(keccak_state *state,
   extseed[KYBER_SYMBYTES+1] = y;
 
   shake128_absorb_once(state, extseed, sizeof(extseed));
-}
-
-/*************************************************
-* Name:        kyber_shake256_prf
-*
-* Description: Usage of SHAKE256 as a PRF, concatenates secret and public input
-*              and then generates outlen bytes of SHAKE256 output
-*
-* Arguments:   - uint8_t *out: pointer to output
-*              - size_t outlen: number of requested output bytes
-*              - const uint8_t *key: pointer to the key (of length KYBER_SYMBYTES)
-*              - uint8_t nonce: single-byte nonce (public PRF input)
-**************************************************/
-void kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES], uint8_t nonce)
-{
-  uint8_t extkey[KYBER_SYMBYTES+1];
-
-  memcpy(extkey, key, KYBER_SYMBYTES);
-  extkey[KYBER_SYMBYTES] = nonce;
-
-  shake256(out, outlen, extkey, sizeof(extkey));
-}
-
-/*************************************************
-* Name:        kyber_shake256_prf
-*
-* Description: Usage of SHAKE256 as a PRF, concatenates secret and public input
-*              and then generates outlen bytes of SHAKE256 output
-*
-* Arguments:   - uint8_t *out: pointer to output
-*              - size_t outlen: number of requested output bytes
-*              - const uint8_t *key: pointer to the key (of length KYBER_SYMBYTES)
-*              - uint8_t nonce: single-byte nonce (public PRF input)
-**************************************************/
-void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t *input, size_t len)
-{
-  keccak_state s;
-
-  shake256_init(&s);
-  shake256_absorb(&s, key, KYBER_SYMBYTES);
-  shake256_absorb(&s, input, len);
-  shake256_finalize(&s);
-  shake256_squeeze(out, KYBER_SSBYTES, &s);
 }
 
 #define VARIANT2(name) name ## _2

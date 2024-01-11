@@ -475,7 +475,7 @@ int crypto_kem_dec(uint8_t *ss,
   success = verify(ct, cmp, KYBER_CIPHERTEXTBYTES);
 
   /* Compute rejection key */
-  rkprf(ss,sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES,ct,KYBER_CIPHERTEXTBYTES);
+  rkprf(ss,sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES,ct);
 
   /* Copy true key to return buffer if fail is false */
   cmov(ss,kr,KYBER_SYMBYTES,success);
