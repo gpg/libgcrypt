@@ -27,30 +27,14 @@
 #include "stopwatch.h"
 
 #define PGM "t-kem"
+#define NEED_SHOW_NOTE
 #include "t-common.h"
 #define N_TESTS 10
 
 static int in_fips_mode;
 
 static void
-show_note (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  if (!verbose && getenv ("srcdir"))
-    fputs ("      ", stderr);	/* To align above "PASS: ".  */
-  else
-    fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  if (*format && format[strlen (format) - 1] != '\n')
-    putc ('\n', stderr);
-  va_end (arg_ptr);
-}
-
-
-static void
-test_kem (int testno)
+test_kem_sntrup761 (int testno)
 {
   gcry_error_t err;
   uint8_t pubkey[GCRY_KEM_SNTRUP761_PUBKEY_LEN];
@@ -107,6 +91,177 @@ test_kem (int testno)
 }
 
 static void
+test_kem_mlkem512 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_MLKEM512_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_MLKEM512_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_MLKEM512_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_MLKEM512_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_MLKEM512_SHARED_LEN];
+
+  err = gcry_kem_keypair (GCRY_KEM_MLKEM512,
+                          pubkey, GCRY_KEM_MLKEM512_PUBKEY_LEN,
+                          seckey, GCRY_KEM_MLKEM512_SECKEY_LEN);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_MLKEM512,
+                        pubkey, GCRY_KEM_MLKEM512_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM512_ENCAPS_LEN,
+                        key1, GCRY_KEM_MLKEM512_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_MLKEM512,
+                        seckey, GCRY_KEM_MLKEM512_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM512_ENCAPS_LEN,
+                        key2, GCRY_KEM_MLKEM512_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_MLKEM512_SHARED_LEN) != 0)
+    {
+      size_t i;
+
+      fail ("mlkem512 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM512_SHARED_LEN; i++)
+	fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM512_SHARED_LEN; i++)
+	fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+static void
+test_kem_mlkem768 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_MLKEM768_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_MLKEM768_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_MLKEM768_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_MLKEM768_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_MLKEM768_SHARED_LEN];
+
+  err = gcry_kem_keypair (GCRY_KEM_MLKEM768,
+                          pubkey, GCRY_KEM_MLKEM768_PUBKEY_LEN,
+                          seckey, GCRY_KEM_MLKEM768_SECKEY_LEN);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_MLKEM768,
+                        pubkey, GCRY_KEM_MLKEM768_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM768_ENCAPS_LEN,
+                        key1, GCRY_KEM_MLKEM768_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_MLKEM768,
+                        seckey, GCRY_KEM_MLKEM768_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM768_ENCAPS_LEN,
+                        key2, GCRY_KEM_MLKEM768_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_MLKEM768_SHARED_LEN) != 0)
+    {
+      size_t i;
+
+      fail ("mlkem768 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM768_SHARED_LEN; i++)
+	fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM768_SHARED_LEN; i++)
+	fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+static void
+test_kem_mlkem1024 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_MLKEM1024_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_MLKEM1024_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_MLKEM1024_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_MLKEM1024_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_MLKEM1024_SHARED_LEN];
+
+  err = gcry_kem_keypair (GCRY_KEM_MLKEM1024,
+                          pubkey, GCRY_KEM_MLKEM1024_PUBKEY_LEN,
+                          seckey, GCRY_KEM_MLKEM1024_SECKEY_LEN);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_MLKEM1024,
+                        pubkey, GCRY_KEM_MLKEM1024_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM1024_ENCAPS_LEN,
+                        key1, GCRY_KEM_MLKEM1024_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_MLKEM1024,
+                        seckey, GCRY_KEM_MLKEM1024_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM1024_ENCAPS_LEN,
+                        key2, GCRY_KEM_MLKEM1024_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_MLKEM1024_SHARED_LEN) != 0)
+    {
+      size_t i;
+
+      fail ("mlkem1024 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM1024_SHARED_LEN; i++)
+	fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM1024_SHARED_LEN; i++)
+	fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+static void
 check_kem (void)
 {
   int ntests;
@@ -114,7 +269,11 @@ check_kem (void)
   info ("Checking KEM.\n");
 
   for (ntests = 0; ntests < N_TESTS; ntests++)
-    test_kem (ntests);
+#if 0
+    test_kem_sntrup761 (ntests);
+#else
+    test_kem_mlkem1024 (ntests);
+#endif
 
   if (ntests != N_TESTS)
     fail ("did %d tests but expected %d", ntests, N_TESTS);
