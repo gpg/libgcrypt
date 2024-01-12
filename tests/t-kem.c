@@ -81,11 +81,11 @@ test_kem_sntrup761 (int testno)
       fail ("sntrup761 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
       for (i = 0; i < GCRY_KEM_SNTRUP761_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key1[i]);
+        fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
       for (i = 0; i < GCRY_KEM_SNTRUP761_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key2[i]);
+        fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
 }
@@ -138,11 +138,11 @@ test_kem_mlkem512 (int testno)
       fail ("mlkem512 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
       for (i = 0; i < GCRY_KEM_MLKEM512_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key1[i]);
+        fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
       for (i = 0; i < GCRY_KEM_MLKEM512_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key2[i]);
+        fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
 }
@@ -195,11 +195,11 @@ test_kem_mlkem768 (int testno)
       fail ("mlkem768 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
       for (i = 0; i < GCRY_KEM_MLKEM768_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key1[i]);
+        fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
       for (i = 0; i < GCRY_KEM_MLKEM768_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key2[i]);
+        fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
 }
@@ -252,39 +252,67 @@ test_kem_mlkem1024 (int testno)
       fail ("mlkem1024 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
       for (i = 0; i < GCRY_KEM_MLKEM1024_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key1[i]);
+        fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
       for (i = 0; i < GCRY_KEM_MLKEM1024_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key2[i]);
+        fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
 }
 
+#define SELECTED_ALGO_SNTRUP761 (1 << 0)
+#define SELECTED_ALGO_MLKEM512  (1 << 1)
+#define SELECTED_ALGO_MLKEM768  (1 << 2)
+#define SELECTED_ALGO_MLKEM1024 (1 << 3)
+static unsigned int selected_algo;
+
 static void
-check_kem (void)
+check_kem (int n_loops)
 {
   int ntests;
+  int testno;
 
   info ("Checking KEM.\n");
 
-  for (ntests = 0; ntests < N_TESTS; ntests++)
-#if 0
-    test_kem_sntrup761 (ntests);
-#else
-    test_kem_mlkem1024 (ntests);
-#endif
+  ntests = 0;
+  testno = 0;
+  if ((selected_algo & SELECTED_ALGO_SNTRUP761))
+    {
+      for (; testno < n_loops; testno++)
+        test_kem_sntrup761 (testno);
+      ntests += n_loops;
+    }
 
-  if (ntests != N_TESTS)
-    fail ("did %d tests but expected %d", ntests, N_TESTS);
-  else if ((ntests % 256))
-    show_note ("%d tests done\n", ntests);
+  if ((selected_algo & SELECTED_ALGO_MLKEM512))
+    {
+      for (; testno < ntests + n_loops; testno++)
+        test_kem_mlkem512 (testno);
+      ntests += n_loops;
+    }
+
+  if ((selected_algo & SELECTED_ALGO_MLKEM768))
+    {
+      for (; testno < ntests + n_loops; testno++)
+        test_kem_mlkem768 (testno);
+      ntests += n_loops;
+    }
+
+  if ((selected_algo & SELECTED_ALGO_MLKEM1024))
+    {
+      for (; testno < ntests + n_loops; testno++)
+        test_kem_mlkem1024 (testno);
+      ntests += n_loops;
+    }
+
+  show_note ("%d tests done\n", ntests);
 }
 
 int
 main (int argc, char **argv)
 {
   int last_argc = -1;
+  int n_loops = N_TESTS;
 
   if (argc)
     {
@@ -292,38 +320,79 @@ main (int argc, char **argv)
       argv++;
     }
 
+  selected_algo = ~0;           /* Default is all algos.  */
+
   while (argc && last_argc != argc)
     {
       last_argc = argc;
       if (!strcmp (*argv, "--"))
-	{
-	  argc--;
-	  argv++;
-	  break;
-	}
+        {
+          argc--;
+          argv++;
+          break;
+        }
       else if (!strcmp (*argv, "--help"))
-	{
-	  fputs ("usage: " PGM " [options]\n"
-		 "Options:\n"
-		 "  --verbose       print timings etc.\n"
-		 "  --debug         flyswatter\n", stdout);
-	  exit (0);
-	}
+        {
+        usage:
+          fputs ("usage: " PGM " [options]\n"
+                 "Options:\n"
+                 "  --verbose       print timings etc.\n"
+                 "  --debug         flyswatter\n"
+                 "  --loops N       specify the loop count\n"
+                 "  --sntrup761     select SNTRUP761 algo\n"
+                 "  --mlkem512      select MLKEM512 algo\n"
+                 "  --mlkem768      select MLKEM768 algo\n"
+                 "  --mlkem1024     select MLKEM1024 algo\n",
+                 stdout);
+          exit (0);
+        }
       else if (!strcmp (*argv, "--verbose"))
-	{
-	  verbose++;
-	  argc--;
-	  argv++;
-	}
+        {
+          verbose++;
+          argc--;
+          argv++;
+        }
       else if (!strcmp (*argv, "--debug"))
-	{
-	  verbose += 2;
-	  debug++;
-	  argc--;
-	  argv++;
-	}
+        {
+          verbose += 2;
+          debug++;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--loops"))
+        {
+          argc--; argv++;
+          if (!argc)
+            goto usage;
+          n_loops = atoi (*argv);
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--sntrup761"))
+        {
+          selected_algo = SELECTED_ALGO_SNTRUP761;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--mlkem512"))
+        {
+          selected_algo = SELECTED_ALGO_MLKEM512;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--mlkem768"))
+        {
+          selected_algo = SELECTED_ALGO_MLKEM768;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--mlkem1024"))
+        {
+          selected_algo = SELECTED_ALGO_MLKEM1024;
+          argc--;
+          argv++;
+        }
       else if (!strncmp (*argv, "--", 2))
-	die ("unknown option '%s'", *argv);
+        die ("unknown option '%s'", *argv);
     }
 
   xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
@@ -338,10 +407,10 @@ main (int argc, char **argv)
     in_fips_mode = 1;
 
   start_timer ();
-  check_kem ();
+  check_kem (n_loops);
   stop_timer ();
 
   info ("All tests completed in %s.  Errors: %d\n",
-	elapsed_time (1), error_count);
+        elapsed_time (1), error_count);
   return !!error_count;
 }
