@@ -56,6 +56,9 @@
  *
  * - C++ style coomments are changed to C-style.
  *
+ * - No use of KYBER_NAMESPACE and FIPS202_NAMESPACE.  Don't export
+ *   internal symbols.
+ *
  * - "verify" routine is changed to return 1 on success, and now has
  *   new name "verify1", so that the use of the routine won't need
  *   negation (since negation might result non-constant-time code with
@@ -63,9 +66,22 @@
  *
  * - For "xof" routines, xof_init and xof_close are added, so that
  *   memory will be possible to be cleared after its use.
+ *
+ * - New implementation of kyber_shake128_absorb, not using
+ *   shake128_absorb_once, but shake128_absorb.
+ *
+ * - Added an internal function: kyber_shake128_squeezeblocks
+ *
+ * - Added an external function: shake256v
+ *
+ * - Macro definitions of xof_squeezeblocks, prf, and rkprf are
+ *   modified, accordingly.
+ *
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 
 #include <stddef.h>
 #include <stdint.h>
@@ -244,7 +260,6 @@ void shake128_squeeze (keccak_state *state, uint8_t *out, size_t outlen);
 void shake128_close (keccak_state *state);
 
 void shake256v (uint8_t *out, size_t outlen, ...);
-void shake256 (uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 void sha3_256 (uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen);
 

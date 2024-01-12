@@ -69,16 +69,19 @@ int crypto_kem_dec (uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 #  define CRYPTO_PUBLICKEYBYTES   (2*384+32)
 #  define CRYPTO_CIPHERTEXTBYTES  (128+2*320)
 #  define CRYPTO_BYTES            32
+#  define CRYPTO_ALGNAME "Kyber512"
 # elif KYBER_K == 3
 #  define CRYPTO_SECRETKEYBYTES   (3*384+3*384+32+2*32)
 #  define CRYPTO_PUBLICKEYBYTES   (3*384+32)
 #  define CRYPTO_CIPHERTEXTBYTES  (128+3*320)
 #  define CRYPTO_BYTES            32
+#  define CRYPTO_ALGNAME "Kyber768"
 # elif KYBER_K == 4
 #  define CRYPTO_SECRETKEYBYTES   (4*384+2*384+32+2*32)
 #  define CRYPTO_PUBLICKEYBYTES   (4*384+32)
 #  define CRYPTO_CIPHERTEXTBYTES  (160+2*352)
 #  define CRYPTO_BYTES            32
+#  define CRYPTO_ALGNAME "Kyber1024"
 # else
 #  define CRYPTO_SECRETKEYBYTES_512   (2*384+2*384+32+2*32)
 #  define CRYPTO_PUBLICKEYBYTES_512   (2*384+32)
@@ -94,6 +97,8 @@ int crypto_kem_dec (uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 #  define CRYPTO_PUBLICKEYBYTES_1024  (4*384+32)
 #  define CRYPTO_CIPHERTEXTBYTES_1024 (160+2*352)
 #  define CRYPTO_BYTES_1024           32
+
+#  define CRYPTO_ALGNAME "Kyber"
 
 #  deinfe crypto_kem_keypair_2 crypto_kem_keypair_512
 #  deinfe crypto_kem_keypair_3 crypto_kem_keypair_768
