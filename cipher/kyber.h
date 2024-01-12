@@ -17,6 +17,9 @@
  * License along with this program; if not, see <https://www.gnu.org/licenses/>.
  * SPDX-License-Identifier: LGPL-2.1-or-later
  *
+ * Out of libgcrypt, you can also use under the same licence of original code.
+ * SPDX-License-Identifier: CC0 OR Apache-2.0
+ *
  */
 /*
   Original code from:
