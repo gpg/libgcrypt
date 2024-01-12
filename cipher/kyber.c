@@ -76,7 +76,7 @@
  * - Added an external function: shake256v with variable arguments.
  *
  * - Macro definitions of xof_squeezeblocks, prf, and rkprf are
- *   modified.
+ *   modified to use the shake128 API and the shake256v function.
  *
  */
 
