@@ -64,18 +64,19 @@
  *   negation (since negation might result non-constant-time code with
  *   branch by some compiler).
  *
- * - For "xof" routines, xof_init and xof_close are added, so that
- *   memory will be possible to be cleared after its use.
+ * - For "xof" routines, definitions of xof_init and xof_close are
+ *   added, so that memory will be possible to be cleared after its
+ *   use.
  *
- * - New implementation of kyber_shake128_absorb, not using
- *   shake128_absorb_once, but shake128_absorb.
+ * - Different external API for shake128, having _init and _close.
  *
- * - Added an internal function: kyber_shake128_squeezeblocks
+ * - New implementation of kyber_shake128_absorb, with the shake128
+ *   API.
  *
- * - Added an external function: shake256v
+ * - Added an external function: shake256v with variable arguments.
  *
  * - Macro definitions of xof_squeezeblocks, prf, and rkprf are
- *   modified, accordingly.
+ *   modified.
  *
  */
 
@@ -190,6 +191,12 @@ shake128_absorb (keccak_state *state, const uint8_t *in, size_t inlen)
 }
 
 static void
+shake128_finalize (keccak_state *state)
+{
+  (void)state;
+}
+
+static void
 shake128_squeeze (keccak_state *state, uint8_t *out, size_t outlen)
 {
   _gcry_md_extract (state->h, GCRY_MD_SHAKE128, out, outlen);
@@ -256,6 +263,7 @@ typedef struct {
 
 void shake128_init (keccak_state *state);
 void shake128_absorb (keccak_state *state, const uint8_t *in, size_t inlen);
+void shake128_finalize (keccak_state *state);
 void shake128_squeeze (keccak_state *state, uint8_t *out, size_t outlen);
 void shake128_close (keccak_state *state);
 
@@ -343,34 +351,24 @@ static int16_t barrett_reduce(int16_t a);
 /*************** kyber/ref/symmetric.h */
 typedef keccak_state xof_state;
 
-#define kyber_shake128_init shake128_init
-#define kyber_shake128_close shake128_close
 static void kyber_shake128_absorb (keccak_state *state,
                                    const uint8_t seed[KYBER_SYMBYTES],
                                    uint8_t x, uint8_t y)
 {
-  uint8_t extseed[KYBER_SYMBYTES+2];
-
-  memcpy(extseed, seed, KYBER_SYMBYTES);
-  extseed[KYBER_SYMBYTES+0] = x;
-  extseed[KYBER_SYMBYTES+1] = y;
-
-  shake128_absorb (state, extseed, sizeof(extseed));
-}
-
-static void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, size_t nblocks)
-{
-  shake128_squeeze (state, out, SHAKE128_RATE * nblocks);
+  shake128_absorb (state, seed, KYBER_SYMBYTES);
+  shake128_absorb (state, &x, 1);
+  shake128_absorb (state, &y, 1);
+  shake128_finalize (state);
 }
 
 #define XOF_BLOCKBYTES SHAKE128_RATE
 
 #define hash_h(OUT, IN, INBYTES) sha3_256(OUT, IN, INBYTES)
 #define hash_g(OUT, IN, INBYTES) sha3_512(OUT, IN, INBYTES)
-#define xof_init(STATE) kyber_shake128_init(STATE)
-#define xof_close(STATE) kyber_shake128_close(STATE)
+#define xof_init(STATE) shake128_init(STATE)
+#define xof_close(STATE) shake128_close(STATE)
 #define xof_absorb(STATE, SEED, X, Y) kyber_shake128_absorb(STATE, SEED, X, Y)
-#define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) kyber_shake128_squeezeblocks(STATE, OUT, OUTBLOCKS)
+#define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeeze(STATE, OUT, SHAKE128_RATE * OUTBLOCKS)
 #define prf(OUT, OUTBYTES, KEY, NONCE) shake256v(OUT, OUTBYTES, KEY, KYBER_SYMBYTES, &nonce, 1, NULL, 0)
 #define rkprf(OUT, KEY, INPUT) shake256v(OUT, KYBER_SSBYTES, KEY, KYBER_SYMBYTES, INPUT, KYBER_CIPHERTEXTBYTES, NULL, 0)
 
