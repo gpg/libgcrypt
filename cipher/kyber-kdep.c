@@ -30,15 +30,15 @@
   or Apache 2.0 License (https://www.apache.org/licenses/LICENSE-2.0.html).
 
   Authors:
-	Joppe Bos
-	Léo Ducas
-	Eike Kiltz
+        Joppe Bos
+        Léo Ducas
+        Eike Kiltz
         Tancrède Lepoint
-	Vadim Lyubashevsky
-	John Schanck
-	Peter Schwabe
+        Vadim Lyubashevsky
+        John Schanck
+        Peter Schwabe
         Gregor Seiler
-	Damien Stehlé
+        Damien Stehlé
 
   Kyber Home: https://www.pq-crystals.org/kyber/
  */
@@ -75,13 +75,13 @@ static void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
 
 /*************** kyber/ref/indcpa.h */
 static void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-				  uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
-				  const uint8_t coins[KYBER_SYMBYTES]);
+                                  uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
+                                  const uint8_t coins[KYBER_SYMBYTES]);
 
 static void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
-		       const uint8_t m[KYBER_INDCPA_MSGBYTES],
-		       const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-		       const uint8_t coins[KYBER_SYMBYTES]);
+                       const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                       const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
+                       const uint8_t coins[KYBER_SYMBYTES]);
 
 static void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
                          const uint8_t c[KYBER_INDCPA_BYTES],

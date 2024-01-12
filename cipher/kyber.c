@@ -30,15 +30,15 @@
   or Apache 2.0 License (https://www.apache.org/licenses/LICENSE-2.0.html).
 
   Authors:
-	Joppe Bos
-	Léo Ducas
-	Eike Kiltz
+        Joppe Bos
+        Léo Ducas
+        Eike Kiltz
         Tancrède Lepoint
-	Vadim Lyubashevsky
-	John Schanck
-	Peter Schwabe
+        Vadim Lyubashevsky
+        John Schanck
+        Peter Schwabe
         Gregor Seiler
-	Damien Stehlé
+        Damien Stehlé
 
   Kyber Home: https://www.pq-crystals.org/kyber/
  */
@@ -279,45 +279,17 @@ void cmov (uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 #define KYBER_SYMBYTES 32   /* size in bytes of hashes, and seeds */
 #define KYBER_SSBYTES  32   /* size in bytes of shared key */
 
-#define KYBER_POLYBYTES		384
-#define KYBER_POLYVECBYTES2	(2 * KYBER_POLYBYTES)
-#define KYBER_POLYVECBYTES3	(3 * KYBER_POLYBYTES)
-#define KYBER_POLYVECBYTES4	(4 * KYBER_POLYBYTES)
+#define KYBER_POLYBYTES         384
 
 #define KYBER_ETA1_2   3
 #define KYBER_ETA1_3_4 2
 
-#define KYBER_POLYCOMPRESSEDBYTES2   128
-#define KYBER_POLYCOMPRESSEDBYTES3   128
-#define KYBER_POLYCOMPRESSEDBYTES4   160
-#define KYBER_POLYVECCOMPRESSEDBYTES2 (2 * 320)
-#define KYBER_POLYVECCOMPRESSEDBYTES3 (3 * 320)
-#define KYBER_POLYVECCOMPRESSEDBYTES4 (4 * 352)
+#define KYBER_POLYCOMPRESSEDBYTES_2_3 128
+#define KYBER_POLYCOMPRESSEDBYTES_4   160
 
 #define KYBER_ETA2 2
 
 #define KYBER_INDCPA_MSGBYTES       (KYBER_SYMBYTES)
-#define KYBER_INDCPA_PUBLICKEYBYTES2 (KYBER_POLYVECBYTES2 + KYBER_SYMBYTES)
-#define KYBER_INDCPA_PUBLICKEYBYTES3 (KYBER_POLYVECBYTES3 + KYBER_SYMBYTES)
-#define KYBER_INDCPA_PUBLICKEYBYTES4 (KYBER_POLYVECBYTES4 + KYBER_SYMBYTES)
-
-#define KYBER_INDCPA_SECRETKEYBYTES2 (KYBER_POLYVECBYTES2)
-#define KYBER_INDCPA_SECRETKEYBYTES3 (KYBER_POLYVECBYTES3)
-#define KYBER_INDCPA_SECRETKEYBYTES4 (KYBER_POLYVECBYTES4)
-#define KYBER_INDCPA_BYTES2      (KYBER_POLYVECCOMPRESSEDBYTES2 + KYBER_POLYCOMPRESSEDBYTES2)
-#define KYBER_INDCPA_BYTES3      (KYBER_POLYVECCOMPRESSEDBYTES3 + KYBER_POLYCOMPRESSEDBYTES3)
-#define KYBER_INDCPA_BYTES4      (KYBER_POLYVECCOMPRESSEDBYTES4 + KYBER_POLYCOMPRESSEDBYTES4)
-
-#define KYBER_PUBLICKEYBYTES2  (KYBER_INDCPA_PUBLICKEYBYTES2)
-#define KYBER_PUBLICKEYBYTES3  (KYBER_INDCPA_PUBLICKEYBYTES3)
-#define KYBER_PUBLICKEYBYTES4  (KYBER_INDCPA_PUBLICKEYBYTES4)
-/* 32 bytes of additional space to save H(pk) */
-#define KYBER_SECRETKEYBYTES2  (KYBER_INDCPA_SECRETKEYBYTES2 + KYBER_INDCPA_PUBLICKEYBYTES2 + 2*KYBER_SYMBYTES)
-#define KYBER_SECRETKEYBYTES3  (KYBER_INDCPA_SECRETKEYBYTES3 + KYBER_INDCPA_PUBLICKEYBYTES3 + 2*KYBER_SYMBYTES)
-#define KYBER_SECRETKEYBYTES4  (KYBER_INDCPA_SECRETKEYBYTES4 + KYBER_INDCPA_PUBLICKEYBYTES4 + 2*KYBER_SYMBYTES)
-#define KYBER_CIPHERTEXTBYTES2 (KYBER_INDCPA_BYTES2)
-#define KYBER_CIPHERTEXTBYTES3 (KYBER_INDCPA_BYTES3)
-#define KYBER_CIPHERTEXTBYTES4 (KYBER_INDCPA_BYTES4)
 
 /*************** kyber/ref/poly.h */
 /*
@@ -329,12 +301,12 @@ typedef struct{
 } poly;
 
 #if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
-static void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES2], const poly *a);
-static void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES2]);
+static void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_2_3], const poly *a);
+static void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES_2_3]);
 #endif
 #if !defined(KYBER_K) || KYBER_K == 4
-static void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a);
-static void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES4]);
+static void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_4], const poly *a);
+static void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES_4]);
 #endif
 static void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
 static void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
@@ -408,7 +380,7 @@ static void kyber_shake128_squeezeblocks (keccak_state *state, uint8_t *out, siz
 #define VARIANT3(name) name ## _3
 #define VARIANT4(name) name ## _4
 
-#define KYBER_POLYVECBYTES	(KYBER_K * KYBER_POLYBYTES)
+#define KYBER_POLYVECBYTES      (KYBER_K * KYBER_POLYBYTES)
 #define KYBER_INDCPA_PUBLICKEYBYTES (KYBER_POLYVECBYTES + KYBER_SYMBYTES)
 #define KYBER_INDCPA_SECRETKEYBYTES (KYBER_POLYVECBYTES)
 #define KYBER_INDCPA_BYTES          (KYBER_POLYVECCOMPRESSEDBYTES + KYBER_POLYCOMPRESSEDBYTES)

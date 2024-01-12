@@ -30,15 +30,15 @@
   or Apache 2.0 License (https://www.apache.org/licenses/LICENSE-2.0.html).
 
   Authors:
-	Joppe Bos
-	Léo Ducas
-	Eike Kiltz
+        Joppe Bos
+        Léo Ducas
+        Eike Kiltz
         Tancrède Lepoint
-	Vadim Lyubashevsky
-	John Schanck
-	Peter Schwabe
+        Vadim Lyubashevsky
+        John Schanck
+        Peter Schwabe
         Gregor Seiler
-	Damien Stehlé
+        Damien Stehlé
 
   Kyber Home: https://www.pq-crystals.org/kyber/
  */
@@ -356,7 +356,7 @@ void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 #if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
-void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES2], const poly *a)
+void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_2_3], const poly *a)
 {
   unsigned int i,j;
   int32_t u;
@@ -386,7 +386,7 @@ void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES2], const poly *a)
 #endif
 
 #if !defined(KYBER_K) || KYBER_K == 4
-void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a)
+void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_4], const poly *a)
 {
   unsigned int i,j;
   int32_t u;
@@ -427,7 +427,7 @@ void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES4], const poly *a)
 *                                  (of length KYBER_POLYCOMPRESSEDBYTES bytes)
 **************************************************/
 #if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
-void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES2])
+void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES_2_3])
 {
   unsigned int i;
   for(i=0;i<KYBER_N/2;i++) {
@@ -439,7 +439,7 @@ void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES2])
 #endif
 
 #if !defined(KYBER_K) || KYBER_K == 4
-void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES4])
+void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES_4])
 {
   unsigned int i;
   unsigned int j;
