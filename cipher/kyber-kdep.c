@@ -1,3 +1,26 @@
+/* kyber-kdep.c - the Kyber key encapsulation mechanism (KYBER_K dependent part)
+ * Copyright (C) 2024 g10 Code GmbH
+ *
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser general Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ *
+ * Out of libgcrypt, you can also use under the same licence of original code.
+ * SPDX-License-Identifier: CC0 OR Apache-2.0
+ *
+ */
 /*
   Original code from:
 
@@ -22,6 +45,12 @@
 
   Kyber Home: https://www.pq-crystals.org/kyber/
  */
+/*
+ * From original code, following modification was made.
+ *
+ * - Call to xof_init and xof_close are added in gen_matrix.
+ */
+
 /*************** kyber/ref/polyvec.h */
 typedef struct{
   poly vec[KYBER_K];
@@ -50,13 +79,13 @@ static void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                                   const uint8_t coins[KYBER_SYMBYTES]);
 
 static void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
-                const uint8_t m[KYBER_INDCPA_MSGBYTES],
-                const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-                const uint8_t coins[KYBER_SYMBYTES]);
+                       const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                       const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
+                       const uint8_t coins[KYBER_SYMBYTES]);
 
 static void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
-                const uint8_t c[KYBER_INDCPA_BYTES],
-                const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
+                       const uint8_t c[KYBER_INDCPA_BYTES],
+                       const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
 
 /*************** kyber/ref/kem.h */
 
@@ -755,3 +784,36 @@ void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
   for(i=0;i<KYBER_K;i++)
     poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
 }
+
+/*****************/
+#undef KYBER_K
+#undef KYBER_POLYCOMPRESSEDBYTES
+#undef KYBER_POLYVECCOMPRESSEDBYTES
+#undef poly_compress
+#undef poly_decompress
+#undef poly_getnoise_eta1
+#undef crypto_kem_keypair_derand
+#undef crypto_kem_enc_derand
+#undef crypto_kem_keypair
+#undef crypto_kem_enc
+#undef crypto_kem_dec
+#undef polyvec
+#undef polyvec_compress
+#undef polyvec_decompress
+#undef polyvec_tobytes
+#undef polyvec_frombytes
+#undef polyvec_ntt
+#undef polyvec_invntt_tomont
+#undef polyvec_basemul_acc_montgomery
+#undef polyvec_reduce
+#undef polyvec_add
+#undef pack_pk
+#undef unpack_pk
+#undef pack_sk
+#undef unpack_sk
+#undef pack_ciphertext
+#undef unpack_ciphertext
+#undef gen_matrix
+#undef indcpa_keypair_derand
+#undef indcpa_enc
+#undef indcpa_dec

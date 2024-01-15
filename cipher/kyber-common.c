@@ -1,3 +1,26 @@
+/* kyber-common.c - the Kyber key encapsulation mechanism (common part)
+ * Copyright (C) 2024 g10 Code GmbH
+ *
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser general Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ *
+ * Out of libgcrypt, you can also use under the same licence of original code.
+ * SPDX-License-Identifier: CC0 OR Apache-2.0
+ *
+ */
 /*
   Original code from:
 
@@ -22,6 +45,21 @@
 
   Kyber Home: https://www.pq-crystals.org/kyber/
  */
+/*
+ * From original code, following modification was made.
+ *
+ * - Functions "poly_cbd_eta1" "poly_cbd_eta2" are removed.
+ *
+ * - Constant "zeta" is static, not available outside.
+ *
+ * - "poly_compress" and "poly_decompress" are now two variants _128
+ *   and _160.
+ *
+ * - "poly_getnoise_eta1" is now two variants _2 and _3_4.
+ *
+ * - "poly_getnoise_eta2" directly uses "cbd2" function.
+ */
+
 /*************** kyber/ref/cbd.c */
 
 /*************************************************
