@@ -51,44 +51,31 @@ void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
 
 /*************** kyber/ref/params.h */
-#ifndef KYBER_K
-#define KYBER_K 3	/* Change this for different security strengths */
-#endif
-
-
-/* Don't change parameters below this line */
-#if   (KYBER_K == 2)
-#elif (KYBER_K == 3)
-#elif (KYBER_K == 4)
-#else
-#error "KYBER_K must be in {2,3,4}"
-#endif
-
 #define KYBER_N 256
 #define KYBER_Q 3329
 
 #define KYBER_SYMBYTES 32   /* size in bytes of hashes, and seeds */
 #define KYBER_SSBYTES  32   /* size in bytes of shared key */
 
-#define KYBER_POLYBYTES		384
-#define KYBER_POLYVECBYTES	(KYBER_K * KYBER_POLYBYTES)
-
-#if KYBER_K == 2
-#define KYBER_ETA1 3
-#define KYBER_POLYCOMPRESSEDBYTES    128
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
-#elif KYBER_K == 3
-#define KYBER_ETA1 2
-#define KYBER_POLYCOMPRESSEDBYTES    128
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
-#elif KYBER_K == 4
-#define KYBER_ETA1 2
-#define KYBER_POLYCOMPRESSEDBYTES    160
-#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
-#endif
+#define KYBER_POLYBYTES          384
 
 #define KYBER_ETA2 2
 
+/* KYBER_K dependent values */
+#define KYBER_ETA1_2   3
+#define KYBER_ETA1_3_4 2
+
+#define KYBER_POLYCOMPRESSEDBYTES_2_3 128
+#define KYBER_POLYCOMPRESSEDBYTES_4   160
+
+#if KYBER_K == 2
+#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
+#elif KYBER_K == 3
+#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
+#elif KYBER_K == 4
+#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
+#endif
+#define KYBER_POLYVECBYTES      (KYBER_K * KYBER_POLYBYTES)
 #define KYBER_INDCPA_MSGBYTES       (KYBER_SYMBYTES)
 #define KYBER_INDCPA_PUBLICKEYBYTES (KYBER_POLYVECBYTES + KYBER_SYMBYTES)
 #define KYBER_INDCPA_SECRETKEYBYTES (KYBER_POLYVECBYTES)
