@@ -24,15 +24,7 @@
  */
 
 /*************** kyber/ref/fips202.h */
-#ifndef FIPS202_H
-#define FIPS202_H
-
-
 #define SHAKE128_RATE 168
-#define SHAKE256_RATE 136
-#define SHA3_256_RATE 136
-#define SHA3_512_RATE 72
-
 
 typedef struct {
   uint64_t s[25];
@@ -58,11 +50,7 @@ void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
 
-#endif
 /*************** kyber/ref/params.h */
-#ifndef PARAMS_H
-#define PARAMS_H
-
 #ifndef KYBER_K
 #define KYBER_K 3	/* Change this for different security strengths */
 #endif
@@ -111,12 +99,7 @@ void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
 #define KYBER_SECRETKEYBYTES  (KYBER_INDCPA_SECRETKEYBYTES + KYBER_INDCPA_PUBLICKEYBYTES + 2*KYBER_SYMBYTES)
 #define KYBER_CIPHERTEXTBYTES (KYBER_INDCPA_BYTES)
 
-#endif
 /*************** kyber/ref/poly.h */
-#ifndef POLY_H
-#define POLY_H
-
-
 /*
  * Elements of R_q = Z_q[X]/(X^n + 1). Represents polynomial
  * coeffs[0] + X*coeffs[1] + X^2*coeffs[2] + ... + X^{n-1}*coeffs[n-1]
@@ -148,12 +131,7 @@ void poly_reduce(poly *r);
 void poly_add(poly *r, const poly *a, const poly *b);
 void poly_sub(poly *r, const poly *a, const poly *b);
 
-#endif
 /*************** kyber/ref/polyvec.h */
-#ifndef POLYVEC_H
-#define POLYVEC_H
-
-
 typedef struct{
   poly vec[KYBER_K];
 } polyvec;
@@ -173,12 +151,7 @@ void polyvec_reduce(polyvec *r);
 
 void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
 
-#endif
 /*************** kyber/ref/indcpa.h */
-#ifndef INDCPA_H
-#define INDCPA_H
-
-
 void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
 
 void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
@@ -194,12 +167,7 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
                 const uint8_t c[KYBER_INDCPA_BYTES],
                 const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
 
-#endif
 /*************** kyber/ref/kem.h */
-#ifndef KEM_H
-#define KEM_H
-
-
 #define CRYPTO_SECRETKEYBYTES  KYBER_SECRETKEYBYTES
 #define CRYPTO_PUBLICKEYBYTES  KYBER_PUBLICKEYBYTES
 #define CRYPTO_CIPHERTEXTBYTES KYBER_CIPHERTEXTBYTES
@@ -223,12 +191,7 @@ int crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
 
 int crypto_kem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
-#endif
 /*************** kyber/ref/ntt.h */
-#ifndef NTT_H
-#define NTT_H
-
-
 extern const int16_t zetas[128];
 
 void ntt(int16_t poly[256]);
@@ -237,20 +200,10 @@ void invntt(int16_t poly[256]);
 
 void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 
-#endif
 /*************** kyber/ref/randombytes.h */
-#ifndef RANDOMBYTES_H
-#define RANDOMBYTES_H
-
-
 void randombytes(uint8_t *out, size_t outlen);
 
-#endif
 /*************** kyber/ref/reduce.h */
-#ifndef REDUCE_H
-#define REDUCE_H
-
-
 #define MONT -1044 // 2^16 mod q
 #define QINV -3327 // q^-1 mod 2^16
 
@@ -258,13 +211,7 @@ int16_t montgomery_reduce(int32_t a);
 
 int16_t barrett_reduce(int16_t a);
 
-#endif
 /*************** kyber/ref/symmetric.h */
-#ifndef SYMMETRIC_H
-#define SYMMETRIC_H
-
-
-
 typedef keccak_state xof_state;
 
 void kyber_shake128_absorb(keccak_state *s,
@@ -285,17 +232,10 @@ void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SY
 #define prf(OUT, OUTBYTES, KEY, NONCE) kyber_shake256_prf(OUT, OUTBYTES, KEY, NONCE)
 #define rkprf(OUT, KEY, INPUT) kyber_shake256_rkprf(OUT, KEY, INPUT)
 
-#endif /* SYMMETRIC_H */
 /*************** kyber/ref/verify.h */
-#ifndef VERIFY_H
-#define VERIFY_H
-
-
 int verify(const uint8_t *a, const uint8_t *b, size_t len);
 
 void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
-
-#endif
 
 /*************** kyber/ref/cbd.c */
 
