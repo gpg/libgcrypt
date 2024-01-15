@@ -29,7 +29,9 @@
  * - Christine van Vredendaal
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 
 #include "sntrup761.h"
 
