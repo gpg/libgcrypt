@@ -26,7 +26,7 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
-EXTRA_DIST = gost-s-box.c
+EXTRA_DIST = gost-s-box.c kyber-common.c kyber-kdep.c
 
 CLEANFILES = gost-s-box$(EXEEXT_FOR_BUILD)
 DISTCLEANFILES = gost-sb.h
@@ -60,7 +60,7 @@ libcipher_la_SOURCES = \
 	mac.c mac-internal.h \
 	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
 	poly1305.c poly1305-internal.h \
-	kem.c sntrup761.c sntrup761.h \
+	kem.c sntrup761.c sntrup761.h kyber.c kyber.h \
 	kdf.c kdf-internal.h \
 	bithelp.h  \
 	bufhelp.h  \

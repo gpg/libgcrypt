@@ -27,30 +27,14 @@
 #include "stopwatch.h"
 
 #define PGM "t-kem"
+#define NEED_SHOW_NOTE
 #include "t-common.h"
 #define N_TESTS 10
 
 static int in_fips_mode;
 
 static void
-show_note (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  if (!verbose && getenv ("srcdir"))
-    fputs ("      ", stderr);	/* To align above "PASS: ".  */
-  else
-    fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  if (*format && format[strlen (format) - 1] != '\n')
-    putc ('\n', stderr);
-  va_end (arg_ptr);
-}
-
-
-static void
-test_kem (int testno)
+test_kem_sntrup761 (int testno)
 {
   gcry_error_t err;
   uint8_t pubkey[GCRY_KEM_SNTRUP761_PUBKEY_LEN];
@@ -97,35 +81,241 @@ test_kem (int testno)
       fail ("sntrup761 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
       for (i = 0; i < GCRY_KEM_SNTRUP761_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key1[i]);
+        fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
       for (i = 0; i < GCRY_KEM_SNTRUP761_SHARED_LEN; i++)
-	fprintf (stderr, " %02x", key2[i]);
+        fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+
+static void
+test_kem_mlkem512 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_MLKEM512_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_MLKEM512_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_MLKEM512_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_MLKEM512_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_MLKEM512_SHARED_LEN];
+
+  err = gcry_kem_keypair (GCRY_KEM_MLKEM512,
+                          pubkey, GCRY_KEM_MLKEM512_PUBKEY_LEN,
+                          seckey, GCRY_KEM_MLKEM512_SECKEY_LEN);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_MLKEM512,
+                        pubkey, GCRY_KEM_MLKEM512_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM512_ENCAPS_LEN,
+                        key1, GCRY_KEM_MLKEM512_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_MLKEM512,
+                        seckey, GCRY_KEM_MLKEM512_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM512_ENCAPS_LEN,
+                        key2, GCRY_KEM_MLKEM512_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_MLKEM512_SHARED_LEN) != 0)
+    {
+      size_t i;
+
+      fail ("mlkem512 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM512_SHARED_LEN; i++)
+        fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM512_SHARED_LEN; i++)
+        fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
 }
 
 static void
-check_kem (void)
+test_kem_mlkem768 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_MLKEM768_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_MLKEM768_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_MLKEM768_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_MLKEM768_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_MLKEM768_SHARED_LEN];
+
+  err = gcry_kem_keypair (GCRY_KEM_MLKEM768,
+                          pubkey, GCRY_KEM_MLKEM768_PUBKEY_LEN,
+                          seckey, GCRY_KEM_MLKEM768_SECKEY_LEN);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_MLKEM768,
+                        pubkey, GCRY_KEM_MLKEM768_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM768_ENCAPS_LEN,
+                        key1, GCRY_KEM_MLKEM768_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_MLKEM768,
+                        seckey, GCRY_KEM_MLKEM768_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM768_ENCAPS_LEN,
+                        key2, GCRY_KEM_MLKEM768_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_MLKEM768_SHARED_LEN) != 0)
+    {
+      size_t i;
+
+      fail ("mlkem768 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM768_SHARED_LEN; i++)
+        fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM768_SHARED_LEN; i++)
+        fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+static void
+test_kem_mlkem1024 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_MLKEM1024_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_MLKEM1024_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_MLKEM1024_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_MLKEM1024_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_MLKEM1024_SHARED_LEN];
+
+  err = gcry_kem_keypair (GCRY_KEM_MLKEM1024,
+                          pubkey, GCRY_KEM_MLKEM1024_PUBKEY_LEN,
+                          seckey, GCRY_KEM_MLKEM1024_SECKEY_LEN);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_MLKEM1024,
+                        pubkey, GCRY_KEM_MLKEM1024_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM1024_ENCAPS_LEN,
+                        key1, GCRY_KEM_MLKEM1024_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_MLKEM1024,
+                        seckey, GCRY_KEM_MLKEM1024_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_MLKEM1024_ENCAPS_LEN,
+                        key2, GCRY_KEM_MLKEM1024_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_MLKEM1024_SHARED_LEN) != 0)
+    {
+      size_t i;
+
+      fail ("mlkem1024 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM1024_SHARED_LEN; i++)
+        fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_MLKEM1024_SHARED_LEN; i++)
+        fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+#define SELECTED_ALGO_SNTRUP761 (1 << 0)
+#define SELECTED_ALGO_MLKEM512  (1 << 1)
+#define SELECTED_ALGO_MLKEM768  (1 << 2)
+#define SELECTED_ALGO_MLKEM1024 (1 << 3)
+static unsigned int selected_algo;
+
+static void
+check_kem (int n_loops)
 {
   int ntests;
+  int testno;
 
   info ("Checking KEM.\n");
 
-  for (ntests = 0; ntests < N_TESTS; ntests++)
-    test_kem (ntests);
+  ntests = 0;
+  testno = 0;
+  if ((selected_algo & SELECTED_ALGO_SNTRUP761))
+    {
+      for (; testno < n_loops; testno++)
+        test_kem_sntrup761 (testno);
+      ntests += n_loops;
+    }
 
-  if (ntests != N_TESTS)
-    fail ("did %d tests but expected %d", ntests, N_TESTS);
-  else if ((ntests % 256))
-    show_note ("%d tests done\n", ntests);
+  if ((selected_algo & SELECTED_ALGO_MLKEM512))
+    {
+      for (; testno < ntests + n_loops; testno++)
+        test_kem_mlkem512 (testno);
+      ntests += n_loops;
+    }
+
+  if ((selected_algo & SELECTED_ALGO_MLKEM768))
+    {
+      for (; testno < ntests + n_loops; testno++)
+        test_kem_mlkem768 (testno);
+      ntests += n_loops;
+    }
+
+  if ((selected_algo & SELECTED_ALGO_MLKEM1024))
+    {
+      for (; testno < ntests + n_loops; testno++)
+        test_kem_mlkem1024 (testno);
+      ntests += n_loops;
+    }
+
+  show_note ("%d tests done\n", ntests);
 }
 
 int
 main (int argc, char **argv)
 {
   int last_argc = -1;
+  int n_loops = N_TESTS;
+
+  selected_algo = ~0;           /* Default is all algos.  */
 
   if (argc)
     {
@@ -137,34 +327,73 @@ main (int argc, char **argv)
     {
       last_argc = argc;
       if (!strcmp (*argv, "--"))
-	{
-	  argc--;
-	  argv++;
-	  break;
-	}
+        {
+          argc--;
+          argv++;
+          break;
+        }
       else if (!strcmp (*argv, "--help"))
-	{
-	  fputs ("usage: " PGM " [options]\n"
-		 "Options:\n"
-		 "  --verbose       print timings etc.\n"
-		 "  --debug         flyswatter\n", stdout);
-	  exit (0);
-	}
+        {
+        usage:
+          fputs ("usage: " PGM " [options]\n"
+                 "Options:\n"
+                 "  --verbose       print timings etc.\n"
+                 "  --debug         flyswatter\n"
+                 "  --loops N       specify the loop count\n"
+                 "  --sntrup761     select SNTRUP761 algo\n"
+                 "  --mlkem512      select MLKEM512 algo\n"
+                 "  --mlkem768      select MLKEM768 algo\n"
+                 "  --mlkem1024     select MLKEM1024 algo\n",
+                 stdout);
+          exit (0);
+        }
       else if (!strcmp (*argv, "--verbose"))
-	{
-	  verbose++;
-	  argc--;
-	  argv++;
-	}
+        {
+          verbose++;
+          argc--;
+          argv++;
+        }
       else if (!strcmp (*argv, "--debug"))
-	{
-	  verbose += 2;
-	  debug++;
-	  argc--;
-	  argv++;
-	}
+        {
+          verbose += 2;
+          debug++;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--loops"))
+        {
+          argc--; argv++;
+          if (!argc)
+            goto usage;
+          n_loops = atoi (*argv);
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--sntrup761"))
+        {
+          selected_algo = SELECTED_ALGO_SNTRUP761;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--mlkem512"))
+        {
+          selected_algo = SELECTED_ALGO_MLKEM512;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--mlkem768"))
+        {
+          selected_algo = SELECTED_ALGO_MLKEM768;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--mlkem1024"))
+        {
+          selected_algo = SELECTED_ALGO_MLKEM1024;
+          argc--;
+          argv++;
+        }
       else if (!strncmp (*argv, "--", 2))
-	die ("unknown option '%s'", *argv);
+        die ("unknown option '%s'", *argv);
     }
 
   xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
@@ -179,10 +408,10 @@ main (int argc, char **argv)
     in_fips_mode = 1;
 
   start_timer ();
-  check_kem ();
+  check_kem (n_loops);
   stop_timer ();
 
   info ("All tests completed in %s.  Errors: %d\n",
-	elapsed_time (1), error_count);
+        elapsed_time (1), error_count);
   return !!error_count;
 }
