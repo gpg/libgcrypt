@@ -55,7 +55,7 @@ static uint32_t load32_littleendian(const uint8_t x[4])
 *
 * Returns 32-bit unsigned integer loaded from x (most significant byte is zero)
 **************************************************/
-#if KYBER_ETA1 == 3
+#if !defined(KYBER_K) || KYBER_K == 2
 static uint32_t load24_littleendian(const uint8_t x[3])
 {
   uint32_t r;
@@ -107,7 +107,7 @@ static void cbd2(poly *r, const uint8_t buf[2*KYBER_N/4])
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *buf: pointer to input byte array
 **************************************************/
-#if KYBER_ETA1 == 3
+#if !defined(KYBER_K) || KYBER_K == 2
 static void cbd3(poly *r, const uint8_t buf[3*KYBER_N/4])
 {
   unsigned int i,j;
@@ -128,26 +128,6 @@ static void cbd3(poly *r, const uint8_t buf[3*KYBER_N/4])
   }
 }
 #endif
-
-void poly_cbd_eta1(poly *r, const uint8_t buf[KYBER_ETA1*KYBER_N/4])
-{
-#if KYBER_ETA1 == 2
-  cbd2(r, buf);
-#elif KYBER_ETA1 == 3
-  cbd3(r, buf);
-#else
-#error "This implementation requires eta1 in {2,3}"
-#endif
-}
-
-void poly_cbd_eta2(poly *r, const uint8_t buf[KYBER_ETA2*KYBER_N/4])
-{
-#if KYBER_ETA2 == 2
-  cbd2(r, buf);
-#else
-#error "This implementation requires eta2 = 2"
-#endif
-}
 
 /*************** kyber/ref/indcpa.c */
 /*************************************************
@@ -187,7 +167,6 @@ static unsigned int rej_uniform(int16_t *r,
 }
 
 /*************** kyber/ref/ntt.c */
-
 /* Code to generate zetas and zetas_inv used in the number-theoretic transform:
 
 #define KYBER_ROOT_OF_UNITY 17
@@ -221,7 +200,7 @@ void init_ntt() {
 }
 */
 
-const int16_t zetas[128] = {
+static const int16_t zetas[128] = {
   -1044,  -758,  -359, -1517,  1493,  1422,   287,   202,
    -171,   622,  1577,   182,   962, -1202, -1474,  1468,
     573, -1325,   264,   383,  -829,  1458, -1602,  -130,
@@ -340,14 +319,13 @@ void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
 *                            (of length KYBER_POLYCOMPRESSEDBYTES)
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
+#if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
+void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_2_3], const poly *a)
 {
   unsigned int i,j;
   int32_t u;
   uint32_t d0;
   uint8_t t[8];
-
-#if (KYBER_POLYCOMPRESSEDBYTES == 128)
 
   for(i=0;i<KYBER_N/8;i++) {
     for(j=0;j<8;j++) {
@@ -368,7 +346,17 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
     r[3] = t[6] | (t[7] << 4);
     r += 4;
   }
-#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
+}
+#endif
+
+#if !defined(KYBER_K) || KYBER_K == 4
+void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_4], const poly *a)
+{
+  unsigned int i,j;
+  int32_t u;
+  uint32_t d0;
+  uint8_t t[8];
+
   for(i=0;i<KYBER_N/8;i++) {
     for(j=0;j<8;j++) {
       // map to positive standard representatives
@@ -389,10 +377,8 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
     r[4] = (t[6] >> 2) | (t[7] << 3);
     r += 5;
   }
-#else
-#error "KYBER_POLYCOMPRESSEDBYTES needs to be in {128, 160}"
-#endif
 }
+#endif
 
 /*************************************************
 * Name:        poly_decompress
@@ -404,17 +390,22 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
 *              - const uint8_t *a: pointer to input byte array
 *                                  (of length KYBER_POLYCOMPRESSEDBYTES bytes)
 **************************************************/
-void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
+#if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
+void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES_2_3])
 {
   unsigned int i;
-
-#if (KYBER_POLYCOMPRESSEDBYTES == 128)
   for(i=0;i<KYBER_N/2;i++) {
     r->coeffs[2*i+0] = (((uint16_t)(a[0] & 15)*KYBER_Q) + 8) >> 4;
     r->coeffs[2*i+1] = (((uint16_t)(a[0] >> 4)*KYBER_Q) + 8) >> 4;
     a += 1;
   }
-#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
+}
+#endif
+
+#if !defined(KYBER_K) || KYBER_K == 4
+void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES_4])
+{
+  unsigned int i;
   unsigned int j;
   uint8_t t[8];
   for(i=0;i<KYBER_N/8;i++) {
@@ -431,10 +422,8 @@ void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
     for(j=0;j<8;j++)
       r->coeffs[8*i+j] = ((uint32_t)(t[j] & 31)*KYBER_Q + 16) >> 5;
   }
-#else
-#error "KYBER_POLYCOMPRESSEDBYTES needs to be in {128, 160}"
-#endif
 }
+#endif
 
 /*************************************************
 * Name:        poly_tobytes
@@ -547,12 +536,23 @@ void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
 *                                     (of length KYBER_SYMBYTES bytes)
 *              - uint8_t nonce: one-byte input nonce
 **************************************************/
-void poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
+#if !defined(KYBER_K) || KYBER_K == 2
+void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 {
-  uint8_t buf[KYBER_ETA1*KYBER_N/4];
+  uint8_t buf[KYBER_ETA1_2*KYBER_N/4];
   prf(buf, sizeof(buf), seed, nonce);
-  poly_cbd_eta1(r, buf);
+  cbd3(r, buf);
 }
+#endif
+
+#if !defined(KYBER_K) || KYBER_K == 3 || KYBER_K == 4
+void poly_getnoise_eta1_3_4(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
+{
+  uint8_t buf[KYBER_ETA1_3_4*KYBER_N/4];
+  prf(buf, sizeof(buf), seed, nonce);
+  cbd2(r, buf);
+}
+#endif
 
 /*************************************************
 * Name:        poly_getnoise_eta2
@@ -570,7 +570,7 @@ void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t non
 {
   uint8_t buf[KYBER_ETA2*KYBER_N/4];
   prf(buf, sizeof(buf), seed, nonce);
-  poly_cbd_eta2(r, buf);
+  cbd2(r, buf);
 }
 
 
@@ -683,6 +683,7 @@ void poly_sub(poly *r, const poly *a, const poly *b)
   for(i=0;i<KYBER_N;i++)
     r->coeffs[i] = a->coeffs[i] - b->coeffs[i];
 }
+
 /*************** kyber/ref/reduce.c */
 
 /*************************************************

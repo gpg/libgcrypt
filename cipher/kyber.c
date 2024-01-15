@@ -95,17 +95,25 @@ typedef struct{
   int16_t coeffs[KYBER_N];
 } poly;
 
-static void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a);
-static void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES]);
-
+#if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
+static void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_2_3], const poly *a);
+static void poly_decompress_128(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES_2_3]);
+#endif
+#if !defined(KYBER_K) || KYBER_K == 4
+static void poly_compress_160(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_4], const poly *a);
+static void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES_4]);
+#endif
 static void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
 static void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
 
 static void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES]);
 static void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *r);
-
-static void poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
-
+#if !defined(KYBER_K) || KYBER_K == 2
+static void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+#endif
+#if !defined(KYBER_K) || KYBER_K == 3 || KYBER_K == 4
+static void poly_getnoise_eta1_3_4(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+#endif
 static void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 
 static void poly_ntt(poly *r);
