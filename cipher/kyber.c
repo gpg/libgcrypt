@@ -57,6 +57,8 @@
  *
  * From original code, following modification was made.
  *
+ * - C++ style comments are changed to C-style.
+ *
  * - No use of KYBER_NAMESPACE and FIPS202_NAMESPACE.  Don't export
  *   internal symbols.
  *
@@ -351,8 +353,8 @@ static void invntt(int16_t poly[256]);
 static void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 
 /*************** kyber/ref/reduce.h */
-#define MONT -1044 // 2^16 mod q
-#define QINV -3327 // q^-1 mod 2^16
+#define MONT -1044 /* 2^16 mod q */
+#define QINV -3327 /* q^-1 mod 2^16 */
 
 static int16_t montgomery_reduce(int32_t a);
 
