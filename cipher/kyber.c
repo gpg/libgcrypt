@@ -23,6 +23,280 @@
   Kyber Home: https://www.pq-crystals.org/kyber/
  */
 
+/*************** kyber/ref/fips202.h */
+#ifndef FIPS202_H
+#define FIPS202_H
+
+
+#define SHAKE128_RATE 168
+#define SHAKE256_RATE 136
+#define SHA3_256_RATE 136
+#define SHA3_512_RATE 72
+
+
+typedef struct {
+  uint64_t s[25];
+  unsigned int pos;
+} keccak_state;
+
+void shake128_init(keccak_state *state);
+void shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
+void shake128_finalize(keccak_state *state);
+void shake128_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
+void shake128_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen);
+void shake128_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state);
+
+void shake256_init(keccak_state *state);
+void shake256_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
+void shake256_finalize(keccak_state *state);
+void shake256_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
+void shake256_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen);
+void shake256_squeezeblocks(uint8_t *out, size_t nblocks,  keccak_state *state);
+
+void shake128(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
+void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
+void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
+void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
+
+#endif
+/*************** kyber/ref/params.h */
+#ifndef PARAMS_H
+#define PARAMS_H
+
+#ifndef KYBER_K
+#define KYBER_K 3	/* Change this for different security strengths */
+#endif
+
+
+/* Don't change parameters below this line */
+#if   (KYBER_K == 2)
+#elif (KYBER_K == 3)
+#elif (KYBER_K == 4)
+#else
+#error "KYBER_K must be in {2,3,4}"
+#endif
+
+#define KYBER_N 256
+#define KYBER_Q 3329
+
+#define KYBER_SYMBYTES 32   /* size in bytes of hashes, and seeds */
+#define KYBER_SSBYTES  32   /* size in bytes of shared key */
+
+#define KYBER_POLYBYTES		384
+#define KYBER_POLYVECBYTES	(KYBER_K * KYBER_POLYBYTES)
+
+#if KYBER_K == 2
+#define KYBER_ETA1 3
+#define KYBER_POLYCOMPRESSEDBYTES    128
+#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
+#elif KYBER_K == 3
+#define KYBER_ETA1 2
+#define KYBER_POLYCOMPRESSEDBYTES    128
+#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
+#elif KYBER_K == 4
+#define KYBER_ETA1 2
+#define KYBER_POLYCOMPRESSEDBYTES    160
+#define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
+#endif
+
+#define KYBER_ETA2 2
+
+#define KYBER_INDCPA_MSGBYTES       (KYBER_SYMBYTES)
+#define KYBER_INDCPA_PUBLICKEYBYTES (KYBER_POLYVECBYTES + KYBER_SYMBYTES)
+#define KYBER_INDCPA_SECRETKEYBYTES (KYBER_POLYVECBYTES)
+#define KYBER_INDCPA_BYTES          (KYBER_POLYVECCOMPRESSEDBYTES + KYBER_POLYCOMPRESSEDBYTES)
+
+#define KYBER_PUBLICKEYBYTES  (KYBER_INDCPA_PUBLICKEYBYTES)
+/* 32 bytes of additional space to save H(pk) */
+#define KYBER_SECRETKEYBYTES  (KYBER_INDCPA_SECRETKEYBYTES + KYBER_INDCPA_PUBLICKEYBYTES + 2*KYBER_SYMBYTES)
+#define KYBER_CIPHERTEXTBYTES (KYBER_INDCPA_BYTES)
+
+#endif
+/*************** kyber/ref/poly.h */
+#ifndef POLY_H
+#define POLY_H
+
+
+/*
+ * Elements of R_q = Z_q[X]/(X^n + 1). Represents polynomial
+ * coeffs[0] + X*coeffs[1] + X^2*coeffs[2] + ... + X^{n-1}*coeffs[n-1]
+ */
+typedef struct{
+  int16_t coeffs[KYBER_N];
+} poly;
+
+void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a);
+void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES]);
+
+void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
+void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
+
+void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES]);
+void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *r);
+
+void poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+
+void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+
+void poly_ntt(poly *r);
+void poly_invntt_tomont(poly *r);
+void poly_basemul_montgomery(poly *r, const poly *a, const poly *b);
+void poly_tomont(poly *r);
+
+void poly_reduce(poly *r);
+
+void poly_add(poly *r, const poly *a, const poly *b);
+void poly_sub(poly *r, const poly *a, const poly *b);
+
+#endif
+/*************** kyber/ref/polyvec.h */
+#ifndef POLYVEC_H
+#define POLYVEC_H
+
+
+typedef struct{
+  poly vec[KYBER_K];
+} polyvec;
+
+void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a);
+void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]);
+
+void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a);
+void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES]);
+
+void polyvec_ntt(polyvec *r);
+void polyvec_invntt_tomont(polyvec *r);
+
+void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b);
+
+void polyvec_reduce(polyvec *r);
+
+void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
+
+#endif
+/*************** kyber/ref/indcpa.h */
+#ifndef INDCPA_H
+#define INDCPA_H
+
+
+void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
+
+void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
+                           uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
+                           const uint8_t coins[KYBER_SYMBYTES]);
+
+void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
+                const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
+                const uint8_t coins[KYBER_SYMBYTES]);
+
+void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
+                const uint8_t c[KYBER_INDCPA_BYTES],
+                const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
+
+#endif
+/*************** kyber/ref/kem.h */
+#ifndef KEM_H
+#define KEM_H
+
+
+#define CRYPTO_SECRETKEYBYTES  KYBER_SECRETKEYBYTES
+#define CRYPTO_PUBLICKEYBYTES  KYBER_PUBLICKEYBYTES
+#define CRYPTO_CIPHERTEXTBYTES KYBER_CIPHERTEXTBYTES
+#define CRYPTO_BYTES           KYBER_SSBYTES
+
+#if   (KYBER_K == 2)
+#define CRYPTO_ALGNAME "Kyber512"
+#elif (KYBER_K == 3)
+#define CRYPTO_ALGNAME "Kyber768"
+#elif (KYBER_K == 4)
+#define CRYPTO_ALGNAME "Kyber1024"
+#endif
+
+int crypto_kem_keypair_derand(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
+
+int crypto_kem_keypair(uint8_t *pk, uint8_t *sk);
+
+int crypto_kem_enc_derand(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
+
+int crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
+
+int crypto_kem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+
+#endif
+/*************** kyber/ref/ntt.h */
+#ifndef NTT_H
+#define NTT_H
+
+
+extern const int16_t zetas[128];
+
+void ntt(int16_t poly[256]);
+
+void invntt(int16_t poly[256]);
+
+void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
+
+#endif
+/*************** kyber/ref/randombytes.h */
+#ifndef RANDOMBYTES_H
+#define RANDOMBYTES_H
+
+
+void randombytes(uint8_t *out, size_t outlen);
+
+#endif
+/*************** kyber/ref/reduce.h */
+#ifndef REDUCE_H
+#define REDUCE_H
+
+
+#define MONT -1044 // 2^16 mod q
+#define QINV -3327 // q^-1 mod 2^16
+
+int16_t montgomery_reduce(int32_t a);
+
+int16_t barrett_reduce(int16_t a);
+
+#endif
+/*************** kyber/ref/symmetric.h */
+#ifndef SYMMETRIC_H
+#define SYMMETRIC_H
+
+
+
+typedef keccak_state xof_state;
+
+void kyber_shake128_absorb(keccak_state *s,
+                           const uint8_t seed[KYBER_SYMBYTES],
+                           uint8_t x,
+                           uint8_t y);
+
+void kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES], uint8_t nonce);
+
+void kyber_shake256_rkprf(uint8_t out[KYBER_SSBYTES], const uint8_t key[KYBER_SYMBYTES], const uint8_t input[KYBER_CIPHERTEXTBYTES]);
+
+#define XOF_BLOCKBYTES SHAKE128_RATE
+
+#define hash_h(OUT, IN, INBYTES) sha3_256(OUT, IN, INBYTES)
+#define hash_g(OUT, IN, INBYTES) sha3_512(OUT, IN, INBYTES)
+#define xof_absorb(STATE, SEED, X, Y) kyber_shake128_absorb(STATE, SEED, X, Y)
+#define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeezeblocks(OUT, OUTBLOCKS, STATE)
+#define prf(OUT, OUTBYTES, KEY, NONCE) kyber_shake256_prf(OUT, OUTBYTES, KEY, NONCE)
+#define rkprf(OUT, KEY, INPUT) kyber_shake256_rkprf(OUT, KEY, INPUT)
+
+#endif /* SYMMETRIC_H */
+/*************** kyber/ref/verify.h */
+#ifndef VERIFY_H
+#define VERIFY_H
+
+
+int verify(const uint8_t *a, const uint8_t *b, size_t len);
+
+void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
+
+#endif
+
 /*************** kyber/ref/cbd.c */
 
 /*************************************************
