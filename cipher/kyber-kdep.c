@@ -207,7 +207,6 @@ static void unpack_ciphertext(polyvec *b, poly *v, const uint8_t c[KYBER_INDCPA_
 *              - int transposed: boolean deciding whether A or A^T is generated
 **************************************************/
 #define GEN_MATRIX_NBLOCKS ((12*KYBER_N/8*(1 << 12)/KYBER_Q + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
-// Not static for benchmarking
 void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 {
   unsigned int ctr, i, j, k;
@@ -217,6 +216,7 @@ void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 
   for(i=0;i<KYBER_K;i++) {
     for(j=0;j<KYBER_K;j++) {
+      xof_init(&state);
       if(transposed)
         xof_absorb(&state, seed, i, j);
       else
@@ -234,6 +234,7 @@ void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
         buflen = off + XOF_BLOCKBYTES;
         ctr += rej_uniform(a[i].vec[j].coeffs + ctr, KYBER_N - ctr, buf, buflen);
       }
+      xof_close (&state);
     }
   }
 }
