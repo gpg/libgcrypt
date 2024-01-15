@@ -22,6 +22,48 @@
 
   Kyber Home: https://www.pq-crystals.org/kyber/
  */
+/*************** kyber/ref/polyvec.h */
+typedef struct{
+  poly vec[KYBER_K];
+} polyvec;
+
+static void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a);
+static void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]);
+
+static void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a);
+static void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES]);
+
+static void polyvec_ntt(polyvec *r);
+static void polyvec_invntt_tomont(polyvec *r);
+
+static void polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b);
+
+static void polyvec_reduce(polyvec *r);
+
+static void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
+
+/*************** kyber/ref/indcpa.h */
+static void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
+
+static void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
+                                  uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
+                                  const uint8_t coins[KYBER_SYMBYTES]);
+
+static void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
+                const uint8_t m[KYBER_INDCPA_MSGBYTES],
+                const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
+                const uint8_t coins[KYBER_SYMBYTES]);
+
+static void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
+                const uint8_t c[KYBER_INDCPA_BYTES],
+                const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
+
+/*************** kyber/ref/kem.h */
+
+static int crypto_kem_keypair_derand(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
+
+static int crypto_kem_enc_derand(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
+
 /*************** kyber/ref/indcpa.c */
 
 /*************************************************
@@ -468,6 +510,7 @@ int crypto_kem_dec(uint8_t *ss,
 
   return 0;
 }
+
 /*************** kyber/ref/polyvec.c */
 
 /*************************************************
