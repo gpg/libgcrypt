@@ -60,6 +60,11 @@
  * - No use of KYBER_NAMESPACE and FIPS202_NAMESPACE.  Don't export
  *   internal symbols.
  *
+ * - "verify" routine is changed to return 1 on success, and now has
+ *   new name "verify1", so that the use of the routine won't need
+ *   negation (since negation might result non-constant-time code with
+ *   branch by some compiler).
+ *
  * - For "xof" routines, definitions of xof_init and xof_close are
  *   added, so that memory will be possible to be cleared after its
  *   use.
@@ -267,7 +272,8 @@ void shake256v (uint8_t *out, size_t outlen, ...);
 void sha3_256 (uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen);
 
-int verify (const uint8_t *a, const uint8_t *b, size_t len);
+/* Return 1 when success, 0 otherwise.  */
+unsigned int verify1 (const uint8_t *a, const uint8_t *b, size_t len);
 /* Conditional move.  */
 void cmov (uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 #endif

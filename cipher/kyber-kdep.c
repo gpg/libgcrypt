@@ -48,6 +48,9 @@
 /*
  * From original code, following modification was made.
  *
+ * - With the change of "verify" routine (now "verify1"), no negation
+ *   for the cmov argument in crypto_kem_dec.
+ *
  * - Call to xof_init and xof_close are added in gen_matrix.
  */
 
@@ -514,7 +517,7 @@ int crypto_kem_dec(uint8_t *ss,
                    const uint8_t *ct,
                    const uint8_t *sk)
 {
-  int fail;
+  unsigned int success;
   uint8_t buf[2*KYBER_SYMBYTES];
   /* Will contain key, coins */
   uint8_t kr[2*KYBER_SYMBYTES];
@@ -530,13 +533,13 @@ int crypto_kem_dec(uint8_t *ss,
   /* coins are in kr+KYBER_SYMBYTES */
   indcpa_enc(cmp, buf, pk, kr+KYBER_SYMBYTES);
 
-  fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES);
+  success = verify1(ct, cmp, KYBER_CIPHERTEXTBYTES);
 
   /* Compute rejection key */
   rkprf(ss,sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES,ct);
 
   /* Copy true key to return buffer if fail is false */
-  cmov(ss,kr,KYBER_SYMBYTES,!fail);
+  cmov(ss,kr,KYBER_SYMBYTES,success);
 
   return 0;
 }
