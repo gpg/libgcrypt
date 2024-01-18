@@ -1696,7 +1696,7 @@ enum gcry_kem_algos
     GCRY_KEM_MLKEM768,
     GCRY_KEM_MLKEM1024,
     GCRY_KEM_DHKEM25519,     /* DHKEM with X25519, HKDF, and SHA256 */
-    GCRY_KEM_OPENPGP_X25519, /* For OpenPGP with Curve25519 */
+    GCRY_KEM_PGP_X25519      /* For OpenPGP with Curve25519 */
   };
 
 /*
@@ -1732,6 +1732,11 @@ enum gcry_kem_algos
 #define GCRY_KEM_DHKEM25519_PUBKEY_LEN  32
 #define GCRY_KEM_DHKEM25519_ENCAPS_LEN  32
 #define GCRY_KEM_DHKEM25519_SHARED_LEN  32
+
+#define GCRY_KEM_PGP_X25519_SECKEY_LEN  32
+#define GCRY_KEM_PGP_X25519_PUBKEY_LEN  32
+#define GCRY_KEM_PGP_X25519_ENCAPS_LEN  32
+#define GCRY_KEM_PGP_X25519_SHARED_LEN  16
 
 /* Generate a new key pair with ALGO.  */
 gcry_error_t gcry_kem_keypair (int algo,
