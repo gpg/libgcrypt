@@ -1636,6 +1636,7 @@ enum gcry_kdf_algos
     /* Two-Step Key Derivation with HMAC */
     /* Two-Step Key Derivation with CMAC */
     /* KDF PRF in SP 800-108r1 */
+    GCRY_KDF_X963_KDF
   };
 
 enum gcry_kdf_subalgo_argon2
