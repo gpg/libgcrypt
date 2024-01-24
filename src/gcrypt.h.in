@@ -1696,19 +1696,18 @@ enum gcry_kem_algos
     GCRY_KEM_MLKEM512,
     GCRY_KEM_MLKEM768,
     GCRY_KEM_MLKEM1024,
-    GCRY_KEM_TLS_X25519_IDENTITY,    /* Identity KDF: do nothing             */
+    GCRY_KEM_RAW_X25519,  /* keypair, encaps/decaps with Identity KDF */
     /* More curves? */
-    GCRY_KEM_DHKEM25519,             /* DHKEM with X25519, HKDF, and SHA256  */
+    GCRY_KEM_DHKEM25519,  /* DHKEM with X25519, HKDF, and SHA256  */
     /* More curves? */
-    GCRY_KEM_PGP_X25519, /* For OpenPGP, OPTIONAL (KDF parameters) is
-                            required, which defines hash and
-                            outputlen (shared secret length) */
+    GCRY_KEM_PGP_X25519,  /* For OpenPGP, OPTIONAL (KDF parameters) is
+                             required, which defines hash and
+                             outputlen (shared secret length) */
     /* More curves? */
-    GCRY_KEM_CMS_X25519_X963_SHA256, /* For CMS with X25519, X963 and SHA256 */
-    GCRY_KEM_CMS_X25519_HKDF_SHA256, /* For CMS with X25519, HKDF and SHA256 */
-                                     /* For CMS, OPTIONAL (parameter)
-                                        is required, which defines outputlen
-                                        (by key-wrap algo) */
+    GCRY_KEM_CMS_X25519_X963_SHA256, /* CMS with X25519, X963 and SHA256 */
+                          /* For CMS, OPTIONAL (sharedinfo) is required,
+                             which defines keylen for keywrap.  */
+    GCRY_KEM_CMS_X25519_HKDF_SHA256, /* CMS with X25519, HKDF and SHA256 */
     /* More curves? */
   };
 
@@ -1778,14 +1777,6 @@ gcry_error_t gcry_kem_decap (int algo,
                              void *shared, size_t shared_len,
                              const void *optional, size_t optional_len);
 
-/* For OPTIONAL, in case of CMS.  */
-struct cms_kdf_param {
-  const unsigned char *oid;     /* OID of KeyWrapAlgorithm */
-  size_t oidlen;
-  size_t keylen;                /* in octets (not bits) */
-  const unsigned char *ukm;     /* User Key Material (may be NULL) */
-  size_t ukmlen;
-};
 
 /************************************
  *                                  *

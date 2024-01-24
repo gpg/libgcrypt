@@ -19,17 +19,29 @@
  *
  */
 
-gpg_err_code_t ecc_dhkem_keypair (int algo, void *pubkey, void *seckey);
-gpg_err_code_t ecc_dhkem_encap (int algo, const void *pubkey, void *ciphertext,
-                                void *shared);
-gpg_err_code_t ecc_dhkem_decap (int algo, const void *seckey,
-                                const void *ciphertext,
-                                void *shared, const void *optional);
+gpg_err_code_t _gcry_ecc_raw_keypair (int algo, void *pubkey, void *seckey);
+gpg_err_code_t _gcry_ecc_raw_encap (int curveid, const void *pubkey,
+                                    void *ciphertext, void *shared);
+gpg_err_code_t _gcry_ecc_raw_decap (int curveid, const void *seckey,
+                                    const void *ciphertext, void *shared);
 
-gpg_err_code_t openpgp_kem_keypair (int algo, void *pubkey, void *seckey);
-gpg_err_code_t openpgp_kem_encap (int algo, const void *pubkey,
-                                  void *ciphertext,
-                                  void *shared, const void *optional);
-gpg_err_code_t openpgp_kem_decap (int algo, const void *seckey,
-                                  const void *ciphertext,
-                                  void *shared, const void *optional);
+gpg_err_code_t _gcry_ecc_dhkem_encap (int algo, const void *pubkey,
+                                      void *ciphertext,
+                                      void *shared);
+gpg_err_code_t _gcry_ecc_dhkem_decap (int algo, const void *seckey,
+                                      const void *ciphertext,
+                                      void *shared, const void *optional);
+
+gpg_err_code_t _gcry_openpgp_kem_encap (int algo, const void *pubkey,
+                                        void *ciphertext,
+                                        void *shared, const void *optional);
+gpg_err_code_t _gcry_openpgp_kem_decap (int algo, const void *seckey,
+                                        const void *ciphertext,
+                                        void *shared, const void *optional);
+
+gpg_err_code_t _gcry_cms_kem_encap (int algo, const void *pubkey,
+                                    void *ciphertext,
+                                    void *shared, const void *optional);
+gpg_err_code_t _gcry_cms_kem_decap (int algo, const void *seckey,
+                                    const void *ciphertext,
+                                    void *shared, const void *optional);
