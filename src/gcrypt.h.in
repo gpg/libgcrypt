@@ -1696,8 +1696,20 @@ enum gcry_kem_algos
     GCRY_KEM_MLKEM512,
     GCRY_KEM_MLKEM768,
     GCRY_KEM_MLKEM1024,
-    GCRY_KEM_DHKEM25519,     /* DHKEM with X25519, HKDF, and SHA256 */
-    GCRY_KEM_PGP_X25519      /* For OpenPGP with Curve25519 */
+    GCRY_KEM_TLS_X25519_IDENTITY,    /* Identity KDF: do nothing             */
+    /* More curves? */
+    GCRY_KEM_DHKEM25519,             /* DHKEM with X25519, HKDF, and SHA256  */
+    /* More curves? */
+    GCRY_KEM_PGP_X25519, /* For OpenPGP, OPTIONAL (KDF parameters) is
+                            required, which defines hash and
+                            outputlen (shared secret length) */
+    /* More curves? */
+    GCRY_KEM_CMS_X25519_X963_SHA256, /* For CMS with X25519, X963 and SHA256 */
+    GCRY_KEM_CMS_X25519_HKDF_SHA256, /* For CMS with X25519, HKDF and SHA256 */
+                                     /* For CMS, OPTIONAL (parameter)
+                                        is required, which defines outputlen
+                                        (by key-wrap algo) */
+    /* More curves? */
   };
 
 /*
@@ -1729,15 +1741,22 @@ enum gcry_kem_algos
 #define GCRY_KEM_MLKEM1024_ENCAPS_LEN   (160+4*352)
 #define GCRY_KEM_MLKEM1024_SHARED_LEN   32
 
-#define GCRY_KEM_DHKEM25519_SECKEY_LEN  32
-#define GCRY_KEM_DHKEM25519_PUBKEY_LEN  32
-#define GCRY_KEM_DHKEM25519_ENCAPS_LEN  32
+/**/
+#define GCRY_KEM_ECC_X25519_SECKEY_LEN  32
+#define GCRY_KEM_ECC_X25519_PUBKEY_LEN  32
+#define GCRY_KEM_ECC_X25519_ENCAPS_LEN  32
+
+#define GCRY_KEM_DHKEM25519_SECKEY_LEN  GCRY_KEM_ECC_X25519_SECKEY_LEN
+#define GCRY_KEM_DHKEM25519_PUBKEY_LEN  GCRY_KEM_ECC_X25519_PUBKEY_LEN
+#define GCRY_KEM_DHKEM25519_ENCAPS_LEN  GCRY_KEM_ECC_X25519_ENCAPS_LEN
 #define GCRY_KEM_DHKEM25519_SHARED_LEN  32
 
-#define GCRY_KEM_PGP_X25519_SECKEY_LEN  32
-#define GCRY_KEM_PGP_X25519_PUBKEY_LEN  32
-#define GCRY_KEM_PGP_X25519_ENCAPS_LEN  32
-#define GCRY_KEM_PGP_X25519_SHARED_LEN  16
+/* Those lengths are determined by the curve.  */
+/* #define GCRY_KEM_PGP_X25519_SECKEY_LEN  32 */
+/* #define GCRY_KEM_PGP_X25519_PUBKEY_LEN  32 */
+/* #define GCRY_KEM_PGP_X25519_ENCAPS_LEN  32 */
+/* Shared secret length is determined by KDF parameters in OPTIONAL.  */
+/* #define GCRY_KEM_PGP_X25519_SHARED_LEN  16 */
 
 /* Generate a new key pair with ALGO.  */
 gcry_error_t gcry_kem_keypair (int algo,
@@ -1759,6 +1778,14 @@ gcry_error_t gcry_kem_decap (int algo,
                              void *shared, size_t shared_len,
                              const void *optional, size_t optional_len);
 
+/* For OPTIONAL, in case of CMS.  */
+struct cms_kdf_param {
+  const unsigned char *oid;     /* OID of KeyWrapAlgorithm */
+  size_t oidlen;
+  size_t keylen;                /* in octets (not bits) */
+  const unsigned char *ukm;     /* User Key Material (may be NULL) */
+  size_t ukmlen;
+};
 
 /************************************
  *                                  *

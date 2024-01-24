@@ -319,15 +319,18 @@ test_kem_dhkem_x25519 (int testno)
     }
 }
 
+/* In the following case, with AES128-keywrap, shared secret length is 16.  */
+#define MY_KEM_PGP_X25519_SHARED_LEN 16
+
 static void
 test_kem_openpgp_x25519 (int testno)
 {
   gcry_error_t err;
-  uint8_t pubkey[GCRY_KEM_PGP_X25519_PUBKEY_LEN];
-  uint8_t seckey[GCRY_KEM_PGP_X25519_SECKEY_LEN];
-  uint8_t ciphertext[GCRY_KEM_PGP_X25519_ENCAPS_LEN];
-  uint8_t key1[GCRY_KEM_PGP_X25519_SHARED_LEN];
-  uint8_t key2[GCRY_KEM_PGP_X25519_SHARED_LEN];
+  uint8_t pubkey[GCRY_KEM_ECC_X25519_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_ECC_X25519_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_ECC_X25519_ENCAPS_LEN];
+  uint8_t key1[MY_KEM_PGP_X25519_SHARED_LEN];
+  uint8_t key2[MY_KEM_PGP_X25519_SHARED_LEN];
   const uint8_t kdf_param[56] = {
     0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0x97, 0x55,
     0x01, 0x05, 0x01,
@@ -346,8 +349,8 @@ test_kem_openpgp_x25519 (int testno)
   };
 
   err = gcry_kem_keypair (GCRY_KEM_PGP_X25519,
-                          pubkey, GCRY_KEM_PGP_X25519_PUBKEY_LEN,
-                          seckey, GCRY_KEM_PGP_X25519_SECKEY_LEN);
+                          pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
+                          seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN);
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
@@ -355,9 +358,9 @@ test_kem_openpgp_x25519 (int testno)
     }
 
   err = gcry_kem_encap (GCRY_KEM_PGP_X25519,
-                        pubkey, GCRY_KEM_PGP_X25519_PUBKEY_LEN,
-                        ciphertext, GCRY_KEM_PGP_X25519_ENCAPS_LEN,
-                        key1, GCRY_KEM_PGP_X25519_SHARED_LEN,
+                        pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_ECC_X25519_ENCAPS_LEN,
+                        key1, MY_KEM_PGP_X25519_SHARED_LEN,
                         kdf_param, sizeof (kdf_param));
   if (err)
     {
@@ -366,9 +369,9 @@ test_kem_openpgp_x25519 (int testno)
     }
 
   err = gcry_kem_decap (GCRY_KEM_PGP_X25519,
-                        seckey, GCRY_KEM_PGP_X25519_SECKEY_LEN,
-                        ciphertext, GCRY_KEM_PGP_X25519_ENCAPS_LEN,
-                        key2, GCRY_KEM_PGP_X25519_SHARED_LEN,
+                        seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_ECC_X25519_ENCAPS_LEN,
+                        key2, MY_KEM_PGP_X25519_SHARED_LEN,
                         kdf_param, sizeof (kdf_param));
   if (err)
     {
@@ -376,17 +379,17 @@ test_kem_openpgp_x25519 (int testno)
       return;
     }
 
-  if (memcmp (key1, key2, GCRY_KEM_PGP_X25519_SHARED_LEN) != 0)
+  if (memcmp (key1, key2, MY_KEM_PGP_X25519_SHARED_LEN) != 0)
     {
       size_t i;
 
       fail ("openpgp-x25519 test %d failed: mismatch\n", testno);
       fputs ("key1:", stderr);
-      for (i = 0; i < GCRY_KEM_PGP_X25519_SHARED_LEN; i++)
+      for (i = 0; i < MY_KEM_PGP_X25519_SHARED_LEN; i++)
         fprintf (stderr, " %02x", key1[i]);
       putc ('\n', stderr);
       fputs ("key2:", stderr);
-      for (i = 0; i < GCRY_KEM_PGP_X25519_SHARED_LEN; i++)
+      for (i = 0; i < MY_KEM_PGP_X25519_SHARED_LEN; i++)
         fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
