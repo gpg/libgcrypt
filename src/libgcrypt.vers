@@ -37,7 +37,7 @@ GCRYPT_1.6 {
     gcry_xmalloc_secure; gcry_xrealloc; gcry_xstrdup;
 
     gcry_md_algo_info; gcry_md_algo_name; gcry_md_close;
-    gcry_md_copy; gcry_md_ctl; gcry_md_enable; gcry_md_get;
+    gcry_md_copy; gcry_md_ctl; gcry_md_enable;
     gcry_md_get_algo; gcry_md_get_algo_dlen; gcry_md_hash_buffer;
     gcry_md_hash_buffers;
     gcry_md_info; gcry_md_is_enabled; gcry_md_is_secure;
@@ -61,7 +61,7 @@ GCRYPT_1.6 {
     gcry_pk_algo_info; gcry_pk_algo_name; gcry_pk_ctl;
     gcry_pk_decrypt; gcry_pk_encrypt; gcry_pk_genkey;
     gcry_pk_get_keygrip; gcry_pk_get_nbits;
-    gcry_pk_map_name; gcry_pk_register; gcry_pk_sign;
+    gcry_pk_map_name; gcry_pk_sign;
     gcry_pk_testkey; gcry_pk_verify;
     gcry_pk_get_curve; gcry_pk_get_param;
 
