@@ -92,6 +92,64 @@ test_kem_sntrup761 (int testno)
 
 
 static void
+test_kem_mceliece6688128f (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_MCELIECE6688128F_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_MCELIECE6688128F_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_MCELIECE6688128F_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_MCELIECE6688128F_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_MCELIECE6688128F_SHARED_LEN];
+
+  err = gcry_kem_keypair (GCRY_KEM_MCELIECE6688128F,
+			  pubkey, GCRY_KEM_MCELIECE6688128F_PUBKEY_LEN,
+			  seckey, GCRY_KEM_MCELIECE6688128F_SECKEY_LEN);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_MCELIECE6688128F,
+			pubkey, GCRY_KEM_MCELIECE6688128F_PUBKEY_LEN,
+			ciphertext, GCRY_KEM_MCELIECE6688128F_ENCAPS_LEN,
+			key1, GCRY_KEM_MCELIECE6688128F_SHARED_LEN,
+			NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_enc %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_MCELIECE6688128F,
+			seckey, GCRY_KEM_MCELIECE6688128F_SECKEY_LEN,
+			ciphertext, GCRY_KEM_MCELIECE6688128F_ENCAPS_LEN,
+			key2, GCRY_KEM_MCELIECE6688128F_SHARED_LEN,
+			NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_dec %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_MCELIECE6688128F_SHARED_LEN) != 0)
+    {
+      size_t i;
+
+      fail ("mceliece6688128f test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_MCELIECE6688128F_SHARED_LEN; i++)
+	fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_MCELIECE6688128F_SHARED_LEN; i++)
+	fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+
+static void
 test_kem_mlkem512 (int testno)
 {
   gcry_error_t err;
@@ -571,6 +629,8 @@ test_kem_cms_x25519 (int testno)
 #define SELECTED_ALGO_DHKEM25519 (1 << 5)
 #define SELECTED_ALGO_OPENPGP_X25519 (1 << 6)
 #define SELECTED_ALGO_CMS_X25519 (1 << 7)
+#define SELECTED_ALGO_MCELIECE6688128F (1 << 8)
+
 static unsigned int selected_algo;
 
 static void
@@ -587,6 +647,13 @@ check_kem (int n_loops)
     {
       for (; testno < n_loops; testno++)
         test_kem_sntrup761 (testno);
+      ntests += n_loops;
+    }
+
+  if ((selected_algo & SELECTED_ALGO_MCELIECE6688128F))
+    {
+      for (; testno < n_loops; testno++)
+        test_kem_mceliece6688128f (testno);
       ntests += n_loops;
     }
 
@@ -675,6 +742,7 @@ main (int argc, char **argv)
                  "  --debug         flyswatter\n"
                  "  --loops N       specify the loop count\n"
                  "  --sntrup761     select SNTRUP761 algo\n"
+                 "  --mceliece6688128f  select MCELIECE6688128F algo\n"
                  "  --mlkem512      select MLKEM512 algo\n"
                  "  --mlkem768      select MLKEM768 algo\n"
                  "  --mlkem1024     select MLKEM1024 algo\n"
@@ -708,6 +776,12 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--sntrup761"))
         {
           selected_algo = SELECTED_ALGO_SNTRUP761;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--mceliece6688128f"))
+        {
+          selected_algo = SELECTED_ALGO_MCELIECE6688128F;
           argc--;
           argv++;
         }
