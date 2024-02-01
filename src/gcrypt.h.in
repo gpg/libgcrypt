@@ -1750,6 +1750,8 @@ enum gcry_kem_algos
 #define GCRY_KEM_DHKEM25519_ENCAPS_LEN  GCRY_KEM_ECC_X25519_ENCAPS_LEN
 #define GCRY_KEM_DHKEM25519_SHARED_LEN  32
 
+#define GCRY_KEM_RAW_X25519_SHARED_LEN  32
+
 /* Those lengths are determined by the curve.  */
 /* #define GCRY_KEM_PGP_X25519_SECKEY_LEN  32 */
 /* #define GCRY_KEM_PGP_X25519_PUBKEY_LEN  32 */

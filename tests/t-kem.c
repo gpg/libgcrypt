@@ -263,6 +263,64 @@ test_kem_mlkem1024 (int testno)
 
 
 static void
+test_kem_raw_x25519 (int testno)
+{
+  gcry_error_t err;
+  uint8_t pubkey[GCRY_KEM_ECC_X25519_PUBKEY_LEN];
+  uint8_t seckey[GCRY_KEM_ECC_X25519_SECKEY_LEN];
+  uint8_t ciphertext[GCRY_KEM_ECC_X25519_ENCAPS_LEN];
+  uint8_t key1[GCRY_KEM_RAW_X25519_SHARED_LEN];
+  uint8_t key2[GCRY_KEM_RAW_X25519_SHARED_LEN];
+
+  err = gcry_kem_keypair (GCRY_KEM_RAW_X25519,
+                          pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
+                          seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN);
+  if (err)
+    {
+      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_encap (GCRY_KEM_RAW_X25519,
+                        pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
+                        ciphertext, GCRY_KEM_ECC_X25519_ENCAPS_LEN,
+                        key1, GCRY_KEM_RAW_X25519_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  err = gcry_kem_decap (GCRY_KEM_RAW_X25519,
+                        seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_ECC_X25519_ENCAPS_LEN,
+                        key2, GCRY_KEM_RAW_X25519_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (key1, key2, GCRY_KEM_RAW_X25519_SHARED_LEN) != 0)
+    {
+      size_t i;
+
+      fail ("raw-x25519 test %d failed: mismatch\n", testno);
+      fputs ("key1:", stderr);
+      for (i = 0; i < GCRY_KEM_RAW_X25519_SHARED_LEN; i++)
+        fprintf (stderr, " %02x", key1[i]);
+      putc ('\n', stderr);
+      fputs ("key2:", stderr);
+      for (i = 0; i < GCRY_KEM_RAW_X25519_SHARED_LEN; i++)
+        fprintf (stderr, " %02x", key2[i]);
+      putc ('\n', stderr);
+    }
+}
+
+
+static void
 test_kem_dhkem_x25519 (int testno)
 {
   gcry_error_t err;
@@ -296,7 +354,7 @@ test_kem_dhkem_x25519 (int testno)
                         seckey, GCRY_KEM_DHKEM25519_SECKEY_LEN,
                         ciphertext, GCRY_KEM_DHKEM25519_ENCAPS_LEN,
                         key2, GCRY_KEM_DHKEM25519_SHARED_LEN,
-                        pubkey, GCRY_KEM_DHKEM25519_SECKEY_LEN);
+                        pubkey, GCRY_KEM_DHKEM25519_PUBKEY_LEN);
   if (err)
     {
       fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
@@ -472,9 +530,10 @@ test_kem_cms_x25519 (int testno)
 #define SELECTED_ALGO_MLKEM512   (1 << 1)
 #define SELECTED_ALGO_MLKEM768   (1 << 2)
 #define SELECTED_ALGO_MLKEM1024  (1 << 3)
-#define SELECTED_ALGO_DHKEM25519 (1 << 4)
-#define SELECTED_ALGO_PGP_X25519 (1 << 5)
-#define SELECTED_ALGO_CMS_X25519 (1 << 6)
+#define SELECTED_ALGO_RAW_X25519 (1 << 4)
+#define SELECTED_ALGO_DHKEM25519 (1 << 5)
+#define SELECTED_ALGO_PGP_X25519 (1 << 6)
+#define SELECTED_ALGO_CMS_X25519 (1 << 7)
 static unsigned int selected_algo;
 
 static void
@@ -512,6 +571,13 @@ check_kem (int n_loops)
     {
       for (; testno < ntests + n_loops; testno++)
         test_kem_mlkem1024 (testno);
+      ntests += n_loops;
+    }
+
+  if ((selected_algo & SELECTED_ALGO_RAW_X25519))
+    {
+      for (; testno < ntests + n_loops; testno++)
+        test_kem_raw_x25519 (testno);
       ntests += n_loops;
     }
 
@@ -622,6 +688,12 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--mlkem1024"))
         {
           selected_algo = SELECTED_ALGO_MLKEM1024;
+          argc--;
+          argv++;
+        }
+      else if (!strcmp (*argv, "--raw-x25519"))
+        {
+          selected_algo = SELECTED_ALGO_RAW_X25519;
           argc--;
           argv++;
         }
