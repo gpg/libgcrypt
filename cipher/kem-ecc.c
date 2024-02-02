@@ -28,6 +28,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 
+#include "curve25519.h"
 #include "kem-ecc.h"
 
 static gpg_err_code_t

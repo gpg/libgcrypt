@@ -30,6 +30,7 @@
 #include "context.h"
 #include "ec-context.h"
 #include "ecc-common.h"
+#include "curve25519.h"
 
 #define ECC_CURVE25519_BYTES 32
 #define ECC_CURVE448_BYTES   56
@@ -74,7 +75,15 @@ _gcry_ecc_mul_point (int curveid, unsigned char *result,
   unsigned char *buf;
 
   if (curveid == GCRY_ECC_CURVE25519)
+    {
+#if 1
+      /* FIXME: error handling.  */
+      crypto_scalarmult (result, scalar, point);
+      return 0;
+#else
     curve = "Curve25519";
+#endif
+    }
   else if (curveid == GCRY_ECC_CURVE448)
     curve = "X448";
   else
