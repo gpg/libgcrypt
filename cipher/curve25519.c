@@ -48,7 +48,6 @@ typedef struct bn512 {
 #define fe_mul  fe25638_mul
 #define fe_sqr  fe25638_sqr
 #define fe_a24  fe25638_mul_121665
-#define fe_sqr_times  fe25638_sqr_times
 #else
 #error "For now, code for 64-bit computer is implemented."
 #endif
@@ -490,22 +489,6 @@ fe25638_sqr (fe25638 *X, const fe25638 *A)
   fe25638_reduce (X, tmp);
 }
 
-/* X = A^(2^COUNT) mod 2^256-38 */
-static void
-fe25638_sqr_times (fe25638 *X, const fe25638 *A, unsigned int count)
-{
-  bn512 tmp[1];
-  unsigned int i;
-
-  bn256_copy (X, A);
-  for (i = 0; i < count; i++)
-    {
-      bn256_sqr (tmp, X);
-      fe25638_reduce (X, tmp);
-    }
-}
-
-
 static void
 fe25638_mul_121665 (fe25638 *X, const fe25638 *A)
 {
@@ -651,34 +634,374 @@ fe_tobyte (unsigned char *p, const fe25638 *X)
 }
 
 
-static void
-fe_invert (fe25638 *X, const fe25638 *A)
-{
-  fe25638 T0[1], T1[1], T2[1], T3[1];
+/*
+ * This implementation follows the explanation in the following document:
+ *
+ * The safegcd implementaion in libsecp256k1 explained:
+ * https://github.com/bitcoin-core/secp256k1/blob/0775283/doc/safegcd_implementation.md
+ *
+ * While it suggests use of 62-bit integer representation for 64-bit
+ * computer (and 30-bit representation for 32-bit computer), this
+ * implementation uses N=31 and tweaked version of U in the transition
+ * matrix, so that iteration can be 19 times for p25519.
+ */
 
-  /* 2 */ fe_sqr (T0, A); /* T0 = 2 */
-  /* 8 */ fe_sqr_times (T1, T0, 2);
-  /* 9 */ fe_mul (T2, T1, A); /* T2 = 9 */
-  /* 11 */ fe_mul (T0, T2, T0); /* T0 = 11 */
-  /* 22 */ fe_sqr (T1, T0);
-  /* 2^5 - 2^0 = 31 */ fe_mul (T2, T1, T2);
-  /* 2^10 - 2^5 */ fe_sqr_times (T1, T2, 5);
-  /* 2^10 - 2^0 */ fe_mul (T2, T1, T2);
-  /* 2^20 - 2^10 */ fe_sqr_times (T1, T2, 10);
-  /* 2^20 - 2^0 */ fe_mul (T3, T1, T2);
-  /* 2^40 - 2^20 */ fe_sqr_times (T1, T3, 20);
-  /* 2^40 - 2^0 */ fe_mul (T1, T1, T3);
-  /* 2^50 - 2^10 */ fe_sqr_times (T1, T1, 10);
-  /* 2^50 - 2^0 */ fe_mul (T2, T1, T2);
-  /* 2^100 - 2^50 */ fe_sqr_times (T1, T2, 50);
-  /* 2^100 - 2^0 */ fe_mul (T3, T1, T2);
-  /* 2^200 - 2^100 */ fe_sqr_times (T1, T3, 100);
-  /* 2^200 - 2^0 */ fe_mul (T1, T1, T3);
-  /* 2^250 - 2^50 */ fe_sqr_times (T1, T1, 50);
-  /* 2^250 - 2^0 */ fe_mul (T1, T1, T2);
-  /* 2^255 - 2^5 */ fe_sqr_times (T1, T1, 5);
-  /* 2^255 - 21 */ fe_mul (X, T1, T0);
+/*
+ * Other references:
+ *
+ * [1] Daniel J. Bernstein, Bo-Yin Yang.
+ *     Fast constant-time gcd and modular inversion.
+ *     Date: 2019.04.13.
+ *     https://gcd.cr.yp.to/papers.html#safegcd
+ *
+ * [2] Pieter Wuille.
+ *     Bounds on divsteps iterations in safegcd.
+ *     https://github.com/sipa/safegcd-bounds#readme
+ */
+
+/* Representation with signed 31-bit limb for bignum integer. */
+#define SR256_WORDS 9
+typedef struct sr256 {
+  int32_t v[SR256_WORDS];
+} sr256;
+
+/* The modulus in signed 31-bit representation. */
+static const sr256 modulus_25519 = {
+  { -19, 0, 0, 0, 0, 0, 0, 0, 128 }
+};
+/* inv31: modulus^-1 (mod 2^31)
+ * pow(modulus_25519,2**31-1,2**31)
+ */
+static const uint32_t modulus_inv31_25519 = 0x579435e5;
+
+/*
+ * Data type for transition matrix
+ *
+ * t = [ u  v ]
+ *     [ q  r ]
+ *
+ * u_ is tweaked by -1, so that overflow never occurs.
+ */
+typedef struct {
+  int32_t u_, v;
+  int32_t q,  r;
+} matrix_2x2;
+
+static int32_t
+modinv_divsteps (int32_t zeta, uint32_t f0, uint32_t g0, matrix_2x2 *t)
+{
+  uint32_t f, g;
+  uint32_t u, v, q, r;
+  int i = 0;
+
+  f = f0;
+  g = g0;
+  u = 1;
+  v = 0;
+  q = 0;
+  r = 1;
+
+  for (;;)
+    {
+      uint32_t mask1, mask2;
+      uint32_t x, y, z;         /* -f, -u, -v conditionally.  */
+
+      mask1 = zeta >> 31;
+      mask2 = 0UL - (g & 1);
+
+      x = (f ^ mask1) - mask1;
+      y = (u ^ mask1) - mask1;
+      z = (v ^ mask1) - mask1;
+
+      g += x & mask2;
+      q += y & mask2;
+      r += z & mask2;
+
+      mask1 &= mask2;
+
+      zeta = (zeta ^ mask1) - 1;
+      f += g & mask1;
+      u += q & mask1;
+      v += r & mask1;
+
+      g >>= 1;
+
+      if (++i >= 31)
+        break;
+      u <<= 1;
+      v <<= 1;
+    }
+
+  t->u_ = (int32_t)(u - 1 + u); /* double minus 1 */
+  t->v = (int32_t)(v << 1);     /* double */
+  t->q = (int32_t)q;
+  t->r = (int32_t)r;
+
+  return zeta;
 }
+
+/*
+ */
+static void
+modinv_update_de (sr256 *d, sr256 *e, const matrix_2x2 *t,
+                  const sr256 *modulus, uint32_t inv31)
+{
+  const int32_t u_ = t->u_, v = t->v, q = t->q, r = t->r;
+  int32_t di, ei, me, sd, se;
+  int64_t cd, ce;
+  int32_t md_; /* MD_ stands for MD minus 1, which keeps <= 2**31-1 */
+  int i;
+
+  sd = d->v[8] >> 31;
+  se = e->v[8] >> 31;
+  md_ = (u_ & sd) + (v & se);
+  me = (q & sd) + (r & se);
+  di = d->v[0];
+  ei = e->v[0];
+  cd = (int64_t)u_ * di + di + (int64_t)v * ei;
+  ce = (int64_t)q * di + (int64_t)r * ei;
+  /* MD_ + 1 in the following expression may never overflow in uint32_t.
+   * The value of MD_ may be 2**31-1, but the addition is by unsigned.  */
+  md_ -= ((uint32_t)md_ + (1 & sd) + inv31 * (uint32_t)cd) & 0x7fffffff;
+  me -= (inv31 * (uint32_t)ce + me) & 0x7fffffff;
+  cd += (int64_t)modulus->v[0] * md_ + (int64_t)(modulus->v[0] & sd);
+  ce += (int64_t)modulus->v[0] * me;
+  cd >>= 31;
+  ce >>= 31;
+  for (i = 1; i < SR256_WORDS; i++)
+    {
+      di = d->v[i];
+      ei = e->v[i];
+      cd += (int64_t)u_ * di + di + (int64_t)v * ei;
+      ce += (int64_t)q * di + (int64_t)r * ei;
+      if (i == 1  || i == 8)
+        {
+          cd += (int64_t)modulus->v[i] * md_ + (int64_t)(modulus->v[i] & sd);
+          ce += (int64_t)modulus->v[i] * me;
+        }
+      d->v[i - 1] = (int32_t)cd & 0x7fffffff;
+      e->v[i - 1] = (int32_t)ce & 0x7fffffff;
+      cd >>= 31;
+      ce >>= 31;
+    }
+
+  d->v[8] = (int32_t)cd;
+  e->v[8] = (int32_t)ce;
+}
+
+/*
+ */
+static void
+modinv_update_fg (sr256 *f, sr256 *g, const matrix_2x2 *t)
+{
+  const int32_t u_ = t->u_, v = t->v, q = t->q, r = t->r;
+  int32_t fi, gi;
+  int64_t cf, cg;
+  int i;
+
+  fi = f->v[0];
+  gi = g->v[0];
+  cf = (int64_t)u_ * fi + fi + (int64_t)v * gi;
+  cg = (int64_t)q * fi + (int64_t)r * gi;
+  cf >>= 31;
+  cg >>= 31;
+
+  for (i = 1; i < SR256_WORDS; i++)
+    {
+      fi = f->v[i];
+      gi = g->v[i];
+      cf += (int64_t)u_ * fi + fi + (int64_t)v * gi;
+      cg += (int64_t)q * fi + (int64_t)r * gi;
+      f->v[i - 1] = (int32_t)cf & 0x7fffffff;
+      g->v[i - 1] = (int32_t)cg & 0x7fffffff;
+      cf >>= 31;
+      cg >>= 31;
+    }
+
+  f->v[8] = (int32_t)cf;
+  g->v[8] = (int32_t)cg;
+}
+
+
+static void
+modinv_normalize (sr256 *r, int32_t sign, const sr256 *modulus)
+{
+  int32_t r0, r1, r2, r3, r4, r5, r6, r7, r8;
+  int32_t mask_add, mask_neg;
+
+  r0 = r->v[0];
+  r1 = r->v[1];
+  r2 = r->v[2];
+  r3 = r->v[3];
+  r4 = r->v[4];
+  r5 = r->v[5];
+  r6 = r->v[6];
+  r7 = r->v[7];
+  r8 = r->v[8];
+
+  /* Negate if SIGN is negative.  */
+  mask_neg = sign >> 31;
+  r0 = (r0 ^ mask_neg) - mask_neg;
+  r1 = (r1 ^ mask_neg) - mask_neg;
+  r2 = (r2 ^ mask_neg) - mask_neg;
+  r3 = (r3 ^ mask_neg) - mask_neg;
+  r4 = (r4 ^ mask_neg) - mask_neg;
+  r5 = (r5 ^ mask_neg) - mask_neg;
+  r6 = (r6 ^ mask_neg) - mask_neg;
+  r7 = (r7 ^ mask_neg) - mask_neg;
+  r8 = (r8 ^ mask_neg) - mask_neg;
+  r1 += r0 >> 31; r0 &= 0x7fffffff;
+  r2 += r1 >> 31; r1 &= 0x7fffffff;
+  r3 += r2 >> 31; r2 &= 0x7fffffff;
+  r4 += r3 >> 31; r3 &= 0x7fffffff;
+  r5 += r4 >> 31; r4 &= 0x7fffffff;
+  r6 += r5 >> 31; r5 &= 0x7fffffff;
+  r7 += r6 >> 31; r6 &= 0x7fffffff;
+  r8 += r7 >> 31; r7 &= 0x7fffffff;
+
+  /* Add the modulus if the input is negative. */
+  mask_add = r8 >> 31;
+  r0 += modulus->v[0] & mask_add;
+  r1 += modulus->v[1] & mask_add;
+  /* We know modulus->v[i] is zero for i=2..7.  */
+  r8 += modulus->v[8] & mask_add;
+  r1 += r0 >> 31; r0 &= 0x7fffffff;
+  r2 += r1 >> 31; r1 &= 0x7fffffff;
+  r3 += r2 >> 31; r2 &= 0x7fffffff;
+  r4 += r3 >> 31; r3 &= 0x7fffffff;
+  r5 += r4 >> 31; r4 &= 0x7fffffff;
+  r6 += r5 >> 31; r5 &= 0x7fffffff;
+  r7 += r6 >> 31; r6 &= 0x7fffffff;
+  r8 += r7 >> 31; r7 &= 0x7fffffff;
+
+  /* It brings r from range (-2*modulus,modulus) to range
+     (-modulus,modulus). */
+
+  /* Add the modulus again if the result is still negative. */
+  mask_add = r8 >> 31;
+  r0 += modulus->v[0] & mask_add;
+  r1 += modulus->v[1] & mask_add;
+  /* We know modulus->v[i] is zero for i=2..7.  */
+  r8 += modulus->v[8] & mask_add;
+  r1 += r0 >> 31; r0 &= 0x7fffffff;
+  r2 += r1 >> 31; r1 &= 0x7fffffff;
+  r3 += r2 >> 31; r2 &= 0x7fffffff;
+  r4 += r3 >> 31; r3 &= 0x7fffffff;
+  r5 += r4 >> 31; r4 &= 0x7fffffff;
+  r6 += r5 >> 31; r5 &= 0x7fffffff;
+  r7 += r6 >> 31; r6 &= 0x7fffffff;
+  r8 += r7 >> 31; r7 &= 0x7fffffff;
+
+  /* It brings r from range (-2*modulus,modulus) to range
+     [0,modulus). */
+
+  r->v[0] = r0;
+  r->v[1] = r1;
+  r->v[2] = r2;
+  r->v[3] = r3;
+  r->v[4] = r4;
+  r->v[5] = r5;
+  r->v[6] = r6;
+  r->v[7] = r7;
+  r->v[8] = r8;
+}
+
+/*
+ */
+static void
+modinv (sr256 *x, const sr256 *modulus, uint32_t inv31, int iterations)
+{
+  sr256 d = {{0}};
+  sr256 e = {{1}};
+  sr256 f = *modulus;
+  sr256 g = *x;
+  int32_t zeta = -1;
+  int i;
+
+  for (i = 0; i < iterations; i++)
+    {
+      matrix_2x2 t;
+
+      zeta = modinv_divsteps (zeta, f.v[0], g.v[0], &t);
+      modinv_update_de (&d, &e, &t, modulus, inv31);
+      modinv_update_fg (&f, &g, &t);
+    }
+
+  modinv_normalize (&d, f.v[8], modulus);
+  *x = d;
+}
+
+static void
+bn_to_signed31 (sr256 *r, const bn256 *a)
+{
+  uint32_t a0, a1, a2, a3, a4, a5, a6, a7;
+
+  a0 = a->w[0];
+  a1 = a->w[0] >> 32;
+  a2 = a->w[1];
+  a3 = a->w[1] >> 32;
+  a4 = a->w[2];
+  a5 = a->w[2] >> 32;
+  a6 = a->w[3];
+  a7 = a->w[3] >> 32;
+
+  r->v[0] =               (a0 <<  0) & 0x7fffffff;
+  r->v[1] = (a0 >> 31) | ((a1 <<  1) & 0x7fffffff);
+  r->v[2] = (a1 >> 30) | ((a2 <<  2) & 0x7fffffff);
+  r->v[3] = (a2 >> 29) | ((a3 <<  3) & 0x7fffffff);
+  r->v[4] = (a3 >> 28) | ((a4 <<  4) & 0x7fffffff);
+  r->v[5] = (a4 >> 27) | ((a5 <<  5) & 0x7fffffff);
+  r->v[6] = (a5 >> 26) | ((a6 <<  6) & 0x7fffffff);
+  r->v[7] = (a6 >> 25) | ((a7 <<  7) & 0x7fffffff);
+  r->v[8] = (a7 >> 24);
+}
+
+static void
+bn_from_signed31 (bn256 *a, const sr256 *r)
+{
+  uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8;
+
+  /* Input must be [0,modulus)... */
+  r0 = r->v[0];
+  r1 = r->v[1];
+  r2 = r->v[2];
+  r3 = r->v[3];
+  r4 = r->v[4];
+  r5 = r->v[5];
+  r6 = r->v[6];
+  r7 = r->v[7];
+  r8 = r->v[8];
+
+  a->w[0] = (r0 >>  0) | (r1 << 31);
+  a->w[0] |= (uint64_t)((r1 >>  1) | (r2 << 30)) << 32;
+  a->w[1] = (r2 >>  2) | (r3 << 29);
+  a->w[1] |= (uint64_t)((r3 >>  3) | (r4 << 28)) << 32;
+  a->w[2] = (r4 >>  4) | (r5 << 27);
+  a->w[2] |= (uint64_t)((r5 >>  5) | (r6 << 26)) << 32;
+  a->w[3] = (r6 >>  6) | (r7 << 25);
+  a->w[3] |= (uint64_t)((r7 >>  7) | (r8 << 24)) << 32;
+  /* ... then, (r8 >> 24) should be zero, here.  */
+}
+
+/**
+ * @brief R = X^(-1) mod N
+ *
+ * Assume X and N are co-prime (or N is prime).
+ * NOTE: If X==0, it return 0.
+ *
+ */
+static void
+fe_invert (bn256 *R, const bn256 *X)
+{
+  sr256 s[1];
+
+  memcpy (R, X, sizeof (bn256));
+
+  bn_to_signed31 (s, R);
+  modinv (s, &modulus_25519, modulus_inv31_25519, 19);
+  bn_from_signed31 (R, s);
+}
+
 
 int
 crypto_scalarmult (unsigned char *q,
