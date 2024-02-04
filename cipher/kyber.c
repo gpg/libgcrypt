@@ -381,8 +381,14 @@ static void kyber_shake128_absorb (keccak_state *state,
 #define xof_close(STATE) shake128_close(STATE)
 #define xof_absorb(STATE, SEED, X, Y) kyber_shake128_absorb(STATE, SEED, X, Y)
 #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeeze(STATE, OUT, SHAKE128_RATE * OUTBLOCKS)
-#define prf(OUT, OUTBYTES, KEY, NONCE) shake256v(OUT, OUTBYTES, KEY, KYBER_SYMBYTES, &nonce, 1, NULL, 0)
-#define rkprf(OUT, KEY, INPUT) shake256v(OUT, KYBER_SSBYTES, KEY, KYBER_SYMBYTES, INPUT, KYBER_CIPHERTEXTBYTES, NULL, 0)
+#define prf(OUT, OUTBYTES, KEY, NONCE) \
+  shake256v(OUT, OUTBYTES, (void *)(KEY), (size_t)KYBER_SYMBYTES, \
+			   (void *)&(NONCE), (size_t)1, \
+			   NULL, (size_t)0)
+#define rkprf(OUT, KEY, INPUT) \
+  shake256v(OUT, KYBER_SSBYTES, (void *)(KEY), (size_t)KYBER_SYMBYTES, \
+				(void *)(INPUT), (size_t)KYBER_CIPHERTEXTBYTES, \
+				NULL, (size_t)0)
 
 #include "kyber-common.c"
 
