@@ -2351,7 +2351,7 @@ as DSA (Digital Signature Algorithm), Elgamal, ECDSA, ECDH, and EdDSA.
 
 Libgcrypt's API for asymmetric cryptography is based on data structures
 called S-expressions (see
-@uref{http://people.csail.mit.edu/@/rivest/@/sexp.html}) and does not work
+@uref{https://web.archive.org@/web/20230305073119@/http://people.csail.mit.edu@/rivest/sexp.html}) and does not work
 with contexts/handles as most of the other building blocks of Libgcrypt do.
 
 @noindent
