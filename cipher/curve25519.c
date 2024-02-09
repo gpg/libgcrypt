@@ -1,8 +1,3 @@
-/* Implementation for 64-bit, non-redundant representation (2^256-38)
- * so that we will be able to optimize with Intel ADX (ADCX and ADOX)
- * or similar.
- */
-
 /*
  * Three implementations are better:
  *
@@ -327,12 +322,13 @@ modinv_safegcd (sr256 *x, const sr256 *modulus, uint32_t inv31, int iterations)
   *x = d;
 }
 
-/*
- * For 32BIT architecture
+#if SIZEOF_UNSIGNED___INT128 == 16
+#define USE_64BIT_51_LIMB   1
+#else
 #define USE_32BIT_25_5_LIMB 1
-*/
+#endif
 
-#ifdef USE_32BIT_25_5_LIMB
+#if defined(USE_32BIT_25_5_LIMB)
 
 /* Redundant representation with signed limb for bignum integer,
  * using 2^25.5 for the base.
@@ -1371,6 +1367,952 @@ crypto_scalarmult (unsigned char *q,
   uint32_t swap = 0;
   unsigned char n[32];
   fe X0[1], Z0[1], X1[1], Z1[1];
+  fe T0[1], T1[1];
+  fe X[1];
+  bn256 x0bn[1], z0bn[1];
+  bn256 res[1];
+
+  for (i = 0; i < 32; i++)
+    n[i] = secret[i];
+  n[0] &= 248;
+  n[31] &= 127;
+  n[31] |= 64;
+
+  /* P0 = O = (1:0)  */
+  fe_1 (X0);
+  fe_0 (Z0);
+
+  /* P1 = (X:1) */
+  fe_expand (X, p);
+  fe_copy (X1, X);
+  fe_copy (Z1, X0);
+
+  for (i = 254; i >= 0; i--)
+    {
+      uint32_t b = (n[i>>3]>>(i&7))&1;
+
+      swap ^= b;
+      fe_swap_cond (X0, X1, swap);
+      fe_swap_cond (Z0, Z1, swap);
+      swap = b;
+      montgomery_step (X0, Z0, X1, Z1, X, T0, T1);
+    }
+
+  fe_contract ((unsigned char *)x0bn, X0);
+  fe_contract ((unsigned char *)z0bn, Z0);
+  fe_invert (res, z0bn);
+  mod25638_mul (res, res, x0bn);
+  mod25519_reduce (res);
+  fe_tobyte (q, res);
+  return 0;
+}
+#else
+typedef __int128_t int128_t;
+typedef __uint128_t uint128_t;
+
+typedef struct bn256 {
+  uint64_t w[4];
+} bn256;
+
+typedef struct bn512 {
+  uint64_t w[8];
+} bn512;
+
+
+static void
+bn_to_signed31 (sr256 *r, const bn256 *a)
+{
+  uint32_t a0, a1, a2, a3, a4, a5, a6, a7;
+
+  a0 = a->w[0];
+  a1 = a->w[0] >> 32;
+  a2 = a->w[1];
+  a3 = a->w[1] >> 32;
+  a4 = a->w[2];
+  a5 = a->w[2] >> 32;
+  a6 = a->w[3];
+  a7 = a->w[3] >> 32;
+
+  r->v[0] =               (a0 <<  0) & 0x7fffffff;
+  r->v[1] = (a0 >> 31) | ((a1 <<  1) & 0x7fffffff);
+  r->v[2] = (a1 >> 30) | ((a2 <<  2) & 0x7fffffff);
+  r->v[3] = (a2 >> 29) | ((a3 <<  3) & 0x7fffffff);
+  r->v[4] = (a3 >> 28) | ((a4 <<  4) & 0x7fffffff);
+  r->v[5] = (a4 >> 27) | ((a5 <<  5) & 0x7fffffff);
+  r->v[6] = (a5 >> 26) | ((a6 <<  6) & 0x7fffffff);
+  r->v[7] = (a6 >> 25) | ((a7 <<  7) & 0x7fffffff);
+  r->v[8] = (a7 >> 24);
+}
+
+static void
+bn_from_signed31 (bn256 *a, const sr256 *r)
+{
+  uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8;
+
+  /* Input must be [0,modulus)... */
+  r0 = r->v[0];
+  r1 = r->v[1];
+  r2 = r->v[2];
+  r3 = r->v[3];
+  r4 = r->v[4];
+  r5 = r->v[5];
+  r6 = r->v[6];
+  r7 = r->v[7];
+  r8 = r->v[8];
+
+  a->w[0] = (r0 >>  0) | (r1 << 31);
+  a->w[0] |= (uint64_t)((r1 >>  1) | (r2 << 30)) << 32;
+  a->w[1] = (r2 >>  2) | (r3 << 29);
+  a->w[1] |= (uint64_t)((r3 >>  3) | (r4 << 28)) << 32;
+  a->w[2] = (r4 >>  4) | (r5 << 27);
+  a->w[2] |= (uint64_t)((r5 >>  5) | (r6 << 26)) << 32;
+  a->w[3] = (r6 >>  6) | (r7 << 25);
+  a->w[3] |= (uint64_t)((r7 >>  7) | (r8 << 24)) << 32;
+  /* ... then, (r8 >> 24) should be zero, here.  */
+}
+
+/**
+ * @brief R = X^(-1) mod N
+ *
+ * NOTE: If X==0, it return 0.
+ *
+ */
+static void
+fe_invert (bn256 *R, const bn256 *X)
+{
+  sr256 s[1];
+
+  memcpy (R, X, sizeof (bn256));
+
+  bn_to_signed31 (s, R);
+  modinv_safegcd (s, &modulus_25519, modulus_inv31_25519, 19);
+  bn_from_signed31 (R, s);
+}
+
+static uint64_t
+bn256_add_uint (bn256 *X, const bn256 *A, uint64_t w)
+{
+  uint64_t carry = w;
+  uint64_t v0;
+  const uint64_t *a = A->w;
+  uint64_t *x = X->w;
+
+  v0 = *a++;
+  v0 += carry;
+  carry = (v0 < carry);
+  *x++ = v0;
+
+  v0 = *a++;
+  v0 += carry;
+  carry = (v0 < carry);
+  *x++ = v0;
+
+  v0 = *a++;
+  v0 += carry;
+  carry = (v0 < carry);
+  *x++ = v0;
+
+  v0 = *a++;
+  v0 += carry;
+  carry = (v0 < carry);
+  *x++ = v0;
+
+  return carry;
+}
+
+/* A*B */
+#define mul128(r0,r1,r2,a,b) \
+  uv = ((uint128_t)a)*b;     \
+  u = (uv >> 64);            \
+  v = uv;                    \
+  r0 += v;                   \
+  carry = (r0 < v);          \
+  r1 += carry;               \
+  carry = (r1 < carry);      \
+  r1 += u;                   \
+  carry += (r1 < u);         \
+  r2 += carry
+
+/* 2*A*B */
+#define mul128_2(r0,r1,r2,a,b) \
+  uv = ((uint128_t)a)*b;       \
+  r2 += (uv >> 127);           \
+  uv <<= 1;                    \
+  u = (uv >> 64);              \
+  v = uv;                      \
+  r0 += v;                     \
+  carry = (r0 < v);            \
+  r1 += carry;                 \
+  carry = (r1 < carry);        \
+  r1 += u;                     \
+  carry += (r1 < u);           \
+  r2 += carry
+
+/* 38*A */
+#define mul128_38(r0,r1,a) \
+  uv = ((uint128_t)a)*38;  \
+  u = (uv >> 64);          \
+  v = uv;                  \
+  r0 += v;                 \
+  r1 += (r0 < v);          \
+  r1 += u
+
+static void
+bn256_mul (bn512 *X, const bn256 *A, const bn256 *B)
+{
+  uint128_t uv;
+  uint64_t u, v;
+  uint64_t r0, r1, r2;
+  uint64_t carry;
+  const uint64_t *a = A->w;
+  const uint64_t *b = B->w;
+  uint64_t *x = X->w;
+
+  r0 = r1 = r2 = 0;
+
+  mul128 (r0, r1, r2, a[0], b[0]);
+  x[0] = r0;
+  r0 = r1;
+  r1 = r2;
+  r2 = 0;
+
+  mul128 (r0, r1, r2, a[1], b[0]);
+  mul128 (r0, r1, r2, a[0], b[1]);
+  x[1] = r0;
+  r0 = r1;
+  r1 = r2;
+  r2 = 0;
+
+  mul128 (r0, r1, r2, a[2], b[0]);
+  mul128 (r0, r1, r2, a[1], b[1]);
+  mul128 (r0, r1, r2, a[0], b[2]);
+  x[2] = r0;
+  r0 = r1;
+  r1 = r2;
+  r2 = 0;
+
+  mul128 (r0, r1, r2, a[3], b[0]);
+  mul128 (r0, r1, r2, a[2], b[1]);
+  mul128 (r0, r1, r2, a[1], b[2]);
+  mul128 (r0, r1, r2, a[0], b[3]);
+  x[3] = r0;
+  r0 = r1;
+  r1 = r2;
+  r2 = 0;
+
+  mul128 (r0, r1, r2, a[3], b[1]);
+  mul128 (r0, r1, r2, a[2], b[2]);
+  mul128 (r0, r1, r2, a[1], b[3]);
+  x[4] = r0;
+  r0 = r1;
+  r1 = r2;
+  r2 = 0;
+
+  mul128 (r0, r1, r2, a[3], b[2]);
+  mul128 (r0, r1, r2, a[2], b[3]);
+  x[5] = r0;
+  r0 = r1;
+  r1 = r2;
+  r2 = 0;
+
+  mul128 (r0, r1, r2, a[3], b[3]);
+  x[6] = r0;
+  r0 = r1;
+  r1 = r2;
+  r2 = 0;
+
+  x[7] = r0;
+}
+
+
+/* X = A mod 2^256-38
+ *
+ * A is modified during the computation.
+ */
+static void
+mod25638_reduce (bn256 *X, bn512 *A)
+{
+  uint128_t uv;
+  uint64_t u, v;
+  const uint64_t *s;
+  uint64_t *d;
+  uint64_t r0, r1;
+  uint64_t carry;
+  uint64_t *a = A->w;
+  uint64_t *x = X->w;
+
+  s = &a[4]; d = &a[0];
+
+  r0 = d[0];
+  r1 = 0;
+  mul128_38 (r0, r1, s[0]);
+  d[0] = r0;
+  r0 = r1;
+  r1 = 0;
+
+  r0 += d[1];
+  r1 += (r0 < d[1]);
+  mul128_38 (r0, r1, s[1]);
+  d[1] = r0;
+  r0 = r1;
+  r1 = 0;
+
+  r0 += d[2];
+  r1 += (r0 < d[2]);
+  mul128_38 (r0, r1, s[2]);
+  d[2] = r0;
+  r0 = r1;
+  r1 = 0;
+
+  r0 += d[3];
+  r1 += (r0 < d[3]);
+  mul128_38 (r0, r1, s[3]);
+  d[3] = r0;
+  r0 = r1;
+  r1 = 0;
+
+  carry = bn256_add_uint (X, (bn256 *)A, r0 * 38);
+  x[0] += (0UL - carry) & 38;
+}
+
+static void
+mod25519_reduce (bn256 *X)
+{
+  uint64_t q;
+  bn256 R[1];
+
+  q = (X->w[3] >> 63);
+  X->w[3] &= 0x7fffffffffffffffUL;
+
+  bn256_add_uint (X, X, q * 19);
+
+  bn256_add_uint (R, X, 19);
+  q = (R->w[3] >> 63);
+  R->w[3] &= 0x7fffffffffffffffUL;
+
+  ct_memmov_cond (X->w, R->w, 4 * sizeof (uint64_t), q);
+}
+
+/* X = (A * B) mod 2^256-38 */
+static void
+mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B)
+{
+  bn512 tmp[1];
+
+  bn256_mul (tmp, A, B);
+  mod25638_reduce (X, tmp);
+}
+
+static void
+fe_tobyte (unsigned char *p, const bn256 *X)
+{
+  const uint64_t *x = X->w;
+
+  buf_put_le64 (p,    x[0]);
+  buf_put_le64 (p+8,  x[1]);
+  buf_put_le64 (p+16, x[2]);
+  buf_put_le64 (p+24, x[3]);
+}
+# if defined(USE_64BIT_51_LIMB)
+
+/* Redundant representation with signed limb for bignum integer,
+ * using 2^51 for the base.
+ */
+#define RR25519_WORDS 5
+typedef struct rr25519 {
+  uint64_t w[RR25519_WORDS];
+} rr25519;
+
+/* X = 0 */
+static inline void
+rr25519_0 (rr25519 *x)
+{
+  memset(x, 0, sizeof (rr25519));
+}
+
+/* X = 1 */
+static inline void
+rr25519_1 (rr25519 *x)
+{
+  x->w[0] = 1;
+  memset(&x->w[1], 0, sizeof (uint64_t) * (RR25519_WORDS - 1));
+}
+
+/* DST = SRC */
+static inline void
+rr25519_copy (rr25519 *dst, const rr25519 *src)
+{
+  memcpy (dst, src, sizeof (rr25519));
+}
+
+/* A <=> B conditionally */
+static void
+rr25519_swap_cond (rr25519 *a, rr25519 *b, uint64_t c)
+{
+  int i;
+  uint64_t mask = 0UL - c;
+  uint64_t *p = (uint64_t *)a->w;
+  uint64_t *q = (uint64_t *)b->w;
+
+  asm volatile ("" : "+r" (mask) : : "memory");
+  for (i = 0; i < RR25519_WORDS; i++)
+    {
+      uint64_t t = mask & (*p^*q);
+      *p++ ^= t;
+      *q++ ^= t;
+    }
+}
+
+/* X = (A + B) mod 2^255-19 */
+static void
+rr25519_add (rr25519 *x, const rr25519 *a, const rr25519 *b)
+{
+  x->w[0] = a->w[0] + b->w[0];
+  x->w[1] = a->w[1] + b->w[1];
+  x->w[2] = a->w[2] + b->w[2];
+  x->w[3] = a->w[3] + b->w[3];
+  x->w[4] = a->w[4] + b->w[4];
+}
+
+/* X = (A - B) mod 2^255-19 */
+static void
+rr25519_sub (rr25519 *x, const rr25519 *a, const rr25519 *b)
+{
+  const uint64_t mask = 0x7ffffffffffffUL;
+  uint64_t a0 = a->w[0];
+  uint64_t a1 = a->w[1];
+  uint64_t a2 = a->w[2];
+  uint64_t a3 = a->w[3];
+  uint64_t a4 = a->w[4];
+
+  uint64_t b0 = b->w[0];
+  uint64_t b1 = b->w[1];
+  uint64_t b2 = b->w[2];
+  uint64_t b3 = b->w[3];
+  uint64_t b4 = b->w[4];
+
+  b1 += b0 >> 51;
+  b0 &= mask;
+  b2 += b1 >> 51;
+  b1 &= mask;
+  b3 += b2 >> 51;
+  b2 &= mask;
+  b4 += b3 >> 51;
+  b3 &= mask;
+  b0 += 19 * (b4 >> 51);
+  b4 &= mask;
+
+  b0 = (a0 + 0xfffffffffffdaUL) - b0;
+  b1 = (a1 + 0xffffffffffffeUL) - b1;
+  b2 = (a2 + 0xffffffffffffeUL) - b2;
+  b3 = (a3 + 0xffffffffffffeUL) - b3;
+  b4 = (a4 + 0xffffffffffffeUL) - b4;
+
+  x->w[0] = b0;
+  x->w[1] = b1;
+  x->w[2] = b2;
+  x->w[3] = b3;
+  x->w[4] = b4;
+}
+
+/* Multiply two 64-bit integers, resulting 128-bit integer.  */
+static inline uint128_t
+m64x64 (uint64_t a, uint64_t b)
+{
+  return a * (uint128_t)b;
+}
+
+/*
+ * Using SymPy:
+from sympy import *
+
+a, b = symbols('a b')
+a0, a1, a2, a3, a4 = symbols('a0 a1 a2 a3 a4')
+b0, b1, b2, b3, b4 = symbols('b0 b1 b2 b3 b4')
+B = symbols('B')
+a = a0 + a1*B + a2*B**2 + a3*B**3 + a4*B**4
+b = b0 + b1*B + b2*B**2 + b3*B**3 + b4*B**4
+x = symbols('x')
+x = a*b
+
+x_exp = collect(expand(x),B)
+
+# i = 0
+# for term in x_exp.args:
+#     t_exp[i] = term
+#     i = i + 1
+
+term = Symbol('term')
+t_exp = [ term for term in x_exp.args ]
+
+# Swap 0-th and 1-th
+tmp = t_exp[0]
+t_exp[0] = t_exp[1]
+t_exp[1] = tmp
+
+# Only take the coefficients
+t_exp[1] =  t_exp[1]  / (B)
+t_exp[2] =  t_exp[2]  / (B*B)
+t_exp[3] =  t_exp[3]  / (B*B*B)
+t_exp[4] =  t_exp[4]  / (B*B*B*B)
+t_exp[5] =  t_exp[5]  / (B*B*B*B*B)
+t_exp[6] =  t_exp[6]  / (B*B*B*B*B*B)
+t_exp[7] =  t_exp[7]  / (B*B*B*B*B*B*B)
+t_exp[8] =  t_exp[8]  / (B*B*B*B*B*B*B*B)
+
+for i in range(9):
+    print_ccode(t_exp[i])
+
+for i in range(4):
+    t_exp[0+i] = t_exp[0+i] + t_exp[5+i]*19
+
+for i in range(5):
+    print_ccode(t_exp[i])
+
+a0*b0 + 19*a1*b4 + 19*a2*b3 + 19*a3*b2 + 19*a4*b1
+a0*b1 + a1*b0 + 19*a2*b4 + 19*a3*b3 + 19*a4*b2
+a0*b2 + a1*b1 + a2*b0 + 19*a3*b4 + 19*a4*b3
+a0*b3 + a1*b2 + a2*b1 + a3*b0 + 19*a4*b4
+a0*b4 + a1*b3 + a2*b2 + a3*b1 + a4*b0
+
+48
+
+7f
+>> 7
+ */
+
+/* X = (A * B) mod 2^255-19 */
+static void
+rr25519_mul (rr25519 *x, const rr25519 *a, const rr25519 *b)
+{
+  const uint64_t mask = 0x7ffffffffffffUL;
+  uint64_t a0 = a->w[0];
+  uint64_t a1 = a->w[1];
+  uint64_t a2 = a->w[2];
+  uint64_t a3 = a->w[3];
+  uint64_t a4 = a->w[4];
+
+  uint64_t b0 = b->w[0];
+  uint64_t b1 = b->w[1];
+  uint64_t b2 = b->w[2];
+  uint64_t b3 = b->w[3];
+  uint64_t b4 = b->w[4];
+
+  uint64_t b1_19 = 19 * b1;
+  uint64_t b2_19 = 19 * b2;
+  uint64_t b3_19 = 19 * b3;
+  uint64_t b4_19 = 19 * b4;
+
+  uint128_t a0b0    = m64x64 (a0, b0);
+  uint128_t a0b1    = m64x64 (a0, b1);
+  uint128_t a0b2    = m64x64 (a0, b2);
+  uint128_t a0b3    = m64x64 (a0, b3);
+  uint128_t a0b4    = m64x64 (a0, b4);
+  uint128_t a1b0    = m64x64 (a1, b0);
+  uint128_t a1b1    = m64x64 (a1, b1);
+  uint128_t a1b2    = m64x64 (a1, b2);
+  uint128_t a1b3    = m64x64 (a1, b3);
+  uint128_t a1b4_19 = m64x64 (a1, b4_19);
+  uint128_t a2b0    = m64x64 (a2, b0);
+  uint128_t a2b1    = m64x64 (a2, b1);
+  uint128_t a2b2    = m64x64 (a2, b2);
+  uint128_t a2b3_19 = m64x64 (a2, b3_19);
+  uint128_t a2b4_19 = m64x64 (a2, b4_19);
+  uint128_t a3b0    = m64x64 (a3, b0);
+  uint128_t a3b1    = m64x64 (a3, b1);
+  uint128_t a3b2_19 = m64x64 (a3, b2_19);
+  uint128_t a3b3_19 = m64x64 (a3, b3_19);
+  uint128_t a3b4_19 = m64x64 (a3, b4_19);
+  uint128_t a4b0    = m64x64 (a4, b0);
+  uint128_t a4b1_19 = m64x64 (a4, b1_19);
+  uint128_t a4b2_19 = m64x64 (a4, b2_19);
+  uint128_t a4b3_19 = m64x64 (a4, b3_19);
+  uint128_t a4b4_19 = m64x64 (a4, b4_19);
+
+  uint128_t x0 = (a0b0 + a1b4_19 + a2b3_19 + a3b2_19 + a4b1_19);
+  uint128_t x1 = (a0b1 + a1b0    + a2b4_19 + a3b3_19 + a4b2_19);
+  uint128_t x2 = (a0b2 + a1b1    + a2b0    + a3b4_19 + a4b3_19);
+  uint128_t x3 = (a0b3 + a1b2    + a2b1    + a3b0    + a4b4_19);
+  uint128_t x4 = (a0b4 + a1b3    + a2b2    + a3b1    + a4b0);
+
+  uint64_t  r00, r01, r02, r03, r04;
+  uint64_t  carry;
+
+  r00    = ((uint64_t) x0) & mask;
+  carry  = (x0 >> 51);
+  x1    += carry;
+  r01    = ((uint64_t) x1) & mask;
+  carry  = (x1 >> 51);
+  x2    += carry;
+  r02    = ((uint64_t) x2) & mask;
+  carry  = (x2 >> 51);
+  x3    += carry;
+  r03    = ((uint64_t) x3) & mask;
+  carry  = (x3 >> 51);
+  x4    += carry;
+  r04    = ((uint64_t) x4) & mask;
+  carry  = (x4 >> 51);
+  r00   += 19 * carry;
+  carry  = r00 >> 51;
+  r00   &= mask;
+  r01   += carry;
+  carry  = r01 >> 51;
+  r01   &= mask;
+  r02   += carry;
+
+  x->w[0] = r00;
+  x->w[1] = r01;
+  x->w[2] = r02;
+  x->w[3] = r03;
+  x->w[4] = r04;
+}
+
+/*
+from sympy import *
+
+a = symbols('a')
+a0, a1, a2, a3, a4 = symbols('a0 a1 a2 a3 a4')
+B = symbols('B')
+a = a0 + a1*B + a2*B**2 + a3*B**3 + a4*B**4
+x = symbols('x')
+x = a*a
+
+x_exp = collect(expand(x),B)
+
+t = [ x_exp.coeff(B,i) for i in range(9) ]
+
+# for i in range(9):
+#     print_ccode(t[i])
+
+print('==============')
+
+for i in range(4):
+    t[0+i] = t[0+i] + t[5+i]*19
+
+
+for i in range(5):
+    print_ccode(t[i])
+
+==============
+pow(a0, 2) + 38*a1*a4 + 38*a2*a3
+2*a0*a1 + 38*a2*a4 + 19*pow(a3, 2)
+2*a0*a2 + pow(a1, 2) + 38*a3*a4
+2*a0*a3 + 2*a1*a2 + 19*pow(a4, 2)
+2*a0*a4 + 2*a1*a3 + pow(a2, 2)
+ */
+/* X = (A ^ 2) mod 2^255-19 */
+static void
+rr25519_sqr (rr25519 *x, const rr25519 *a)
+{
+  const uint64_t mask = 0x7ffffffffffffUL;
+  uint64_t a0 = a->w[0];
+  uint64_t a1 = a->w[1];
+  uint64_t a2 = a->w[2];
+  uint64_t a3 = a->w[3];
+  uint64_t a4 = a->w[4];
+
+  uint64_t a0_2  = 2 * a0;
+  uint64_t a1_2  = 2 * a1;
+  uint64_t a2_2  = 2 * a2;
+  uint64_t a3_2  = 2 * a3;
+  uint64_t a3_19  = 19 * a3;
+  uint64_t a4_19  = 19 * a4;
+
+  uint128_t a0a0     = m64x64 (a0, a0);
+  uint128_t a0a1_2   = m64x64 (a0_2, a1);
+  uint128_t a0a2_2   = m64x64 (a0_2, a2);
+  uint128_t a0a3_2   = m64x64 (a0_2, a3);
+  uint128_t a0a4_2   = m64x64 (a0_2, a4);
+  uint128_t a1a1     = m64x64 (a1, a1);
+  uint128_t a1a2_2   = m64x64 (a1_2, a2);
+  uint128_t a1a3_2   = m64x64 (a1_2, a3);
+  uint128_t a1a4_38  = m64x64 (a1_2, a4_19);
+  uint128_t a2a2     = m64x64 (a2, a2);
+  uint128_t a2a3_38  = m64x64 (a2_2, a3_19);
+  uint128_t a2a4_38  = m64x64 (a2_2, a4_19);
+  uint128_t a3a3_19  = m64x64 (a3, a3_19);
+  uint128_t a3a4_38  = m64x64 (a3_2, a4_19);
+  uint128_t a4a4_19  = m64x64 (a4, a4_19);
+
+  uint128_t x0 = a0a0   + a1a4_38 + a2a3_38;
+  uint128_t x1 = a0a1_2 + a2a4_38 + a3a3_19;
+  uint128_t x2 = a0a2_2 + a1a1    + a3a4_38;
+  uint128_t x3 = a0a3_2 + a1a2_2  + a4a4_19;
+  uint128_t x4 = a0a4_2 + a1a3_2  + a2a2;
+
+  uint64_t  r00, r01, r02, r03, r04;
+  uint64_t  carry;
+
+  r00    = ((uint64_t) x0) & mask;
+  carry  = (x0 >> 51);
+  x1    += carry;
+  r01    = ((uint64_t) x1) & mask;
+  carry  = (x1 >> 51);
+  x2    += carry;
+  r02    = ((uint64_t) x2) & mask;
+  carry  = (x2 >> 51);
+  x3    += carry;
+  r03    = ((uint64_t) x3) & mask;
+  carry  = (x3 >> 51);
+  x4    += carry;
+  r04    = ((uint64_t) x4) & mask;
+  carry  = (x4 >> 51);
+  r00   += 19 * carry;
+  carry  = r00 >> 51;
+  r00   &= mask;
+  r01   += carry;
+  carry  = r01 >> 51;
+  r01   &= mask;
+  r02   += carry;
+
+  x->w[0] = r00;
+  x->w[1] = r01;
+  x->w[2] = r02;
+  x->w[3] = r03;
+  x->w[4] = r04;
+}
+
+/*
+ * A = 486662
+ * a24 which stands for (A - 2)/4 = 121665
+ */
+static void
+rr25519_mul_121665 (rr25519 *x, const rr25519 *a)
+{
+  const uint64_t mask = 0x7ffffffffffffUL;
+  uint128_t x0 = m64x64 (a->w[0], 121665);
+  uint128_t x1 = m64x64 (a->w[1], 121665);
+  uint128_t x2 = m64x64 (a->w[2], 121665);
+  uint128_t x3 = m64x64 (a->w[3], 121665);
+  uint128_t x4 = m64x64 (a->w[4], 121665);
+  uint64_t  r00, r01, r02, r03, r04;
+  uint64_t  carry;
+
+  r00    = ((uint64_t) x0) & mask;
+  carry  = (x0 >> 51);
+  x1    += carry;
+  r01    = ((uint64_t) x1) & mask;
+  carry  = (x1 >> 51);
+  x2    += carry;
+  r02    = ((uint64_t) x2) & mask;
+  carry  = (x2 >> 51);
+  x3    += carry;
+  r03    = ((uint64_t) x3) & mask;
+  carry  = (x3 >> 51);
+  x4    += carry;
+  r04    = ((uint64_t) x4) & mask;
+  carry  = (x4 >> 51);
+  r00   += 19 * carry;
+  carry  = r00 >> 51;
+  r00   &= mask;
+  r01   += carry;
+  carry  = r01 >> 51;
+  r01   &= mask;
+  r02   += carry;
+
+  x->w[0] = r00;
+  x->w[1] = r01;
+  x->w[2] = r02;
+  x->w[3] = r03;
+  x->w[4] = r04;
+}
+
+/* Expand byte representation into the redundant representation.  */
+static void
+rr25519_expand (rr25519 *x, const unsigned char *src)
+{
+  const uint64_t mask = 0x7ffffffffffffUL;
+  uint64_t v0 = (buf_get_le64 (src+ 0) >>  0) & mask;
+  uint64_t v1 = (buf_get_le64 (src+ 6) >>  3) & mask;
+  uint64_t v2 = (buf_get_le64 (src+12) >>  6) & mask;
+  uint64_t v3 = (buf_get_le64 (src+19) >>  1) & mask;
+  uint64_t v4 = (buf_get_le64 (src+24) >> 12) & mask;
+
+  x->w[0] = v0;
+  x->w[1] = v1;
+  x->w[2] = v2;
+  x->w[3] = v3;
+  x->w[4] = v4;
+}
+
+/* Strong reduce */
+static void
+rr25519_reduce (rr25519 *x, const rr25519 *a)
+{
+  const uint64_t mask = 0x7ffffffffffffUL;
+  uint64_t v0 = a->w[0];
+  uint64_t v1 = a->w[1];
+  uint64_t v2 = a->w[2];
+  uint64_t v3 = a->w[3];
+  uint64_t v4 = a->w[4];
+
+  v1 += v0 >> 51;
+  v0 &= mask;
+  v2 += v1 >> 51;
+  v1 &= mask;
+  v3 += v2 >> 51;
+  v2 &= mask;
+  v4 += v3 >> 51;
+  v3 &= mask;
+  v0 += 19 * (v4 >> 51);
+  v4 &= mask;
+
+  v1 += v0 >> 51;
+  v0 &= mask;
+  v2 += v1 >> 51;
+  v1 &= mask;
+  v3 += v2 >> 51;
+  v2 &= mask;
+  v4 += v3 >> 51;
+  v3 &= mask;
+  v0 += 19 * (v4 >> 51);
+  v4 &= mask;
+
+  v0 += 19;
+
+  v1 += v0 >> 51;
+  v0 &= mask;
+  v2 += v1 >> 51;
+  v1 &= mask;
+  v3 += v2 >> 51;
+  v2 &= mask;
+  v4 += v3 >> 51;
+  v3 &= mask;
+  v0 += 19 * (v4 >> 51);
+  v4 &= mask;
+
+  v0 += 0x8000000000000 - 19UL;
+  v1 += 0x8000000000000 - 1UL;
+  v2 += 0x8000000000000 - 1UL;
+  v3 += 0x8000000000000 - 1UL;
+  v4 += 0x8000000000000 - 1UL;
+
+  v1 += v0 >> 51;
+  v0 &= mask;
+  v2 += v1 >> 51;
+  v1 &= mask;
+  v3 += v2 >> 51;
+  v2 &= mask;
+  v4 += v3 >> 51;
+  v3 &= mask;
+  v4 &= mask;
+
+  x->w[0] = v0;
+  x->w[1] = v1;
+  x->w[2] = v2;
+  x->w[3] = v3;
+  x->w[4] = v4;
+}
+
+static void
+rr25519_contract (unsigned char *dst, const rr25519 *x)
+{
+  rr25519 t[1];
+  uint64_t t0, t1, t2, t3;
+
+  rr25519_reduce (t, x);
+  t0 = (t->w[0] >>  0) | (t->w[1] << 51);
+  t1 = (t->w[1] >> 13) | (t->w[2] << 38);
+  t2 = (t->w[2] >> 26) | (t->w[3] << 25);
+  t3 = (t->w[3] >> 39) | (t->w[4] << 12);
+  buf_put_le64 (dst +  0, t0);
+  buf_put_le64 (dst +  8, t1);
+  buf_put_le64 (dst + 16, t2);
+  buf_put_le64 (dst + 24, t3);
+}
+
+/* fe: Field Element */
+typedef rr25519 fe;
+#define fe_add       rr25519_add
+#define fe_sub       rr25519_sub
+#define fe_mul       rr25519_mul
+#define fe_sqr       rr25519_sqr
+#define fe_a24       rr25519_mul_121665
+#define fe_swap_cond rr25519_swap_cond
+#define fe_0         rr25519_0
+#define fe_1         rr25519_1
+#define fe_copy      rr25519_copy
+#define fe_expand    rr25519_expand
+#define fe_contract  rr25519_contract
+
+/**
+ * @brief  Process Montgomery double-and-add
+ *
+ * With Q0, Q1, DIF (= Q0 - Q1), compute PRD = 2Q0, SUM = Q0 + Q1
+ * On return, PRD is in Q0, SUM is in Q1
+ * Caller provides temporary T0 and T1
+ *
+ * Note: indentation graphycally expresses the ladder.
+ */
+static void
+montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1, const fe *dif_x, fe *t0, fe *t1)
+{
+#define xp   x0
+#define zp   z0
+#define xs   x1
+#define zs   z1
+#define C       t0
+#define D       t1
+#define A       x1
+#define B       x0
+#define CB      t0
+#define DA      t1
+#define AA      z0
+#define BB      x1
+#define CBpDA   z1              /* CB + DA */
+#define CBmDA   t0              /* CB - DA */
+#define E       t1
+#define CBmDAsq t0              /* (CB - DA)^2 */
+#define a24E    t0
+#define a24EpAA z0              /* AA + a24E */
+
+                                    fe_add (C, x1, z1);
+                                            fe_sub (D, x1, z1);
+  fe_add (A, x0, z0);
+          fe_sub (B, x0, z0);
+                                    fe_mul (CB, B, C);
+                                            fe_mul (DA, A, D);
+  fe_sqr (AA, A);
+          fe_sqr (BB, B);
+                                    fe_add (CBpDA, CB, DA);
+                                            fe_sub (CBmDA, CB, DA);
+  fe_mul (xp, AA, BB);
+          fe_sub (E, AA, BB);
+                                    fe_sqr (xs, CBpDA);
+                                            fe_sqr (CBmDAsq, CBmDA);
+                                            fe_mul (zs, CBmDAsq, dif_x);
+          fe_a24 (a24E, E);
+          fe_add (a24EpAA, AA, a24E);
+          fe_mul (zp, a24EpAA, E);
+}
+#undef xp
+#undef zp
+#undef xs
+#undef zs
+#undef C
+#undef D
+#undef A
+#undef B
+#undef CB
+#undef DA
+#undef AA
+#undef BB
+#undef CBpDA
+#undef CBmDA
+#undef E
+#undef CBmDAsq
+#undef a24E
+#undef a24EpAA
+
+int
+crypto_scalarmult (unsigned char *q,
+                   const unsigned char *secret,
+                   const unsigned char *p)
+{
+  int i;
+  uint32_t swap = 0;
+  unsigned char n[32];
+  fe X0[1], Z0[1], X1[1], Z1[1];
   fe T0[1], T1[1], q_x_rr[1];
   bn256 x0bn[1], z0bn[1];
   bn256 res[1];
@@ -1409,21 +2351,12 @@ crypto_scalarmult (unsigned char *q,
   fe_tobyte (q, res);
   return 0;
 }
-#else
-
-#if SIZEOF_UNSIGNED___INT128 == 16
-typedef __int128_t int128_t;
-typedef __uint128_t uint128_t;
-
+# else
+/* Implementation for 64-bit, non-redundant representation (2^256-38)
+ * so that we will be able to optimize with Intel ADX (ADCX and ADOX)
+ * or similar.
+ */
 #define fe25638 bn256
-
-typedef struct bn256 {
-  uint64_t w[4];
-} bn256;
-
-typedef struct bn512 {
-  uint64_t w[8];
-} bn512;
 
 #define fe fe25638
 #define fe_copy bn256_copy
@@ -1431,16 +2364,12 @@ typedef struct bn512 {
 #define fe_sub  fe25638_sub
 #define fe_mul  fe25638_mul
 #define fe_sqr  fe25638_sqr
+#define fe_reduce fe25638_reduce
 #define fe_a24  fe25638_mul_121665
-#else
-#error "For now, code for 64-bit computer is implemented."
-#endif
 
-static void
-set_cond (uint64_t *x, const uint64_t *r, unsigned long op)
-{
-  ct_memmov_cond (x, r, 4 * sizeof (uint64_t), op);
-}
+#define fe25638_mul mod25638_mul
+#define fe25638_reduce mod25638_reduce
+#define fe25519_reduce mod25519_reduce
 
 static void
 swap_cond (fe25638 *A, fe25638 *B, unsigned long op_enable)
@@ -1561,36 +2490,6 @@ bn256_sub (bn256 *X, const bn256 *A, const bn256 *B)
   return borrow;
 }
 
-static uint64_t
-bn256_add_uint (bn256 *X, const bn256 *A, uint64_t w)
-{
-  uint64_t carry = w;
-  uint64_t v0;
-  const uint64_t *a = A->w;
-  uint64_t *x = X->w;
-
-  v0 = *a++;
-  v0 += carry;
-  carry = (v0 < carry);
-  *x++ = v0;
-
-  v0 = *a++;
-  v0 += carry;
-  carry = (v0 < carry);
-  *x++ = v0;
-
-  v0 = *a++;
-  v0 += carry;
-  carry = (v0 < carry);
-  *x++ = v0;
-
-  v0 = *a++;
-  v0 += carry;
-  carry = (v0 < carry);
-  *x++ = v0;
-
-  return carry;
-}
 
 static uint64_t
 bn256_sub_uint (bn256 *X, const bn256 *A, uint64_t w)
@@ -1612,111 +2511,6 @@ bn256_sub_uint (bn256 *X, const bn256 *A, uint64_t w)
 
   return borrow;
 }
-
-/* A*B */
-#define mul128(r0,r1,r2,a,b) \
-  uv = ((uint128_t)a)*b;     \
-  u = (uv >> 64);            \
-  v = uv;                    \
-  r0 += v;                   \
-  carry = (r0 < v);          \
-  r1 += carry;               \
-  carry = (r1 < carry);      \
-  r1 += u;                   \
-  carry += (r1 < u);         \
-  r2 += carry
-
-/* 2*A*B */
-#define mul128_2(r0,r1,r2,a,b) \
-  uv = ((uint128_t)a)*b;       \
-  r2 += (uv >> 127);           \
-  uv <<= 1;                    \
-  u = (uv >> 64);              \
-  v = uv;                      \
-  r0 += v;                     \
-  carry = (r0 < v);            \
-  r1 += carry;                 \
-  carry = (r1 < carry);        \
-  r1 += u;                     \
-  carry += (r1 < u);           \
-  r2 += carry
-
-/* 38*A */
-#define mul128_38(r0,r1,a) \
-  uv = ((uint128_t)a)*38;  \
-  u = (uv >> 64);          \
-  v = uv;                  \
-  r0 += v;                 \
-  r1 += (r0 < v);          \
-  r1 += u
-
-static void
-bn256_mul (bn512 *X, const bn256 *A, const bn256 *B)
-{
-  uint128_t uv;
-  uint64_t u, v;
-  uint64_t r0, r1, r2;
-  uint64_t carry;
-  const uint64_t *a = A->w;
-  const uint64_t *b = B->w;
-  uint64_t *x = X->w;
-
-  r0 = r1 = r2 = 0;
-
-  mul128 (r0, r1, r2, a[0], b[0]);
-  x[0] = r0;
-  r0 = r1;
-  r1 = r2;
-  r2 = 0;
-
-  mul128 (r0, r1, r2, a[1], b[0]);
-  mul128 (r0, r1, r2, a[0], b[1]);
-  x[1] = r0;
-  r0 = r1;
-  r1 = r2;
-  r2 = 0;
-
-  mul128 (r0, r1, r2, a[2], b[0]);
-  mul128 (r0, r1, r2, a[1], b[1]);
-  mul128 (r0, r1, r2, a[0], b[2]);
-  x[2] = r0;
-  r0 = r1;
-  r1 = r2;
-  r2 = 0;
-
-  mul128 (r0, r1, r2, a[3], b[0]);
-  mul128 (r0, r1, r2, a[2], b[1]);
-  mul128 (r0, r1, r2, a[1], b[2]);
-  mul128 (r0, r1, r2, a[0], b[3]);
-  x[3] = r0;
-  r0 = r1;
-  r1 = r2;
-  r2 = 0;
-
-  mul128 (r0, r1, r2, a[3], b[1]);
-  mul128 (r0, r1, r2, a[2], b[2]);
-  mul128 (r0, r1, r2, a[1], b[3]);
-  x[4] = r0;
-  r0 = r1;
-  r1 = r2;
-  r2 = 0;
-
-  mul128 (r0, r1, r2, a[3], b[2]);
-  mul128 (r0, r1, r2, a[2], b[3]);
-  x[5] = r0;
-  r0 = r1;
-  r1 = r2;
-  r2 = 0;
-
-  mul128 (r0, r1, r2, a[3], b[3]);
-  x[6] = r0;
-  r0 = r1;
-  r1 = r2;
-  r2 = 0;
-
-  x[7] = r0;
-}
-
 
 static void
 bn256_sqr (bn512 *X, const bn256 *A)
@@ -1786,8 +2580,8 @@ fe25638_add (fe25638 *X, const fe25638 *A, const fe25638 *B)
   uint64_t *x = X->w;
 
   carry = bn256_add (X, A, B);
-  carry = bn256_add_uint (X, X, (0ULL - carry) & 38);
-  x[0] += (0ULL - carry) & 38;
+  carry = bn256_add_uint (X, X, (0UL - carry) & 38);
+  x[0] += (0UL - carry) & 38;
 }
 
 /* X = (A - B) mod 2^256-38 */
@@ -1798,70 +2592,10 @@ fe25638_sub (fe25638 *X, const fe25638 *A, const fe25638 *B)
   uint64_t *x = X->w;
 
   borrow = bn256_sub (X, A, B);
-  borrow = bn256_sub_uint (X, X, (0ULL - borrow) & 38);
-  x[0] -= (0ULL - borrow) & 38;
+  borrow = bn256_sub_uint (X, X, (0UL - borrow) & 38);
+  x[0] -= (0UL - borrow) & 38;
 }
 
-
-/* X = A mod 2^256-38
- *
- * A is modified during the computation.
- */
-static void
-fe25638_reduce (fe25638 *X, bn512 *A)
-{
-  uint128_t uv;
-  uint64_t u, v;
-  const uint64_t *s;
-  uint64_t *d;
-  uint64_t r0, r1;
-  uint64_t carry;
-  uint64_t *a = A->w;
-  uint64_t *x = X->w;
-
-  s = &a[4]; d = &a[0];
-
-  r0 = d[0];
-  r1 = 0;
-  mul128_38 (r0, r1, s[0]);
-  d[0] = r0;
-  r0 = r1;
-  r1 = 0;
-
-  r0 += d[1];
-  r1 += (r0 < d[1]);
-  mul128_38 (r0, r1, s[1]);
-  d[1] = r0;
-  r0 = r1;
-  r1 = 0;
-
-  r0 += d[2];
-  r1 += (r0 < d[2]);
-  mul128_38 (r0, r1, s[2]);
-  d[2] = r0;
-  r0 = r1;
-  r1 = 0;
-
-  r0 += d[3];
-  r1 += (r0 < d[3]);
-  mul128_38 (r0, r1, s[3]);
-  d[3] = r0;
-  r0 = r1;
-  r1 = 0;
-
-  carry = bn256_add_uint (X, (bn256 *)A, r0 * 38);
-  x[0] += (0ULL - carry) & 38;
-}
-
-/* X = (A * B) mod 2^256-38 */
-static void
-fe25638_mul (fe25638 *X, const fe25638 *A, const fe25638 *B)
-{
-  bn512 tmp[1];
-
-  bn256_mul (tmp, A, B);
-  fe25638_reduce (X, tmp);
-}
 
 /* X = A * A mod 2^256-38 */
 static void
@@ -1885,52 +2619,32 @@ fe25638_mul_121665 (fe25638 *X, const fe25638 *A)
 
   r0 = r1 = r2 = 0;
 
-  mul128 (r0, r1, r2, a[0], 121665ULL);
+  mul128 (r0, r1, r2, a[0], 121665UL);
   x[0] = r0;
   r0 = r1;
   r1 = r2;
   r2 = 0;
 
-  mul128 (r0, r1, r2, a[1], 121665ULL);
+  mul128 (r0, r1, r2, a[1], 121665UL);
   x[1] = r0;
   r0 = r1;
   r1 = r2;
   r2 = 0;
 
-  mul128 (r0, r1, r2, a[2], 121665ULL);
+  mul128 (r0, r1, r2, a[2], 121665UL);
   x[2] = r0;
   r0 = r1;
   r1 = r2;
   r2 = 0;
 
-  mul128 (r0, r1, r2, a[3], 121665ULL);
+  mul128 (r0, r1, r2, a[3], 121665UL);
   x[3] = r0;
 
   r0 = bn256_add_uint (X, X, r1 * 38);
-  x[0] += (0ULL - r0) & 38;
+  x[0] += (0UL - r0) & 38;
 }
 
 
-/* X = A mod 2^255-19 */
-static void
-fe25519_reduce (fe25638 *X)
-{
-  unsigned long q;
-  bn256 R[1];
-  uint64_t *x = X->w;
-  uint64_t *r = R->w;
-
-  q = (x[3] >> 63);
-  x[3] &= 0x7fffffffffffffff;
-
-  bn256_add_uint (X, X, q * 19);
-
-  bn256_add_uint (R, X, 19);
-  q = (r[3] >> 63);
-  r[3] &= 0x7fffffffffffffff;
-
-  set_cond (x, r, q);
-}
 
 
 static void
@@ -2006,90 +2720,6 @@ fe_frombyte (fe25638 *X, const unsigned char *p)
   x[3] &= 0x7fffffffffffffffUL;
 }
 
-static void
-fe_tobyte (unsigned char *p, const fe25638 *X)
-{
-  const uint64_t *x = X->w;
-
-  buf_put_le64 (p,    x[0]);
-  buf_put_le64 (p+8,  x[1]);
-  buf_put_le64 (p+16, x[2]);
-  buf_put_le64 (p+24, x[3]);
-}
-
-
-
-static void
-bn_to_signed31 (sr256 *r, const bn256 *a)
-{
-  uint32_t a0, a1, a2, a3, a4, a5, a6, a7;
-
-  a0 = a->w[0];
-  a1 = a->w[0] >> 32;
-  a2 = a->w[1];
-  a3 = a->w[1] >> 32;
-  a4 = a->w[2];
-  a5 = a->w[2] >> 32;
-  a6 = a->w[3];
-  a7 = a->w[3] >> 32;
-
-  r->v[0] =               (a0 <<  0) & 0x7fffffff;
-  r->v[1] = (a0 >> 31) | ((a1 <<  1) & 0x7fffffff);
-  r->v[2] = (a1 >> 30) | ((a2 <<  2) & 0x7fffffff);
-  r->v[3] = (a2 >> 29) | ((a3 <<  3) & 0x7fffffff);
-  r->v[4] = (a3 >> 28) | ((a4 <<  4) & 0x7fffffff);
-  r->v[5] = (a4 >> 27) | ((a5 <<  5) & 0x7fffffff);
-  r->v[6] = (a5 >> 26) | ((a6 <<  6) & 0x7fffffff);
-  r->v[7] = (a6 >> 25) | ((a7 <<  7) & 0x7fffffff);
-  r->v[8] = (a7 >> 24);
-}
-
-static void
-bn_from_signed31 (bn256 *a, const sr256 *r)
-{
-  uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8;
-
-  /* Input must be [0,modulus)... */
-  r0 = r->v[0];
-  r1 = r->v[1];
-  r2 = r->v[2];
-  r3 = r->v[3];
-  r4 = r->v[4];
-  r5 = r->v[5];
-  r6 = r->v[6];
-  r7 = r->v[7];
-  r8 = r->v[8];
-
-  a->w[0] = (r0 >>  0) | (r1 << 31);
-  a->w[0] |= (uint64_t)((r1 >>  1) | (r2 << 30)) << 32;
-  a->w[1] = (r2 >>  2) | (r3 << 29);
-  a->w[1] |= (uint64_t)((r3 >>  3) | (r4 << 28)) << 32;
-  a->w[2] = (r4 >>  4) | (r5 << 27);
-  a->w[2] |= (uint64_t)((r5 >>  5) | (r6 << 26)) << 32;
-  a->w[3] = (r6 >>  6) | (r7 << 25);
-  a->w[3] |= (uint64_t)((r7 >>  7) | (r8 << 24)) << 32;
-  /* ... then, (r8 >> 24) should be zero, here.  */
-}
-
-/**
- * @brief R = X^(-1) mod N
- *
- * NOTE: If X==0, it return 0.
- *
- */
-static void
-fe_invert (bn256 *R, const bn256 *X)
-{
-  sr256 s[1];
-
-  memcpy (R, X, sizeof (bn256));
-
-  bn_to_signed31 (s, R);
-  modinv_safegcd (s, &modulus_25519, modulus_inv31_25519, 19);
-  bn_from_signed31 (R, s);
-}
-
-
 int
 crypto_scalarmult (unsigned char *q,
                    const unsigned char *secret,
@@ -2134,4 +2764,5 @@ crypto_scalarmult (unsigned char *q,
   fe_tobyte (q, X0);
   return 0;
 }
+# endif
 #endif
