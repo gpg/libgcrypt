@@ -1060,77 +1060,8 @@ typedef rr25519 fe;
 #define fe_0         rr25519_0
 #define fe_1         rr25519_1
 #define fe_copy      rr25519_copy
-#define fe_expand    rr25519_expand
+#define fe_frombyte  rr25519_expand
 #define fe_contract  rr25519_contract
-
-/**
- * @brief  Process Montgomery double-and-add
- *
- * With Q0, Q1, DIF (= Q0 - Q1), compute PRD = 2Q0, SUM = Q0 + Q1
- * On return, PRD is in Q0, SUM is in Q1
- * Caller provides temporary T0 and T1
- *
- * Note: indentation graphycally expresses the ladder.
- */
-static void
-montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1, const fe *dif_x, fe *t0, fe *t1)
-{
-#define xp   x0
-#define zp   z0
-#define xs   x1
-#define zs   z1
-#define C       t0
-#define D       t1
-#define A       x1
-#define B       x0
-#define CB      t0
-#define DA      t1
-#define AA      z0
-#define BB      x1
-#define CBpDA   z1              /* CB + DA */
-#define CBmDA   t0              /* CB - DA */
-#define E       t1
-#define CBmDAsq t0              /* (CB - DA)^2 */
-#define a24E    t0
-#define a24EpAA z0              /* AA + a24E */
-
-                                    fe_add (C, x1, z1);
-                                            fe_sub (D, x1, z1);
-  fe_add (A, x0, z0);
-          fe_sub (B, x0, z0);
-                                    fe_mul (CB, B, C);
-                                            fe_mul (DA, A, D);
-  fe_sqr (AA, A);
-          fe_sqr (BB, B);
-                                    fe_add (CBpDA, CB, DA);
-                                            fe_sub (CBmDA, CB, DA);
-  fe_mul (xp, AA, BB);
-          fe_sub (E, AA, BB);
-                                    fe_sqr (xs, CBpDA);
-                                            fe_sqr (CBmDAsq, CBmDA);
-                                            fe_mul (zs, CBmDAsq, dif_x);
-          fe_a24 (a24E, E);
-          fe_add (a24EpAA, AA, a24E);
-          fe_mul (zp, a24EpAA, E);
-}
-#undef xp
-#undef zp
-#undef xs
-#undef zs
-#undef C
-#undef D
-#undef A
-#undef B
-#undef CB
-#undef DA
-#undef AA
-#undef BB
-#undef CBpDA
-#undef CBmDA
-#undef E
-#undef CBmDAsq
-#undef a24E
-#undef a24EpAA
 
 typedef struct bn256 {
   uint32_t w[8];
@@ -1190,18 +1121,6 @@ bn_from_signed31 (bn256 *a, const sr256 *r)
   a->w[6] = (r6 >>  6) | (r7 << 25);
   a->w[7] = (r7 >>  7) | (r8 << 24);
   /* ... then, (r8 >> 24) should be zero, here.  */
-}
-
-static void
-fe_invert (bn256 *R, const bn256 *X)
-{
-  sr256 s[1];
-
-  memcpy (R, X, sizeof (bn256));
-
-  bn_to_signed31 (s, R);
-  modinv_safegcd (s, &modulus_25519, modulus_inv31_25519, 19);
-  bn_from_signed31 (R, s);
 }
 
 static void
@@ -1331,14 +1250,7 @@ mod25638_reduce (bn256 *X, bn512 *A)
   }
 }
 
-static void
-mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B)
-{
-  bn512 tmp[1];
-
-  bn256_mul (tmp, A, B);
-  mod25638_reduce (X, tmp);
-}
+static void mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B);
 
 static void
 mod25519_reduce (bn256 *X)
@@ -1357,6 +1269,10 @@ mod25519_reduce (bn256 *X)
 
   ct_memmov_cond (X->w, R->w, 8 * sizeof (uint32_t), q);
 }
+
+static void fe_invert (bn256 *R, const bn256 *X);
+static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
+                             const fe *dif_x, fe *t0, fe *t1);
 
 int
 crypto_scalarmult (unsigned char *q,
@@ -1383,7 +1299,7 @@ crypto_scalarmult (unsigned char *q,
   fe_0 (Z0);
 
   /* P1 = (X:1) */
-  fe_expand (X, p);
+  fe_frombyte (X, p);
   fe_copy (X1, X);
   fe_copy (Z1, X0);
 
@@ -1469,24 +1385,6 @@ bn_from_signed31 (bn256 *a, const sr256 *r)
   a->w[3] = (r6 >>  6) | (r7 << 25);
   a->w[3] |= (uint64_t)((r7 >>  7) | (r8 << 24)) << 32;
   /* ... then, (r8 >> 24) should be zero, here.  */
-}
-
-/**
- * @brief R = X^(-1) mod N
- *
- * NOTE: If X==0, it return 0.
- *
- */
-static void
-fe_invert (bn256 *R, const bn256 *X)
-{
-  sr256 s[1];
-
-  memcpy (R, X, sizeof (bn256));
-
-  bn_to_signed31 (s, R);
-  modinv_safegcd (s, &modulus_25519, modulus_inv31_25519, 19);
-  bn_from_signed31 (R, s);
 }
 
 static uint64_t
@@ -1675,6 +1573,8 @@ mod25638_reduce (bn256 *X, bn512 *A)
   x[0] += (0UL - carry) & 38;
 }
 
+static void mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B);
+
 static void
 mod25519_reduce (bn256 *X)
 {
@@ -1693,16 +1593,6 @@ mod25519_reduce (bn256 *X)
   ct_memmov_cond (X->w, R->w, 4 * sizeof (uint64_t), q);
 }
 
-/* X = (A * B) mod 2^256-38 */
-static void
-mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B)
-{
-  bn512 tmp[1];
-
-  bn256_mul (tmp, A, B);
-  mod25638_reduce (X, tmp);
-}
-
 static void
 fe_tobyte (unsigned char *p, const bn256 *X)
 {
@@ -1715,7 +1605,7 @@ fe_tobyte (unsigned char *p, const bn256 *X)
 }
 # if defined(USE_64BIT_51_LIMB)
 
-/* Redundant representation with signed limb for bignum integer,
+/* Redundant representation with unsigned limb for bignum integer,
  * using 2^51 for the base.
  */
 #define RR25519_WORDS 5
@@ -2232,77 +2122,12 @@ typedef rr25519 fe;
 #define fe_0         rr25519_0
 #define fe_1         rr25519_1
 #define fe_copy      rr25519_copy
-#define fe_expand    rr25519_expand
+#define fe_frombyte  rr25519_expand
 #define fe_contract  rr25519_contract
 
-/**
- * @brief  Process Montgomery double-and-add
- *
- * With Q0, Q1, DIF (= Q0 - Q1), compute PRD = 2Q0, SUM = Q0 + Q1
- * On return, PRD is in Q0, SUM is in Q1
- * Caller provides temporary T0 and T1
- *
- * Note: indentation graphycally expresses the ladder.
- */
-static void
-montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1, const fe *dif_x, fe *t0, fe *t1)
-{
-#define xp   x0
-#define zp   z0
-#define xs   x1
-#define zs   z1
-#define C       t0
-#define D       t1
-#define A       x1
-#define B       x0
-#define CB      t0
-#define DA      t1
-#define AA      z0
-#define BB      x1
-#define CBpDA   z1              /* CB + DA */
-#define CBmDA   t0              /* CB - DA */
-#define E       t1
-#define CBmDAsq t0              /* (CB - DA)^2 */
-#define a24E    t0
-#define a24EpAA z0              /* AA + a24E */
-
-                                    fe_add (C, x1, z1);
-                                            fe_sub (D, x1, z1);
-  fe_add (A, x0, z0);
-          fe_sub (B, x0, z0);
-                                    fe_mul (CB, B, C);
-                                            fe_mul (DA, A, D);
-  fe_sqr (AA, A);
-          fe_sqr (BB, B);
-                                    fe_add (CBpDA, CB, DA);
-                                            fe_sub (CBmDA, CB, DA);
-  fe_mul (xp, AA, BB);
-          fe_sub (E, AA, BB);
-                                    fe_sqr (xs, CBpDA);
-                                            fe_sqr (CBmDAsq, CBmDA);
-                                            fe_mul (zs, CBmDAsq, dif_x);
-          fe_a24 (a24E, E);
-          fe_add (a24EpAA, AA, a24E);
-          fe_mul (zp, a24EpAA, E);
-}
-#undef xp
-#undef zp
-#undef xs
-#undef zs
-#undef C
-#undef D
-#undef A
-#undef B
-#undef CB
-#undef DA
-#undef AA
-#undef BB
-#undef CBpDA
-#undef CBmDA
-#undef E
-#undef CBmDAsq
-#undef a24E
-#undef a24EpAA
+static void fe_invert (bn256 *R, const bn256 *X);
+static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
+                             const fe *dif_x, fe *t0, fe *t1);
 
 int
 crypto_scalarmult (unsigned char *q,
@@ -2310,10 +2135,11 @@ crypto_scalarmult (unsigned char *q,
                    const unsigned char *p)
 {
   int i;
-  uint32_t swap = 0;
+  uint64_t swap = 0;
   unsigned char n[32];
   fe X0[1], Z0[1], X1[1], Z1[1];
-  fe T0[1], T1[1], q_x_rr[1];
+  fe T0[1], T1[1];
+  fe X[1];
   bn256 x0bn[1], z0bn[1];
   bn256 res[1];
 
@@ -2328,22 +2154,22 @@ crypto_scalarmult (unsigned char *q,
   fe_0 (Z0);
 
   /* P1 = (X:1) */
-  fe_expand (X1, p);
-  fe_copy (q_x_rr, X1);
+  fe_frombyte (X, p);
+  fe_copy (X1, X);
   fe_copy (Z1, X0);
 
   for (i = 254; i >= 0; i--)
     {
-      uint32_t b = (n[i>>3]>>(i&7))&1;
+      uint64_t b = (n[i>>3]>>(i&7))&1;
 
       swap ^= b;
       fe_swap_cond (X0, X1, swap);
       fe_swap_cond (Z0, Z1, swap);
       swap = b;
-      montgomery_step (X0, Z0, X1, Z1, q_x_rr, T0, T1);
+      montgomery_step (X0, Z0, X1, Z1, X, T0, T1);
     }
 
-  fe_contract ((unsigned char *)x0bn, X0);
+  fe_contract ((unsigned char *)x0bn, X0); /* FIXME: big endian support */
   fe_contract ((unsigned char *)z0bn, Z0);
   fe_invert (res, z0bn);
   mod25638_mul (res, res, x0bn);
@@ -2359,13 +2185,15 @@ crypto_scalarmult (unsigned char *q,
 #define fe25638 bn256
 
 #define fe fe25638
-#define fe_copy bn256_copy
 #define fe_add  fe25638_add
 #define fe_sub  fe25638_sub
 #define fe_mul  fe25638_mul
 #define fe_sqr  fe25638_sqr
-#define fe_reduce fe25638_reduce
 #define fe_a24  fe25638_mul_121665
+#define fe_swap_cond swap_cond
+#define fe_0    bn256_0
+#define fe_1    bn256_1
+#define fe_copy bn256_copy
 
 #define fe25638_mul mod25638_mul
 #define fe25638_reduce mod25638_reduce
@@ -2390,6 +2218,21 @@ swap_cond (fe25638 *A, fe25638 *B, unsigned long op_enable)
     }
 }
 
+
+/* X = 0 */
+static inline void
+bn256_0 (bn256 *x)
+{
+  memset(x, 0, sizeof (bn256));
+}
+
+/* X = 1 */
+static inline void
+bn256_1 (bn256 *x)
+{
+  x->w[0] = 1;
+  memset(&x->w[1], 0, sizeof (uint64_t) * 3);
+}
 
 static void
 bn256_copy (bn256 *X, const bn256 *A)
@@ -2645,8 +2488,106 @@ fe25638_mul_121665 (fe25638 *X, const fe25638 *A)
 }
 
 
+static void
+fe_frombyte (fe25638 *X, const unsigned char *p)
+{
+  uint64_t *x = X->w;
 
+  x[0] = buf_get_le64 (p);
+  x[1] = buf_get_le64 (p+8);
+  x[2] = buf_get_le64 (p+16);
+  x[3] = buf_get_le64 (p+24);
+  x[3] &= 0x7fffffffffffffffUL;
+}
 
+static void fe_invert (bn256 *R, const bn256 *X);
+static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
+                             const fe *dif_x, fe *t0, fe *t1);
+
+int
+crypto_scalarmult (unsigned char *q,
+                   const unsigned char *secret,
+                   const unsigned char *p)
+{
+  int i;
+  unsigned int swap = 0;
+  unsigned char n[32];
+  fe X0[1], Z0[1], X1[1], Z1[1];
+  fe T0[1], T1[1];
+  fe X[1];
+
+  for (i = 0; i < 32; i++)
+    n[i] = secret[i];
+  n[0] &= 248;
+  n[31] &= 127;
+  n[31] |= 64;
+
+  /* P0 = O = (1:0)  */
+  fe_1 (X0);
+  fe_0 (Z0);
+
+  /* P1 = (X:1) */
+  fe_frombyte (X, p);
+  fe_copy (X1, X);
+  fe_copy (Z1, X0);
+
+  for (i = 254; i >= 0; i--)
+    {
+      unsigned int b =(n[i>>3]>>(i&7))&1;
+
+      swap ^= b;
+      fe_swap_cond (X0, X1, swap);
+      fe_swap_cond (Z0, Z1, swap);
+      swap = b;
+      montgomery_step (X0, Z0, X1, Z1, X, T0, T1);
+    }
+
+  fe_invert (Z0, Z0);
+  fe_mul (X0, X0, Z0);
+  fe25519_reduce (X0);
+  fe_tobyte (q, X0);
+  return 0;
+}
+# endif
+#endif
+
+/* X = (A * B) mod 2^256-38 */
+static void
+mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B)
+{
+  bn512 tmp[1];
+
+  bn256_mul (tmp, A, B);
+  mod25638_reduce (X, tmp);
+}
+
+/**
+ * @brief R = X^(-1) mod N
+ *
+ * NOTE: If X==0, it return 0.
+ *
+ */
+static void
+fe_invert (bn256 *R, const bn256 *X)
+{
+  sr256 s[1];
+
+  memcpy (R, X, sizeof (bn256));
+
+  bn_to_signed31 (s, R);
+  modinv_safegcd (s, &modulus_25519, modulus_inv31_25519, 19);
+  bn_from_signed31 (R, s);
+}
+
+/**
+ * @brief  Process Montgomery double-and-add
+ *
+ * With Q0, Q1, DIF (= Q0 - Q1), compute PRD = 2Q0, SUM = Q0 + Q1
+ * On return, PRD is in Q0, SUM is in Q1
+ * Caller provides temporary T0 and T1
+ *
+ * Note: indentation graphycally expresses the ladder.
+ */
 static void
 montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1, const fe *dif_x, fe *t0, fe *t1)
 {
@@ -2706,63 +2647,3 @@ montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1, const fe *dif_x, fe *t0, fe *t1
 #undef CBmDAsq
 #undef a24E
 #undef a24EpAA
-
-
-static void
-fe_frombyte (fe25638 *X, const unsigned char *p)
-{
-  uint64_t *x = X->w;
-
-  x[0] = buf_get_le64 (p);
-  x[1] = buf_get_le64 (p+8);
-  x[2] = buf_get_le64 (p+16);
-  x[3] = buf_get_le64 (p+24);
-  x[3] &= 0x7fffffffffffffffUL;
-}
-
-int
-crypto_scalarmult (unsigned char *q,
-                   const unsigned char *secret,
-                   const unsigned char *p)
-{
-  int i;
-  unsigned int swap = 0;
-  unsigned char n[32];
-  fe25638 X0[1], Z0[1], X1[1], Z1[1];
-  fe25638 T0[1], T1[1];
-  fe25638 X[1];
-
-  for (i = 0; i < 32; i++)
-    n[i] = secret[i];
-  n[0] &= 248;
-  n[31] &= 127;
-  n[31] |= 64;
-
-  fe_frombyte (X, p);
-
-  memset (X0->w, 0, sizeof (uint64_t)*4);
-  X0->w[0] = 1;
-  memset (Z0->w, 0, sizeof (uint64_t)*4);
-
-  fe_copy (X1, X);
-  fe_copy (Z1, X0);
-
-  for (i = 254; i >= 0; i--)
-    {
-      unsigned int b =(n[i>>3]>>(i&7))&1;
-
-      swap ^= b;
-      swap_cond (X0, X1, swap);
-      swap_cond (Z0, Z1, swap);
-      swap = b;
-      montgomery_step (X0, Z0, X1, Z1, X, T0, T1);
-    }
-
-  fe_invert (Z0, Z0);
-  fe_mul (X0, X0, Z0);
-  fe25519_reduce (X0);
-  fe_tobyte (q, X0);
-  return 0;
-}
-# endif
-#endif
