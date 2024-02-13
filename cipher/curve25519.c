@@ -329,6 +329,7 @@ modinv_safegcd (sr256 *x, const sr256 *modulus, uint32_t inv31, int iterations)
 #endif
 
 #if defined(USE_32BIT_25_5_LIMB)
+#define op_t uint32_t
 
 /* Redundant representation with signed limb for bignum integer,
  * using 2^25.5 for the base.
@@ -362,19 +363,21 @@ rr25519_copy (rr25519 *dst, const rr25519 *src)
 
 /* A <=> B conditionally */
 static void
-rr25519_swap_cond (rr25519 *a, rr25519 *b, uint32_t c)
+rr25519_swap_cond (rr25519 *A, rr25519 *B, op_t op_enable)
 {
-  int i;
-  uint32_t mask = 0UL - c;
-  uint32_t *p = (uint32_t *)a->w;
-  uint32_t *q = (uint32_t *)b->w;
+  op_t mask1 = ct_ulong_gen_mask (op_enable);
+  op_t mask2 = ct_ulong_gen_inv_mask (op_enable);
+  size_t i;
+  op_t *a = (op_t *)A->w;
+  op_t *b = (op_t *)B->w;
 
-  asm volatile ("" : "+r" (mask) : : "memory");
   for (i = 0; i < RR25519_WORDS; i++)
     {
-      uint32_t t = mask & (*p^*q);
-      *p++ ^= t;
-      *q++ ^= t;
+      op_t xa = a[i];
+      op_t xb = b[i];
+
+      a[i] = (xa & mask2) | (xb & mask1);
+      b[i] = (xa & mask1) | (xb & mask2);
     }
 }
 
@@ -1055,7 +1058,6 @@ typedef rr25519 fe;
 #define fe_copy      rr25519_copy
 #define fe_frombyte  rr25519_expand
 #define fe_contract  rr25519_contract
-#define op_t uint32_t
 
 static void
 bn_to_signed31 (sr256 *r, const bn256 *a)
@@ -1236,8 +1238,6 @@ mod25638_reduce (bn256 *X, bn512 *A)
   }
 }
 
-static void mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B);
-
 static void
 mod25519_reduce (bn256 *X)
 {
@@ -1255,10 +1255,6 @@ mod25519_reduce (bn256 *X)
 
   ct_memmov_cond (X->w, R->w, 8 * sizeof (uint32_t), q);
 }
-
-static void bn256_invert (bn256 *R, const bn256 *X);
-static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
-                             const fe *dif_x, fe *t0, fe *t1);
 #else
 typedef __int128_t int128_t;
 typedef __uint128_t uint128_t;
@@ -1510,8 +1506,6 @@ mod25638_reduce (bn256 *X, bn512 *A)
   x[0] += (0UL - carry) & 38;
 }
 
-static void mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B);
-
 static void
 mod25519_reduce (bn256 *X)
 {
@@ -1541,6 +1535,7 @@ bn256_tobyte (unsigned char *p, const bn256 *X)
   buf_put_le64 (p+24, x[3]);
 }
 # if defined(USE_64BIT_51_LIMB)
+#define op_t uint64_t
 
 /* Redundant representation with unsigned limb for bignum integer,
  * using 2^51 for the base.
@@ -1574,19 +1569,21 @@ rr25519_copy (rr25519 *dst, const rr25519 *src)
 
 /* A <=> B conditionally */
 static void
-rr25519_swap_cond (rr25519 *a, rr25519 *b, uint64_t c)
+rr25519_swap_cond (rr25519 *A, rr25519 *B, op_t op_enable)
 {
-  int i;
-  uint64_t mask = 0UL - c;
-  uint64_t *p = (uint64_t *)a->w;
-  uint64_t *q = (uint64_t *)b->w;
+  op_t mask1 = ct_uintptr_gen_mask (op_enable);
+  op_t mask2 = ct_uintptr_gen_inv_mask (op_enable);
+  size_t i;
+  op_t *a = A->w;
+  op_t *b = B->w;
 
-  asm volatile ("" : "+r" (mask) : : "memory");
   for (i = 0; i < RR25519_WORDS; i++)
     {
-      uint64_t t = mask & (*p^*q);
-      *p++ ^= t;
-      *q++ ^= t;
+      op_t xa = a[i];
+      op_t xb = b[i];
+
+      a[i] = (xa & mask2) | (xb & mask1);
+      b[i] = (xa & mask1) | (xb & mask2);
     }
 }
 
@@ -2061,12 +2058,9 @@ typedef rr25519 fe;
 #define fe_copy      rr25519_copy
 #define fe_frombyte  rr25519_expand
 #define fe_contract  rr25519_contract
+# else
 #define op_t uint64_t
 
-static void bn256_invert (bn256 *R, const bn256 *X);
-static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
-                             const fe *dif_x, fe *t0, fe *t1);
-# else
 /* Implementation for 64-bit, non-redundant representation (2^256-38)
  * so that we will be able to optimize with Intel ADX (ADCX and ADOX)
  * or similar.
@@ -2084,13 +2078,12 @@ static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
 #define fe_1    bn256_1
 #define fe_copy bn256_copy
 #define fe_frombyte fe25638_frombyte
-#define op_t uint64_t
 
 static void
 swap_cond (fe25638 *A, fe25638 *B, unsigned long op_enable)
 {
-  uint64_t mask1 = ct_uintptr_gen_mask(op_enable);
-  uint64_t mask2 = ct_uintptr_gen_inv_mask(op_enable);
+  uint64_t mask1 = ct_uintptr_gen_mask (op_enable);
+  uint64_t mask2 = ct_uintptr_gen_inv_mask (op_enable);
   size_t i;
   uint64_t *a = A->w;
   uint64_t *b = B->w;
@@ -2386,10 +2379,6 @@ fe25638_frombyte (fe25638 *X, const unsigned char *p)
   x[3] = buf_get_le64 (p+24);
   x[3] &= 0x7fffffffffffffffUL;
 }
-
-static void bn256_invert (bn256 *R, const bn256 *X);
-static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
-                             const fe *dif_x, fe *t0, fe *t1);
 # endif
 #endif
 
