@@ -1009,44 +1009,37 @@ rr25519_reduce (rr25519 *x, const rr25519 *a)
   x->w[9] = x9;
 }
 
+typedef struct bn256 {
+  uint32_t w[8];
+} bn256;
+
+typedef struct bn512 {
+  uint32_t w[16];
+} bn512;
+
 static void
-rr25519_contract (unsigned char *dst, const rr25519 *x)
+rr25519_contract (bn256 *R, const rr25519 *x)
 {
   rr25519 t[1];
+  uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
 
   rr25519_reduce (t, x);
-  dst[0]  = t->w[0] >> 0;
-  dst[1]  = t->w[0] >> 8;
-  dst[2]  = t->w[0] >> 16;
-  dst[3]  = (t->w[0] >> 24) | (t->w[1] << 2);
-  dst[4]  = t->w[1] >> 6;
-  dst[5]  = t->w[1] >> 14;
-  dst[6]  = (t->w[1] >> 22) | (t->w[2] << 3);
-  dst[7]  = t->w[2] >> 5;
-  dst[8]  = t->w[2] >> 13;
-  dst[9]  = (t->w[2] >> 21) | (t->w[3] << 5);
-  dst[10] = t->w[3] >> 3;
-  dst[11] = t->w[3] >> 11;
-  dst[12] = (t->w[3] >> 19) | (t->w[4] << 6);
-  dst[13] = t->w[4] >> 2;
-  dst[14] = t->w[4] >> 10;
-  dst[15] = t->w[4] >> 18;
-  dst[16] = t->w[5] >> 0;
-  dst[17] = t->w[5] >> 8;
-  dst[18] = t->w[5] >> 16;
-  dst[19] = (t->w[5] >> 24) | (t->w[6] << 1);
-  dst[20] = t->w[6] >> 7;
-  dst[21] = t->w[6] >> 15;
-  dst[22] = (t->w[6] >> 23) | (t->w[7] << 3);
-  dst[23] = t->w[7] >> 5;
-  dst[24] = t->w[7] >> 13;
-  dst[25] = (t->w[7] >> 21) | (t->w[8] << 4);
-  dst[26] = t->w[8] >> 4;
-  dst[27] = t->w[8] >> 12;
-  dst[28] = (t->w[8] >> 20) | (t->w[9] << 6);
-  dst[29] = t->w[9] >> 2;
-  dst[30] = t->w[9] >> 10;
-  dst[31] = t->w[9] >> 18;
+  t0 = (t->w[0] >> 0)  | (t->w[1] << 26);
+  t1 = (t->w[1] >> 6)  | (t->w[2] << 19);
+  t2 = (t->w[2] >> 13) | (t->w[3] << 13);
+  t3 = (t->w[3] >> 19) | (t->w[4] << 6);
+  t4 = (t->w[5] >> 0)  | (t->w[6] << 25);
+  t5 = (t->w[6] >> 7)  | (t->w[7] << 19);
+  t6 = (t->w[7] >> 13) | (t->w[8] << 12);
+  t7 = (t->w[8] >> 20) | (t->w[9] << 6);
+  R->w[0] = t0;
+  R->w[1] = t1;
+  R->w[2] = t2;
+  R->w[3] = t3;
+  R->w[4] = t4;
+  R->w[5] = t5;
+  R->w[6] = t6;
+  R->w[7] = t7;
 }
 
 /* fe: Field Element */
@@ -1062,14 +1055,7 @@ typedef rr25519 fe;
 #define fe_copy      rr25519_copy
 #define fe_frombyte  rr25519_expand
 #define fe_contract  rr25519_contract
-
-typedef struct bn256 {
-  uint32_t w[8];
-} bn256;
-
-typedef struct bn512 {
-  uint32_t w[16];
-} bn512;
+#define op_t uint32_t
 
 static void
 bn_to_signed31 (sr256 *r, const bn256 *a)
@@ -1124,7 +1110,7 @@ bn_from_signed31 (bn256 *a, const sr256 *r)
 }
 
 static void
-fe_tobyte (unsigned char *p, const bn256 *X)
+bn256_tobyte (unsigned char *p, const bn256 *X)
 {
   const uint32_t *x = X->w;
 
@@ -1270,58 +1256,9 @@ mod25519_reduce (bn256 *X)
   ct_memmov_cond (X->w, R->w, 8 * sizeof (uint32_t), q);
 }
 
-static void fe_invert (bn256 *R, const bn256 *X);
+static void bn256_invert (bn256 *R, const bn256 *X);
 static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
                              const fe *dif_x, fe *t0, fe *t1);
-
-int
-crypto_scalarmult (unsigned char *q,
-                   const unsigned char *secret,
-                   const unsigned char *p)
-{
-  int i;
-  uint32_t swap = 0;
-  unsigned char n[32];
-  fe X0[1], Z0[1], X1[1], Z1[1];
-  fe T0[1], T1[1];
-  fe X[1];
-  bn256 x0bn[1], z0bn[1];
-  bn256 res[1];
-
-  for (i = 0; i < 32; i++)
-    n[i] = secret[i];
-  n[0] &= 248;
-  n[31] &= 127;
-  n[31] |= 64;
-
-  /* P0 = O = (1:0)  */
-  fe_1 (X0);
-  fe_0 (Z0);
-
-  /* P1 = (X:1) */
-  fe_frombyte (X, p);
-  fe_copy (X1, X);
-  fe_copy (Z1, X0);
-
-  for (i = 254; i >= 0; i--)
-    {
-      uint32_t b = (n[i>>3]>>(i&7))&1;
-
-      swap ^= b;
-      fe_swap_cond (X0, X1, swap);
-      fe_swap_cond (Z0, Z1, swap);
-      swap = b;
-      montgomery_step (X0, Z0, X1, Z1, X, T0, T1);
-    }
-
-  fe_contract ((unsigned char *)x0bn, X0);
-  fe_contract ((unsigned char *)z0bn, Z0);
-  fe_invert (res, z0bn);
-  mod25638_mul (res, res, x0bn);
-  mod25519_reduce (res);
-  fe_tobyte (q, res);
-  return 0;
-}
 #else
 typedef __int128_t int128_t;
 typedef __uint128_t uint128_t;
@@ -1594,7 +1531,7 @@ mod25519_reduce (bn256 *X)
 }
 
 static void
-fe_tobyte (unsigned char *p, const bn256 *X)
+bn256_tobyte (unsigned char *p, const bn256 *X)
 {
   const uint64_t *x = X->w;
 
@@ -2095,7 +2032,7 @@ rr25519_reduce (rr25519 *x, const rr25519 *a)
 }
 
 static void
-rr25519_contract (unsigned char *dst, const rr25519 *x)
+rr25519_contract (bn256 *R, const rr25519 *x)
 {
   rr25519 t[1];
   uint64_t t0, t1, t2, t3;
@@ -2105,10 +2042,10 @@ rr25519_contract (unsigned char *dst, const rr25519 *x)
   t1 = (t->w[1] >> 13) | (t->w[2] << 38);
   t2 = (t->w[2] >> 26) | (t->w[3] << 25);
   t3 = (t->w[3] >> 39) | (t->w[4] << 12);
-  buf_put_le64 (dst +  0, t0);
-  buf_put_le64 (dst +  8, t1);
-  buf_put_le64 (dst + 16, t2);
-  buf_put_le64 (dst + 24, t3);
+  R->w[0] = t0;
+  R->w[1] = t1;
+  R->w[2] = t2;
+  R->w[3] = t3;
 }
 
 /* fe: Field Element */
@@ -2124,59 +2061,11 @@ typedef rr25519 fe;
 #define fe_copy      rr25519_copy
 #define fe_frombyte  rr25519_expand
 #define fe_contract  rr25519_contract
+#define op_t uint64_t
 
-static void fe_invert (bn256 *R, const bn256 *X);
+static void bn256_invert (bn256 *R, const bn256 *X);
 static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
                              const fe *dif_x, fe *t0, fe *t1);
-
-int
-crypto_scalarmult (unsigned char *q,
-                   const unsigned char *secret,
-                   const unsigned char *p)
-{
-  int i;
-  uint64_t swap = 0;
-  unsigned char n[32];
-  fe X0[1], Z0[1], X1[1], Z1[1];
-  fe T0[1], T1[1];
-  fe X[1];
-  bn256 x0bn[1], z0bn[1];
-  bn256 res[1];
-
-  for (i = 0; i < 32; i++)
-    n[i] = secret[i];
-  n[0] &= 248;
-  n[31] &= 127;
-  n[31] |= 64;
-
-  /* P0 = O = (1:0)  */
-  fe_1 (X0);
-  fe_0 (Z0);
-
-  /* P1 = (X:1) */
-  fe_frombyte (X, p);
-  fe_copy (X1, X);
-  fe_copy (Z1, X0);
-
-  for (i = 254; i >= 0; i--)
-    {
-      uint64_t b = (n[i>>3]>>(i&7))&1;
-
-      swap ^= b;
-      fe_swap_cond (X0, X1, swap);
-      fe_swap_cond (Z0, Z1, swap);
-      swap = b;
-      montgomery_step (X0, Z0, X1, Z1, X, T0, T1);
-    }
-
-  fe_contract ((unsigned char *)x0bn, X0); /* FIXME: big endian support */
-  fe_contract ((unsigned char *)z0bn, Z0);
-  fe_invert (res, z0bn);
-  mod25638_mul (res, res, x0bn);
-  mod25519_reduce (res);
-  fe_tobyte (q, res);
-  return 0;
-}
 # else
 /* Implementation for 64-bit, non-redundant representation (2^256-38)
  * so that we will be able to optimize with Intel ADX (ADCX and ADOX)
@@ -2187,17 +2076,15 @@ crypto_scalarmult (unsigned char *q,
 #define fe fe25638
 #define fe_add  fe25638_add
 #define fe_sub  fe25638_sub
-#define fe_mul  fe25638_mul
+#define fe_mul  mod25638_mul
 #define fe_sqr  fe25638_sqr
 #define fe_a24  fe25638_mul_121665
 #define fe_swap_cond swap_cond
 #define fe_0    bn256_0
 #define fe_1    bn256_1
 #define fe_copy bn256_copy
-
-#define fe25638_mul mod25638_mul
-#define fe25638_reduce mod25638_reduce
-#define fe25519_reduce mod25519_reduce
+#define fe_frombyte fe25638_frombyte
+#define op_t uint64_t
 
 static void
 swap_cond (fe25638 *A, fe25638 *B, unsigned long op_enable)
@@ -2447,7 +2334,7 @@ fe25638_sqr (fe25638 *X, const fe25638 *A)
   bn512 tmp[1];
 
   bn256_sqr (tmp, A);
-  fe25638_reduce (X, tmp);
+  mod25638_reduce (X, tmp);
 }
 
 static void
@@ -2489,7 +2376,7 @@ fe25638_mul_121665 (fe25638 *X, const fe25638 *A)
 
 
 static void
-fe_frombyte (fe25638 *X, const unsigned char *p)
+fe25638_frombyte (fe25638 *X, const unsigned char *p)
 {
   uint64_t *x = X->w;
 
@@ -2500,54 +2387,9 @@ fe_frombyte (fe25638 *X, const unsigned char *p)
   x[3] &= 0x7fffffffffffffffUL;
 }
 
-static void fe_invert (bn256 *R, const bn256 *X);
+static void bn256_invert (bn256 *R, const bn256 *X);
 static void montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1,
                              const fe *dif_x, fe *t0, fe *t1);
-
-int
-crypto_scalarmult (unsigned char *q,
-                   const unsigned char *secret,
-                   const unsigned char *p)
-{
-  int i;
-  unsigned int swap = 0;
-  unsigned char n[32];
-  fe X0[1], Z0[1], X1[1], Z1[1];
-  fe T0[1], T1[1];
-  fe X[1];
-
-  for (i = 0; i < 32; i++)
-    n[i] = secret[i];
-  n[0] &= 248;
-  n[31] &= 127;
-  n[31] |= 64;
-
-  /* P0 = O = (1:0)  */
-  fe_1 (X0);
-  fe_0 (Z0);
-
-  /* P1 = (X:1) */
-  fe_frombyte (X, p);
-  fe_copy (X1, X);
-  fe_copy (Z1, X0);
-
-  for (i = 254; i >= 0; i--)
-    {
-      unsigned int b =(n[i>>3]>>(i&7))&1;
-
-      swap ^= b;
-      fe_swap_cond (X0, X1, swap);
-      fe_swap_cond (Z0, Z1, swap);
-      swap = b;
-      montgomery_step (X0, Z0, X1, Z1, X, T0, T1);
-    }
-
-  fe_invert (Z0, Z0);
-  fe_mul (X0, X0, Z0);
-  fe25519_reduce (X0);
-  fe_tobyte (q, X0);
-  return 0;
-}
 # endif
 #endif
 
@@ -2568,7 +2410,7 @@ mod25638_mul (bn256 *X, const bn256 *A, const bn256 *B)
  *
  */
 static void
-fe_invert (bn256 *R, const bn256 *X)
+bn256_invert (bn256 *R, const bn256 *X)
 {
   sr256 s[1];
 
@@ -2647,3 +2489,59 @@ montgomery_step (fe *x0, fe *z0, fe *x1, fe *z1, const fe *dif_x, fe *t0, fe *t1
 #undef CBmDAsq
 #undef a24E
 #undef a24EpAA
+
+int
+crypto_scalarmult (unsigned char *q,
+                   const unsigned char *secret,
+                   const unsigned char *p)
+{
+  int i;
+  op_t swap = 0;
+  unsigned char n[32];
+  fe X0[1], Z0[1], X1[1], Z1[1];
+  fe T0[1], T1[1];
+  fe X[1];
+#ifdef fe_contract
+  bn256 x0bn[1], z0bn[1];
+#endif
+  bn256 res[1];
+
+  for (i = 0; i < 32; i++)
+    n[i] = secret[i];
+  n[0] &= 248;
+  n[31] &= 127;
+  n[31] |= 64;
+
+  /* P0 = O = (1:0)  */
+  fe_1 (X0);
+  fe_0 (Z0);
+
+  /* P1 = (X:1) */
+  fe_frombyte (X, p);
+  fe_copy (X1, X);
+  fe_copy (Z1, X0);
+
+  for (i = 254; i >= 0; i--)
+    {
+      op_t b = (n[i>>3]>>(i&7))&1;
+
+      swap ^= b;
+      fe_swap_cond (X0, X1, swap);
+      fe_swap_cond (Z0, Z1, swap);
+      swap = b;
+      montgomery_step (X0, Z0, X1, Z1, X, T0, T1);
+    }
+
+#ifdef fe_contract
+  fe_contract (x0bn, X0);
+  fe_contract (z0bn, Z0);
+  bn256_invert (res, z0bn);
+  mod25638_mul (res, res, x0bn);
+#else
+  bn256_invert (res, Z0);
+  mod25638_mul (res, res, X0);
+#endif
+  mod25519_reduce (res);
+  bn256_tobyte (q, res);
+  return 0;
+}
