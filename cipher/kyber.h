@@ -103,9 +103,9 @@ int crypto_kem_dec (uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
 #  define CRYPTO_ALGNAME "Kyber"
 
-#  deinfe crypto_kem_keypair_2 crypto_kem_keypair_512
-#  deinfe crypto_kem_keypair_3 crypto_kem_keypair_768
-#  deinfe crypto_kem_keypair_4 crypto_kem_keypair_1024
+#  define crypto_kem_keypair_2 crypto_kem_keypair_512
+#  define crypto_kem_keypair_3 crypto_kem_keypair_768
+#  define crypto_kem_keypair_4 crypto_kem_keypair_1024
 
 int crypto_kem_keypair_2 (uint8_t *pk, uint8_t *sk);
 int crypto_kem_keypair_3 (uint8_t *pk, uint8_t *sk);

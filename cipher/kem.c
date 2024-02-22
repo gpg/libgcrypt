@@ -30,6 +30,7 @@
 #include "sntrup761.h"
 #include "kyber.h"
 
+
 static void
 sntrup761_random (void *ctx, size_t length, uint8_t *dst)
 {
@@ -37,6 +38,7 @@ sntrup761_random (void *ctx, size_t length, uint8_t *dst)
 
   _gcry_randomize (dst, length, GCRY_STRONG_RANDOM);
 }
+
 
 gcry_err_code_t
 _gcry_kem_keypair (int algo,
@@ -46,25 +48,41 @@ _gcry_kem_keypair (int algo,
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
-      (void)pubkey; (void)seckey;
       if (seckey_len != GCRY_KEM_SNTRUP761_SECKEY_LEN
           || pubkey_len != GCRY_KEM_SNTRUP761_PUBKEY_LEN)
         return GPG_ERR_INV_ARG;
       sntrup761_keypair (pubkey, seckey, NULL, sntrup761_random);
-      return GPG_ERR_NO_ERROR;
+      return 0;
+
     case GCRY_KEM_MLKEM512:
-    case GCRY_KEM_MLKEM768:
-    case GCRY_KEM_MLKEM1024:
+      if (seckey_len != GCRY_KEM_MLKEM512_SECKEY_LEN
+          || pubkey_len != GCRY_KEM_MLKEM512_PUBKEY_LEN)
+        return GPG_ERR_INV_ARG;
       kyber_keypair (algo, pubkey, seckey);
-      return GPG_ERR_NO_ERROR;
+      return 0;
+
+    case GCRY_KEM_MLKEM768:
+      if (seckey_len != GCRY_KEM_MLKEM768_SECKEY_LEN
+          || pubkey_len != GCRY_KEM_MLKEM768_PUBKEY_LEN)
+        return GPG_ERR_INV_ARG;
+      kyber_keypair (algo, pubkey, seckey);
+      return 0;
+
+    case GCRY_KEM_MLKEM1024:
+      if (seckey_len != GCRY_KEM_MLKEM1024_SECKEY_LEN
+          || pubkey_len != GCRY_KEM_MLKEM1024_PUBKEY_LEN)
+        return GPG_ERR_INV_ARG;
+      kyber_keypair (algo, pubkey, seckey);
+      return 0;
+
     case GCRY_KEM_DHKEM25519:
-      return GPG_ERR_NOT_IMPLEMENTED;
     case GCRY_KEM_OPENPGP_X25519:
       return GPG_ERR_NOT_IMPLEMENTED;
-    default:
-      return GPG_ERR_UNKNOWN_ALGORITHM;
     }
+
+  return GPG_ERR_UNKNOWN_ALGORITHM;
 }
+
 
 gcry_err_code_t
 _gcry_kem_encap (int algo,
@@ -76,7 +94,6 @@ _gcry_kem_encap (int algo,
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
-      (void)pubkey; (void)ciphertext; (void)shared;
       if (optional != NULL || optional_len != 0)
         return GPG_ERR_INV_VALUE;
       if (pubkey_len != GCRY_KEM_SNTRUP761_PUBKEY_LEN
@@ -85,6 +102,7 @@ _gcry_kem_encap (int algo,
         return GPG_ERR_INV_VALUE;
       sntrup761_enc (ciphertext, shared, pubkey, NULL, sntrup761_random);
       return GPG_ERR_NO_ERROR;
+
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
@@ -92,16 +110,19 @@ _gcry_kem_encap (int algo,
         return GPG_ERR_INV_VALUE;
       kyber_encap (algo, ciphertext, shared, pubkey);
       return GPG_ERR_NO_ERROR;
+
     case GCRY_KEM_DHKEM25519:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
       return GPG_ERR_NOT_IMPLEMENTED;
+
     case GCRY_KEM_OPENPGP_X25519:
       return GPG_ERR_NOT_IMPLEMENTED;
-    default:
-      return GPG_ERR_UNKNOWN_ALGORITHM;
+
     }
+  return GPG_ERR_UNKNOWN_ALGORITHM;
 }
+
 
 gcry_err_code_t
 _gcry_kem_decap (int algo,
@@ -113,7 +134,6 @@ _gcry_kem_decap (int algo,
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
-      (void)seckey; (void)ciphertext; (void)shared;
       if (optional != NULL || optional_len != 0)
         return GPG_ERR_INV_VALUE;
       if (seckey_len != GCRY_KEM_SNTRUP761_SECKEY_LEN
@@ -122,6 +142,7 @@ _gcry_kem_decap (int algo,
         return GPG_ERR_INV_VALUE;
       sntrup761_dec (shared, ciphertext, seckey);
       return GPG_ERR_NO_ERROR;
+
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
@@ -129,11 +150,11 @@ _gcry_kem_decap (int algo,
         return GPG_ERR_INV_VALUE;
       kyber_decap (algo, shared, ciphertext, seckey);
       return GPG_ERR_NO_ERROR;
+
     case GCRY_KEM_DHKEM25519:
-      return GPG_ERR_NOT_IMPLEMENTED;
     case GCRY_KEM_OPENPGP_X25519:
       return GPG_ERR_NOT_IMPLEMENTED;
-    default:
-      return GPG_ERR_UNKNOWN_ALGORITHM;
+
     }
+  return GPG_ERR_UNKNOWN_ALGORITHM;
 }
