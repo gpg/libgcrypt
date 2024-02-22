@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include "../src/gcrypt-int.h"
 
@@ -601,6 +602,98 @@ check_ecc_keys (void)
 
 
 static void
+check_generated_kem_key (gcry_sexp_t key, const char *algoname)
+{
+  gpg_error_t err;
+  gcry_sexp_t skey, pkey;
+  unsigned char keygrip_pk[20];
+  unsigned char keygrip_all[20];
+  int n, nbits;
+  const char *s;
+
+  pkey = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pkey)
+    fail ("public part missing in return value\n");
+  else
+    {
+      if (!gcry_pk_get_keygrip (pkey, keygrip_pk))
+        fail ("gcry_pk_get_keyrip for pubkey failed\n");
+      gcry_sexp_release (pkey);
+    }
+
+  skey = gcry_sexp_find_token (key, "private-key", 0);
+  if (!skey)
+    fail ("private part missing in return value\n");
+  else
+    {
+      err = gcry_pk_testkey (skey);
+      if (gpg_err_code (err) == GPG_ERR_NOT_IMPLEMENTED)
+        info ("note: gcry_pk_testkey has not yet been implemented\n");
+      else if (err)
+        fail ("gcry_pk_testkey failed: %s\n", gpg_strerror (err));
+      gcry_sexp_release (skey);
+    }
+
+  /* Finally check that gcry_pk_testkey also works on the entire
+     S-expression.  */
+  err = gcry_pk_testkey (key);
+  if (gpg_err_code (err) == GPG_ERR_NOT_IMPLEMENTED)
+    info ("note: gcry_pk_testkey has not yet been implemented\n");
+  else if (err)
+    fail ("gcry_pk_testkey failed on keypair: %s\n", gpg_strerror (err));
+
+  if (!gcry_pk_get_keygrip (key, keygrip_all))
+    fail ("gcry_pk_get_keyrip for all failed\n");
+
+  if (memcmp (keygrip_pk, keygrip_all, 20))
+    fail ("keygrips do not match\n");
+
+  /* Simple hack to check nbits.  */
+  nbits = gcry_pk_get_nbits (key);
+  n = 0;
+  for (s=algoname; !isdigit (*s); s++)
+    ;
+  n = atoi (s);
+  if (n != nbits)
+    fail ("gcry_pk_get_nbits returned a wrong value n=%d nbits=%d\n", n, nbits);
+
+}
+
+
+static void
+check_kem_keys (void)
+{
+  const char *algonames[] = { "sntrup761",
+                              "kyber512", "kyber768", "kyber1024",
+                              NULL };
+  int testno;
+  gcry_sexp_t keyparm, key;
+  int rc;
+
+  for (testno=0; algonames[testno]; testno++)
+    {
+      if (verbose)
+        info ("creating KEM key using algo %s\n", algonames[testno]);
+      rc = gcry_sexp_build (&keyparm, NULL, "(genkey(%s))", algonames[testno]);
+      if (rc)
+        die ("error creating S-expression: %s\n", gpg_strerror (rc));
+      rc = gcry_pk_genkey (&key, keyparm);
+      gcry_sexp_release (keyparm);
+      if (rc)
+        die ("error creating KEM key using algo %s: %s\n",
+             algonames[testno], gpg_strerror (rc));
+
+      if (verbose > 1)
+        show_sexp ("KEM key:\n", key);
+
+      check_generated_kem_key (key, algonames[testno]);
+
+      gcry_sexp_release (key);
+    }
+}
+
+
+static void
 check_nonce (void)
 {
   char a[32], b[32];
@@ -758,6 +851,7 @@ main (int argc, char **argv)
       check_elg_keys ();
       check_dsa_keys ();
       check_ecc_keys ();
+      check_kem_keys ();
       check_nonce ();
     }
   else
@@ -771,6 +865,8 @@ main (int argc, char **argv)
           check_dsa_keys ();
         else if (!strcmp (*argv, "ecc"))
           check_ecc_keys ();
+        else if (!strcmp (*argv, "kem"))
+          check_kem_keys ();
         else if (!strcmp (*argv, "nonce"))
           check_nonce ();
         else
