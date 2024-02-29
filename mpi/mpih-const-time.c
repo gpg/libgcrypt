@@ -36,6 +36,7 @@ mpih_ct_limb_greater_than (mpi_limb_t x, mpi_limb_t y)
 {
   mpi_limb_t diff_hi, diff_lo;
   sub_ddmmss (diff_hi, diff_lo, 0, y, 0, x);
+  (void)diff_lo;
   return diff_hi >> (BITS_PER_MPI_LIMB - 1);
 }
 
