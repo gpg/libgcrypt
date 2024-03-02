@@ -660,33 +660,53 @@ check_generated_kem_key (gcry_sexp_t key, const char *algoname)
 }
 
 
+#define TEST_NOFIPS         (1 << 0)
+
 static void
 check_kem_keys (void)
 {
-  const char *algonames[] = { "sntrup761",
-                              "kyber512", "kyber768", "kyber1024",
-                              NULL };
+  const struct {
+    const char *algonames;
+    int flags;
+  } tv[] = {
+    { "sntrup761", TEST_NOFIPS },
+    { "kyber512", TEST_NOFIPS }, /* Let's see when new FIPS 140-x. */
+    { "kyber768", 0 },
+    { "kyber1024", 0 },
+  };
+
   int testno;
   gcry_sexp_t keyparm, key;
   int rc;
 
-  for (testno=0; algonames[testno]; testno++)
+  for (testno=0; testno < DIM (tv); testno++)
     {
       if (verbose)
-        info ("creating KEM key using algo %s\n", algonames[testno]);
-      rc = gcry_sexp_build (&keyparm, NULL, "(genkey(%s))", algonames[testno]);
+        info ("creating KEM key using algo %s\n", tv[testno].algonames);
+      rc = gcry_sexp_build (&keyparm, NULL, "(genkey(%s))",
+                            tv[testno].algonames);
       if (rc)
         die ("error creating S-expression: %s\n", gpg_strerror (rc));
       rc = gcry_pk_genkey (&key, keyparm);
       gcry_sexp_release (keyparm);
-      if (rc)
-        die ("error creating KEM key using algo %s: %s\n",
-             algonames[testno], gpg_strerror (rc));
+      if (in_fips_mode && (tv[testno].flags & TEST_NOFIPS))
+        {
+          if (!rc)
+            die ("KEM: creating %s key should have failed in fips mode\n",
+                 tv[testno].algonames);
+          continue;
+        }
+      else
+        {
+          if (rc)
+            die ("error creating KEM key using algo %s: %s\n",
+                 tv[testno].algonames, gpg_strerror (rc));
+        }
 
       if (verbose > 1)
         show_sexp ("KEM key:\n", key);
 
-      check_generated_kem_key (key, algonames[testno]);
+      check_generated_kem_key (key, tv[testno].algonames);
 
       gcry_sexp_release (key);
     }
