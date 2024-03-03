@@ -670,9 +670,9 @@ check_kem_keys (void)
     int flags;
   } tv[] = {
     { "sntrup761", TEST_NOFIPS },
-    { "kyber512", TEST_NOFIPS }, /* Let's see when new FIPS 140-x. */
-    { "kyber768", 0 },
-    { "kyber1024", 0 },
+    { "kyber512", TEST_NOFIPS },
+    { "kyber768", TEST_NOFIPS },
+    { "kyber1024", TEST_NOFIPS },
   };
 
   int testno;
