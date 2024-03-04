@@ -309,8 +309,7 @@ kem_compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
   if (!name)
     return GPG_ERR_WRONG_PUBKEY_ALGO;
 
-  _gcry_md_write (md, name, algolen);
-  _gcry_md_write (md, "", 1); /* (also hash the nul) */
+  _gcry_md_write (md, name, algolen+1); /* (also hash the nul) */
 
   l1 = sexp_find_token (keyparam, "p", 1);
   if (!l1)
