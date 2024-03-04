@@ -394,23 +394,23 @@ extern UDItype __udiv_qrnnd ();
  ***************************************/
 #if defined (__hppa) && W_TYPE_SIZE == 32
 # define add_ssaaaa(sh, sl, ah, al, bh, bl) \
-  __asm__ ("	add %4,%5,%1\n"                                             \
- 	   "	addc %2,%3,%0"                                              \
+  __asm__ ("add %4,%5,%1\n\t"                                           \
+	   "addc %2,%3,%0"                                              \
 	   : "=r" ((USItype)(sh)),                                      \
 	     "=&r" ((USItype)(sl))                                      \
 	   : "%rM" ((USItype)(ah)),                                     \
 	     "rM" ((USItype)(bh)),                                      \
 	     "%rM" ((USItype)(al)),                                     \
-	     "rM" ((USItype)(bl)))
+	     "rM" ((USItype)(bl)) __CLOBBER_CC)
 # define sub_ddmmss(sh, sl, ah, al, bh, bl) \
-  __asm__ ("	sub %4,%5,%1\n"                                             \
-	   "	subb %2,%3,%0"                                              \
+  __asm__ ("sub %4,%5,%1\n\t"                                           \
+	   "subb %2,%3,%0"                                              \
 	   : "=r" ((USItype)(sh)),                                      \
 	     "=&r" ((USItype)(sl))                                      \
 	   : "rM" ((USItype)(ah)),                                      \
 	     "rM" ((USItype)(bh)),                                      \
 	     "rM" ((USItype)(al)),                                      \
-	     "rM" ((USItype)(bl)))
+	     "rM" ((USItype)(bl)) __CLOBBER_CC)
 # if defined (_PA_RISC1_1)
 #  define umul_ppmm(wh, wl, u, v) \
   do {									\
