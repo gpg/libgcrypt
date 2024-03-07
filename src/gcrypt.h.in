@@ -333,7 +333,9 @@ enum gcry_ctl_cmds
     GCRYCTL_FIPS_SERVICE_INDICATOR_FUNCTION = 84,
     GCRYCTL_FIPS_SERVICE_INDICATOR_MAC = 85,
     GCRYCTL_FIPS_SERVICE_INDICATOR_MD = 86,
-    GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS = 87
+    GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS = 87,
+    GCRYCTL_CSHAKE_N = 88,
+    GCRYCTL_CSHAKE_S = 89
   };
 
 /* Perform various operations defined by CMD. */
@@ -1305,7 +1307,9 @@ enum gcry_md_algos
     GCRY_MD_BLAKE2S_128   = 325,
     GCRY_MD_SM3           = 326,
     GCRY_MD_SHA512_256    = 327,
-    GCRY_MD_SHA512_224    = 328
+    GCRY_MD_SHA512_224    = 328,
+    GCRY_MD_CSHAKE128     = 329,
+    GCRY_MD_CSHAKE256     = 330
   };
 
 /* Flags used with the open function.  */
