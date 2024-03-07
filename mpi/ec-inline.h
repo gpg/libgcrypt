@@ -921,6 +921,46 @@ LIMB64_HILO(mpi_limb_t hi, mpi_limb_t lo)
 
 #endif /* HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS */
 
+#if defined (__hppa) && __GNUC__ >= 4
+#define ADD4_LIMB32(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) \
+  __asm__ ("add %7,%11,%3\n\t" \
+	   "addc %6,%10,%2\n\t" \
+	   "addc %5,%9,%1\n\t" \
+	   "addc %4,%8,%0" \
+	   : "=r" (A3), \
+	     "=&r" (A2), \
+	     "=&r" (A1), \
+	     "=&r" (A0) \
+	   : "rM" ((mpi_limb_t)(B3)), \
+	     "rM" ((mpi_limb_t)(B2)), \
+	     "rM" ((mpi_limb_t)(B1)), \
+	     "rM" ((mpi_limb_t)(B0)), \
+	     "rM" ((mpi_limb_t)(C3)), \
+	     "rM" ((mpi_limb_t)(C2)), \
+	     "rM" ((mpi_limb_t)(C1)), \
+	     "rM" ((mpi_limb_t)(C0)) \
+	   : "cc")
+
+#define SUB4_LIMB32(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) \
+  __asm__ ("sub %7,%11,%3\n\t" \
+	   "subb %6,%10,%2\n\t" \
+	   "subb %5,%9,%1\n\t" \
+	   "subb %4,%8,%0\n\t" \
+	   : "=r" (A3), \
+	     "=&r" (A2), \
+	     "=&r" (A1), \
+	     "=&r" (A0) \
+	   : "rM" ((mpi_limb_t)(B3)), \
+	     "rM" ((mpi_limb_t)(B2)), \
+	     "rM" ((mpi_limb_t)(B1)), \
+	     "rM" ((mpi_limb_t)(B0)), \
+	     "rM" ((mpi_limb_t)(C3)), \
+	     "rM" ((mpi_limb_t)(C2)), \
+	     "rM" ((mpi_limb_t)(C1)), \
+	     "rM" ((mpi_limb_t)(C0)) \
+	   : "cc")
+
+#endif /* __hppa */
 
 /* Common 32-bit arch addition/subtraction macros.  */
 

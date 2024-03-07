@@ -48,6 +48,7 @@ static gcry_pk_spec_t * const pubkey_list[] =
 #if USE_ELGAMAL
     &_gcry_pubkey_spec_elg,
 #endif
+    &_gcry_pubkey_spec_kem,
     NULL
   };
 
@@ -740,38 +741,34 @@ _gcry_pk_testkey (gcry_sexp_t s_key)
 }
 
 
-/*
-  Create a public key pair and return it in r_key.
-  How the key is created depends on s_parms:
-  (genkey
-   (algo
-     (parameter_name_1 ....)
-      ....
-     (parameter_name_n ....)
-  ))
-  The key is returned in a format depending on the
-  algorithm. Both, private and secret keys are returned
-  and optionally some additional informatin.
-  For elgamal we return this structure:
-  (key-data
-   (public-key
-     (elg
- 	(p <mpi>)
- 	(g <mpi>)
- 	(y <mpi>)
-     )
-   )
-   (private-key
-     (elg
- 	(p <mpi>)
- 	(g <mpi>)
- 	(y <mpi>)
- 	(x <mpi>)
-     )
-   )
-   (misc-key-info
-      (pm1-factors n1 n2 ... nn)
-   ))
+
+/* Create a public key pair and return it as R_KEY.
+ * How the key is created depends on s_parms:
+ *
+ *   (genkey
+ *     (algo
+ *       (parameter_name_1 ....)
+ *       ....
+ *       (parameter_name_n ....)))
+ *
+ * The key is returned in a format depending on the algorithm. Both,
+ * private and secret keys are returned and optionally some additional
+ * information.  For example for Elgamal this structure is returned:
+ *
+ *   (key-data
+ *     (public-key
+ *       (elg
+ *         (p <mpi>)
+ *         (g <mpi>)
+ *         (y <mpi>)))
+ *     (private-key
+ *       (elg
+ *         (p <mpi>)
+ *         (g <mpi>)
+ *         (y <mpi>)
+ *         (x <mpi>)))
+ *     (misc-key-info
+ *        (pm1-factors n1 n2 ... nn)))
  */
 gcry_err_code_t
 _gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)

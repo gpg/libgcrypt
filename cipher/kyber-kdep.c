@@ -1,10 +1,10 @@
 /* kyber-kdep.c - the Kyber key encapsulation mechanism (KYBER_K dependent part)
- * Copyright (C) 2023 g10 Code GmbH
+ * Copyright (C) 2024 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser general Public License as
+ * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
@@ -48,7 +48,7 @@
 /*
  * From original code, following modification was made.
  *
- * - C++ style coomments are changed to C-style.
+ * - C++ style comments are changed to C-style.
  *
  * - With the change of "verify" routine (now "verify1"), no negation
  *   for the cmov argument in crypto_kem_dec.
@@ -77,6 +77,8 @@ static void polyvec_reduce(polyvec *r);
 static void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
 
 /*************** kyber/ref/indcpa.h */
+static void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
+
 static void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                                   uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
                                   const uint8_t coins[KYBER_SYMBYTES]);
@@ -87,12 +89,13 @@ static void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
                        const uint8_t coins[KYBER_SYMBYTES]);
 
 static void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
-                         const uint8_t c[KYBER_INDCPA_BYTES],
-                         const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
+                       const uint8_t c[KYBER_INDCPA_BYTES],
+                       const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
 
 /*************** kyber/ref/kem.h */
 
 static int crypto_kem_keypair_derand(uint8_t *pk, uint8_t *sk, const uint8_t *coins);
+
 static int crypto_kem_enc_derand(uint8_t *ct, uint8_t *ss, const uint8_t *pk, const uint8_t *coins);
 
 /*************** kyber/ref/indcpa.c */
@@ -209,7 +212,7 @@ static void unpack_ciphertext(polyvec *b, poly *v, const uint8_t c[KYBER_INDCPA_
 *              - int transposed: boolean deciding whether A or A^T is generated
 **************************************************/
 #define GEN_MATRIX_NBLOCKS ((12*KYBER_N/8*(1 << 12)/KYBER_Q + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
-static void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
+void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 {
   unsigned int ctr, i, j, k;
   unsigned int buflen, off;
@@ -380,6 +383,7 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 
   poly_tomsg(m, &mp);
 }
+
 /*************** kyber/ref/kem.c */
 /*************************************************
 * Name:        crypto_kem_keypair_derand

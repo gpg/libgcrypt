@@ -1150,7 +1150,8 @@ enum gcry_pk_algos
     GCRY_PK_ELG   = 20,     /* Elgamal       */
     GCRY_PK_ECDSA = 301,    /* (only for external use).  */
     GCRY_PK_ECDH  = 302,    /* (only for external use).  */
-    GCRY_PK_EDDSA = 303     /* (only for external use).  */
+    GCRY_PK_EDDSA = 303,    /* (only for external use).  */
+    GCRY_PK_KEM   = 333     /* Pseudo ID for KEM algos.  */
   };
 
 /* Flags describing usage capabilities of a PK algorithm. */
@@ -1693,9 +1694,9 @@ enum gcry_kem_algos
   {
     GCRY_KEM_NONE = 0,
     GCRY_KEM_SNTRUP761,
-    GCRY_KEM_MLKEM512,
-    GCRY_KEM_MLKEM768,
-    GCRY_KEM_MLKEM1024,
+    GCRY_KEM_MLKEM512,       /* aka Kyber512  */
+    GCRY_KEM_MLKEM768,       /* aka Kyber768  */
+    GCRY_KEM_MLKEM1024,      /* aka Kyber1024 */
     GCRY_KEM_RAW_X25519,  /* keypair, encaps/decaps with Identity KDF */
     /* More curves? */
     GCRY_KEM_DHKEM25519,  /* DHKEM with X25519, HKDF, and SHA256  */

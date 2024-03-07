@@ -1,10 +1,10 @@
 /* kyber.c - the Kyber key encapsulation mechanism (main part)
- * Copyright (C) 2023 g10 Code GmbH
+ * Copyright (C) 2024 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser general Public License as
+ * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
@@ -57,7 +57,7 @@
  *
  * From original code, following modification was made.
  *
- * - C++ style coomments are changed to C-style.
+ * - C++ style comments are changed to C-style.
  *
  * - No use of KYBER_NAMESPACE and FIPS202_NAMESPACE.  Don't export
  *   internal symbols.
@@ -290,17 +290,18 @@ void cmov (uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 #define KYBER_SYMBYTES 32   /* size in bytes of hashes, and seeds */
 #define KYBER_SSBYTES  32   /* size in bytes of shared key */
 
-#define KYBER_POLYBYTES         384
+#define KYBER_POLYBYTES          384
 
+#define KYBER_ETA2 2
+
+#define KYBER_INDCPA_MSGBYTES       (KYBER_SYMBYTES)
+
+/* KYBER_K dependent values (part 1) */
 #define KYBER_ETA1_2   3
 #define KYBER_ETA1_3_4 2
 
 #define KYBER_POLYCOMPRESSEDBYTES_2_3 128
 #define KYBER_POLYCOMPRESSEDBYTES_4   160
-
-#define KYBER_ETA2 2
-
-#define KYBER_INDCPA_MSGBYTES       (KYBER_SYMBYTES)
 
 /*************** kyber/ref/poly.h */
 /*
@@ -321,6 +322,7 @@ static void poly_decompress_160(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYT
 #endif
 static void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a);
 static void poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES]);
+
 static void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES]);
 static void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *r);
 #if !defined(KYBER_K) || KYBER_K == 2
@@ -330,25 +332,32 @@ static void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], ui
 static void poly_getnoise_eta1_3_4(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
 #endif
 static void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce);
+
 static void poly_ntt(poly *r);
 static void poly_invntt_tomont(poly *r);
 static void poly_basemul_montgomery(poly *r, const poly *a, const poly *b);
 static void poly_tomont(poly *r);
+
 static void poly_reduce(poly *r);
+
 static void poly_add(poly *r, const poly *a, const poly *b);
 static void poly_sub(poly *r, const poly *a, const poly *b);
 
 /*************** kyber/ref/ntt.h */
 static const int16_t zetas[128];
+
 static void ntt(int16_t poly[256]);
+
 static void invntt(int16_t poly[256]);
+
 static void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 
 /*************** kyber/ref/reduce.h */
-#define MONT -1044 /* 2^16 mod q    */
+#define MONT -1044 /* 2^16 mod q */
 #define QINV -3327 /* q^-1 mod 2^16 */
 
 static int16_t montgomery_reduce(int32_t a);
+
 static int16_t barrett_reduce(int16_t a);
 
 /*************** kyber/ref/symmetric.h */
@@ -372,8 +381,14 @@ static void kyber_shake128_absorb (keccak_state *state,
 #define xof_close(STATE) shake128_close(STATE)
 #define xof_absorb(STATE, SEED, X, Y) kyber_shake128_absorb(STATE, SEED, X, Y)
 #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeeze(STATE, OUT, SHAKE128_RATE * OUTBLOCKS)
-#define prf(OUT, OUTBYTES, KEY, NONCE) shake256v(OUT, OUTBYTES, KEY, KYBER_SYMBYTES, &nonce, 1, NULL, 0)
-#define rkprf(OUT, KEY, INPUT) shake256v(OUT, KYBER_SSBYTES, KEY, KYBER_SYMBYTES, INPUT, KYBER_CIPHERTEXTBYTES, NULL, 0)
+#define prf(OUT, OUTBYTES, KEY, NONCE) \
+  shake256v(OUT, OUTBYTES, (void *)(KEY), (size_t)KYBER_SYMBYTES, \
+			   (void *)&(NONCE), (size_t)1, \
+			   NULL, (size_t)0)
+#define rkprf(OUT, KEY, INPUT) \
+  shake256v(OUT, KYBER_SSBYTES, (void *)(KEY), (size_t)KYBER_SYMBYTES, \
+				(void *)(INPUT), (size_t)KYBER_CIPHERTEXTBYTES, \
+				NULL, (size_t)0)
 
 #include "kyber-common.c"
 
@@ -381,11 +396,14 @@ static void kyber_shake128_absorb (keccak_state *state,
 #define VARIANT3(name) name ## _3
 #define VARIANT4(name) name ## _4
 
+/* KYBER_K dependent values (part 2) */
 #define KYBER_POLYVECBYTES      (KYBER_K * KYBER_POLYBYTES)
 #define KYBER_INDCPA_PUBLICKEYBYTES (KYBER_POLYVECBYTES + KYBER_SYMBYTES)
 #define KYBER_INDCPA_SECRETKEYBYTES (KYBER_POLYVECBYTES)
 #define KYBER_INDCPA_BYTES          (KYBER_POLYVECCOMPRESSEDBYTES + KYBER_POLYCOMPRESSEDBYTES)
+
 #define KYBER_PUBLICKEYBYTES  (KYBER_INDCPA_PUBLICKEYBYTES)
+/* 32 bytes of additional space to save H(pk) */
 #define KYBER_SECRETKEYBYTES  (KYBER_INDCPA_SECRETKEYBYTES + KYBER_INDCPA_PUBLICKEYBYTES + 2*KYBER_SYMBYTES)
 #define KYBER_CIPHERTEXTBYTES (KYBER_INDCPA_BYTES)
 

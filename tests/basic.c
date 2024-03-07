@@ -1209,7 +1209,7 @@ check_ecb_cipher (void)
 
       if ((err = gcry_cipher_test_algo (algo)))
         {
-          if (in_fips_mode && (tv[0].flags & FLAG_NOFIPS))
+          if (in_fips_mode && (tv[i].flags & FLAG_NOFIPS))
             {
               if (verbose)
                 fprintf (stderr, "    algorithm %d not available in fips mode\n",

@@ -85,21 +85,21 @@ if test "$tmp_do_check" = "yes"; then
   AC_CACHE_VAL(ac_cv_sys_symbol_underscore,
   [ac_cv_sys_symbol_underscore=no
    cat > conftest.$ac_ext <<EOF
-      void nm_test_func(){}
-      int main(){nm_test_func;return 0;}
+      void nm_test_func(void){}
+      int main(void){nm_test_func();return 0;}
 EOF
   if AC_TRY_EVAL(ac_compile); then
     # Now try to grab the symbols.
-    ac_nlist=conftest.nm
-    if AC_TRY_EVAL(NM conftest.$ac_objext \| $lt_cv_sys_global_symbol_pipe \| cut -d \' \' -f 2 \> $ac_nlist) && test -s "$ac_nlist"; then
+    nlist=conftest.nm
+    if AC_TRY_EVAL(NM conftest.$ac_objext \| "$lt_cv_sys_global_symbol_pipe" \> $nlist) && test -s "$nlist"; then
       # See whether the symbols have a leading underscore.
-      if egrep '^_nm_test_func' "$ac_nlist" >/dev/null; then
+      if $GREP ' _nm_test_func$' "$nlist" >/dev/null; then
         ac_cv_sys_symbol_underscore=yes
       else
-        if egrep '^nm_test_func ' "$ac_nlist" >/dev/null; then
+        if $GREP ' nm_test_func$' "$nlist" >/dev/null; then
           :
         else
-          echo "configure: cannot find nm_test_func in $ac_nlist" >&AS_MESSAGE_LOG_FD
+          echo "configure: cannot find nm_test_func in $nlist" >&AS_MESSAGE_LOG_FD
         fi
       fi
     else
@@ -179,7 +179,7 @@ mlock(&i, 4);
 #include <sys/types.h>
 #include <fcntl.h>
 
-int main()
+int main(void)
 {
     char *pool;
     int err;

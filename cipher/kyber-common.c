@@ -1,10 +1,10 @@
 /* kyber-common.c - the Kyber key encapsulation mechanism (common part)
- * Copyright (C) 2023 g10 Code GmbH
+ * Copyright (C) 2024 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser general Public License as
+ * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
@@ -48,7 +48,7 @@
 /*
  * From original code, following modification was made.
  *
- * - C++ style coomments are changed to C-style.
+ * - C++ style comments are changed to C-style.
  *
  * - Functions "poly_cbd_eta1" "poly_cbd_eta2" are removed.
  *
@@ -105,6 +105,7 @@ static uint32_t load24_littleendian(const uint8_t x[3])
   return r;
 }
 #endif
+
 
 /*************************************************
 * Name:        cbd2

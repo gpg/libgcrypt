@@ -1,10 +1,10 @@
 /* kyber.h - the Kyber key encapsulation mechanism (header)
- * Copyright (C) 2023 g10 Code GmbH
+ * Copyright (C) 2024 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser general Public License as
+ * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
@@ -33,15 +33,15 @@
   or Apache 2.0 License (https://www.apache.org/licenses/LICENSE-2.0.html).
 
   Authors:
-	Joppe Bos
-	Léo Ducas
-	Eike Kiltz
+        Joppe Bos
+        Léo Ducas
+        Eike Kiltz
         Tancrède Lepoint
-	Vadim Lyubashevsky
-	John Schanck
-	Peter Schwabe
+        Vadim Lyubashevsky
+        John Schanck
+        Peter Schwabe
         Gregor Seiler
-	Damien Stehlé
+        Damien Stehlé
 
   Kyber Home: https://www.pq-crystals.org/kyber/
  */
@@ -103,9 +103,9 @@ int crypto_kem_dec (uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
 #  define CRYPTO_ALGNAME "Kyber"
 
-#  deinfe crypto_kem_keypair_2 crypto_kem_keypair_512
-#  deinfe crypto_kem_keypair_3 crypto_kem_keypair_768
-#  deinfe crypto_kem_keypair_4 crypto_kem_keypair_1024
+#  define crypto_kem_keypair_2 crypto_kem_keypair_512
+#  define crypto_kem_keypair_3 crypto_kem_keypair_768
+#  define crypto_kem_keypair_4 crypto_kem_keypair_1024
 
 int crypto_kem_keypair_2 (uint8_t *pk, uint8_t *sk);
 int crypto_kem_keypair_3 (uint8_t *pk, uint8_t *sk);

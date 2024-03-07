@@ -90,6 +90,7 @@ test_kem_sntrup761 (int testno)
     }
 }
 
+
 static void
 test_kem_mlkem512 (int testno)
 {
@@ -610,6 +611,7 @@ main (int argc, char **argv)
 {
   int last_argc = -1;
   int n_loops = N_TESTS;
+
 
   if (argc)
     {

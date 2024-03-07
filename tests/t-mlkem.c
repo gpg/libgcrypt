@@ -1,5 +1,5 @@
 /* t-mlkem.c - Check the Crystal Kyber computation by Known Answers
- * Copyright (C) 2023 g10 Code GmbH
+ * Copyright (C) 2024 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -123,11 +123,11 @@ one_test (int testno, int algo,
       fail ("test %d failed: mismatch\n", testno);
       fputs ("ss_computed:", stderr);
       for (i = 0; i < ss_len; i++)
-	fprintf (stderr, " %02x", ss_computed[i]);
+        fprintf (stderr, " %02x", ss_computed[i]);
       putc ('\n', stderr);
       fputs ("ss_knownans:", stderr);
       for (i = 0; i < ss_len; i++)
-	fprintf (stderr, " %02x", ss[i]);
+        fprintf (stderr, " %02x", ss[i]);
       putc ('\n', stderr);
     }
 
@@ -226,9 +226,9 @@ main (int argc, char **argv)
                  "  --verbose       print timings etc.\n"
                  "  --debug         flyswatter\n"
                  "  --data FNAME    take test data from file FNAME\n"
-                 "  --512     specify Kyber-512\n"
-                 "  --768     specify Kyber-768\n"
-                 "  --512     specify Kyber-1024\n",
+                 "  --512           specify Kyber-512\n"
+                 "  --768           specify Kyber-768\n"
+                 "  --512           specify Kyber-1024\n",
                  stdout);
           exit (0);
         }

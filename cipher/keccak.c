@@ -1592,52 +1592,91 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 
 
-static const byte sha3_224_asn[] = { 0x30 };
+/* Object IDs obtained from
+ * https://csrc.nist.gov/projects/computer-security-objects-register/algorithm-registration#Hash
+ */
+static const byte sha3_224_asn[] =
+  { 0x30, 0x2d, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
+    0x01, 0x65, 0x03, 0x04, 0x02, 0x07, 0x05, 0x00, 0x04,
+    0x1c
+  };
 static const gcry_md_oid_spec_t oid_spec_sha3_224[] =
   {
     { "2.16.840.1.101.3.4.2.7" },
-    /* PKCS#1 sha3_224WithRSAEncryption */
-    { "?" },
+    /* id-rsassa-pkcs1-v1-5-with-sha3-224 */
+    { "2.16.840.1.101.3.4.3.13" },
+    /* id-ecdsa-with-sha3-224 */
+    { "2.16.840.1.101.3.4.3.9" },
     { NULL }
   };
-static const byte sha3_256_asn[] = { 0x30 };
+static const byte sha3_256_asn[] =
+  { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
+    0x01, 0x65, 0x03, 0x04, 0x02, 0x08, 0x05, 0x00, 0x04,
+    0x20
+  };
 static const gcry_md_oid_spec_t oid_spec_sha3_256[] =
   {
     { "2.16.840.1.101.3.4.2.8" },
-    /* PKCS#1 sha3_256WithRSAEncryption */
-    { "?" },
+    /* id-rsassa-pkcs1-v1-5-with-sha3-256 */
+    { "2.16.840.1.101.3.4.3.14" },
+    /* id-ecdsa-with-sha3-256 */
+    { "2.16.840.1.101.3.4.3.10" },
     { NULL }
   };
-static const byte sha3_384_asn[] = { 0x30 };
+static const byte sha3_384_asn[] =
+  { 0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
+    0x01, 0x65, 0x03, 0x04, 0x02, 0x09, 0x05, 0x00, 0x04,
+    0x30
+  };
 static const gcry_md_oid_spec_t oid_spec_sha3_384[] =
   {
     { "2.16.840.1.101.3.4.2.9" },
-    /* PKCS#1 sha3_384WithRSAEncryption */
-    { "?" },
+    /* id-rsassa-pkcs1-v1-5-with-sha3-384 */
+    { "2.16.840.1.101.3.4.3.15" },
+    /* id-ecdsa-with-sha3-384 */
+    { "2.16.840.1.101.3.4.3.11" },
     { NULL }
   };
-static const byte sha3_512_asn[] = { 0x30 };
+static const byte sha3_512_asn[] =
+  { 0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
+    0x01, 0x65, 0x03, 0x04, 0x02, 0x0a, 0x05, 0x00, 0x04,
+    0x40
+  };
 static const gcry_md_oid_spec_t oid_spec_sha3_512[] =
   {
     { "2.16.840.1.101.3.4.2.10" },
-    /* PKCS#1 sha3_512WithRSAEncryption */
-    { "?" },
+    /* id-rsassa-pkcs1-v1-5-with-sha3-512 */
+    { "2.16.840.1.101.3.4.3.16" },
+    /* id-ecdsa-with-sha3-512 */
+    { "2.16.840.1.101.3.4.3.12" },
     { NULL }
   };
-static const byte shake128_asn[] = { 0x30 };
+static const byte shake128_asn[] =
+  { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
+    0x01, 0x65, 0x03, 0x04, 0x02, 0x0b, 0x05, 0x00, 0x04,
+    0x20
+  };
 static const gcry_md_oid_spec_t oid_spec_shake128[] =
   {
     { "2.16.840.1.101.3.4.2.11" },
-    /* PKCS#1 shake128WithRSAEncryption */
-    { "?" },
+    /* RFC 8692 id-RSASSA-PSS-SHAKE128 */
+    { "1.3.6.1.5.5.7.6.30" },
+    /* RFC 8692 id-ecdsa-with-shake128 */
+    { "1.3.6.1.5.5.7.6.32" },
     { NULL }
   };
-static const byte shake256_asn[] = { 0x30 };
+static const byte shake256_asn[] =
+  { 0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
+    0x01, 0x65, 0x03, 0x04, 0x02, 0x0c, 0x05, 0x00, 0x04,
+    0x40
+  };
 static const gcry_md_oid_spec_t oid_spec_shake256[] =
   {
     { "2.16.840.1.101.3.4.2.12" },
-    /* PKCS#1 shake256WithRSAEncryption */
-    { "?" },
+    /* RFC 8692 id-RSASSA-PSS-SHAKE256 */
+    { "1.3.6.1.5.5.7.6.31" },
+    /* RFC 8692 id-ecdsa-with-shake256 */
+    { "1.3.6.1.5.5.7.6.33" },
     { NULL }
   };
 

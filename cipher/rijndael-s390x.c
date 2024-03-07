@@ -1058,7 +1058,7 @@ int _gcry_aes_s390x_setup_acceleration(RIJNDAEL_context *ctx,
       func = KM_FUNCTION_AES_256;
       func_xts = KM_FUNCTION_XTS_AES_256;
       func_mask = km_function_to_mask(KM_FUNCTION_AES_256);
-      func_xts_mask = km_function_to_mask(KM_FUNCTION_AES_256);
+      func_xts_mask = km_function_to_mask(KM_FUNCTION_XTS_AES_256);
       break;
     }
 
