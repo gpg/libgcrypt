@@ -3971,7 +3971,7 @@ function:
 @deftypefun gpg_err_code_t gcry_md_extract (gcry_md_hd_t @var{h}, @
   int @var{algo}, void *@var{buffer}, size_t @var{length})
 
-@code{gcry_mac_read} returns output from extendable-output function.
+@code{gcry_md_extract} returns output from extendable-output function.
 This function may be used as often as required to generate more output
 byte stream from the algorithm.  Function extracts the new output bytes
 to @var{buffer} of the length @var{length}.  Buffer will be fully
