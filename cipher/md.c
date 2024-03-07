@@ -28,8 +28,6 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "gcrypt.h"
-#include "keccak.h"
-
 
 /* This is the list of the digest implementations included in
    libgcrypt.  */

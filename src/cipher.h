@@ -142,6 +142,11 @@ void _gcry_register_pk_ecc_progress (gcry_handler_progress_t cbc,
 void _gcry_register_primegen_progress (gcry_handler_progress_t cb,
                                        void *cb_data);
 
+/*-- keccak.c --*/
+gpg_err_code_t _gcry_cshake_add_input (void *context,
+                                       enum gcry_ctl_cmds addin_type,
+                                       const void *v, size_t v_len);
+
 /*-- pubkey.c --*/
 
 /* Declarations for the cipher specifications.  */

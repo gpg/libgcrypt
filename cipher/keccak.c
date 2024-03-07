@@ -25,7 +25,6 @@
 #include "bufhelp.h"
 #include "cipher.h"
 #include "hash-common.h"
-#include "keccak.h"
 #include "cshake-common.h"
 
 
@@ -1538,6 +1537,7 @@ _gcry_cshake_input_s (CSHAKE_CONTEXT *cshake_ctx, const void *s, size_t s_len)
     }
 }
 
+#define DOES_MULT_OVERFL_SIZE_T(a, b) (a != 0 && ((size_t) (a*b))/a != b)
 gpg_err_code_t
 _gcry_cshake_add_input (void *context,
                         enum gcry_ctl_cmds addin_type,
