@@ -222,6 +222,8 @@ main (int argc, char **argv)
       size_t compare_len, data_len;
       /* vary the secure flag in each test */
       int flags = i % 2 ? GCRY_MD_FLAG_SECURE : 0;
+      gcry_buffer_t iov[3];
+
       err       = gcry_md_open (&hd, algo, flags);
       if (err)
         {
@@ -317,6 +319,25 @@ main (int argc, char **argv)
 
           fail ("algo %d, result comparison failed in test %u\n", algo, i);
         }
+
+      iov[0].data = (unsigned char*)test->n;
+      iov[0].off = 0;
+      iov[0].len = strlen (test->n);
+      iov[1].data = (unsigned char*)test->s;
+      iov[1].off = 0;
+      iov[1].len = strlen (test->s);
+      iov[2].data = data_buf;
+      iov[2].off = 0;
+      iov[2].len = data_len;
+      err = gcry_md_hash_buffers_extract (algo, 0, result_buf,
+                                          test->output_size_bytes, iov, DIM (iov));
+      if (memcmp (compare_buf, result_buf, test->output_size_bytes))
+        {
+
+          fail ("algo %d, result comparison' failed in test %u\n", algo, i);
+        }
+
+
       xfree (compare_buf);
       xfree (data_buf);
       gcry_md_close (hd);

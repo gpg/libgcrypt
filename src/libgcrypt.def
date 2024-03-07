@@ -305,4 +305,6 @@ EXPORTS
       gcry_kem_encap            @265
       gcry_kem_decap            @266
 
+      gcry_md_hash_buffers_extract @267
+
 ;; end of file with public symbols for Windows.

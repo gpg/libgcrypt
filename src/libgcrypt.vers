@@ -130,6 +130,8 @@ GCRYPT_1.6 {
 
     gcry_kem_keypair; gcry_kem_encap; gcry_kem_decap;
 
+    gcry_md_hash_buffers_extract;
+
   local:
     *;
 

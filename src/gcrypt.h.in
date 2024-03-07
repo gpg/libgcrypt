@@ -1391,6 +1391,12 @@ void gcry_md_hash_buffer (int algo, void *digest,
 gpg_error_t gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
                                   const gcry_buffer_t *iov, int iovcnt);
 
+/* Convenience function to hash multiple buffers.  */
+gpg_err_code_t gcry_md_hash_buffers_extract (int algo, unsigned int flags,
+                                             void *digest, int digestlen,
+                                             const gcry_buffer_t *iov,
+                                             int iovcnt);
+
 /* Retrieve the algorithm used with HD.  This does not work reliable
    if more than one algorithm is enabled in HD. */
 int gcry_md_get_algo (gcry_md_hd_t hd);
