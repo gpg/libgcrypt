@@ -104,6 +104,7 @@ MARK_VISIBLEX (gcry_md_get_algo)
 MARK_VISIBLEX (gcry_md_get_algo_dlen)
 MARK_VISIBLEX (gcry_md_hash_buffer)
 MARK_VISIBLEX (gcry_md_hash_buffers)
+MARK_VISIBLEX (gcry_md_hash_buffers_ext)
 MARK_VISIBLEX (gcry_md_info)
 MARK_VISIBLEX (gcry_md_is_enabled)
 MARK_VISIBLEX (gcry_md_is_secure)
@@ -396,6 +397,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_md_get_algo_dlen       _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_hash_buffer         _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_hash_buffers        _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_md_hash_buffers_ext    _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_info                _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_is_enabled          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_is_secure           _gcry_USE_THE_UNDERSCORED_FUNCTION

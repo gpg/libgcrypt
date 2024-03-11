@@ -1296,6 +1296,20 @@ gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
   return gpg_error (_gcry_md_hash_buffers (algo, flags, digest, iov, iovcnt));
 }
 
+gpg_error_t
+gcry_md_hash_buffers_ext (int algo, unsigned int flags, void *digest,
+                          int digestlen, const gcry_buffer_t *iov,
+                          int iovcnt)
+{
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      fips_signal_error ("called in non-operational state");
+    }
+  return gpg_error (_gcry_md_hash_buffers_extract (algo, flags, digest,
+                                                   digestlen, iov, iovcnt));
+}
+
 int
 gcry_md_get_algo (gcry_md_hd_t hd)
 {

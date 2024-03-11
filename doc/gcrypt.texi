@@ -3982,7 +3982,7 @@ been enabled.
 @end deftypefun
 
 Because it is often necessary to get the message digest of blocks of
-memory, two fast convenience function are available for this task:
+memory, three fast convenience functions are available for this task:
 
 @deftypefun gpg_err_code_t gcry_md_hash_buffers ( @
   @w{int @var{algo}}, @w{unsigned int @var{flags}}, @
@@ -4010,6 +4010,16 @@ function; the first item in @var{iov} is then used as the key.
 
 On success the function returns 0 and stores the resulting hash or MAC
 at @var{digest}.
+@end deftypefun
+
+@deftypefun gpg_err_code_t gcry_md_hash_buffers_ext ( @
+  @w{int @var{algo}}, @w{unsigned int @var{flags}}, @
+  @w{void *@var{digest}}, @w{void *@var{digestlen}}, @
+  @w{const gcry_buffer_t *@var{iov}}, @w{int @var{iovcnt}} )
+
+@code{gcry_md_hash_buffers_ext} is a variant of gcry_md_hash_buffers,
+so that it can be used with extendable-output function.  It has an
+additiona argument for @var{digestlen}.
 @end deftypefun
 
 @deftypefun void gcry_md_hash_buffer (int @var{algo}, void *@var{digest}, const void *@var{buffer}, size_t @var{length});
