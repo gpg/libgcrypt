@@ -2000,7 +2000,9 @@ hash_bench (char **argv, int argc)
   else
     {
       for (i = 1; i < 400; i++)
-	if (!gcry_md_test_algo (i))
+        if (i == GCRY_MD_CSHAKE128 || i == GCRY_MD_CSHAKE256)
+          ; /* Skip the bench. */
+        else if (!gcry_md_test_algo (i))
 	  _hash_bench (i);
     }
 
@@ -2295,6 +2297,9 @@ kdf_bench (char **argv, int argc)
 	{
 	  for (j = 1; j < 400; j++)
 	    {
+              if (i == GCRY_MD_CSHAKE128 || i == GCRY_MD_CSHAKE256)
+                continue; /* Skip the bench. */
+
 	      if (gcry_md_test_algo (j))
 		continue;
 
@@ -2309,7 +2314,9 @@ kdf_bench (char **argv, int argc)
   else
     {
       for (i = 1; i < 400; i++)
-	if (!gcry_md_test_algo (i))
+        if (i == GCRY_MD_CSHAKE128 || i == GCRY_MD_CSHAKE256)
+          ; /* Skip the bench. */
+	else if (!gcry_md_test_algo (i))
 	  kdf_bench_one (GCRY_KDF_PBKDF2, i);
     }
 

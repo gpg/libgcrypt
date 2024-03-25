@@ -25,8 +25,6 @@
 #include "bufhelp.h"
 #include "cipher.h"
 #include "hash-common.h"
-#include "cshake-common.h"
-
 
 
 /* USE_64BIT indicates whether to use 64-bit generic implementation.
