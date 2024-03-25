@@ -27,7 +27,7 @@
 
 #include "g10lib.h"
 #include "cipher.h"
-#include "gcrypt.h"
+
 
 /* This is the list of the digest implementations included in
    libgcrypt.  */

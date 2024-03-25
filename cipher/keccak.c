@@ -27,6 +27,7 @@
 #include "hash-common.h"
 
 
+
 /* USE_64BIT indicates whether to use 64-bit generic implementation.
  * USE_32BIT indicates whether to use 32-bit generic implementation. */
 #undef USE_64BIT
@@ -152,6 +153,7 @@ typedef struct KECCAK_CONTEXT_S
   byte buf[1344 / 8]; /* SHAKE128 requires biggest buffer, 1344 bits. */
 #endif
 } KECCAK_CONTEXT;
+
 
 
 #ifdef NEED_COMMON64
@@ -1430,9 +1432,8 @@ _gcry_shake256_hash_buffers (void *outbuf, size_t nbytes,
 
 
 static unsigned int
-_gcry_cshake_input_n (KECCAK_CONTEXT *ctx, const void *n, unsigned int n_len)
+cshake_input_n (KECCAK_CONTEXT *ctx, const void *n, unsigned int n_len)
 {
-  // KECCAK[512](bytepad(encode_string(N)
   unsigned char buf[3];
 
   buf[0] = 1;
@@ -1458,11 +1459,9 @@ _gcry_cshake_input_n (KECCAK_CONTEXT *ctx, const void *n, unsigned int n_len)
 }
 
 static void
-_gcry_cshake_input_s (KECCAK_CONTEXT *ctx, const void *s, unsigned int s_len,
-                      unsigned int len_written)
+cshake_input_s (KECCAK_CONTEXT *ctx, const void *s, unsigned int s_len,
+                unsigned int len_written)
 {
-  // KECCAK[(256 or 512)](bytepad(encode_string(N)
-  // KECCAK[(256 or 512)](bytepad(...<already fed> || encode_string(S), w = (168 or 136))
   unsigned char buf[168];
   unsigned int padlen;
 
@@ -1501,9 +1500,9 @@ _gcry_cshake_customize (void *context, struct gcry_cshake_customization *p)
     /* No customization */
     return GPG_ERR_NO_ERROR;
 
+  len_written = cshake_input_n (ctx, p->n, p->n_len);
+  cshake_input_s (ctx, p->s, p->s_len, len_written);
   ctx->suffix = CSHAKE_DELIMITED_SUFFIX;
-  len_written = _gcry_cshake_input_n (ctx, p->n, p->n_len);
-  _gcry_cshake_input_s (ctx, p->s, p->s_len, len_written);
   return GPG_ERR_NO_ERROR;
 }
 
@@ -1526,15 +1525,13 @@ static void
 _gcry_cshake128_hash_buffers (void *outbuf, size_t nbytes,
                               const gcry_buffer_t *iov, int iovcnt)
 {
-  KECCAK_CONTEXT hd;
+  KECCAK_CONTEXT ctx;
   const gcry_md_spec_t *spec = &_gcry_digest_spec_shake128;
 
-  spec->init (&hd, 0);
+  spec->init (&ctx, 0);
 
-#if 0
   if (iovcnt < 2)
-    return GPG_ERR_INV_ARG;
-#endif
+    goto as_same_as_shake;
 
   if (iov[0].len != 0 || iov[1].len != 0)
     {
@@ -1542,63 +1539,33 @@ _gcry_cshake128_hash_buffers (void *outbuf, size_t nbytes,
       size_t n_len = iov[0].len;
       const void *s = (unsigned char *)iov[1].data + iov[1].off;
       size_t s_len = iov[1].len;
-      unsigned char buf[2];
-      size_t len = 0;
+      size_t len;
 
-#if 0
-      if (n_len >= 32 || s_len >= 32) /* FIXME */
-          return GPG_ERR_INV_ARG;
-#endif
-
-      /* something like: _gcry_cshake_input_n */
-      buf[0] = 1;
-      buf[1] = 168;
-      keccak_write (&hd, &buf, 2);
-      len += 2;
-      buf[0] = 1;
-      buf[1] = n_len * 8;
-      keccak_write (&hd, &buf, 2);
-      len += 2;
-      keccak_write (&hd, n, n_len);
-      len += n_len;
-      /* something like: _gcry_cshake_input_s */
-      buf[0] = 1;
-      buf[1] = s_len * 8;
-      keccak_write (&hd, &buf, 2);
-      len += 2;
-      keccak_write (&hd, s, s_len);
-      len += s_len;
-      if ((len % 168))
-        {
-          unsigned char pad[168];
-          len = 168 - (len % 168);
-          memset(pad, 0, len);
-          keccak_write (&hd, pad, len);
-        }
-      hd.suffix = CSHAKE_DELIMITED_SUFFIX;
+      len = cshake_input_n (&ctx, n, n_len);
+      cshake_input_s (&ctx, s, s_len, len);
+      ctx.suffix = CSHAKE_DELIMITED_SUFFIX;
     }
   iovcnt -= 2;
   iov += 2;
 
+ as_same_as_shake:
   for (;iovcnt > 0; iov++, iovcnt--)
-    keccak_write (&hd, (const char*)iov[0].data + iov[0].off, iov[0].len);
-  keccak_final (&hd);
-  do_keccak_extract (&hd, outbuf, nbytes);
+    keccak_write (&ctx, (const char*)iov[0].data + iov[0].off, iov[0].len);
+  keccak_final (&ctx);
+  do_keccak_extract (&ctx, outbuf, nbytes);
 }
 
 static void
 _gcry_cshake256_hash_buffers (void *outbuf, size_t nbytes,
                               const gcry_buffer_t *iov, int iovcnt)
 {
-  KECCAK_CONTEXT hd;
+  KECCAK_CONTEXT ctx;
   const gcry_md_spec_t *spec = &_gcry_digest_spec_shake256;
 
-  spec->init (&hd, 0);
+  spec->init (&ctx, 0);
 
-#if 0
   if (iovcnt < 2)
-    return GPG_ERR_INV_ARG;
-#endif
+    goto as_same_as_shake;
 
   if (iov[0].len != 0 || iov[1].len != 0)
     {
@@ -1606,48 +1573,20 @@ _gcry_cshake256_hash_buffers (void *outbuf, size_t nbytes,
       size_t n_len = iov[0].len;
       const void *s = (unsigned char *)iov[1].data + iov[1].off;
       size_t s_len = iov[1].len;
-      unsigned char buf[2];
-      size_t len = 0;
+      size_t len;
 
-#if 0
-      if (n_len >= 32 || s_len >= 32) /* FIXME */
-          return GPG_ERR_INV_ARG;
-#endif
-
-      /* something like: _gcry_cshake_input_n */
-      buf[0] = 1;
-      buf[1] = 136;
-      keccak_write (&hd, &buf, 2);
-      len += 2;
-      buf[0] = 1;
-      buf[1] = n_len * 8;       /* FIXME more length */
-      keccak_write (&hd, &buf, 2);
-      len += 2;
-      keccak_write (&hd, n, n_len);
-      len += n_len;
-      /* something like: _gcry_cshake_input_s */
-      buf[0] = 1;
-      buf[1] = s_len * 8;       /* FIXME more length */
-      keccak_write (&hd, &buf, 2);
-      len += 2;
-      keccak_write (&hd, s, s_len);
-      len += s_len;
-      if ((len % 136))
-        {
-          unsigned char pad[136];
-          len = 136 - (len % 136);
-          memset(pad, 0, len);
-          keccak_write (&hd, pad, len);
-        }
-      hd.suffix = CSHAKE_DELIMITED_SUFFIX;
+      len = cshake_input_n (&ctx, n, n_len);
+      cshake_input_s (&ctx, s, s_len, len);
+      ctx.suffix = CSHAKE_DELIMITED_SUFFIX;
     }
   iovcnt -= 2;
   iov += 2;
 
+ as_same_as_shake:
   for (;iovcnt > 0; iov++, iovcnt--)
-    keccak_write (&hd, (const char*)iov[0].data + iov[0].off, iov[0].len);
-  keccak_final (&hd);
-  do_keccak_extract (&hd, outbuf, nbytes);
+    keccak_write (&ctx, (const char*)iov[0].data + iov[0].off, iov[0].len);
+  keccak_final (&ctx);
+  do_keccak_extract (&ctx, outbuf, nbytes);
 }
 
 /*
