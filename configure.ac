@@ -3515,7 +3515,7 @@ fi
 
 LIST_MEMBER(sha3, $enabled_digests)
 if test "$found" = "1" ; then
-   GCRYPT_DIGESTS="$GCRYPT_DIGESTS keccak.lo cshake-common.lo"
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS keccak.lo"
    AC_DEFINE(USE_SHA3, 1, [Defined if this module should be included])
 
    case "${host}" in

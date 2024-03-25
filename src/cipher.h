@@ -143,9 +143,8 @@ void _gcry_register_primegen_progress (gcry_handler_progress_t cb,
                                        void *cb_data);
 
 /*-- keccak.c --*/
-gpg_err_code_t _gcry_cshake_add_input (void *context,
-                                       enum gcry_ctl_cmds addin_type,
-                                       const void *v, size_t v_len);
+gpg_err_code_t _gcry_cshake_customize (void *context,
+                                       struct gcry_cshake_customization *p);
 
 /*-- pubkey.c --*/
 

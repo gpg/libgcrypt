@@ -231,57 +231,25 @@ main (int argc, char **argv)
               "algo %d, gcry_md_open failed: %s\n", algo, gpg_strerror (err));
           goto leave;
         }
-      if (strlen (test->n))
+      if (strlen (test->n) || strlen (test->s))
         {
-          err = gcry_md_ctl(
-              hd, GCRYCTL_CSHAKE_N, (unsigned char*) test->n, strlen (test->n));
-          if (err)
-            {
-              fail ("algo %d, gcry_md_set_add_input (N) failed: %s\n",
-                    algo,
-                    gpg_strerror (err));
-              goto leave;
-            }
-        }
-      if (strlen (test->s))
-        {
-          err = gcry_md_ctl(
-              hd, GCRYCTL_CSHAKE_S, (unsigned char*) test->s, strlen (test->s));
-          if (err)
-            {
-              fail ("algo %d, gcry_md_set_add_input (S) failed: %s\n",
-                    algo,
-                    gpg_strerror (err));
-              goto leave;
-            }
-        }
-      {
-        gcry_err_code_t exp_err = GPG_ERR_INV_STATE;
-        if (strlen (test->n))
-          {
-            /* try to set n or s again */
-            exp_err = gcry_md_ctl(
-                hd, GCRYCTL_CSHAKE_N, (unsigned char*) test->n, strlen (test->n));
-          }
-        else if (strlen (test->s))
-          {
-            exp_err = gcry_md_ctl(
-                hd, GCRYCTL_CSHAKE_S, (unsigned char*) test->s, strlen (test->s));
-          }
+          struct gcry_cshake_customization custom;
 
-        if (exp_err != gpg_error(GPG_ERR_INV_STATE))
-          {
-            fail ("algo %d: wrong error code when setting additional "
-                  "input in wrong order: "
-                  "%d (%s), but "
-                  "expected %d (%s)\n",
-                  algo,
-                  exp_err,
-                  gpg_strerror (exp_err),
-                  gpg_error(GPG_ERR_INV_STATE),
-                  gpg_strerror (GPG_ERR_INV_STATE));
-          }
-      }
+          custom.n = test->n;
+          custom.n_len = strlen (test->n);
+          custom.s = test->s;
+          custom.s_len = strlen (test->s);
+
+          err = gcry_md_ctl (hd, GCRYCTL_CSHAKE_CUSTOMIZE,
+                             &custom, sizeof (custom));
+          if (err)
+            {
+              fail ("algo %d, gcry_md_ctl failed: %s\n",
+                    algo,
+                    gpg_strerror (err));
+              goto leave;
+            }
+        }
       data_buf = hex2buffer (test->data_hex, &data_len);
       gcry_md_write (hd, data_buf, data_len);
       err = gcry_md_copy (&hd2, hd);

@@ -1002,10 +1002,8 @@ prepare_macpads (gcry_md_hd_t a, const unsigned char *key, size_t keylen)
 
 
 static gcry_err_code_t
-_gcry_md_set_add_input (gcry_md_hd_t h,
-                        enum gcry_ctl_cmds addin_type,
-                        const void *v,
-                        size_t v_len)
+_gcry_md_set_customization (gcry_md_hd_t h,
+                            struct gcry_cshake_customization *n_and_s)
 {
   gcry_err_code_t rc = 0;
   int did_set       = 0;
@@ -1018,7 +1016,7 @@ _gcry_md_set_add_input (gcry_md_hd_t h,
         {
         case GCRY_MD_CSHAKE128:
         case GCRY_MD_CSHAKE256:
-          rc = _gcry_cshake_add_input (r->context, addin_type, v, v_len);
+          rc = _gcry_cshake_customize (r->context, n_and_s);
           if (!rc)
             {
               did_set = 1;
@@ -1056,9 +1054,11 @@ _gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
     case GCRYCTL_STOP_DUMP:
       md_stop_debug ( hd );
       break;
-    case GCRYCTL_CSHAKE_N:
-    case GCRYCTL_CSHAKE_S:
-      rc = _gcry_md_set_add_input(hd, cmd, buffer, buflen);
+    case GCRYCTL_CSHAKE_CUSTOMIZE:
+      if (buflen != sizeof (struct gcry_cshake_customization))
+        rc = GPG_ERR_INV_ARG;
+      else
+        rc = _gcry_md_set_customization (hd, buffer);
       break;
     default:
       rc = GPG_ERR_INV_OP;

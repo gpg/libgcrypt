@@ -155,15 +155,6 @@ typedef struct KECCAK_CONTEXT_S
 #endif
 } KECCAK_CONTEXT;
 
-typedef struct CSHAKE_CONTEXT_S
-{
-  KECCAK_CONTEXT keccak_ctx;
-  unsigned int rate_in_bytes;
-  size_t written_bytes_n_s;
-  int n_set;
-  int s_set;
-} CSHAKE_CONTEXT;
-
 
 #ifdef NEED_COMMON64
 
@@ -1070,11 +1061,11 @@ keccak_init (int algo, void *context, unsigned int flags)
 	case GCRY_MD_SHA3_512:
 	  kimd_func = KMID_FUNCTION_SHA3_512;
 	  break;
-  case GCRY_MD_CSHAKE128:
+        case GCRY_MD_CSHAKE128:
 	case GCRY_MD_SHAKE128:
 	  kimd_func = KMID_FUNCTION_SHAKE128;
 	  break;
-  case GCRY_MD_CSHAKE256:
+        case GCRY_MD_CSHAKE256:
 	case GCRY_MD_SHAKE256:
 	  kimd_func = KMID_FUNCTION_SHAKE256;
 	  break;
@@ -1440,128 +1431,81 @@ _gcry_shake256_hash_buffers (void *outbuf, size_t nbytes,
 /** cSHAKE related functions **/
 
 
-/* may only be called with values of n_len that, multiplied by 8 still fit into a size_t */
-static gpg_err_code_t
-_gcry_cshake_input_n (CSHAKE_CONTEXT *cshake_ctx, const void *n, size_t n_len)
+static unsigned int
+_gcry_cshake_input_n (KECCAK_CONTEXT *ctx, const void *n, unsigned int n_len)
 {
-
   // KECCAK[512](bytepad(encode_string(N)
-  size_t bit_len;
-  unsigned char array[20];
-  int err_flag      = 0;
-  gpg_err_code_t rc = 0;
-  gcry_buffer_t buf1;
-  buf1.size = sizeof (array);
-  buf1.data = array;
-  buf1.len  = 0;
+  unsigned char buf[3];
 
-  if (rc)
+  buf[0] = 1;
+  buf[1] = ctx->blocksize;
+  keccak_write (ctx, buf, 2);
+
+  /* Here, N_LEN must be less than 255 */
+  if (n_len < 32)
     {
-      return rc;
+      buf[0] = 1;
+      buf[1] = n_len * 8;
     }
-  _gcry_cshake_left_encode (cshake_ctx->rate_in_bytes, &buf1);
-  /* perform encode_string as left-encoding the length and then the buffer */
-  bit_len = _gcry_cshake_bit_len_from_byte_len (n_len);
-  _gcry_cshake_left_encode (bit_len, &buf1);
-  if (err_flag)
+  else
     {
-      return GPG_ERR_INTERNAL;
+      buf[0] = 2;
+      buf[1] = (n_len * 8) >> 8;
+      buf[2] = (n_len * 8) & 0xff;
     }
-  keccak_write (&cshake_ctx->keccak_ctx, buf1.data, buf1.len);
-  keccak_write (&cshake_ctx->keccak_ctx, n, n_len);
-  cshake_ctx->written_bytes_n_s = buf1.len + n_len;
-  cshake_ctx->n_set             = 1;
-  return GPG_ERR_NO_ERROR;
+
+  keccak_write (ctx, buf, buf[0] + 1);
+  keccak_write (ctx, n, n_len);
+  return 2 + buf[0] + 1 + n_len;
 }
 
-
-/* may only be called with values of n_len that, multiplied by 8 still fit into a size_t */
 static void
-_gcry_cshake_input_s (CSHAKE_CONTEXT *cshake_ctx, const void *s, size_t s_len)
+_gcry_cshake_input_s (KECCAK_CONTEXT *ctx, const void *s, unsigned int s_len,
+                      unsigned int len_written)
 {
-
   // KECCAK[(256 or 512)](bytepad(encode_string(N)
   // KECCAK[(256 or 512)](bytepad(...<already fed> || encode_string(S), w = (168 or 136))
-  size_t bit_len;
-  unsigned char array[20];
-  size_t rem;
-  gcry_buffer_t buf1;
-  buf1.size = sizeof (array);
-  buf1.data = array;
-  buf1.len  = 0;
+  unsigned char buf[168];
+  unsigned int padlen;
 
-  /* perform encode_string as left-encoding the length and then the buffer */
-  bit_len = _gcry_cshake_bit_len_from_byte_len (s_len);
-
-  _gcry_cshake_left_encode (bit_len, &buf1);
-
-  keccak_write (&cshake_ctx->keccak_ctx, buf1.data, buf1.len);
-  keccak_write (&cshake_ctx->keccak_ctx, s, s_len);
-  cshake_ctx->written_bytes_n_s += buf1.len + s_len;
-  cshake_ctx->s_set = 1;
-
-  /* complete byte_bad operation */
-  rem = cshake_ctx->written_bytes_n_s % cshake_ctx->rate_in_bytes;
-  if (rem != 0)
+  /* Here, S_LEN must be less than 255 */
+  if (s_len < 32)
     {
-      rem = cshake_ctx->rate_in_bytes - rem;
-      memset (array, 0, sizeof (array));
+      buf[0] = 1;
+      buf[1] = s_len * 8;
+    }
+  else
+    {
+      buf[0] = 2;
+      buf[1] = (s_len * 8) >> 8;
+      buf[2] = (s_len * 8) & 0xff;
     }
 
-  while (rem > 0)
-    {
-      unsigned to_use = rem > sizeof (array) ? sizeof (array) : rem;
-      keccak_write (&cshake_ctx->keccak_ctx, array, to_use);
-      rem -= to_use;
-    }
+  keccak_write (ctx, buf, buf[0] + 1);
+  keccak_write (ctx, s, s_len);
+
+  len_written += buf[0] + 1 + s_len;
+  padlen = ctx->blocksize - (len_written % ctx->blocksize);
+  memset (buf, 0, padlen);
+  keccak_write (ctx, buf, padlen);
 }
 
-#define DOES_MULT_OVERFL_SIZE_T(a, b) (a != 0 && ((size_t) (a*b))/a != b)
 gpg_err_code_t
-_gcry_cshake_add_input (void *context,
-                        enum gcry_ctl_cmds addin_type,
-                        const void *v,
-                        size_t v_len)
+_gcry_cshake_customize (void *context, struct gcry_cshake_customization *p)
 {
-  gpg_err_code_t rc              = 0;
-  CSHAKE_CONTEXT *cshake_context = (CSHAKE_CONTEXT *)context;
-  /* if s is already set, then we cannot add further input special input */
-  if (cshake_context->s_set)
-    {
-      return GPG_ERR_INV_STATE;
-    }
-  /* catch overly long input already here that will cause a problem when it's
-   * byte length is converted to bit length */
-  if ( DOES_MULT_OVERFL_SIZE_T(8, v_len) || v_len > 0xFFFFFFFF)
-    {
-      return GPG_ERR_TOO_LARGE;
-    }
-  /* when either N or S is set as non-empty, then actually use a different
-   * delimeter than in SHAKE */
-  if (v_len > 0)
-    {
-      cshake_context->keccak_ctx.suffix = CSHAKE_DELIMITED_SUFFIX;
-    }
-  if (addin_type == GCRYCTL_CSHAKE_N)
-    {
-      if (cshake_context->n_set)
-        {
-          return GPG_ERR_INV_STATE;
-        }
-      return _gcry_cshake_input_n (cshake_context, v, v_len);
-    }
-  else if (addin_type == GCRYCTL_CSHAKE_S)
-    {
-      if (!cshake_context->n_set)
-        {
-          rc = _gcry_cshake_input_n (cshake_context, NULL, 0);
-          if (rc)
-            {
-              return rc;
-            }
-        }
-      _gcry_cshake_input_s (cshake_context, v, v_len);
-    }
+  KECCAK_CONTEXT *ctx = (KECCAK_CONTEXT *) context;
+  unsigned int len_written;
+
+  if (p->n_len >= 255 || p->s_len >= 255)
+    return GPG_ERR_TOO_LARGE;
+
+  if (p->n_len == 0 && p->s_len == 0)
+    /* No customization */
+    return GPG_ERR_NO_ERROR;
+
+  ctx->suffix = CSHAKE_DELIMITED_SUFFIX;
+  len_written = _gcry_cshake_input_n (ctx, p->n, p->n_len);
+  _gcry_cshake_input_s (ctx, p->s, p->s_len, len_written);
   return GPG_ERR_NO_ERROR;
 }
 
@@ -1570,33 +1514,13 @@ _gcry_cshake_add_input (void *context,
 static void
 cshake128_init (void *context, unsigned int flags)
 {
-  CSHAKE_CONTEXT *cshake_context = (CSHAKE_CONTEXT *)context;
-  cshake_context->rate_in_bytes  = 168;
-  cshake_context->n_set          = 0;
-  cshake_context->s_set          = 0;
   keccak_init (GCRY_MD_CSHAKE128, context, flags);
 }
 
 static void
 cshake256_init (void *context, unsigned int flags)
 {
-  CSHAKE_CONTEXT *cshake_context = (CSHAKE_CONTEXT *)context;
-  cshake_context->rate_in_bytes  = 136;
-  cshake_context->n_set          = 0;
-  cshake_context->s_set          = 0;
   keccak_init (GCRY_MD_CSHAKE256, context, flags);
-}
-
-static void
-cshake_write (void *context, const void *inbuf_arg, size_t inlen)
-{
-
-  CSHAKE_CONTEXT *cshake_context = (CSHAKE_CONTEXT *)context;
-  if (cshake_context->n_set && !cshake_context->s_set)
-    {
-      _gcry_cshake_input_s (cshake_context, NULL, 0);
-    }
-  return keccak_write (&cshake_context->keccak_ctx, inbuf_arg, inlen);
 }
 
 /* This would be enough... */
@@ -1606,7 +1530,6 @@ _gcry_cshake128_hash_buffers (void *outbuf, size_t nbytes,
 {
   KECCAK_CONTEXT hd;
   const gcry_md_spec_t *spec = &_gcry_digest_spec_shake128;
-  gpg_err_code_t rc = 0;
 
   spec->init (&hd, 0);
 
@@ -1671,7 +1594,6 @@ _gcry_cshake256_hash_buffers (void *outbuf, size_t nbytes,
 {
   KECCAK_CONTEXT hd;
   const gcry_md_spec_t *spec = &_gcry_digest_spec_shake256;
-  gpg_err_code_t rc = 0;
 
   spec->init (&hd, 0);
 
@@ -1700,14 +1622,14 @@ _gcry_cshake256_hash_buffers (void *outbuf, size_t nbytes,
       keccak_write (&hd, &buf, 2);
       len += 2;
       buf[0] = 1;
-      buf[1] = n_len * 8;
+      buf[1] = n_len * 8;       /* FIXME more length */
       keccak_write (&hd, &buf, 2);
       len += 2;
       keccak_write (&hd, n, n_len);
       len += n_len;
       /* something like: _gcry_cshake_input_s */
       buf[0] = 1;
-      buf[1] = s_len * 8;
+      buf[1] = s_len * 8;       /* FIXME more length */
       keccak_write (&hd, &buf, 2);
       len += 2;
       keccak_write (&hd, s, s_len);
@@ -2047,36 +1969,22 @@ const gcry_md_spec_t _gcry_digest_spec_shake256 =
     run_selftests
   };
 
-const gcry_md_spec_t _gcry_digest_spec_cshake128
-    = {GCRY_MD_CSHAKE128,
-       {0, 1},
-       "CSHAKE128",
-       shake128_asn,            /* FIXME */
-       DIM (shake128_asn),
-       NULL /* no oid_spec */,
-       32,
-       cshake128_init,
-       cshake_write,
-       keccak_final,
-       keccak_shake_read,
-       keccak_extract,
-       _gcry_cshake128_hash_buffers,
-       sizeof (CSHAKE_CONTEXT),
-       run_selftests};
-const gcry_md_spec_t _gcry_digest_spec_cshake256 = {
-    GCRY_MD_CSHAKE256,
-    {0, 1},
-    "CSHAKE256",
-    shake256_asn,               /* FIXME */
-    DIM (shake256_asn),
-    NULL /* no oid_spec */,
-    64,
-    cshake256_init,
-    cshake_write,
-    keccak_final,
-    keccak_shake_read,
-    keccak_extract,
-    _gcry_cshake256_hash_buffers,
-    sizeof (CSHAKE_CONTEXT),
-    run_selftests,
-};
+const gcry_md_spec_t _gcry_digest_spec_cshake128 =
+  {
+    GCRY_MD_CSHAKE128, {0, 1},
+    "CSHAKE128", NULL, 0, NULL, 32,
+    cshake128_init, keccak_write, keccak_final, keccak_shake_read,
+    keccak_extract, _gcry_cshake128_hash_buffers,
+    sizeof (KECCAK_CONTEXT),
+    run_selftests
+  };
+
+const gcry_md_spec_t _gcry_digest_spec_cshake256 =
+  {
+    GCRY_MD_CSHAKE256, {0, 1},
+    "CSHAKE256", NULL, 0, NULL, 64,
+    cshake256_init, keccak_write, keccak_final, keccak_shake_read,
+    keccak_extract, _gcry_cshake256_hash_buffers,
+    sizeof (KECCAK_CONTEXT),
+    run_selftests
+  };
