@@ -240,7 +240,7 @@ main (int argc, char **argv)
           custom.s = test->s;
           custom.s_len = strlen (test->s);
 
-          err = gcry_md_ctl (hd, GCRYCTL_CSHAKE_CUSTOMIZE,
+          err = gcry_md_ctl (hd, GCRYCTL_MD_CUSTOMIZE,
                              &custom, sizeof (custom));
           if (err)
             {

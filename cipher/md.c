@@ -1000,39 +1000,52 @@ prepare_macpads (gcry_md_hd_t a, const unsigned char *key, size_t keylen)
 }
 
 
-
 static gcry_err_code_t
-_gcry_md_set_customization (gcry_md_hd_t h,
-                            struct gcry_cshake_customization *n_and_s)
+md_customize (gcry_md_hd_t h, void *buffer, size_t buflen)
 {
   gcry_err_code_t rc = 0;
-  int did_set       = 0;
   GcryDigestEntry *r;
+  int algo_had_customize = 0;
+
   if (!h->ctx->list)
     return GPG_ERR_DIGEST_ALGO; /* Might happen if no algo is enabled.  */
+
   for (r = h->ctx->list; r; r = r->next)
     {
       switch (r->spec->algo)
         {
         case GCRY_MD_CSHAKE128:
         case GCRY_MD_CSHAKE256:
-          rc = _gcry_cshake_customize (r->context, n_and_s);
-          if (!rc)
-            {
-              did_set = 1;
-            }
+          algo_had_customize = 1;
+          if (buflen != sizeof (struct gcry_cshake_customization))
+            rc = GPG_ERR_INV_ARG;
           else
-            {
-              return rc;
-            }
+            rc = _gcry_cshake_customize (r->context, buffer);
+          break;
+        default:
+          rc = GPG_ERR_DIGEST_ALGO;
           break;
         }
+
+      if (rc)
+        break;
     }
-  if (!did_set)
+
+  if (rc && !algo_had_customize)
     {
-      rc = GPG_ERR_DIGEST_ALGO;
+      /* None of algorithms had customize implementation, so contexts were not
+       * modified. Just return error. */
+      return rc;
     }
-  return rc;
+  else if (rc && algo_had_customize)
+    {
+      /* Some of the contexts have been modified, but got error. Reset
+       * all contexts. */
+      _gcry_md_reset (h);
+      return rc;
+    }
+
+  return 0;
 }
 
 
@@ -1054,11 +1067,8 @@ _gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
     case GCRYCTL_STOP_DUMP:
       md_stop_debug ( hd );
       break;
-    case GCRYCTL_CSHAKE_CUSTOMIZE:
-      if (buflen != sizeof (struct gcry_cshake_customization))
-        rc = GPG_ERR_INV_ARG;
-      else
-        rc = _gcry_md_set_customization (hd, buffer);
+    case GCRYCTL_MD_CUSTOMIZE:
+      rc = md_customize (hd, buffer, buflen);
       break;
     default:
       rc = GPG_ERR_INV_OP;
