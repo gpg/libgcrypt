@@ -13605,7 +13605,8 @@ check_one_md (int algo, const char *data, int len, const char *expect, int elen,
 
   mdlen = gcry_md_get_algo_dlen (algo);
   if (elen != 0 && mdlen != elen
-      && (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256))
+      && (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256
+          || algo == GCRY_MD_CSHAKE128 || algo == GCRY_MD_CSHAKE256))
     {
       xof = 1;
     }
@@ -13959,7 +13960,8 @@ check_one_md_multi (int algo, const char *data, int len, const char *expect,
     }
 
   if (elen != 0 && elen != mdlen
-      && (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256))
+      && (algo == GCRY_MD_SHAKE128 || algo == GCRY_MD_SHAKE256
+          || algo == GCRY_MD_CSHAKE128 || algo == GCRY_MD_CSHAKE256))
     return;
 
   if (*data == '!' && !data[1])

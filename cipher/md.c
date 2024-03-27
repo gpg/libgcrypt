@@ -58,6 +58,8 @@ static const gcry_md_spec_t * const digest_list[] =
      &_gcry_digest_spec_sha3_512,
      &_gcry_digest_spec_shake128,
      &_gcry_digest_spec_shake256,
+     &_gcry_digest_spec_cshake128,
+     &_gcry_digest_spec_cshake256,
 #endif
 #if USE_GOST_R_3411_94
      &_gcry_digest_spec_gost3411_94,
@@ -240,7 +242,14 @@ static const gcry_md_spec_t * const digest_list_algo301[] =
 #endif
 #if USE_SHA512
     &_gcry_digest_spec_sha512_256,
-    &_gcry_digest_spec_sha512_224
+    &_gcry_digest_spec_sha512_224,
+#else
+    NULL,
+    NULL,
+#endif
+#if USE_SHA3
+    &_gcry_digest_spec_cshake128,
+    &_gcry_digest_spec_cshake256
 #else
     NULL,
     NULL
@@ -996,6 +1005,55 @@ prepare_macpads (gcry_md_hd_t a, const unsigned char *key, size_t keylen)
 }
 
 
+static gcry_err_code_t
+md_customize (gcry_md_hd_t h, void *buffer, size_t buflen)
+{
+  gcry_err_code_t rc = 0;
+  GcryDigestEntry *r;
+  int algo_had_customize = 0;
+
+  if (!h->ctx->list)
+    return GPG_ERR_DIGEST_ALGO; /* Might happen if no algo is enabled.  */
+
+  for (r = h->ctx->list; r; r = r->next)
+    {
+      switch (r->spec->algo)
+        {
+        case GCRY_MD_CSHAKE128:
+        case GCRY_MD_CSHAKE256:
+          algo_had_customize = 1;
+          if (buflen != sizeof (struct gcry_cshake_customization))
+            rc = GPG_ERR_INV_ARG;
+          else
+            rc = _gcry_cshake_customize (r->context, buffer);
+          break;
+        default:
+          rc = GPG_ERR_DIGEST_ALGO;
+          break;
+        }
+
+      if (rc)
+        break;
+    }
+
+  if (rc && !algo_had_customize)
+    {
+      /* None of algorithms had customize implementation, so contexts were not
+       * modified. Just return error. */
+      return rc;
+    }
+  else if (rc && algo_had_customize)
+    {
+      /* Some of the contexts have been modified, but got error. Reset
+       * all contexts. */
+      _gcry_md_reset (h);
+      return rc;
+    }
+
+  return 0;
+}
+
+
 gcry_err_code_t
 _gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
 {
@@ -1013,6 +1071,9 @@ _gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
       break;
     case GCRYCTL_STOP_DUMP:
       md_stop_debug ( hd );
+      break;
+    case GCRYCTL_MD_CUSTOMIZE:
+      rc = md_customize (hd, buffer, buflen);
       break;
     default:
       rc = GPG_ERR_INV_OP;

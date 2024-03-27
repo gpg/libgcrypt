@@ -3606,7 +3606,7 @@ are also supported.
 @c begin table of hash algorithms
 @cindex SHA-1
 @cindex SHA-224, SHA-256, SHA-384, SHA-512, SHA-512/224, SHA-512/256
-@cindex SHA3-224, SHA3-256, SHA3-384, SHA3-512, SHAKE128, SHAKE256
+@cindex SHA3-224, SHA3-256, SHA3-384, SHA3-512, SHAKE128, SHAKE256, cSHAKE128, cSHAKE256
 @cindex RIPE-MD-160
 @cindex MD2, MD4, MD5
 @cindex TIGER, TIGER1, TIGER2
@@ -3715,6 +3715,19 @@ See FIPS 202 for the specification.
 This is the SHAKE256 extendable-output function (XOF) algorithm with 256 bit
 security strength.
 See FIPS 202 for the specification.
+
+@item GCRY_MD_CSHAKE128
+This is the cSHAKE128 extendable-output function (XOF) algorithm with
+128 bit security strength defined in NIST SP 800-185.  cSHAKE takes
+two optional additional inputs N and S, which can be set by using
+@code{gcry_md_ctl} with the control commands @code{GCRYCTL_MD_CUSTOMISE},
+and the argument @code{struct gcry_cshake_customization}.  The lengths
+of N or S is limited to 255 bytes.
+
+@item GCRY_MD_CSHAKE256
+This is the cSHAKE256 extendable-output function (XOF) algorithm with 256 bit
+security strength defined in NIST SP 800-185.  Regarding the usage of the
+optional additional inputs N and S, see the above description of cSHAKE128.
 
 @item GCRY_MD_CRC32
 This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It yields

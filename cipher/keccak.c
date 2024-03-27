@@ -112,7 +112,7 @@
 
 #define SHA3_DELIMITED_SUFFIX 0x06
 #define SHAKE_DELIMITED_SUFFIX 0x1F
-
+#define CSHAKE_DELIMITED_SUFFIX 0x04
 
 typedef struct
 {
@@ -1025,11 +1025,13 @@ keccak_init (int algo, void *context, unsigned int flags)
       ctx->blocksize = 576 / 8;
       ctx->outlen = 512 / 8;
       break;
+    case GCRY_MD_CSHAKE128:
     case GCRY_MD_SHAKE128:
       ctx->suffix = SHAKE_DELIMITED_SUFFIX;
       ctx->blocksize = 1344 / 8;
       ctx->outlen = 256 / 8;
       break;
+    case GCRY_MD_CSHAKE256:
     case GCRY_MD_SHAKE256:
       ctx->suffix = SHAKE_DELIMITED_SUFFIX;
       ctx->blocksize = 1088 / 8;
@@ -1059,9 +1061,11 @@ keccak_init (int algo, void *context, unsigned int flags)
 	case GCRY_MD_SHA3_512:
 	  kimd_func = KMID_FUNCTION_SHA3_512;
 	  break;
+	case GCRY_MD_CSHAKE128:
 	case GCRY_MD_SHAKE128:
 	  kimd_func = KMID_FUNCTION_SHAKE128;
 	  break;
+	case GCRY_MD_CSHAKE256:
 	case GCRY_MD_SHAKE256:
 	  kimd_func = KMID_FUNCTION_SHAKE256;
 	  break;
@@ -1423,6 +1427,146 @@ _gcry_shake256_hash_buffers (void *outbuf, size_t nbytes,
 			   &_gcry_digest_spec_shake256);
 }
 
+
+static unsigned int
+cshake_input_n (KECCAK_CONTEXT *ctx, const void *n, unsigned int n_len)
+{
+  unsigned char buf[3];
+
+  buf[0] = 1;
+  buf[1] = ctx->blocksize;
+  keccak_write (ctx, buf, 2);
+
+  /* Here, N_LEN must be less than 255 */
+  if (n_len < 32)
+    {
+      buf[0] = 1;
+      buf[1] = n_len * 8;
+    }
+  else
+    {
+      buf[0] = 2;
+      buf[1] = (n_len * 8) >> 8;
+      buf[2] = (n_len * 8) & 0xff;
+    }
+
+  keccak_write (ctx, buf, buf[0] + 1);
+  keccak_write (ctx, n, n_len);
+  return 2 + buf[0] + 1 + n_len;
+}
+
+static void
+cshake_input_s (KECCAK_CONTEXT *ctx, const void *s, unsigned int s_len,
+                unsigned int len_written)
+{
+  unsigned char buf[168];
+  unsigned int padlen;
+
+  /* Here, S_LEN must be less than 255 */
+  if (s_len < 32)
+    {
+      buf[0] = 1;
+      buf[1] = s_len * 8;
+    }
+  else
+    {
+      buf[0] = 2;
+      buf[1] = (s_len * 8) >> 8;
+      buf[2] = (s_len * 8) & 0xff;
+    }
+
+  keccak_write (ctx, buf, buf[0] + 1);
+  keccak_write (ctx, s, s_len);
+
+  len_written += buf[0] + 1 + s_len;
+  padlen = ctx->blocksize - (len_written % ctx->blocksize);
+  memset (buf, 0, padlen);
+  keccak_write (ctx, buf, padlen);
+}
+
+gpg_err_code_t
+_gcry_cshake_customize (void *context, struct gcry_cshake_customization *p)
+{
+  KECCAK_CONTEXT *ctx = (KECCAK_CONTEXT *) context;
+  unsigned int len_written;
+
+  if (p->n_len >= 255 || p->s_len >= 255)
+    return GPG_ERR_TOO_LARGE;
+
+  if (p->n_len == 0 && p->s_len == 0)
+    /* No customization */
+    return 0;
+
+  len_written = cshake_input_n (ctx, p->n, p->n_len);
+  cshake_input_s (ctx, p->s, p->s_len, len_written);
+  ctx->suffix = CSHAKE_DELIMITED_SUFFIX;
+  return 0;
+}
+
+
+static void
+cshake128_init (void *context, unsigned int flags)
+{
+  keccak_init (GCRY_MD_CSHAKE128, context, flags);
+}
+
+static void
+cshake256_init (void *context, unsigned int flags)
+{
+  keccak_init (GCRY_MD_CSHAKE256, context, flags);
+}
+
+static void
+cshake_hash_buffers (const gcry_md_spec_t *spec, void *outbuf, size_t nbytes,
+                     const gcry_buffer_t *iov, int iovcnt)
+{
+  KECCAK_CONTEXT ctx;
+
+  spec->init (&ctx, 0);
+
+  if (iovcnt < 2)
+    ; /* No customization, do same as SHAKE does.  */
+  else
+    {
+      if (iov[0].len != 0 || iov[1].len != 0)
+        {
+          const void *n = (unsigned char *)iov[0].data + iov[0].off;
+          size_t n_len = iov[0].len;
+          const void *s = (unsigned char *)iov[1].data + iov[1].off;
+          size_t s_len = iov[1].len;
+          size_t len;
+
+          len = cshake_input_n (&ctx, n, n_len);
+          cshake_input_s (&ctx, s, s_len, len);
+          ctx.suffix = CSHAKE_DELIMITED_SUFFIX;
+        }
+      iovcnt -= 2;
+      iov += 2;
+    }
+
+  for (;iovcnt > 0; iov++, iovcnt--)
+    keccak_write (&ctx, (const char*)iov[0].data + iov[0].off, iov[0].len);
+  keccak_final (&ctx);
+  do_keccak_extract (&ctx, outbuf, nbytes);
+}
+
+static void
+_gcry_cshake128_hash_buffers (void *outbuf, size_t nbytes,
+                              const gcry_buffer_t *iov, int iovcnt)
+{
+  const gcry_md_spec_t *spec = &_gcry_digest_spec_shake128;
+
+  cshake_hash_buffers (spec, outbuf, nbytes, iov, iovcnt);
+}
+
+static void
+_gcry_cshake256_hash_buffers (void *outbuf, size_t nbytes,
+                              const gcry_buffer_t *iov, int iovcnt)
+{
+  const gcry_md_spec_t *spec = &_gcry_digest_spec_shake256;
+
+  cshake_hash_buffers (spec, outbuf, nbytes, iov, iovcnt);
+}
 
 /*
      Self-test section.
@@ -1505,6 +1649,7 @@ selftests_keccak (int algo, int extended, selftest_report_func_t report)
       hash_len = 64;
       break;
 
+    case GCRY_MD_CSHAKE128:
     case GCRY_MD_SHAKE128:
       short_hash =
 	"\x58\x81\x09\x2d\xd8\x18\xbf\x5c\xf8\xa3\xdd\xb7\x93\xfb\xcb\xa7"
@@ -1518,6 +1663,7 @@ selftests_keccak (int algo, int extended, selftest_report_func_t report)
       hash_len = 32;
       break;
 
+    case GCRY_MD_CSHAKE256:
     case GCRY_MD_SHAKE256:
       short_hash =
 	"\x48\x33\x66\x60\x13\x60\xa8\x77\x1c\x68\x63\x08\x0c\xc4\x11\x4d"
@@ -1577,7 +1723,9 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
     case GCRY_MD_SHA3_256:
     case GCRY_MD_SHA3_384:
     case GCRY_MD_SHA3_512:
+    case GCRY_MD_CSHAKE128:
     case GCRY_MD_SHAKE128:
+    case GCRY_MD_CSHAKE256:
     case GCRY_MD_SHAKE256:
       ec = selftests_keccak (algo, extended, report);
       break;
@@ -1733,6 +1881,24 @@ const gcry_md_spec_t _gcry_digest_spec_shake256 =
     shake256_init, keccak_write, keccak_final, keccak_shake_read,
     keccak_extract,
     _gcry_shake256_hash_buffers,
+    sizeof (KECCAK_CONTEXT),
+    run_selftests
+  };
+const gcry_md_spec_t _gcry_digest_spec_cshake128 =
+  {
+    GCRY_MD_CSHAKE128, {0, 1},
+    "CSHAKE128", NULL, 0, NULL, 32,
+    cshake128_init, keccak_write, keccak_final, keccak_shake_read,
+    keccak_extract, _gcry_cshake128_hash_buffers,
+    sizeof (KECCAK_CONTEXT),
+    run_selftests
+  };
+const gcry_md_spec_t _gcry_digest_spec_cshake256 =
+  {
+    GCRY_MD_CSHAKE256, {0, 1},
+    "CSHAKE256", NULL, 0, NULL, 64,
+    cshake256_init, keccak_write, keccak_final, keccak_shake_read,
+    keccak_extract, _gcry_cshake256_hash_buffers,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };

@@ -489,6 +489,8 @@ md_bench ( const char *algoname )
       for (i=1; i < 400; i++)
         if (in_fips_mode && i == GCRY_MD_MD5)
           ; /* Don't use MD5 in fips mode.  */
+        else if (i == GCRY_MD_CSHAKE128 || i == GCRY_MD_CSHAKE256)
+          ; /* Skip. */
         else if ( !gcry_md_test_algo (i) )
           md_bench (gcry_md_algo_name (i));
       return;
