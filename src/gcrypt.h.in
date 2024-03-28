@@ -1714,8 +1714,15 @@ enum gcry_kem_algos
     GCRY_KEM_MLKEM512,       /* aka Kyber512  */
     GCRY_KEM_MLKEM768,       /* aka Kyber768  */
     GCRY_KEM_MLKEM1024,      /* aka Kyber1024 */
-    GCRY_KEM_DHKEM25519,     /* DHKEM with X25519, HKDF, and SHA256 */
-    GCRY_KEM_OPENPGP_X25519  /* For OpenPGP with Curve25519 */
+    GCRY_KEM_RAW_X25519,  /* keypair, encaps/decaps with Identity KDF */
+    GCRY_KEM_DHKEM25519,  /* DHKEM with X25519, HKDF, and SHA256  */
+    GCRY_KEM_OPENPGP_X25519,  /* For OpenPGP, OPTIONAL (KDF parameters) is
+                                 required, which defines hash and
+                                 outputlen (shared secret length) */
+    GCRY_KEM_CMS_X25519_X963_SHA256, /* CMS with X25519, X963 and SHA256 */
+                          /* For CMS, OPTIONAL (sharedinfo) is required,
+                             which defines keylen for keywrap.  */
+    GCRY_KEM_CMS_X25519_HKDF_SHA256, /* CMS with X25519, HKDF and SHA256 */
   };
 
 /*
@@ -1730,26 +1737,40 @@ enum gcry_kem_algos
 #define GCRY_KEM_SNTRUP761_SECKEY_LEN   1763
 #define GCRY_KEM_SNTRUP761_PUBKEY_LEN   1158
 #define GCRY_KEM_SNTRUP761_ENCAPS_LEN   1039
+#define GCRY_KEM_SNTRUP761_CIPHER_LEN   GCRY_KEM_SNTRUP761_ENCAPS_LEN
 #define GCRY_KEM_SNTRUP761_SHARED_LEN   32
 
 #define GCRY_KEM_MLKEM512_SECKEY_LEN    (2*384+2*384+32+2*32)
 #define GCRY_KEM_MLKEM512_PUBKEY_LEN    (2*384+32)
 #define GCRY_KEM_MLKEM512_ENCAPS_LEN    (128+2*320)
+#define GCRY_KEM_MLKEM512_CIPHER_LEN    GCRY_KEM_MLKEM512_ENCAPS_LEN
 #define GCRY_KEM_MLKEM512_SHARED_LEN    32
 
 #define GCRY_KEM_MLKEM768_SECKEY_LEN    (3*384+3*384+32+2*32)
 #define GCRY_KEM_MLKEM768_PUBKEY_LEN    (3*384+32)
 #define GCRY_KEM_MLKEM768_ENCAPS_LEN    (128+3*320)
+#define GCRY_KEM_MLKEM768_CIPHER_LEN    GCRY_KEM_MLKEM768_ENCAPS_LEN
 #define GCRY_KEM_MLKEM768_SHARED_LEN    32
 
 #define GCRY_KEM_MLKEM1024_SECKEY_LEN   (4*384+4*384+32+2*32)
 #define GCRY_KEM_MLKEM1024_PUBKEY_LEN   (4*384+32)
 #define GCRY_KEM_MLKEM1024_ENCAPS_LEN   (160+4*352)
+#define GCRY_KEM_MLKEM1024_CIPHER_LEN   GCRY_KEM_MLKEM1024_ENCAPS_LEN
 #define GCRY_KEM_MLKEM1024_SHARED_LEN   32
 
-#define GCRY_KEM_DHKEM25519_SECKEY_LEN  32
-#define GCRY_KEM_DHKEM25519_PUBKEY_LEN  32
-#define GCRY_KEM_DHKEM25519_ENCAPS_LEN  32
+/* For ECC, seckey, pubkey, and ciphertext is defined by the cureve.  */
+#define GCRY_KEM_ECC_X25519_SECKEY_LEN  32
+#define GCRY_KEM_ECC_X25519_PUBKEY_LEN  32
+#define GCRY_KEM_ECC_X25519_ENCAPS_LEN  32
+#define GCRY_KEM_ECC_X25519_CIPHER_LEN  GCRY_KEM_ECC_X25519_ENCAPS_LEN
+/* And shared secret is specific to the protocol.  For OpenPGP and
+   CMS, it is determined by the OPTIONAL argument.  */
+#define GCRY_KEM_RAW_X25519_SHARED_LEN  32
+
+#define GCRY_KEM_DHKEM25519_SECKEY_LEN  GCRY_KEM_ECC_X25519_SECKEY_LEN
+#define GCRY_KEM_DHKEM25519_PUBKEY_LEN  GCRY_KEM_ECC_X25519_PUBKEY_LEN
+#define GCRY_KEM_DHKEM25519_ENCAPS_LEN  GCRY_KEM_ECC_X25519_ENCAPS_LEN
+#define GCRY_KEM_DHKEM25519_CIPHER_LEN  GCRY_KEM_DHKEM25519_ENCAPS_LEN
 #define GCRY_KEM_DHKEM25519_SHARED_LEN  32
 
 /* Generate a new key pair with ALGO.  */

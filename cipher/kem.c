@@ -29,6 +29,7 @@
 #include "cipher.h"
 #include "sntrup761.h"
 #include "kyber.h"
+#include "kem-ecc.h"
 
 
 /* Information about the the KEM algoithms for use by the s-expression
@@ -114,9 +115,14 @@ _gcry_kem_keypair (int algo,
       kyber_keypair (algo, pubkey, seckey);
       return 0;
 
+    case GCRY_KEM_RAW_X25519:
     case GCRY_KEM_DHKEM25519:
     case GCRY_KEM_OPENPGP_X25519:
-      return GPG_ERR_NOT_IMPLEMENTED;
+    case GCRY_KEM_CMS_X25519_X963_SHA256:
+    case GCRY_KEM_CMS_X25519_HKDF_SHA256:
+      return _gcry_ecc_raw_keypair (GCRY_ECC_CURVE25519, pubkey, seckey);
+    default:
+      return GPG_ERR_UNKNOWN_ALGORITHM;
     }
 
   return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -140,7 +146,7 @@ _gcry_kem_encap (int algo,
           || shared_len != GCRY_KEM_SNTRUP761_SHARED_LEN)
         return GPG_ERR_INV_VALUE;
       sntrup761_enc (ciphertext, shared, pubkey, NULL, sntrup761_random);
-      return GPG_ERR_NO_ERROR;
+      return 0;
 
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
@@ -148,16 +154,26 @@ _gcry_kem_encap (int algo,
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
       kyber_encap (algo, ciphertext, shared, pubkey);
-      return GPG_ERR_NO_ERROR;
+      return 0;
 
+    case GCRY_KEM_RAW_X25519:
+      if (optional != NULL)
+        return GPG_ERR_INV_VALUE;
+      return _gcry_ecc_raw_encap (GCRY_ECC_CURVE25519, pubkey, ciphertext,
+                                  shared);
     case GCRY_KEM_DHKEM25519:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
-      return GPG_ERR_NOT_IMPLEMENTED;
-
+      return _gcry_ecc_dhkem_encap (algo, pubkey, ciphertext, shared);
     case GCRY_KEM_OPENPGP_X25519:
-      return GPG_ERR_NOT_IMPLEMENTED;
-
+      return _gcry_openpgp_kem_encap (algo, pubkey, ciphertext, shared,
+                                      optional);
+    case GCRY_KEM_CMS_X25519_X963_SHA256:
+    case GCRY_KEM_CMS_X25519_HKDF_SHA256:
+      return _gcry_cms_kem_encap (algo, pubkey, ciphertext, shared,
+                                  optional);
+    default:
+      return GPG_ERR_UNKNOWN_ALGORITHM;
     }
   return GPG_ERR_UNKNOWN_ALGORITHM;
 }
@@ -180,7 +196,7 @@ _gcry_kem_decap (int algo,
           || shared_len != GCRY_KEM_SNTRUP761_SHARED_LEN)
         return GPG_ERR_INV_VALUE;
       sntrup761_dec (shared, ciphertext, seckey);
-      return GPG_ERR_NO_ERROR;
+      return 0;
 
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
@@ -188,12 +204,25 @@ _gcry_kem_decap (int algo,
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
       kyber_decap (algo, shared, ciphertext, seckey);
-      return GPG_ERR_NO_ERROR;
+      return 0;
 
+    case GCRY_KEM_RAW_X25519:
+      if (optional != NULL)
+        return GPG_ERR_INV_VALUE;
+      return _gcry_ecc_raw_decap (GCRY_ECC_CURVE25519, seckey, ciphertext,
+                                  shared);
     case GCRY_KEM_DHKEM25519:
+      return _gcry_ecc_dhkem_decap (algo, seckey, ciphertext, shared,
+                                    optional);
     case GCRY_KEM_OPENPGP_X25519:
-      return GPG_ERR_NOT_IMPLEMENTED;
-
+      return _gcry_openpgp_kem_decap (algo, seckey, ciphertext, shared,
+                                      optional);
+    case GCRY_KEM_CMS_X25519_X963_SHA256:
+    case GCRY_KEM_CMS_X25519_HKDF_SHA256:
+      return _gcry_cms_kem_decap (algo, seckey, ciphertext, shared,
+                                  optional);
+    default:
+      return GPG_ERR_UNKNOWN_ALGORITHM;
     }
   return GPG_ERR_UNKNOWN_ALGORITHM;
 }
