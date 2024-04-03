@@ -276,6 +276,15 @@ test_kem_raw_x25519 (int testno)
   err = gcry_kem_keypair (GCRY_KEM_RAW_X25519,
                           pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
                           seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN);
+  if (in_fips_mode)
+    {
+      if (!err)
+        fail ("gcry_kem_keypair is not expected to work in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      return;
+    }
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
@@ -334,6 +343,15 @@ test_kem_dhkem_x25519 (int testno)
   err = gcry_kem_keypair (GCRY_KEM_DHKEM25519,
                           pubkey, GCRY_KEM_DHKEM25519_PUBKEY_LEN,
                           seckey, GCRY_KEM_DHKEM25519_SECKEY_LEN);
+  if (in_fips_mode)
+    {
+      if (!err)
+        fail ("gcry_kem_keypair is not expected to work in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      return;
+    }
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
@@ -410,6 +428,15 @@ test_kem_openpgp_x25519 (int testno)
   err = gcry_kem_keypair (GCRY_KEM_OPENPGP_X25519,
                           pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
                           seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN);
+  if (in_fips_mode)
+    {
+      if (!err)
+        fail ("gcry_kem_keypair is not expected to work in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      return;
+    }
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
@@ -482,6 +509,15 @@ test_kem_cms_x25519 (int testno)
   err = gcry_kem_keypair (GCRY_KEM_CMS_X25519_X963_SHA256,
                           pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
                           seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN);
+  if (in_fips_mode)
+    {
+      if (!err)
+        fail ("gcry_kem_keypair is not expected to work in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      return;
+    }
   if (err)
     {
       fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
