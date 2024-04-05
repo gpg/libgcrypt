@@ -64,7 +64,7 @@ static const char *kem_names[] =
     "kyber512",
     "kyber768",
     "kyber1024",
-    NULL,
+    NULL
   };
 
 
@@ -315,8 +315,8 @@ kem_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
  *       (p #4243...#)
  *       (s #1718...#))
  *
- * What we hash is the algorithm name, \x00 annd the value of p.
- * Including The algorithm name allows us to see a different key
+ * What we hash is the algorithm name, \x00 and the value of p.
+ * Including the algorithm name allows us to see a different key
  * despite that it uses the same parameters.  Whether this is a good
  * decision is not clear - but it should not harm.
  */
