@@ -1714,8 +1714,11 @@ enum gcry_kem_algos
     GCRY_KEM_MLKEM512,       /* aka Kyber512  */
     GCRY_KEM_MLKEM768,       /* aka Kyber768  */
     GCRY_KEM_MLKEM1024,      /* aka Kyber1024 */
-    GCRY_KEM_RAW_X25519,     /* keypair, encaps/decaps with Identity KDF */
-    GCRY_KEM_DHKEM25519,     /* DHKEM with X25519, HKDF, and SHA256  */
+    /* From here, ECC KEMs */
+    GCRY_KEM_RAW_X25519,     /* Using X25519 with Identity KDF */
+    GCRY_KEM_RAW_X448,       /* Using X448 with Identity KDF */
+    GCRY_KEM_DHKEM25519,     /* DHKEM with X25519, HKDF, and SHA256 */
+    GCRY_KEM_DHKEM448,       /* DHKEM with X448, HKDF, and SHA512 */
     GCRY_KEM_OPENPGP_X25519, /* For OpenPGP, OPTIONAL (KDF parameters) is
                                 required, which defines hash and
                                 outputlen (shared secret length) */
