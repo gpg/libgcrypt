@@ -836,7 +836,7 @@ static int decrypt(unsigned char *, const unsigned char *, const unsigned char *
 /*
   This file is for Niederreiter encryption
 */
-// 20230102 djb: rename encrypt() as pke_encrypt()
+/* 20230102 djb: rename encrypt() as pke_encrypt() */
 
 #ifndef ENCRYPT_H
 #define ENCRYPT_H
@@ -915,7 +915,7 @@ static void fft_tr(vec out[][GFBITS], vec in[][ GFBITS ]);
 /*
   This file is for functions for field arithmetic
 */
-// 20221231 djb: const for GF_mul
+/* 20221231 djb: const for GF_mul */
 
 #ifndef GF_H
 #define GF_H
@@ -952,7 +952,7 @@ static inline uint64_t gf_mul2(gf a, gf b0, gf b1)
 		mask += mask;
 	}
 
-	//
+	/**/
 
 	t = tmp & 0x01FF000001FF0000;
 	tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
@@ -1331,9 +1331,9 @@ static void crypto_xof_shake256(unsigned char *h,long long hlen,
   For the implementation strategy, see
   https://eprint.iacr.org/2017/793.pdf
 */
-// 20221230 djb: add linker lines
+/* 20221230 djb: add linker lines */
 
-// linker define benes
+/* linker define benes */
 
 
 /* middle layers of the benes network */
@@ -1396,7 +1396,7 @@ static void benes(vec * r, const unsigned char * bits, int rev)
 	uint64_t b_int_v[64];
 	uint64_t b_int_h[64];
 
-	//
+	/**/
 
 	if (rev) { bits_ptr = bits + 12288; inc = -1024; }
 	else     { bits_ptr = bits;         inc = 0;    }
@@ -1479,11 +1479,11 @@ static void benes(vec * r, const unsigned char * bits, int rev)
   For the implementation strategy, see
   https://eprint.iacr.org/2017/793.pdf
 */
-// 20221230 djb: add linker lines
+/* 20221230 djb: add linker lines */
 
-// linker define bm
-// linker use vec_mul
-// linker use gf_inv
+/* linker define bm */
+/* linker use vec_mul */
+/* linker use gf_inv */
 
 
 
@@ -1658,7 +1658,7 @@ static void bm(vec out[][ GFBITS ], vec in[][ GFBITS ])
 	gf d, b, c0 = 1;
 	gf coefs[256];
 
-	// initialization
+	/* initialization */
 
 	get_coefs(&coefs[  0], in[0]);
 	get_coefs(&coefs[ 64], in[1]);
@@ -1676,7 +1676,7 @@ static void bm(vec out[][ GFBITS ], vec in[][ GFBITS ])
 	b = 1;
 	L = 0;
 
-	//
+	/**/
 
 	for (i = 0; i < GFBITS; i++)
 		interval[0][i] = interval[1][i] = 0;
@@ -1734,9 +1734,9 @@ static void bm(vec out[][ GFBITS ], vec in[][ GFBITS ])
 /* See David Nassimi, Sartaj Sahni "Parallel algorithms to set up the Benes permutationnetwork" */
 /* See also https://cr.yp.to/papers/controlbits-20200923.pdf */
 
-// 20221230 djb: add linker line
+/* 20221230 djb: add linker line */
 
-// linker define controlbitsfrompermutation
+/* linker define controlbitsfrompermutation */
 
 typedef int16_t int16;
 typedef int32_t int32;
@@ -1919,7 +1919,7 @@ static void controlbitsfrompermutation(unsigned char *out,const int16 *pi,long l
     memset(out,0,(((2*w-1)*n/2)+7)/8);
     cbrecursion(out,0,1,pi,w,n,temp);
 
-    // check for correctness
+    /* check for correctness */
 
     for (i = 0; i < n; i++)
       pi_test[i] = i;
@@ -1956,11 +1956,11 @@ static void controlbitsfrompermutation(unsigned char *out,const int16 *pi,long l
 /*
   This file is for Niederreiter decryption
 */
-// 20221230 djb: add linker lines
+/* 20221230 djb: add linker lines */
 
-// linker define decrypt
-// linker use benes bm fft fft_tr
-// linker use vec_mul vec_sq vec_inv
+/* linker define decrypt */
+/* linker use benes bm fft fft_tr */
+/* linker use vec_mul vec_sq vec_inv */
 
 
 
@@ -1973,7 +1973,7 @@ static void scaling(vec out[][GFBITS], vec inv[][GFBITS], const unsigned char *s
 	vec eval[128][ GFBITS ];
 	vec tmp[ GFBITS ];
 
-	//
+	/**/
 
 	irr_load(irr_int, sk);
 
@@ -1997,7 +1997,7 @@ static void scaling(vec out[][GFBITS], vec inv[][GFBITS], const unsigned char *s
 
 	vec_copy(inv[0], tmp);
 
-	//
+	/**/
 
 	for (i = 0; i < 128; i++)
 	for (j = 0; j < GFBITS; j++)
@@ -2097,7 +2097,7 @@ static int decrypt(unsigned char *e, const unsigned char *sk, const unsigned cha
 	vec recv[ 128 ];
 	vec allone;
 
-	// Berlekamp decoder
+	/* Berlekamp decoder */
 
 	preprocess(recv, s);
 
@@ -2108,7 +2108,7 @@ static int decrypt(unsigned char *e, const unsigned char *sk, const unsigned cha
 
 	fft(eval, locator);
 
-	// reencryption and weight check
+	/* reencryption and weight check */
 
 	allone = vec_setbits(1);
 
@@ -2123,7 +2123,7 @@ static int decrypt(unsigned char *e, const unsigned char *sk, const unsigned cha
 
 	check_synd = synd_cmp(s_priv, s_priv_cmp);
 
-	//
+	/**/
 
 	benes(error, sk + IRR_BYTES, 0);
 
@@ -2147,11 +2147,11 @@ static int decrypt(unsigned char *e, const unsigned char *sk, const unsigned cha
 
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/encrypt.c */
-// 20230102 djb: rename encrypt() as pke_encrypt()
-// 20221231 djb: move encrypt.h last for macos portability; tnx thom wiggers
-// 20221230 djb: add linker line
+/* 20230102 djb: rename encrypt() as pke_encrypt() */
+/* 20221231 djb: move encrypt.h last for macos portability; tnx thom wiggers */
+/* 20221230 djb: add linker line */
 
-// linker define pke_encrypt
+/* linker define pke_encrypt */
 
 /*
   This file is for Niederreiter encryption
@@ -2199,7 +2199,7 @@ static void gen_e(unsigned char *e)
 		for (i = 0; i < SYS_T*2; i++)
 			buf.nums[i] = load_gf(buf.bytes + i*2);
 
-		// moving and counting indices in the correct range
+		/* moving and counting indices in the correct range */
 
 		count = 0;
 		for (i = 0; i < SYS_T*2 && count < SYS_T; i++)
@@ -2208,7 +2208,7 @@ static void gen_e(unsigned char *e)
 
 		if (count < SYS_T) continue;
 
-		// check for repetition
+		/* check for repetition */
 
 		uint16_sort(ind, SYS_T);
 
@@ -2257,7 +2257,7 @@ static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e
 
 	int i, j;
 
-	//
+	/**/
 
 	for (i = 0; i < SYND_BYTES; i++)
 		s[i] = e[i];
@@ -2306,7 +2306,7 @@ static void pke_encrypt(unsigned char *s, const unsigned char *pk, unsigned char
 
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/shared-fft_consts.c */
-// linker define fft_consts
+/* linker define fft_consts */
 
 
 const vec fft_consts[128][GFBITS] = {
@@ -2314,7 +2314,7 @@ const vec fft_consts[128][GFBITS] = {
 };
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/shared-fft_powers.c */
-// linker define fft_powers
+/* linker define fft_powers */
 
 
 const vec fft_powers[128][GFBITS] = {
@@ -2322,7 +2322,7 @@ const vec fft_powers[128][GFBITS] = {
 };
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/shared-fft_scalars_2x.c */
-// linker define fft_scalars_2x
+/* linker define fft_scalars_2x */
 
 
 const vec fft_scalars_2x[5][2][GFBITS] = {
@@ -2330,7 +2330,7 @@ const vec fft_scalars_2x[5][2][GFBITS] = {
 };
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/shared-fft_scalars_4x.c */
-// linker define fft_scalars_4x
+/* linker define fft_scalars_4x */
 
 
 const vec fft_scalars_4x[6][4][GFBITS] = {
@@ -2345,15 +2345,15 @@ const vec fft_scalars_4x[6][4][GFBITS] = {
   For the implementation strategy, see
   https://eprint.iacr.org/2017/793.pdf
 */
-// 20221230 djb: split these arrays into separate .c files
-// 20221230 djb: rename powers array as fft_powers
-// 20221230 djb: rename consts array as fft_consts
-// 20221230 djb: rename s array as fft_scalars_2x
-// 20221230 djb: add linker lines
+/* 20221230 djb: split these arrays into separate .c files */
+/* 20221230 djb: rename powers array as fft_powers */
+/* 20221230 djb: rename consts array as fft_consts */
+/* 20221230 djb: rename s array as fft_scalars_2x */
+/* 20221230 djb: add linker lines */
 
-// linker define fft
-// linker use vec_mul
-// linker use fft_scalars_2x fft_consts fft_powers
+/* linker define fft */
+/* linker use vec_mul */
+/* linker use fft_scalars_2x fft_consts fft_powers */
 
 
 
@@ -2432,7 +2432,7 @@ static void butterflies(vec out[][ GFBITS ], vec in[][ GFBITS ])
 
 	const uint16_t beta[7] = {2522, 7827, 7801, 8035, 6897, 8167, 3476};
 
-	//
+	/**/
 
 	for (i = 0; i < 7; i++)
 	{
@@ -2539,7 +2539,7 @@ static void butterflies(vec out[][ GFBITS ], vec in[][ GFBITS ])
 		consts_ptr += (1 << i);
 	}
 
-	// adding the part contributed by x^128
+	/* adding the part contributed by x^128 */
 
 	for (i = 0; i < 128; i++)
 	for (b = 0; b < GFBITS; b++)
@@ -2562,14 +2562,14 @@ static void fft(vec out[][GFBITS], vec in[][GFBITS])
   For the implementation strategy, see
   https://eprint.iacr.org/2017/793.pdf
 */
-// 20221230 djb: split these arrays into separate .c files
-// 20221230 djb: rename consts array as fft_consts
-// 20221230 djb: rename s array as fft_scalars_4x
-// 20221230 djb: add linker lines
+/* 20221230 djb: split these arrays into separate .c files */
+/* 20221230 djb: rename consts array as fft_consts */
+/* 20221230 djb: rename s array as fft_scalars_4x */
+/* 20221230 djb: add linker lines */
 
-// linker define fft_tr
-// linker use vec_mul
-// linker use fft_scalars_4x fft_consts
+/* linker define fft_tr */
+/* linker use vec_mul */
+/* linker use fft_scalars_4x fft_consts */
 
 
 
@@ -2588,16 +2588,16 @@ static void radix_conversions_tr(vec in[][ GFBITS ])
 		{0xFFFFFFFF00000000, 0x00000000FFFFFFFF}
 	};
 
-	//
+	/**/
 
 	for (j = 6; j >= 0; j--)
 	{
 		if (j < 6)
 		{
-			vec_mul(in[0], in[0], fft_scalars_4x[j][0]); // scaling
-			vec_mul(in[1], in[1], fft_scalars_4x[j][1]); // scaling
-			vec_mul(in[2], in[2], fft_scalars_4x[j][2]); // scaling
-			vec_mul(in[3], in[3], fft_scalars_4x[j][3]); // scaling
+			vec_mul(in[0], in[0], fft_scalars_4x[j][0]); /* scaling */
+			vec_mul(in[1], in[1], fft_scalars_4x[j][1]); /* scaling */
+			vec_mul(in[2], in[2], fft_scalars_4x[j][2]); /* scaling */
+			vec_mul(in[3], in[3], fft_scalars_4x[j][3]); /* scaling */
 		}
 
 		for (k = j; k <= 4; k++)
@@ -2660,7 +2660,7 @@ static void butterflies_tr(vec out[][ GFBITS ], vec in[][ GFBITS ])
 
 	const uint16_t beta[6] = {5246, 5306, 6039, 6685, 4905, 6755};
 
-	//
+	/**/
 
 	for (i = 6; i >= 0; i--)
 	{
@@ -2788,10 +2788,10 @@ static void fft_tr(vec out[][GFBITS], vec in[][ GFBITS ])
 /*
   this file is for functions for field arithmetic
 */
-// 20221231 djb: const for GF_mul
-// 20221230 djb: add linker line
+/* 20221231 djb: const for GF_mul */
+/* 20221230 djb: add linker line */
 
-// linker define gf_iszero gf_mul gf_inv gf_frac GF_mul
+/* linker define gf_iszero gf_mul gf_inv gf_frac GF_mul */
 
 
 
@@ -2813,7 +2813,7 @@ gf gf_mul(gf in0, gf in1)
 	for (i = 1; i < GFBITS; i++)
 		tmp ^= (t0 * (t1 & (1 << i)));
 
-	//
+	/**/
 
 	t = tmp & 0x1FF0000;
 	tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
@@ -2940,14 +2940,14 @@ gf gf_frac(gf den, gf num)
 	gf tmp_1111;
 	gf out;
 
-	tmp_11 = gf_sqmul(den, den); // 11
-	tmp_1111 = gf_sq2mul(tmp_11, tmp_11); // 1111
+	tmp_11 = gf_sqmul(den, den); /* 11 */
+	tmp_1111 = gf_sq2mul(tmp_11, tmp_11); /* 1111 */
 	out = gf_sq2(tmp_1111);
-	out = gf_sq2mul(out, tmp_1111); // 11111111
+	out = gf_sq2mul(out, tmp_1111); /* 11111111 */
 	out = gf_sq2(out);
-	out = gf_sq2mul(out, tmp_1111); // 111111111111
+	out = gf_sq2mul(out, tmp_1111); /* 111111111111 */
 
-	return gf_sqmul(out, num); // 1111111111110
+	return gf_sqmul(out, num); /* 1111111111110 */
 }
 
 /* return 1/den */
@@ -2981,7 +2981,7 @@ static void GF_mul(gf *out, const gf *in0, const gf *in1)
 		for (j = 0; j < 128; j++)
 			prod[i+j] ^= gf_mul(in0[i], in1[j]);
 
-	//
+	/**/
 
 	for (i = 254; i >= 128; i--)
 	{
@@ -2997,11 +2997,11 @@ static void GF_mul(gf *out, const gf *in0, const gf *in1)
 
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/kem_dec.c */
-// 20221230 djb: add linker lines
-// 20221230 djb: split out of operations.c
+/* 20221230 djb: add linker lines */
+/* 20221230 djb: split out of operations.c */
 
-// linker define operation_dec
-// linker use decrypt
+/* linker define operation_dec */
+/* linker use decrypt */
 
 
 
@@ -3023,7 +3023,7 @@ static void operation_dec(
 	unsigned char *x = preimage;
 	const unsigned char *s = sk + 40 + IRR_BYTES + COND_BYTES;
 
-	//
+	/**/
 
 	ret_decrypt = decrypt(e, sk + 40, c);
 
@@ -3043,12 +3043,12 @@ static void operation_dec(
 
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/kem_enc.c */
-// 20230102 djb: rename encrypt() as pke_encrypt()
-// 20221230 djb: add linker lines
-// 20221230 djb: split out of operations.c
+/* 20230102 djb: rename encrypt() as pke_encrypt() */
+/* 20221230 djb: add linker lines */
+/* 20221230 djb: split out of operations.c */
 
-// linker define operation_enc
-// linker use pke_encrypt
+/* linker define operation_enc */
+/* linker use pke_encrypt */
 
 
 
@@ -3062,7 +3062,7 @@ static void operation_enc(
 	unsigned char e[ SYS_N/8 ];
 	unsigned char one_ec[ 1 + SYS_N/8 + SYND_BYTES ] = {1};
 
-	//
+	/**/
 
 	pke_encrypt(c, pk, e);
 
@@ -3074,11 +3074,11 @@ static void operation_enc(
 
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/kem_keypair.c */
-// 20221230 djb: add linker lines
-// 20221230 djb: split out of operations.c
+/* 20221230 djb: add linker lines */
+/* 20221230 djb: split out of operations.c */
 
-// linker define operation_keypair
-// linker use controlbitsfrompermutation genpoly_gen pk_gen
+/* linker define operation_keypair */
+/* linker use controlbitsfrompermutation genpoly_gen pk_gen */
 
 
 
@@ -3095,10 +3095,10 @@ static void operation_keypair
 	unsigned char *rp, *skp;
 	uint64_t pivots = 0;
 
-	gf f[ SYS_T ]; // element in GF(2^mt)
-	gf irr[ SYS_T ]; // Goppa polynomial
-	uint32_t perm[ 1 << GFBITS ]; // random permutation as 32-bit integers
-	int16_t pi[ 1 << GFBITS ]; // random permutation
+	gf f[ SYS_T ]; /* element in GF(2^mt) */
+	gf irr[ SYS_T ]; /* Goppa polynomial */
+	uint32_t perm[ 1 << GFBITS ]; /* random permutation as 32-bit integers */
+	int16_t pi[ 1 << GFBITS ]; /* random permutation */
 
 	randombytes(seed+1, 32);
 
@@ -3107,14 +3107,14 @@ static void operation_keypair
 		rp = &r[ sizeof(r)-32 ];
 		skp = sk;
 
-		// expanding and updating the seed
+		/* expanding and updating the seed */
 
 		shake(r, sizeof(r), seed, 33);
 		memcpy(skp, seed+1, 32);
 		skp += 32 + 8;
 		memcpy(seed+1, &r[ sizeof(r)-32 ], 32);
 
-		// generating irreducible polynomial
+		/* generating irreducible polynomial */
 
 		rp -= sizeof(f);
 
@@ -3129,7 +3129,7 @@ static void operation_keypair
 
 		skp += IRR_BYTES;
 
-		// generating permutation
+		/* generating permutation */
 
 		rp -= sizeof(perm);
 
@@ -3142,12 +3142,12 @@ static void operation_keypair
 		controlbitsfrompermutation(skp, pi, GFBITS, 1 << GFBITS);
 		skp += COND_BYTES;
 
-		// storing the random string s
+		/* storing the random string s */
 
 		rp -= SYS_N/8;
 		memcpy(skp, rp, SYS_N/8);
 
-		// storing positions of the 32 pivots
+		/* storing positions of the 32 pivots */
 
 		store8(sk + 32, pivots);
 
@@ -3160,12 +3160,12 @@ static void operation_keypair
 /*
   This file is for public-key generation
 */
-// 20221231 djb: remove unused min definition
-// 20221231 djb: more 0 initialization to clarify data flow; tnx thom wiggers
-// 20221230 djb: add linker lines
+/* 20221231 djb: remove unused min definition */
+/* 20221231 djb: more 0 initialization to clarify data flow; tnx thom wiggers */
+/* 20221230 djb: add linker lines */
 
-// linker define pk_gen
-// linker use fft vec_inv vec_mul
+/* linker define pk_gen */
+/* linker use fft vec_inv vec_mul */
 
 
 
@@ -3259,14 +3259,14 @@ static int mov_columns(uint64_t mat[][ (SYS_N + 63) / 64 ], int16_t * pi, uint64
 	row = PK_NROWS - 32;
 	block_idx = row/64;
 
-	// extract the 32x64 matrix
+	/* extract the 32x64 matrix */
 
 	for (i = 0; i < 32; i++)
 		buf[i] = (mat[ row + i ][ block_idx + 0 ] >> 32) |
 		         (mat[ row + i ][ block_idx + 1 ] << 32);
 
-	// compute the column indices of pivots by Gaussian elimination.
-	// the indices are stored in ctz_list
+	/* compute the column indices of pivots by Gaussian elimination. */
+	/* the indices are stored in ctz_list */
 
 	*pivots = 0;
 
@@ -3276,7 +3276,7 @@ static int mov_columns(uint64_t mat[][ (SYS_N + 63) / 64 ], int16_t * pi, uint64
 		for (j = i+1; j < 32; j++)
 			t |= buf[j];
 
-		if (uint64_is_zero_declassify(t)) return -1; // return if buf is not full rank
+		if (uint64_is_zero_declassify(t)) return -1; /* return if buf is not full rank */
 
 		ctz_list[i] = s = ctz(t);
 		*pivots |= one << ctz_list[i];
@@ -3285,7 +3285,7 @@ static int mov_columns(uint64_t mat[][ (SYS_N + 63) / 64 ], int16_t * pi, uint64
 		for (j = i+1; j < 32; j++) { mask = (buf[j] >> s) & 1; mask = -mask; buf[j] ^= buf[i] & mask; }
 	}
 
-	// updating permutation
+	/* updating permutation */
 
 	for (j = 0;   j < 32; j++)
 	for (k = j+1; k < 64; k++)
@@ -3296,7 +3296,7 @@ static int mov_columns(uint64_t mat[][ (SYS_N + 63) / 64 ], int16_t * pi, uint64
 			pi[ row + k ] ^= d;
 	}
 
-	// moving columns of mat according to the column indices of pivots
+	/* moving columns of mat according to the column indices of pivots */
 
 	for (i = 0; i < PK_NROWS; i++)
 	{
@@ -3341,7 +3341,7 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
 
 	uint64_t list[1 << GFBITS];
 
-	// compute the inverses
+	/* compute the inverses */
 
 	irr_load(irr_int, irr);
 
@@ -3362,7 +3362,7 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
 
 	vec_copy(prod[0], tmp);
 
-	// fill matrix
+	/* fill matrix */
 
 	de_bitslicing(list, prod);
 
@@ -3397,7 +3397,7 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
 			mat[ i*GFBITS + k ][ j ] = prod[ j ][ k ];
 	}
 
-	// gaussian elimination
+	/* gaussian elimination */
 
 	for (row = 0; row < PK_NROWS; row++)
 	{
@@ -3420,7 +3420,7 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
 				mat[ row ][ c ] ^= mat[ k ][ c ] & mask;
 		}
 
-                if ( uint64_is_zero_declassify((mat[ row ][ i ] >> j) & 1) ) // return if not systematic
+		if ( uint64_is_zero_declassify((mat[ row ][ i ] >> j) & 1) ) /* return if not systematic */
 		{
 			return -1;
 		}
@@ -3459,7 +3459,7 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
                 pk += PK_ROW_BYTES % 8;
 	}
 
-	//
+	/**/
 
 	return 0;
 }
@@ -3469,10 +3469,10 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
 /*
   This file is for secret-key generation
 */
-// 20221230 djb: add linker lines
+/* 20221230 djb: add linker lines */
 
-// linker define genpoly_gen
-// linker use gf_iszero gf_mul gf_inv GF_mul
+/* linker define genpoly_gen */
+/* linker use gf_iszero gf_mul gf_inv GF_mul */
 
 
 
@@ -3493,7 +3493,7 @@ static int genpoly_gen(gf *out, gf *f)
 	gf mat[ SYS_T+1 ][ SYS_T ];
 	gf mask, inv, t;
 
-	// fill matrix
+	/* fill matrix */
 
 	mat[0][0] = 1;
 
@@ -3506,7 +3506,7 @@ static int genpoly_gen(gf *out, gf *f)
 	for (j = 2; j <= SYS_T; j++)
 		GF_mul(mat[j], mat[j-1], f);
 
-	// gaussian
+	/* gaussian */
 
 	for (j = 0; j < SYS_T; j++)
 	{
@@ -3519,7 +3519,7 @@ static int genpoly_gen(gf *out, gf *f)
 
 		}
 
-		if ( gf_is_zero_declassify(mat[ j ][ j ]) ) // return if not systematic
+		if ( gf_is_zero_declassify(mat[ j ][ j ]) ) /* return if not systematic */
 		{
 			return -1;
 		}
@@ -3549,9 +3549,9 @@ static int genpoly_gen(gf *out, gf *f)
 
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/vec.c */
-// 20221230 djb: add linker line
+/* 20221230 djb: add linker line */
 
-// linker define vec_mul vec_sq vec_inv
+/* linker define vec_mul vec_sq vec_inv */
 
 
 
@@ -3620,25 +3620,25 @@ static void vec_inv(vec * out, vec * in)
 	vec_copy(out, in);
 
 	vec_sq(out, out);
-	vec_mul(tmp_11, out, in); // ^11
+	vec_mul(tmp_11, out, in); /* ^11 */
 
 	vec_sq(out, tmp_11);
 	vec_sq(out, out);
-	vec_mul(tmp_1111, out, tmp_11); // ^1111
+	vec_mul(tmp_1111, out, tmp_11); /* ^1111 */
 
 	vec_sq(out, tmp_1111);
 	vec_sq(out, out);
 	vec_sq(out, out);
 	vec_sq(out, out);
-	vec_mul(out, out, tmp_1111); // ^11111111
+	vec_mul(out, out, tmp_1111); /* ^11111111 */
 
 	vec_sq(out, out);
 	vec_sq(out, out);
 	vec_sq(out, out);
 	vec_sq(out, out);
-	vec_mul(out, out, tmp_1111); // ^111111111111
+	vec_mul(out, out, tmp_1111); /* ^111111111111 */
 
-	vec_sq(out, out); // ^1111111111110
+	vec_sq(out, out); /* ^1111111111110 */
 }
 
 
