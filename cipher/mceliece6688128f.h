@@ -27,6 +27,7 @@
 
 #ifdef _GCRYPT_IN_LIBGCRYPT
 /**** Start of the glue code to libgcrypt ****/
+#include "g10lib.h"             /* for GCC_ATTR_UNUSED */
 #include "gcrypt-int.h"
 
 #define mceliece6688128f_keypair _gcry_mceliece6688128f_keypair
@@ -34,6 +35,12 @@
 #define mceliece6688128f_dec     _gcry_mceliece6688128f_dec
 /**** End of the glue code ****/
 #else
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 5 )
+#define GCC_ATTR_UNUSED  __attribute__ ((unused))
+#else
+#define GCC_ATTR_UNUSED
+#endif
+
 #define MCELIECE6688128F_SECRETKEY_SIZE 13932
 #define MCELIECE6688128F_PUBLICKEY_SIZE 1044992
 #define MCELIECE6688128F_CIPHERTEXT_SIZE 208

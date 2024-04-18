@@ -187,25 +187,25 @@ static void crypto_declassify(void *crypto_declassify_v,long long crypto_declass
 
 #define crypto_int64 int64_t
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_negative_mask(crypto_int64 crypto_int64_x)
 {
   return crypto_int64_x >> (64-1);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_nonzero_mask(crypto_int64 crypto_int64_x)
 {
   return crypto_int64_negative_mask(crypto_int64_x) | crypto_int64_negative_mask(-crypto_int64_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_zero_mask(crypto_int64 crypto_int64_x)
 {
   return ~crypto_int64_nonzero_mask(crypto_int64_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_positive_mask(crypto_int64 crypto_int64_x)
 {
   crypto_int64 crypto_int64_z = -crypto_int64_x;
@@ -213,20 +213,20 @@ static crypto_int64 crypto_int64_positive_mask(crypto_int64 crypto_int64_x)
   return crypto_int64_negative_mask(crypto_int64_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_unequal_mask(crypto_int64 crypto_int64_x,crypto_int64 crypto_int64_y)
 {
   crypto_int64 crypto_int64_xy = crypto_int64_x ^ crypto_int64_y;
   return crypto_int64_nonzero_mask(crypto_int64_xy);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_equal_mask(crypto_int64 crypto_int64_x,crypto_int64 crypto_int64_y)
 {
   return ~crypto_int64_unequal_mask(crypto_int64_x,crypto_int64_y);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_smaller_mask(crypto_int64 crypto_int64_x,crypto_int64 crypto_int64_y)
 {
   crypto_int64 crypto_int64_xy = crypto_int64_x ^ crypto_int64_y;
@@ -235,7 +235,7 @@ static crypto_int64 crypto_int64_smaller_mask(crypto_int64 crypto_int64_x,crypto
   return crypto_int64_negative_mask(crypto_int64_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_min(crypto_int64 crypto_int64_x,crypto_int64 crypto_int64_y)
 {
   crypto_int64 crypto_int64_xy = crypto_int64_y ^ crypto_int64_x;
@@ -246,7 +246,7 @@ static crypto_int64 crypto_int64_min(crypto_int64 crypto_int64_x,crypto_int64 cr
   return crypto_int64_x ^ crypto_int64_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_max(crypto_int64 crypto_int64_x,crypto_int64 crypto_int64_y)
 {
   crypto_int64 crypto_int64_xy = crypto_int64_y ^ crypto_int64_x;
@@ -257,7 +257,7 @@ static crypto_int64 crypto_int64_max(crypto_int64 crypto_int64_x,crypto_int64 cr
   return crypto_int64_y ^ crypto_int64_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static void crypto_int64_minmax(crypto_int64 *crypto_int64_a,crypto_int64 *crypto_int64_b)
 {
   crypto_int64 crypto_int64_x = *crypto_int64_a;
@@ -279,25 +279,25 @@ static void crypto_int64_minmax(crypto_int64 *crypto_int64_a,crypto_int64 *crypt
 
 #define crypto_int16 int16_t
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_negative_mask(crypto_int16 crypto_int16_x)
 {
   return crypto_int16_x >> (16-1);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_nonzero_mask(crypto_int16 crypto_int16_x)
 {
   return crypto_int16_negative_mask(crypto_int16_x) | crypto_int16_negative_mask(-crypto_int16_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_zero_mask(crypto_int16 crypto_int16_x)
 {
   return ~crypto_int16_nonzero_mask(crypto_int16_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_positive_mask(crypto_int16 crypto_int16_x)
 {
   crypto_int16 crypto_int16_z = -crypto_int16_x;
@@ -305,20 +305,20 @@ static crypto_int16 crypto_int16_positive_mask(crypto_int16 crypto_int16_x)
   return crypto_int16_negative_mask(crypto_int16_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_unequal_mask(crypto_int16 crypto_int16_x,crypto_int16 crypto_int16_y)
 {
   crypto_int16 crypto_int16_xy = crypto_int16_x ^ crypto_int16_y;
   return crypto_int16_nonzero_mask(crypto_int16_xy);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_equal_mask(crypto_int16 crypto_int16_x,crypto_int16 crypto_int16_y)
 {
   return ~crypto_int16_unequal_mask(crypto_int16_x,crypto_int16_y);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_smaller_mask(crypto_int16 crypto_int16_x,crypto_int16 crypto_int16_y)
 {
   crypto_int16 crypto_int16_xy = crypto_int16_x ^ crypto_int16_y;
@@ -327,7 +327,7 @@ static crypto_int16 crypto_int16_smaller_mask(crypto_int16 crypto_int16_x,crypto
   return crypto_int16_negative_mask(crypto_int16_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_min(crypto_int16 crypto_int16_x,crypto_int16 crypto_int16_y)
 {
   crypto_int16 crypto_int16_xy = crypto_int16_y ^ crypto_int16_x;
@@ -338,7 +338,7 @@ static crypto_int16 crypto_int16_min(crypto_int16 crypto_int16_x,crypto_int16 cr
   return crypto_int16_x ^ crypto_int16_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_max(crypto_int16 crypto_int16_x,crypto_int16 crypto_int16_y)
 {
   crypto_int16 crypto_int16_xy = crypto_int16_y ^ crypto_int16_x;
@@ -349,7 +349,7 @@ static crypto_int16 crypto_int16_max(crypto_int16 crypto_int16_x,crypto_int16 cr
   return crypto_int16_y ^ crypto_int16_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static void crypto_int16_minmax(crypto_int16 *crypto_int16_a,crypto_int16 *crypto_int16_b)
 {
   crypto_int16 crypto_int16_x = *crypto_int16_a;
@@ -371,25 +371,25 @@ static void crypto_int16_minmax(crypto_int16 *crypto_int16_a,crypto_int16 *crypt
 
 #define crypto_int32 int32_t
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_negative_mask(crypto_int32 crypto_int32_x)
 {
   return crypto_int32_x >> (32-1);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_nonzero_mask(crypto_int32 crypto_int32_x)
 {
   return crypto_int32_negative_mask(crypto_int32_x) | crypto_int32_negative_mask(-crypto_int32_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_zero_mask(crypto_int32 crypto_int32_x)
 {
   return ~crypto_int32_nonzero_mask(crypto_int32_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_positive_mask(crypto_int32 crypto_int32_x)
 {
   crypto_int32 crypto_int32_z = -crypto_int32_x;
@@ -397,20 +397,20 @@ static crypto_int32 crypto_int32_positive_mask(crypto_int32 crypto_int32_x)
   return crypto_int32_negative_mask(crypto_int32_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_unequal_mask(crypto_int32 crypto_int32_x,crypto_int32 crypto_int32_y)
 {
   crypto_int32 crypto_int32_xy = crypto_int32_x ^ crypto_int32_y;
   return crypto_int32_nonzero_mask(crypto_int32_xy);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_equal_mask(crypto_int32 crypto_int32_x,crypto_int32 crypto_int32_y)
 {
   return ~crypto_int32_unequal_mask(crypto_int32_x,crypto_int32_y);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_smaller_mask(crypto_int32 crypto_int32_x,crypto_int32 crypto_int32_y)
 {
   crypto_int32 crypto_int32_xy = crypto_int32_x ^ crypto_int32_y;
@@ -419,7 +419,7 @@ static crypto_int32 crypto_int32_smaller_mask(crypto_int32 crypto_int32_x,crypto
   return crypto_int32_negative_mask(crypto_int32_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_min(crypto_int32 crypto_int32_x,crypto_int32 crypto_int32_y)
 {
   crypto_int32 crypto_int32_xy = crypto_int32_y ^ crypto_int32_x;
@@ -430,7 +430,7 @@ static crypto_int32 crypto_int32_min(crypto_int32 crypto_int32_x,crypto_int32 cr
   return crypto_int32_x ^ crypto_int32_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_max(crypto_int32 crypto_int32_x,crypto_int32 crypto_int32_y)
 {
   crypto_int32 crypto_int32_xy = crypto_int32_y ^ crypto_int32_x;
@@ -441,7 +441,7 @@ static crypto_int32 crypto_int32_max(crypto_int32 crypto_int32_x,crypto_int32 cr
   return crypto_int32_y ^ crypto_int32_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static void crypto_int32_minmax(crypto_int32 *crypto_int32_a,crypto_int32 *crypto_int32_b)
 {
   crypto_int32 crypto_int32_x = *crypto_int32_a;
@@ -464,38 +464,38 @@ static void crypto_int32_minmax(crypto_int32 *crypto_int32_a,crypto_int32 *crypt
 #define crypto_uint64 uint64_t
 #define crypto_uint64_signed int64_t
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint64_signed crypto_uint64_signed_negative_mask(crypto_uint64_signed crypto_uint64_signed_x)
 {
   return crypto_uint64_signed_x >> (64-1);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint64 crypto_uint64_nonzero_mask(crypto_uint64 crypto_uint64_x)
 {
   return crypto_uint64_signed_negative_mask(crypto_uint64_x) | crypto_uint64_signed_negative_mask(-crypto_uint64_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint64 crypto_uint64_zero_mask(crypto_uint64 crypto_uint64_x)
 {
   return ~crypto_uint64_nonzero_mask(crypto_uint64_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint64 crypto_uint64_unequal_mask(crypto_uint64 crypto_uint64_x,crypto_uint64 crypto_uint64_y)
 {
   crypto_uint64 crypto_uint64_xy = crypto_uint64_x ^ crypto_uint64_y;
   return crypto_uint64_nonzero_mask(crypto_uint64_xy);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint64 crypto_uint64_equal_mask(crypto_uint64 crypto_uint64_x,crypto_uint64 crypto_uint64_y)
 {
   return ~crypto_uint64_unequal_mask(crypto_uint64_x,crypto_uint64_y);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint64 crypto_uint64_smaller_mask(crypto_uint64 crypto_uint64_x,crypto_uint64 crypto_uint64_y)
 {
   crypto_uint64 crypto_uint64_xy = crypto_uint64_x ^ crypto_uint64_y;
@@ -504,7 +504,7 @@ static crypto_uint64 crypto_uint64_smaller_mask(crypto_uint64 crypto_uint64_x,cr
   return crypto_uint64_signed_negative_mask(crypto_uint64_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint64 crypto_uint64_min(crypto_uint64 crypto_uint64_x,crypto_uint64 crypto_uint64_y)
 {
   crypto_uint64 crypto_uint64_xy = crypto_uint64_y ^ crypto_uint64_x;
@@ -515,7 +515,7 @@ static crypto_uint64 crypto_uint64_min(crypto_uint64 crypto_uint64_x,crypto_uint
   return crypto_uint64_x ^ crypto_uint64_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint64 crypto_uint64_max(crypto_uint64 crypto_uint64_x,crypto_uint64 crypto_uint64_y)
 {
   crypto_uint64 crypto_uint64_xy = crypto_uint64_y ^ crypto_uint64_x;
@@ -526,7 +526,7 @@ static crypto_uint64 crypto_uint64_max(crypto_uint64 crypto_uint64_x,crypto_uint
   return crypto_uint64_y ^ crypto_uint64_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static void crypto_uint64_minmax(crypto_uint64 *crypto_uint64_a,crypto_uint64 *crypto_uint64_b)
 {
   crypto_uint64 crypto_uint64_x = *crypto_uint64_a;
@@ -549,38 +549,38 @@ static void crypto_uint64_minmax(crypto_uint64 *crypto_uint64_a,crypto_uint64 *c
 #define crypto_uint16 uint16_t
 #define crypto_uint16_signed int16_t
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint16_signed crypto_uint16_signed_negative_mask(crypto_uint16_signed crypto_uint16_signed_x)
 {
   return crypto_uint16_signed_x >> (16-1);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint16 crypto_uint16_nonzero_mask(crypto_uint16 crypto_uint16_x)
 {
   return crypto_uint16_signed_negative_mask(crypto_uint16_x) | crypto_uint16_signed_negative_mask(-crypto_uint16_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint16 crypto_uint16_zero_mask(crypto_uint16 crypto_uint16_x)
 {
   return ~crypto_uint16_nonzero_mask(crypto_uint16_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint16 crypto_uint16_unequal_mask(crypto_uint16 crypto_uint16_x,crypto_uint16 crypto_uint16_y)
 {
   crypto_uint16 crypto_uint16_xy = crypto_uint16_x ^ crypto_uint16_y;
   return crypto_uint16_nonzero_mask(crypto_uint16_xy);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint16 crypto_uint16_equal_mask(crypto_uint16 crypto_uint16_x,crypto_uint16 crypto_uint16_y)
 {
   return ~crypto_uint16_unequal_mask(crypto_uint16_x,crypto_uint16_y);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint16 crypto_uint16_smaller_mask(crypto_uint16 crypto_uint16_x,crypto_uint16 crypto_uint16_y)
 {
   crypto_uint16 crypto_uint16_xy = crypto_uint16_x ^ crypto_uint16_y;
@@ -589,7 +589,7 @@ static crypto_uint16 crypto_uint16_smaller_mask(crypto_uint16 crypto_uint16_x,cr
   return crypto_uint16_signed_negative_mask(crypto_uint16_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint16 crypto_uint16_min(crypto_uint16 crypto_uint16_x,crypto_uint16 crypto_uint16_y)
 {
   crypto_uint16 crypto_uint16_xy = crypto_uint16_y ^ crypto_uint16_x;
@@ -600,7 +600,7 @@ static crypto_uint16 crypto_uint16_min(crypto_uint16 crypto_uint16_x,crypto_uint
   return crypto_uint16_x ^ crypto_uint16_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint16 crypto_uint16_max(crypto_uint16 crypto_uint16_x,crypto_uint16 crypto_uint16_y)
 {
   crypto_uint16 crypto_uint16_xy = crypto_uint16_y ^ crypto_uint16_x;
@@ -611,7 +611,7 @@ static crypto_uint16 crypto_uint16_max(crypto_uint16 crypto_uint16_x,crypto_uint
   return crypto_uint16_y ^ crypto_uint16_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static void crypto_uint16_minmax(crypto_uint16 *crypto_uint16_a,crypto_uint16 *crypto_uint16_b)
 {
   crypto_uint16 crypto_uint16_x = *crypto_uint16_a;
@@ -634,38 +634,38 @@ static void crypto_uint16_minmax(crypto_uint16 *crypto_uint16_a,crypto_uint16 *c
 #define crypto_uint32 uint32_t
 #define crypto_uint32_signed int32_t
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint32_signed crypto_uint32_signed_negative_mask(crypto_uint32_signed crypto_uint32_signed_x)
 {
   return crypto_uint32_signed_x >> (32-1);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint32 crypto_uint32_nonzero_mask(crypto_uint32 crypto_uint32_x)
 {
   return crypto_uint32_signed_negative_mask(crypto_uint32_x) | crypto_uint32_signed_negative_mask(-crypto_uint32_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint32 crypto_uint32_zero_mask(crypto_uint32 crypto_uint32_x)
 {
   return ~crypto_uint32_nonzero_mask(crypto_uint32_x);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint32 crypto_uint32_unequal_mask(crypto_uint32 crypto_uint32_x,crypto_uint32 crypto_uint32_y)
 {
   crypto_uint32 crypto_uint32_xy = crypto_uint32_x ^ crypto_uint32_y;
   return crypto_uint32_nonzero_mask(crypto_uint32_xy);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint32 crypto_uint32_equal_mask(crypto_uint32 crypto_uint32_x,crypto_uint32 crypto_uint32_y)
 {
   return ~crypto_uint32_unequal_mask(crypto_uint32_x,crypto_uint32_y);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint32 crypto_uint32_smaller_mask(crypto_uint32 crypto_uint32_x,crypto_uint32 crypto_uint32_y)
 {
   crypto_uint32 crypto_uint32_xy = crypto_uint32_x ^ crypto_uint32_y;
@@ -674,7 +674,7 @@ static crypto_uint32 crypto_uint32_smaller_mask(crypto_uint32 crypto_uint32_x,cr
   return crypto_uint32_signed_negative_mask(crypto_uint32_z);
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint32 crypto_uint32_min(crypto_uint32 crypto_uint32_x,crypto_uint32 crypto_uint32_y)
 {
   crypto_uint32 crypto_uint32_xy = crypto_uint32_y ^ crypto_uint32_x;
@@ -685,7 +685,7 @@ static crypto_uint32 crypto_uint32_min(crypto_uint32 crypto_uint32_x,crypto_uint
   return crypto_uint32_x ^ crypto_uint32_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static crypto_uint32 crypto_uint32_max(crypto_uint32 crypto_uint32_x,crypto_uint32 crypto_uint32_y)
 {
   crypto_uint32 crypto_uint32_xy = crypto_uint32_y ^ crypto_uint32_x;
@@ -696,7 +696,7 @@ static crypto_uint32 crypto_uint32_max(crypto_uint32 crypto_uint32_x,crypto_uint
   return crypto_uint32_y ^ crypto_uint32_z;
 }
 
-__attribute__((unused))
+GCC_ATTR_UNUSED
 static void crypto_uint32_minmax(crypto_uint32 *crypto_uint32_a,crypto_uint32 *crypto_uint32_b)
 {
   crypto_uint32 crypto_uint32_x = *crypto_uint32_a;
