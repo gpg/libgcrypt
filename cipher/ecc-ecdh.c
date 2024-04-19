@@ -93,7 +93,6 @@ _gcry_ecc_curve_mul_point (const char *curve, unsigned char *result,
       goto leave;
     }
 
-  x = mpi_new (nbits);
   point_init (&Q);
 
   if (point)
@@ -117,19 +116,51 @@ _gcry_ecc_curve_mul_point (const char *curve, unsigned char *result,
   else
     _gcry_mpi_ec_mul_point (&Q, mpi_k, ec->G, ec);
 
-  _gcry_mpi_ec_get_affine (x, NULL, &Q, ec);
+  x = mpi_new (nbits);
+  if (ec->model == MPI_EC_WEIERSTRASS)
+    {
+      gcry_mpi_t y = mpi_new (nbits);
 
-  buf = _gcry_mpi_get_buffer (x, nbytes, &len, NULL);
-  if (!buf)
-    err = gpg_err_code_from_syserror ();
+      _gcry_mpi_ec_get_affine (x, y, &Q, ec);
+
+      buf = _gcry_ecc_ec2os_buf (x, y, ec->p, &len);
+      if (!buf)
+        {
+          err = gpg_err_code_from_syserror ();
+          _gcry_mpi_release (y);
+        }
+      else
+        {
+          if (len != 1 + 2*nbytes)
+            {
+              err = GPG_ERR_INV_ARG;
+              _gcry_mpi_release (y);
+            }
+          else
+            {
+              /* (x,y) in SEC1 point encoding.  */
+              memcpy (result, buf, nbytes);
+              xfree (buf);
+              _gcry_mpi_release (y);
+            }
+        }
+    }
   else
     {
-      memcpy (result, buf, nbytes);
-      xfree (buf);
+      _gcry_mpi_ec_get_affine (x, NULL, &Q, ec);
+      buf = _gcry_mpi_get_buffer (x, nbytes, &len, NULL);
+      if (!buf)
+        err = gpg_err_code_from_syserror ();
+      else
+        {
+          /* x in little endian.  */
+          memcpy (result, buf, nbytes);
+          xfree (buf);
+        }
     }
+  _gcry_mpi_release (x);
 
  leave:
-  _gcry_mpi_release (x);
   point_free (&Q);
   _gcry_mpi_release (mpi_k);
   _gcry_mpi_ec_free (ec);
