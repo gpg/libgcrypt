@@ -95,9 +95,9 @@ _gcry_kem_keypair (int algo,
       sntrup761_keypair (pubkey, seckey, NULL, sntrup761_random);
       return 0;
 
-    case GCRY_KEM_MCELIECE6688128F:
+    case GCRY_KEM_CM6688128F:
       mceliece6688128f_keypair (pubkey, seckey);
-      return GPG_ERR_NO_ERROR;
+      return 0;
 
     case GCRY_KEM_MLKEM512:
       if (seckey_len != GCRY_KEM_MLKEM512_SECKEY_LEN
@@ -156,11 +156,11 @@ _gcry_kem_encap (int algo,
       sntrup761_enc (ciphertext, shared, pubkey, NULL, sntrup761_random);
       return 0;
 
-    case GCRY_KEM_MCELIECE6688128F:
+    case GCRY_KEM_CM6688128F:
       if (optional != NULL)
 	return GPG_ERR_INV_VALUE;
       mceliece6688128f_enc (ciphertext, shared, pubkey);
-      return GPG_ERR_NO_ERROR;
+      return 0;
 
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
@@ -221,11 +221,11 @@ _gcry_kem_decap (int algo,
       sntrup761_dec (shared, ciphertext, seckey);
       return 0;
 
-    case GCRY_KEM_MCELIECE6688128F:
+    case GCRY_KEM_CM6688128F:
       if (optional != NULL)
 	return GPG_ERR_INV_VALUE;
       mceliece6688128f_dec (shared, ciphertext, seckey);
-      return GPG_ERR_NO_ERROR;
+      return 0;
 
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
