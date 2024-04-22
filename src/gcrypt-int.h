@@ -116,10 +116,18 @@ gcry_sexp_t _gcry_pk_get_param (int algo, const char *name);
 gpg_err_code_t _gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp,
                                       int mode, gcry_ctx_t ctx);
 unsigned int _gcry_ecc_get_algo_keylen (int algo);
+gpg_err_code_t _gcry_ecc_curve_keypair (const char *curve,
+                                        unsigned char *pubkey,
+                                        size_t pubkey_len,
+                                        unsigned char *seckey,
+                                        size_t seckey_len);
 gpg_err_code_t _gcry_ecc_curve_mul_point (const char *curve,
                                           unsigned char *result,
+                                          size_t result_len,
                                           const unsigned char *scalar,
-                                          const unsigned char *point);
+                                          size_t scalar_len,
+                                          const unsigned char *point,
+                                          size_t point_len);
 gpg_err_code_t _gcry_ecc_mul_point (int algo, unsigned char *result,
                                     const unsigned char *scalar,
                                     const unsigned char *point);

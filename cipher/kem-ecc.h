@@ -19,11 +19,18 @@
  *
  */
 
-gpg_err_code_t _gcry_ecc_raw_keypair (int algo, void *pubkey, void *seckey);
-gpg_err_code_t _gcry_ecc_raw_encap (int curveid, const void *pubkey,
-                                    void *ciphertext, void *shared);
-gpg_err_code_t _gcry_ecc_raw_decap (int curveid, const void *seckey,
-                                    const void *ciphertext, void *shared);
+gpg_err_code_t _gcry_ecc_raw_keypair (int algo,
+                                      void *pubkey, size_t pubkey_len,
+                                      void *seckey, size_t seckey_len);
+gpg_err_code_t _gcry_ecc_raw_encap (int algo,
+                                    const void *pubkey, size_t pubkey_len,
+                                    void *ciphertext, size_t ciphertext_len,
+                                    void *shared, size_t shared_len);
+gpg_err_code_t _gcry_ecc_raw_decap (int algo,
+                                    const void *seckey, size_t seckey_len,
+                                    const void *ciphertext,
+                                    size_t ciphertext_len,
+                                    void *shared, size_t shared_len);
 
 gpg_err_code_t _gcry_ecc_dhkem_encap (int algo, const void *pubkey,
                                       void *ciphertext,

@@ -30,87 +30,119 @@
 
 #include "kem-ecc.h"
 
-static void
-ecc_tweak_bits (int curveid, unsigned char *dst, const unsigned char *src)
+#define ECC_PUBKEY_LEN_MAX 133
+#define ECC_SECKEY_LEN_MAX 64
+
+static const char *
+algo_to_curve (int algo)
 {
-  if (curveid == GCRY_ECC_CURVE25519)
+  switch (algo)
     {
-      memcpy (dst, src, 32);
-      dst[0] &= 0xf8;
-      dst[31] &= 0x7f;
-      dst[31] |= 0x40;
-    }
-  else if (curveid == GCRY_ECC_CURVE448)
-    {
-      memcpy (dst, src, 56);
-      dst[0] &= 0xfc;
-      dst[55] |= 0x80;
+    case GCRY_KEM_RAW_X25519:
+    case GCRY_KEM_DHKEM25519:
+    case GCRY_KEM_OPENPGP_X25519:
+    case GCRY_KEM_CMS_X25519_X963_SHA256:
+    case GCRY_KEM_CMS_X25519_HKDF_SHA256:
+      return "Curve25519";
+
+    case GCRY_KEM_RAW_X448:
+    case GCRY_KEM_DHKEM448:
+      return "X448";
+
+    case GCRY_KEM_RAW_BP256:
+      return "bp256";
+
+    case GCRY_KEM_RAW_BP384:
+      return "bp384";
+
+    default:
+      return 0;
     }
 }
+
+
+static int
+algo_to_seckey_len (int algo)
+{
+  switch (algo)
+    {
+    case GCRY_KEM_RAW_X25519:
+    case GCRY_KEM_DHKEM25519:
+    case GCRY_KEM_OPENPGP_X25519:
+    case GCRY_KEM_CMS_X25519_X963_SHA256:
+    case GCRY_KEM_CMS_X25519_HKDF_SHA256:
+      return 32;
+
+    case GCRY_KEM_RAW_X448:
+    case GCRY_KEM_DHKEM448:
+      return 56;
+
+    case GCRY_KEM_RAW_BP256:
+      return 32;
+
+    case GCRY_KEM_RAW_BP384:
+      return 48;
+
+    default:
+      return 0;
+    }
+}
+
 
 static gpg_err_code_t
-ecc_mul_point (int curveid, unsigned char *result,
-               const unsigned char *scalar, const unsigned char *point)
+ecc_mul_point (int algo, unsigned char *result, size_t result_len,
+               const unsigned char *scalar, size_t scalar_len,
+               const unsigned char *point, size_t point_len)
 {
-  unsigned char scalar_fixed[56]; /* Enough space for X448 */
+  const char *curve = algo_to_curve (algo);
 
-  /* Tweak the bits, so that it can be compatible to X25519/X448
-     functions.  */
-  ecc_tweak_bits (curveid, scalar_fixed, scalar);
-  return _gcry_ecc_mul_point (curveid, result, scalar_fixed, point);
+  return _gcry_ecc_curve_mul_point (curve, result, result_len,
+                                    scalar, scalar_len, point, point_len);
 }
 
 
-/* The generator of Curve25519.  */
-static const unsigned char curve25519_G[32] = { 0x09 };
-/* The generator of Curve448.  */
-static const unsigned char curve448_G[56] = { 0x05 };
-
 gpg_err_code_t
-_gcry_ecc_raw_keypair (int curveid, void *pubkey, void *seckey)
+_gcry_ecc_raw_keypair (int algo, void *pubkey, size_t pubkey_len,
+                       void *seckey, size_t seckey_len)
 {
-  unsigned char *seckey_bytes = seckey;
-  unsigned int len = _gcry_ecc_get_algo_keylen (curveid);
-  const unsigned char *G;
+  const char *curve = algo_to_curve (algo);
 
-  _gcry_randomize (seckey, len, GCRY_STRONG_RANDOM);
-
-  /* Existing ECC applications with libgcrypt (like gpg-agent in
-     GnuPG) assumes that scalar is tweaked at key generation time.
-     For the possible use case where generated key with this routine
-     may be used with those, we put compatibile behavior here.  */
-  ecc_tweak_bits (curveid, seckey_bytes, seckey_bytes);
-
-  if (curveid == GCRY_ECC_CURVE25519)
-    G = curve25519_G;
-  else
-    G = curve448_G;
-
-  return ecc_mul_point (curveid, pubkey, seckey_bytes, G);
+  return _gcry_ecc_curve_keypair (curve,
+                                  pubkey, pubkey_len, seckey, seckey_len);
 }
 
 gpg_err_code_t
-_gcry_ecc_raw_encap (int curveid, const void *pubkey, void *ciphertext,
-                     void *shared)
+_gcry_ecc_raw_encap (int algo, const void *pubkey, size_t pubkey_len,
+                     void *ciphertext, size_t ciphertext_len,
+                     void *shared, size_t shared_len)
 {
   gpg_err_code_t err;
-  unsigned char seckey_ephemeral[56];
+  unsigned char seckey_ephemeral[ECC_SECKEY_LEN_MAX];
   void *pubkey_ephemeral = ciphertext;
+  size_t seckey_len;
 
-  err = _gcry_ecc_raw_keypair (curveid, pubkey_ephemeral, seckey_ephemeral);
+  if (ciphertext_len != pubkey_len)
+    return GPG_ERR_INV_VALUE;
+
+  seckey_len = algo_to_seckey_len (algo);
+  err = _gcry_ecc_raw_keypair (algo, pubkey_ephemeral, pubkey_len,
+                               seckey_ephemeral, seckey_len);
   if (err)
     return err;
 
   /* Do ECDH.  */
-  return ecc_mul_point (curveid, shared, seckey_ephemeral, pubkey);
+  return ecc_mul_point (algo, shared, shared_len, seckey_ephemeral, seckey_len,
+                        pubkey, pubkey_len);
 }
 
 gpg_err_code_t
-_gcry_ecc_raw_decap (int curveid, const void *seckey, const void *ciphertext,
-                     void *shared)
+_gcry_ecc_raw_decap (int algo, const void *seckey, size_t seckey_len,
+                     const void *ciphertext, size_t ciphertext_len,
+                     void *shared, size_t shared_len)
 {
   /* Do ECDH.  */
-  return ecc_mul_point (curveid, shared, seckey, ciphertext);
+  return ecc_mul_point (algo, shared, shared_len, seckey, seckey_len,
+                        ciphertext, ciphertext_len);
 }
 
 
@@ -127,9 +159,9 @@ ecc_dhkem_kdf (int kem_algo, size_t ecc_len,
 {
   gpg_err_code_t err;
   unsigned char *p;
-  unsigned char labeled_ikm[7+5+7+56];
+  unsigned char labeled_ikm[7+5+7+ECC_PUBKEY_LEN_MAX];
   int labeled_ikm_size;
-  unsigned char labeled_info[2+7+5+13+56+56];
+  unsigned char labeled_info[2+7+5+13+2*ECC_PUBKEY_LEN_MAX];
   int labeled_info_size;
   gcry_kdf_hd_t hd;
   unsigned long param[1];
@@ -197,8 +229,8 @@ _gcry_ecc_dhkem_encap (int algo, const void *pubkey, void *ciphertext,
                        void *shared)
 {
   gpg_err_code_t err;
-  unsigned char ecdh[56];
-  unsigned char seckey_ephemeral[56];
+  unsigned char ecdh[ECC_PUBKEY_LEN_MAX];
+  unsigned char seckey_ephemeral[ECC_SECKEY_LEN_MAX];
   void *pubkey_ephemeral = ciphertext;
   int curveid;
   int kem_algo;
@@ -219,12 +251,14 @@ _gcry_ecc_dhkem_encap (int algo, const void *pubkey, void *ciphertext,
 
   ecc_len = _gcry_ecc_get_algo_keylen (curveid);
 
-  err = _gcry_ecc_raw_keypair (curveid, pubkey_ephemeral, seckey_ephemeral);
+  err = _gcry_ecc_raw_keypair (algo, pubkey_ephemeral, ecc_len,
+                               seckey_ephemeral, ecc_len);
   if (err)
     return err;
 
   /* Do ECDH.  */
-  err = ecc_mul_point (curveid, ecdh, seckey_ephemeral, pubkey);
+  err = ecc_mul_point (algo, ecdh, ecc_len, seckey_ephemeral, ecc_len,
+                       pubkey, ecc_len);
   if (err)
     return err;
 
@@ -236,23 +270,20 @@ _gcry_ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
                        void *shared, const void *optional)
 {
   gpg_err_code_t err;
-  unsigned char ecdh[56];
-  unsigned char pubkey_computed[56];
+  unsigned char ecdh[ECC_PUBKEY_LEN_MAX];
+  unsigned char pubkey_computed[ECC_SECKEY_LEN_MAX];
   const unsigned char *pubkey;
-  const unsigned char *G;
   int curveid;
   int kem_algo;
   size_t ecc_len;
 
   if (algo == GCRY_KEM_DHKEM25519)
     {
-      G = curve25519_G;
       curveid = GCRY_ECC_CURVE25519;
       kem_algo = DHKEM_X25519_HKDF_SHA256;
     }
   else if (algo == GCRY_KEM_DHKEM448)
     {
-      G = curve448_G;
       curveid = GCRY_ECC_CURVE448;
       kem_algo = DHKEM_X448_HKDF_SHA512;
     }
@@ -265,7 +296,8 @@ _gcry_ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
     pubkey = optional;
   else
     {
-      err = ecc_mul_point (curveid, pubkey_computed, seckey, G);
+      err = ecc_mul_point (algo, pubkey_computed, ecc_len, seckey, ecc_len,
+                           NULL, ecc_len);
       if (err)
         return err;
 
@@ -273,7 +305,8 @@ _gcry_ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
     }
 
   /* Do ECDH.  */
-  err = ecc_mul_point (curveid, ecdh, seckey, ciphertext);
+  err = ecc_mul_point (algo, ecdh, ecc_len, seckey, ecc_len,
+                       ciphertext, ecc_len);
   if (err)
     return err;
 
@@ -331,10 +364,11 @@ _gcry_openpgp_kem_encap (int algo, const void *pubkey, void *ciphertext,
 {
   gpg_err_code_t err;
   int curveid;
-  unsigned char ecdh[32];
+  unsigned char ecdh[ECC_PUBKEY_LEN_MAX];
   const unsigned char *kdf_param = optional;
-  unsigned char seckey_ephemeral[32];
+  unsigned char seckey_ephemeral[ECC_SECKEY_LEN_MAX];
   void *pubkey_ephemeral = ciphertext;
+  size_t ecc_len;
 
   if (algo != GCRY_KEM_OPENPGP_X25519)
     return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -342,16 +376,19 @@ _gcry_openpgp_kem_encap (int algo, const void *pubkey, void *ciphertext,
   /* From here, it's only for the OpenPGP KEM(Curve25519, One-Step KDF).  */
   curveid = GCRY_ECC_CURVE25519;
 
-  err = _gcry_ecc_raw_keypair (curveid, pubkey_ephemeral, seckey_ephemeral);
+  ecc_len = _gcry_ecc_get_algo_keylen (curveid);
+  err = _gcry_ecc_raw_keypair (algo, pubkey_ephemeral, ecc_len,
+                               seckey_ephemeral, ecc_len);
   if (err)
     return err;
 
   /* Do ECDH.  */
-  err = ecc_mul_point (curveid, ecdh, seckey_ephemeral, pubkey);
+  err = ecc_mul_point (algo, ecdh, ecc_len, seckey_ephemeral, ecc_len,
+                       pubkey, ecc_len);
   if (err)
     return err;
 
-  return openpgp_kem_kdf (ecdh, sizeof (ecdh), kdf_param, shared);
+  return openpgp_kem_kdf (ecdh, ecc_len, kdf_param, shared);
 }
 
 /* In OpenPGP v4, secret key is represented with big-endian MPI.
@@ -364,8 +401,9 @@ _gcry_openpgp_kem_decap (int algo, const void *seckey, const void *ciphertext,
 {
   gpg_err_code_t err;
   int curveid;
-  unsigned char ecdh[32];
+  unsigned char ecdh[ECC_PUBKEY_LEN_MAX];
   const unsigned char *kdf_param = optional;
+  size_t ecc_len;
 
   if (algo != GCRY_KEM_OPENPGP_X25519)
     return GPG_ERR_UNKNOWN_ALGORITHM;
@@ -373,12 +411,15 @@ _gcry_openpgp_kem_decap (int algo, const void *seckey, const void *ciphertext,
   /* From here, it's only for the OpenPGP KEM(Curve25519, One-Step KDF).  */
   curveid = GCRY_ECC_CURVE25519;
 
+  ecc_len = _gcry_ecc_get_algo_keylen (curveid);
+
   /* Do ECDH.  */
-  err = ecc_mul_point (curveid, ecdh, seckey, ciphertext);
+  err = ecc_mul_point (algo, ecdh, ecc_len, seckey, ecc_len,
+                       ciphertext, ecc_len);
   if (err)
     return err;
 
-  return openpgp_kem_kdf (ecdh, sizeof (ecdh), kdf_param, shared);
+  return openpgp_kem_kdf (ecdh, ecc_len, kdf_param, shared);
 }
 
 
@@ -442,11 +483,12 @@ _gcry_cms_kem_encap (int algo, const void *pubkey, void *ciphertext,
 {
   gpg_err_code_t err;
   int curveid;
-  unsigned char ecdh[32];
+  unsigned char ecdh[ECC_PUBKEY_LEN_MAX];
   const unsigned char *sharedinfo = optional;
-  unsigned char seckey_ephemeral[32];
+  unsigned char seckey_ephemeral[ECC_SECKEY_LEN_MAX];
   void *pubkey_ephemeral = ciphertext;
   int kdf_method;
+  size_t ecc_len;
 
   if (algo == GCRY_KEM_CMS_X25519_X963_SHA256)
     kdf_method = GCRY_KDF_X963_KDF;
@@ -456,17 +498,20 @@ _gcry_cms_kem_encap (int algo, const void *pubkey, void *ciphertext,
     return GPG_ERR_UNKNOWN_ALGORITHM;
 
   curveid = GCRY_ECC_CURVE25519;
+  ecc_len = _gcry_ecc_get_algo_keylen (curveid);
 
-  err = _gcry_ecc_raw_keypair (curveid, pubkey_ephemeral, seckey_ephemeral);
+  err = _gcry_ecc_raw_keypair (algo, pubkey_ephemeral, ecc_len,
+                               seckey_ephemeral, ecc_len);
   if (err)
     return err;
 
   /* Do ECDH.  */
-  err = ecc_mul_point (curveid, ecdh, seckey_ephemeral, pubkey);
+  err = ecc_mul_point (algo, ecdh, ecc_len, seckey_ephemeral, ecc_len,
+                       pubkey, ecc_len);
   if (err)
     return err;
 
-  return cms_kem_kdf (kdf_method, GCRY_MD_SHA256, ecdh, sizeof (ecdh),
+  return cms_kem_kdf (kdf_method, GCRY_MD_SHA256, ecdh, ecc_len,
                       sharedinfo, shared);
 }
 
@@ -476,9 +521,10 @@ _gcry_cms_kem_decap (int algo, const void *seckey, const void *ciphertext,
 {
   gpg_err_code_t err;
   int curveid;
-  unsigned char ecdh[32];
+  unsigned char ecdh[ECC_PUBKEY_LEN_MAX];
   const unsigned char *sharedinfo = optional;
   int kdf_method;
+  size_t ecc_len;
 
   if (algo == GCRY_KEM_CMS_X25519_X963_SHA256)
     kdf_method = GCRY_KDF_X963_KDF;
@@ -488,12 +534,14 @@ _gcry_cms_kem_decap (int algo, const void *seckey, const void *ciphertext,
     return GPG_ERR_UNKNOWN_ALGORITHM;
 
   curveid = GCRY_ECC_CURVE25519;
+  ecc_len = _gcry_ecc_get_algo_keylen (curveid);
 
   /* Do ECDH.  */
-  err = ecc_mul_point (curveid, ecdh, seckey, ciphertext);
+  err = ecc_mul_point (algo, ecdh, ecc_len, seckey, ecc_len,
+                       ciphertext, ecc_len);
   if (err)
     return err;
 
-  return cms_kem_kdf (kdf_method, GCRY_MD_SHA256, ecdh, sizeof (ecdh),
+  return cms_kem_kdf (kdf_method, GCRY_MD_SHA256, ecdh, ecc_len,
                       sharedinfo, shared);
 }
