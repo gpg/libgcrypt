@@ -1997,7 +1997,7 @@ typedef int (*gcry_handler_no_mem_t) (void *, size_t, unsigned int);
 /* Type for fatal error handlers.  */
 typedef void (*gcry_handler_error_t) (void *, int, const char *);
 
-/* Type for logging handlers.  */
+/* Type for the deprecated log handler.  */
 typedef void (*gcry_handler_log_t) (void *, int, const char *, va_list);
 
 /* Certain operations can provide progress information.  This function
@@ -2021,9 +2021,9 @@ void gcry_set_outofcore_handler (gcry_handler_no_mem_t h, void *opaque);
    handler. */
 void gcry_set_fatalerror_handler (gcry_handler_error_t fnc, void *opaque);
 
-/* Register a function used instead of the internal logging
-   facility. */
-void gcry_set_log_handler (gcry_handler_log_t f, void *opaque);
+/* This function has no more effect.  */
+void gcry_set_log_handler (gcry_handler_log_t f,
+                           void *opaque) _GCRY_ATTR_INTERNAL;
 
 /* Reserved for future use. */
 void gcry_set_gettext_handler (const char *(*f)(const char*));

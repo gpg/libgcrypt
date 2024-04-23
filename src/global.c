@@ -102,6 +102,9 @@ global_init (void)
   if (!pre_syscall_func)
     gpgrt_get_syscall_clamp (&pre_syscall_func, &post_syscall_func);
 
+  /* Add a handler to be called after log_fatal and log_debug.  */
+  _gcry_set_gpgrt_post_log_handler ();
+
   /* See whether the system is in FIPS mode.  This needs to come as
      early as possible but after ATH has been initialized.  */
   _gcry_initialize_fips_mode (force_fips_mode);

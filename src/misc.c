@@ -42,7 +42,6 @@ static void (*fatal_error_handler)(void*,int, const char*) = NULL;
 static void *fatal_error_handler_value = 0;
 static void (*log_handler)(void*,int, const char*, va_list) = NULL;
 static void *log_handler_value = 0;
-
 static const char *(*user_gettext_handler)( const char * ) = NULL;
 
 void
@@ -97,6 +96,10 @@ _gcry_fatal_error (int rc, const char *text)
   abort ();
 }
 
+/* This is deprecated but very few open source software still uses
+ * this.  However there is more than open source out there and thus we
+ * need to keep the handler specific for Libgcrypt and can't add a
+ * general handler to gpgrt.  */
 void
 _gcry_set_log_handler (void (*f)(void*,int, const char*, va_list), void *opaque)
 {
@@ -116,48 +119,83 @@ _gcry_log_verbosity( int level )
     return verbosity_level >= level;
 }
 
-/****************
- * This is our log function which prints all log messages to stderr or
- * using the function defined with gcry_set_log_handler().
- */
-void
-_gcry_logv( int level, const char *fmt, va_list arg_ptr )
-{
-  if (log_handler)
-    log_handler (log_handler_value, level, fmt, arg_ptr);
-  else
-    {
-      switch (level)
-        {
-        case GCRY_LOG_CONT:  break;
-        case GCRY_LOG_INFO:  break;
-        case GCRY_LOG_WARN:  break;
-        case GCRY_LOG_ERROR: break;
-        case GCRY_LOG_FATAL: fputs("Fatal: ",stderr ); break;
-        case GCRY_LOG_BUG:   fputs("Ohhhh jeeee: ", stderr); break;
-        case GCRY_LOG_DEBUG: fputs("DBG: ", stderr ); break;
-        default: fprintf(stderr,"[Unknown log level %d]: ", level ); break;
-	}
-      vfprintf(stderr,fmt,arg_ptr) ;
-    }
 
-  if ( level == GCRY_LOG_FATAL || level == GCRY_LOG_BUG )
+/* This handler is called after log_fatal and log_info to do what we
+ * used to do in our former own logging functions.  */
+static void
+my_gpgrt_post_fatal_handler (int level)
+{
+  static volatile int done;
+
+  if (!done && (level == GPGRT_LOGLVL_FATAL || level == GPGRT_LOGLVL_BUG))
     {
+      done = 1;
       fips_signal_fatal_error ("internal error (fatal or bug)");
       _gcry_secmem_term ();
-      abort ();
     }
 }
 
 
 void
-_gcry_log( int level, const char *fmt, ... )
+_gcry_set_gpgrt_post_log_handler (void)
 {
-    va_list arg_ptr ;
+#if GPG_ERROR_VERSION_NUMBER >= 0x013100
+  gpgrt_add_post_log_func (my_gpgrt_post_fatal_handler);
+#else
+# ifdef __GCC__
+  #warning Setting the post log handler requires gpgrt 1.49
+# endif
+#endif
+}
 
-    va_start( arg_ptr, fmt ) ;
-    _gcry_logv( level, fmt, arg_ptr );
-    va_end(arg_ptr);
+
+static enum gpgrt_log_levels
+map_log_level (int level)
+{
+  switch (level)
+    {
+    case GCRY_LOG_CONT:  return GPGRT_LOGLVL_CONT;
+    case GCRY_LOG_INFO:  return GPGRT_LOGLVL_INFO;
+    case GCRY_LOG_WARN:  return GPGRT_LOGLVL_WARN;
+    case GCRY_LOG_ERROR: return GPGRT_LOGLVL_ERROR;
+    case GCRY_LOG_FATAL: return GPGRT_LOGLVL_FATAL;
+    case GCRY_LOG_BUG:   return GPGRT_LOGLVL_BUG;
+    case GCRY_LOG_DEBUG:
+    default:             return GPGRT_LOGLVL_DEBUG;
+    }
+}
+
+
+void
+_gcry_logv (int level, const char *fmt, va_list arg_ptr)
+{
+  if (log_handler)
+    {
+      /* The deprecated log handler has been registered.  */
+      log_handler (log_handler_value, level, fmt, arg_ptr);
+      if (level == GCRY_LOG_FATAL || level == GCRY_LOG_BUG)
+        {
+          fips_signal_fatal_error ("internal error (fatal or bug)"
+                                   " [legacy bug handler]");
+          _gcry_secmem_term ();
+          abort ();
+        }
+    }
+  else
+    {
+      gpgrt_logv (map_log_level (level), fmt, arg_ptr);
+    }
+}
+
+
+void
+_gcry_log (int level, const char *fmt, ...)
+{
+  va_list arg_ptr;
+
+  va_start( arg_ptr, fmt ) ;
+  _gcry_logv (level, fmt, arg_ptr);
+  va_end(arg_ptr);
 }
 
 
@@ -165,7 +203,7 @@ _gcry_log( int level, const char *fmt, ... )
 void
 _gcry_bug( const char *file, int line, const char *func )
 {
-    _gcry_log( GCRY_LOG_BUG,
+    _gcry_log (GCRY_LOG_BUG,
 	     ("... this is a bug (%s:%d:%s)\n"), file, line, func );
     abort(); /* never called, but it makes the compiler happy */
 }
@@ -181,7 +219,7 @@ _gcry_assert_failed (const char *expr, const char *file, int line,
 void
 _gcry_bug( const char *file, int line )
 {
-    _gcry_log( GCRY_LOG_BUG,
+    gpgrt_log( GCRY_LOG_BUG,
 	     _("you found a bug ... (%s:%d)\n"), file, line);
     abort(); /* never called, but it makes the compiler happy */
 }
@@ -200,7 +238,7 @@ _gcry_log_info( const char *fmt, ... )
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    _gcry_logv( GCRY_LOG_INFO, fmt, arg_ptr );
+    _gcry_logv (GCRY_LOG_INFO, fmt, arg_ptr);
     va_end(arg_ptr);
 }
 
@@ -210,7 +248,7 @@ _gcry_log_error( const char *fmt, ... )
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    _gcry_logv( GCRY_LOG_ERROR, fmt, arg_ptr );
+    _gcry_logv (GCRY_LOG_ERROR, fmt, arg_ptr);
     va_end(arg_ptr);
 }
 
@@ -221,7 +259,7 @@ _gcry_log_fatal( const char *fmt, ... )
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    _gcry_logv( GCRY_LOG_FATAL, fmt, arg_ptr );
+    _gcry_logv (GCRY_LOG_FATAL, fmt, arg_ptr);
     va_end(arg_ptr);
     abort(); /* never called, but it makes the compiler happy */
 }
@@ -232,7 +270,7 @@ _gcry_log_bug( const char *fmt, ... )
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    _gcry_logv( GCRY_LOG_BUG, fmt, arg_ptr );
+    _gcry_logv (GCRY_LOG_BUG, fmt, arg_ptr);
     va_end(arg_ptr);
     abort(); /* never called, but it makes the compiler happy */
 }
@@ -243,7 +281,7 @@ _gcry_log_debug( const char *fmt, ... )
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    _gcry_logv( GCRY_LOG_DEBUG, fmt, arg_ptr );
+    _gcry_logv (GCRY_LOG_DEBUG, fmt, arg_ptr);
     va_end(arg_ptr);
 }
 

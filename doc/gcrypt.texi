@@ -1584,16 +1584,25 @@ which means that it will be called in error conditions.
 @node Logging handler
 @section Logging handler
 
+Libgcrypt provides a way to install a different log handler to be used
+instead of the internal.  Only few programs make use of it and thus it
+has been deprecated.  If a log handler is not installed and since
+version 1.11 Libgcrypt uses the logging facility of GpgRT (aka
+Libgpg-error).  They are more flexible that Libgcrypt's old logging
+functions and given that GpgRT is anyway a dependency of Libgcrypt it
+is better to always use the GpgRT logging facilities.
+
 @deftp {Data type} gcry_handler_log_t
 This type is defined as: @code{void (*gcry_handler_log_t) (void *, int, const char *, va_list)}
 @end deftp
 
 @deftypefun void gcry_set_log_handler (gcry_handler_log_t @var{func_log}, void *@var{cb_data})
-This function registers @var{func_log} as `logging handler', which means
+This deprecated function registers @var{func_log} as `logging handler', which means
 that it will be called in case Libgcrypt wants to log a message.  This
 function may and should be used prior to calling
 @code{gcry_check_version}.
 @end deftypefun
+
 
 @c **********************************************************
 @c *******************  Ciphers  ****************************
