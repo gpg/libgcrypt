@@ -1710,25 +1710,28 @@ void gcry_kdf_close (gcry_kdf_hd_t h);
 enum gcry_kem_algos
   {
     GCRY_KEM_NONE = 0,
-    GCRY_KEM_SNTRUP761,
-    GCRY_KEM_CM6688128F,     /* Classic McEliece */
-    GCRY_KEM_MLKEM512,       /* aka Kyber512  */
-    GCRY_KEM_MLKEM768,       /* aka Kyber768  */
-    GCRY_KEM_MLKEM1024,      /* aka Kyber1024 */
+    GCRY_KEM_SNTRUP761 = 1,
+    GCRY_KEM_CM6688128F = 2,   /* Classic McEliece */
+    GCRY_KEM_MLKEM512 = 3,     /* aka Kyber512  */
+    GCRY_KEM_MLKEM768 = 4,     /* aka Kyber768  */
+    GCRY_KEM_MLKEM1024= 5,     /* aka Kyber1024 */
     /* From here, ECC KEMs */
-    GCRY_KEM_RAW_X25519,     /* Using X25519 with Identity KDF */
-    GCRY_KEM_RAW_X448,       /* Using X448 with Identity KDF */
-    GCRY_KEM_RAW_BP256,
-    GCRY_KEM_RAW_BP384,
-    GCRY_KEM_DHKEM25519,     /* DHKEM with X25519, HKDF, and SHA256 */
-    GCRY_KEM_DHKEM448,       /* DHKEM with X448, HKDF, and SHA512 */
-    GCRY_KEM_OPENPGP_X25519, /* For OpenPGP, OPTIONAL (KDF parameters) is
-                                required, which defines hash and
-                                outputlen (shared secret length) */
-    GCRY_KEM_CMS_X25519_X963_SHA256, /* CMS with X25519, X963 and SHA256 */
-                          /* For CMS, OPTIONAL (sharedinfo) is required,
-                             which defines keylen for keywrap.  */
-    GCRY_KEM_CMS_X25519_HKDF_SHA256  /* CMS with X25519, HKDF and SHA256 */
+    GCRY_KEM_RAW_X25519=31,    /* Using X25519 with Identity KDF */
+    GCRY_KEM_RAW_X448 = 32,    /* Using X448 with Identity KDF */
+    GCRY_KEM_RAW_BP256= 33,
+    GCRY_KEM_RAW_BP384= 34,
+    GCRY_KEM_RAW_BP512= 35,
+    GCRY_KEM_DHKEM25519=41,    /* DHKEM with X25519, HKDF, and SHA256 */
+    GCRY_KEM_DHKEM448 = 42,    /* DHKEM with X448, HKDF, and SHA512 */
+
+    /* For OpenPGP, OPTIONAL (KDF parameters) is required, which */
+    /* defines hash and outputlen (shared secret length)         */
+    GCRY_KEM_OPENPGP_X25519 = 61,
+    /* CMS with X25519, X963 and SHA256 */
+    GCRY_KEM_CMS_X25519_X963_SHA256 = 71,
+    /* For CMS, OPTIONAL (sharedinfo) is required, which defines
+     * keylen for keywrap.  CMS with X25519, HKDF and SHA256.  */
+    GCRY_KEM_CMS_X25519_HKDF_SHA256 = 72
   };
 
 /*
