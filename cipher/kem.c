@@ -124,6 +124,7 @@ _gcry_kem_keypair (int algo,
     case GCRY_KEM_RAW_X448:
     case GCRY_KEM_RAW_BP256:
     case GCRY_KEM_RAW_BP384:
+    case GCRY_KEM_RAW_BP512:
     case GCRY_KEM_DHKEM25519:
     case GCRY_KEM_DHKEM448:
     case GCRY_KEM_OPENPGP_X25519:
@@ -177,6 +178,7 @@ _gcry_kem_encap (int algo,
     case GCRY_KEM_RAW_X448:
     case GCRY_KEM_RAW_BP256:
     case GCRY_KEM_RAW_BP384:
+    case GCRY_KEM_RAW_BP512:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
       return _gcry_ecc_raw_encap (algo, pubkey, pubkey_len,
@@ -241,6 +243,7 @@ _gcry_kem_decap (int algo,
     case GCRY_KEM_RAW_X448:
     case GCRY_KEM_RAW_BP256:
     case GCRY_KEM_RAW_BP384:
+    case GCRY_KEM_RAW_BP512:
       if (optional != NULL)
         return GPG_ERR_INV_VALUE;
       return _gcry_ecc_raw_decap (algo, seckey, seckey_len,

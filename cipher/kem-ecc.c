@@ -55,6 +55,9 @@ algo_to_curve (int algo)
     case GCRY_KEM_RAW_BP384:
       return "bp384";
 
+    case GCRY_KEM_RAW_BP512:
+      return "bp512";
+
     default:
       return 0;
     }
@@ -82,6 +85,9 @@ algo_to_seckey_len (int algo)
 
     case GCRY_KEM_RAW_BP384:
       return 48;
+
+    case GCRY_KEM_RAW_BP512:
+      return 64;
 
     default:
       return 0;
