@@ -258,7 +258,7 @@ _gcry_ecc_curve_mul_point (const char *curve,
 
   if (point)
     {
-      gcry_mpi_t mpi_u = _gcry_mpi_set_opaque_copy (NULL, point, nbytes*8);
+      gcry_mpi_t mpi_u = _gcry_mpi_set_opaque_copy (NULL, point, point_len*8);
       mpi_point_struct P;
 
       point_init (&P);
