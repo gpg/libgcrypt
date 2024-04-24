@@ -277,7 +277,7 @@ _gcry_ecc_dhkem_decap (int algo, const void *seckey, const void *ciphertext,
 {
   gpg_err_code_t err;
   unsigned char ecdh[ECC_PUBKEY_LEN_MAX];
-  unsigned char pubkey_computed[ECC_SECKEY_LEN_MAX];
+  unsigned char pubkey_computed[ECC_PUBKEY_LEN_MAX];
   const unsigned char *pubkey;
   int curveid;
   int kem_algo;
