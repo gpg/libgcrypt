@@ -310,12 +310,7 @@ print_config (const char *what, gpgrt_stream_t fp)
   if (!what || !strcmp (what, "cc"))
     {
       gpgrt_fprintf (fp, "cc:%d:%s:\n",
-#if GPGRT_VERSION_NUMBER >= 0x011b00 /* 1.27 */
-                     GPGRT_GCC_VERSION
-#else
-                     _GPG_ERR_GCC_VERSION /* Due to a bug in gpg-error.h.  */
-#endif
-                     ,
+                     GPGRT_GCC_VERSION,
 #ifdef __clang__
                      "clang:" __VERSION__
 #elif __GNUC__

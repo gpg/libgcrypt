@@ -139,13 +139,7 @@ my_gpgrt_post_fatal_handler (int level)
 void
 _gcry_set_gpgrt_post_log_handler (void)
 {
-#if GPG_ERROR_VERSION_NUMBER >= 0x013100
   gpgrt_add_post_log_func (my_gpgrt_post_fatal_handler);
-#else
-# ifdef __GCC__
-  #warning Setting the post log handler requires gpgrt 1.49
-# endif
-#endif
 }
 
 
@@ -183,7 +177,8 @@ _gcry_logv (int level, const char *fmt, va_list arg_ptr)
     }
   else
     {
-      gpgrt_logv (map_log_level (level), fmt, arg_ptr);
+      gpgrt_logv_domain ("gcrypt", map_log_level (level), NULL, NULL, 0,
+                         fmt, arg_ptr);
     }
 }
 
