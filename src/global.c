@@ -354,6 +354,11 @@ print_config (const char *what, gpgrt_stream_t fp)
       gpgrt_fprintf (fp, "cpu-arch:"
 #if defined(HAVE_CPU_ARCH_X86)
                      "x86"
+#              ifdef __x86_64__
+                     ":amd64"
+#              else
+                     ":i386"
+#              endif
 #elif defined(HAVE_CPU_ARCH_ALPHA)
                      "alpha"
 #elif defined(HAVE_CPU_ARCH_SPARC)
