@@ -781,8 +781,7 @@ _gcry_ecc_update_curve_param (const char *name,
 }
 
 
-/* Return the name matching the parameters in PKEY.  This works only
-   with curves described by the Weierstrass equation. */
+/* Return the name matching the parameters in PKEY.  */
 const char *
 _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
 {
