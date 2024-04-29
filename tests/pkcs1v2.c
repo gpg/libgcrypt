@@ -444,7 +444,7 @@ check_v15crypt (void)
           seed = data_from_hex (tbl[tno].m[mno].seed, &seed_len);
 
           err = gcry_sexp_build (&plain, NULL,
-                                 "(data (flags pkcs1)(hash-algo sha1)"
+                                 "(data (flags pkcs1)"
                                  "(value %b)(random-override %b))",
                                  (int)mesg_len, mesg,
                                  (int)seed_len, seed);
@@ -474,19 +474,15 @@ check_v15crypt (void)
           plain = NULL;
 
           /* Now test the decryption.  */
-          seed = data_from_hex (tbl[tno].m[mno].seed, &seed_len);
           encr = data_from_hex (tbl[tno].m[mno].encr, &encr_len);
 
           err = gcry_sexp_build (&ciph, NULL,
-                                 "(enc-val (flags pkcs1)(hash-algo sha1)"
-                                 "(random-override %b)"
+                                 "(enc-val (flags pkcs1)"
                                  "(rsa (a %b)))",
-                                 (int)seed_len, seed,
                                  (int)encr_len, encr);
           if (err)
             die ("constructing cipher data failed: %s\n", gpg_strerror (err));
           gcry_free (encr);
-          gcry_free (seed);
 
           err = gcry_pk_decrypt (&plain, ciph, sec_key);
           if (err)
