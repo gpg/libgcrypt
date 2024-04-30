@@ -758,10 +758,10 @@ serpent_avx512_blk32(const void *c, unsigned char *output,
 
       case CFB_DEC:
       {
-	__m128i viv = _mm_loadu_si128((const void *)iv);
+	__m128i viv;
 	vin[0] = _mm512_maskz_loadu_epi32(_cvtu32_mask16(0xfff0),
 					  input - 1 * 64 + 48)
-		  ^ _mm512_castsi128_si512(viv);
+		  ^ _mm512_maskz_loadu_epi32(_cvtu32_mask16(0x000f), iv);
 	vin[1] = _mm512_loadu_epi32(input + 0 * 64 + 48);
 	vin[2] = _mm512_loadu_epi32(input + 1 * 64 + 48);
 	vin[3] = _mm512_loadu_epi32(input + 2 * 64 + 48);
@@ -852,10 +852,10 @@ serpent_avx512_blk32(const void *c, unsigned char *output,
 
       case CBC_DEC:
       {
-	__m128i viv = _mm_loadu_si128((const void *)iv);
+	__m128i viv;
 	vout[0] ^= _mm512_maskz_loadu_epi32(_cvtu32_mask16(0xfff0),
 					    input - 1 * 64 + 48)
-		    ^ _mm512_castsi128_si512(viv);
+		    ^ _mm512_maskz_loadu_epi32(_cvtu32_mask16(0x000f), iv);
 	vout[1] ^= _mm512_loadu_epi32(input + 0 * 64 + 48);
 	vout[2] ^= _mm512_loadu_epi32(input + 1 * 64 + 48);
 	vout[3] ^= _mm512_loadu_epi32(input + 2 * 64 + 48);
