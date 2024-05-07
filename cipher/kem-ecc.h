@@ -38,17 +38,3 @@ gpg_err_code_t _gcry_ecc_dhkem_encap (int algo, const void *pubkey,
 gpg_err_code_t _gcry_ecc_dhkem_decap (int algo, const void *seckey,
                                       const void *ciphertext,
                                       void *shared, const void *optional);
-
-gpg_err_code_t _gcry_openpgp_kem_encap (int algo, const void *pubkey,
-                                        void *ciphertext,
-                                        void *shared, const void *optional);
-gpg_err_code_t _gcry_openpgp_kem_decap (int algo, const void *seckey,
-                                        const void *ciphertext,
-                                        void *shared, const void *optional);
-
-gpg_err_code_t _gcry_cms_kem_encap (int algo, const void *pubkey,
-                                    void *ciphertext,
-                                    void *shared, const void *optional);
-gpg_err_code_t _gcry_cms_kem_decap (int algo, const void *seckey,
-                                    const void *ciphertext,
-                                    void *shared, const void *optional);

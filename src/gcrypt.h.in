@@ -1728,16 +1728,7 @@ enum gcry_kem_algos
     GCRY_KEM_DHKEM448 =  42,    /* DHKEM with X448, HKDF, and SHA512 */
     GCRY_KEM_DHKEMP256R1=43,
     GCRY_KEM_DHKEMP384R1=44,
-    GCRY_KEM_DHKEMP521R1=45,
-
-    /* For OpenPGP, OPTIONAL (KDF parameters) is required, which */
-    /* defines hash and outputlen (shared secret length)         */
-    GCRY_KEM_OPENPGP_X25519 = 61,
-    /* CMS with X25519, X963 and SHA256 */
-    GCRY_KEM_CMS_X25519_X963_SHA256 = 71,
-    /* For CMS, OPTIONAL (sharedinfo) is required, which defines
-     * keylen for keywrap.  CMS with X25519, HKDF and SHA256.  */
-    GCRY_KEM_CMS_X25519_HKDF_SHA256 = 72
+    GCRY_KEM_DHKEMP521R1=45
   };
 
 /*
@@ -1779,13 +1770,12 @@ enum gcry_kem_algos
 #define GCRY_KEM_MLKEM1024_CIPHER_LEN   GCRY_KEM_MLKEM1024_ENCAPS_LEN
 #define GCRY_KEM_MLKEM1024_SHARED_LEN   32
 
-/* For ECC, seckey, pubkey, and ciphertext is defined by the cureve.  */
+/* For ECC, seckey, pubkey, and ciphertext is defined by the curve.  */
 #define GCRY_KEM_ECC_X25519_SECKEY_LEN  32
 #define GCRY_KEM_ECC_X25519_PUBKEY_LEN  32
 #define GCRY_KEM_ECC_X25519_ENCAPS_LEN  32
 #define GCRY_KEM_ECC_X25519_CIPHER_LEN  GCRY_KEM_ECC_X25519_ENCAPS_LEN
-/* And shared secret is specific to the protocol.  For OpenPGP and
-   CMS, it is determined by the OPTIONAL argument.  */
+/* And shared secret is specific to the protocol.  */
 #define GCRY_KEM_RAW_X25519_SHARED_LEN  32
 
 #define GCRY_KEM_DHKEM25519_SECKEY_LEN  GCRY_KEM_ECC_X25519_SECKEY_LEN

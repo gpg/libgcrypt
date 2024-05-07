@@ -130,9 +130,6 @@ _gcry_kem_keypair (int algo,
     case GCRY_KEM_RAW_P521R1:
     case GCRY_KEM_DHKEM25519:
     case GCRY_KEM_DHKEM448:
-    case GCRY_KEM_OPENPGP_X25519:
-    case GCRY_KEM_CMS_X25519_X963_SHA256:
-    case GCRY_KEM_CMS_X25519_HKDF_SHA256:
       return _gcry_ecc_raw_keypair (algo, pubkey, pubkey_len,
                                     seckey, seckey_len);
 
@@ -197,14 +194,6 @@ _gcry_kem_encap (int algo,
         return GPG_ERR_INV_VALUE;
       return _gcry_ecc_dhkem_encap (algo, pubkey, ciphertext, shared);
 
-    case GCRY_KEM_OPENPGP_X25519:
-      return _gcry_openpgp_kem_encap (algo, pubkey, ciphertext, shared,
-                                      optional);
-    case GCRY_KEM_CMS_X25519_X963_SHA256:
-    case GCRY_KEM_CMS_X25519_HKDF_SHA256:
-      return _gcry_cms_kem_encap (algo, pubkey, ciphertext, shared,
-                                  optional);
-
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
     }
@@ -264,13 +253,6 @@ _gcry_kem_decap (int algo,
       return _gcry_ecc_dhkem_decap (algo, seckey, ciphertext, shared,
                                     optional);
 
-    case GCRY_KEM_OPENPGP_X25519:
-      return _gcry_openpgp_kem_decap (algo, seckey, ciphertext, shared,
-                                      optional);
-    case GCRY_KEM_CMS_X25519_X963_SHA256:
-    case GCRY_KEM_CMS_X25519_HKDF_SHA256:
-      return _gcry_cms_kem_decap (algo, seckey, ciphertext, shared,
-                                  optional);
     default:
       return GPG_ERR_UNKNOWN_ALGORITHM;
     }

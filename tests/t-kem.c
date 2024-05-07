@@ -454,172 +454,6 @@ test_kem_dhkem_x25519 (int testno)
     }
 }
 
-/* In the following case, with AES128-keywrap, shared secret length is 16.  */
-#define MY_KEM_OPENPGP_X25519_SHARED_LEN 16
-
-static void
-test_kem_openpgp_x25519 (int testno)
-{
-  gcry_error_t err;
-  uint8_t pubkey[GCRY_KEM_ECC_X25519_PUBKEY_LEN];
-  uint8_t seckey[GCRY_KEM_ECC_X25519_SECKEY_LEN];
-  uint8_t ciphertext[GCRY_KEM_ECC_X25519_ENCAPS_LEN];
-  uint8_t key1[MY_KEM_OPENPGP_X25519_SHARED_LEN];
-  uint8_t key2[MY_KEM_OPENPGP_X25519_SHARED_LEN];
-  const uint8_t kdf_param[56] = {
-    0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0x97, 0x55,
-    0x01, 0x05, 0x01,
-    /**/
-    0x12,
-    /**/
-    0x03, 0x01, 0x08 /*SHA256*/, 0x07 /* AES128 */,
-    /**/
-    0x41, 0x6e, 0x6f, 0x6e, 0x79, 0x6d, 0x6f, 0x75,
-    0x73, 0x20, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72,
-    0x20, 0x20, 0x20, 0x20, /* "Anonymous Sender    " */
-    /**/
-    0x25, 0xd4, 0x45, 0xfa, 0xc1, 0x96, 0x49, 0xc4,
-    0x6a, 0x6b, 0x2f, 0xb3, 0xcd, 0xfc, 0x22, 0x19,
-    0xc5, 0x53, 0xd3, 0x92  /* public key fingerprint */
-  };
-
-  err = gcry_kem_keypair (GCRY_KEM_OPENPGP_X25519,
-                          pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
-                          seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN);
-  if (in_fips_mode)
-    {
-      if (!err)
-        fail ("gcry_kem_keypair is not expected to work in FIPS mode for test %d",
-              testno);
-      if (verbose > 1)
-        info ("not executed in FIPS mode\n");
-      return;
-    }
-  if (err)
-    {
-      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
-      return;
-    }
-
-  err = gcry_kem_encap (GCRY_KEM_OPENPGP_X25519,
-                        pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
-                        ciphertext, GCRY_KEM_ECC_X25519_ENCAPS_LEN,
-                        key1, MY_KEM_OPENPGP_X25519_SHARED_LEN,
-                        kdf_param, sizeof (kdf_param));
-  if (err)
-    {
-      fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
-      return;
-    }
-
-  err = gcry_kem_decap (GCRY_KEM_OPENPGP_X25519,
-                        seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN,
-                        ciphertext, GCRY_KEM_ECC_X25519_ENCAPS_LEN,
-                        key2, MY_KEM_OPENPGP_X25519_SHARED_LEN,
-                        kdf_param, sizeof (kdf_param));
-  if (err)
-    {
-      fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
-      return;
-    }
-
-  if (memcmp (key1, key2, MY_KEM_OPENPGP_X25519_SHARED_LEN) != 0)
-    {
-      size_t i;
-
-      fail ("openpgp-x25519 test %d failed: mismatch\n", testno);
-      fputs ("key1:", stderr);
-      for (i = 0; i < MY_KEM_OPENPGP_X25519_SHARED_LEN; i++)
-        fprintf (stderr, " %02x", key1[i]);
-      putc ('\n', stderr);
-      fputs ("key2:", stderr);
-      for (i = 0; i < MY_KEM_OPENPGP_X25519_SHARED_LEN; i++)
-        fprintf (stderr, " %02x", key2[i]);
-      putc ('\n', stderr);
-    }
-}
-
-
-/* In the following case, with AES128-keywrap, shared secret length is 16.  */
-#define MY_KEM_CMS_X25519_SHARED_LEN 16
-
-static void
-test_kem_cms_x25519 (int testno)
-{
-  gcry_error_t err;
-  uint8_t pubkey[GCRY_KEM_ECC_X25519_PUBKEY_LEN];
-  uint8_t seckey[GCRY_KEM_ECC_X25519_SECKEY_LEN];
-  uint8_t ciphertext[GCRY_KEM_ECC_X25519_ENCAPS_LEN];
-  uint8_t key1[MY_KEM_CMS_X25519_SHARED_LEN];
-  uint8_t key2[MY_KEM_CMS_X25519_SHARED_LEN];
-  const uint8_t sharedinfo[23] = {
-    0x30, 0x15 , /* SEQUENCE */
-          0x30, 0x0B, /* SEQUENCE */
-              /* OID */
-                0x06, 0x09, /* OBJECT_ID */
-                      0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x05,
-          /* CONTEXT 2*/
-          0xA2, 0x06,
-                      0x04, 0x04, /* OCTET STRING */
-                      0x00, 0x00, 0x00, 0x80
-  };
-
-  err = gcry_kem_keypair (GCRY_KEM_CMS_X25519_X963_SHA256,
-                          pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
-                          seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN);
-  if (in_fips_mode)
-    {
-      if (!err)
-        fail ("gcry_kem_keypair is not expected to work in FIPS mode for test %d",
-              testno);
-      if (verbose > 1)
-        info ("not executed in FIPS mode\n");
-      return;
-    }
-  if (err)
-    {
-      fail ("gcry_kem_keypair %d: %s", testno, gpg_strerror (err));
-      return;
-    }
-
-  err = gcry_kem_encap (GCRY_KEM_CMS_X25519_X963_SHA256,
-                        pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
-                        ciphertext, GCRY_KEM_ECC_X25519_ENCAPS_LEN,
-                        key1, MY_KEM_CMS_X25519_SHARED_LEN,
-                        sharedinfo, sizeof (sharedinfo));
-  if (err)
-    {
-      fail ("gcry_kem_encap %d: %s", testno, gpg_strerror (err));
-      return;
-    }
-
-  err = gcry_kem_decap (GCRY_KEM_CMS_X25519_X963_SHA256,
-                        seckey, GCRY_KEM_ECC_X25519_SECKEY_LEN,
-                        ciphertext, GCRY_KEM_ECC_X25519_ENCAPS_LEN,
-                        key2, MY_KEM_CMS_X25519_SHARED_LEN,
-                        sharedinfo, sizeof (sharedinfo));
-  if (err)
-    {
-      fail ("gcry_kem_decap %d: %s", testno, gpg_strerror (err));
-      return;
-    }
-
-  if (memcmp (key1, key2, MY_KEM_CMS_X25519_SHARED_LEN) != 0)
-    {
-      size_t i;
-
-      fail ("openpgp-x25519 test %d failed: mismatch\n", testno);
-      fputs ("key1:", stderr);
-      for (i = 0; i < MY_KEM_CMS_X25519_SHARED_LEN; i++)
-        fprintf (stderr, " %02x", key1[i]);
-      putc ('\n', stderr);
-      fputs ("key2:", stderr);
-      for (i = 0; i < MY_KEM_CMS_X25519_SHARED_LEN; i++)
-        fprintf (stderr, " %02x", key2[i]);
-      putc ('\n', stderr);
-    }
-}
-
 
 #define SELECTED_ALGO_SNTRUP761  (1 << 0)
 #define SELECTED_ALGO_MLKEM512   (1 << 1)
@@ -627,9 +461,7 @@ test_kem_cms_x25519 (int testno)
 #define SELECTED_ALGO_MLKEM1024  (1 << 3)
 #define SELECTED_ALGO_RAW_X25519 (1 << 4)
 #define SELECTED_ALGO_DHKEM25519 (1 << 5)
-#define SELECTED_ALGO_OPENPGP_X25519 (1 << 6)
-#define SELECTED_ALGO_CMS_X25519 (1 << 7)
-#define SELECTED_ALGO_CM6688128F (1 << 8)
+#define SELECTED_ALGO_CM6688128F (1 << 6)
 
 static unsigned int selected_algo;
 
@@ -692,20 +524,6 @@ check_kem (int n_loops)
       ntests += n_loops;
     }
 
-  if ((selected_algo & SELECTED_ALGO_OPENPGP_X25519))
-    {
-      for (; testno < ntests + n_loops; testno++)
-        test_kem_openpgp_x25519 (testno);
-      ntests += n_loops;
-    }
-
-  if ((selected_algo & SELECTED_ALGO_CMS_X25519))
-    {
-      for (; testno < ntests + n_loops; testno++)
-        test_kem_cms_x25519 (testno);
-      ntests += n_loops;
-    }
-
   show_note ("%d tests done\n", ntests);
 }
 
@@ -746,9 +564,7 @@ main (int argc, char **argv)
                  "  --mlkem512      select MLKEM512 algo\n"
                  "  --mlkem768      select MLKEM768 algo\n"
                  "  --mlkem1024     select MLKEM1024 algo\n"
-                 "  --dhkem25519    select DHKEM25519 algo\n"
-                 "  --pgp-x25519    select PGP_X25519 algo\n"
-                 "  --cms-x25519    select CMS_X25519_X963 algo\n",
+                 "  --dhkem25519    select DHKEM25519 algo\n",
                  stdout);
           exit (0);
         }
@@ -812,18 +628,6 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--dhkem25519"))
         {
           selected_algo = SELECTED_ALGO_DHKEM25519;
-          argc--;
-          argv++;
-        }
-      else if (!strcmp (*argv, "--pgp-x25519"))
-        {
-          selected_algo = SELECTED_ALGO_OPENPGP_X25519;
-          argc--;
-          argv++;
-        }
-      else if (!strcmp (*argv, "--cms-x25519"))
-        {
-          selected_algo = SELECTED_ALGO_CMS_X25519;
           argc--;
           argv++;
         }
