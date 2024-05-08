@@ -182,13 +182,11 @@ SECTION_RODATA
 
 .align 4
 ELF(.type _gcry_chacha20_aarch64_blocks4_data_inc_counter,%object;)
-.globl _gcry_chacha20_aarch64_blocks4_data_inc_counter
 _gcry_chacha20_aarch64_blocks4_data_inc_counter:
 	.long 0,1,2,3
 
 .align 4
 ELF(.type _gcry_chacha20_aarch64_blocks4_data_rot8,%object;)
-.globl _gcry_chacha20_aarch64_blocks4_data_rot8
 _gcry_chacha20_aarch64_blocks4_data_rot8:
 	.byte 3,0,1,2
 	.byte 7,4,5,6
