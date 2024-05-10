@@ -857,7 +857,7 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
           if (!match_p)
             continue;
 
-          for (j=0; i< DIM(ctx->t.scratch) && bad_points_table[i][j]; j++)
+          for (j=0; j < DIM(ctx->t.scratch) && bad_points_table[i][j]; j++)
             ctx->t.scratch[j] = scanval (bad_points_table[i][j]);
         }
     }
