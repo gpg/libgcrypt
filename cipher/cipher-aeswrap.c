@@ -300,7 +300,7 @@ _gcry_cipher_keywrap_decrypt_auto (gcry_cipher_hd_t c,
           unsigned int plen = (t[4]<<24) | (t[5]<<16) | (t[6]<<8) | t[7];
 
           err = 0;
-          if (plen > 8)
+          if (plen >= 8)
             err = GPG_ERR_CHECKSUM;
           else if (plen)
             {
