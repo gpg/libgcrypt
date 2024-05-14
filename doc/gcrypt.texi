@@ -297,12 +297,17 @@ gcc -o foo foo.c `pkg-config --cflags --libs libgcrypt`
 @node Building sources using Automake
 @section Building sources using Automake
 
-It is much easier if you use GNU Automake instead of writing your own
-Makefiles.  If you do that, you do not have to worry about finding and
-invoking the @command{pkg-config} script at all.
+You can simply use @code{PKG_CHECK_MODULES} macro with @command{pkg-config}:
 
-You can use @code{PKG_CHECK_MODULES} macro, or, libgcrypt also
-provides an extension to Automake that does all the work for you.
+@example
+PKG_CHECK_MODULES([LIBGCRYPT], [libgcrypt >= 1.11])
+@end example
+
+Alternatively, instead of using @command{pkg-config}, for building on
+an environment with no pkg-config, libgcrypt also provides an
+extension to Automake that does all the work for you.  Please note
+that it is required to have gpgrt-config from libgpg-error installed
+in this case.
 
 @c A simple macro for optional variables.
 @macro ovar{varname}
