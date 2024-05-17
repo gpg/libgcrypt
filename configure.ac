@@ -3882,11 +3882,3 @@ cat <<G10EOF
 
 G10EOF
 fi
-
-if test -n "$gpl"; then
-  echo "Please note that you are building a version of Libgcrypt with"
-  echo "  $gpl"
-  echo "included.  These parts are licensed under the GPL and thus the"
-  echo "use of this library has to comply with the conditions of the GPL."
-  echo ""
-fi
