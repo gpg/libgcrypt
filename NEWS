@@ -1,10 +1,289 @@
 Noteworthy changes in version 1.11.0 (unreleased)  [C25/A5/R0]
 -------------------------------------------------
 
- * Other features:
+ * New and extended interfaces:
+
+   - Add an API for Key Encapsulation Mechanism (KEM).  [T6755]
+
+   - Add Streamlined NTRU Prime sntrup761 algorithm.  [rCcf9923e1a5]
+
+   - Add Kyber algorithm.  [rC18e5c0d268]
+
+   - Add Classic McEliece algorithm.  [rC003367b912]
+
+   - Add One-Step KDF with hash and MAC.  [T5964]
+
+   - Add KDF algorithm HKDF of RFC-5869.  [T5964]
+
+   - Add KDF algorithm X963KDF for use in CMS.  [rC3abac420b3]
+
+   - Add GMAC-SM4 and Poly1305-SM4.  [rCd1ccc409d4]
+
+   - Add ARIA block cipher algorithm.  [rC316c6d7715]
+
+   - Add explicit FIPS indicators for MD and MAC algorithms.  [T6376]
+
+   - Add support for SHAKE as MGF in RSA.  [T6557]
+
+   - Add gcry_md_read support for SHAKE algorithms.  [T6539]
+
+   - Add gcry_md_hash_buffers_ext function.  [T7035]
+
+   - Add cSHAKE hash algorithm.  [rC065b3f4e02]
+
+   - Support internal generation of IV for AEAD cipher mode.  [T4873]
+
+ * Performance:
+
+   - Add SM3 ARMv8/AArch64/CE assembly implementation.  [rCfe891ff4a3]
+
+   - Add SM4 ARMv8/AArch64 assembly implementation.  [rCd8825601f1]
+
+   - Add SM4 GFNI/AVX2 and GFI/AVX512 implementation.
+     [rC5095d60af4,rCeaed633c16]
+
+   - Add SM4 ARMv9 SVE CE assembly implementation.  [rC2dc2654006]
+
+   - Add PowerPC vector implementation of SM4.  [rC0b2da804ee]
+
+   - Optimize ChaCha20 and Poly1305 for PPC P10 LE.  [T6006]
+
+   - Add CTR32LE bulk acceleration for AES on PPC.  [rC84f2e2d0b5]
+
+   - Add generic bulk acceleration for CTR32LE mode (GCM-SIV) for SM4
+     and Camellia.  [rCcf956793af]
+
+   - Add GFNI/AVX2 implementation of Camellia.  [rC4e6896eb9f]
+
+   - Add AVX2 and AVX512 accelerated implementations for GHASH (GCM)
+     and POLYVAL (GCM-SIV).  [rCd857e85cb4, rCe6f3600193]
+
+   - Add AVX512 implementation for SHA512.  [rC089223aa3b]
+
+   - Add AVX512 implementation for Serpent.  [rCce95b6ec35]
+
+   - Add AVX512 implementation for Poly1305 and ChaCha20
+     [rCcd3ed49770, rC9a63cfd617]
+
+   - Add AVX512 accelerated implementation for SHA3 and Blake2
+     [rCbeaad75f46,rC909daa700e]
+
+   - Add VAES/AVX2 accelerated i386 implementation for AES.
+     [rC4a42a042bc]
+
+   - Add bulk processing for XTS mode of Camellia and SM4.
+     [rC32b18cdb87, rCaad3381e93]
+
+   - Accelerate XTS and ECB modes for Twofish and Serpent.
+     [rCd078a928f5,rC8a1fe5f78f]
+
+   - Add AArch64 crypto/SHA512 extension implementation for
+     SHA512. [rCe51d3b8330]
+
+   - Add AArch64 crypto-extension implementation for Camellia.
+     [rC898c857206]
+
+   - Accelerate OCB authentication on AMD with AVX2.  [rC6b47e85d65]
+
+ * Bug fixes:
+
+   - For PowerPC check for missing optimization level for vector
+     register usage.  [T5785]
+
+   - Fix EdDSA secret key check.  [T6511]
+
+   - Fix decoding of PKCS#1-v1.5 and OAEP padding.  [rC34c2042792]
+
+   - Allow use of PKCS#1-v1.5 with SHA3 algorithms.  [T6976]
+
+ * Other:
+
+   - Allow empty password for Argon2 KDF.  [rCa20700c55f]
+
+   - Various constant time operation imporvements.
+
+   - Add "bp256", "bp384", "bp512" aliases for Brainpool curves.
+
+   - Support for the random server has been removed.  [T5811]
 
    - The control code GCRYCTL_ENABLE_M_GUARD is deprecated and not
-     supported any more.  Please use valgrind or other tools.
+     supported any more.  Please use valgrind or other tools.  [T5822]
+
+   - Logging is now done via the libgpg-error logging functions.
+     [rCab0bdc72c7]
+
+
+ Changes also found in 1.10.3:
+
+ * Bug fixes:
+
+   - Fix public key computation for other EdDSA curves.
+     [rC469919751d6e]
+
+   - Remove out of core handler diagnostic in FIPS mode.  [T6515]
+
+   - Check that the digest size is not zero in gcry_pk_sign_md and
+     gcry_pk_verify_md.  [T6539]
+
+   - Make store an s-exp with \0 is considered to be binary.  [T6747]
+
+   - Various constant-time improvements.
+
+ * Portability:
+
+   - Use getrandom call only when supported by the platform.  [T6442]
+
+   - Change the default for --with-libtool-modification to never.
+     [T6619]
+
+
+ Changes also found in 1.10.2
+
+ * Bug fixes:
+
+   - Fix Argon2 for the case output > 64.  [rC13b5454d26]
+
+   - Fix missing HWF_PPC_ARCH_3_10 in HW feature.  [rCe073f0ed44]
+
+   - Fix RSA key generation failure in forced FIPS mode.  [T5919]
+
+   - Fix gcry_pk_hash_verify for explicit hash.  [T6066]
+
+   - Fix a wrong result of gcry_mpi_invm.  [T5970]
+
+   - Allow building with --disable-asm for HPPA.  [T5976]
+
+   - Fix Jitter RNG for building native on Windows.  [T5891]
+
+   - Allow building with -Oz.  [T6432]
+
+   - Enable the fast path to ChaCha20 only when supported.  [T6384]
+
+   - Use size_t to avoid counter overflow in Keccak when directly
+     feeding more than 4GiB.  [T6217]
+
+ * Other:
+
+   - Do not use secure memory for a DRBG instance.  [T5933]
+
+   - Do not allow PKCS#1.5 padding for encryption in FIPS mode.
+     [T5918]
+
+   - Fix the behaviour for child process re-seeding in the DRBG.
+     [rC019a40c990]
+
+   - Allow verification of small RSA signatures in FIPS mode.  [T5975]
+
+   - Allow the use of a shorter salt for KDFs in FIPS mode.  [T6039]
+
+   - Run digest+sign self tests for RSA and ECC in FIPS mode.
+     [rC06c9350165]
+
+   - Add function-name based FIPS indicator function.
+     GCRYCTL_FIPS_SERVICE_INDICATOR_FUNCTION.  This is not considered
+     an ABI changes because the new FIPS features were not yet
+     approved.  [rC822ee57f07]
+
+   - Improve PCT in FIPS mode.  [rC285bf54b1a, rC4963c127ae, T6397]
+
+   - Use getrandom (GRND_RANDOM) in FIPS mode.  [rCcf10c74bd9]
+
+   - Disable RSA-OAEP padding in FIPS mode.  [rCe5bfda492a]
+
+   - Check minimum allowed key size in PBKDF in FIPS mode.
+     [T6039,T6219]
+
+   - Get maximum 32B of entropy at once in FIPS mode.  [rCce0df08bba]
+
+   - Prefer gpgrt-config when available.  [T5034]
+
+   - Mark AESWRAP as approved FIPS algorithm.  [T5512]
+
+   - Prevent usage of long salt for PSS in FIPS mode.  [rCfdd2a8b332]
+
+   - Prevent usage of X9.31 keygen in FIPS mode.  [rC392e0ccd25]
+
+   - Remove GCM mode from the allowed FIPS indicators.  [rC1540698389]
+
+   - Add explicit FIPS indicators for hash and MAC algorithms. [T6376]
+
+
+ Changes also found in 1.10.1:
+
+ * Bug fixes:
+
+   - Fix minor memory leaks in FIPS mode.
+
+   - Build fixes for MUSL libc.  [rCffaef0be61]
+
+ * Other:
+
+   - More portable integrity check in FIPS mode.  [rC9fa4c8946a,T5835]
+
+   - Add X9.62 OIDs to sha256 and sha512 modules.  [rC52fd2305ba]
+
+
+ * Interface changes relative to the 1.10.0 release:
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   GCRY_CIPHER_ARIA128                   NEW cipher algo.
+   GCRY_CIPHER_ARIA192                   NEW cipher algo.
+   GCRY_CIPHER_ARIA256                   NEW cipher algo.
+   gcry_cipher_geniv_methods             NEW type.
+   gcry_cipher_setup_geniv               NEW function.
+   gcry_cipher_geniv                     NEW function.
+   GCRY_PK_KEM                           NEW constant.
+   GCRY_MD_CSHAKE128                     NEW hash algo.
+   GCRY_MD_CSHAKE256                     NEW hash algo.
+   GCRYCTL_MD_CUSTOMIZE                  NEW control code.
+   gcry_cshake_customization             NEW type.
+   GCRY_MAC_CMAC_ARIA                    NEW mac algo.
+   GCRY_MAC_GMAC_SM4                     NEW mac algo.
+   GCRY_MAC_GMAC_ARIA                    NEW mac algo.
+   GCRY_MAC_POLY1305_SM4                 NEW mac algo.
+   GCRY_MAC_POLY1305_ARIA                NEW mac algo.
+   GCRY_KDF_ONESTEP_KDF                  NEW kdf algo.
+   GCRY_KDF_ONESTEP_KDF_MAC              NEW kdf algo.
+   GCRY_KDF_X963_KDF                     NEW kdf algo.
+   gcry_kem_algos                        NEW type.
+   gcry_kem_keypair                      NEW function.
+   gcry_kem_encap                        NEW function.
+   gcry_kem_decap                        NEW function.
+   GCRY_KEM_SNTRUP761                    NEW kem algo.
+   GCRY_KEM_CM6688128F                   NEW kem algo.
+   GCRY_KEM_MLKEM512                     NEW kem algo.
+   GCRY_KEM_MLKEM768                     NEW kem algo.
+   GCRY_KEM_MLKEM1024                    NEW kem algo.
+   GCRY_KEM_RAW_X25519                   NEW kem algo.
+   GCRY_KEM_RAW_X448                     NEW kem algo.
+   GCRY_KEM_RAW_BP256                    NEW kem algo.
+   GCRY_KEM_RAW_BP384                    NEW kem algo.
+   GCRY_KEM_RAW_BP512                    NEW kem algo.
+   GCRY_KEM_RAW_P256R1                   NEW kem algo.
+   GCRY_KEM_RAW_P384R1                   NEW kem algo.
+   GCRY_KEM_RAW_P521R1                   NEW kem algo.
+   GCRY_KEM_DHKEM25519                   NEW kem algo.
+   GCRY_KEM_DHKEM448                     NEW kem algo.
+   GCRY_KEM_DHKEMP256R1                  NEW kem algo.
+   GCRY_KEM_DHKEMP384R1                  NEW kem algo.
+   GCRY_KEM_DHKEMP521R1                  NEW kem algo.
+   GCRY_KEM_*_SECKEY_LEN                 NEW constants.
+   GCRY_KEM_*_PUBKEY_LEN                 NEW constants.
+   GCRY_KEM_*_ENCAPS_LEN                 NEW constants.
+   GCRY_KEM_*_CIPHER_LEN                 NEW constants.
+   GCRY_KEM_*_SHARED_LEN                 NEW constants.
+   gcry_md_hash_buffers_ext              NEW function.
+   gcry_pk_input_data_push               NEW macro.
+   GCRYCTL_ENABLE_M_GUARD                DEPRECATED feature.
+   gcry_handler_log_t                    DEPRECATED type.
+   gcry_set_log_handler                  DEPRECATED function.
+
+
+Release dates of 1.10 versions
+------------------------------
+
+ Version 1.10.3 (2023-11-14) https://dev.gnupg.org/T6817
+ Version 1.10.2 (2023-04-06) https://dev.gnupg.org/T5905
+ Version 1.10.1 (2022-03-28) https://dev.gnupg.org/T5810
 
 
 Noteworthy changes in version 1.10.0 (2022-02-01)  [C24/A4/R0]
@@ -58,7 +337,7 @@ Noteworthy changes in version 1.10.0 (2022-02-01)  [C24/A4/R0]
    - Simplification of the entropy gatherer when using the getentropy
      system call.
 
- * Interface changes relative to the 1.10.0 release:
+ * Interface changes relative to the 1.9.0 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    GCRYCTL_SET_DECRYPTION_TAG            NEW control code.
    GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER NEW control code.
@@ -89,9 +368,11 @@ Noteworthy changes in version 1.10.0 (2022-02-01)  [C24/A4/R0]
 
  Release-info: https://dev.gnupg.org/T5691
 
- Release dates of 1.9.x versions:
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   Version 1.9.4 (2021-08-22)
+
+Release dates of 1.9 versions
+-----------------------------
+
+ Version 1.9.4 (2021-08-22) https://dev.gnupg.org/T5402
 
 
 Noteworthy changes in version 1.9.3 (2021-04-19)  [C23/A3/R3]
@@ -392,14 +673,16 @@ Noteworthy changes in version 1.9.0 (2021-01-19)  [C23/A3/R0]
 
  Release-info: https://dev.gnupg.org/T4294
 
- Release dates of 1.8.x versions:
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   Version 1.8.2 (2017-12-13)
-   Version 1.8.3 (2018-06-13)
-   Version 1.8.4 (2018-10-26)
-   Version 1.8.5 (2019-08-29)
-   Version 1.8.6 (2020-07-06)
-   Version 1.8.7 (2020-10-23)
+
+Release dates of 1.8 versions
+-----------------------------
+
+ Version 1.8.7 (2020-10-23)
+ Version 1.8.6 (2020-07-06)
+ Version 1.8.5 (2019-08-29)
+ Version 1.8.4 (2018-10-26)
+ Version 1.8.3 (2018-06-13)
+ Version 1.8.2 (2017-12-13)
 
 
 Noteworthy changes in version 1.8.1 (2017-08-27)  [C22/A2/R1]
@@ -521,15 +804,16 @@ Noteworthy changes in version 1.8.0 (2017-07-18)  [C22/A2/R0]
    GCRY_CIPHER_MODE_XTS            NEW constant.
    gcry_md_info                    DEPRECATED.
 
- * Release dates of 1.7.x versions:
-   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   Version 1.7.10 (2018-06-13) [C21/A1/R10]
-   Version 1.7.9  (2017-08-27) [C21/A1/R9]
-   Version 1.7.8  (2017-06-29) [C21/A1/R8]
-   Version 1.7.7  (2017-06-02) [C21/A1/R7]
-   Version 1.7.6  (2017-01-18) [C21/A1/R6]
-   Version 1.7.5  (2016-12-15) [C21/A1/R5]
-   Version 1.7.4  (2016-12-09) [C21/A1/R4]
+Release dates of 1.7 versions
+-----------------------------
+
+ Version 1.7.10 (2018-06-13) [C21/A1/R10]
+ Version 1.7.9  (2017-08-27) [C21/A1/R9]
+ Version 1.7.8  (2017-06-29) [C21/A1/R8]
+ Version 1.7.7  (2017-06-02) [C21/A1/R7]
+ Version 1.7.6  (2017-01-18) [C21/A1/R6]
+ Version 1.7.5  (2016-12-15) [C21/A1/R5]
+ Version 1.7.4  (2016-12-09) [C21/A1/R4]
 
 
 Noteworthy changes in version 1.7.3 (2016-08-17)  [C21/A1/R3]
