@@ -1,7 +1,6 @@
 Library: Libgcrypt
-Homepage: https://www.gnupg.org/related_software/libgcrypt/
-Download: https://ftp.gnupg.org/ftp/gcrypt/libgcrypt/
-          ftp://ftp.gnupg.org/gcrypt/libgcrypt/
+Homepage: https://gnupg.org/related_software/libgcrypt/
+Download: https://gnupg.org/ftp/gcrypt/libgcrypt/
 Repository: git://git.gnupg.org/libgcrypt.git
 Maintainer: Werner Koch <wk@gnupg.org>
 Bug reports: https://bugs.gnupg.org
