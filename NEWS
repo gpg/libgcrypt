@@ -1,3 +1,10 @@
+Noteworthy changes in version 1.11.1 (unreleased)  [C25/A5/R_]
+-------------------------------------------------
+
+
+ Release-info: https://dev.gnupg.org/T7166
+
+
 Noteworthy changes in version 1.11.0 (2024-06-19)  [C25/A5/R0]
 -------------------------------------------------
 
@@ -279,6 +286,8 @@ Noteworthy changes in version 1.11.0 (2024-06-19)  [C25/A5/R0]
    GCRYCTL_ENABLE_M_GUARD                DEPRECATED feature.
    gcry_handler_log_t                    DEPRECATED type.
    gcry_set_log_handler                  DEPRECATED function.
+
+ Release-info: https://dev.gnupg.org/T7165
 
 
 Release dates of 1.10 versions
