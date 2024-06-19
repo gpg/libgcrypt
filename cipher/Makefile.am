@@ -74,6 +74,7 @@ libcipher_la_SOURCES = \
 EXTRA_libcipher_la_SOURCES = \
 	asm-common-aarch64.h \
 	asm-common-amd64.h \
+	asm-common-i386.h \
 	asm-common-s390x.h \
 	asm-inline-s390x.h \
 	asm-poly1305-aarch64.h \

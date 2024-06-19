@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.11.0 (unreleased)  [C25/A5/R0]
+Noteworthy changes in version 1.11.0 (2024-06-19)  [C25/A5/R0]
 -------------------------------------------------
 
  * New and extended interfaces:
@@ -7,7 +7,8 @@ Noteworthy changes in version 1.11.0 (unreleased)  [C25/A5/R0]
 
    - Add Streamlined NTRU Prime sntrup761 algorithm.  [rCcf9923e1a5]
 
-   - Add Kyber algorithm.  [rC18e5c0d268]
+   - Add Kyber algorithm according to FIPS 203 ipd 2023-08-24.
+     [rC18e5c0d268]
 
    - Add Classic McEliece algorithm.  [rC003367b912]
 
@@ -95,6 +96,8 @@ Noteworthy changes in version 1.11.0 (unreleased)  [C25/A5/R0]
    - Fix decoding of PKCS#1-v1.5 and OAEP padding.  [rC34c2042792]
 
    - Allow use of PKCS#1-v1.5 with SHA3 algorithms.  [T6976]
+
+   - Fix AESWRAP padding length check.  [T7130]
 
  * Other:
 
