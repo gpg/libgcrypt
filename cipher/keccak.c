@@ -745,6 +745,8 @@ keccak_final_s390x (void *context)
     }
   else
     {
+      gcry_assert(ctx->suffix == SHAKE_DELIMITED_SUFFIX);
+
       klmd_shake_execute (ctx->kimd_func, &ctx->state, NULL, 0, ctx->buf,
 			  ctx->count);
       ctx->count = 0;
@@ -1497,9 +1499,14 @@ _gcry_cshake_customize (void *context, struct gcry_cshake_customization *p)
     /* No customization */
     return 0;
 
+  ctx->suffix = CSHAKE_DELIMITED_SUFFIX;
+#ifdef USE_S390X_CRYPTO
+  /* CSHAKE suffix is not supported by s390x/kimd. */
+  ctx->kimd_func = 0;
+#endif
+
   len_written = cshake_input_n (ctx, p->n, p->n_len);
   cshake_input_s (ctx, p->s, p->s_len, len_written);
-  ctx->suffix = CSHAKE_DELIMITED_SUFFIX;
   return 0;
 }
 
@@ -1536,9 +1543,14 @@ cshake_hash_buffers (const gcry_md_spec_t *spec, void *outbuf, size_t nbytes,
           size_t s_len = iov[1].len;
           size_t len;
 
+          ctx.suffix = CSHAKE_DELIMITED_SUFFIX;
+#ifdef USE_S390X_CRYPTO
+          /* CSHAKE suffix is not supported by s390x/kimd. */
+          ctx.kimd_func = 0;
+#endif
+
           len = cshake_input_n (&ctx, n, n_len);
           cshake_input_s (&ctx, s, s_len, len);
-          ctx.suffix = CSHAKE_DELIMITED_SUFFIX;
         }
       iovcnt -= 2;
       iov += 2;
