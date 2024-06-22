@@ -35,7 +35,7 @@ mpi_limb_t
 _gcry_mpih_sub_n( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 				  mpi_ptr_t s2_ptr, mpi_size_t size)
 {
-  mpi_limb_t x, y, cy;
+  mpi_limb_t x, y, cy, borrow;
   mpi_size_t j;
 
   /* The loop counter and index J goes from -SIZE to -1.  This way
@@ -48,16 +48,18 @@ _gcry_mpih_sub_n( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
   res_ptr -= j;
 
   cy = 0;
-  do 
+  do
     {
       y = s2_ptr[j];
       x = s1_ptr[j];
-      y += cy;		  /* add previous carry to subtrahend */
-      cy = y < cy;		  /* get out carry from that addition */
-      y = x - y;		  /* main subtract */
-      cy += y > x;		  /* get out carry from the subtract, combine */
+      /* Add previous carry to subtrahend and get out carry from
+       * that addition.  */
+      add_ssaaaa (cy, y, 0, y, 0, cy);
+      /* Main subtract and get out carry from the subtract, combine.  */
+      sub_ddmmss( borrow, y, 0, x, 0, y );
+      cy -= borrow;
       res_ptr[j] = y;
-    } 
+    }
   while( ++j );
 
   return cy;
