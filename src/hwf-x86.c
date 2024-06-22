@@ -39,7 +39,7 @@
 #if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
 # define HAS_X86_CPUID 1
 
-#ifdef HAVE_GCC_ASM_CFI_DIRECTIVES
+#if defined(HAVE_GCC_ASM_CFI_DIRECTIVES) && !defined(_WIN32)
 # define CFI_ADJUST_CFA_OFFSET(off) ".cfi_adjust_cfa_offset " #off "\n\t"
 # define CFI_PUSH4 CFI_ADJUST_CFA_OFFSET(4)
 # define CFI_POP4 CFI_ADJUST_CFA_OFFSET(-4)
