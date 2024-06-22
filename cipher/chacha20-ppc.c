@@ -65,7 +65,7 @@ vec_rol_elems(vector4x_u32 v, unsigned int idx)
 
 
 static ASM_FUNC_ATTR_INLINE vector4x_u32
-vec_load_le(unsigned long offset, const unsigned char *ptr)
+vec_load_le(unsigned long offset, const void *ptr)
 {
   vector4x_u32 vec;
   vec = vec_vsx_ld (offset, (const u32 *)ptr);
@@ -78,7 +78,7 @@ vec_load_le(unsigned long offset, const unsigned char *ptr)
 
 
 static ASM_FUNC_ATTR_INLINE void
-vec_store_le(vector4x_u32 vec, unsigned long offset, unsigned char *ptr)
+vec_store_le(vector4x_u32 vec, unsigned long offset, void *ptr)
 {
 #ifdef WORDS_BIGENDIAN
   vec = (vector4x_u32)vec_perm((vector16x_u8)vec, (vector16x_u8)vec,
