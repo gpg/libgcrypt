@@ -44,7 +44,7 @@ size_t
 _gcry_aes_p10le_gcm_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
                           const void *inbuf_arg, size_t nblocks, int encrypt)
 {
-  RIJNDAEL_context *ctx = (RIJNDAEL_context *) &c->context.c;
+  RIJNDAEL_context *ctx = (void *)&c->context.c;
   unsigned char *rk = (unsigned char *) ctx->u1.keyschedule;
   unsigned char *gcm_table = (unsigned char *) c->u_mode.gcm.gcm_table;
   unsigned char *iv = c->u_ctr.ctr;
