@@ -90,16 +90,16 @@ if test "$tmp_do_check" = "yes"; then
 EOF
   if AC_TRY_EVAL(ac_compile); then
     # Now try to grab the symbols.
-    nlist=conftest.nm
-    if AC_TRY_EVAL(NM conftest.$ac_objext \| "$lt_cv_sys_global_symbol_pipe" \> $nlist) && test -s "$nlist"; then
+    ac_nlist=conftest.nm
+    if AC_TRY_EVAL(NM conftest.$ac_objext \| "$lt_cv_sys_global_symbol_pipe" \> $ac_nlist) && test -s "$ac_nlist"; then
       # See whether the symbols have a leading underscore.
-      if $GREP ' _nm_test_func$' "$nlist" >/dev/null; then
+      if $GREP '^. _nm_test_func' "$ac_nlist" >/dev/null; then
         ac_cv_sys_symbol_underscore=yes
       else
-        if $GREP ' nm_test_func$' "$nlist" >/dev/null; then
-          :
+        if $GREP '^. nm_test_func ' "$ac_nlist" >/dev/null; then
+	  :
         else
-          echo "configure: cannot find nm_test_func in $nlist" >&AS_MESSAGE_LOG_FD
+	  echo "configure: cannot find nm_test_func in $ac_nlist" >&AS_MESSAGE_LOG_FD
         fi
       fi
     else
