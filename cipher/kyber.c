@@ -278,7 +278,15 @@ void sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen);
 unsigned int verify1 (const uint8_t *a, const uint8_t *b, size_t len);
 /* Conditional move.  */
 void cmov (uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
+/* 16-bit version of Conditional move.  */
+void cmov_int16(int16_t *r, int16_t v, uint16_t b);
 #endif
+
+void cmov_int16(int16_t *r, int16_t v, uint16_t b)
+{
+  b = -b;
+  *r ^= b & ((*r) ^ v);
+}
 
 /*************** kyber/ref/fips202.h */
 #define SHAKE128_RATE 168
