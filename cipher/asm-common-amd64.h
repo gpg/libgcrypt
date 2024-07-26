@@ -59,14 +59,18 @@
 #  ifdef __code_model_large__
 #    define GET_EXTERN_POINTER(name, reg) \
 	       pushq %r15; \
+	       CFI_PUSH(%r15); \
 	       pushq %r14; \
+	       CFI_PUSH(%r14); \
 	    1: leaq 1b(%rip), reg; \
 	       movabsq $_GLOBAL_OFFSET_TABLE_-1b, %r14; \
 	       movabsq $name@GOT, %r15; \
 	       addq %r14, reg; \
 	       popq %r14; \
+	       CFI_POP(%r14); \
 	       movq (reg, %r15), reg; \
-	       popq %r15;
+	       popq %r15; \
+	       CFI_POP(%r15);
 #  else
 #    define GET_EXTERN_POINTER(name, reg) movq name@GOTPCREL(%rip), reg
 #  endif
