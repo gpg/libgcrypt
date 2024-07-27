@@ -3025,6 +3025,11 @@ if test "$found" = "1" ; then
    AC_DEFINE(USE_AES, 1, [Defined if this module should be included])
 
    case "${host}" in
+      i?86-*-*)
+         # Build with the VAES/AVX2 implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes-i386.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes-avx2-i386.lo"
+      ;;
       x86_64-*-*)
          # Build with the assembly implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-amd64.lo"
@@ -3089,10 +3094,6 @@ if test "$found" = "1" ; then
 
          # Build with the Padlock implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-padlock.lo"
-
-         # Build with the VAES/AVX2 implementation
-         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes-i386.lo"
-         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes-avx2-i386.lo"
       ;;
    esac
 fi
