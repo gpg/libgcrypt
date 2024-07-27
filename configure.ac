@@ -3133,13 +3133,13 @@ if test "$found" = "1" ; then
       x86_64-*-*)
          # Build with the SSE2 implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-sse2-amd64.lo"
+
+         if test x"$avx2support" = xyes ; then
+            # Build with the AVX2 implementation
+            GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-avx2-amd64.lo"
+         fi
       ;;
    esac
-
-   if test x"$avx2support" = xyes ; then
-      # Build with the AVX2 implementation
-      GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-avx2-amd64.lo"
-   fi
 
    if test x"$avx512support" = xyes ; then
       # Build with the AVX512 implementation
@@ -3186,28 +3186,32 @@ if test "$found" = "1" ; then
       ;;
    esac
 
-   if test x"$avxsupport" = xyes ; then
-      if test x"$aesnisupport" = xyes ; then
-        # Build with the AES-NI/AVX implementation
-        GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-aesni-avx-amd64.lo"
-      fi
-   fi
+   case "${host}" in
+      x86_64-*-*)
+         if test x"$avxsupport" = xyes ; then
+            if test x"$aesnisupport" = xyes ; then
+              # Build with the AES-NI/AVX implementation
+              GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-aesni-avx-amd64.lo"
+            fi
+         fi
 
-   if test x"$avx2support" = xyes ; then
-      if test x"$aesnisupport" = xyes ; then
-        # Build with the AES-NI/AVX2 implementation
-        GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-aesni-avx2-amd64.lo"
+         if test x"$avx2support" = xyes ; then
+            if test x"$aesnisupport" = xyes ; then
+              # Build with the AES-NI/AVX2 implementation
+              GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-aesni-avx2-amd64.lo"
 
-        # Build with the VAES/AVX2 implementation
-        GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-vaes-avx2-amd64.lo"
+              # Build with the VAES/AVX2 implementation
+              GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-vaes-avx2-amd64.lo"
 
-        # Build with the GFNI/AVX2 implementation
-        GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-gfni-avx2-amd64.lo"
+              # Build with the GFNI/AVX2 implementation
+              GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-gfni-avx2-amd64.lo"
 
-        # Build with the GFNI/AVX512 implementation
-        GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-gfni-avx512-amd64.lo"
-      fi
-   fi
+              # Build with the GFNI/AVX512 implementation
+              GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS camellia-gfni-avx512-amd64.lo"
+            fi
+         fi
+      ;;
+   esac
 fi
 
 LIST_MEMBER(idea, $enabled_ciphers)
