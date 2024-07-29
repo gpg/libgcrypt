@@ -170,6 +170,60 @@ extern size_t _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg
                                         size_t nblocks);
 #endif
 
+#ifdef USE_VP_AARCH64
+/* AArch64 vector permutation implementation of AES */
+extern void _gcry_aes_vp_aarch64_do_setkey(RIJNDAEL_context *ctx,
+					   const byte *key);
+extern void _gcry_aes_vp_aarch64_prepare_decryption(RIJNDAEL_context *ctx);
+
+extern unsigned int _gcry_aes_vp_aarch64_encrypt (const RIJNDAEL_context *ctx,
+						  unsigned char *dst,
+						  const unsigned char *src);
+extern unsigned int _gcry_aes_vp_aarch64_decrypt (const RIJNDAEL_context *ctx,
+						  unsigned char *dst,
+						  const unsigned char *src);
+extern void _gcry_aes_vp_aarch64_cfb_enc (void *context, unsigned char *iv,
+					  void *outbuf_arg,
+					  const void *inbuf_arg,
+					  size_t nblocks);
+extern void _gcry_aes_vp_aarch64_cbc_enc (void *context, unsigned char *iv,
+					  void *outbuf_arg,
+					  const void *inbuf_arg,
+					  size_t nblocks,
+					  int cbc_mac);
+extern void _gcry_aes_vp_aarch64_ctr_enc (void *context, unsigned char *ctr,
+					  void *outbuf_arg,
+					  const void *inbuf_arg,
+					  size_t nblocks);
+extern void _gcry_aes_vp_aarch64_ctr32le_enc (void *context, unsigned char *ctr,
+					      void *outbuf_arg,
+					      const void *inbuf_arg,
+					      size_t nblocks);
+extern void _gcry_aes_vp_aarch64_cfb_dec (void *context, unsigned char *iv,
+					  void *outbuf_arg,
+					  const void *inbuf_arg,
+					  size_t nblocks);
+extern void _gcry_aes_vp_aarch64_cbc_dec (void *context, unsigned char *iv,
+					  void *outbuf_arg,
+					  const void *inbuf_arg,
+					  size_t nblocks);
+extern size_t _gcry_aes_vp_aarch64_ocb_crypt (gcry_cipher_hd_t c,
+					      void *outbuf_arg,
+					      const void *inbuf_arg,
+					      size_t nblocks,
+					      int encrypt);
+extern size_t _gcry_aes_vp_aarch64_ocb_auth (gcry_cipher_hd_t c,
+					     const void *abuf_arg,
+					     size_t nblocks);
+extern void _gcry_aes_vp_aarch64_ecb_crypt (void *context, void *outbuf_arg,
+					    const void *inbuf_arg,
+					    size_t nblocks, int encrypt);
+extern void _gcry_aes_vp_aarch64_xts_crypt (void *context, unsigned char *tweak,
+					    void *outbuf_arg,
+					    const void *inbuf_arg,
+					    size_t nblocks, int encrypt);
+#endif
+
 #ifdef USE_PADLOCK
 extern unsigned int _gcry_aes_padlock_encrypt (const RIJNDAEL_context *ctx,
                                                unsigned char *bx,
@@ -639,6 +693,29 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->ocb_auth = _gcry_aes_armv8_ce_ocb_auth;
       bulk_ops->xts_crypt = _gcry_aes_armv8_ce_xts_crypt;
       bulk_ops->ecb_crypt = _gcry_aes_armv8_ce_ecb_crypt;
+    }
+#endif
+#ifdef USE_VP_AARCH64
+  else if (hwfeatures & HWF_ARM_NEON)
+    {
+      hw_setkey = _gcry_aes_vp_aarch64_do_setkey;
+      ctx->encrypt_fn = _gcry_aes_vp_aarch64_encrypt;
+      ctx->decrypt_fn = _gcry_aes_vp_aarch64_decrypt;
+      ctx->prefetch_enc_fn = NULL;
+      ctx->prefetch_dec_fn = NULL;
+      ctx->prepare_decryption = _gcry_aes_vp_aarch64_prepare_decryption;
+
+      /* Setup vector permute AArch64 bulk encryption routines.  */
+      bulk_ops->cfb_enc = _gcry_aes_vp_aarch64_cfb_enc;
+      bulk_ops->cfb_dec = _gcry_aes_vp_aarch64_cfb_dec;
+      bulk_ops->cbc_enc = _gcry_aes_vp_aarch64_cbc_enc;
+      bulk_ops->cbc_dec = _gcry_aes_vp_aarch64_cbc_dec;
+      bulk_ops->ctr_enc = _gcry_aes_vp_aarch64_ctr_enc;
+      bulk_ops->ctr32le_enc = _gcry_aes_vp_aarch64_ctr32le_enc;
+      bulk_ops->ocb_crypt = _gcry_aes_vp_aarch64_ocb_crypt;
+      bulk_ops->ocb_auth = _gcry_aes_vp_aarch64_ocb_auth;
+      bulk_ops->ecb_crypt = _gcry_aes_vp_aarch64_ecb_crypt;
+      bulk_ops->xts_crypt = _gcry_aes_vp_aarch64_xts_crypt;
     }
 #endif
 #ifdef USE_PPC_CRYPTO_WITH_PPC9LE

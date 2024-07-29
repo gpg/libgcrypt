@@ -3054,6 +3054,9 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-aarch64.lo"
 
+         # Build with the vector permute SIMD128 implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vp-aarch64.lo"
+
          # Build with the ARMv8/AArch64 CE implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-armv8-ce.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-armv8-aarch64-ce.lo"

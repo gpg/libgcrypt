@@ -124,6 +124,12 @@
 # endif
 #endif /* ENABLE_ARM_CRYPTO_SUPPORT */
 
+/* USE_ARM_CE indicates whether to enable vector permute AArch64 SIMD code. */
+#undef USE_VP_AARCH64
+#if defined(__AARCH64EL__) && defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS)
+# define USE_VP_AARCH64 1
+#endif
+
 /* USE_PPC_CRYPTO indicates whether to enable PowerPC vector crypto
  * accelerated code.  USE_PPC_CRYPTO_WITH_PPC9LE indicates whether to
  * enable POWER9 optimized variant.  */
