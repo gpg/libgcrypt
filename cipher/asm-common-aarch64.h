@@ -45,9 +45,25 @@
 	add     reg, reg, #:lo12:name ;
 #endif
 
+#if defined(__ARM_FEATURE_BTI_DEFAULT) && __ARM_FEATURE_BTI_DEFAULT == 1
+# define AARCH64_BTI_PROPERTY_FLAG (1 << 0)
+# define AARCH64_HINT_BTI_C \
+	hint #34
+#else
+# define AARCH64_BTI_PROPERTY_FLAG 0 /* No BTI */
+# define AARCH64_HINT_BTI_C /*_*/
+#endif
+
+#if defined(__ARM_FEATURE_PAC_DEFAULT) && (__ARM_FEATURE_PAC_DEFAULT & 3) != 0
+/* PAC enabled, signed with either A or B key. */
+# define AARCH64_PAC_PROPERTY_FLAG (1 << 1)
+#else
+# define AARCH64_PAC_PROPERTY_FLAG 0 /* No PAC */
+#endif
+
 #ifdef HAVE_GCC_ASM_CFI_DIRECTIVES
 /* CFI directives to emit DWARF stack unwinding information. */
-# define CFI_STARTPROC()            .cfi_startproc
+# define CFI_STARTPROC()            .cfi_startproc; AARCH64_HINT_BTI_C
 # define CFI_ENDPROC()              .cfi_endproc
 # define CFI_REMEMBER_STATE()       .cfi_remember_state
 # define CFI_RESTORE_STATE()        .cfi_restore_state
@@ -89,7 +105,7 @@
 	    DW_SLEB128_28BIT(rsp_offs)
 
 #else
-# define CFI_STARTPROC()
+# define CFI_STARTPROC() AARCH64_HINT_BTI_C
 # define CFI_ENDPROC()
 # define CFI_REMEMBER_STATE()
 # define CFI_RESTORE_STATE()
@@ -128,5 +144,35 @@
 	CFI_ADJUST_CFA_OFFSET(-16); \
 	ldp d8, d9, [sp], #16; \
 	CFI_ADJUST_CFA_OFFSET(-16);
+
+#if (AARCH64_BTI_PROPERTY_FLAG | AARCH64_PAC_PROPERTY_FLAG)
+/* Generate PAC/BTI property for all assembly files including this header.
+ *
+ * libgcrypt support these extensions:
+ *  - Armv8.3-A Pointer Authentication (PAC):
+ *    As currently all AArch64 assembly functions are leaf functions and do
+ *    not store/load link register LR, we just mark PAC as supported.
+ *
+ *  - Armv8.5-A Branch Target Identification (BTI):
+ *    All AArch64 assembly functions get branch target instruction through
+ *    CFI_STARTPROC macro.
+ */
+ELF(.section .note.gnu.property,"a")
+ELF(.balign 8)
+ELF(.long 1f - 0f)
+ELF(.long 4f - 1f)
+ELF(.long 5)
+ELF(0:)
+ELF(.byte 0x47, 0x4e, 0x55, 0) /* string "GNU" */
+ELF(1:)
+ELF(.balign 8)
+ELF(.long 0xc0000000)
+ELF(.long 3f - 2f)
+ELF(2:)
+ELF(.long (AARCH64_BTI_PROPERTY_FLAG | AARCH64_PAC_PROPERTY_FLAG))
+ELF(3:)
+ELF(.balign 8)
+ELF(4:)
+#endif
 
 #endif /* GCRY_ASM_COMMON_AARCH64_H */
