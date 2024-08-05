@@ -133,21 +133,25 @@
 #include "g10lib.h"
 #include "mceliece6688128f.h"
 
-#define int8 crypto_int8
-#define uint8 crypto_uint8
-#define int16 crypto_int16
-#define uint16 crypto_uint16
-#define int32 crypto_int32
-#define uint32 crypto_uint32
-#define int64 crypto_int64
-#define uint64 crypto_uint64
-
 static void
 randombytes (uint8_t *out, size_t outlen)
 {
   _gcry_randomize (out, outlen, GCRY_STRONG_RANDOM);
 }
 
+static void crypto_xof_shake256(unsigned char *h,long long hlen,
+				const unsigned char *m,long long mlen)
+{
+  gcry_md_hd_t mdh;
+  gcry_err_code_t ec;
+
+  ec = _gcry_md_open (&mdh, GCRY_MD_SHAKE256, 0);
+  if (ec)
+    log_fatal ("internal md_open failed: %d\n", ec);
+  _gcry_md_write (mdh, m, mlen);
+  _gcry_md_extract (mdh, GCRY_MD_SHAKE256, h, hlen);
+  _gcry_md_close (mdh);
+}
 /* from libmceliece-20230612/include-build/crypto_declassify.h */
 #ifndef crypto_declassify_h
 #define crypto_declassify_h
@@ -952,7 +956,7 @@ static inline uint64_t gf_mul2(gf a, gf b0, gf b1)
 		mask += mask;
 	}
 
-	/**/
+	/* */
 
 	t = tmp & 0x01FF000001FF0000;
 	tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
@@ -1024,13 +1028,13 @@ static void int32_sort(int32_t *x,long long n)
 #define OPERATIONS_H
 
 
-static void operation_enc(
+static int operation_enc(
        unsigned char *c,
        unsigned char *key,
        const unsigned char *pk
 );
 
-static void operation_dec(
+static int operation_dec(
        unsigned char *key,
        const unsigned char *c,
        const unsigned char *sk
@@ -1310,20 +1314,6 @@ static inline uint64_t load8(const unsigned char * in)
 #endif
 
 
-static void crypto_xof_shake256(unsigned char *h,long long hlen,
-				const unsigned char *m,long long mlen)
-{
-  gcry_md_hd_t mdh;
-  gcry_err_code_t ec;
-
-  ec = _gcry_md_open (&mdh, GCRY_MD_SHAKE256, 0);
-  if (ec)
-    log_fatal ("internal md_open failed: %d\n", ec);
-  _gcry_md_write (mdh, m, mlen);
-  _gcry_md_extract (mdh, GCRY_MD_SHAKE256, h, hlen);
-  _gcry_md_close (mdh);
-}
-
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/benes.c */
 /*
   This file is for Benes network related functions
@@ -1396,7 +1386,7 @@ static void benes(vec * r, const unsigned char * bits, int rev)
 	uint64_t b_int_v[64];
 	uint64_t b_int_h[64];
 
-	/**/
+	/* */
 
 	if (rev) { bits_ptr = bits + 12288; inc = -1024; }
 	else     { bits_ptr = bits;         inc = 0;    }
@@ -1676,7 +1666,7 @@ static void bm(vec out[][ GFBITS ], vec in[][ GFBITS ])
 	b = 1;
 	L = 0;
 
-	/**/
+	/* */
 
 	for (i = 0; i < GFBITS; i++)
 		interval[0][i] = interval[1][i] = 0;
@@ -1973,7 +1963,7 @@ static void scaling(vec out[][GFBITS], vec inv[][GFBITS], const unsigned char *s
 	vec eval[128][ GFBITS ];
 	vec tmp[ GFBITS ];
 
-	/**/
+	/* */
 
 	irr_load(irr_int, sk);
 
@@ -1997,7 +1987,7 @@ static void scaling(vec out[][GFBITS], vec inv[][GFBITS], const unsigned char *s
 
 	vec_copy(inv[0], tmp);
 
-	/**/
+	/* */
 
 	for (i = 0; i < 128; i++)
 	for (j = 0; j < GFBITS; j++)
@@ -2123,7 +2113,7 @@ static int decrypt(unsigned char *e, const unsigned char *sk, const unsigned cha
 
 	check_synd = synd_cmp(s_priv, s_priv_cmp);
 
-	/**/
+	/* */
 
 	benes(error, sk + IRR_BYTES, 0);
 
@@ -2257,7 +2247,7 @@ static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e
 
 	int i, j;
 
-	/**/
+	/* */
 
 	for (i = 0; i < SYND_BYTES; i++)
 		s[i] = e[i];
@@ -2432,7 +2422,7 @@ static void butterflies(vec out[][ GFBITS ], vec in[][ GFBITS ])
 
 	const uint16_t beta[7] = {2522, 7827, 7801, 8035, 6897, 8167, 3476};
 
-	/**/
+	/* */
 
 	for (i = 0; i < 7; i++)
 	{
@@ -2588,7 +2578,7 @@ static void radix_conversions_tr(vec in[][ GFBITS ])
 		{0xFFFFFFFF00000000, 0x00000000FFFFFFFF}
 	};
 
-	/**/
+	/* */
 
 	for (j = 6; j >= 0; j--)
 	{
@@ -2660,7 +2650,7 @@ static void butterflies_tr(vec out[][ GFBITS ], vec in[][ GFBITS ])
 
 	const uint16_t beta[6] = {5246, 5306, 6039, 6685, 4905, 6755};
 
-	/**/
+	/* */
 
 	for (i = 6; i >= 0; i--)
 	{
@@ -2813,7 +2803,7 @@ gf gf_mul(gf in0, gf in1)
 	for (i = 1; i < GFBITS; i++)
 		tmp ^= (t0 * (t1 & (1 << i)));
 
-	/**/
+	/* */
 
 	t = tmp & 0x1FF0000;
 	tmp ^= (t >> 9) ^ (t >> 10) ^ (t >> 12) ^ (t >> 13);
@@ -2981,7 +2971,7 @@ static void GF_mul(gf *out, const gf *in0, const gf *in1)
 		for (j = 0; j < 128; j++)
 			prod[i+j] ^= gf_mul(in0[i], in1[j]);
 
-	/**/
+	/* */
 
 	for (i = 254; i >= 128; i--)
 	{
@@ -3006,7 +2996,7 @@ static void GF_mul(gf *out, const gf *in0, const gf *in1)
 
 
 
-static void operation_dec(
+static int operation_dec(
        unsigned char *key,
        const unsigned char *c,
        const unsigned char *sk
@@ -3023,7 +3013,7 @@ static void operation_dec(
 	unsigned char *x = preimage;
 	const unsigned char *s = sk + 40 + IRR_BYTES + COND_BYTES;
 
-	/**/
+	/* */
 
 	ret_decrypt = decrypt(e, sk + 40, c);
 
@@ -3039,6 +3029,8 @@ static void operation_dec(
 		*x++ = c[i];
 
 	crypto_hash_32b(key, preimage, sizeof(preimage));
+
+	return 0;
 }
 
 
@@ -3053,7 +3045,7 @@ static void operation_dec(
 
 
 
-static void operation_enc(
+static int operation_enc(
        unsigned char *c,
        unsigned char *key,
        const unsigned char *pk
@@ -3062,7 +3054,7 @@ static void operation_enc(
 	unsigned char e[ SYS_N/8 ];
 	unsigned char one_ec[ 1 + SYS_N/8 + SYND_BYTES ] = {1};
 
-	/**/
+	/* */
 
 	pke_encrypt(c, pk, e);
 
@@ -3070,6 +3062,8 @@ static void operation_enc(
 	memcpy(one_ec + 1 + SYS_N/8, c, SYND_BYTES);
 
 	crypto_hash_32b(key, one_ec, sizeof(one_ec));
+
+	return 0;
 }
 
 
@@ -3420,7 +3414,7 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
 				mat[ row ][ c ] ^= mat[ k ][ c ] & mask;
 		}
 
-		if ( uint64_is_zero_declassify((mat[ row ][ i ] >> j) & 1) ) /* return if not systematic */
+                if ( uint64_is_zero_declassify((mat[ row ][ i ] >> j) & 1) ) /* return if not systematic */
 		{
 			return -1;
 		}
@@ -3459,7 +3453,7 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
                 pk += PK_ROW_BYTES % 8;
 	}
 
-	/**/
+	/* */
 
 	return 0;
 }
@@ -3644,30 +3638,60 @@ static void vec_inv(vec * out, vec * in)
 
 /* from libmceliece-20230612/crypto_kem/6688128f/vec/wrap_dec.c */
 
+static int crypto_kem_dec(
+       unsigned char *key,
+       const unsigned char *c,
+       const unsigned char *sk
+)
+{
+  return operation_dec(key,c,sk);
+}
+
+/* from libmceliece-20230612/crypto_kem/6688128f/vec/wrap_enc.c */
+
+static int crypto_kem_enc(
+       unsigned char *c,
+       unsigned char *key,
+       const unsigned char *pk
+)
+{
+  return operation_enc(c,key,pk);
+}
+
+/* from libmceliece-20230612/crypto_kem/6688128f/vec/wrap_keypair.c */
+
+static void crypto_kem_keypair
+(
+       unsigned char *pk,
+       unsigned char *sk
+)
+{
+  operation_keypair(pk,sk);
+}
+
+
+/* libgcrypt wrapper */
+
 void mceliece6688128f_dec(uint8_t *key,
 			  const uint8_t *c,
 			  const uint8_t *sk)
 {
-  operation_dec((unsigned char*) key,
+  crypto_kem_dec((unsigned char*) key,
 		(unsigned char*) c,
 		(unsigned char*) sk);
 }
-
-/* from libmceliece-20230612/crypto_kem/6688128f/vec/wrap_enc.c */
 
 void mceliece6688128f_enc(uint8_t *c,
 			  uint8_t *key,
 			  const uint8_t *pk)
 {
-  operation_enc((unsigned char*) c,
+  crypto_kem_enc((unsigned char*) c,
 		(unsigned char*) key,
 		(unsigned char*) pk);
 }
 
-/* from libmceliece-20230612/crypto_kem/6688128f/vec/wrap_keypair.c */
-
 void mceliece6688128f_keypair(uint8_t *pk,
 			      uint8_t *sk)
 {
-  operation_keypair((unsigned char*) pk, (unsigned char*) sk);
+  crypto_kem_keypair((unsigned char*) pk, (unsigned char*) sk);
 }
