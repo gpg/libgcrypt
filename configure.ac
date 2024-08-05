@@ -3139,16 +3139,17 @@ if test "$found" = "1" ; then
             GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-avx2-amd64.lo"
          fi
       ;;
+      arm*-*-*)
+         if test x"$neonsupport" = xyes ; then
+           # Build with the NEON implementation
+           GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-armv7-neon.lo"
+         fi
+      ;;
    esac
 
    if test x"$avx512support" = xyes ; then
       # Build with the AVX512 implementation
       GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-avx512-x86.lo"
-   fi
-
-   if test x"$neonsupport" = xyes ; then
-      # Build with the NEON implementation
-      GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS serpent-armv7-neon.lo"
    fi
 fi
 
@@ -3230,12 +3231,13 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS salsa20-amd64.lo"
       ;;
+      arm*-*-*)
+         if test x"$neonsupport" = xyes ; then
+            # Build with the NEON implementation
+            GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS salsa20-armv7-neon.lo"
+         fi
+      ;;
    esac
-
-   if test x"$neonsupport" = xyes ; then
-     # Build with the NEON implementation
-     GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS salsa20-armv7-neon.lo"
-   fi
 fi
 
 LIST_MEMBER(gost28147, $enabled_ciphers)
@@ -3255,6 +3257,12 @@ if test "$found" = "1" ; then
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-amd64-ssse3.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-amd64-avx2.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-amd64-avx512.lo"
+      ;;
+      arm*-*-*)
+         if test x"$neonsupport" = xyes ; then
+            # Build with the NEON implementation
+            GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-armv7-neon.lo"
+         fi
       ;;
       aarch64-*-*)
          # Build with the assembly implementation
@@ -3282,11 +3290,6 @@ if test "$found" = "1" ; then
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-s390x.lo"
       ;;
    esac
-
-   if test x"$neonsupport" = xyes ; then
-     # Build with the NEON implementation
-     GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-armv7-neon.lo"
-   fi
 fi
 
 LIST_MEMBER(sm4, $enabled_ciphers)
@@ -3491,6 +3494,11 @@ if test "$found" = "1" ; then
       arm*-*-*)
          # Build with the assembly implementation
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-arm.lo"
+
+         if test x"$neonsupport" = xyes ; then
+            # Build with the NEON implementation
+            GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-armv7-neon.lo"
+         fi
       ;;
       aarch64-*-*)
          # Build with the assembly implementation
@@ -3510,11 +3518,6 @@ if test "$found" = "1" ; then
          # Build with the crypto extension implementation
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-ppc.lo"
    esac
-
-   if test x"$neonsupport" = xyes ; then
-     # Build with the NEON implementation
-     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-armv7-neon.lo"
-   fi
 fi
 
 LIST_MEMBER(sha3, $enabled_digests)
@@ -3527,12 +3530,13 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS keccak-amd64-avx512.lo"
       ;;
+      arm*-*-*)
+         if test x"$neonsupport" = xyes ; then
+           # Build with the NEON implementation
+           GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS keccak-armv7-neon.lo"
+         fi
+      ;;
    esac
-
-   if test x"$neonsupport" = xyes ; then
-     # Build with the NEON implementation
-     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS keccak-armv7-neon.lo"
-   fi
 fi
 
 LIST_MEMBER(tiger, $enabled_digests)
