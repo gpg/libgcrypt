@@ -203,10 +203,10 @@ ELF(.type   _gcry_camellia_arm_encrypt_block,@function;)
 .align 4
 _gcry_camellia_arm_encrypt_block:
 	CFI_STARTPROC()
-	stp x19, x30, [sp, #-16]!
+	stp x19, x20, [sp, #-16]!
 	CFI_ADJUST_CFA_OFFSET(16)
 	CFI_REG_ON_STACK(19, 0)
-	CFI_REG_ON_STACK(30, 8)
+	CFI_REG_ON_STACK(20, 8)
 
 	/* input:
 	 *	x0: keytable
@@ -235,10 +235,10 @@ _gcry_camellia_arm_encrypt_block:
 	outunpack(24);
 
 	CFI_REMEMBER_STATE()
-	ldp x19, x30, [sp], #16
+	ldp x19, x20, [sp], #16
 	CFI_ADJUST_CFA_OFFSET(-16)
 	CFI_RESTORE(x19)
-	CFI_RESTORE(x30)
+	CFI_RESTORE(x20)
 	ret_spec_stop;
 	CFI_RESTORE_STATE()
 
@@ -248,10 +248,10 @@ _gcry_camellia_arm_encrypt_block:
 
 	outunpack(32);
 
-	ldp x19, x30, [sp], #16
+	ldp x19, x20, [sp], #16
 	CFI_ADJUST_CFA_OFFSET(-16)
 	CFI_RESTORE(x19)
-	CFI_RESTORE(x30)
+	CFI_RESTORE(x20)
 	ret_spec_stop;
 	CFI_ENDPROC()
 ELF(.size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;)
@@ -262,10 +262,10 @@ ELF(.type   _gcry_camellia_arm_decrypt_block,@function;)
 .align 4
 _gcry_camellia_arm_decrypt_block:
 	CFI_STARTPROC()
-	stp x19, x30, [sp, #-16]!
+	stp x19, x20, [sp, #-16]!
 	CFI_ADJUST_CFA_OFFSET(16)
 	CFI_REG_ON_STACK(19, 0)
-	CFI_REG_ON_STACK(30, 8)
+	CFI_REG_ON_STACK(20, 8)
 
 	/* input:
 	 *	x0: keytable
@@ -295,10 +295,10 @@ _gcry_camellia_arm_decrypt_block:
 	outunpack(0);
 
 	CFI_REMEMBER_STATE()
-	ldp x19, x30, [sp], #16
+	ldp x19, x20, [sp], #16
 	CFI_ADJUST_CFA_OFFSET(-16)
 	CFI_RESTORE(x19)
-	CFI_RESTORE(x30)
+	CFI_RESTORE(x20)
 	ret_spec_stop;
 	CFI_RESTORE_STATE()
 
