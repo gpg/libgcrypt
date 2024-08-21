@@ -22,13 +22,13 @@ VS_VERSION_INFO VERSIONINFO
  PRODUCTVERSION @BUILD_FILEVERSION@
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
- FILEFLAGS 0x21L
+ FILEFLAGS 0x21L   /* VS_FF_SPECIALBUILD (0x20) | VS_FF_DEBUG (0x1) */
 #else
  FILEFLAGS 0x20L
 #endif
- FILEOS 0x40004L
- FILETYPE 0x1L
- FILESUBTYPE 0x0L
+ FILEOS 0x40004L   /* VOS_NT (0x40000) | VOS__WINDOWS32 (0x4)  */
+ FILETYPE 0x2L     /* VFT_DLL (0x2)  */
+ FILESUBTYPE 0x0L  /* VFT2_UNKNOWN   */
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
@@ -39,7 +39,7 @@ BEGIN
             VALUE "FileDescription", "Libgcrypt - The GNU Crypto Library\0"
             VALUE "FileVersion", "@LIBGCRYPT_LT_CURRENT@.@LIBGCRYPT_LT_AGE@.@LIBGCRYPT_LT_REVISION@.@BUILD_REVISION@\0"
             VALUE "InternalName", "libgcrypt\0"
-            VALUE "LegalCopyright", "Copyright © 2021 g10 Code GmbH\0"
+            VALUE "LegalCopyright", "Copyright © 2024 g10 Code GmbH\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "libgcrypt.dll\0"
             VALUE "PrivateBuild", "\0"
@@ -47,5 +47,9 @@ BEGIN
             VALUE "ProductVersion", "@VERSION@\0"
             VALUE "SpecialBuild", "@BUILD_TIMESTAMP@\0"
         END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+      VALUE "Translation", 0x409, 0x4b0  /* US English, Unicode */
     END
 END
