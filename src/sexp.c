@@ -2710,17 +2710,22 @@ _gcry_hex2buffer (const char *string, size_t *r_length)
   unsigned char *buffer;
   size_t length;
 
-  buffer = xmalloc (strlen(string)/2+1);
   length = 0;
+  buffer = xtrymalloc (strlen(string)/2+1);
+  if (!buffer)
+    goto leave;
   for (s=string; *s; s +=2 )
     {
       if (!hexdigitp (s) || !hexdigitp (s+1))
         {
           xfree(buffer);
+          gpg_err_set_errno (EINVAL);
           return NULL;           /* Invalid hex digits. */
         }
       ((unsigned char*)buffer)[length++] = xtoi_2 (s);
     }
+
+ leave:
   *r_length = length;
   return buffer;
 }
