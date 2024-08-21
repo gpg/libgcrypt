@@ -153,6 +153,7 @@ _gcry_ecc_curve_keypair (const char *curve,
           buf = _gcry_mpi_get_buffer (mpi_k, 0, &len, NULL);
           memset (seckey, 0, nbytes - len);
           memcpy (seckey + nbytes - len, buf, len);
+          xfree (buf);
         }
       else /* p - y >= p */
         mpi_free (negative);
@@ -168,15 +169,14 @@ _gcry_ecc_curve_keypair (const char *curve,
           if (len != 1 + 2*nbytes)
             {
               err = GPG_ERR_INV_ARG;
-              mpi_free (y);
             }
           else
             {
               /* (x,y) in SEC1 point encoding.  */
               memcpy (pubkey, buf, len);
-              xfree (buf);
-              mpi_free (y);
             }
+          xfree (buf);
+          mpi_free (y);
         }
     }
   else /* MPI_EC_MONTGOMERY */
@@ -293,15 +293,14 @@ _gcry_ecc_curve_mul_point (const char *curve,
           if (len != 1 + 2*nbytes)
             {
               err = GPG_ERR_INV_ARG;
-              mpi_free (y);
             }
           else
             {
               /* (x,y) in SEC1 point encoding.  */
               memcpy (result, buf, len);
-              xfree (buf);
-              mpi_free (y);
             }
+          xfree (buf);
+          mpi_free (y);
         }
     }
   else                          /* MPI_EC_MONTGOMERY */
@@ -318,8 +317,8 @@ _gcry_ecc_curve_mul_point (const char *curve,
             {
               /* x in little endian.  */
               memcpy (result, buf, nbytes);
-              xfree (buf);
             }
+          xfree (buf);
         }
     }
   mpi_free (x);
