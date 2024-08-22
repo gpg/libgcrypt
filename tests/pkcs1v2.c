@@ -174,7 +174,7 @@ check_oaep (void)
           seed = data_from_hex (tbl[tno].m[mno].seed, &seed_len);
 
           err = gcry_sexp_build (&plain, NULL,
-                                 "(data (flags oaep)(hash-algo sha1)"
+                                 "(data (flags oaep)"
                                  "(value %b)(random-override %b))",
                                  (int)mesg_len, mesg,
                                  (int)seed_len, seed);
@@ -204,19 +204,15 @@ check_oaep (void)
           plain = NULL;
 
           /* Now test the decryption.  */
-          seed = data_from_hex (tbl[tno].m[mno].seed, &seed_len);
           encr = data_from_hex (tbl[tno].m[mno].encr, &encr_len);
 
           err = gcry_sexp_build (&ciph, NULL,
-                                 "(enc-val (flags oaep)(hash-algo sha1)"
-                                 "(random-override %b)"
+                                 "(enc-val (flags oaep)"
                                  "(rsa (a %b)))",
-                                 (int)seed_len, seed,
                                  (int)encr_len, encr);
           if (err)
             die ("constructing cipher data failed: %s\n", gpg_strerror (err));
           gcry_free (encr);
-          gcry_free (seed);
 
           err = gcry_pk_decrypt (&plain, ciph, sec_key);
           if (err)
@@ -342,7 +338,6 @@ check_pss (void)
           sigtmpl = NULL;
 
           /* Now test the verification.  */
-          salt = data_from_hex (tbl[tno].m[mno].salt, &salt_len);
           sign = data_from_hex (tbl[tno].m[mno].sign, &sign_len);
 
           err = gcry_sexp_build (&sig, NULL,
@@ -352,14 +347,11 @@ check_pss (void)
             die ("constructing verify data failed: %s\n", gpg_strerror (err));
           err = gcry_sexp_build (&sigtmpl, NULL,
                                  "(data (flags pss)"
-                                 "(hash sha1 %b)"
-                                 "(random-override %b))",
-                                 20, mhash,
-                                 (int)salt_len, salt);
+                                 "(hash sha1 %b))",
+                                 20, mhash);
           if (err)
             die ("constructing verify tmpl failed: %s\n", gpg_strerror (err));
           gcry_free (sign);
-          gcry_free (salt);
 
           err = gcry_pk_verify (sig, sigtmpl, pub_key);
           if (err)
