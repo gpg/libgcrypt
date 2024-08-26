@@ -174,7 +174,7 @@ check_oaep (void)
           seed = data_from_hex (tbl[tno].m[mno].seed, &seed_len);
 
           err = gcry_sexp_build (&plain, NULL,
-                                 "(data (flags oaep)"
+                                 "(data (flags oaep)(hash-algo sha1)"
                                  "(value %b)(random-override %b))",
                                  (int)mesg_len, mesg,
                                  (int)seed_len, seed);
@@ -207,7 +207,7 @@ check_oaep (void)
           encr = data_from_hex (tbl[tno].m[mno].encr, &encr_len);
 
           err = gcry_sexp_build (&ciph, NULL,
-                                 "(enc-val (flags oaep)"
+                                 "(enc-val (flags oaep)(hash-algo sha1)"
                                  "(rsa (a %b)))",
                                  (int)encr_len, encr);
           if (err)
