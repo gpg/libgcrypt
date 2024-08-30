@@ -101,9 +101,23 @@
 #include "const-time.h"
 #include "kyber.h"
 
+static int crypto_kem_keypair_derand_2(uint8_t *pk, uint8_t *sk,
+                                       const uint8_t *coins);
+static int crypto_kem_keypair_derand_3(uint8_t *pk, uint8_t *sk,
+                                       const uint8_t *coins);
+static int crypto_kem_keypair_derand_4(uint8_t *pk, uint8_t *sk,
+                                       const uint8_t *coins);
+
 static int crypto_kem_keypair_2(uint8_t *pk, uint8_t *sk);
 static int crypto_kem_keypair_3(uint8_t *pk, uint8_t *sk);
 static int crypto_kem_keypair_4(uint8_t *pk, uint8_t *sk);
+
+static int crypto_kem_enc_derand_2(uint8_t *ct, uint8_t *ss, const uint8_t *pk,
+                                   const uint8_t *coins);
+static int crypto_kem_enc_derand_3(uint8_t *ct, uint8_t *ss, const uint8_t *pk,
+                                   const uint8_t *coins);
+static int crypto_kem_enc_derand_4(uint8_t *ct, uint8_t *ss, const uint8_t *pk,
+                                   const uint8_t *coins);
 
 static int crypto_kem_enc_2(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
 static int crypto_kem_enc_3(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
@@ -114,37 +128,56 @@ static int crypto_kem_dec_3(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 static int crypto_kem_dec_4(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
 void
-kyber_keypair (int algo, uint8_t *pk, uint8_t *sk)
+kyber_keypair (int algo, uint8_t *pk, uint8_t *sk, const uint8_t *coins)
 {
   switch (algo)
     {
     case GCRY_KEM_MLKEM512:
-      crypto_kem_keypair_2 (pk, sk);
+      if (coins)
+        crypto_kem_keypair_derand_2 (pk, sk, coins);
+      else
+        crypto_kem_keypair_2 (pk, sk);
       break;
     case GCRY_KEM_MLKEM768:
     default:
-      crypto_kem_keypair_3 (pk, sk);
+      if (coins)
+        crypto_kem_keypair_derand_3 (pk, sk, coins);
+      else
+        crypto_kem_keypair_3 (pk, sk);
       break;
     case GCRY_KEM_MLKEM1024:
-      crypto_kem_keypair_4 (pk, sk);
+      if (coins)
+        crypto_kem_keypair_derand_4 (pk, sk, coins);
+      else
+        crypto_kem_keypair_4 (pk, sk);
       break;
     }
 }
 
 void
-kyber_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk)
+kyber_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk,
+             const uint8_t *coins)
 {
   switch (algo)
     {
     case GCRY_KEM_MLKEM512:
-      crypto_kem_enc_2 (ct, ss, pk);
+      if (coins)
+        crypto_kem_enc_derand_2 (ct, ss, pk, coins);
+      else
+        crypto_kem_enc_2 (ct, ss, pk);
       break;
     case GCRY_KEM_MLKEM768:
     default:
-      crypto_kem_enc_3 (ct, ss, pk);
+      if (coins)
+        crypto_kem_enc_derand_3 (ct, ss, pk, coins);
+      else
+        crypto_kem_enc_3 (ct, ss, pk);
       break;
     case GCRY_KEM_MLKEM1024:
-      crypto_kem_enc_4 (ct, ss, pk);
+      if (coins)
+        crypto_kem_enc_derand_4 (ct, ss, pk, coins);
+      else
+        crypto_kem_enc_4 (ct, ss, pk);
       break;
     }
 }

@@ -240,7 +240,8 @@ void _gcry_kdf_close (gcry_kdf_hd_t h);
 
 gcry_err_code_t _gcry_kem_keypair (int algo,
                                    void *pubkey, size_t pubkey_len,
-                                   void *seckey, size_t seckey_len);
+                                   void *seckey, size_t seckey_len,
+                                   const void *optional, size_t optional_len);
 gcry_err_code_t _gcry_kem_encap (int algo,
                                  const void *pubkey, size_t pubkey_len,
                                  void *ciphertext, size_t ciphertext_len,
