@@ -79,8 +79,91 @@ parse_annotation (const char *line, int lineno)
 }
 
 static void
-one_test (int testno, int algo,
-          const char *sk_str, const char *ct_str, const char *ss_str)
+one_encap_test (int testno, int algo,
+                const char *pk_str, const char *coins_str,
+                const char *ct_str, const char *ss_str)
+{
+  gpg_error_t err;
+  unsigned char *pk, *ct, *ss, *coins;
+  size_t pk_len, ct_len, ss_len, coins_len;
+  unsigned char ss_computed[GCRY_KEM_MLKEM1024_SHARED_LEN];
+  unsigned char ct_computed[GCRY_KEM_MLKEM1024_CIPHER_LEN];
+
+  pk = ct = ss = coins = NULL;
+
+  if (verbose > 1)
+    info ("Running test %d\n", testno);
+
+  if (!(pk = hex2buffer (pk_str, &pk_len)))
+    {
+      fail ("error preparing input for test %d, %s: %s",
+            testno, "pk", "invalid hex string");
+      goto leave;
+    }
+  if (!(ct = hex2buffer (ct_str, &ct_len)))
+    {
+      fail ("error preparing input for test %d, %s: %s",
+            testno, "ct", "invalid hex string");
+      goto leave;
+    }
+  if (!(ss = hex2buffer (ss_str, &ss_len)))
+    {
+      fail ("error preparing input for test %d, %s: %s",
+            testno, "ss", "invalid hex string");
+      goto leave;
+    }
+  if (!(coins = hex2buffer (coins_str, &coins_len)))
+    {
+      fail ("error preparing input for test %d, %s: %s",
+            testno, "coins", "invalid hex string");
+      goto leave;
+    }
+
+  err = gcry_kem_encap (algo, pk, pk_len, ct_computed, ct_len,
+                        ss_computed, ss_len, coins, coins_len);
+  if (err)
+    fail ("gcry_kem_encap failed for test %d: %s", testno, gpg_strerror (err));
+
+  if (memcmp (ss_computed, ss, ss_len) != 0)
+    {
+      size_t i;
+
+      fail ("test %d failed: mismatch\n", testno);
+      fputs ("ss_computed:", stderr);
+      for (i = 0; i < ss_len; i++)
+        fprintf (stderr, " %02x", ss_computed[i]);
+      putc ('\n', stderr);
+      fputs ("ss_knownans:", stderr);
+      for (i = 0; i < ss_len; i++)
+        fprintf (stderr, " %02x", ss[i]);
+      putc ('\n', stderr);
+    }
+
+  if (memcmp (ct_computed, ct, ct_len) != 0)
+    {
+      size_t i;
+
+      fail ("test %d failed: mismatch\n", testno);
+      fputs ("ct_computed:", stderr);
+      for (i = 0; i < ct_len; i++)
+        fprintf (stderr, " %02x", ct_computed[i]);
+      putc ('\n', stderr);
+      fputs ("ct_knownans:", stderr);
+      for (i = 0; i < ct_len; i++)
+        fprintf (stderr, " %02x", ct[i]);
+      putc ('\n', stderr);
+    }
+
+ leave:
+  xfree (pk);
+  xfree (ct);
+  xfree (ss);
+  xfree (coins);
+}
+
+static void
+one_decap_test (int testno, int algo,
+                const char *sk_str, const char *ct_str, const char *ss_str)
 {
   gpg_error_t err;
   unsigned char *sk, *ct, *ss;
@@ -144,7 +227,7 @@ check_mlkem_kat (int algo, const char *fname)
   int lineno, ntests;
   char *line;
   int testno;
-  char *sk_str, *pk_str, *ct_str, *ss_str;
+  char *sk_str, *pk_str, *ct_str, *ss_str, *coins_str;
 
   info ("Checking ML-KEM.\n");
 
@@ -153,7 +236,7 @@ check_mlkem_kat (int algo, const char *fname)
     die ("error opening '%s': %s\n", fname, strerror (errno));
 
   testno = 0;
-  sk_str = pk_str = ct_str = ss_str = NULL;
+  sk_str = pk_str = ct_str = ss_str = coins_str = NULL;
   lineno = ntests = 0;
   while ((line = read_textline (fp, &lineno)))
     {
@@ -171,6 +254,14 @@ check_mlkem_kat (int algo, const char *fname)
         ;
       else if (!strncmp (line, "Pseudorandom", 12))
         ;
+      else if (!strncmp (line, "ek:", 3))
+        copy_data (&pk_str, line, lineno);
+      else if (!strncmp (line, "m:", 2))
+        copy_data (&coins_str, line, lineno);
+      else if (!strncmp (line, "c:", 2))
+        copy_data (&ct_str, line, lineno);
+      else if (!strncmp (line, "k:", 2))
+        copy_data (&ss_str, line, lineno);
       else
         fail ("unknown tag at input line %d", lineno);
 
@@ -178,7 +269,7 @@ check_mlkem_kat (int algo, const char *fname)
       if (pk_str && sk_str && ct_str && ss_str)
         {
           testno++;
-          one_test (testno, algo, sk_str, ct_str, ss_str);
+          one_decap_test (testno, algo, sk_str, ct_str, ss_str);
           ntests++;
           if (!(ntests % 256))
             show_note ("%d of %d tests done\n", ntests, N_TESTS);
@@ -187,11 +278,24 @@ check_mlkem_kat (int algo, const char *fname)
           xfree (ct_str);  ct_str = NULL;
           xfree (ss_str);  ss_str = NULL;
         }
+      else if (pk_str && coins_str && ct_str && ss_str)
+        {
+          testno++;
+          one_encap_test (testno, algo, pk_str, coins_str, ct_str, ss_str);
+          ntests++;
+          if (!(ntests % 256))
+            show_note ("%d of %d tests done\n", ntests, N_TESTS);
+          xfree (pk_str);  pk_str = NULL;
+          xfree (coins_str);  coins_str = NULL;
+          xfree (ct_str);  ct_str = NULL;
+          xfree (ss_str);  ss_str = NULL;
+        }
     }
   xfree (pk_str);
   xfree (sk_str);
   xfree (ct_str);
   xfree (ss_str);
+  xfree (coins_str);
 
   if (ntests != N_TESTS && !custom_data_file)
     fail ("did %d tests but expected %d", ntests, N_TESTS);
