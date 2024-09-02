@@ -829,7 +829,7 @@ esac
 AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION")
 if test "x$GPG_ERROR_LIBS" = "x"; then
   AC_MSG_ERROR([libgpg-error is needed.
-                See ftp://ftp.gnupg.org/gcrypt/libgpg-error/ .])
+                See https://gnupg.org/ftp/gcrypt/gpgrt/ .])
 fi
 
 AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
