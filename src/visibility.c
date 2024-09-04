@@ -1443,15 +1443,26 @@ gcry_kdf_close (gcry_kdf_hd_t h)
 }
 
 gcry_error_t
-gcry_kem_keypair (int algo,
+gcry_kem_genkey (int algo,
                   void *pubkey, size_t pubkey_len,
                   void *seckey, size_t seckey_len,
                   const void *optional, size_t optional_len)
 {
-  return gpg_error (_gcry_kem_keypair (algo,
-                                       pubkey, pubkey_len,
-                                       seckey, seckey_len,
-                                       optional, optional_len));
+  return gpg_error (_gcry_kem_genkey (algo,
+                                      pubkey, pubkey_len,
+                                      seckey, seckey_len,
+                                      optional, optional_len));
+}
+
+gcry_error_t
+gcry_kem_keypair (int algo,
+                  void *pubkey, size_t pubkey_len,
+                  void *seckey, size_t seckey_len)
+{
+  return gpg_error (_gcry_kem_genkey (algo,
+                                      pubkey, pubkey_len,
+                                      seckey, seckey_len,
+                                      NULL, 0));
 }
 
 gcry_error_t

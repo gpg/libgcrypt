@@ -128,7 +128,7 @@ GCRYPT_1.6 {
 
     gcry_cipher_setup_geniv; gcry_cipher_geniv;
 
-    gcry_kem_keypair; gcry_kem_encap; gcry_kem_decap;
+    gcry_kem_keypair; gcry_kem_encap; gcry_kem_decap; gcry_kem_genkey;
 
     gcry_md_hash_buffers_ext;
 

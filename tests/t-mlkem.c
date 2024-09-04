@@ -132,10 +132,10 @@ one_keygen_test (int testno, int algo,
       goto leave;
     }
 
-  err = gcry_kem_keypair (algo, pk_computed, pk_len, sk_computed, sk_len,
-                          coins, coins_len);
+  err = gcry_kem_genkey (algo, pk_computed, pk_len, sk_computed, sk_len,
+                         coins, coins_len);
   if (err)
-    fail ("gcry_kem_encap failed for test %d: %s", testno, gpg_strerror (err));
+    fail ("gcry_kem_genkey failed for test %d: %s", testno, gpg_strerror (err));
 
   if (memcmp (pk_computed, pk, pk_len) != 0)
     {

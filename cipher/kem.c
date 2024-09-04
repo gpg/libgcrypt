@@ -82,7 +82,7 @@ sntrup761_random (void *ctx, size_t length, uint8_t *dst)
 
 
 gcry_err_code_t
-_gcry_kem_keypair (int algo,
+_gcry_kem_genkey (int algo,
                    void *pubkey, size_t pubkey_len,
                    void *seckey, size_t seckey_len,
                    const void *optional, size_t optional_len)
@@ -311,8 +311,8 @@ kem_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     }
 
   /* Generate key.  */
-  ec = _gcry_kem_keypair (algoid, pubkey, pubkey_len, seckey, seckey_len,
-                          NULL, 0);
+  ec = _gcry_kem_genkey (algoid, pubkey, pubkey_len, seckey, seckey_len,
+                         NULL, 0);
   if (ec)
     goto leave;
 
