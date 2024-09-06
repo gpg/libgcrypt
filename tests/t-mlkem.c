@@ -79,7 +79,7 @@ parse_annotation (const char *line, int lineno)
 }
 
 static void
-one_keygen_test (int testno, int algo,
+one_genkey_test (int testno, int algo,
                  const char *z_str, const char *d_str,
                  const char *sk_str, const char *pk_str)
 {
@@ -396,7 +396,7 @@ check_mlkem_kat (int algo, const char *fname)
       else if (sk_str && pk_str && z_str && d_str)
         {
           testno++;
-          one_keygen_test (testno, algo, z_str, d_str, sk_str, pk_str);
+          one_genkey_test (testno, algo, z_str, d_str, sk_str, pk_str);
           ntests++;
           if (!(ntests % 256))
             show_note ("%d of %d tests done\n", ntests, N_TESTS);
