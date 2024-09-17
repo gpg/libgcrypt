@@ -1753,6 +1753,11 @@ enum gcry_kem_algos
 #define GCRY_KEM_CM6688128F_CIPHER_LEN  GCRY_KEM_CM6688128F_ENCAPS_LEN
 #define GCRY_KEM_CM6688128F_SHARED_LEN  32
 
+#define GCRY_KEM_MLKEM_RANDOM_LEN       32
+#define GCRY_KEM_MLKEM512_RANDOM_LEN    GCRY_KEM_MLKEM_RANDOM_LEN
+#define GCRY_KEM_MLKEM768_RANDOM_LEN    GCRY_KEM_MLKEM_RANDOM_LEN
+#define GCRY_KEM_MLKEM1024_RANDOM_LEN   GCRY_KEM_MLKEM_RANDOM_LEN
+
 #define GCRY_KEM_MLKEM512_SECKEY_LEN    (2*384+2*384+32+2*32)  /* 1632 */
 #define GCRY_KEM_MLKEM512_PUBKEY_LEN    (2*384+32)             /*  800 */
 #define GCRY_KEM_MLKEM512_ENCAPS_LEN    (128+2*320)            /*  768 */
@@ -1798,6 +1803,11 @@ enum gcry_kem_algos
 #define GCRY_KEM_RAW_BP384_SHARED_LEN   (1+48+48)
 
 /* Generate a new key pair with ALGO.  */
+gcry_error_t gcry_kem_genkey (int algo,
+                              void *pubkey, size_t pubkey_len,
+                              void *seckey, size_t seckey_len,
+                              const void *optional, size_t optional_len);
+
 gcry_error_t gcry_kem_keypair (int algo,
                                void *pubkey, size_t pubkey_len,
                                void *seckey, size_t seckey_len);

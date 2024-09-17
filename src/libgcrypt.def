@@ -307,4 +307,6 @@ EXPORTS
 
       gcry_md_hash_buffers_ext  @267
 
+      gcry_kem_genkey           @268
+
 ;; end of file with public symbols for Windows.

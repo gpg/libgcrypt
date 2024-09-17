@@ -82,9 +82,10 @@ sntrup761_random (void *ctx, size_t length, uint8_t *dst)
 
 
 gcry_err_code_t
-_gcry_kem_keypair (int algo,
+_gcry_kem_genkey (int algo,
                    void *pubkey, size_t pubkey_len,
-                   void *seckey, size_t seckey_len)
+                   void *seckey, size_t seckey_len,
+                   const void *optional, size_t optional_len)
 {
   switch (algo)
     {
@@ -101,23 +102,26 @@ _gcry_kem_keypair (int algo,
 
     case GCRY_KEM_MLKEM512:
       if (seckey_len != GCRY_KEM_MLKEM512_SECKEY_LEN
-          || pubkey_len != GCRY_KEM_MLKEM512_PUBKEY_LEN)
+          || pubkey_len != GCRY_KEM_MLKEM512_PUBKEY_LEN
+          || (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN*2))
         return GPG_ERR_INV_ARG;
-      kyber_keypair (algo, pubkey, seckey);
+      kyber_keypair (algo, pubkey, seckey, optional);
       return 0;
 
     case GCRY_KEM_MLKEM768:
       if (seckey_len != GCRY_KEM_MLKEM768_SECKEY_LEN
-          || pubkey_len != GCRY_KEM_MLKEM768_PUBKEY_LEN)
+          || pubkey_len != GCRY_KEM_MLKEM768_PUBKEY_LEN
+          || (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN*2))
         return GPG_ERR_INV_ARG;
-      kyber_keypair (algo, pubkey, seckey);
+      kyber_keypair (algo, pubkey, seckey, optional);
       return 0;
 
     case GCRY_KEM_MLKEM1024:
       if (seckey_len != GCRY_KEM_MLKEM1024_SECKEY_LEN
-          || pubkey_len != GCRY_KEM_MLKEM1024_PUBKEY_LEN)
+          || pubkey_len != GCRY_KEM_MLKEM1024_PUBKEY_LEN
+          || (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN*2))
         return GPG_ERR_INV_ARG;
-      kyber_keypair (algo, pubkey, seckey);
+      kyber_keypair (algo, pubkey, seckey, optional);
       return 0;
 
     case GCRY_KEM_RAW_X25519:
@@ -169,9 +173,9 @@ _gcry_kem_encap (int algo,
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
-      if (optional != NULL)
-        return GPG_ERR_INV_VALUE;
-      kyber_encap (algo, ciphertext, shared, pubkey);
+      if (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN)
+	return GPG_ERR_INV_VALUE;
+      kyber_encap (algo, ciphertext, shared, pubkey, optional);
       return 0;
 
     case GCRY_KEM_RAW_X25519:
@@ -307,7 +311,8 @@ kem_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     }
 
   /* Generate key.  */
-  ec = _gcry_kem_keypair (algoid, pubkey, pubkey_len, seckey, seckey_len);
+  ec = _gcry_kem_genkey (algoid, pubkey, pubkey_len, seckey, seckey_len,
+                         NULL, 0);
   if (ec)
     goto leave;
 
