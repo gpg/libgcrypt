@@ -67,10 +67,29 @@ GPGRT_LOCK_DEFINE (fsm_lock);
    used while in fips mode. Change this only while holding fsm_lock. */
 static enum module_states current_state;
 
+struct gcry_thread_context {
+  unsigned long fips_service_indicator;
+};
 
-
-
+#ifdef HAVE_GCC_STORAGE_CLASS__THREAD
+static __thread struct gcry_thread_context the_tc;
+#else
+#error libgcrypt requires thread-local storage to support FIPS mode
+#endif
 
+void
+_gcry_thread_context_set_fsi (unsigned long fsi)
+{
+  the_tc.fips_service_indicator = fsi;
+}
+
+unsigned long
+_gcry_thread_context_get_fsi (void)
+{
+  return the_tc.fips_service_indicator;
+}
+
+
 static void fips_new_state (enum module_states new_state);
 
 

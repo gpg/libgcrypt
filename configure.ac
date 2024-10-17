@@ -1489,6 +1489,20 @@ if test "$gcry_cv_gcc_attribute_sysv_abi" = "yes" ; then
    fi
 fi
 
+#
+# Check whether compiler support '__thread' storage class specifier.
+#
+AC_CACHE_CHECK([whether compiler supports '__thread' storage class specifier],
+       [gcry_cv_gcc_storage_class__thread],
+       [gcry_cv_gcc_storage_class__thread=no
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <stdlib.h>],
+          [static  __thread  int bar;]
+          )],
+          [gcry_cv_gcc_storage_class__thread=yes])])
+if test "$gcry_cv_gcc_storage_class__thread" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_STORAGE_CLASS__THREAD,1,
+     [Defined if compiler supports "__thread" storage class specifier])
+fi
 
 # Restore flags.
 CFLAGS=$_gcc_cflags_save;
