@@ -309,4 +309,6 @@ EXPORTS
 
       gcry_kem_genkey           @268
 
+      gcry_thread_context_get_fsi @269
+
 ;; end of file with public symbols for Windows.

@@ -63,6 +63,7 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 
 MARK_VISIBLEX (gcry_check_version)
 MARK_VISIBLEX (gcry_control)
+MARK_VISIBLEX (gcry_thread_context_get_fsi)
 
 MARK_VISIBLEX (gcry_set_allocation_handler)
 MARK_VISIBLEX (gcry_set_fatalerror_handler)
@@ -315,6 +316,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 
 #define gcry_check_version          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_control                _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_thread_context_get_fsi _gcry_USE_THE_UNDERSCORED_FUNCTION
 
 #define gcry_set_allocation_handler _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_set_fatalerror_handler _gcry_USE_THE_UNDERSCORED_FUNCTION

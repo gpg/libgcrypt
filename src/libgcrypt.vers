@@ -132,6 +132,8 @@ GCRYPT_1.6 {
 
     gcry_md_hash_buffers_ext;
 
+    gcry_thread_context_get_fsi;
+
   local:
     *;
 

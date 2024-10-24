@@ -70,6 +70,12 @@ gcry_check_version (const char *req_version)
   return _gcry_check_version (req_version);
 }
 
+unsigned long
+gcry_thread_context_get_fsi (void)
+{
+  return _gcry_thread_context_get_fsi ();
+}
+
 gcry_error_t
 gcry_control (enum gcry_ctl_cmds cmd, ...)
 {
