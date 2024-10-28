@@ -3644,6 +3644,7 @@ case "${host}" in
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-armv8-aarch32-ce.lo"
   ;;
   aarch64-*-*)
+    GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-aarch64-simd.lo"
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-armv8-aarch64-ce.lo"
   ;;
   powerpc64le-*-* | powerpc64-*-* | powerpc-*-*)

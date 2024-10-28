@@ -89,7 +89,8 @@ EXTRA_libcipher_la_SOURCES = \
 	chacha20-amd64-avx512.S chacha20-armv7-neon.S chacha20-aarch64.S \
 	chacha20-ppc.c chacha20-s390x.S \
 	chacha20-p10le-8x.s \
-	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c cipher-gcm-armv7-neon.S \
+	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c \
+	cipher-gcm-aarch64-simd.c cipher-gcm-armv7-neon.S \
 	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
 	crc.c crc-intel-pclmul.c crc-armv8-ce.c \
 	crc-armv8-aarch64-ce.S \
@@ -324,6 +325,12 @@ camellia-aarch64-ce.o: $(srcdir)/camellia-aarch64-ce.c Makefile
 
 camellia-aarch64-ce.lo: $(srcdir)/camellia-aarch64-ce.c Makefile
 	`echo $(LTCOMPILE) $(aarch64_crypto_cflags) -c $< | $(instrumentation_munging) `
+
+cipher-gcm-aarch64-simd.o: $(srcdir)/cipher-gcm-aarch64-simd.c Makefile
+	`echo $(COMPILE) $(aarch64_simd_cflags) -c $< | $(instrumentation_munging) `
+
+cipher-gcm-aarch64-simd.lo: $(srcdir)/cipher-gcm-aarch64-simd.c Makefile
+	`echo $(LTCOMPILE) $(aarch64_simd_cflags) -c $< | $(instrumentation_munging) `
 
 rijndael-vp-aarch64.o: $(srcdir)/rijndael-vp-aarch64.c Makefile
 	`echo $(COMPILE) $(aarch64_simd_cflags) -c $< | $(instrumentation_munging) `

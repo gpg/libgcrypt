@@ -102,6 +102,13 @@ ghash_armv7_neon (gcry_cipher_hd_t c, byte *result, const byte *buf,
 }
 #endif /* GCM_USE_ARM_NEON */
 
+#ifdef GCM_USE_AARCH64
+extern void _gcry_ghash_setup_aarch64_simd(gcry_cipher_hd_t c);
+
+extern unsigned int _gcry_ghash_aarch64_simd(gcry_cipher_hd_t c, byte *result,
+					     const byte *buf, size_t nblocks);
+#endif /* GCM_USE_AARCH64 */
+
 #ifdef GCM_USE_S390X_CRYPTO
 #include "asm-inline-s390x.h"
 
@@ -605,6 +612,13 @@ setupM (gcry_cipher_hd_t c)
     {
       c->u_mode.gcm.ghash_fn = ghash_armv7_neon;
       ghash_setup_armv7_neon (c);
+    }
+#endif
+#ifdef GCM_USE_AARCH64
+  else if (features & HWF_ARM_NEON)
+    {
+      c->u_mode.gcm.ghash_fn = _gcry_ghash_aarch64_simd;
+      _gcry_ghash_setup_aarch64_simd (c);
     }
 #endif
 #ifdef GCM_USE_PPC_VPMSUM

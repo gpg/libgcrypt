@@ -112,6 +112,12 @@
 #endif
 #endif /* GCM_USE_ARM_NEON */
 
+/* GCM_USE_AARCH64 indicates whether to compile GCM with AArch64 SIMD code. */
+#undef GCM_USE_AARCH64
+#if defined(__AARCH64EL__) && defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS)
+# define GCM_USE_AARCH64 1
+#endif
+
 /* GCM_USE_S390X_CRYPTO indicates whether to enable zSeries code. */
 #undef GCM_USE_S390X_CRYPTO
 #if defined(HAVE_GCC_INLINE_ASM_S390X)
