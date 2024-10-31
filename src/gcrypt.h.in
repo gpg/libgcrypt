@@ -335,7 +335,8 @@ enum gcry_ctl_cmds
     GCRYCTL_FIPS_SERVICE_INDICATOR_MAC = 85,
     GCRYCTL_FIPS_SERVICE_INDICATOR_MD = 86,
     GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS = 87,
-    GCRYCTL_MD_CUSTOMIZE = 88
+    GCRYCTL_MD_CUSTOMIZE = 88,
+    GCRYCTL_FIPS_SERVICE_INDICATOR = 89
   };
 
 /* Perform various operations defined by CMD. */
@@ -1973,8 +1974,6 @@ void gcry_log_debugpnt (const char *text,
 void gcry_log_debugsxp (const char *text, gcry_sexp_t sexp);
 
 char *gcry_get_config (int mode, const char *what);
-
-unsigned long gcry_thread_context_get_fsi (void);
 
 /* Log levels used by the internal logging facility. */
 enum gcry_log_levels

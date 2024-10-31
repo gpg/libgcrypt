@@ -364,6 +364,14 @@ _gcry_fips_test_operational (void)
 }
 
 int
+_gcry_fips_indicator (va_list arg_ptr)
+{
+  (void)arg_ptr;
+
+  return _gcry_thread_context_get_fsi ();
+}
+
+int
 _gcry_fips_indicator_cipher (va_list arg_ptr)
 {
   enum gcry_cipher_algos alg = va_arg (arg_ptr, enum gcry_cipher_algos);
