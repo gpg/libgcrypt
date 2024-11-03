@@ -350,6 +350,7 @@ ELF(.size _gcry_sm4_armv9_svesm4_consts,.-_gcry_sm4_armv9_svesm4_consts)
         ext         b0.16b, b0.16b, b0.16b, #8;     \
         rev32       b0.16b, b0.16b;
 
+.text
 
 .align 4
 .global _gcry_sm4_armv9_sve_ce_crypt
