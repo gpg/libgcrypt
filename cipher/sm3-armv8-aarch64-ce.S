@@ -214,6 +214,7 @@ _gcry_sm3_transform_armv8_ce:
     ext         CTX2.16b, CTX2.16b, CTX2.16b, #8;
     st1         {CTX1.4s, CTX2.4s}, [x0];
 
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm3_transform_armv8_ce, .-_gcry_sm3_transform_armv8_ce;)
