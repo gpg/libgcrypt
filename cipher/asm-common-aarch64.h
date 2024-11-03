@@ -125,6 +125,15 @@
 
 #define CLEAR_REG(reg) movi reg.16b, #0;
 
+#define CLEAR_ALL_REGS() \
+	CLEAR_REG(v0); CLEAR_REG(v1); CLEAR_REG(v2); CLEAR_REG(v3); \
+	CLEAR_REG(v4); CLEAR_REG(v5); CLEAR_REG(v6); \
+	/* v8-v15 are ABI callee saved. */ \
+	CLEAR_REG(v16); CLEAR_REG(v17); CLEAR_REG(v18); CLEAR_REG(v19); \
+	CLEAR_REG(v20); CLEAR_REG(v21); CLEAR_REG(v22); CLEAR_REG(v23); \
+	CLEAR_REG(v24); CLEAR_REG(v25); CLEAR_REG(v26); CLEAR_REG(v27); \
+	CLEAR_REG(v28); CLEAR_REG(v29); CLEAR_REG(v30); CLEAR_REG(v31);
+
 #define VPUSH_ABI \
 	stp d8, d9, [sp, #-16]!; \
 	CFI_ADJUST_CFA_OFFSET(16); \
