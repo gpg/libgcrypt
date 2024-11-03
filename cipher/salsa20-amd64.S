@@ -30,6 +30,8 @@
 
 #include "asm-common-amd64.h"
 
+#define CLEAR_REG(v) pxor v, v
+
 .text
 
 .align 16
@@ -926,6 +928,22 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	CFI_DEF_CFA_REGISTER(%rsp)
 	pop %rbx
 	CFI_POP(%rbx)
+	CLEAR_REG(%xmm0);
+	CLEAR_REG(%xmm1);
+	CLEAR_REG(%xmm2);
+	CLEAR_REG(%xmm3);
+	CLEAR_REG(%xmm4);
+	CLEAR_REG(%xmm5);
+	CLEAR_REG(%xmm6);
+	CLEAR_REG(%xmm7);
+	CLEAR_REG(%xmm8);
+	CLEAR_REG(%xmm9);
+	CLEAR_REG(%xmm10);
+	CLEAR_REG(%xmm11);
+	CLEAR_REG(%xmm12);
+	CLEAR_REG(%xmm13);
+	CLEAR_REG(%xmm14);
+	CLEAR_REG(%xmm15);
 	ret_spec_stop
 	CFI_RESTORE_STATE();
 .L_bytes_are_128_or_192:
