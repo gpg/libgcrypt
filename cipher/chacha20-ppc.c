@@ -25,6 +25,7 @@
     defined(USE_CHACHA20) && \
     __GNUC__ >= 4
 
+#include "simd-common-ppc.h"
 #include <altivec.h>
 #include "bufhelp.h"
 #include "poly1305-internal.h"
@@ -252,6 +253,8 @@ chacha20_ppc_blocks1(u32 *state, byte *dst, const byte *src, size_t nblks)
 
   vec_vsx_st(state3, 3 * 16, state); /* store counter */
 
+  clear_vec_regs();
+
   return 0;
 }
 
@@ -413,6 +416,8 @@ chacha20_ppc_blocks4(u32 *state, byte *dst, const byte *src, size_t nblks)
   while (nblks);
 
   vec_vsx_st(state3, 3 * 16, state); /* store counter */
+
+  clear_vec_regs();
 
   return 0;
 }
@@ -635,6 +640,8 @@ chacha20_poly1305_ppc_blocks4(u32 *state, byte *dst, const byte *src,
   st->h[2] = h1;
   st->h[3] = h1 >> 32;
   st->h[4] = h2;
+
+  clear_vec_regs();
 
   return 0;
 }

@@ -25,6 +25,7 @@
     defined(USE_SHA256) && \
     __GNUC__ >= 4
 
+#include "simd-common-ppc.h"
 #include <altivec.h>
 #include "bufhelp.h"
 
@@ -589,6 +590,8 @@ sha256_transform_ppc(u32 state[8], const unsigned char *data, size_t nblks)
   h4_h7 = vec_merge_idx0_elems (h4, h5, h6, h7);
   vec_vsx_st (h0_h3, 4 * 0, state);
   vec_vsx_st (h4_h7, 4 * 4, state);
+
+  clear_vec_regs();
 
   return sizeof(w2) + sizeof(w);
 }

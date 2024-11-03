@@ -47,6 +47,7 @@
 /**********************************************************************
   AT&T x86 asm to intrinsics conversion macros (PowerPC VSX+crypto)
  **********************************************************************/
+#include "simd-common-ppc.h"
 #include <altivec.h>
 
 typedef vector signed char int8x16_t;
@@ -150,9 +151,6 @@ static const uint8x16_t shift_row =
 	vpshufb128(shufmask_reg, (a), (o))
 #define if_aes_subbytes(...) __VA_ARGS__
 #define if_not_aes_subbytes(...) /*_*/
-
-#define memory_barrier_with_vec(a) __asm__("" : "+wa"(a) :: "memory")
-#define clear_vec_regs() ((void)0)
 
 #endif /* __powerpc__ */
 

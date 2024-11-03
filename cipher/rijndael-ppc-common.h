@@ -26,6 +26,7 @@
 #ifndef G10_RIJNDAEL_PPC_COMMON_H
 #define G10_RIJNDAEL_PPC_COMMON_H
 
+#include "simd-common-ppc.h"
 #include <altivec.h>
 
 

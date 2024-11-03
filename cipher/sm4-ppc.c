@@ -25,6 +25,7 @@
     defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC) && \
     !defined(WORDS_BIGENDIAN) && (__GNUC__ >= 4)
 
+#include "simd-common-ppc.h"
 #include <altivec.h>
 #include "bufhelp.h"
 
@@ -298,25 +299,28 @@ sm4_ppc_crypt_blk1_16(u32 *rk, byte *out, const byte *in, size_t nblks)
   if (nblks >= 16)
     {
       sm4_ppc_crypt_blk16(rk, out, in);
-      return;
+    }
+  else
+    {
+      while (nblks >= 8)
+	{
+	  sm4_ppc_crypt_blk8(rk, out, in);
+	  in += 8 * 16;
+	  out += 8 * 16;
+	  nblks -= 8;
+	}
+
+      while (nblks)
+	{
+	  size_t currblks = nblks > 4 ? 4 : nblks;
+	  sm4_ppc_crypt_blk1_4(rk, out, in, currblks);
+	  in += currblks * 16;
+	  out += currblks * 16;
+	  nblks -= currblks;
+	}
     }
 
-  while (nblks >= 8)
-    {
-      sm4_ppc_crypt_blk8(rk, out, in);
-      in += 8 * 16;
-      out += 8 * 16;
-      nblks -= 8;
-    }
-
-  while (nblks)
-    {
-      size_t currblks = nblks > 4 ? 4 : nblks;
-      sm4_ppc_crypt_blk1_4(rk, out, in, currblks);
-      in += currblks * 16;
-      out += currblks * 16;
-      nblks -= currblks;
-    }
+  clear_vec_regs();
 }
 
 ASM_FUNC_ATTR_NOINLINE FUNC_ATTR_TARGET_P8 void
