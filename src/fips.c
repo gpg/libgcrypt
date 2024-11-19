@@ -363,12 +363,12 @@ _gcry_fips_test_operational (void)
   return result;
 }
 
-int
-_gcry_fips_indicator (va_list arg_ptr)
+gpg_err_code_t
+_gcry_fips_indicator (unsigned long *p)
 {
-  (void)arg_ptr;
 
-  return _gcry_thread_context_get_fsi ();
+  *p = _gcry_thread_context_get_fsi ();
+  return 0;
 }
 
 int

@@ -788,7 +788,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_FIPS_SERVICE_INDICATOR:
-      rc = _gcry_fips_indicator (arg_ptr);
+      rc = _gcry_fips_indicator (va_arg (arg_ptr, unsigned long *));
       break;
 
     case GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER:
