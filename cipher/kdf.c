@@ -261,6 +261,9 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
       goto leave;
     }
 
+  if (fips_mode ())
+    /* Clear the FIPS service indicator.  */
+    _gcry_thread_context_set_fsi (0);
 
   switch (algo)
     {
@@ -318,6 +321,9 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
     }
+
+  if (ec == 0 && fips_mode ())
+    _gcry_fips_check_kdf_compliant (algo, subalgo);
 
  leave:
   return ec;

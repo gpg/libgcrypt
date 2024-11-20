@@ -1199,3 +1199,20 @@ _gcry_fips_noreturn (void)
   abort ();
   /*NOTREACHED*/
 }
+
+void
+_gcry_fips_check_kdf_compliant (int algo, int subalgo)
+{
+  switch (algo)
+    {
+    case GCRY_KDF_PBKDF2:
+      /* It's valid.  */
+      break;
+
+    default:
+      /* Record the reason of failure, in the indicator.
+       * Or putting GPG_ERR_NOT_SUPPORTED would be enough.  */
+      _gcry_thread_context_set_fsi ((unsigned long)((algo << 16) | subalgo));
+      break;
+    }
+}
