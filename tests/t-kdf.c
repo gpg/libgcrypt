@@ -1971,11 +1971,10 @@ check_fips_gcry_kdf_derive(void)
       "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
       4096,
       25,
-      "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
-      "\xd8\x36\x62\xc0\xe4\x4a\x8b\x29\x1a\x96"
-      "\x4c\xf2\xf0\x70\x38", /* this is wrong but we don't care because
-       it should fail anyway */
-      2 /* forbidden because passphrase len is too small */
+      "\xf4\x93\xee\x2b\xbf\x44\x0b\x9e\x64\x53"
+      "\xc2\xb3\x87\xdc\x73\xf8\xfd\xe6\x97\xda"
+      "\xb8\x24\xa0\x26\x50",
+      1 /* forbidden because passphrase len is too small */
     },
     {
       "passwordPASSWORDpassword", 24,
@@ -1983,11 +1982,10 @@ check_fips_gcry_kdf_derive(void)
       "saltSALTsaltSAL", 15,
       4096,
       25,
-      "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
-      "\xd8\x36\x62\xc0\xe4\x4a\x8b\x29\x1a\x96"
-      "\x4c\xf2\xf0\x70\x38", /* this is wrong but we don't care because
-       it should fail anyway */
-      2 /* forbidden because salt len is too small */
+      "\x14\x05\xa4\x2a\xf4\xa8\x12\x14\x7b\x65"
+      "\x8f\xaa\xf0\x7f\x25\xe5\x0f\x0b\x2b\xb7"
+      "\xcf\x8d\x29\x23\x4b",
+      1 /* forbidden because salt len is too small */
     },
     {
       "passwordPASSWORDpassword", 24,
@@ -1995,11 +1993,10 @@ check_fips_gcry_kdf_derive(void)
       "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
       999,
       25,
-      "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
-      "\xd8\x36\x62\xc0\xe4\x4a\x8b\x29\x1a\x96"
-      "\x4c\xf2\xf0\x70\x38", /* this is wrong but we don't care because
-       it should fail anyway */
-      2 /* forbidden because too few iterations */
+      "\xac\xf8\xb4\x67\x41\xc7\xf3\xd1\xa0\xc0"
+      "\x08\xbe\x9b\x23\x96\x78\xbd\x93\xda\x4a"
+      "\x30\xd4\xfb\xf0\x33",
+      1 /* forbidden because too few iterations */
     },
     {
       "passwordPASSWORDpassword", 24,
@@ -2008,9 +2005,8 @@ check_fips_gcry_kdf_derive(void)
       4096,
       13,
       "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
-      "\xd8\x36\x62", /* this is wrong but we don't care because
-       it should fail anyway */
-      2 /* forbidden because key size too small */
+      "\xd8\x36\x62",
+      1 /* forbidden because key size too small */
     },
   };
 
@@ -2038,9 +2034,15 @@ check_fips_gcry_kdf_derive(void)
         }
       else
         {
-          unsigned long fips_service_indicator;
+          gpg_err_code_t ec;
 
-          gcry_get_fips_service_indicator (&fips_service_indicator);
+          ec = gcry_get_fips_service_indicator ();
+          if (ec == GPG_ERR_INV_OP)
+            {
+              fail ("gcry_kdf_derive test %d unexpectedly failed to check the FIPS service indicator.\n",
+                    tvidx);
+              continue;
+            }
 
           /* Failure by an error expected.  Something goes wrong.  */
           if (tv[tvidx].expect_error == 2)
@@ -2050,17 +2052,17 @@ check_fips_gcry_kdf_derive(void)
               continue;
             }
 
-          /* Success with fips_service_indicator == 0 expected.  */
-          if (tv[tvidx].expect_error == 0 && fips_service_indicator)
+          /* Success with the FIPS service indicator == 0 expected.  */
+          if (tv[tvidx].expect_error == 0 && ec)
             {
-              fail ("gcry_kdf_derive test %d unexpectedly set %08lx in FIPS mode.\n",
-                    tvidx, fips_service_indicator);
+              fail ("gcry_kdf_derive test %d unexpectedly set the indicator in FIPS mode.\n",
+                    tvidx);
               continue;
             }
 
 #define COMPUTATION_MAY_NOT_BE_DONE_IN_THIS_CASE 0 /* Yes, it computes.  */
 #if COMPUTATION_MAY_NOT_BE_DONE_IN_THIS_CASE
-          /* Failure with fips_service_indicator != 0 expected.  */
+          /* Failure with the FIPS service indicator != 0 expected.  */
           if (fips_service_indicator && tv[tvidx].expect_error == 1)
             continue;
 #else

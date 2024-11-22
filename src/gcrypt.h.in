@@ -1976,7 +1976,7 @@ void gcry_log_debugsxp (const char *text, gcry_sexp_t sexp);
 char *gcry_get_config (int mode, const char *what);
 
 /* Convinience macro to access the FIPS service indicator.  */
-#define gcry_get_fips_service_indicator(p) gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR,p)
+#define gcry_get_fips_service_indicator() gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR)
 
 /* Log levels used by the internal logging facility. */
 enum gcry_log_levels

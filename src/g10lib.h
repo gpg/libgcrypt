@@ -468,7 +468,7 @@ void _gcry_fips_signal_error (const char *srcfile,
            _gcry_fips_signal_error (__FILE__, __LINE__, NULL, 1, (a))
 #endif
 
-gpg_err_code_t _gcry_fips_indicator (unsigned long *);
+gpg_err_code_t _gcry_fips_indicator (void);
 
 int _gcry_fips_indicator_cipher (va_list arg_ptr);
 int _gcry_fips_indicator_mac (va_list arg_ptr);

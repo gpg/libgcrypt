@@ -282,25 +282,28 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
       break;
 
     case GCRY_KDF_PBKDF2:
-      if (!saltlen)
+      if (!saltlen || !iterations)
         ec = GPG_ERR_INV_VALUE;
       else
         {
-          /* FIPS requires minimum passphrase length, see FIPS 140-3 IG D.N */
-          if (fips_mode () && passphraselen < 8)
-            return GPG_ERR_INV_VALUE;
+          if (fips_mode ())
+            {
+              /* FIPS requires minimum passphrase length, see FIPS 140-3 IG D.N */
+              if (passphraselen == 0)
+                _gcry_thread_context_set_fsi ((unsigned long)passphraselen);
 
-          /* FIPS requires minimum salt length of 128 b (SP 800-132 sec. 5.1, p.6) */
-          if (fips_mode () && saltlen < 16)
-            return GPG_ERR_INV_VALUE;
+              /* FIPS requires minimum salt length of 128 b (SP 800-132 sec. 5.1, p.6) */
+              if (saltlen < 16)
+                _gcry_thread_context_set_fsi ((unsigned long)saltlen);
 
-          /* FIPS requires minimum iterations bound (SP 800-132 sec 5.2, p.6) */
-          if (fips_mode () && iterations < 1000)
-            return GPG_ERR_INV_VALUE;
+              /* FIPS requires minimum iterations bound (SP 800-132 sec 5.2, p.6) */
+              if (iterations < 1000)
+                _gcry_thread_context_set_fsi ((unsigned long)iterations);
 
-          /* Check minimum key size */
-          if (fips_mode () && keysize < 14)
-            return GPG_ERR_INV_VALUE;
+              /* Check minimum key size */
+              if (keysize < 14)
+                _gcry_thread_context_set_fsi ((unsigned long)keysize);
+            }
 
           ec = _gcry_kdf_pkdf2 (passphrase, passphraselen, subalgo,
                                 salt, saltlen, iterations, keysize, keybuffer);

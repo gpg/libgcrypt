@@ -364,10 +364,13 @@ _gcry_fips_test_operational (void)
 }
 
 gpg_err_code_t
-_gcry_fips_indicator (unsigned long *p)
+_gcry_fips_indicator (void)
 {
+  /* If anything recorded, it means that the operation is not
+     supported under FIPS mode.  */
+  if (_gcry_thread_context_get_fsi ())
+    return GPG_ERR_NOT_SUPPORTED;
 
-  *p = _gcry_thread_context_get_fsi ();
   return 0;
 }
 
