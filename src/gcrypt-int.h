@@ -300,6 +300,16 @@ void _gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data);
 
 void _gcry_thread_context_set_fsi (unsigned long fsi);
 unsigned long _gcry_thread_context_get_fsi (void);
+#define fips_service_indicator_init() do \
+  {                                      \
+    if (fips_mode ())                    \
+      _gcry_thread_context_set_fsi (1);  \
+  } while (0)
+#define fips_service_indicator_mark_success(is_compliant) do \
+  {                                                          \
+    if (is_compliant && fips_mode ())                        \
+      _gcry_thread_context_set_fsi (0);                      \
+  } while (0)
 
 /* Return a pointer to a string containing a description of the error
    code in the error value ERR.  */

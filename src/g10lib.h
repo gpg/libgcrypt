@@ -495,7 +495,5 @@ gpg_err_code_t _gcry_fips_run_selftests (int extended);
 void _gcry_fips_noreturn (void);
 #define fips_noreturn()  (_gcry_fips_noreturn ())
 
-void _gcry_fips_check_kdf_compliant (int algo, int subalgo);
-
 
 #endif /* G10LIB_H */
