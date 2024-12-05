@@ -1927,6 +1927,151 @@ check_fips_indicators (void)
 }
 
 
+static void
+check_fips_gcry_kdf_derive (void)
+{
+  static struct {
+    const char *p;   /* Passphrase.  */
+    size_t plen;     /* Length of P. */
+    int algo;
+    int subalgo;
+    const char *salt;
+    size_t saltlen;
+    unsigned long iterations;
+    int dklen;       /* Requested key length.  */
+    const char *dk;  /* Derived key.  */
+    int expect_failure;
+  } tv[] = {
+    {
+      "passwordPASSWORDpassword", 24,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
+      4096,
+      25,
+      "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
+      "\xd8\x36\x62\xc0\xe4\x4a\x8b\x29\x1a\x96"
+      "\x4c\xf2\xf0\x70\x38",
+      0
+    },
+    {
+      "pleaseletmein", 13,
+      GCRY_KDF_SCRYPT, 16384,
+      "SodiumChloride", 14,
+      1,
+      64,
+      "\x70\x23\xbd\xcb\x3a\xfd\x73\x48\x46\x1c\x06\xcd\x81\xfd\x38\xeb"
+      "\xfd\xa8\xfb\xba\x90\x4f\x8e\x3e\xa9\xb5\x43\xf6\x54\x5d\xa1\xf2"
+      "\xd5\x43\x29\x55\x61\x3f\x0f\xcf\x62\xd4\x97\x05\x24\x2a\x9a\xf9"
+      "\xe6\x1e\x85\xdc\x0d\x65\x1e\x40\xdf\xcf\x01\x7b\x45\x57\x58\x87",
+      1 /* not-compliant because unallowed algo */
+    },
+    {
+      "passwor", 7,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
+      4096,
+      25,
+      "\xf4\x93\xee\x2b\xbf\x44\x0b\x9e\x64\x53"
+      "\xc2\xb3\x87\xdc\x73\xf8\xfd\xe6\x97\xda"
+      "\xb8\x24\xa0\x26\x50",
+      1 /* not-compliant because passphrase len is too small */
+    },
+    {
+      "passwordPASSWORDpassword", 24,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      "saltSALTsaltSAL", 15,
+      4096,
+      25,
+      "\x14\x05\xa4\x2a\xf4\xa8\x12\x14\x7b\x65"
+      "\x8f\xaa\xf0\x7f\x25\xe5\x0f\x0b\x2b\xb7"
+      "\xcf\x8d\x29\x23\x4b",
+      1 /* not-compliant because salt len is too small */
+    },
+    {
+      "passwordPASSWORDpassword", 24,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
+      999,
+      25,
+      "\xac\xf8\xb4\x67\x41\xc7\xf3\xd1\xa0\xc0"
+      "\x08\xbe\x9b\x23\x96\x78\xbd\x93\xda\x4a"
+      "\x30\xd4\xfb\xf0\x33",
+      1 /* not-compliant because too few iterations */
+    },
+    {
+      "passwordPASSWORDpassword", 24,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
+      4096,
+      13,
+      "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
+      "\xd8\x36\x62",
+      1 /* not-compliant because key size too small */
+    },
+  };
+
+  int tvidx;
+  gpg_error_t err;
+  unsigned char outbuf[100];
+  int i;
+
+  for (tvidx=0; tvidx < DIM(tv); tvidx++)
+    {
+      if (verbose)
+        fprintf (stderr, "checking gcry_kdf_derive test vector %d algo %d for FIPS\n",
+                 tvidx, tv[tvidx].algo);
+      assert (tv[tvidx].dklen <= sizeof outbuf);
+      err = gcry_kdf_derive (tv[tvidx].p, tv[tvidx].plen,
+                             tv[tvidx].algo, tv[tvidx].subalgo,
+                             tv[tvidx].salt, tv[tvidx].saltlen,
+                             tv[tvidx].iterations, tv[tvidx].dklen, outbuf);
+
+      if (err)
+        {
+          fail ("gcry_kdf_derive test %d unexpectedly returned an error in FIPS mode: %s\n",
+                tvidx, gpg_strerror (err));
+        }
+      else
+        {
+          gpg_err_code_t ec;
+
+          ec = gcry_get_fips_service_indicator ();
+          if (ec == GPG_ERR_INV_OP)
+            {
+              /* libgcrypt is old, no support of the FIPS service indicator.  */
+              fail ("gcry_kdf_derive test %d unexpectedly failed to check the FIPS service indicator.\n",
+                    tvidx);
+              continue;
+            }
+
+          if (!tv[tvidx].expect_failure && ec)
+            {
+              /* Success with the FIPS service indicator == 0 expected, but != 0.  */
+              fail ("gcry_kdf_derive test %d unexpectedly set the indicator in FIPS mode.\n",
+                    tvidx);
+              continue;
+            }
+          else if (tv[tvidx].expect_failure && !ec)
+            {
+              /* Success with the FIPS service indicator != 0 expected, but == 0.  */
+              fail ("gcry_kdf_derive test %d unexpectedly cleared the indicator in FIPS mode.\n",
+                    tvidx);
+              continue;
+            }
+
+          if (memcmp (outbuf, tv[tvidx].dk, tv[tvidx].dklen))
+            {
+              fail ("gcry_kdf_derive test %d failed: mismatch\n", tvidx);
+              fputs ("got:", stderr);
+              for (i=0; i < tv[tvidx].dklen; i++)
+                fprintf (stderr, " %02x", outbuf[i]);
+              putc ('\n', stderr);
+            }
+        }
+    }
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -2008,7 +2153,9 @@ main (int argc, char **argv)
       check_onestep_kdf ();
       check_hkdf ();
       if (in_fips_mode)
-        check_fips_indicators();
+        check_fips_indicators ();
+      if (in_fips_mode)
+        check_fips_gcry_kdf_derive ();
     }
 
   return error_count ? 1 : 0;

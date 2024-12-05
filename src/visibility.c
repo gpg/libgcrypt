@@ -1400,6 +1400,7 @@ gcry_kdf_derive (const void *passphrase, size_t passphraselen,
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_kdf_derive (passphrase, passphraselen, algo, hashalgo,
                                       salt, saltlen, iterations,
                                       keysize, keybuffer));
