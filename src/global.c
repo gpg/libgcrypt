@@ -787,6 +787,10 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       rc = _gcry_fips_run_selftests (1);
       break;
 
+    case GCRYCTL_FIPS_SERVICE_INDICATOR:
+      rc = _gcry_fips_indicator ();
+      break;
+
     case GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER:
       /* Get FIPS Service Indicator for a given symmetric algorithm and
        * optional mode. Returns GPG_ERR_NO_ERROR if algorithm is allowed or

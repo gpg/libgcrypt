@@ -363,6 +363,17 @@ _gcry_fips_test_operational (void)
   return result;
 }
 
+gpg_err_code_t
+_gcry_fips_indicator (void)
+{
+  /* If anything recorded, it means that the operation is not
+     supported under FIPS mode.  */
+  if (_gcry_thread_context_get_fsi ())
+    return GPG_ERR_NOT_SUPPORTED;
+
+  return 0;
+}
+
 int
 _gcry_fips_indicator_cipher (va_list arg_ptr)
 {
