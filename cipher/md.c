@@ -285,7 +285,7 @@ struct gcry_md_context
 #define CTX_MAGIC_NORMAL 0x11071961
 #define CTX_MAGIC_SECURE 0x16917011
 
-static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo);
+static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo, int no_reject);
 static void md_close (gcry_md_hd_t a);
 static void md_write (gcry_md_hd_t a, const void *inbuf, size_t inlen);
 static byte *md_read( gcry_md_hd_t a, int algo );
@@ -517,7 +517,8 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
       if (algo)
 	{
-	  err = md_enable (hd, algo);
+	  err = md_enable (hd, algo,
+                           !!(flags & GCRY_MD_FLAG_FIPS_NO_REJECTION));
 	  if (err)
 	    md_close (hd);
 	}
@@ -554,7 +555,7 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
 
 static gcry_err_code_t
-md_enable (gcry_md_hd_t hd, int algorithm)
+md_enable (gcry_md_hd_t hd, int algorithm, int no_reject)
 {
   struct gcry_md_context *h = hd->ctx;
   const gcry_md_spec_t *spec;
@@ -576,7 +577,7 @@ md_enable (gcry_md_hd_t hd, int algorithm)
     err = GPG_ERR_DIGEST_ALGO;
 
   /* Any non-FIPS algorithm should go this way */
-  if (!err && !spec->flags.fips && fips_mode ())
+  if (!err && !no_reject && !spec->flags.fips && fips_mode ())
     err = GPG_ERR_DIGEST_ALGO;
 
   if (!err && h->flags.hmac && spec->read == NULL)
@@ -619,7 +620,7 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 gcry_err_code_t
 _gcry_md_enable (gcry_md_hd_t hd, int algorithm)
 {
-  return md_enable (hd, algorithm);
+  return md_enable (hd, algorithm, 0);
 }
 
 
@@ -1260,7 +1261,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
       iov.off = 0;
       iov.len = length;
 
-      if (spec->flags.disabled || (!spec->flags.fips && fips_mode ()))
+      if (spec->flags.disabled)
         log_bug ("gcry_md_hash_buffer failed for algo %d: %s",
                 algo, gpg_strerror (gcry_error (GPG_ERR_DIGEST_ALGO)));
 
@@ -1273,7 +1274,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
       gcry_md_hd_t h;
       gpg_err_code_t err;
 
-      err = md_open (&h, algo, 0);
+      err = md_open (&h, algo, GCRY_MD_FLAG_FIPS_NO_REJECTION);
       if (err)
         log_bug ("gcry_md_open failed for algo %d: %s",
                 algo, gpg_strerror (gcry_error(err)));
@@ -1281,6 +1282,12 @@ _gcry_md_hash_buffer (int algo, void *digest,
       md_final (h);
       memcpy (digest, md_read (h, algo), md_digest_length (algo));
       md_close (h);
+    }
+
+  if (fips_mode ())
+    {
+      int is_compliant = spec->flags.fips;
+      fips_service_indicator_mark_success (is_compliant);
     }
 }
 
@@ -1336,7 +1343,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 
   if (!hmac && spec->hash_buffers)
     {
-      if (spec->flags.disabled || (!spec->flags.fips && fips_mode ()))
+      if (spec->flags.disabled)
         return GPG_ERR_DIGEST_ALGO;
 
       spec->hash_buffers (digest, digestlen, iov, iovcnt);
@@ -1348,7 +1355,8 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
       gcry_md_hd_t h;
       gpg_err_code_t rc;
 
-      rc = md_open (&h, algo, (hmac? GCRY_MD_FLAG_HMAC:0));
+      rc = md_open (&h, algo, ((hmac? GCRY_MD_FLAG_HMAC:0)
+                               | GCRY_MD_FLAG_FIPS_NO_REJECTION));
       if (rc)
         return rc;
 
@@ -1372,6 +1380,12 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
       else if (digestlen > 0)
 	md_extract (h, algo, digest, digestlen);
       md_close (h);
+    }
+
+  if (fips_mode ())
+    {
+      int is_compliant = spec->flags.fips;
+      fips_service_indicator_mark_success (is_compliant);
     }
 
   return 0;

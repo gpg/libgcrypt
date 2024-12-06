@@ -1281,6 +1281,7 @@ gcry_md_hash_buffer (int algo, void *digest,
       (void)fips_not_operational ();
       fips_signal_error ("called in non-operational state");
     }
+  fips_service_indicator_init ();
   _gcry_md_hash_buffer (algo, digest, buffer, length);
 }
 
@@ -1293,6 +1294,7 @@ gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
       (void)fips_not_operational ();
       fips_signal_error ("called in non-operational state");
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_hash_buffers (algo, flags, digest, iov, iovcnt));
 }
 
@@ -1306,6 +1308,7 @@ gcry_md_hash_buffers_ext (int algo, unsigned int flags, void *digest,
       (void)fips_not_operational ();
       fips_signal_error ("called in non-operational state");
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_hash_buffers_extract (algo, flags, digest,
                                                    digestlen, iov, iovcnt));
 }

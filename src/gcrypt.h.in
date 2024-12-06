@@ -1318,6 +1318,7 @@ enum gcry_md_flags
   {
     GCRY_MD_FLAG_SECURE = 1,  /* Allocate all buffers in "secure" memory.  */
     GCRY_MD_FLAG_HMAC   = 2,  /* Make an HMAC out of this algorithm.  */
+    GCRY_MD_FLAG_FIPS_NO_REJECTION = 4,  /* Don't reject for FIPS.  */
     GCRY_MD_FLAG_BUGEMU1 = 0x0100
   };
 
