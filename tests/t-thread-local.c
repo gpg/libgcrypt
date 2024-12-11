@@ -1,4 +1,4 @@
-/* t-mlkem.c - Check the thread local storage
+/* t-thread-local.c - Check the thread local storage
  * Copyright (C) 2024 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
