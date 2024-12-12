@@ -2008,6 +2008,18 @@ check_fips_gcry_kdf_derive (void)
       "\xd8\x36\x62",
       1 /* not-compliant because key size too small */
     },
+    {
+      "passwordPASSWORDpassword", 24,
+      GCRY_KDF_PBKDF2, GCRY_MD_BLAKE2B_512,
+      "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
+      4096,
+      60,
+      "\xa4\x6b\x53\x35\xdb\xdd\xa3\xd2\x5d\x19\xbb\x11\xfe\xdd\xd9\x9e"
+      "\x45\x2a\x7c\x34\x47\x41\x98\xca\x31\x74\xb6\x34\x22\xac\x83\xb0"
+      "\x38\x6e\xf5\x93\x0f\xf5\x16\x46\x0b\x97\xdc\x6c\x27\x5b\xe7\x25"
+      "\xc2\xcb\xec\x50\x02\xc6\x52\x8b\x34\x68\x53\x65",
+      1 /* not-compliant because subalgo is not the one of approved */
+    }
   };
 
   int tvidx;

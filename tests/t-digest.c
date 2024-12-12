@@ -48,8 +48,7 @@ check_hash_buffer (void)
     const char *expect;
     int expect_failure;
   } tv[] = {
-#undef ENABLE_THIS_AFTER_T6376_CHANGE_REVISED
-#if USE_MD5 && defined(ENABLE_THIS_AFTER_T6376_CHANGE_REVISED)
+#if USE_MD5
     { GCRY_MD_MD5, "abc", 3,
       "\x90\x01\x50\x98\x3C\xD2\x4F\xB0\xD6\x96\x3F\x7D\x28\xE1\x7F\x72", 1 },
 #endif
@@ -156,8 +155,7 @@ check_hash_buffers (void)
     const char *expect;
     int expect_failure;
   } tv[] = {
-#undef ENABLE_THIS_AFTER_T6376_CHANGE_REVISED
-#if USE_MD5 && defined(ENABLE_THIS_AFTER_T6376_CHANGE_REVISED)
+#if USE_MD5
     { GCRY_MD_MD5, "abc", 3,
       "key", 3,
       "\xd2\xfe\x98\x06\x3f\x87\x6b\x03\x19\x3a\xfb\x49\xb4\x97\x95\x91", 1 },

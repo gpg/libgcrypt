@@ -275,6 +275,7 @@ struct gcry_md_context
     unsigned int finalized:1;
     unsigned int bugemu1:1;
     unsigned int hmac:1;
+    unsigned int reject_non_fips:1;
   } flags;
   size_t actual_handle_size;     /* Allocated size of this handle. */
   FILE  *debug;
@@ -285,7 +286,7 @@ struct gcry_md_context
 #define CTX_MAGIC_NORMAL 0x11071961
 #define CTX_MAGIC_SECURE 0x16917011
 
-static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo, int no_reject);
+static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo);
 static void md_close (gcry_md_hd_t a);
 static void md_write (gcry_md_hd_t a, const void *inbuf, size_t inlen);
 static byte *md_read( gcry_md_hd_t a, int algo );
@@ -508,6 +509,7 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
       ctx->flags.secure = secure;
       ctx->flags.hmac = hmac;
       ctx->flags.bugemu1 = !!(flags & GCRY_MD_FLAG_BUGEMU1);
+      ctx->flags.reject_non_fips = !!(flags & GCRY_MD_FLAG_REJECT_NON_FIPS);
     }
 
   if (! err)
@@ -517,8 +519,7 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
       if (algo)
 	{
-	  err = md_enable (hd, algo,
-                           !!(flags & GCRY_MD_FLAG_FIPS_NO_REJECTION));
+	  err = md_enable (hd, algo);
 	  if (err)
 	    md_close (hd);
 	}
@@ -543,24 +544,44 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
   if ((flags & ~(GCRY_MD_FLAG_SECURE
                  | GCRY_MD_FLAG_HMAC
+                 | GCRY_MD_FLAG_REJECT_NON_FIPS
                  | GCRY_MD_FLAG_BUGEMU1)))
     rc = GPG_ERR_INV_ARG;
   else
     rc = md_open (&hd, algo, flags);
 
   *h = rc? NULL : hd;
+
+  if (!rc && fips_mode ())
+    {
+      GcryDigestEntry *entry = hd->ctx->list;
+      /* No ENTRY means that ALGO==0.
+         It's not yet known, if it's FIPS compliant or not.  */
+      int is_compliant_algo = 1;
+
+      if (entry)
+        {
+          const gcry_md_spec_t *spec = entry->spec;
+          is_compliant_algo = spec->flags.fips;
+        }
+
+      if (!is_compliant_algo)
+        fips_service_indicator_mark_non_compliant ();
+    }
+
   return rc;
 }
 
 
 
 static gcry_err_code_t
-md_enable (gcry_md_hd_t hd, int algorithm, int no_reject)
+md_enable (gcry_md_hd_t hd, int algorithm)
 {
   struct gcry_md_context *h = hd->ctx;
   const gcry_md_spec_t *spec;
   GcryDigestEntry *entry;
   gcry_err_code_t err = 0;
+  int reject_non_fips = h->flags.reject_non_fips;
 
   for (entry = h->list; entry; entry = entry->next)
     if (entry->spec->algo == algorithm)
@@ -577,7 +598,7 @@ md_enable (gcry_md_hd_t hd, int algorithm, int no_reject)
     err = GPG_ERR_DIGEST_ALGO;
 
   /* Any non-FIPS algorithm should go this way */
-  if (!err && !no_reject && !spec->flags.fips && fips_mode ())
+  if (!err && reject_non_fips && !spec->flags.fips && fips_mode ())
     err = GPG_ERR_DIGEST_ALGO;
 
   if (!err && h->flags.hmac && spec->read == NULL)
@@ -620,7 +641,26 @@ md_enable (gcry_md_hd_t hd, int algorithm, int no_reject)
 gcry_err_code_t
 _gcry_md_enable (gcry_md_hd_t hd, int algorithm)
 {
-  return md_enable (hd, algorithm, 0);
+  gcry_err_code_t rc;
+
+  rc = md_enable (hd, algorithm);
+  if (!rc && fips_mode ())
+    {
+      GcryDigestEntry *entry = hd->ctx->list;
+      /* No ENTRY means, something goes wrong.  */
+      int is_compliant_algo = 0;
+
+      if (entry)
+        {
+          const gcry_md_spec_t *spec = entry->spec;
+          is_compliant_algo = spec->flags.fips;
+        }
+
+      if (!is_compliant_algo)
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  return rc;
 }
 
 
@@ -1274,7 +1314,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
       gcry_md_hd_t h;
       gpg_err_code_t err;
 
-      err = md_open (&h, algo, GCRY_MD_FLAG_FIPS_NO_REJECTION);
+      err = md_open (&h, algo, 0);
       if (err)
         log_bug ("gcry_md_open failed for algo %d: %s",
                 algo, gpg_strerror (gcry_error(err)));
@@ -1355,8 +1395,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
       gcry_md_hd_t h;
       gpg_err_code_t rc;
 
-      rc = md_open (&h, algo, ((hmac? GCRY_MD_FLAG_HMAC:0)
-                               | GCRY_MD_FLAG_FIPS_NO_REJECTION));
+      rc = md_open (&h, algo, (hmac? GCRY_MD_FLAG_HMAC:0));
       if (rc)
         return rc;
 
