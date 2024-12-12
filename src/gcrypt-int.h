@@ -303,13 +303,10 @@ unsigned long _gcry_thread_context_get_fsi (void);
 #define fips_service_indicator_init() do \
   {                                      \
     if (fips_mode ())                    \
-      _gcry_thread_context_set_fsi (1);  \
+      _gcry_thread_context_set_fsi (0);  \
   } while (0)
-#define fips_service_indicator_mark_success(is_compliant) do \
-  {                                                          \
-    if (is_compliant && fips_mode ())                        \
-      _gcry_thread_context_set_fsi (0);                      \
-  } while (0)
+/* Should be used only when fips_mode()==TRUE.  */
+#define fips_service_indicator_mark_non_compliant() _gcry_thread_context_set_fsi (1)
 
 /* Return a pointer to a string containing a description of the error
    code in the error value ERR.  */

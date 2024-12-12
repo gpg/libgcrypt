@@ -1286,8 +1286,8 @@ _gcry_md_hash_buffer (int algo, void *digest,
 
   if (fips_mode ())
     {
-      int is_compliant = spec->flags.fips;
-      fips_service_indicator_mark_success (is_compliant);
+      if (!spec->flags.fips)
+        fips_service_indicator_mark_non_compliant ();
     }
 }
 
@@ -1384,8 +1384,8 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 
   if (fips_mode ())
     {
-      int is_compliant = spec->flags.fips;
-      fips_service_indicator_mark_success (is_compliant);
+      if (!spec->flags.fips)
+        fips_service_indicator_mark_non_compliant ();
     }
 
   return 0;

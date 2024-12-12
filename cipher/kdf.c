@@ -248,6 +248,7 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
                   size_t keysize, void *keybuffer)
 {
   gpg_err_code_t ec;
+  int is_compliant_algo = 0;
 
   if (!passphrase)
     {
@@ -279,35 +280,32 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
       break;
 
     case GCRY_KDF_PBKDF2:
+      is_compliant_algo = 1;
       if (!saltlen || !iterations)
         ec = GPG_ERR_INV_VALUE;
       else
         {
-          int is_compliant = 1;
-
           if (fips_mode ())
             {
               /* FIPS requires minimum passphrase length, see FIPS 140-3 IG D.N */
               if (passphraselen < 8)
-                is_compliant &= 0;
+                fips_service_indicator_mark_non_compliant ();
 
               /* FIPS requires minimum salt length of 128 b (SP 800-132 sec. 5.1, p.6) */
               if (saltlen < 16)
-                is_compliant &= 0;
+                fips_service_indicator_mark_non_compliant ();
 
               /* FIPS requires minimum iterations bound (SP 800-132 sec 5.2, p.6) */
               if (iterations < 1000)
-                is_compliant &= 0;
+                fips_service_indicator_mark_non_compliant ();
 
               /* Check minimum key size */
               if (keysize < 14)
-                is_compliant &= 0;
+                fips_service_indicator_mark_non_compliant ();
             }
 
           ec = _gcry_kdf_pkdf2 (passphrase, passphraselen, subalgo,
                                 salt, saltlen, iterations, keysize, keybuffer);
-          if (!ec)
-            fips_service_indicator_mark_success (is_compliant);
         }
       break;
 
@@ -325,6 +323,9 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
     }
+
+  if (!ec && !is_compliant_algo && fips_mode ())
+    fips_service_indicator_mark_non_compliant ();
 
  leave:
   return ec;
