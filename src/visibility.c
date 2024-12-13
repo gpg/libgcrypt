@@ -946,7 +946,7 @@ gcry_mac_open (gcry_mac_hd_t *handle, int algo, unsigned int flags,
       *handle = NULL;
       return gpg_error (fips_not_operational ());
     }
-
+  fips_service_indicator_init ();
   return gpg_error (_gcry_mac_open (handle, algo, flags, ctx));
 }
 
@@ -962,8 +962,9 @@ gcry_mac_setkey (gcry_mac_hd_t hd, const void *key, size_t keylen)
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
 
+  fips_service_indicator_init ();
   if (fips_mode () && keylen < 14)
-    return GPG_ERR_INV_VALUE;
+    fips_service_indicator_mark_non_compliant ();
 
   return gpg_error (_gcry_mac_setkey (hd, key, keylen));
 }
