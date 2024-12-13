@@ -992,7 +992,8 @@ enum gcry_cipher_flags
     GCRY_CIPHER_ENABLE_SYNC = 2,  /* Enable CFB sync mode. */
     GCRY_CIPHER_CBC_CTS     = 4,  /* Enable CBC cipher text stealing (CTS). */
     GCRY_CIPHER_CBC_MAC     = 8,  /* Enable CBC message auth. code (MAC).  */
-    GCRY_CIPHER_EXTENDED    = 16  /* Enable extended AES-WRAP.  */
+    GCRY_CIPHER_EXTENDED    = 16, /* Enable extended AES-WRAP.  */
+    GCRY_CIPHER_FLAG_REJECT_NON_FIPS = 32 /* Reject non-FIPS-compliant algo.  */
   };
 
 /* Methods used for AEAD IV generation. */

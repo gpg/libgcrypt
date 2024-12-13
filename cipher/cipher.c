@@ -509,7 +509,8 @@ gcry_err_code_t
 _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 			    int algo, int mode, unsigned int flags)
 {
-  int secure = (flags & GCRY_CIPHER_SECURE);
+  int secure = !!(flags & GCRY_CIPHER_SECURE);
+  int reject_non_fips = !!(flags & GCRY_CIPHER_FLAG_REJECT_NON_FIPS);
   gcry_cipher_spec_t *spec;
   gcry_cipher_hd_t h = NULL;
   gcry_err_code_t err;
@@ -524,7 +525,15 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
   else if (spec->flags.disabled)
     err = GPG_ERR_CIPHER_ALGO;
   else if (!spec->flags.fips && fips_mode ())
-    err = GPG_ERR_CIPHER_ALGO;
+    {
+      if (reject_non_fips)
+        err = GPG_ERR_CIPHER_ALGO;
+      else
+        {
+          fips_service_indicator_mark_non_compliant ();
+          err = 0;
+        }
+    }
   else
     err = 0;
 
@@ -535,7 +544,8 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 		     | GCRY_CIPHER_ENABLE_SYNC
 		     | GCRY_CIPHER_CBC_CTS
 		     | GCRY_CIPHER_CBC_MAC
-                     | GCRY_CIPHER_EXTENDED))
+                     | GCRY_CIPHER_EXTENDED
+                     | GCRY_CIPHER_FLAG_REJECT_NON_FIPS))
 	  || ((flags & GCRY_CIPHER_CBC_CTS) && (flags & GCRY_CIPHER_CBC_MAC))))
     err = GPG_ERR_CIPHER_ALGO;
 
@@ -765,7 +775,12 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	     See "Implementation Guidance for FIPS 140-2, A.9 XTS-AES
 	     Key Generation Requirements" for details.  */
 	  if (buf_eq_const (key, key + keylen, keylen))
-	    return GPG_ERR_WEAK_KEY;
+            {
+              if ((c->flags & GCRY_CIPHER_FLAG_REJECT_NON_FIPS))
+                return GPG_ERR_WEAK_KEY;
+              else
+                fips_service_indicator_mark_non_compliant ();
+            }
 	}
     }
   else if (c->mode == GCRY_CIPHER_MODE_SIV)

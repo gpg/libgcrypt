@@ -736,7 +736,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
       *handle = NULL;
       return gpg_error (fips_not_operational ());
     }
-
+  fips_service_indicator_init ();
   return gpg_error (_gcry_cipher_open (handle, algo, mode, flags));
 }
 
@@ -751,7 +751,7 @@ gcry_cipher_setkey (gcry_cipher_hd_t hd, const void *key, size_t keylen)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
-
+  fips_service_indicator_init ();
   return gcry_error (_gcry_cipher_setkey (hd, key, keylen));
 }
 
