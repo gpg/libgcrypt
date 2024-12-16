@@ -1,4 +1,4 @@
-/* t-digest.c - MD regression tests
+/* t-fips-service-ind.c - FIPS service indicator regression tests
  * Copyright (C) 2024 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
@@ -27,7 +27,7 @@
 #include <string.h>
 #include <assert.h>
 
-#define PGM "t-digest"
+#define PGM "t-fips-service-ind"
 
 #include "t-common.h"
 static int in_fips_mode;
