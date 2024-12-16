@@ -38,6 +38,173 @@ static int in_fips_mode;
 # include <windows.h>
 #endif
 
+/* Check gcry_mac_open, gcry_mac_write, gcry_mac_write, gcry_mac_read,
+   gcry_mac_close API.  */
+static void
+check_mac_o_w_r_c (void)
+{
+  static struct {
+    int algo;
+    const char *data;
+    int datalen;
+    const char *key;
+    int keylen;
+    const char *expect;
+    int expect_failure;
+    unsigned int flags;
+  } tv[] = {
+#if USE_MD5
+    { GCRY_MAC_HMAC_MD5, "hmac input abc", 14, "hmac key input", 14,
+      "\x0d\x72\xd0\x60\xaf\x34\xf2\xca\x33\x58\xa9\xcc\xd3\x5a\xac\xb5", 1 },
+    { GCRY_MAC_HMAC_MD5, "hmac input abc", 14, "hmac key input", 14,
+      "\x0d\x72\xd0\x60\xaf\x34\xf2\xca\x33\x58\xa9\xcc\xd3\x5a\xac\xb5", 1,
+      GCRY_MAC_FLAG_REJECT_NON_FIPS },
+#endif
+#if USE_SHA1
+    { GCRY_MAC_HMAC_SHA1, "hmac input abc", 14, "hmac key input", 14,
+      "\xc9\x62\x9d\x16\x0f\xc2\xc4\xcd\x38\xac\x3a\x00\xdc\x29\x61\x03"
+      "\x69\x50\xd7\x3a" },
+#endif
+    { GCRY_MAC_HMAC_SHA256, "hmac input abc", 14, "hmac key input", 14,
+      "\x6a\xda\x4d\xd5\xf3\xa7\x32\x9d\xd2\x55\xc0\x7f\xe6\x0a\x93\xb8"
+      "\x7a\x6e\x76\x68\x46\x34\x67\xf9\xc2\x29\xb8\x24\x2e\xc8\xe3\xb4" },
+    { GCRY_MAC_HMAC_SHA384, "hmac input abc", 14, "hmac key input", 14,
+      "\xc6\x59\x14\x4a\xac\x4d\xd5\x62\x09\x2c\xbd\x5e\xbf\x41\x94\xf9"
+      "\xa4\x78\x18\x46\xfa\xd6\xd1\x12\x90\x4f\x65\xd4\xe8\x44\xcc\xcc"
+      "\x3d\xcc\xf3\xe4\x27\xd8\xf0\xff\x01\xe8\x70\xcd\xfb\xfa\x24\x45" },
+    { GCRY_MAC_HMAC_SHA512, "hmac input abc", 14, "hmac key input", 14,
+      "\xfa\x77\x49\x49\x24\x3d\x7e\x03\x1b\x0e\xd1\xfc\x20\x81\xcf\x95"
+      "\x81\x21\xa4\x4f\x3b\xe5\x69\x9a\xe6\x67\x27\x10\xbc\x62\xc7\xb3"
+      "\xb3\xcf\x2b\x1e\xda\x20\x48\x25\xc5\x6a\x52\xc7\xc9\xd9\x77\xf6"
+      "\xf6\x49\x9d\x70\xe6\x04\x33\xab\x6a\xdf\x7e\x9f\xf4\xd1\x59\x6e" },
+    { GCRY_MAC_HMAC_SHA3_256, "hmac input abc", 14, "hmac key input", 14,
+      "\x2b\xe9\x02\x92\xc2\x37\xbe\x91\x06\xbf\x9c\x8e\x7b\xa3\xf2\xfc"
+      "\x68\x10\x8a\x71\xd5\xc7\x84\x3c\x0b\xdd\x7d\x1e\xdf\xa5\xf6\xa7" },
+    { GCRY_MAC_HMAC_SHA3_384, "hmac input abc", 14, "hmac key input", 14,
+      "\x9f\x6b\x9f\x49\x95\x57\xed\x33\xb1\xe7\x22\x2f\xda\x40\x68\xb0"
+      "\x28\xd2\xdb\x6f\x73\x3c\x2e\x2b\x29\x51\x64\x53\xc4\xc5\x63\x8a"
+      "\x98\xca\x78\x1a\xe7\x1b\x7d\xf6\xbf\xf3\x6a\xf3\x2a\x0e\xa0\x5b" },
+    { GCRY_MAC_HMAC_SHA3_512, "hmac input abc", 14, "hmac key input", 14,
+      "\xf3\x19\x70\x54\x25\xdf\x0f\xde\x09\xe9\xea\x3b\x34\x67\x14\x32"
+      "\xe6\xe2\x58\x9d\x76\x38\xa4\xbd\x90\x35\x4c\x07\x7c\xa3\xdb\x23"
+      "\x3c\x78\x0c\x45\xee\x8e\x39\xd5\x81\xd8\x5c\x13\x20\x40\xba\x34"
+      "\xd0\x0b\x75\x31\x38\x4b\xe7\x74\x87\xa9\xc5\x68\x7f\xbc\x19\xa1" }
+#if USE_RMD160
+    ,
+    { GCRY_MAC_HMAC_RMD160, "hmac input abc", 14, "hmac key input", 14,
+      "\xf2\x45\x5c\x7e\x48\x1a\xbb\xe5\xe8\xec\x40\xa4\x1b\x89\x26\x2b"
+      "\xdc\xa1\x79\x59", 1 }
+#endif
+  };
+  int tvidx;
+  unsigned char mac[64];
+  int expectlen;
+  gpg_error_t err;
+  size_t buflen;
+
+  for (tvidx=0; tvidx < DIM(tv); tvidx++)
+    {
+      gpg_err_code_t ec;
+      gcry_mac_hd_t h;
+
+      if (verbose)
+        fprintf (stderr, "checking gcry_mac_open test %d\n",
+                 tvidx);
+
+      expectlen = gcry_mac_get_algo_maclen (tv[tvidx].algo);
+      assert (expectlen != 0);
+      assert (expectlen <= DIM (mac));
+      err = gcry_mac_open (&h, tv[tvidx].algo, tv[tvidx].flags, NULL);
+      if (err)
+        {
+          if (in_fips_mode && (tv[tvidx].flags & GCRY_MAC_FLAG_REJECT_NON_FIPS)
+              && tv[tvidx].expect_failure)
+            /* Here, an error is expected */
+            ;
+          else
+            fail ("gcry_mac_open test %d unexpectedly failed: %s\n",
+                  tvidx, gpg_strerror (err));
+          continue;
+        }
+      else
+        {
+          if (in_fips_mode && (tv[tvidx].flags & GCRY_MAC_FLAG_REJECT_NON_FIPS)
+              && tv[tvidx].expect_failure)
+            /* This case, an error is expected, but we observed success */
+            fail ("gcry_mac_open test %d unexpectedly succeeded\n", tvidx);
+        }
+
+
+      ec = gcry_get_fips_service_indicator ();
+      if (ec == GPG_ERR_INV_OP)
+        {
+          /* libgcrypt is old, no support of the FIPS service indicator.  */
+          fail ("gcry_mac_open test %d unexpectedly failed to check the FIPS service indicator.\n",
+                tvidx);
+          continue;
+        }
+
+      if (in_fips_mode && !tv[tvidx].expect_failure && ec)
+        {
+          /* Success with the FIPS service indicator == 0 expected, but != 0.  */
+          fail ("gcry_mac_open test %d unexpectedly set the indicator in FIPS mode.\n",
+                tvidx);
+          continue;
+        }
+      else if (in_fips_mode && tv[tvidx].expect_failure && !ec)
+        {
+          /* Success with the FIPS service indicator != 0 expected, but == 0.  */
+          fail ("gcry_mac_open test %d unexpectedly cleared the indicator in FIPS mode.\n",
+                tvidx);
+          continue;
+        }
+
+      err = gcry_mac_setkey (h, tv[tvidx].key, tv[tvidx].keylen);
+      if (err)
+        {
+          fail ("gcry_mac_setkey test %d unexpectedly failed: %s\n",
+                tvidx, gpg_strerror (err));
+          gcry_mac_close (h);
+          continue;
+        }
+
+      err = gcry_mac_write (h, tv[tvidx].data, tv[tvidx].datalen);
+      if (err)
+        {
+          fail ("gcry_mac_write test %d unexpectedly failed: %s\n",
+                tvidx, gpg_strerror (err));
+          gcry_mac_close (h);
+          continue;
+        }
+
+      buflen = expectlen;
+      err = gcry_mac_read (h, mac, &buflen);
+      if (err || buflen != expectlen)
+        {
+          fail ("gcry_mac_read test %d unexpectedly failed: %s\n",
+                tvidx, gpg_strerror (err));
+          gcry_mac_close (h);
+          continue;
+        }
+
+      if (memcmp (mac, tv[tvidx].expect, expectlen))
+        {
+          int i;
+
+          fail ("gcry_mac_open test %d failed: mismatch\n", tvidx);
+          fputs ("got:", stderr);
+          for (i=0; i < expectlen; i++)
+            fprintf (stderr, " %02x", mac[i]);
+          putc ('\n', stderr);
+        }
+
+      gcry_mac_close (h);
+    }
+}
+
+
+/* Check gcry_md_open, gcry_md_write, gcry_md_write, gcry_md_read,
+   gcry_md_close API.  */
 static void
 check_md_o_w_r_c (void)
 {
@@ -459,6 +626,7 @@ main (int argc, char **argv)
   check_hash_buffer ();
   check_hash_buffers ();
   check_md_o_w_r_c ();
+  check_mac_o_w_r_c ();
 
   return !!error_count;
 }
