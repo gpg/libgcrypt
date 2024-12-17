@@ -31,12 +31,161 @@
 
 #include "t-common.h"
 static int in_fips_mode;
+#define MAX_DATA_LEN 1040
 
 /* Mingw requires us to include windows.h after winsock2.h which is
    included by gcrypt.h.  */
 #ifdef _WIN32
 # include <windows.h>
 #endif
+
+/* Check gcry_cipher_open, gcry_cipher_setkey, gcry_cipher_encrypt,
+   gcry_cipher_decrypt, gcry_cipher_close API.  */
+static void
+check_cipher_o_s_e_d_c (void)
+{
+  static struct {
+    int algo;
+    const char *key;
+    int keylen;
+    const char *expect;
+    int expect_failure;
+    unsigned int flags;
+  } tv[] = {
+#if USE_DES
+      { GCRY_CIPHER_3DES,
+	"\xe3\x34\x7a\x6b\x0b\xc1\x15\x2c\x64\x2a\x25\xcb\xd3\xbc\x31\xab"
+	"\xfb\xa1\x62\xa8\x1f\x19\x7c\x15", 24,
+        "\x3f\x1a\xb8\x83\x18\x8b\xb5\x97", 1 },
+      { GCRY_CIPHER_3DES,
+	"\xe3\x34\x7a\x6b\x0b\xc1\x15\x2c\x64\x2a\x25\xcb\xd3\xbc\x31\xab"
+	"\xfb\xa1\x62\xa8\x1f\x19\x7c\x15", 24,
+        "\x3f\x1a\xb8\x83\x18\x8b\xb5\x97",
+        1, GCRY_CIPHER_FLAG_REJECT_NON_FIPS },
+#endif
+      { GCRY_CIPHER_AES,
+	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c", 16,
+        "\x5c\x71\xd8\x5d\x26\x5e\xcd\xb5\x95\x40\x41\xab\xff\x25\x6f\xd1" }
+  };
+  const char *pt = "Shohei Ohtani 2024: 54 HR, 59 SB";
+  int ptlen;
+  int tvidx;
+  unsigned char out[MAX_DATA_LEN];
+  gpg_error_t err;
+
+  ptlen = strlen (pt);
+  assert (ptlen == 32);
+  for (tvidx=0; tvidx < DIM(tv); tvidx++)
+    {
+      gpg_err_code_t ec;
+      gcry_cipher_hd_t h;
+      size_t blklen;
+
+      if (verbose)
+        fprintf (stderr, "checking gcry_cipher_open test %d\n",
+                 tvidx);
+
+      blklen = gcry_cipher_get_algo_blklen (tv[tvidx].algo);
+      assert (blklen != 0);
+      assert (blklen <= ptlen);
+      assert (blklen <= DIM (out));
+      err = gcry_cipher_open (&h, tv[tvidx].algo, GCRY_CIPHER_MODE_ECB,
+                              tv[tvidx].flags);
+      if (err)
+        {
+          if (in_fips_mode && (tv[tvidx].flags & GCRY_CIPHER_FLAG_REJECT_NON_FIPS)
+              && tv[tvidx].expect_failure)
+            /* Here, an error is expected */
+            ;
+          else
+            fail ("gcry_cipher_open test %d unexpectedly failed: %s\n",
+                  tvidx, gpg_strerror (err));
+          continue;
+        }
+      else
+        {
+          if (in_fips_mode && (tv[tvidx].flags & GCRY_CIPHER_FLAG_REJECT_NON_FIPS)
+              && tv[tvidx].expect_failure)
+            /* This case, an error is expected, but we observed success */
+            fail ("gcry_cipher_open test %d unexpectedly succeeded\n", tvidx);
+        }
+
+      ec = gcry_get_fips_service_indicator ();
+      if (ec == GPG_ERR_INV_OP)
+        {
+          /* libgcrypt is old, no support of the FIPS service indicator.  */
+          fail ("gcry_cipher_open test %d unexpectedly failed to check the FIPS service indicator.\n",
+                tvidx);
+          continue;
+        }
+
+      if (in_fips_mode && !tv[tvidx].expect_failure && ec)
+        {
+          /* Success with the FIPS service indicator == 0 expected, but != 0.  */
+          fail ("gcry_cipher_open test %d unexpectedly set the indicator in FIPS mode.\n",
+                tvidx);
+          continue;
+        }
+      else if (in_fips_mode && tv[tvidx].expect_failure && !ec)
+        {
+          /* Success with the FIPS service indicator != 0 expected, but == 0.  */
+          fail ("gcry_cipher_open test %d unexpectedly cleared the indicator in FIPS mode.\n",
+                tvidx);
+          continue;
+        }
+
+      err = gcry_cipher_setkey (h, tv[tvidx].key, tv[tvidx].keylen);
+      if (err)
+        {
+          fail ("gcry_cipher_setkey %d failed: %s\n", tvidx,
+                gpg_strerror (err));
+          gcry_cipher_close (h);
+          continue;
+        }
+
+      err = gcry_cipher_encrypt (h, out, MAX_DATA_LEN, pt, blklen);
+      if (err)
+        {
+          fail ("gcry_cipher_encrypt %d failed: %s\n", tvidx,
+                gpg_strerror (err));
+          gcry_cipher_close (h);
+          continue;
+        }
+
+      if (memcmp (out, tv[tvidx].expect, blklen))
+        {
+          int i;
+
+          fail ("gcry_cipher_open test %d failed: encryption mismatch\n", tvidx);
+          fputs ("got:", stderr);
+          for (i=0; i < blklen; i++)
+            fprintf (stderr, " %02x", out[i]);
+          putc ('\n', stderr);
+        }
+
+      err = gcry_cipher_decrypt (h, out, blklen, NULL, 0);
+      if (err)
+        {
+          fail ("gcry_cipher_decrypt %d failed: %s\n", tvidx,
+                gpg_strerror (err));
+          gcry_cipher_close (h);
+          continue;
+        }
+
+      if (memcmp (out, pt, blklen))
+        {
+          int i;
+
+          fail ("gcry_cipher_open test %d failed: decryption mismatch\n", tvidx);
+          fputs ("got:", stderr);
+          for (i=0; i < blklen; i++)
+            fprintf (stderr, " %02x", out[i]);
+          putc ('\n', stderr);
+        }
+
+      gcry_cipher_close (h);
+    }
+}
 
 /* Check gcry_mac_open, gcry_mac_write, gcry_mac_write, gcry_mac_read,
    gcry_mac_close API.  */
@@ -781,11 +930,12 @@ main (int argc, char **argv)
   if (debug)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
 
+  check_kdf_derive ();
   check_hash_buffer ();
   check_hash_buffers ();
   check_md_o_w_r_c ();
   check_mac_o_w_r_c ();
-  check_kdf_derive ();
+  check_cipher_o_s_e_d_c ();
 
   return !!error_count;
 }
