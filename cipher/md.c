@@ -673,6 +673,7 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
   GcryDigestEntry *ar, *br;
   gcry_md_hd_t bhd;
   size_t n;
+  int is_compliant_algo = 1;
 
   if (ahd->bufpos)
     md_write (ahd, NULL, 0);
@@ -699,10 +700,15 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
   b->list = NULL;
   b->debug = NULL;
 
+  if (!a->list)
+    is_compliant_algo = 0;
+
   /* Copy the complete list of algorithms.  The copied list is
      reversed, but that doesn't matter. */
   for (ar = a->list; ar; ar = ar->next)
     {
+      const gcry_md_spec_t *spec = ar->spec;
+
       if (a->flags.secure)
         br = xtrymalloc_secure (ar->actual_struct_size);
       else
@@ -714,6 +720,8 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
           goto leave;
         }
 
+      is_compliant_algo &= spec->flags.fips;
+
       memcpy (br, ar, ar->actual_struct_size);
       br->next = b->list;
       b->list = br;
@@ -723,6 +731,9 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
     md_start_debug (bhd, "unknown");
 
   *b_hd = bhd;
+
+  if (!is_compliant_algo)
+    fips_service_indicator_mark_non_compliant ();
 
  leave:
   return err;

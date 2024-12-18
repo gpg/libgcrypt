@@ -1232,6 +1232,7 @@ gcry_md_copy (gcry_md_hd_t *bhd, gcry_md_hd_t ahd)
       *bhd = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_copy (bhd, ahd));
 }
 
