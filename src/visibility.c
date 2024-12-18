@@ -1056,6 +1056,7 @@ gcry_pk_hash_sign (gcry_sexp_t *result, const char *data_tmpl, gcry_sexp_t skey,
       *result = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_sign_md (result, data_tmpl, hd, skey, ctx));
 }
 
@@ -1073,6 +1074,7 @@ gcry_pk_hash_verify (gcry_sexp_t sigval, const char *data_tmpl, gcry_sexp_t pkey
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_verify_md (sigval, data_tmpl, hd, pkey, ctx));
 }
 

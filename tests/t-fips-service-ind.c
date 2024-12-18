@@ -29,6 +29,7 @@
 
 #define PGM "t-fips-service-ind"
 
+#define NEED_HEX2BUFFER
 #include "t-common.h"
 static int in_fips_mode;
 #define MAX_DATA_LEN 1040
@@ -38,6 +39,213 @@ static int in_fips_mode;
 #ifdef _WIN32
 # include <windows.h>
 #endif
+
+/* Check gcry_pk_hash_sign, gcry_pk_hash_verify API.  */
+static void
+check_pk_hash_sign_verify (void)
+{
+  static struct {
+    int md_algo;
+    const char *prvkey;
+    const char *pubkey;
+    const char *data_tmpl;
+    const char *k;
+    int expect_failure;
+    int expect_failure_hash;
+  } tv[] = {
+    {                           /* non-compliant hash */
+      GCRY_MD_BLAKE2B_512,
+      "(private-key (ecc (curve nistp256)"
+      " (d #519b423d715f8b581f4fa8ee59f4771a5b44c8130b4e3eacca54a56dda72b464#)))",
+      "(public-key (ecc (curve nistp256)"
+      " (q #041ccbe91c075fc7f4f033bfa248db8fccd3565de94bbfb12f3c59ff46c271bf83"
+      "ce4014c68811f9a21a1fdb2c0e6113e06db7ca93b7404e78dc7ccd5ca89a4ca9#)))",
+      "(data(flags raw)(hash %s %b)(label %b))",
+      "94a1bbb14b906a61a280f245f9e93c7f3b4a6247824f5d33b9670787642a68de",
+      1, 1
+    },
+    {                           /* non-compliant curve */
+      GCRY_MD_SHA256,
+      "(private-key (ecc (curve secp256k1)"
+      " (d #c2cdf0a8b0a83b35ace53f097b5e6e6a0a1f2d40535eff1cf434f52a43d59d8f#)))",
+
+      "(public-key (ecc (curve secp256k1)"
+      " (q #046fcc37ea5e9e09fec6c83e5fbd7a745e3eee81d16ebd861c9e66f55518c19798"
+      "4e9f113c07f875691df8afc1029496fc4cb9509b39dcd38f251a83359cc8b4f7#)))",
+      "(data(flags raw)(hash %s %b)(label %b))",
+      "94a1bbb14b906a61a280f245f9e93c7f3b4a6247824f5d33b9670787642a68de",
+      1, 0
+    },
+    {
+      GCRY_MD_SHA256,
+      "(private-key (ecc (curve nistp256)"
+      " (d #519b423d715f8b581f4fa8ee59f4771a5b44c8130b4e3eacca54a56dda72b464#)))",
+      "(public-key (ecc (curve nistp256)"
+      " (q #041ccbe91c075fc7f4f033bfa248db8fccd3565de94bbfb12f3c59ff46c271bf83"
+      "ce4014c68811f9a21a1fdb2c0e6113e06db7ca93b7404e78dc7ccd5ca89a4ca9#)))",
+      "(data(flags raw)(hash %s %b)(label %b))",
+      "94a1bbb14b906a61a280f245f9e93c7f3b4a6247824f5d33b9670787642a68de",
+      0, 0
+    }
+  };
+  int tvidx;
+  gpg_error_t err;
+  gpg_err_code_t ec;
+  const char *msg = "Takerufuji Mikiya, who won the championship in March 2024";
+  int msglen;
+
+  msglen = strlen (msg);
+  for (tvidx=0; tvidx < DIM(tv); tvidx++)
+    {
+      gcry_md_hd_t hd = NULL;
+      gcry_sexp_t s_sk = NULL;
+      gcry_sexp_t s_pk = NULL;
+      void *buffer = NULL;
+      size_t buflen;
+      gcry_ctx_t ctx = NULL;
+      gcry_sexp_t s_sig= NULL;
+
+      if (verbose)
+        info ("checking gcry_pk_hash_ test %d\n", tvidx);
+
+      err = gcry_md_open (&hd, tv[tvidx].md_algo, 0);
+      if (err)
+        {
+          fail ("algo %d, gcry_md_open failed: %s\n", tv[tvidx].md_algo,
+                gpg_strerror (err));
+          goto next;
+        }
+
+      ec = gcry_get_fips_service_indicator ();
+      if (ec == GPG_ERR_INV_OP)
+        {
+          /* libgcrypt is old, no support of the FIPS service indicator.  */
+          fail ("gcry_pk_hash test %d unexpectedly failed to check the FIPS service indicator.\n",
+                tvidx);
+          goto next;
+        }
+
+      if (in_fips_mode && !tv[tvidx].expect_failure_hash && ec)
+        {
+          /* Success with the FIPS service indicator == 0 expected, but != 0.  */
+          fail ("gcry_pk_hash test %d unexpectedly set the indicator in FIPS mode.\n",
+                tvidx);
+          goto next;
+        }
+      else if (in_fips_mode && tv[tvidx].expect_failure_hash && !ec)
+        {
+          /* Success with the FIPS service indicator != 0 expected, but == 0.  */
+          fail ("gcry_pk_hash test %d unexpectedly cleared the indicator in FIPS mode.\n",
+                tvidx);
+          goto next;
+        }
+
+      err = gcry_sexp_build (&s_sk, NULL, tv[tvidx].prvkey);
+      if (err)
+        {
+          fail ("error building SEXP for test, %s: %s",
+                "sk", gpg_strerror (err));
+          goto next;
+        }
+
+      err = gcry_sexp_build (&s_pk, NULL, tv[tvidx].pubkey);
+      if (err)
+        {
+          fail ("error building SEXP for test, %s: %s",
+                "pk", gpg_strerror (err));
+          goto next;
+        }
+
+      if (!(buffer = hex2buffer (tv[tvidx].k, &buflen)))
+        {
+          fail ("error parsing for test, %s: %s",
+                "msg", "invalid hex string");
+          goto next;
+        }
+
+      err = gcry_pk_random_override_new (&ctx, buffer, buflen);
+      if (err)
+        {
+          fail ("error setting 'k' for test: %s",
+                gpg_strerror (err));
+          goto next;
+        }
+
+      gcry_md_write (hd, msg, msglen);
+
+      err = gcry_pk_hash_sign (&s_sig, tv[tvidx].data_tmpl, s_sk, hd, ctx);
+      if (err)
+        {
+          fail ("gcry_pk_hash_sign failed: %s", gpg_strerror (err));
+          goto next;
+        }
+
+      ec = gcry_get_fips_service_indicator ();
+      if (ec == GPG_ERR_INV_OP)
+        {
+          /* libgcrypt is old, no support of the FIPS service indicator.  */
+          fail ("gcry_pk_hash test %d unexpectedly failed to check the FIPS service indicator.\n",
+                tvidx);
+          goto next;
+        }
+
+      if (in_fips_mode && !tv[tvidx].expect_failure && ec)
+        {
+          /* Success with the FIPS service indicator == 0 expected, but != 0.  */
+          fail ("gcry_pk_hash test %d unexpectedly set the indicator in FIPS mode.\n",
+                tvidx);
+          goto next;
+        }
+      else if (in_fips_mode && tv[tvidx].expect_failure && !ec)
+        {
+          /* Success with the FIPS service indicator != 0 expected, but == 0.  */
+          fail ("gcry_pk_hash_sign test %d unexpectedly cleared the indicator in FIPS mode.\n",
+                tvidx);
+          goto next;
+        }
+
+      err = gcry_pk_hash_verify (s_sig, tv[tvidx].data_tmpl, s_pk, hd, ctx);
+      if (err)
+        {
+          fail ("gcry_pk_hash_verify failed for test: %s",
+                gpg_strerror (err));
+          goto next;
+        }
+
+      ec = gcry_get_fips_service_indicator ();
+      if (ec == GPG_ERR_INV_OP)
+        {
+          /* libgcrypt is old, no support of the FIPS service indicator.  */
+          fail ("gcry_pk_hash test %d unexpectedly failed to check the FIPS service indicator.\n",
+                tvidx);
+          goto next;
+        }
+
+      if (in_fips_mode && !tv[tvidx].expect_failure && ec)
+        {
+          /* Success with the FIPS service indicator == 0 expected, but != 0.  */
+          fail ("gcry_pk_hash test %d unexpectedly set the indicator in FIPS mode.\n",
+                tvidx);
+          goto next;
+        }
+      else if (in_fips_mode && tv[tvidx].expect_failure && !ec)
+        {
+          /* Success with the FIPS service indicator != 0 expected, but == 0.  */
+          fail ("gcry_pk_hash_verify test %d unexpectedly cleared the indicator in FIPS mode.\n",
+                tvidx);
+          goto next;
+        }
+
+    next:
+      gcry_sexp_release (s_sig);
+      xfree (buffer);
+      gcry_ctx_release (ctx);
+      gcry_sexp_release (s_pk);
+      gcry_sexp_release (s_sk);
+      if (hd)
+        gcry_md_close (hd);
+    }
+}
 
 /* Check gcry_cipher_open, gcry_cipher_setkey, gcry_cipher_encrypt,
    gcry_cipher_decrypt, gcry_cipher_close API.  */
@@ -936,6 +1144,7 @@ main (int argc, char **argv)
   check_md_o_w_r_c ();
   check_mac_o_w_r_c ();
   check_cipher_o_s_e_d_c ();
+  check_pk_hash_sign_verify ();
 
   return !!error_count;
 }
