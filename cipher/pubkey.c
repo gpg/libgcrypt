@@ -626,7 +626,7 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-        return GPG_ERR_PUBKEY_ALGO;
+        rc = GPG_ERR_PUBKEY_ALGO;
       else
         fips_service_indicator_mark_non_compliant ();
     }
@@ -708,7 +708,7 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-        return GPG_ERR_PUBKEY_ALGO;
+        rc = GPG_ERR_PUBKEY_ALGO;
       else
         fips_service_indicator_mark_non_compliant ();
     }
