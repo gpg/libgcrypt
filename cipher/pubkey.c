@@ -510,7 +510,12 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
       algo = _gcry_md_get_algo (hd);
 
       if (fips_mode () && algo == GCRY_MD_SHA1)
-        fips_service_indicator_mark_non_compliant ();
+        {
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+            return GPG_ERR_DIGEST_ALGO;
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
 
       digest_name = _gcry_md_algo_name (algo);
       digest_size = (int)_gcry_md_get_algo_dlen (algo);
@@ -538,7 +543,12 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
 	  return GPG_ERR_DIGEST_ALGO;
 	}
       else if (fips_mode () && algo == GCRY_MD_SHA1)
-        fips_service_indicator_mark_non_compliant ();
+        {
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+            return GPG_ERR_DIGEST_ALGO;
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
 
       digest_size = (int)_gcry_md_get_algo_dlen (algo);
       digest = _gcry_md_read (hd, algo);
@@ -611,11 +621,15 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (rc)
     goto leave;
 
-  if (!spec->flags.fips && fips_mode ())
-    fips_service_indicator_mark_non_compliant ();
-
   if (spec->flags.disabled)
     rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        return GPG_ERR_PUBKEY_ALGO;
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
   else if (spec->sign)
     rc = spec->sign (r_sig, s_data, keyparms);
   else
@@ -689,11 +703,15 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (rc)
     goto leave;
 
-  if (!spec->flags.fips && fips_mode ())
-    fips_service_indicator_mark_non_compliant ();
-
   if (spec->flags.disabled)
     rc = GPG_ERR_PUBKEY_ALGO;
+  else if (!spec->flags.fips && fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        return GPG_ERR_PUBKEY_ALGO;
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
   else if (spec->verify)
     rc = spec->verify (s_sig, s_data, keyparms);
   else

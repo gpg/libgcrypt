@@ -298,6 +298,12 @@ void _gcry_set_log_handler (gcry_handler_log_t f, void *opaque);
 void _gcry_set_gettext_handler (const char *(*f)(const char*));
 void _gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data);
 
+void _gcry_thread_context_set_reject (unsigned int flags);
+int _gcry_thread_context_check_rejection (unsigned int flag);
+
+#define fips_check_rejection(flag) \
+  _gcry_thread_context_check_rejection (flag)
+
 void _gcry_thread_context_set_fsi (unsigned long fsi);
 unsigned long _gcry_thread_context_get_fsi (void);
 #define fips_service_indicator_init() do \
@@ -306,7 +312,8 @@ unsigned long _gcry_thread_context_get_fsi (void);
       _gcry_thread_context_set_fsi (0);  \
   } while (0)
 /* Should be used only when fips_mode()==TRUE.  */
-#define fips_service_indicator_mark_non_compliant() _gcry_thread_context_set_fsi (1)
+#define fips_service_indicator_mark_non_compliant() \
+  _gcry_thread_context_set_fsi (1)
 
 /* Return a pointer to a string containing a description of the error
    code in the error value ERR.  */

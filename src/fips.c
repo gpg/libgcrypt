@@ -69,14 +69,29 @@ static enum module_states current_state;
 
 struct gcry_thread_context {
   unsigned long fips_service_indicator;
+  unsigned int flags_reject_non_fips;
 };
 
 #ifdef HAVE_GCC_STORAGE_CLASS__THREAD
-static __thread struct gcry_thread_context the_tc;
+static __thread struct gcry_thread_context the_tc = {
+  0, GCRY_FIPS_FLAG_REJECT_DEFAULT
+};
 #else
 #error libgcrypt requires thread-local storage to support FIPS mode
 #endif
 
+void
+_gcry_thread_context_set_reject (unsigned int flags)
+{
+  the_tc.flags_reject_non_fips = flags;
+}
+
+int
+_gcry_thread_context_check_rejection (unsigned int flag)
+{
+  return !!(the_tc.flags_reject_non_fips & flag);
+}
+
 void
 _gcry_thread_context_set_fsi (unsigned long fsi)
 {

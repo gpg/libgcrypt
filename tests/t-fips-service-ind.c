@@ -1138,6 +1138,8 @@ main (int argc, char **argv)
   if (debug)
     xgcry_control ((GCRYCTL_SET_DEBUG_FLAGS, 1u , 0));
 
+  xgcry_control ((GCRYCTL_FIPS_REJECT_NON_FIPS, 0));
+
   check_kdf_derive ();
   check_hash_buffer ();
   check_hash_buffers ();
