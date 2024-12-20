@@ -952,7 +952,10 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                   || (ec->dialect == ECC_DIALECT_SAFECURVE
                       && ctx.hash_algo != GCRY_MD_SHAKE256)))
             {
-              rc = GPG_ERR_DIGEST_ALGO;
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+                rc = GPG_ERR_DIGEST_ALGO;
+              else
+                fips_service_indicator_mark_non_compliant ();
               goto leave;
             }
         }
@@ -1074,7 +1077,10 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
                   || (ec->dialect == ECC_DIALECT_SAFECURVE
                       && ctx.hash_algo != GCRY_MD_SHAKE256)))
             {
-              rc = GPG_ERR_DIGEST_ALGO;
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+                rc = GPG_ERR_DIGEST_ALGO;
+              else
+                fips_service_indicator_mark_non_compliant ();
               goto leave;
             }
         }

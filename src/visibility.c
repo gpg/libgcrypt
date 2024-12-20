@@ -1022,6 +1022,7 @@ gcry_pk_encrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t pkey)
       *result = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_encrypt (result, data, pkey));
 }
 
@@ -1033,6 +1034,7 @@ gcry_pk_decrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey)
       *result = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_decrypt (result, data, skey));
 }
 
@@ -1044,6 +1046,7 @@ gcry_pk_sign (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey)
       *result = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_sign (result, data, skey));
 }
 
@@ -1065,6 +1068,7 @@ gcry_pk_verify (gcry_sexp_t sigval, gcry_sexp_t data, gcry_sexp_t pkey)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_verify (sigval, data, pkey));
 }
 
@@ -1089,6 +1093,7 @@ gcry_pk_testkey (gcry_sexp_t key)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_testkey (key));
 }
 
@@ -1100,6 +1105,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       *r_key = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_genkey (r_key, s_parms));
 }
 
@@ -1138,7 +1144,7 @@ gcry_pk_get_nbits (gcry_sexp_t key)
       (void)fips_not_operational ();
       return 0;
     }
-
+  fips_service_indicator_init ();
   return _gcry_pk_get_nbits (key);
 }
 
@@ -1161,6 +1167,7 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
       (void)fips_not_operational ();
       return NULL;
     }
+  fips_service_indicator_init ();
   return _gcry_pk_get_curve (key, iterator, r_nbits);
 }
 
