@@ -275,7 +275,6 @@ struct gcry_md_context
     unsigned int finalized:1;
     unsigned int bugemu1:1;
     unsigned int hmac:1;
-    unsigned int reject_non_fips:1;
   } flags;
   size_t actual_handle_size;     /* Allocated size of this handle. */
   FILE  *debug;
@@ -509,7 +508,6 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
       ctx->flags.secure = secure;
       ctx->flags.hmac = hmac;
       ctx->flags.bugemu1 = !!(flags & GCRY_MD_FLAG_BUGEMU1);
-      ctx->flags.reject_non_fips = !!(flags & GCRY_MD_FLAG_REJECT_NON_FIPS);
     }
 
   if (! err)
@@ -544,13 +542,10 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
   if ((flags & ~(GCRY_MD_FLAG_SECURE
                  | GCRY_MD_FLAG_HMAC
-                 | GCRY_MD_FLAG_REJECT_NON_FIPS
                  | GCRY_MD_FLAG_BUGEMU1)))
     rc = GPG_ERR_INV_ARG;
   else
     rc = md_open (&hd, algo, flags);
-
-  *h = rc? NULL : hd;
 
   if (!rc && fips_mode ())
     {
@@ -566,9 +561,26 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
         }
 
       if (!is_compliant_algo)
-        fips_service_indicator_mark_non_compliant ();
+        {
+          int reject = 0;
+
+          if (algo == GCRY_MD_MD5)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
+
+          if (reject)
+            {
+              md_close (hd);
+              hd = NULL;
+              rc = GPG_ERR_DIGEST_ALGO;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
     }
 
+  *h = rc? NULL : hd;
   return rc;
 }
 
@@ -581,11 +593,16 @@ md_enable (gcry_md_hd_t hd, int algorithm)
   const gcry_md_spec_t *spec;
   GcryDigestEntry *entry;
   gcry_err_code_t err = 0;
-  int reject_non_fips = h->flags.reject_non_fips;
+  int reject;
 
   for (entry = h->list; entry; entry = entry->next)
     if (entry->spec->algo == algorithm)
       return 0; /* Already enabled */
+
+  if (algorithm == GCRY_MD_MD5)
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+  else
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
 
   spec = spec_from_algo (algorithm);
   if (!spec)
@@ -598,7 +615,7 @@ md_enable (gcry_md_hd_t hd, int algorithm)
     err = GPG_ERR_DIGEST_ALGO;
 
   /* Any non-FIPS algorithm should go this way */
-  if (!err && reject_non_fips && !spec->flags.fips && fips_mode ())
+  if (!err && reject && !spec->flags.fips && fips_mode ())
     err = GPG_ERR_DIGEST_ALGO;
 
   if (!err && h->flags.hmac && spec->read == NULL)
@@ -657,7 +674,19 @@ _gcry_md_enable (gcry_md_hd_t hd, int algorithm)
         }
 
       if (!is_compliant_algo)
-        fips_service_indicator_mark_non_compliant ();
+        {
+          int reject = 0;
+
+          if (algorithm == GCRY_MD_MD5)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
+
+          if (reject)
+            rc = GPG_ERR_DIGEST_ALGO;
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
     }
 
   return rc;
@@ -667,13 +696,14 @@ _gcry_md_enable (gcry_md_hd_t hd, int algorithm)
 static gcry_err_code_t
 md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 {
-  gcry_err_code_t err = 0;
+  gcry_err_code_t rc = 0;
   struct gcry_md_context *a = ahd->ctx;
   struct gcry_md_context *b;
   GcryDigestEntry *ar, *br;
   gcry_md_hd_t bhd;
   size_t n;
   int is_compliant_algo = 1;
+  int reject = 0;
 
   if (ahd->bufpos)
     md_write (ahd, NULL, 0);
@@ -686,7 +716,7 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 
   if (!bhd)
     {
-      err = gpg_err_code_from_syserror ();
+      rc = gpg_err_code_from_syserror ();
       goto leave;
     }
 
@@ -715,12 +745,20 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
         br = xtrymalloc (ar->actual_struct_size);
       if (!br)
         {
-          err = gpg_err_code_from_syserror ();
+          rc = gpg_err_code_from_syserror ();
           md_close (bhd);
           goto leave;
         }
 
-      is_compliant_algo &= spec->flags.fips;
+      if (!spec->flags.fips)
+        {
+          is_compliant_algo = 0;
+
+          if (spec->algo == GCRY_MD_MD5)
+            reject |= fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else
+            reject |= fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
+        }
 
       memcpy (br, ar, ar->actual_struct_size);
       br->next = b->list;
@@ -730,13 +768,22 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
   if (a->debug)
     md_start_debug (bhd, "unknown");
 
-  *b_hd = bhd;
+  if (!is_compliant_algo && fips_mode ())
+    {
+      if (reject)
+        {
+          rc = GPG_ERR_DIGEST_ALGO;
+          md_close (bhd);
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
 
-  if (!is_compliant_algo)
-    fips_service_indicator_mark_non_compliant ();
+  if (!rc)
+    *b_hd = bhd;
 
  leave:
-  return err;
+  return rc;
 }
 
 

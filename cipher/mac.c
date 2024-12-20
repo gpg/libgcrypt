@@ -519,7 +519,6 @@ mac_open (gcry_mac_hd_t * hd, int algo, unsigned int flags, gcry_ctx_t ctx)
   gcry_err_code_t err;
   gcry_mac_hd_t h;
   int secure = !!(flags & GCRY_MAC_FLAG_SECURE);
-  int reject_non_fips = !!(flags & GCRY_MAC_FLAG_REJECT_NON_FIPS);
 
   spec = spec_from_algo (algo);
   if (!spec)
@@ -528,7 +527,7 @@ mac_open (gcry_mac_hd_t * hd, int algo, unsigned int flags, gcry_ctx_t ctx)
     return GPG_ERR_MAC_ALGO;
   else if (!spec->flags.fips && fips_mode ())
     {
-      if (reject_non_fips)
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MAC))
         return GPG_ERR_MAC_ALGO;
       else
         fips_service_indicator_mark_non_compliant ();
@@ -650,7 +649,7 @@ _gcry_mac_open (gcry_mac_hd_t * h, int algo, unsigned int flags,
   gcry_err_code_t rc;
   gcry_mac_hd_t hd = NULL;
 
-  if ((flags & ~(GCRY_MAC_FLAG_SECURE | GCRY_MAC_FLAG_REJECT_NON_FIPS)))
+  if ((flags & ~GCRY_MAC_FLAG_SECURE))
     rc = GPG_ERR_INV_ARG;
   else
     rc = mac_open (&hd, algo, flags, ctx);

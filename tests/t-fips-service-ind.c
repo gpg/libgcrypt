@@ -250,7 +250,7 @@ check_pk_hash_sign_verify (void)
 /* Check gcry_cipher_open, gcry_cipher_setkey, gcry_cipher_encrypt,
    gcry_cipher_decrypt, gcry_cipher_close API.  */
 static void
-check_cipher_o_s_e_d_c (void)
+check_cipher_o_s_e_d_c (int reject)
 {
   static struct {
     int algo;
@@ -258,18 +258,12 @@ check_cipher_o_s_e_d_c (void)
     int keylen;
     const char *expect;
     int expect_failure;
-    unsigned int flags;
   } tv[] = {
 #if USE_DES
       { GCRY_CIPHER_3DES,
 	"\xe3\x34\x7a\x6b\x0b\xc1\x15\x2c\x64\x2a\x25\xcb\xd3\xbc\x31\xab"
 	"\xfb\xa1\x62\xa8\x1f\x19\x7c\x15", 24,
         "\x3f\x1a\xb8\x83\x18\x8b\xb5\x97", 1 },
-      { GCRY_CIPHER_3DES,
-	"\xe3\x34\x7a\x6b\x0b\xc1\x15\x2c\x64\x2a\x25\xcb\xd3\xbc\x31\xab"
-	"\xfb\xa1\x62\xa8\x1f\x19\x7c\x15", 24,
-        "\x3f\x1a\xb8\x83\x18\x8b\xb5\x97",
-        1, GCRY_CIPHER_FLAG_REJECT_NON_FIPS },
 #endif
       { GCRY_CIPHER_AES,
 	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c", 16,
@@ -297,12 +291,10 @@ check_cipher_o_s_e_d_c (void)
       assert (blklen != 0);
       assert (blklen <= ptlen);
       assert (blklen <= DIM (out));
-      err = gcry_cipher_open (&h, tv[tvidx].algo, GCRY_CIPHER_MODE_ECB,
-                              tv[tvidx].flags);
+      err = gcry_cipher_open (&h, tv[tvidx].algo, GCRY_CIPHER_MODE_ECB, 0);
       if (err)
         {
-          if (in_fips_mode && (tv[tvidx].flags & GCRY_CIPHER_FLAG_REJECT_NON_FIPS)
-              && tv[tvidx].expect_failure)
+          if (in_fips_mode && reject && tv[tvidx].expect_failure)
             /* Here, an error is expected */
             ;
           else
@@ -312,8 +304,7 @@ check_cipher_o_s_e_d_c (void)
         }
       else
         {
-          if (in_fips_mode && (tv[tvidx].flags & GCRY_CIPHER_FLAG_REJECT_NON_FIPS)
-              && tv[tvidx].expect_failure)
+          if (in_fips_mode && reject && tv[tvidx].expect_failure)
             /* This case, an error is expected, but we observed success */
             fail ("gcry_cipher_open test %d unexpectedly succeeded\n", tvidx);
         }
@@ -398,7 +389,7 @@ check_cipher_o_s_e_d_c (void)
 /* Check gcry_mac_open, gcry_mac_write, gcry_mac_write, gcry_mac_read,
    gcry_mac_close API.  */
 static void
-check_mac_o_w_r_c (void)
+check_mac_o_w_r_c (int reject)
 {
   static struct {
     int algo;
@@ -408,14 +399,10 @@ check_mac_o_w_r_c (void)
     int keylen;
     const char *expect;
     int expect_failure;
-    unsigned int flags;
   } tv[] = {
 #if USE_MD5
     { GCRY_MAC_HMAC_MD5, "hmac input abc", 14, "hmac key input", 14,
       "\x0d\x72\xd0\x60\xaf\x34\xf2\xca\x33\x58\xa9\xcc\xd3\x5a\xac\xb5", 1 },
-    { GCRY_MAC_HMAC_MD5, "hmac input abc", 14, "hmac key input", 14,
-      "\x0d\x72\xd0\x60\xaf\x34\xf2\xca\x33\x58\xa9\xcc\xd3\x5a\xac\xb5", 1,
-      GCRY_MAC_FLAG_REJECT_NON_FIPS },
 #endif
 #if USE_SHA1
     { GCRY_MAC_HMAC_SHA1, "hmac input abc", 14, "hmac key input", 14,
@@ -471,11 +458,10 @@ check_mac_o_w_r_c (void)
       expectlen = gcry_mac_get_algo_maclen (tv[tvidx].algo);
       assert (expectlen != 0);
       assert (expectlen <= DIM (mac));
-      err = gcry_mac_open (&h, tv[tvidx].algo, tv[tvidx].flags, NULL);
+      err = gcry_mac_open (&h, tv[tvidx].algo, 0, NULL);
       if (err)
         {
-          if (in_fips_mode && (tv[tvidx].flags & GCRY_MAC_FLAG_REJECT_NON_FIPS)
-              && tv[tvidx].expect_failure)
+          if (in_fips_mode && reject && tv[tvidx].expect_failure)
             /* Here, an error is expected */
             ;
           else
@@ -485,8 +471,7 @@ check_mac_o_w_r_c (void)
         }
       else
         {
-          if (in_fips_mode && (tv[tvidx].flags & GCRY_MAC_FLAG_REJECT_NON_FIPS)
-              && tv[tvidx].expect_failure)
+          if (in_fips_mode && reject && tv[tvidx].expect_failure)
             /* This case, an error is expected, but we observed success */
             fail ("gcry_mac_open test %d unexpectedly succeeded\n", tvidx);
         }
@@ -563,7 +548,7 @@ check_mac_o_w_r_c (void)
 /* Check gcry_md_open, gcry_md_write, gcry_md_write, gcry_md_read,
    gcry_md_close API.  */
 static void
-check_md_o_w_r_c (void)
+check_md_o_w_r_c (int reject)
 {
   static struct {
     int algo;
@@ -571,14 +556,10 @@ check_md_o_w_r_c (void)
     int datalen;
     const char *expect;
     int expect_failure;
-    unsigned int flags;
   } tv[] = {
 #if USE_MD5
     { GCRY_MD_MD5, "abc", 3,
       "\x90\x01\x50\x98\x3C\xD2\x4F\xB0\xD6\x96\x3F\x7D\x28\xE1\x7F\x72", 1 },
-    { GCRY_MD_MD5, "abc", 3,
-      "\x90\x01\x50\x98\x3C\xD2\x4F\xB0\xD6\x96\x3F\x7D\x28\xE1\x7F\x72", 1,
-      GCRY_MD_FLAG_REJECT_NON_FIPS },
 #endif
 #if USE_SHA1
     { GCRY_MD_SHA1, "abc", 3,
@@ -632,11 +613,10 @@ check_md_o_w_r_c (void)
 
       expectlen = gcry_md_get_algo_dlen (tv[tvidx].algo);
       assert (expectlen != 0);
-      err = gcry_md_open (&h, tv[tvidx].algo, tv[tvidx].flags);
+      err = gcry_md_open (&h, tv[tvidx].algo, 0);
       if (err)
         {
-          if (in_fips_mode && (tv[tvidx].flags & GCRY_MD_FLAG_REJECT_NON_FIPS)
-              && tv[tvidx].expect_failure)
+          if (in_fips_mode && reject && tv[tvidx].expect_failure)
             /* Here, an error is expected */
             ;
           else
@@ -646,8 +626,7 @@ check_md_o_w_r_c (void)
         }
       else
         {
-          if (in_fips_mode && (tv[tvidx].flags & GCRY_MD_FLAG_REJECT_NON_FIPS)
-              && tv[tvidx].expect_failure)
+          if (in_fips_mode && reject && tv[tvidx].expect_failure)
             /* This case, an error is expected, but we observed success */
             fail ("gcry_md_open test %d unexpectedly succeeded\n", tvidx);
         }
@@ -1143,10 +1122,18 @@ main (int argc, char **argv)
   check_kdf_derive ();
   check_hash_buffer ();
   check_hash_buffers ();
-  check_md_o_w_r_c ();
-  check_mac_o_w_r_c ();
-  check_cipher_o_s_e_d_c ();
+  check_md_o_w_r_c (0);
+  check_mac_o_w_r_c (0);
+  check_cipher_o_s_e_d_c (0);
   check_pk_hash_sign_verify ();
+
+  xgcry_control ((GCRYCTL_FIPS_REJECT_NON_FIPS,
+                  (GCRY_FIPS_FLAG_REJECT_MD_MD5
+                   | GCRY_FIPS_FLAG_REJECT_COMPAT110)));
+
+  check_md_o_w_r_c (1);
+  check_mac_o_w_r_c (1);
+  check_cipher_o_s_e_d_c (1);
 
   return !!error_count;
 }

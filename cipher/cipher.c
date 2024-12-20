@@ -510,7 +510,6 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 			    int algo, int mode, unsigned int flags)
 {
   int secure = !!(flags & GCRY_CIPHER_SECURE);
-  int reject_non_fips = !!(flags & GCRY_CIPHER_FLAG_REJECT_NON_FIPS);
   gcry_cipher_spec_t *spec;
   gcry_cipher_hd_t h = NULL;
   gcry_err_code_t err;
@@ -526,7 +525,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
     err = GPG_ERR_CIPHER_ALGO;
   else if (!spec->flags.fips && fips_mode ())
     {
-      if (reject_non_fips)
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_CIPHER))
         err = GPG_ERR_CIPHER_ALGO;
       else
         {
@@ -544,8 +543,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 		     | GCRY_CIPHER_ENABLE_SYNC
 		     | GCRY_CIPHER_CBC_CTS
 		     | GCRY_CIPHER_CBC_MAC
-                     | GCRY_CIPHER_EXTENDED
-                     | GCRY_CIPHER_FLAG_REJECT_NON_FIPS))
+                     | GCRY_CIPHER_EXTENDED))
 	  || ((flags & GCRY_CIPHER_CBC_CTS) && (flags & GCRY_CIPHER_CBC_MAC))))
     err = GPG_ERR_CIPHER_ALGO;
 
@@ -776,7 +774,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	     Key Generation Requirements" for details.  */
 	  if (buf_eq_const (key, key + keylen, keylen))
             {
-              if ((c->flags & GCRY_CIPHER_FLAG_REJECT_NON_FIPS))
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_CIPHER))
                 return GPG_ERR_WEAK_KEY;
               else
                 fips_service_indicator_mark_non_compliant ();

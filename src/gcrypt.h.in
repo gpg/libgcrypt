@@ -993,8 +993,7 @@ enum gcry_cipher_flags
     GCRY_CIPHER_ENABLE_SYNC = 2,  /* Enable CFB sync mode. */
     GCRY_CIPHER_CBC_CTS     = 4,  /* Enable CBC cipher text stealing (CTS). */
     GCRY_CIPHER_CBC_MAC     = 8,  /* Enable CBC message auth. code (MAC).  */
-    GCRY_CIPHER_EXTENDED    = 16, /* Enable extended AES-WRAP.  */
-    GCRY_CIPHER_FLAG_REJECT_NON_FIPS = 32 /* Reject non-FIPS-compliant algo.  */
+    GCRY_CIPHER_EXTENDED    = 16  /* Enable extended AES-WRAP.  */
   };
 
 /* Methods used for AEAD IV generation. */
@@ -1320,7 +1319,6 @@ enum gcry_md_flags
   {
     GCRY_MD_FLAG_SECURE = 1,  /* Allocate all buffers in "secure" memory.  */
     GCRY_MD_FLAG_HMAC   = 2,  /* Make an HMAC out of this algorithm.  */
-    GCRY_MD_FLAG_REJECT_NON_FIPS = 4,  /* Reject non-FIPS-compliant algo.  */
     GCRY_MD_FLAG_BUGEMU1 = 0x0100
   };
 
@@ -1562,8 +1560,7 @@ enum gcry_mac_algos
 /* Flags used with the open function.  */
 enum gcry_mac_flags
   {
-    GCRY_MAC_FLAG_SECURE = 1,  /* Allocate all buffers in "secure" memory.  */
-    GCRY_MAC_FLAG_REJECT_NON_FIPS = 2   /* Reject non-FIPS-compliant algo.  */
+    GCRY_MAC_FLAG_SECURE = 1  /* Allocate all buffers in "secure" memory.  */
   };
 
 /* Create a MAC handle for algorithm ALGO.  FLAGS may be given as an bitwise OR
