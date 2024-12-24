@@ -844,6 +844,15 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
           if (r_nbits)
             *r_nbits = domain_parms[idx].nbits;
         }
+
+      if (fips_mode () && !domain_parms[idx].fips)
+        {
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+            return NULL;
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
+
       return result;
     }
 
