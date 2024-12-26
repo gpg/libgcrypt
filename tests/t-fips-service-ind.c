@@ -228,6 +228,7 @@ check_pk_s_v (int reject)
   static struct {
     const char *prvkey;
     const char *pubkey;
+    const char *data;
     int expect_failure;
   } tv[] = {
     {
@@ -236,6 +237,8 @@ check_pk_s_v (int reject)
       "(public-key (ecc (curve nistp256)"
       " (q #041ccbe91c075fc7f4f033bfa248db8fccd3565de94bbfb12f3c59ff46c271bf83"
       "ce4014c68811f9a21a1fdb2c0e6113e06db7ca93b7404e78dc7ccd5ca89a4ca9#)))",
+      "(data (flags raw)(hash sha256 "
+      "#00112233445566778899AABBCCDDEEFF000102030405060708090A0B0C0D0E0F#))",
       0
     },
     {                           /* non-compliant curve */
@@ -244,28 +247,40 @@ check_pk_s_v (int reject)
       "(public-key (ecc (curve secp256k1)"
       " (q #046fcc37ea5e9e09fec6c83e5fbd7a745e3eee81d16ebd861c9e66f55518c19798"
       "4e9f113c07f875691df8afc1029496fc4cb9509b39dcd38f251a83359cc8b4f7#)))",
+      "(data (flags raw)(hash sha256 "
+      "#00112233445566778899AABBCCDDEEFF000102030405060708090A0B0C0D0E0F#))",
       1
-    }
+    },
+    {                           /* non-compliant hash */
+      "(private-key (ecc (curve nistp256)"
+      " (d #519b423d715f8b581f4fa8ee59f4771a5b44c8130b4e3eacca54a56dda72b464#)))",
+      "(public-key (ecc (curve nistp256)"
+      " (q #041ccbe91c075fc7f4f033bfa248db8fccd3565de94bbfb12f3c59ff46c271bf83"
+      "ce4014c68811f9a21a1fdb2c0e6113e06db7ca93b7404e78dc7ccd5ca89a4ca9#)))",
+      "(data (flags raw)(hash ripemd160 "
+      "#00112233445566778899AABBCCDDEEFF00010203#))",
+      1
+    },
+    {                           /* non-compliant hash for signing */
+      "(private-key (ecc (curve nistp256)"
+      " (d #519b423d715f8b581f4fa8ee59f4771a5b44c8130b4e3eacca54a56dda72b464#)))",
+      "(public-key (ecc (curve nistp256)"
+      " (q #041ccbe91c075fc7f4f033bfa248db8fccd3565de94bbfb12f3c59ff46c271bf83"
+      "ce4014c68811f9a21a1fdb2c0e6113e06db7ca93b7404e78dc7ccd5ca89a4ca9#)))",
+      "(data (flags raw)(hash sha1 "
+      "#00112233445566778899AABBCCDDEEFF00010203#))",
+      1
+    },
   };
   int tvidx;
   gpg_error_t err;
   gpg_err_code_t ec;
-  const char *data = "(data (flags raw)"
-    "(hash sha256 #00112233445566778899AABBCCDDEEFF000102030405060708090A0B0C0D0E0F#))";
-  gcry_sexp_t s_data = NULL;
-
-  err = gcry_sexp_build (&s_data, NULL, data);
-  if (err)
-    {
-      fail ("error building SEXP for test, %s: %s",
-            "data", gpg_strerror (err));
-      return;
-    }
 
   for (tvidx=0; tvidx < DIM(tv); tvidx++)
     {
       gcry_sexp_t s_pk = NULL;
       gcry_sexp_t s_sk = NULL;
+      gcry_sexp_t s_data = NULL;
       gcry_sexp_t s_sig= NULL;
 
       if (verbose)
@@ -284,6 +299,14 @@ check_pk_s_v (int reject)
         {
           fail ("error building SEXP for test, %s: %s",
                 "pk", gpg_strerror (err));
+          goto next;
+        }
+
+      err = gcry_sexp_build (&s_data, NULL, tv[tvidx].data);
+      if (err)
+        {
+          fail ("error building SEXP for test, %s: %s",
+                "data", gpg_strerror (err));
           goto next;
         }
 
@@ -363,11 +386,10 @@ check_pk_s_v (int reject)
 
     next:
       gcry_sexp_release (s_sig);
+      gcry_sexp_release (s_data);
       gcry_sexp_release (s_pk);
       gcry_sexp_release (s_sk);
     }
-
-  gcry_sexp_release (s_data);
 }
 
 /* Check gcry_pk_hash_sign, gcry_pk_hash_verify API.  */
@@ -1461,6 +1483,8 @@ main (int argc, char **argv)
 
   xgcry_control ((GCRYCTL_FIPS_REJECT_NON_FIPS,
                   (GCRY_FIPS_FLAG_REJECT_MD_MD5
+                   | GCRY_FIPS_FLAG_REJECT_PK_MD
+                   | GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2
                    | GCRY_FIPS_FLAG_REJECT_COMPAT110)));
 
   check_md_o_w_r_c (1);

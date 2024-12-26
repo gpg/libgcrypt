@@ -1986,11 +1986,13 @@ char *gcry_get_config (int mode, const char *what);
 #define GCRY_FIPS_FLAG_REJECT_MAC           (1 << 3)
 #define GCRY_FIPS_FLAG_REJECT_CIPHER        (1 << 4)
 #define GCRY_FIPS_FLAG_REJECT_PK            (1 << 5)
+#define GCRY_FIPS_FLAG_REJECT_PK_MD         (1 << 6)
+#define GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2   (1 << 7)
 
 #define GCRY_FIPS_FLAG_REJECT_MD \
   (GCRY_FIPS_FLAG_REJECT_MD_MD5 | GCRY_FIPS_FLAG_REJECT_MD_OTHERS)
 
-/* Note: Don't reject MD5 */
+/* Note: Don't reject MD5, PK MD, PK GOST and PK SM2 */
 #define GCRY_FIPS_FLAG_REJECT_COMPAT110 \
   (GCRY_FIPS_FLAG_REJECT_MD_OTHERS      \
    | GCRY_FIPS_FLAG_REJECT_MAC          \

@@ -941,6 +941,18 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (rc)
     goto leave;
 
+  if (fips_mode ()
+      && ((ctx.flags & PUBKEY_FLAG_GOST) || (ctx.flags & PUBKEY_FLAG_SM2)))
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2))
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
   /* Hash algo is determined by curve in EdDSA.  */
   if ((ctx.flags & PUBKEY_FLAG_EDDSA))
     {
@@ -953,10 +965,12 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                       && ctx.hash_algo != GCRY_MD_SHAKE256)))
             {
               if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-                rc = GPG_ERR_DIGEST_ALGO;
+                {
+                  rc = GPG_ERR_DIGEST_ALGO;
+                  goto leave;
+                }
               else
                 fips_service_indicator_mark_non_compliant ();
-              goto leave;
             }
         }
       else
@@ -965,6 +979,23 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
             ctx.hash_algo = GCRY_MD_SHA512;
           else if (ec->dialect == ECC_DIALECT_SAFECURVE)
             ctx.hash_algo = GCRY_MD_SHAKE256;
+        }
+    }
+  else
+    {
+      if (fips_mode ())
+        {
+          if (_gcry_md_algo_info (ctx.hash_algo, GCRYCTL_TEST_ALGO, NULL, NULL)
+              || ctx.hash_algo == GCRY_MD_SHA1)
+            {
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_MD))
+                {
+                  rc = GPG_ERR_DIGEST_ALGO;
+                  goto leave;
+                }
+              else
+                fips_service_indicator_mark_non_compliant ();
+            }
         }
     }
 
@@ -1066,6 +1097,18 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   if (DBG_CIPHER)
     log_mpidump ("ecc_verify data", data);
 
+  if (fips_mode ()
+      && ((ctx.flags & PUBKEY_FLAG_GOST) || (ctx.flags & PUBKEY_FLAG_SM2)))
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2))
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
   /* Hash algo is determined by curve in EdDSA.  */
   if ((ctx.flags & PUBKEY_FLAG_EDDSA))
     {
@@ -1078,10 +1121,12 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
                       && ctx.hash_algo != GCRY_MD_SHAKE256)))
             {
               if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-                rc = GPG_ERR_DIGEST_ALGO;
+                {
+                  rc = GPG_ERR_DIGEST_ALGO;
+                  goto leave;
+                }
               else
                 fips_service_indicator_mark_non_compliant ();
-              goto leave;
             }
         }
       else
@@ -1090,6 +1135,23 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
             ctx.hash_algo = GCRY_MD_SHA512;
           else if (ec->dialect == ECC_DIALECT_SAFECURVE)
             ctx.hash_algo = GCRY_MD_SHAKE256;
+        }
+    }
+  else
+    {
+      if (fips_mode ())
+        {
+          if (_gcry_md_algo_info (ctx.hash_algo, GCRYCTL_TEST_ALGO, NULL, NULL)
+              || ctx.hash_algo == GCRY_MD_SHA1)
+            {
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_MD))
+                {
+                  rc = GPG_ERR_DIGEST_ALGO;
+                  goto leave;
+                }
+              else
+                fips_service_indicator_mark_non_compliant ();
+            }
         }
     }
 
