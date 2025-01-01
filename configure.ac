@@ -3480,6 +3480,10 @@ if test "$found" = "1" ; then
          # Build with the s390x/zSeries vector implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-s390x.lo"
       ;;
+      riscv64-*-*)
+         # Build with the RISC-V vector implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-riscv-v.lo"
+      ;;
    esac
 fi
 
