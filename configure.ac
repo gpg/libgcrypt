@@ -2599,6 +2599,92 @@ if test "$gcry_cv_gcc_inline_asm_s390x_vx" = "yes" ; then
 fi
 
 
+#
+# Check whether GCC inline assembler supports RISC-V instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports RISC-V instructions],
+      [gcry_cv_gcc_inline_asm_riscv],
+      [if test "$mpi_cpu_arch" != "riscv64" ||
+	  test "$try_asm_modules" != "yes" ; then
+	  gcry_cv_gcc_inline_asm_riscv="n/a"
+	else
+	  gcry_cv_gcc_inline_asm_riscv=no
+	  AC_LINK_IFELSE([AC_LANG_PROGRAM(
+	  [[unsigned int testfunc(unsigned int x)
+	    {
+	      unsigned int y;
+	      asm volatile ("add %0, %1, %2" :
+			    "=r" (y) : "r" (1), "r" (x) : "a5");
+	      asm volatile (".option push;\n\t"
+			    ".option arch, +zba;\n\t"
+			    "sh3add %0, %1, %1;\n\t"
+			    ".option pop;\n\t"
+			    : "=r" (y)
+			    : "r" (y));
+	      asm volatile (".option push;\n\t"
+			    ".option arch, +zbb;\n\t"
+			    "cpop %0, %1;\n\t"
+			    ".option pop;\n\t"
+			    : "=r" (y)
+			    : "r" (y));
+	      asm volatile (".option push;\n\t"
+			    ".option arch, +zbs;\n\t"
+			    "bexti %0, %1, 1;\n\t"
+			    ".option pop;\n\t"
+			    : "=r" (y)
+			    : "r" (y));
+	      asm volatile (".option push;\n\t"
+			    ".option arch, +zbc;\n\t"
+			    "clmulr %0, %1, %2;\n\t"
+			    ".option pop;\n\t"
+			    : "=r" (y)
+			    : "r" (y), "r" (y));
+	      return y;
+	    }
+	    ]] , [ testfunc(0); ])],
+	  [gcry_cv_gcc_inline_asm_riscv=yes])
+	fi])
+if test "$gcry_cv_gcc_inline_asm_riscv" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_RISCV,1,
+     [Defined if inline assembler supports RISC-V instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports RISC-V vector instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports RISC-V vector instructions],
+      [gcry_cv_gcc_inline_asm_riscv_v],
+      [if test "$mpi_cpu_arch" != "riscv64" ||
+	  test "$try_asm_modules" != "yes" ; then
+	  gcry_cv_gcc_inline_asm_riscv_v="n/a"
+	else
+	  gcry_cv_gcc_inline_asm_riscv_v=no
+	  if test "$gcry_cv_gcc_inline_asm_riscv" = "yes" ; then
+	    AC_LINK_IFELSE([AC_LANG_PROGRAM(
+	    [[unsigned int testfunc(void)
+	      {
+		unsigned int vlmax;
+		asm volatile (".option push;\n\t"
+			      ".option arch, +v;\n\t"
+			      "vsetvli %0, %1, e8, m1, ta, ma;\n\t"
+			      "vxor.vv v1, v1, v1;\n\t"
+			      ".option pop;\n\t"
+			      : "=r" (vlmax)
+			      : "r" (~0)
+			      : "vl", "vtype", "v1");
+		return vlmax;
+	      }
+	      ]], [ testfunc(); ])],
+	    [gcry_cv_gcc_inline_asm_riscv_v=yes])
+	  fi
+	fi])
+if test "$gcry_cv_gcc_inline_asm_riscv_v" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_RISCV_V,1,
+     [Defined if inline assembler supports RISC-V vector instructions])
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
@@ -3760,6 +3846,10 @@ case "$mpi_cpu_arch" in
      s390x)
         AC_DEFINE(HAVE_CPU_ARCH_S390X, 1, [Defined for s390x/zSeries platforms])
         GCRYPT_HWF_MODULES="libgcrypt_la-hwf-s390x.lo"
+        ;;
+     riscv64)
+        AC_DEFINE(HAVE_CPU_ARCH_RISCV, 1, [Defined for RISC-V platforms])
+        GCRYPT_HWF_MODULES="libgcrypt_la-hwf-riscv.lo"
         ;;
 esac
 AC_SUBST([GCRYPT_HWF_MODULES])
