@@ -92,6 +92,7 @@ EXTRA_libcipher_la_SOURCES = \
 	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c \
 	cipher-gcm-aarch64-simd.c cipher-gcm-armv7-neon.S \
 	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
+	cipher-gcm-riscv-zbb-zbc.c \
 	crc.c crc-intel-pclmul.c crc-armv8-ce.c \
 	crc-armv8-aarch64-ce.S \
 	crc-ppc.c \

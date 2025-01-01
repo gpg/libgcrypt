@@ -3838,6 +3838,9 @@ case "${host}" in
   powerpc64le-*-* | powerpc64-*-* | powerpc-*-*)
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-ppc.lo"
   ;;
+  riscv64-*-*)
+    GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-riscv-zbb-zbc.lo"
+  ;;
 esac
 
 # Arch specific MAC implementations

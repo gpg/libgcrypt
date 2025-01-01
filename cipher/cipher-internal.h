@@ -136,6 +136,14 @@
 #endif
 #endif /* GCM_USE_PPC_VPMSUM */
 
+/* GCM_USE_RISCV_ZBB_ZBC indicates whether to compile GCM with RISC-V Zbb+Zbc
+ * code. */
+#undef GCM_USE_RISCV_ZBB_ZBC
+#if defined (__riscv) && (__riscv_xlen == 64) && \
+    defined(HAVE_GCC_INLINE_ASM_RISCV)
+# define GCM_USE_RISCV_ZBB_ZBC 1
+#endif
+
 typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);
 
