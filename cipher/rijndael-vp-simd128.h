@@ -1,5 +1,5 @@
 /* SIMD128 intrinsics implementation vector permutation AES for Libgcrypt
- * Copyright (C) 2024 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2024-2025 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -92,55 +92,7 @@
 
 #define M128I_U64(a0, a1) { a0, a1 }
 
-#ifdef __ARM_NEON
-
-/**********************************************************************
-  AT&T x86 asm to intrinsics conversion macros (ARM)
- **********************************************************************/
-
-#include "simd-common-aarch64.h"
-#include <arm_neon.h>
-
-#define __m128i uint64x2_t
-
-#define pand128(a, o)           (o = vandq_u64(o, a))
-#define pandn128(a, o)          (o = vbicq_u64(a, o))
-#define pxor128(a, o)           (o = veorq_u64(o, a))
-#define paddq128(a, o)          (o = vaddq_u64(o, a))
-#define paddd128(a, o)          (o = (__m128i)vaddq_u32((uint32x4_t)o, (uint32x4_t)a))
-#define paddb128(a, o)          (o = (__m128i)vaddq_u8((uint8x16_t)o, (uint8x16_t)a))
-
-#define psrld128(s, o)          (o = (__m128i)vshrq_n_u32((uint32x4_t)o, s))
-#define psraq128(s, o)          (o = (__m128i)vshrq_n_s64((int64x2_t)o, s))
-#define psrldq128(s, o)         ({ uint64x2_t __tmp = { 0, 0 }; \
-				   o = (__m128i)vextq_u8((uint8x16_t)o, \
-				                         (uint8x16_t)__tmp, (s) & 15);})
-#define pslldq128(s, o)         ({ uint64x2_t __tmp = { 0, 0 }; \
-                                   o = (__m128i)vextq_u8((uint8x16_t)__tmp, \
-                                                         (uint8x16_t)o, (16 - (s)) & 15);})
-
-#define pshufb128(m8, o)        (o = (__m128i)vqtbl1q_u8((uint8x16_t)o, (uint8x16_t)m8))
-#define pshufd128(m32, a, o)    ({ static const __m128i __tmp = PSHUFD_MASK_TO_PSHUFB_MASK(m32); \
-				   movdqa128(a, o); \
-				   pshufb128(__tmp, o); })
-#define pshufd128_0x93(a, o)    (o = (__m128i)vextq_u8((uint8x16_t)a, (uint8x16_t)a, 12))
-#define pshufd128_0xFF(a, o)    (o = (__m128i)vdupq_laneq_u32((uint32x4_t)a, 3))
-#define pshufd128_0xFE(a, o)    pshufd128(0xFE, a, o)
-#define pshufd128_0x4E(a, o)    (o = (__m128i)vextq_u8((uint8x16_t)a, (uint8x16_t)a, 8))
-
-#define palignr128(s, a, o)     (o = (__m128i)vextq_u8((uint8x16_t)a, (uint8x16_t)o, s))
-
-#define movdqa128(a, o)         (o = a)
-
-#define pxor128_amemld(m, o)    pxor128(*(const __m128i *)(m), o)
-
-/* Following operations may have unaligned memory input */
-#define movdqu128_memld(a, o)   (o = (__m128i)vld1q_u8((const uint8_t *)(a)))
-
-/* Following operations may have unaligned memory output */
-#define movdqu128_memst(a, o)   vst1q_u8((uint8_t *)(o), (uint8x16_t)a)
-
-#endif /* __ARM_NEON */
+typedef u64 __m128i_const[2]  __attribute__ ((aligned (16)));
 
 #if defined(__x86_64__) || defined(__i386__)
 
@@ -154,13 +106,12 @@
 #define pandn128(a, o)          (o = _mm_andnot_si128(o, a))
 #define pxor128(a, o)           (o = _mm_xor_si128(o, a))
 #define paddq128(a, o)          (o = _mm_add_epi64(o, a))
-#define vpaddd128(a, o)         (o = _mm_add_epi32(o, a))
-#define vpaddb128(a, o)         (o = _mm_add_epi8(o, a))
 
 #define psrld128(s, o)          (o = _mm_srli_epi32(o, s))
 #define psraq128(s, o)          (o = _mm_srai_epi64(o, s))
 #define psrldq128(s, o)         (o = _mm_srli_si128(o, s))
 #define pslldq128(s, o)         (o = _mm_slli_si128(o, s))
+#define psrl_byte_128(s, o)     psrld128(o, s)
 
 #define pshufb128(m8, o)        (o = _mm_shuffle_epi8(o, m8))
 #define pshufd128(m32, a, o)    (o = _mm_shuffle_epi32(a, m32))
@@ -173,7 +124,13 @@
 
 #define movdqa128(a, o)         (o = a)
 
-#define pxor128_amemld(m, o)    pxor128(*(const __m128i *)(m), o)
+#define movdqa128_memld(a, o)   (o = (__m128i)_mm_load_si128((const void *)(a)))
+
+#define pand128_amemld(m, o)    pand128((__m128i)_mm_load_si128((const void *)(m)), o)
+#define pxor128_amemld(m, o)    pxor128((__m128i)_mm_load_si128((const void *)(m)), o)
+#define paddq128_amemld(m, o)   paddq128((__m128i)_mm_load_si128((const void *)(m)), o)
+#define paddd128_amemld(m, o)   paddd128((__m128i)_mm_load_si128((const void *)(m)), o)
+#define pshufb128_amemld(m, o)  pshufb128((__m128i)_mm_load_si128((const void *)(m)), o)
 
 /* Following operations may have unaligned memory input */
 #define movdqu128_memld(a, o)   (o = _mm_loadu_si128((const __m128i *)(a)))
@@ -225,73 +182,73 @@
   constant vectors
  **********************************************************************/
 
-static const __m128i k_s0F =
+static const __m128i_const k_s0F =
 	M128I_U64(
 		0x0F0F0F0F0F0F0F0F,
 		0x0F0F0F0F0F0F0F0F
 	);
 
-static const __m128i k_iptlo =
+static const __m128i_const k_iptlo =
 	M128I_U64(
 		0xC2B2E8985A2A7000,
 		0xCABAE09052227808
 	);
 
-static const __m128i k_ipthi =
+static const __m128i_const k_ipthi =
 	M128I_U64(
 		0x4C01307D317C4D00,
 		0xCD80B1FCB0FDCC81
 	);
 
-static const __m128i k_inv =
+static const __m128i_const k_inv =
 	M128I_U64(
 		0x0E05060F0D080180,
 		0x040703090A0B0C02
 	);
 
-static const __m128i k_inva =
+static const __m128i_const k_inva =
 	M128I_U64(
 		0x01040A060F0B0780,
 		0x030D0E0C02050809
 	);
 
-static const __m128i k_sb1u =
+static const __m128i_const k_sb1u =
 	M128I_U64(
 		0xB19BE18FCB503E00,
 		0xA5DF7A6E142AF544
 	);
 
-static const __m128i k_sb1t =
+static const __m128i_const k_sb1t =
 	M128I_U64(
 		0x3618D415FAE22300,
 		0x3BF7CCC10D2ED9EF
 	);
 
-static const __m128i k_sb2u =
+static const __m128i_const k_sb2u =
 	M128I_U64(
 		0xE27A93C60B712400,
 		0x5EB7E955BC982FCD
 	);
 
-static const __m128i k_sb2t =
+static const __m128i_const k_sb2t =
 	M128I_U64(
 		0x69EB88400AE12900,
 		0xC2A163C8AB82234A
 	);
 
-static const __m128i k_sbou =
+static const __m128i_const k_sbou =
 	M128I_U64(
 		0xD0D26D176FBDC700,
 		0x15AABF7AC502A878
 	);
 
-static const __m128i k_sbot =
+static const __m128i_const k_sbot =
 	M128I_U64(
 		0xCFE474A55FBB6A00,
 		0x8E1E90D1412B35FA
 	);
 
-static const __m128i k_mc_forward[4] =
+static const __m128i_const k_mc_forward[4] =
 {
 	M128I_U64(
 		0x0407060500030201,
@@ -311,7 +268,7 @@ static const __m128i k_mc_forward[4] =
 	)
 };
 
-static const __m128i k_mc_backward[4] =
+static const __m128i_const k_mc_backward[4] =
 {
 	M128I_U64(
 		0x0605040702010003,
@@ -331,7 +288,7 @@ static const __m128i k_mc_backward[4] =
 	)
 };
 
-static const __m128i k_sr[4] =
+static const __m128i_const k_sr[4] =
 {
 	M128I_U64(
 		0x0706050403020100,
@@ -351,19 +308,19 @@ static const __m128i k_sr[4] =
 	)
 };
 
-static const __m128i k_rcon =
+static const __m128i_const k_rcon =
 	M128I_U64(
 		0x1F8391B9AF9DEEB6,
 		0x702A98084D7C7D81
 	);
 
-static const __m128i k_s63 =
+static const __m128i_const k_s63 =
 	M128I_U64(
 		0x5B5B5B5B5B5B5B5B,
 		0x5B5B5B5B5B5B5B5B
 	);
 
-static const __m128i k_opt[2] =
+static const __m128i_const k_opt[2] =
 {
 	M128I_U64(
 		0xFF9F4929D6B66000,
@@ -375,7 +332,7 @@ static const __m128i k_opt[2] =
 	)
 };
 
-static const __m128i k_deskew[2] =
+static const __m128i_const k_deskew[2] =
 {
 	M128I_U64(
 		0x07E4A34047A4E300,
@@ -387,7 +344,7 @@ static const __m128i k_deskew[2] =
 	)
 };
 
-static const __m128i k_dks_1[2] =
+static const __m128i_const k_dks_1[2] =
 {
 	M128I_U64(
 		0xB6116FC87ED9A700,
@@ -399,7 +356,7 @@ static const __m128i k_dks_1[2] =
 	)
 };
 
-static const __m128i k_dks_2[2] =
+static const __m128i_const k_dks_2[2] =
 {
 	M128I_U64(
 		0x27438FEBCCA86400,
@@ -411,7 +368,7 @@ static const __m128i k_dks_2[2] =
 	)
 };
 
-static const __m128i k_dks_3[2] =
+static const __m128i_const k_dks_3[2] =
 {
 	M128I_U64(
 		0x03C4C50201C6C700,
@@ -423,7 +380,7 @@ static const __m128i k_dks_3[2] =
 	)
 };
 
-static const __m128i k_dks_4[2] =
+static const __m128i_const k_dks_4[2] =
 {
 	M128I_U64(
 		0xE3C390B053732000,
@@ -435,7 +392,7 @@ static const __m128i k_dks_4[2] =
 	)
 };
 
-static const __m128i k_dipt[2] =
+static const __m128i_const k_dipt[2] =
 {
 	M128I_U64(
 		0x0F505B040B545F00,
@@ -447,7 +404,7 @@ static const __m128i k_dipt[2] =
 	)
 };
 
-static const __m128i k_dsb9[2] =
+static const __m128i_const k_dsb9[2] =
 {
 	M128I_U64(
 		0x851C03539A86D600,
@@ -459,7 +416,7 @@ static const __m128i k_dsb9[2] =
 	)
 };
 
-static const __m128i k_dsbd[2] =
+static const __m128i_const k_dsbd[2] =
 {
 	M128I_U64(
 		0x7D57CCDFE6B1A200,
@@ -471,7 +428,7 @@ static const __m128i k_dsbd[2] =
 	)
 };
 
-static const __m128i k_dsbb[2] =
+static const __m128i_const k_dsbb[2] =
 {
 	M128I_U64(
 		0xD022649296B44200,
@@ -483,7 +440,7 @@ static const __m128i k_dsbb[2] =
 	)
 };
 
-static const __m128i k_dsbe[2] =
+static const __m128i_const k_dsbe[2] =
 {
 	M128I_U64(
 		0x46F2929626D4D000,
@@ -495,7 +452,7 @@ static const __m128i k_dsbe[2] =
 	)
 };
 
-static const __m128i k_dsbo[2] =
+static const __m128i_const k_dsbo[2] =
 {
 	M128I_U64(
 		0x1387EA537EF94000,
@@ -551,8 +508,8 @@ aes_schedule_round(__m128i *pxmm0, __m128i *pxmm7, __m128i *pxmm8,
   if (!low_round_only)
     {
       /* extract rcon from xmm8 */
-      static const __m128i zero = { 0 };
-      xmm1 = zero;
+      static const __m128i_const zero = { 0 };
+      movdqa128_memld(&zero, xmm1);
       palignr128(15, xmm8, xmm1);
       palignr128(15, xmm8, xmm8);
       pxor128(xmm1, xmm7);
@@ -569,12 +526,12 @@ aes_schedule_round(__m128i *pxmm0, __m128i *pxmm7, __m128i *pxmm8,
   movdqa128(xmm7, xmm1);
   pslldq128(8, xmm7);
   pxor128(xmm1, xmm7);
-  pxor128(k_s63, xmm7);
+  pxor128_amemld(&k_s63, xmm7);
 
   /* subbytes */
   movdqa128(xmm9, xmm1);
   pandn128(xmm0, xmm1);
-  psrld128(4, xmm1);            /* 1 = i */
+  psrl_byte_128(4, xmm1);       /* 1 = i */
   pand128(xmm9, xmm0);          /* 0 = k */
   movdqa128(xmm11, xmm2);       /* 2 : a/k */
   pshufb128(xmm0, xmm2);        /* 2 = a/k */
@@ -591,9 +548,9 @@ aes_schedule_round(__m128i *pxmm0, __m128i *pxmm7, __m128i *pxmm8,
   movdqa128(xmm10, xmm3);       /* 3 : 1/jak */
   pshufb128(xmm4, xmm3);        /* 3 = 1/jak */
   pxor128(xmm1, xmm3);          /* 3 = jo */
-  movdqa128(k_sb1u, xmm4);      /* 4 : sbou */
+  movdqa128_memld(&k_sb1u, xmm4);      /* 4 : sbou */
   pshufb128(xmm2, xmm4);        /* 4 = sbou */
-  movdqa128(k_sb1t, xmm0);      /* 0 : sbot */
+  movdqa128_memld(&k_sb1t, xmm0);      /* 0 : sbot */
   pshufb128(xmm3, xmm0);        /* 0 = sb1t */
   pxor128(xmm4, xmm0);          /* 0 = sbox output */
 
@@ -608,7 +565,8 @@ aes_schedule_round(__m128i *pxmm0, __m128i *pxmm7, __m128i *pxmm8,
 
 static ASM_FUNC_ATTR_INLINE __m128i
 aes_schedule_transform(__m128i xmm0, const __m128i xmm9,
-		       const __m128i tablelo, const __m128i tablehi)
+		       const __m128i_const *tablelo,
+		       const __m128i_const *tablehi)
 {
   /* aes_schedule_transform
    *
@@ -622,11 +580,11 @@ aes_schedule_transform(__m128i xmm0, const __m128i xmm9,
 
   movdqa128(xmm9, xmm1);
   pandn128(xmm0, xmm1);
-  psrld128(4, xmm1);
+  psrl_byte_128(4, xmm1);
   pand128(xmm9, xmm0);
-  movdqa128(tablelo, xmm2);
+  movdqa128_memld(tablelo, xmm2);
   pshufb128(xmm0, xmm2);
-  movdqa128(tablehi, xmm0);
+  movdqa128_memld(tablehi, xmm0);
   pshufb128(xmm1, xmm0);
   pxor128(xmm2, xmm0);
 
@@ -662,12 +620,12 @@ aes_schedule_mangle(__m128i xmm0, struct vp_aes_config_s *pconfig, int decrypt,
   unsigned int rotoffs = *protoffs;
 
   movdqa128(xmm0, xmm4);
-  movdqa128(k_mc_forward[0], xmm5);
+  movdqa128_memld(&k_mc_forward[0], xmm5);
 
   if (!decrypt)
     {
       keysched += 16;
-      pxor128(k_s63, xmm4);
+      pxor128_amemld(&k_s63, xmm4);
       pshufb128(xmm5, xmm4);
       movdqa128(xmm4, xmm3);
       pshufb128(xmm5, xmm4);
@@ -678,29 +636,29 @@ aes_schedule_mangle(__m128i xmm0, struct vp_aes_config_s *pconfig, int decrypt,
   else
     {
       /* first table: *9 */
-      xmm0 = aes_schedule_transform(xmm0, xmm9, k_dks_1[0], k_dks_1[1]);
+      xmm0 = aes_schedule_transform(xmm0, xmm9, &k_dks_1[0], &k_dks_1[1]);
       movdqa128(xmm0, xmm3);
       pshufb128(xmm5, xmm3);
 
       /* next table:  *B */
-      xmm0 = aes_schedule_transform(xmm0, xmm9, k_dks_2[0], k_dks_2[1]);
+      xmm0 = aes_schedule_transform(xmm0, xmm9, &k_dks_2[0], &k_dks_2[1]);
       pxor128(xmm0, xmm3);
       pshufb128(xmm5, xmm3);
 
       /* next table:  *D */
-      xmm0 = aes_schedule_transform(xmm0, xmm9, k_dks_3[0], k_dks_3[1]);
+      xmm0 = aes_schedule_transform(xmm0, xmm9, &k_dks_3[0], &k_dks_3[1]);
       pxor128(xmm0, xmm3);
       pshufb128(xmm5, xmm3);
 
       /* next table:  *E */
-      xmm0 = aes_schedule_transform(xmm0, xmm9, k_dks_4[0], k_dks_4[1]);
+      xmm0 = aes_schedule_transform(xmm0, xmm9, &k_dks_4[0], &k_dks_4[1]);
       pxor128(xmm0, xmm3);
       pshufb128(xmm5, xmm3);
 
       keysched -= 16;
     }
 
-  pshufb128(k_sr[rotoffs], xmm3);
+  pshufb128_amemld(&k_sr[rotoffs], xmm3);
   rotoffs -= 16 / 16;
   rotoffs &= 48 / 16;
   movdqu128_memst(xmm3, keysched);
@@ -725,16 +683,16 @@ aes_schedule_mangle_last(__m128i xmm0, struct vp_aes_config_s config,
 
   if (!decrypt)
     {
-      pshufb128(k_sr[rotoffs], xmm0); /* output permute */
+      pshufb128_amemld(&k_sr[rotoffs], xmm0); /* output permute */
       config.keysched += 16;
-      pxor128(k_s63, xmm0);
-      xmm0 = aes_schedule_transform(xmm0, xmm9, k_opt[0], k_opt[1]);
+      pxor128_amemld(&k_s63, xmm0);
+      xmm0 = aes_schedule_transform(xmm0, xmm9, &k_opt[0], &k_opt[1]);
     }
   else
     {
       config.keysched -= 16;
-      pxor128(k_s63, xmm0);
-      xmm0 = aes_schedule_transform(xmm0, xmm9, k_deskew[0], k_deskew[1]);
+      pxor128_amemld(&k_s63, xmm0);
+      xmm0 = aes_schedule_transform(xmm0, xmm9, &k_deskew[0], &k_deskew[1]);
     }
 
   movdqu128_memst(xmm0, config.keysched); /* save last key */
@@ -825,7 +783,7 @@ aes_schedule_192(const byte *key, struct vp_aes_config_s config, int decrypt,
   int r = 4;
 
   movdqu128_memld(key + 8, xmm0); /* load key part 2 (very unaligned) */
-  xmm0 = aes_schedule_transform(xmm0, xmm9, k_iptlo, k_ipthi); /* input transform */
+  xmm0 = aes_schedule_transform(xmm0, xmm9, &k_iptlo, &k_ipthi); /* input transform */
   movdqa128(xmm0, xmm6);
   psrldq128(8, xmm6);
   pslldq128(8, xmm6); /* clobber low side with zeros */
@@ -867,7 +825,7 @@ aes_schedule_256(const byte *key, struct vp_aes_config_s config, int decrypt,
   int r = 7;
 
   movdqu128_memld(key + 16, xmm0); /* load key part 2 (unaligned) */
-  xmm0 = aes_schedule_transform(xmm0, xmm9, k_iptlo, k_ipthi); /* input transform */
+  xmm0 = aes_schedule_transform(xmm0, xmm9, &k_iptlo, &k_ipthi); /* input transform */
 
   while (1)
     {
@@ -900,16 +858,16 @@ aes_schedule_core(const byte *key, struct vp_aes_config_s config,
   unsigned int keybits = (config.nround - 10) * 32 + 128;
   __m128i xmm0, xmm3, xmm7, xmm8, xmm9, xmm10, xmm11;
 
-  movdqa128(k_s0F, xmm9);
-  movdqa128(k_inv, xmm10);
-  movdqa128(k_inva, xmm11);
-  movdqa128(k_rcon, xmm8);
+  movdqa128_memld(&k_s0F, xmm9);
+  movdqa128_memld(&k_inv, xmm10);
+  movdqa128_memld(&k_inva, xmm11);
+  movdqa128_memld(&k_rcon, xmm8);
 
   movdqu128_memld(key, xmm0);
 
   /* input transform */
   movdqa128(xmm0, xmm3);
-  xmm0 = aes_schedule_transform(xmm0, xmm9, k_iptlo, k_ipthi);
+  xmm0 = aes_schedule_transform(xmm0, xmm9, &k_iptlo, &k_ipthi);
   movdqa128(xmm0, xmm7);
 
   if (!decrypt)
@@ -920,7 +878,7 @@ aes_schedule_core(const byte *key, struct vp_aes_config_s config,
   else
     {
       /* decrypting, output zeroth round key after shiftrows */
-      pshufb128(k_sr[rotoffs], xmm3);
+      pshufb128_amemld(&k_sr[rotoffs], xmm3);
       movdqu128_memst(xmm3, config.keysched);
       rotoffs ^= 48 / 16;
     }
@@ -998,23 +956,23 @@ FUNC_PREPARE_DEC (RIJNDAEL_context *ctx)
 }
 
 #define enc_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15) \
-	movdqa128(k_s0F, xmm9); \
-	movdqa128(k_inv, xmm10); \
-	movdqa128(k_inva, xmm11); \
-	movdqa128(k_sb1u, xmm13); \
-	movdqa128(k_sb1t, xmm12); \
-	movdqa128(k_sb2u, xmm15); \
-	movdqa128(k_sb2t, xmm14);
+	movdqa128_memld(&k_s0F, xmm9); \
+	movdqa128_memld(&k_inv, xmm10); \
+	movdqa128_memld(&k_inva, xmm11); \
+	movdqa128_memld(&k_sb1u, xmm13); \
+	movdqa128_memld(&k_sb1t, xmm12); \
+	movdqa128_memld(&k_sb2u, xmm15); \
+	movdqa128_memld(&k_sb2t, xmm14);
 
 #define dec_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, xmm8) \
-	movdqa128(k_s0F, xmm9); \
-	movdqa128(k_inv, xmm10); \
-	movdqa128(k_inva, xmm11); \
-	movdqa128(k_dsb9[0], xmm13); \
-	movdqa128(k_dsb9[1], xmm12); \
-	movdqa128(k_dsbd[0], xmm15); \
-	movdqa128(k_dsbb[0], xmm14); \
-	movdqa128(k_dsbe[0], xmm8);
+	movdqa128_memld(&k_s0F, xmm9); \
+	movdqa128_memld(&k_inv, xmm10); \
+	movdqa128_memld(&k_inva, xmm11); \
+	movdqa128_memld(&k_dsb9[0], xmm13); \
+	movdqa128_memld(&k_dsb9[1], xmm12); \
+	movdqa128_memld(&k_dsbd[0], xmm15); \
+	movdqa128_memld(&k_dsbb[0], xmm14); \
+	movdqa128_memld(&k_dsbe[0], xmm8);
 
 static ASM_FUNC_ATTR_INLINE __m128i
 aes_encrypt_core(__m128i xmm0, struct vp_aes_config_s config,
@@ -1025,13 +983,13 @@ aes_encrypt_core(__m128i xmm0, struct vp_aes_config_s config,
   const byte *end_keys = config.sched_keys + 16 * config.nround;
   unsigned int mc_pos = 1;
 
-  movdqa128(k_iptlo, xmm2);
+  movdqa128_memld(&k_iptlo, xmm2);
   movdqa128(xmm9, xmm1);
   pandn128(xmm0, xmm1);
-  psrld128(4, xmm1);
+  psrl_byte_128(4, xmm1);
   pand128(xmm9, xmm0);
   pshufb128(xmm0, xmm2);
-  movdqa128(k_ipthi, xmm0);
+  movdqa128_memld(&k_ipthi, xmm0);
 
   pshufb128(xmm1, xmm0);
   pxor128_amemld(config.sched_keys, xmm2);
@@ -1044,7 +1002,7 @@ aes_encrypt_core(__m128i xmm0, struct vp_aes_config_s config,
       /* top of round */
       movdqa128(xmm9, xmm1);                  /* 1 : i */
       pandn128(xmm0, xmm1);                   /* 1 = i<<4 */
-      psrld128(4, xmm1);                      /* 1 = i */
+      psrl_byte_128(4, xmm1);                 /* 1 = i */
       pand128(xmm9, xmm0);                    /* 0 = k */
       movdqa128(xmm11, xmm2);                 /* 2 : a/k */
       pshufb128(xmm0, xmm2);                  /* 2 = a/k */
@@ -1074,14 +1032,14 @@ aes_encrypt_core(__m128i xmm0, struct vp_aes_config_s config,
       pxor128(xmm4, xmm0);                    /* 0 = A */
       movdqa128(xmm15, xmm4);                 /* 4 : sb2u */
       pshufb128(xmm2, xmm4);                  /* 4 = sb2u */
-      movdqa128(k_mc_forward[mc_pos], xmm1);
+      movdqa128_memld(&k_mc_forward[mc_pos], xmm1);
       movdqa128(xmm14, xmm2);                 /* 2 : sb2t */
       pshufb128(xmm3, xmm2);                  /* 2 = sb2t */
       pxor128(xmm4, xmm2);                    /* 2 = 2A */
       movdqa128(xmm0, xmm3);                  /* 3 = A */
       pshufb128(xmm1, xmm0);                  /* 0 = B */
       pxor128(xmm2, xmm0);                    /* 0 = 2A+B */
-      pshufb128(k_mc_backward[mc_pos], xmm3); /* 3 = D */
+      pshufb128_amemld(&k_mc_backward[mc_pos], xmm3); /* 3 = D */
       pxor128(xmm0, xmm3);                    /* 3 = 2A+B+D */
       pshufb128(xmm1, xmm0);                  /* 0 = 2B+C */
       pxor128(xmm3, xmm0);                    /* 0 = 2A+3B+C+D */
@@ -1091,13 +1049,13 @@ aes_encrypt_core(__m128i xmm0, struct vp_aes_config_s config,
     }
 
   /* middle of last round */
-  movdqa128(k_sbou, xmm4);          /* 3 : sbou */
+  movdqa128_memld(&k_sbou, xmm4);   /* 3 : sbou */
   pshufb128(xmm2, xmm4);            /* 4 = sbou */
   pxor128_amemld(config.sched_keys, xmm4); /* 4 = sb1u + k */
-  movdqa128(k_sbot, xmm0);          /* 0 : sbot */
+  movdqa128_memld(&k_sbot, xmm0);   /* 0 : sbot */
   pshufb128(xmm3, xmm0);            /* 0 = sb1t */
   pxor128(xmm4, xmm0);              /* 0 = A */
-  pshufb128(k_sr[mc_pos], xmm0);
+  pshufb128_amemld(&k_sr[mc_pos], xmm0);
 
   return xmm0;
 }
@@ -1112,20 +1070,20 @@ aes_encrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
   __m128i xmm0_a, xmm0_b;
   __m128i xmm1_a, xmm2_a, xmm3_a, xmm4_a;
   __m128i xmm1_b, xmm2_b, xmm3_b, xmm4_b;
-  __m128i xmm5;
+  __m128i xmm5, xmm6;
   const byte *end_keys = config.sched_keys + 16 * config.nround;
   unsigned int mc_pos = 1;
 
   xmm0_a = *pxmm0_a;
   xmm0_b = *pxmm0_b;
 
-  movdqa128(k_iptlo, xmm2_a);	movdqa128(k_iptlo, xmm2_b);
+  movdqa128_memld(&k_iptlo, xmm2_a); movdqa128(xmm2_a, xmm2_b);
   movdqa128(xmm9, xmm1_a);	movdqa128(xmm9, xmm1_b);
   pandn128(xmm0_a, xmm1_a);	pandn128(xmm0_b, xmm1_b);
-  psrld128(4, xmm1_a);		psrld128(4, xmm1_b);
+  psrl_byte_128(4, xmm1_a);	psrl_byte_128(4, xmm1_b);
   pand128(xmm9, xmm0_a);	pand128(xmm9, xmm0_b);
   pshufb128(xmm0_a, xmm2_a);	pshufb128(xmm0_b, xmm2_b);
-  movdqa128(k_ipthi, xmm0_a);	movdqa128(k_ipthi, xmm0_b);
+  movdqa128_memld(&k_ipthi, xmm0_a); movdqa128(xmm0_a, xmm0_b);
 
   pshufb128(xmm1_a, xmm0_a);	pshufb128(xmm1_b, xmm0_b);
   movdqu128_memld(config.sched_keys, xmm5);
@@ -1139,7 +1097,7 @@ aes_encrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
       /* top of round */
       movdqa128(xmm9, xmm1_a);		movdqa128(xmm9, xmm1_b);
       pandn128(xmm0_a, xmm1_a);		pandn128(xmm0_b, xmm1_b);
-      psrld128(4, xmm1_a);		psrld128(4, xmm1_b);
+      psrl_byte_128(4, xmm1_a);		psrl_byte_128(4, xmm1_b);
       pand128(xmm9, xmm0_a);		pand128(xmm9, xmm0_b);
       movdqa128(xmm11, xmm2_a);		movdqa128(xmm11, xmm2_b);
       pshufb128(xmm0_a, xmm2_a);	pshufb128(xmm0_b, xmm2_b);
@@ -1170,18 +1128,17 @@ aes_encrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
       pxor128(xmm4_a, xmm0_a);		pxor128(xmm4_b, xmm0_b);
       movdqa128(xmm15, xmm4_a);		movdqa128(xmm15, xmm4_b);
       pshufb128(xmm2_a, xmm4_a);	pshufb128(xmm2_b, xmm4_b);
-      movdqa128(k_mc_forward[mc_pos], xmm1_a);
-					movdqa128(k_mc_forward[mc_pos], xmm1_b);
+      movdqa128_memld(&k_mc_forward[mc_pos], xmm6);
       movdqa128(xmm14, xmm2_a);		movdqa128(xmm14, xmm2_b);
       pshufb128(xmm3_a, xmm2_a);	pshufb128(xmm3_b, xmm2_b);
       pxor128(xmm4_a, xmm2_a);		pxor128(xmm4_b, xmm2_b);
       movdqa128(xmm0_a, xmm3_a);	movdqa128(xmm0_b, xmm3_b);
-      pshufb128(xmm1_a, xmm0_a);	pshufb128(xmm1_b, xmm0_b);
+      pshufb128(xmm6, xmm0_a);		pshufb128(xmm6, xmm0_b);
       pxor128(xmm2_a, xmm0_a);		pxor128(xmm2_b, xmm0_b);
-      pshufb128(k_mc_backward[mc_pos], xmm3_a);
-					pshufb128(k_mc_backward[mc_pos], xmm3_b);
+      movdqa128_memld(&k_mc_backward[mc_pos], xmm5);
+      pshufb128(xmm5, xmm3_a);		pshufb128(xmm5, xmm3_b);
       pxor128(xmm0_a, xmm3_a);		pxor128(xmm0_b, xmm3_b);
-      pshufb128(xmm1_a, xmm0_a);	pshufb128(xmm1_b, xmm0_b);
+      pshufb128(xmm6, xmm0_a);		pshufb128(xmm6, xmm0_b);
       pxor128(xmm3_a, xmm0_a);		pxor128(xmm3_b, xmm0_b);
 
       config.sched_keys += 16;
@@ -1189,19 +1146,132 @@ aes_encrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
     }
 
   /* middle of last round */
-  movdqa128(k_sbou, xmm4_a);	movdqa128(k_sbou, xmm4_b);
+  movdqa128_memld(&k_sbou, xmm4_a); movdqa128_memld(&k_sbou, xmm4_b);
   pshufb128(xmm2_a, xmm4_a);	pshufb128(xmm2_b, xmm4_b);
   movdqu128_memld(config.sched_keys, xmm5);
   pxor128(xmm5, xmm4_a);	pxor128(xmm5, xmm4_b);
-  movdqa128(k_sbot, xmm0_a);	movdqa128(k_sbot, xmm0_b);
+  movdqa128_memld(&k_sbot, xmm0_a); movdqa128_memld(&k_sbot, xmm0_b);
   pshufb128(xmm3_a, xmm0_a);	pshufb128(xmm3_b, xmm0_b);
   pxor128(xmm4_a, xmm0_a);	pxor128(xmm4_b, xmm0_b);
-  pshufb128(k_sr[mc_pos], xmm0_a);
-				pshufb128(k_sr[mc_pos], xmm0_b);
+  movdqa128_memld(&k_sr[mc_pos], xmm5);
+  pshufb128(xmm5, xmm0_a);	pshufb128(xmm5, xmm0_b);
 
   *pxmm0_a = xmm0_a;
   *pxmm0_b = xmm0_b;
 }
+
+#ifdef HAVE_SIMD256
+
+static ASM_FUNC_ATTR_INLINE void
+aes_encrypt_core_4blks_simd256(__m256i *pymm0_a, __m256i *pymm0_b,
+			       struct vp_aes_config_s config,
+			       __m128i xmm9, __m128i xmm10, __m128i xmm11,
+			       __m128i xmm12, __m128i xmm13, __m128i xmm14,
+			       __m128i xmm15)
+{
+  __m256i ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15;
+  __m256i ymm0_a, ymm0_b;
+  __m256i ymm1_a, ymm2_a, ymm3_a, ymm4_a;
+  __m256i ymm1_b, ymm2_b, ymm3_b, ymm4_b;
+  __m256i ymm5, ymm6;
+  const byte *end_keys = config.sched_keys + 16 * config.nround;
+  unsigned int mc_pos = 1;
+
+  broadcast128_256(xmm9, ymm9);
+  movdqa128_256(xmm10, ymm10);
+  movdqa128_256(xmm11, ymm11);
+  movdqa128_256(xmm12, ymm12);
+  movdqa128_256(xmm13, ymm13);
+  movdqa128_256(xmm14, ymm14);
+  movdqa128_256(xmm15, ymm15);
+
+  ymm0_a = *pymm0_a;
+  ymm0_b = *pymm0_b;
+
+  load_tab16_table(&k_iptlo, ymm2_a); 	movdqa256(ymm2_a, ymm2_b);
+  movdqa256(ymm9, ymm1_a);		movdqa256(ymm9, ymm1_b);
+  pandn256(ymm0_a, ymm1_a);		pandn256(ymm0_b, ymm1_b);
+  psrl_byte_256(4, ymm1_a);		psrl_byte_256(4, ymm1_b);
+  pand256(ymm9, ymm0_a);		pand256(ymm9, ymm0_b);
+  pshufb256_tab16(ymm0_a, ymm2_a);	pshufb256_tab16(ymm0_b, ymm2_b);
+  load_tab16_table(&k_ipthi, ymm0_a); 	movdqa256(ymm0_a, ymm0_b);
+
+  pshufb256_tab16(ymm1_a, ymm0_a);	pshufb256_tab16(ymm1_b, ymm0_b);
+  broadcast128_256_amemld(config.sched_keys, ymm5);
+  pxor256(ymm5, ymm2_a);		pxor256(ymm5, ymm2_b);
+  pxor256(ymm2_a, ymm0_a);		pxor256(ymm2_b, ymm0_b);
+
+  config.sched_keys += 16;
+
+  while (1)
+    {
+      /* top of round */
+      movdqa256(ymm9, ymm1_a);		movdqa256(ymm9, ymm1_b);
+      pandn256(ymm0_a, ymm1_a);		pandn256(ymm0_b, ymm1_b);
+      psrl_byte_256(4, ymm1_a);		psrl_byte_256(4, ymm1_b);
+      pand256(ymm9, ymm0_a);		pand256(ymm9, ymm0_b);
+      movdqa256(ymm11, ymm2_a);		movdqa256(ymm11, ymm2_b);
+      pshufb256_tab16(ymm0_a, ymm2_a);	pshufb256_tab16(ymm0_b, ymm2_b);
+      pxor256(ymm1_a, ymm0_a);		pxor256(ymm1_b, ymm0_b);
+      movdqa256(ymm10, ymm3_a);		movdqa256(ymm10, ymm3_b);
+      pshufb256_tab16(ymm1_a, ymm3_a);	pshufb256_tab16(ymm1_b, ymm3_b);
+      pxor256(ymm2_a, ymm3_a);		pxor256(ymm2_b, ymm3_b);
+      movdqa256(ymm10, ymm4_a);		movdqa256(ymm10, ymm4_b);
+      pshufb256_tab16(ymm0_a,  ymm4_a);	pshufb256_tab16(ymm0_b,  ymm4_b);
+      pxor256(ymm2_a, ymm4_a);		pxor256(ymm2_b, ymm4_b);
+      movdqa256(ymm10, ymm2_a);		movdqa256(ymm10, ymm2_b);
+      pshufb256_tab16(ymm3_a, ymm2_a);	pshufb256_tab16(ymm3_b, ymm2_b);
+      pxor256(ymm0_a, ymm2_a);		pxor256(ymm0_b, ymm2_b);
+      movdqa256(ymm10, ymm3_a);		movdqa256(ymm10, ymm3_b);
+      pshufb256_tab16(ymm4_a, ymm3_a);	pshufb256_tab16(ymm4_b, ymm3_b);
+      pxor256(ymm1_a, ymm3_a);		pxor256(ymm1_b, ymm3_b);
+
+      if (config.sched_keys == end_keys)
+	break;
+
+      /* middle of middle round */
+      movdqa256(ymm13, ymm4_a);		movdqa256(ymm13, ymm4_b);
+      pshufb256_tab16(ymm2_a, ymm4_a);	pshufb256_tab16(ymm2_b, ymm4_b);
+      broadcast128_256_amemld(config.sched_keys, ymm5);
+      pxor256(ymm5, ymm4_a);		pxor256(ymm5, ymm4_b);
+      movdqa256(ymm12, ymm0_a);		movdqa256(ymm12, ymm0_b);
+      pshufb256_tab16(ymm3_a, ymm0_a);	pshufb256_tab16(ymm3_b, ymm0_b);
+      pxor256(ymm4_a, ymm0_a);		pxor256(ymm4_b, ymm0_b);
+      movdqa256(ymm15, ymm4_a);		movdqa256(ymm15, ymm4_b);
+      pshufb256_tab16(ymm2_a, ymm4_a);	pshufb256_tab16(ymm2_b, ymm4_b);
+      load_tab32_mask(&k_mc_forward[mc_pos], ymm6);
+      movdqa256(ymm14, ymm2_a);		movdqa256(ymm14, ymm2_b);
+      pshufb256_tab16(ymm3_a, ymm2_a);	pshufb256_tab16(ymm3_b, ymm2_b);
+      pxor256(ymm4_a, ymm2_a);		pxor256(ymm4_b, ymm2_b);
+      movdqa256(ymm0_a, ymm3_a);	movdqa256(ymm0_b, ymm3_b);
+      pshufb256_tab32(ymm6, ymm0_a);	pshufb256_tab32(ymm6, ymm0_b);
+      pxor256(ymm2_a, ymm0_a);		pxor256(ymm2_b, ymm0_b);
+      load_tab32_mask(&k_mc_backward[mc_pos], ymm5);
+      pshufb256_tab32(ymm5, ymm3_a);	pshufb256_tab32(ymm5, ymm3_b);
+      pxor256(ymm0_a, ymm3_a);		pxor256(ymm0_b, ymm3_b);
+      pshufb256_tab32(ymm6, ymm0_a);	pshufb256_tab32(ymm6, ymm0_b);
+      pxor256(ymm3_a, ymm0_a);		pxor256(ymm3_b, ymm0_b);
+
+      config.sched_keys += 16;
+      mc_pos = (mc_pos + 1) % 4; /* next mc mod 4 */
+    }
+
+  /* middle of last round */
+  movdqa256_memld(&k_sbou, ymm4_a); 	movdqa256_memld(&k_sbou, ymm4_b);
+  pshufb256_tab16(ymm2_a, ymm4_a);	pshufb256_tab16(ymm2_b, ymm4_b);
+  broadcast128_256_amemld(config.sched_keys, ymm5);
+  pxor256(ymm5, ymm4_a);		pxor256(ymm5, ymm4_b);
+  movdqa256_memld(&k_sbot, ymm0_a); 	movdqa256_memld(&k_sbot, ymm0_b);
+  pshufb256_tab16(ymm3_a, ymm0_a);	pshufb256_tab16(ymm3_b, ymm0_b);
+  pxor256(ymm4_a, ymm0_a);		pxor256(ymm4_b, ymm0_b);
+  load_tab32_mask(&k_sr[mc_pos], ymm5);
+  pshufb256_tab32(ymm5, ymm0_a);	pshufb256_tab32(ymm5, ymm0_b);
+
+  *pymm0_a = ymm0_a;
+  *pymm0_b = ymm0_b;
+}
+
+#endif /* HAVE_SIMD256 */
 
 static ASM_FUNC_ATTR_INLINE __m128i
 aes_decrypt_core(__m128i xmm0, struct vp_aes_config_s config,
@@ -1212,17 +1282,17 @@ aes_decrypt_core(__m128i xmm0, struct vp_aes_config_s config,
   const byte *end_keys = config.sched_keys + 16 * config.nround;
   unsigned int mc_pos = config.nround % 4;
 
-  movdqa128(k_dipt[0], xmm2);
+  movdqa128_memld(&k_dipt[0], xmm2);
   movdqa128(xmm9, xmm1);
   pandn128(xmm0, xmm1);
-  psrld128(4, xmm1);
+  psrl_byte_128(4, xmm1);
   pand128(xmm9, xmm0);
   pshufb128(xmm0, xmm2);
-  movdqa128(k_dipt[1], xmm0);
+  movdqa128_memld(&k_dipt[1], xmm0);
   pshufb128(xmm1, xmm0);
   pxor128_amemld(config.sched_keys, xmm2);
   pxor128(xmm2, xmm0);
-  movdqa128(k_mc_forward[3], xmm5);
+  movdqa128_memld(&k_mc_forward[3], xmm5);
 
   config.sched_keys += 16;
 
@@ -1231,7 +1301,7 @@ aes_decrypt_core(__m128i xmm0, struct vp_aes_config_s config,
       /* top of round */
       movdqa128(xmm9, xmm1);                  /* 1 : i */
       pandn128(xmm0, xmm1);                   /* 1 = i<<4 */
-      psrld128(4, xmm1);                      /* 1 = i */
+      psrl_byte_128(4, xmm1);                 /* 1 = i */
       pand128(xmm9, xmm0);                    /* 0 = k */
       movdqa128(xmm11, xmm2);                 /* 2 : a/k */
       pshufb128(xmm0, xmm2);                  /* 2 = a/k */
@@ -1258,7 +1328,7 @@ aes_decrypt_core(__m128i xmm0, struct vp_aes_config_s config,
       pxor128_amemld(config.sched_keys, xmm4);
       movdqa128(xmm12, xmm0);                 /* 0 : sb9t */
       pshufb128(xmm3, xmm0);                  /* 0 = sb9t */
-      movdqa128(k_dsbd[1], xmm1);             /* 1 : sbdt */
+      movdqa128_memld(&k_dsbd[1], xmm1);      /* 1 : sbdt */
       pxor128(xmm4, xmm0);                    /* 0 = ch */
 
       pshufb128(xmm5, xmm0);                  /* MC ch */
@@ -1272,7 +1342,7 @@ aes_decrypt_core(__m128i xmm0, struct vp_aes_config_s config,
       movdqa128(xmm14, xmm4);                 /* 4 : sbbu */
       pshufb128(xmm2, xmm4);                  /* 4 = sbbu */
       pxor128(xmm1, xmm4);                    /* 4 = ch */
-      movdqa128(k_dsbb[1], xmm0);             /* 0 : sbbt */
+      movdqa128_memld(&k_dsbb[1], xmm0);      /* 0 : sbbt */
       pshufb128(xmm3, xmm0);                  /* 0 = sbbt */
       pxor128(xmm4, xmm0);                    /* 0 = ch */
 
@@ -1281,7 +1351,7 @@ aes_decrypt_core(__m128i xmm0, struct vp_aes_config_s config,
       pshufb128(xmm2, xmm4);                  /* 4 = sbeu */
       pshufd128_0x93(xmm5, xmm5);
       pxor128(xmm0, xmm4);                    /* 4 = ch */
-      movdqa128(k_dsbe[1], xmm0);             /* 0 : sbet */
+      movdqa128_memld(&k_dsbe[1], xmm0);      /* 0 : sbet */
       pshufb128(xmm3, xmm0);                  /* 0 = sbet */
       pxor128(xmm4, xmm0);                    /* 0 = ch */
 
@@ -1289,13 +1359,13 @@ aes_decrypt_core(__m128i xmm0, struct vp_aes_config_s config,
     }
 
   /* middle of last round */
-  movdqa128(k_dsbo[0], xmm4);       /* 3 : sbou */
+  movdqa128_memld(&k_dsbo[0], xmm4);/* 3 : sbou */
   pshufb128(xmm2, xmm4);            /* 4 = sbou */
   pxor128_amemld(config.sched_keys, xmm4); /* 4 = sb1u + k */
-  movdqa128(k_dsbo[1], xmm0);       /* 0 : sbot */
+  movdqa128_memld(&k_dsbo[1], xmm0);/* 0 : sbot */
   pshufb128(xmm3, xmm0);            /* 0 = sb1t */
   pxor128(xmm4, xmm0);              /* 0 = A */
-  pshufb128(k_sr[mc_pos], xmm0);
+  pshufb128_amemld(&k_sr[mc_pos], xmm0);
 
   return xmm0;
 }
@@ -1317,18 +1387,18 @@ aes_decrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
   xmm0_a = *pxmm0_a;
   xmm0_b = *pxmm0_b;
 
-  movdqa128(k_dipt[0], xmm2_a);	movdqa128(k_dipt[0], xmm2_b);
+  movdqa128_memld(&k_dipt[0], xmm2_a); movdqa128(xmm2_a, xmm2_b);
   movdqa128(xmm9, xmm1_a);	movdqa128(xmm9, xmm1_b);
   pandn128(xmm0_a, xmm1_a);	pandn128(xmm0_b, xmm1_b);
-  psrld128(4, xmm1_a);		psrld128(4, xmm1_b);
+  psrl_byte_128(4, xmm1_a);	psrl_byte_128(4, xmm1_b);
   pand128(xmm9, xmm0_a);	pand128(xmm9, xmm0_b);
   pshufb128(xmm0_a, xmm2_a);	pshufb128(xmm0_b, xmm2_b);
-  movdqa128(k_dipt[1], xmm0_a);	movdqa128(k_dipt[1], xmm0_b);
+  movdqa128_memld(&k_dipt[1], xmm0_a); movdqa128(xmm0_a, xmm0_b);
   pshufb128(xmm1_a, xmm0_a);	pshufb128(xmm1_b, xmm0_b);
   movdqu128_memld(config.sched_keys, xmm6);
   pxor128(xmm6, xmm2_a);	pxor128(xmm6, xmm2_b);
   pxor128(xmm2_a, xmm0_a);	pxor128(xmm2_b, xmm0_b);
-  movdqa128(k_mc_forward[3], xmm5);
+  movdqa128_memld(&k_mc_forward[3], xmm5);
 
   config.sched_keys += 16;
 
@@ -1337,7 +1407,7 @@ aes_decrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
       /* top of round */
       movdqa128(xmm9, xmm1_a);		movdqa128(xmm9, xmm1_b);
       pandn128(xmm0_a, xmm1_a);		pandn128(xmm0_b, xmm1_b);
-      psrld128(4, xmm1_a);		psrld128(4, xmm1_b);
+      psrl_byte_128(4, xmm1_a);		psrl_byte_128(4, xmm1_b);
       pand128(xmm9, xmm0_a);		pand128(xmm9, xmm0_b);
       movdqa128(xmm11, xmm2_a);		movdqa128(xmm11, xmm2_b);
       pshufb128(xmm0_a, xmm2_a);	pshufb128(xmm0_b, xmm2_b);
@@ -1365,7 +1435,7 @@ aes_decrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
       pxor128(xmm6, xmm4_a);		pxor128(xmm6, xmm4_b);
       movdqa128(xmm12, xmm0_a);		movdqa128(xmm12, xmm0_b);
       pshufb128(xmm3_a, xmm0_a);	pshufb128(xmm3_b, xmm0_b);
-      movdqa128(k_dsbd[1], xmm1_a);	movdqa128(k_dsbd[1], xmm1_b);
+      movdqa128_memld(&k_dsbd[1], xmm1_a); movdqa128(xmm1_a, xmm1_b);
       pxor128(xmm4_a, xmm0_a);		pxor128(xmm4_b, xmm0_b);
 
       pshufb128(xmm5, xmm0_a);		pshufb128(xmm5, xmm0_b);
@@ -1379,7 +1449,7 @@ aes_decrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
       movdqa128(xmm14, xmm4_a);		movdqa128(xmm14, xmm4_b);
       pshufb128(xmm2_a, xmm4_a);	pshufb128(xmm2_b, xmm4_b);
       pxor128(xmm1_a, xmm4_a);		pxor128(xmm1_b, xmm4_b);
-      movdqa128(k_dsbb[1], xmm0_a);	movdqa128(k_dsbb[1], xmm0_b);
+      movdqa128_memld(&k_dsbb[1], xmm0_a); movdqa128(xmm0_a, xmm0_b);
       pshufb128(xmm3_a, xmm0_a);	pshufb128(xmm3_b, xmm0_b);
       pxor128(xmm4_a, xmm0_a);		pxor128(xmm4_b, xmm0_b);
 
@@ -1388,7 +1458,7 @@ aes_decrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
       pshufb128(xmm2_a, xmm4_a);	pshufb128(xmm2_b, xmm4_b);
       pshufd128_0x93(xmm5, xmm5);
       pxor128(xmm0_a, xmm4_a);		pxor128(xmm0_b, xmm4_b);
-      movdqa128(k_dsbe[1], xmm0_a);	movdqa128(k_dsbe[1], xmm0_b);
+      movdqa128_memld(&k_dsbe[1], xmm0_a); movdqa128(xmm0_a, xmm0_b);
       pshufb128(xmm3_a, xmm0_a);	pshufb128(xmm3_b, xmm0_b);
       pxor128(xmm4_a, xmm0_a);		pxor128(xmm4_b, xmm0_b);
 
@@ -1396,19 +1466,143 @@ aes_decrypt_core_2blks(__m128i *pxmm0_a, __m128i *pxmm0_b,
     }
 
   /* middle of last round */
-  movdqa128(k_dsbo[0], xmm4_a);	movdqa128(k_dsbo[0], xmm4_b);
+  movdqa128_memld(&k_dsbo[0], xmm4_a); movdqa128(xmm4_a, xmm4_b);
   pshufb128(xmm2_a, xmm4_a);	pshufb128(xmm2_b, xmm4_b);
   movdqu128_memld(config.sched_keys, xmm6);
   pxor128(xmm6, xmm4_a);	pxor128(xmm6, xmm4_b);
-  movdqa128(k_dsbo[1], xmm0_a);	movdqa128(k_dsbo[1], xmm0_b);
+  movdqa128_memld(&k_dsbo[1], xmm0_a); movdqa128(xmm0_a, xmm0_b);
   pshufb128(xmm3_a, xmm0_a);	pshufb128(xmm3_b, xmm0_b);
   pxor128(xmm4_a, xmm0_a);	pxor128(xmm4_b, xmm0_b);
-  pshufb128(k_sr[mc_pos], xmm0_a);
-				pshufb128(k_sr[mc_pos], xmm0_b);
+  movdqa128_memld(&k_sr[mc_pos], xmm5);
+  pshufb128(xmm5, xmm0_a);	pshufb128(xmm5, xmm0_b);
 
   *pxmm0_a = xmm0_a;
   *pxmm0_b = xmm0_b;
 }
+
+#ifdef HAVE_SIMD256
+
+static ASM_FUNC_ATTR_INLINE void
+aes_decrypt_core_4blks_simd256(__m256i *pymm0_a, __m256i *pymm0_b,
+			       struct vp_aes_config_s config,
+			       __m128i xmm9, __m128i xmm10, __m128i xmm11,
+			       __m128i xmm12, __m128i xmm13, __m128i xmm14,
+			       __m128i xmm15, __m128i xmm8)
+{
+  __m256i ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15, ymm8;
+  __m256i ymm0_a, ymm0_b;
+  __m256i ymm1_a, ymm2_a, ymm3_a, ymm4_a;
+  __m256i ymm1_b, ymm2_b, ymm3_b, ymm4_b;
+  __m256i ymm5, ymm6;
+  const byte *end_keys = config.sched_keys + 16 * config.nround;
+  unsigned int mc_pos = config.nround % 4;
+
+  broadcast128_256(xmm9, ymm9);
+  movdqa128_256(xmm10, ymm10);
+  movdqa128_256(xmm11, ymm11);
+  movdqa128_256(xmm12, ymm12);
+  movdqa128_256(xmm13, ymm13);
+  movdqa128_256(xmm14, ymm14);
+  movdqa128_256(xmm15, ymm15);
+  movdqa128_256(xmm8, ymm8);
+
+  ymm0_a = *pymm0_a;
+  ymm0_b = *pymm0_b;
+
+  load_tab16_table(&k_dipt[0], ymm2_a); movdqa256(ymm2_a, ymm2_b);
+  movdqa256(ymm9, ymm1_a);		movdqa256(ymm9, ymm1_b);
+  pandn256(ymm0_a, ymm1_a);		pandn256(ymm0_b, ymm1_b);
+  psrl_byte_256(4, ymm1_a);		psrl_byte_256(4, ymm1_b);
+  pand256(ymm9, ymm0_a);		pand256(ymm9, ymm0_b);
+  pshufb256_tab16(ymm0_a, ymm2_a);	pshufb256_tab16(ymm0_b, ymm2_b);
+  load_tab16_table(&k_dipt[1], ymm0_a); movdqa256(ymm0_a, ymm0_b);
+  pshufb256_tab16(ymm1_a, ymm0_a);	pshufb256_tab16(ymm1_b, ymm0_b);
+  broadcast128_256_amemld(config.sched_keys, ymm6);
+  pxor256(ymm6, ymm2_a);		pxor256(ymm6, ymm2_b);
+  pxor256(ymm2_a, ymm0_a);		pxor256(ymm2_b, ymm0_b);
+  load_tab32_mask(&k_mc_forward[3], ymm5);
+
+  config.sched_keys += 16;
+
+  while (1)
+    {
+      /* top of round */
+      movdqa256(ymm9, ymm1_a);		movdqa256(ymm9, ymm1_b);
+      pandn256(ymm0_a, ymm1_a);		pandn256(ymm0_b, ymm1_b);
+      psrl_byte_256(4, ymm1_a);		psrl_byte_256(4, ymm1_b);
+      pand256(ymm9, ymm0_a);		pand256(ymm9, ymm0_b);
+      movdqa256(ymm11, ymm2_a);		movdqa256(ymm11, ymm2_b);
+      pshufb256_tab16(ymm0_a, ymm2_a);	pshufb256_tab16(ymm0_b, ymm2_b);
+      pxor256(ymm1_a, ymm0_a);		pxor256(ymm1_b, ymm0_b);
+      movdqa256(ymm10, ymm3_a);		movdqa256(ymm10, ymm3_b);
+      pshufb256_tab16(ymm1_a, ymm3_a);	pshufb256_tab16(ymm1_b, ymm3_b);
+      pxor256(ymm2_a, ymm3_a);		pxor256(ymm2_b, ymm3_b);
+      movdqa256(ymm10, ymm4_a);		movdqa256(ymm10, ymm4_b);
+      pshufb256_tab16(ymm0_a, ymm4_a);	pshufb256_tab16(ymm0_b, ymm4_b);
+      pxor256(ymm2_a, ymm4_a);		pxor256(ymm2_b, ymm4_b);
+      movdqa256(ymm10, ymm2_a);		movdqa256(ymm10, ymm2_b);
+      pshufb256_tab16(ymm3_a, ymm2_a);	pshufb256_tab16(ymm3_b, ymm2_b);
+      pxor256(ymm0_a, ymm2_a);		pxor256(ymm0_b, ymm2_b);
+      movdqa256(ymm10, ymm3_a);		movdqa256(ymm10, ymm3_b);
+      pshufb256_tab16(ymm4_a, ymm3_a);	pshufb256_tab16(ymm4_b, ymm3_b);
+      pxor256(ymm1_a, ymm3_a);		pxor256(ymm1_b, ymm3_b);
+
+      if (config.sched_keys == end_keys)
+	break;
+
+      /* Inverse mix columns */
+      movdqa256(ymm13, ymm4_a);		movdqa256(ymm13, ymm4_b);
+      pshufb256_tab16(ymm2_a, ymm4_a);	pshufb256_tab16(ymm2_b, ymm4_b);
+      broadcast128_256_amemld(config.sched_keys, ymm6);
+      pxor256(ymm6, ymm4_a);		pxor256(ymm6, ymm4_b);
+      movdqa256(ymm12, ymm0_a);		movdqa256(ymm12, ymm0_b);
+      pshufb256_tab16(ymm3_a, ymm0_a);	pshufb256_tab16(ymm3_b, ymm0_b);
+      load_tab16_table(&k_dsbd[1], ymm1_a); movdqa256(ymm1_a, ymm1_b);
+      pxor256(ymm4_a, ymm0_a);		pxor256(ymm4_b, ymm0_b);
+
+      pshufb256_tab32(ymm5, ymm0_a);	pshufb256_tab32(ymm5, ymm0_b);
+      movdqa256(ymm15, ymm4_a);		movdqa256(ymm15, ymm4_b);
+      pshufb256_tab16(ymm2_a, ymm4_a);	pshufb256_tab16(ymm2_b, ymm4_b);
+      pxor256(ymm0_a, ymm4_a);		pxor256(ymm0_b, ymm4_b);
+      pshufb256_tab16(ymm3_a, ymm1_a);	pshufb256_tab16(ymm3_b, ymm1_b);
+      pxor256(ymm4_a, ymm1_a);		pxor256(ymm4_b, ymm1_b);
+
+      pshufb256_tab32(ymm5, ymm1_a);	pshufb256_tab32(ymm5, ymm1_b);
+      movdqa256(ymm14, ymm4_a);		movdqa256(ymm14, ymm4_b);
+      pshufb256_tab16(ymm2_a, ymm4_a);	pshufb256_tab16(ymm2_b, ymm4_b);
+      pxor256(ymm1_a, ymm4_a);		pxor256(ymm1_b, ymm4_b);
+      load_tab16_table(&k_dsbb[1], ymm0_a); movdqa256(ymm0_a, ymm0_b);
+      pshufb256_tab16(ymm3_a, ymm0_a);	pshufb256_tab16(ymm3_b, ymm0_b);
+      pxor256(ymm4_a, ymm0_a);		pxor256(ymm4_b, ymm0_b);
+
+      pshufb256_tab32(ymm5, ymm0_a);	pshufb256_tab32(ymm5, ymm0_b);
+      movdqa256(ymm8, ymm4_a);		movdqa256(ymm8, ymm4_b);
+      pshufb256_tab16(ymm2_a, ymm4_a);	pshufb256_tab16(ymm2_b, ymm4_b);
+      pshufd256_0x93(ymm5, ymm5);
+      pxor256(ymm0_a, ymm4_a);		pxor256(ymm0_b, ymm4_b);
+      load_tab16_table(&k_dsbe[1], ymm0_a); movdqa256(ymm0_a, ymm0_b);
+      pshufb256_tab16(ymm3_a, ymm0_a);	pshufb256_tab16(ymm3_b, ymm0_b);
+      pxor256(ymm4_a, ymm0_a);		pxor256(ymm4_b, ymm0_b);
+
+      config.sched_keys += 16;
+    }
+
+  /* middle of last round */
+  load_tab16_table(&k_dsbo[0], ymm4_a); movdqa256(ymm4_a, ymm4_b);
+  pshufb256_tab16(ymm2_a, ymm4_a);	pshufb256_tab16(ymm2_b, ymm4_b);
+  broadcast128_256_amemld(config.sched_keys, ymm6);
+  pxor256(ymm6, ymm4_a);		pxor256(ymm6, ymm4_b);
+  load_tab16_table(&k_dsbo[1], ymm0_a); movdqa256(ymm0_a, ymm0_b);
+  pshufb256_tab16(ymm3_a, ymm0_a);	pshufb256_tab16(ymm3_b, ymm0_b);
+  pxor256(ymm4_a, ymm0_a);		pxor256(ymm4_b, ymm0_b);
+  load_tab32_mask(&k_sr[mc_pos], ymm5);
+  pshufb256_tab16(ymm5, ymm0_a);	pshufb256_tab16(ymm5, ymm0_b);
+
+  *pymm0_a = ymm0_a;
+  *pymm0_b = ymm0_b;
+}
+
+#endif /* HAVE_SIMD256 */
 
 ASM_FUNC_ATTR_NOINLINE unsigned int
 FUNC_ENCRYPT (const RIJNDAEL_context *ctx, unsigned char *dst,
@@ -1534,12 +1728,12 @@ FUNC_CTR_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
 {
   __m128i xmm0, xmm1, xmm2, xmm3, xmm6, xmm7, xmm8;
   __m128i xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
-  static const __m128i be_mask =
+  static const __m128i_const be_mask =
     M128I_BYTE(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
-  static const __m128i bigendian_add =
+  static const __m128i_const bigendian_add =
     M128I_BYTE(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
-  static const __m128i carry_add = M128I_U64(1, 1);
-  static const __m128i nocarry_add = M128I_U64(1, 0);
+  static const __m128i_const carry_add = M128I_U64(1, 1);
+  static const __m128i_const nocarry_add = M128I_U64(1, 0);
   u64 ctrlow = buf_get_be64(ctr + 8);
   struct vp_aes_config_s config;
 
@@ -1548,9 +1742,77 @@ FUNC_CTR_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
 
   enc_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);
 
-  movdqa128(bigendian_add, xmm8); /* Preload byte add */
+  movdqa128_memld(&bigendian_add, xmm8); /* Preload byte add */
   movdqu128_memld(ctr, xmm7); /* Preload CTR */
-  movdqa128(be_mask, xmm6); /* Preload mask */
+  movdqa128_memld(&be_mask, xmm6); /* Preload mask */
+
+#ifdef HAVE_SIMD256
+  if (check_simd256_support())
+    {
+      __m256i ymm0, ymm1, ymm2, ymm3;
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  movdqa128_256(xmm7, ymm0);
+
+	  /* detect if 8-bit carry handling is needed */
+	  if (UNLIKELY(((ctrlow += 4) & 0xff) <= 3))
+	    {
+	      static const __m128i_const *adders[5][4] =
+	      {
+		{ &nocarry_add, &nocarry_add, &nocarry_add, &carry_add },
+		{ &nocarry_add, &nocarry_add, &carry_add, &nocarry_add },
+		{ &nocarry_add, &carry_add, &nocarry_add, &nocarry_add },
+		{ &carry_add, &nocarry_add, &nocarry_add, &nocarry_add },
+		{ &nocarry_add, &nocarry_add, &nocarry_add, &nocarry_add }
+	      };
+	      unsigned int idx = ctrlow <= 3 ? ctrlow : 4;
+
+	      pshufb128(xmm6, xmm7);
+
+	      paddq128_amemld(adders[idx][0], xmm7);
+	      movdqa128(xmm7, xmm2);
+	      pshufb128(xmm6, xmm2);
+	      insert256_hi128(xmm2, ymm0);
+	      paddq128_amemld(adders[idx][1], xmm7);
+	      movdqa128(xmm7, xmm2);
+	      pshufb128(xmm6, xmm2);
+	      movdqa128_256(xmm2, ymm1);
+	      paddq128_amemld(adders[idx][2], xmm7);
+	      movdqa128(xmm7, xmm2);
+	      pshufb128(xmm6, xmm2);
+	      insert256_hi128(xmm2, ymm1);
+	      paddq128_amemld(adders[idx][3], xmm7);
+
+	      pshufb128(xmm6, xmm7);
+	    }
+	  else
+	    {
+	      paddb128(xmm8, xmm7);
+	      insert256_hi128(xmm7, ymm0);
+	      paddb128(xmm8, xmm7);
+	      movdqa128_256(xmm7, ymm1);
+	      paddb128(xmm8, xmm7);
+	      insert256_hi128(xmm7, ymm1);
+	      paddb128(xmm8, xmm7);
+	    }
+
+	  aes_encrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					xmm9, xmm10, xmm11, xmm12, xmm13, xmm14,
+					xmm15);
+
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm2);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm3);
+	  pxor256(ymm2, ymm0);
+	  pxor256(ymm3, ymm1);
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  outbuf += 4 * BLOCKSIZE;
+	  inbuf  += 4 * BLOCKSIZE;
+	}
+    }
+#endif /* HAVE_SIMD256 */
 
   for (; nblocks >= 2; nblocks -= 2)
     {
@@ -1564,24 +1826,24 @@ FUNC_CTR_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
 	  /* detect if 64-bit carry handling is needed */
 	  if (UNLIKELY(ctrlow == 1))
 	    {
-	      paddq128(carry_add, xmm7);
+	      paddq128_amemld(&carry_add, xmm7);
 	      movdqa128(xmm7, xmm1);
 	      pshufb128(xmm6, xmm1);
-	      paddq128(nocarry_add, xmm7);
+	      paddq128_amemld(&nocarry_add, xmm7);
 	    }
 	  else if (UNLIKELY(ctrlow == 0))
 	    {
-	      paddq128(nocarry_add, xmm7);
+	      paddq128_amemld(&nocarry_add, xmm7);
 	      movdqa128(xmm7, xmm1);
 	      pshufb128(xmm6, xmm1);
-	      paddq128(carry_add, xmm7);
+	      paddq128_amemld(&carry_add, xmm7);
 	    }
 	  else
 	    {
-	      paddq128(nocarry_add, xmm7);
+	      paddq128_amemld(&nocarry_add, xmm7);
 	      movdqa128(xmm7, xmm1);
 	      pshufb128(xmm6, xmm1);
-	      paddq128(nocarry_add, xmm7);
+	      paddq128_amemld(&nocarry_add, xmm7);
 	    }
 
 	  pshufb128(xmm6, xmm7);
@@ -1617,7 +1879,7 @@ FUNC_CTR_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
 	  pshufb128(xmm6, xmm7);
 
 	  /* detect if 64-bit carry handling is needed */
-	  paddq128(UNLIKELY(ctrlow == 0) ? carry_add : nocarry_add, xmm7);
+	  paddq128_amemld(UNLIKELY(ctrlow == 0) ? &carry_add : &nocarry_add, xmm7);
 
 	  pshufb128(xmm6, xmm7);
 	}
@@ -1649,8 +1911,8 @@ FUNC_CTR32LE_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
 {
   __m128i xmm0, xmm1, xmm2, xmm3, xmm7, xmm8;
   __m128i xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
-  static const __m128i add_one = M128I_U64(1, 0);
-  static const __m128i add_two = M128I_U64(2, 0);
+  static const __m128i_const add_one = M128I_U64(1, 0);
+  static const __m128i_const add_two = M128I_U64(2, 0);
   struct vp_aes_config_s config;
 
   config.nround = ctx->rounds;
@@ -1658,15 +1920,53 @@ FUNC_CTR32LE_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
 
   enc_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);
 
-  movdqa128(add_one, xmm8); /* Preload byte add */
+  movdqa128_memld(&add_one, xmm8); /* Preload byte add */
   movdqu128_memld(ctr, xmm7); /* Preload CTR */
+
+#ifdef HAVE_SIMD256
+  if (check_simd256_support())
+    {
+      __m256i ymm0, ymm1, ymm2, ymm3;
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  movdqa128(xmm7, xmm0);
+	  movdqa128(xmm7, xmm1);
+	  paddd128(xmm8, xmm1);
+	  paddd128_amemld(&add_two, xmm7);
+	  movdqa128_256(xmm0, ymm0);
+	  insert256_hi128(xmm1, ymm0);
+
+	  movdqa128(xmm7, xmm1);
+	  movdqa128(xmm7, xmm2);
+	  paddd128(xmm8, xmm2);
+	  paddd128_amemld(&add_two, xmm7);
+	  movdqa128_256(xmm1, ymm1);
+	  insert256_hi128(xmm2, ymm1);
+
+	  aes_encrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15);
+
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm2);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm3);
+	  pxor256(ymm2, ymm0);
+	  pxor256(ymm3, ymm1);
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  outbuf += 4 * BLOCKSIZE;
+	  inbuf  += 4 * BLOCKSIZE;
+	}
+    }
+#endif /* HAVE_SIMD256 */
 
   for (; nblocks >= 2; nblocks -= 2)
     {
       movdqa128(xmm7, xmm0);
       movdqa128(xmm7, xmm1);
       paddd128(xmm8, xmm1);
-      paddd128(add_two, xmm7);
+      paddd128_amemld(&add_two, xmm7);
 
       aes_encrypt_core_2blks(&xmm0, &xmm1, config,
 			      xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);
@@ -1718,6 +2018,36 @@ FUNC_CFB_DEC (RIJNDAEL_context *ctx, unsigned char *iv,
   enc_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);
 
   movdqu128_memld(iv, xmm0);
+
+#ifdef HAVE_SIMD256
+  if (check_simd256_support())
+    {
+      __m256i ymm6, ymm1, ymm2, ymm3;
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  movdqa128_256(xmm0, ymm6);
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm2);
+	  movdqa256_128(ymm2, xmm2);
+	  insert256_hi128(xmm2, ymm6);
+	  movdqu256_memld(inbuf + 1 * BLOCKSIZE, ymm1);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm3);
+	  extract256_hi128(ymm3, xmm0);
+
+	  aes_encrypt_core_4blks_simd256(&ymm6, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15);
+
+	  pxor256(ymm2, ymm6);
+	  pxor256(ymm3, ymm1);
+	  movdqu256_memst(ymm6, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  outbuf += 4 * BLOCKSIZE;
+	  inbuf  += 4 * BLOCKSIZE;
+	}
+    }
+#endif /* HAVE_SIMD256 */
 
   for (; nblocks >= 2; nblocks -= 2)
     {
@@ -1778,6 +2108,36 @@ FUNC_CBC_DEC (RIJNDAEL_context *ctx, unsigned char *iv,
   dec_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, xmm8);
 
   movdqu128_memld(iv, xmm7);
+
+#ifdef HAVE_SIMD256
+  if (check_simd256_support())
+    {
+      __m256i ymm0, ymm1, ymm2, ymm3;
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm0);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm1);
+	  movdqa256_128(ymm0, xmm0);
+	  movdqa128_256(xmm7, ymm2);
+	  insert256_hi128(xmm0, ymm2);
+	  movdqu256_memld(inbuf + 1 * BLOCKSIZE, ymm3);
+	  extract256_hi128(ymm1, xmm7);
+
+	  aes_decrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15, xmm8);
+
+	  pxor256(ymm2, ymm0);
+	  pxor256(ymm3, ymm1);
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  outbuf += 4 * BLOCKSIZE;
+	  inbuf  += 4 * BLOCKSIZE;
+	}
+    }
+#endif /* HAVE_SIMD256 */
 
   for (; nblocks >= 2; nblocks -= 2)
     {
@@ -1842,6 +2202,68 @@ aes_simd128_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
   /* Preload Offset and Checksum */
   movdqu128_memld(c->u_iv.iv, xmm7);
   movdqu128_memld(c->u_ctr.ctr, xmm6);
+
+#ifdef HAVE_SIMD256
+  if (check_simd256_support() && nblocks >= 4)
+    {
+      __m256i ymm0, ymm1, ymm3, ymm6, ymm8;
+
+      movdqa128_256(xmm6, ymm6);
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  const unsigned char *l;
+
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm0);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm1);
+
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  movdqa128_256(xmm7, ymm3);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  insert256_hi128(xmm7, ymm3);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  movdqa128_256(xmm7, ymm8);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  insert256_hi128(xmm7, ymm8);
+
+	  /* Checksum_i = Checksum_{i-1} xor P_i  */
+	  pxor256(ymm0, ymm6);
+	  pxor256(ymm1, ymm6);
+
+	  pxor256(ymm3, ymm0);
+	  pxor256(ymm8, ymm1);
+
+	  aes_encrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15);
+
+	  pxor256(ymm3, ymm0);
+	  pxor256(ymm8, ymm1);
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  inbuf += 4 * BLOCKSIZE;
+	  outbuf += 4 * BLOCKSIZE;
+	}
+
+      extract256_hi128(ymm6, xmm0);
+      movdqa256_128(ymm6, xmm6);
+      pxor128(xmm0, xmm6);
+    }
+#endif /* HAVE_SIMD256 */
 
   for (; nblocks >= 2; nblocks -= 2)
     {
@@ -1941,6 +2363,69 @@ aes_simd128_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
   /* Preload Offset and Checksum */
   movdqu128_memld(c->u_iv.iv, xmm7);
   movdqu128_memld(c->u_ctr.ctr, xmm6);
+
+#ifdef HAVE_SIMD256
+  if (check_simd256_support() && nblocks >= 4)
+    {
+      __m256i ymm0, ymm1, ymm3, ymm6, ymm8;
+
+      movdqa128_256(xmm6, ymm6);
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  const unsigned char *l;
+
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm0);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm1);
+
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  movdqa128_256(xmm7, ymm3);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  insert256_hi128(xmm7, ymm3);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  movdqa128_256(xmm7, ymm8);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  insert256_hi128(xmm7, ymm8);
+
+	  pxor256(ymm3, ymm0);
+	  pxor256(ymm8, ymm1);
+
+	  aes_decrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15, xmm8);
+
+	  pxor256(ymm3, ymm0);
+	  pxor256(ymm8, ymm1);
+
+	  /* Checksum_i = Checksum_{i-1} xor P_i  */
+	  pxor256(ymm0, ymm6);
+	  pxor256(ymm1, ymm6);
+
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  inbuf += 4 * BLOCKSIZE;
+	  outbuf += 4 * BLOCKSIZE;
+	}
+
+      extract256_hi128(ymm6, xmm0);
+      movdqa256_128(ymm6, xmm6);
+      pxor128(xmm0, xmm6);
+    }
+#endif /* HAVE_SIMD256 */
 
   for (; nblocks >= 2; nblocks -= 2)
     {
@@ -2044,6 +2529,61 @@ FUNC_OCB_AUTH(gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
   movdqu128_memld(c->u_mode.ocb.aad_offset, xmm7);
   movdqu128_memld(c->u_mode.ocb.aad_sum, xmm6);
 
+#ifdef HAVE_SIMD256
+  if (check_simd256_support() && nblocks >= 4)
+    {
+      __m256i ymm0, ymm1, ymm3, ymm6, ymm8;
+
+      movdqa128_256(xmm6, ymm6);
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  const unsigned char *l;
+
+	  movdqu256_memld(abuf + 0 * BLOCKSIZE, ymm0);
+	  movdqu256_memld(abuf + 2 * BLOCKSIZE, ymm1);
+
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  movdqa128_256(xmm7, ymm3);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  insert256_hi128(xmm7, ymm3);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  movdqa128_256(xmm7, ymm8);
+
+	  l = ocb_get_l(c, ++n);
+	  movdqu128_memld(l, xmm2);
+	  pxor128(xmm2, xmm7);
+	  insert256_hi128(xmm7, ymm8);
+
+	  pxor256(ymm3, ymm0);
+	  pxor256(ymm8, ymm1);
+
+	  aes_encrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15);
+
+	  pxor256(ymm0, ymm6);
+	  pxor256(ymm1, ymm6);
+
+	  abuf += 4 * BLOCKSIZE;
+	}
+
+      extract256_hi128(ymm6, xmm0);
+      movdqa256_128(ymm6, xmm6);
+      pxor128(xmm0, xmm6);
+    }
+#endif /* HAVE_SIMD256 */
+
   for (; nblocks >= 2; nblocks -= 2)
     {
       const unsigned char *l;
@@ -2117,6 +2657,29 @@ aes_simd128_ecb_enc (void *context, void *outbuf_arg, const void *inbuf_arg,
 
   enc_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);
 
+#ifdef HAVE_SIMD256
+  if (check_simd256_support())
+    {
+      __m256i ymm0, ymm1;
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm0);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm1);
+
+	  aes_encrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15);
+
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  inbuf += 4 * BLOCKSIZE;
+	  outbuf += 4 * BLOCKSIZE;
+	}
+    }
+#endif /* HAVE_SIMD256 */
+
   for (; nblocks >= 2; nblocks -= 2)
     {
       movdqu128_memld(inbuf + 0 * BLOCKSIZE, xmm0);
@@ -2171,6 +2734,29 @@ aes_simd128_ecb_dec (void *context, void *outbuf_arg, const void *inbuf_arg,
 
   dec_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, xmm8);
 
+#ifdef HAVE_SIMD256
+  if (check_simd256_support())
+    {
+      __m256i ymm0, ymm1;
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm0);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm1);
+
+	  aes_decrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15, xmm8);
+
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  inbuf += 4 * BLOCKSIZE;
+	  outbuf += 4 * BLOCKSIZE;
+	}
+    }
+#endif /* HAVE_SIMD256 */
+
   for (; nblocks >= 2; nblocks -= 2)
     {
       movdqu128_memld(inbuf + 0 * BLOCKSIZE, xmm0);
@@ -2216,13 +2802,13 @@ FUNC_ECB_CRYPT (void *context, void *outbuf_arg, const void *inbuf_arg,
 
 static ASM_FUNC_ATTR_INLINE __m128i xts_gfmul_byA (__m128i xmm5)
 {
-  static const __m128i xts_gfmul_const = M128I_U64(0x87, 0x01);
+  static const __m128i_const xts_gfmul_const = M128I_U64(0x87, 0x01);
   __m128i xmm1;
 
   pshufd128_0x4E(xmm5, xmm1);
   psraq128(63, xmm1);
   paddq128(xmm5, xmm5);
-  pand128(xts_gfmul_const, xmm1);
+  pand128_amemld(&xts_gfmul_const, xmm1);
   pxor128(xmm1, xmm5);
 
   return xmm5;
@@ -2245,6 +2831,43 @@ aes_simd128_xts_enc (void *context, unsigned char *tweak, void *outbuf_arg,
   enc_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);
 
   movdqu128_memld(tweak, xmm7); /* Preload tweak */
+
+#ifdef HAVE_SIMD256
+  if (check_simd256_support())
+    {
+      __m256i ymm0, ymm1, ymm2, ymm3;
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm0);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm1);
+
+	  movdqa128_256(xmm7, ymm2);
+	  xmm7 = xts_gfmul_byA(xmm7);
+	  insert256_hi128(xmm7, ymm2);
+	  xmm7 = xts_gfmul_byA(xmm7);
+	  movdqa128_256(xmm7, ymm3);
+	  xmm7 = xts_gfmul_byA(xmm7);
+	  insert256_hi128(xmm7, ymm3);
+	  xmm7 = xts_gfmul_byA(xmm7);
+
+	  pxor256(ymm2, ymm0);
+	  pxor256(ymm3, ymm1);
+
+	  aes_encrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15);
+
+	  pxor256(ymm2, ymm0);
+	  pxor256(ymm3, ymm1);
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  outbuf += 4 * BLOCKSIZE;
+	  inbuf  += 4 * BLOCKSIZE;
+	}
+    }
+#endif /* HAVE_SIMD256 */
 
   for (; nblocks >= 2; nblocks -= 2)
     {
@@ -2314,6 +2937,43 @@ aes_simd128_xts_dec (void *context, unsigned char *tweak, void *outbuf_arg,
   dec_preload(xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, xmm8);
 
   movdqu128_memld(tweak, xmm7); /* Preload tweak */
+
+#ifdef HAVE_SIMD256
+  if (check_simd256_support())
+    {
+      __m256i ymm0, ymm1, ymm2, ymm3;
+
+      for (; nblocks >= 4; nblocks -= 4)
+	{
+	  movdqu256_memld(inbuf + 0 * BLOCKSIZE, ymm0);
+	  movdqu256_memld(inbuf + 2 * BLOCKSIZE, ymm1);
+
+	  movdqa128_256(xmm7, ymm2);
+	  xmm7 = xts_gfmul_byA(xmm7);
+	  insert256_hi128(xmm7, ymm2);
+	  xmm7 = xts_gfmul_byA(xmm7);
+	  movdqa128_256(xmm7, ymm3);
+	  xmm7 = xts_gfmul_byA(xmm7);
+	  insert256_hi128(xmm7, ymm3);
+	  xmm7 = xts_gfmul_byA(xmm7);
+
+	  pxor256(ymm2, ymm0);
+	  pxor256(ymm3, ymm1);
+
+	  aes_decrypt_core_4blks_simd256(&ymm0, &ymm1, config,
+					 xmm9, xmm10, xmm11, xmm12, xmm13,
+					 xmm14, xmm15, xmm8);
+
+	  pxor256(ymm2, ymm0);
+	  pxor256(ymm3, ymm1);
+	  movdqu256_memst(ymm0, outbuf + 0 * BLOCKSIZE);
+	  movdqu256_memst(ymm1, outbuf + 2 * BLOCKSIZE);
+
+	  outbuf += 4 * BLOCKSIZE;
+	  inbuf  += 4 * BLOCKSIZE;
+	}
+    }
+#endif /* HAVE_SIMD256 */
 
   for (; nblocks >= 2; nblocks -= 2)
     {

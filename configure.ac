@@ -2685,6 +2685,120 @@ if test "$gcry_cv_gcc_inline_asm_riscv_v" = "yes" ; then
 fi
 
 
+#
+# Check whether compiler supports RISC-V vector intrinsics
+#
+AC_CACHE_CHECK([whether compiler supports RISC-V vector intrinsics],
+      [gcry_cv_cc_riscv_vector_intrinsics],
+      [if test "$mpi_cpu_arch" != "riscv64" ||
+	  test "$try_asm_modules" != "yes" ; then
+	gcry_cv_cc_riscv_vector_intrinsics="n/a"
+      else
+	gcry_cv_cc_riscv_vector_intrinsics=no
+	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	[[#if !(defined(__riscv_v_intrinsic) && __riscv_v_intrinsic >= 12000)
+	  #error __riscv_v_intrinsic not defined or too old version
+	  #endif
+	  #include <riscv_vector.h>
+	  typedef vuint8m1_t __m128i;
+	  #define cast_m128i_to_u64(a) (__riscv_vreinterpret_v_u8m1_u64m1(a))
+	  #define cast_u64_to_m128i(a) (__riscv_vreinterpret_v_u64m1_u8m1(a))
+	  #define paddq128(a, o) (o = cast_u64_to_m128i( \
+					__riscv_vadd_vv_u64m1( \
+					  cast_m128i_to_u64(o), \
+					  cast_m128i_to_u64(a), 2)))
+	  #define pshufb128(m8, o) (o = __riscv_vrgather_vv_u8m1((o), (m8), 16))
+	  #define memory_barrier_with_vec(a) __asm__("" : "+vr"(a) :: "memory")
+	  #define clear_vec_reg_v0() \
+	    __asm__ volatile("vsetivli zero, 16, e8, m1, ta, ma;\n" \
+			     "vmv.v.x v0, zero;\n" \
+			     ::: "memory", "vtype", "vl", "v0")
+	  static inline __attribute__((always_inline)) __m128i
+	  fn2(__m128i a)
+	  {
+	    paddq128(a, a);
+	    return a;
+	  }
+	  __m128i fn(__m128i in)
+	  {
+	    __m128i x;
+	    memory_barrier_with_vec(in);
+	    x = fn2(in);
+	    memory_barrier_with_vec(x);
+	    pshufb128(in, x);
+	    memory_barrier_with_vec(in);
+	    clear_vec_reg_v0();
+	    return in;
+	  }
+	  ]])],
+	[gcry_cv_cc_riscv_vector_intrinsics=yes])
+      fi])
+if test "$gcry_cv_cc_riscv_vector_intrinsics" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS,1,
+	    [Defined if underlying compiler supports RISC-V vector intrinsics])
+fi
+
+_gcc_cflags_save=$CFLAGS
+CFLAGS="$CFLAGS -O2 -march=rv64imafdcv -mstrict-align"
+
+if test "$gcry_cv_cc_riscv_vector_intrinsics" = "no" &&
+   test "$mpi_cpu_arch" = "riscv64" &&
+   test "$try_asm_modules" = "yes" ; then
+  AC_CACHE_CHECK([whether compiler supports RISC-V vector intrinsics with extra GCC flags],
+    [gcry_cv_cc_riscv_vector_intrinsics_cflags],
+    [gcry_cv_cc_riscv_vector_intrinsics_cflags=no
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+      [[#if !(defined(__riscv_v_intrinsic) && __riscv_v_intrinsic >= 12000)
+	#error __riscv_v_intrinsic not defined or too old version
+	#endif
+	#include <riscv_vector.h>
+	typedef vuint8m1_t __m128i;
+	#define cast_m128i_to_u64(a) (__riscv_vreinterpret_v_u8m1_u64m1(a))
+	#define cast_u64_to_m128i(a) (__riscv_vreinterpret_v_u64m1_u8m1(a))
+	#define paddq128(a, o) (o = cast_u64_to_m128i( \
+					__riscv_vadd_vv_u64m1( \
+					  cast_m128i_to_u64(o), \
+					  cast_m128i_to_u64(a), 2)))
+	#define pshufb128(m8, o) (o = __riscv_vrgather_vv_u8m1((o), (m8), 16))
+	#define memory_barrier_with_vec(a) __asm__("" : "+vr"(a) :: "memory")
+	#define clear_vec_reg_v0() \
+	  __asm__ volatile("vsetivli zero, 16, e8, m1, ta, ma;\n" \
+			    "vmv.v.x v0, zero;\n" \
+			    ::: "memory", "vl", "v0")
+	static inline __attribute__((always_inline)) __m128i
+	fn2(__m128i a)
+	{
+	  paddq128(a, a);
+	  return a;
+	}
+	__m128i fn(__m128i in)
+	{
+	  __m128i x;
+	  memory_barrier_with_vec(in);
+	  x = fn2(in);
+	  memory_barrier_with_vec(x);
+	  pshufb128(in, x);
+	  memory_barrier_with_vec(in);
+	  clear_vec_reg_v0();
+	  return in;
+	}
+	]])],
+      [gcry_cv_cc_riscv_vector_intrinsics_cflags=yes])])
+  if test "$gcry_cv_cc_riscv_vector_intrinsics_cflags" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS,1,
+	      [Defined if underlying compiler supports RISC-V vector intrinsics])
+    AC_DEFINE(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS_WITH_CFLAGS,1,
+	      [Defined if underlying compiler supports RISC-V vector intrinsics with extra GCC flags])
+  fi
+fi
+
+AM_CONDITIONAL(ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS,
+	       test "$gcry_cv_cc_riscv_vector_intrinsics_cflags" = "yes")
+
+# Restore flags.
+CFLAGS=$_gcc_cflags_save;
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
@@ -3152,6 +3266,10 @@ if test "$found" = "1" ; then
          # Big-Endian.
          # Build with the crypto extension implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-ppc.lo"
+      ;;
+      riscv64-*-*)
+         # Build with the vector permute SIMD128 implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vp-riscv.lo"
       ;;
       s390x-*-*)
          # Big-Endian.

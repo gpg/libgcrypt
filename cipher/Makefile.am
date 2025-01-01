@@ -119,7 +119,8 @@ EXTRA_libcipher_la_SOURCES = \
 	rijndael-p10le.c rijndael-gcm-p10le.s              \
 	rijndael-ppc-common.h rijndael-ppc-functions.h     \
 	rijndael-s390x.c                                   \
-	rijndael-vp-aarch64.c rijndael-vp-simd128.h        \
+	rijndael-vp-aarch64.c rijndael-vp-riscv.c          \
+	rijndael-vp-simd128.h                              \
 	rmd160.c \
 	rsa.c \
 	salsa20.c salsa20-amd64.S salsa20-armv7-neon.S \
@@ -349,3 +350,16 @@ serpent-avx512-x86.o: $(srcdir)/serpent-avx512-x86.c Makefile
 
 serpent-avx512-x86.lo: $(srcdir)/serpent-avx512-x86.c Makefile
 	`echo $(LTCOMPILE) $(avx512f_cflags) -c $< | $(instrumentation_munging) `
+
+if ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS
+# Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
+riscv_vector_cflags = -O2 -march=rv64imafdcv -mstrict-align
+else
+riscv_vector_cflags =
+endif
+
+rijndael-vp-riscv.o: $(srcdir)/rijndael-vp-riscv.c Makefile
+	`echo $(COMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
+
+rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
