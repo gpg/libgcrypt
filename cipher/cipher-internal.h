@@ -775,7 +775,7 @@ ocb_get_l (gcry_cipher_hd_t c, u64 n)
         : [low] "r" ((unsigned long)n)
         : "cc");
 #else
-  ntz = _gcry_ctz (n);
+  ntz = _gcry_ctz_no_zero (n);
 #endif
 
   return c->u_mode.ocb.L[ntz];
