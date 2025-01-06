@@ -512,7 +512,10 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
   /* Check if it has fixed hash name or %s */
   s = strstr (tmpl, "(hash ");
   if (s == NULL)
-    return GPG_ERR_DIGEST_ALGO;
+    {
+      _gcry_md_close (hd);
+      return GPG_ERR_DIGEST_ALGO;
+    }
 
   s += 6;
   if (!strncmp (s, "%s", 2))
@@ -522,7 +525,10 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
       if (fips_mode () && algo == GCRY_MD_SHA1)
         {
           if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-            return GPG_ERR_DIGEST_ALGO;
+            {
+              _gcry_md_close (hd);
+              return GPG_ERR_DIGEST_ALGO;
+            }
           else
             fips_service_indicator_mark_non_compliant ();
         }
@@ -541,7 +547,11 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
 
       digest_name_supplied = xtrymalloc (p - s + 1);
       if (!digest_name_supplied)
-	return gpg_error_from_syserror ();
+        {
+          rc = gpg_err_code_from_syserror ();
+          _gcry_md_close (hd);
+          return rc;
+        }
       memcpy (digest_name_supplied, s, p - s);
       digest_name_supplied[p - s] = 0;
 
@@ -555,7 +565,10 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
       else if (fips_mode () && algo == GCRY_MD_SHA1)
         {
           if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-            return GPG_ERR_DIGEST_ALGO;
+            {
+              _gcry_md_close (hd);
+              return GPG_ERR_DIGEST_ALGO;
+            }
           else
             fips_service_indicator_mark_non_compliant ();
         }
