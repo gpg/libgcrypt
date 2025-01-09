@@ -1495,8 +1495,9 @@ fi
 AC_CACHE_CHECK([whether compiler supports '__thread' storage class specifier],
        [gcry_cv_gcc_storage_class__thread],
        [gcry_cv_gcc_storage_class__thread=no
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <stdlib.h>],
-          [static  __thread  int bar;]
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+          [[static __thread int bar;]],
+          [[(void)bar;]]
           )],
           [gcry_cv_gcc_storage_class__thread=yes])])
 if test "$gcry_cv_gcc_storage_class__thread" = "yes" ; then
