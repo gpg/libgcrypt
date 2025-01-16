@@ -41,8 +41,3 @@ noinst_LTLIBRARIES = libcompat.la
 libcompat_la_SOURCES = compat.c libcompat.h
 libcompat_la_DEPENDENCIES = @LTLIBOBJS@
 libcompat_la_LIBADD =       @LTLIBOBJS@
-
-# AC_LIBOBJ files are:
-#    getpid.c
-#    clock.c
-#

@@ -90,9 +90,6 @@ AC_ARG_VAR(SYSROOT,[locate config scripts also below that directory])
 AH_TOP([
 #ifndef _GCRYPT_CONFIG_H_INCLUDED
 #define _GCRYPT_CONFIG_H_INCLUDED
-
-/* Enable gpg-error's strerror macro for W32CE.  */
-#define GPG_ERR_ENABLE_ERRNO_MACROS 1
 ])
 
 AH_BOTTOM([
@@ -238,7 +235,6 @@ LIBGCRYPT_THREAD_MODULES=""
 
 # Other definitions.
 have_w32_system=no
-have_w32ce_system=no
 have_pthread=no
 
 
@@ -247,15 +243,7 @@ case "${host}" in
     *-*-mingw32*)
       ac_cv_have_dev_random=no
       have_w32_system=yes
-      case "${host}" in
-        *-mingw32ce*)
-            have_w32ce_system=yes
-            available_random_modules="w32ce"
-            ;;
-        *)
-            available_random_modules="w32"
-            ;;
-      esac
+      available_random_modules="w32"
       AC_DEFINE(USE_ONLY_8DOT3,1,
                 [set this to limit filenames to the 8.3 format])
       AC_DEFINE(HAVE_DRIVE_LETTERS,1,
@@ -307,21 +295,12 @@ esac
 
 if test "$have_w32_system" = yes; then
    AC_DEFINE(HAVE_W32_SYSTEM,1, [Defined if we run on a W32 API based system])
-   if test "$have_w32ce_system" = yes; then
-     AC_DEFINE(HAVE_W32CE_SYSTEM,1,[Defined if we run on WindowsCE])
-   fi
 fi
 AM_CONDITIONAL(HAVE_W32_SYSTEM, test "$have_w32_system" = yes)
-AM_CONDITIONAL(HAVE_W32CE_SYSTEM, test "$have_w32ce_system" = yes)
-
 
 
 # A printable OS Name is sometimes useful.
 case "${host}" in
-    *-*-mingw32ce*)
-        PRINTABLE_OS_NAME="W32CE"
-        ;;
-
     *-*-mingw32*)
         PRINTABLE_OS_NAME="W32"
         ;;
@@ -2638,12 +2617,6 @@ AC_CHECK_FUNCS(explicit_bzero explicit_memset getentropy sysctlbyname)
 GNUPG_CHECK_MLOCK
 
 #
-# Replacement functions.
-#
-AC_REPLACE_FUNCS([getpid clock])
-
-
-#
 # Check whether it is necessary to link against libdl.
 #
 DL_LIBS=""
@@ -2712,10 +2685,6 @@ if test "$random" = "default"; then
         random_modules="linux"
     else
         case "${host}" in
-        *-*-mingw32ce*)
-          # WindowsCE random device.
-          random_modules="w32ce"
-          ;;
         *-*-mingw32*|*-*-cygwin*)
           # Windows random device.
           random_modules="w32"
@@ -3719,13 +3688,6 @@ if test "$found" = "1" ; then
    GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo"
    AC_DEFINE(USE_RNDW32, 1,
              [Defined if the Windows specific RNG should be used.])
-fi
-
-LIST_MEMBER(w32ce, $random_modules)
-if test "$found" = "1" ; then
-   GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32ce.lo"
-   AC_DEFINE(USE_RNDW32CE, 1,
-             [Defined if the WindowsCE specific RNG should be used.])
 fi
 
 if test "$try_asm_modules" = yes ; then

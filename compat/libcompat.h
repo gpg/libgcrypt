@@ -22,16 +22,4 @@
 
 const char *_gcry_compat_identification (void);
 
-
-#ifndef HAVE_GETPID
-pid_t _gcry_getpid (void);
-#define getpid() _gcry_getpid ()
-#endif
-
-#ifndef HAVE_CLOCK
-clock_t _gcry_clock (void);
-#define clock() _gcry_clock ()
-#endif
-
-
 #endif /*GCRY_LIBCOMPAT_H*/
