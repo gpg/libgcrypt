@@ -230,6 +230,8 @@ void _gcry_mpih_mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp,
 						   mpi_size_t size);
 mpi_limb_t _gcry_mpih_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
 					 mpi_ptr_t vp, mpi_size_t vsize);
+mpi_limb_t _gcry_mpih_mul_sec( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
+					 mpi_ptr_t vp, mpi_size_t vsize);
 void _gcry_mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size );
 void _gcry_mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size,
 						mpi_ptr_t tspace);

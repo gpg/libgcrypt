@@ -142,13 +142,13 @@ _gcry_mpi_mul (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 
     /* Ensure W has space enough to store the result.  */
     wsize = usize + vsize;
-    if ( !mpi_is_secure (w) && (mpi_is_secure (u) || mpi_is_secure (v)) ) {
+    if ( !mpi_is_secure (w) && (usecure || vsecure) ) {
         /* w is not allocated in secure space but u or v is.  To make sure
          * that no temporray results are stored in w, we temporary use
          * a newly allocated limb space for w */
         wp = mpi_alloc_limb_space( wsize, 1 );
         assign_wp = 2; /* mark it as 2 so that we can later copy it back to
-                        * mormal memory */
+                        * normal memory */
     }
     else if( w->alloced < wsize ) {
 	if( wp == up || wp == vp ) {
@@ -183,7 +183,10 @@ _gcry_mpi_mul (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
     if( !vsize )
 	wsize = 0;
     else {
-	cy = _gcry_mpih_mul( wp, up, usize, vp, vsize );
+	if (usecure || vsecure)
+	    cy = _gcry_mpih_mul_sec( wp, up, usize, vp, vsize );
+	else
+	    cy = _gcry_mpih_mul( wp, up, usize, vp, vsize );
 	wsize -= cy? 0:1;
     }
 

@@ -527,3 +527,30 @@ _gcry_mpih_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
     _gcry_mpih_release_karatsuba_ctx( &ctx );
     return *prod_endp;
 }
+
+mpi_limb_t
+_gcry_mpih_mul_sec( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
+                    mpi_ptr_t vp, mpi_size_t vsize )
+{
+    mpi_limb_t cy;
+    mpi_size_t i;
+    mpi_limb_t v_limb;
+
+    if( !vsize )
+        return 0;
+
+    v_limb = vp[0];
+    cy = _gcry_mpih_mul_1( prodp, up, usize, v_limb );
+
+    prodp[usize] = cy;
+    prodp++;
+
+    for( i = 1; i < vsize; i++ ) {
+        v_limb = vp[i];
+        cy = _gcry_mpih_addmul_1(prodp, up, usize, v_limb);
+        prodp[usize] = cy;
+        prodp++;
+    }
+
+    return cy;
+}
