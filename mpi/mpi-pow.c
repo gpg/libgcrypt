@@ -541,6 +541,13 @@ _gcry_mpi_powm (gcry_mpi_t res,
       rp = res->d;
     }
 
+  if (esec || bsec || msec)
+    {
+      gcry_assert (bsize == msize);
+      _gcry_mpih_powm_sec (rp, bp, mod->d, msize, ep, esize);
+      return;
+    }
+
   /* Main processing.  */
   {
     mpi_size_t i, j, k;
