@@ -60,8 +60,11 @@ compute_minv (mpi_limb_t n)
 #endif
 }
 
+#define MAX_SCRATCH_SPACE 256
+
 static void
-mont_reduc (mpi_ptr_t tp, mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
+mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
+            mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
 {
   mpi_size_t i;
   mpi_limb_t cy;
@@ -74,8 +77,20 @@ mont_reduc (mpi_ptr_t tp, mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
       tp[n+i] += cy;
     }
 
-  cy = _gcry_mpih_sub_n (tp, tp + n, mp, n);
-  _gcry_mpih_set_cond (tp, tp + n, n, cy != 0);
+#define TESTING 1
+#ifdef TESTING
+  {
+    mpi_limb_t res = 0;
+
+    for (i = 0; i < n; i++)
+      res |= tp[i];
+
+    gcry_assert (res == 0);
+  }
+#endif
+
+  cy = _gcry_mpih_sub_n (rp, tp + n, mp, n);
+  _gcry_mpih_set_cond (rp, tp + n, n, cy != 0);
 }
 
 /* RP should have 2*N limbs */
@@ -83,11 +98,11 @@ static void
 mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
           mpi_size_t n, mpi_limb_t minv)
 {
-  _gcry_mpih_mul_sec (rp, xp, n, yp, n);
-  mont_reduc (rp, mp, n, minv);
-}
+  mpi_limb_t temp0[MAX_SCRATCH_SPACE*2];
 
-#define MAX_SCRATCH_SPACE 256
+  _gcry_mpih_mul_sec (temp0, xp, n, yp, n);
+  mont_reduc (rp, temp0, mp, n, minv);
+}
 
 void
 _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
@@ -96,7 +111,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   mpi_limb_t temp0[MAX_SCRATCH_SPACE*2];
   mpi_limb_t temp1[MAX_SCRATCH_SPACE];
   mpi_limb_t temp2[MAX_SCRATCH_SPACE];
-  mpi_limb_t a[MAX_SCRATCH_SPACE*2];
+  mpi_limb_t a[MAX_SCRATCH_SPACE];
   mpi_limb_t x_tilda[MAX_SCRATCH_SPACE];
   mpi_limb_t minv;
   mpi_size_t i;
@@ -107,6 +122,8 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   gcry_assert (n < MAX_SCRATCH_SPACE);
 
   minv = compute_minv (mp[0]);
+
+  gcry_assert (mp[0]*(-minv) == 1);
 
   MPN_ZERO (temp0, MAX_SCRATCH_SPACE);
 
@@ -168,5 +185,5 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   temp0[0] = 1;
   mont_mul (a, a, temp0, mp, n, minv);
 
-  MPN_COPY (rp, temp0, n);
+  MPN_COPY (rp, a, n);
 }
