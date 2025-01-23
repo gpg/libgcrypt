@@ -545,6 +545,14 @@ _gcry_mpi_powm (gcry_mpi_t res,
     {
       gcry_assert (bsize == msize);
       _gcry_mpih_powm_sec (rp, bp, mod->d, msize, ep, esize);
+
+      rsign = 0;
+      negative_result = (ep[0] & 1) && bsign;
+      if (negative_result)
+	rsign = msign;
+
+      res->nlimbs = msize;
+      res->sign = rsign;
       goto leave;
     }
 

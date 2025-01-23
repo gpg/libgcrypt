@@ -112,7 +112,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   mpi_limb_t temp1[MAX_SCRATCH_SPACE];
   mpi_limb_t temp2[MAX_SCRATCH_SPACE];
   mpi_limb_t a[MAX_SCRATCH_SPACE];
-  mpi_limb_t x_tilda[MAX_SCRATCH_SPACE];
+  mpi_limb_t x_tilde[MAX_SCRATCH_SPACE];
   mpi_limb_t minv;
   mpi_size_t i;
   mpi_limb_t e;
@@ -154,10 +154,20 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   _gcry_mpih_divrem (temp1, 0, temp0, n*2, temp2, n);
   if (mod_shift_cnt)
     _gcry_mpih_rshift (temp0, temp0, n, mod_shift_cnt);
-  /* TEMP0 := Mont(x, R^2 mod m) */
-  mont_mul (temp0, bp, temp0, mp, n, minv);
-  MPN_COPY (x_tilda, temp0, n);
+  /* x~ := Mont(x, R^2 mod m) */
+  mont_mul (x_tilde, bp, temp0, mp, n, minv);
 
+  mont_mul (a, a, x_tilde, mp, n, minv);
+#ifdef TESTING
+  {
+    int i;
+    for (i = 0; i < n; i++)
+      gcry_assert (a[i] == x_tilde[i]);
+  }
+#endif
+#if 0
+  MPN_COPY (a, x_tilde, n);
+#endif
   i = en - 1;
   e = ep[i];
   count_leading_zeros (c, e);
@@ -168,7 +178,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
       while (c)
         {
           mont_mul (a, a, a, mp, n, minv);
-          mont_mul (temp0, a, x_tilda, mp, n, minv);
+          mont_mul (temp0, a, x_tilde, mp, n, minv);
           _gcry_mpih_set_cond (a, temp0, n, ((mpi_limb_signed_t)e < 0));
           e <<= 1;
           c--;
