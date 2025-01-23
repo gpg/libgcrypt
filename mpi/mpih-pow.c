@@ -70,12 +70,12 @@ mont_reduc (mpi_ptr_t tp, mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
     {
       mpi_limb_t ui = tp[i] * minv;
 
-      cy = _gcry_mpih_addmul_1 (tp + i, tp, n, ui);
+      cy = _gcry_mpih_addmul_1 (tp + i, mp, n, ui);
       tp[n+i] += cy;
     }
 
   cy = _gcry_mpih_sub_n (tp, tp + n, mp, n);
-  _gcry_mpih_set_cond (tp, tp + n, n, !cy);
+  _gcry_mpih_set_cond (tp, tp + n, n, cy != 0);
 }
 
 /* RP should have 2*N limbs */
