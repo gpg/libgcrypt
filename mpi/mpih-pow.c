@@ -64,13 +64,13 @@ static void
 mont_reduc (mpi_ptr_t tp, mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
 {
   mpi_size_t i;
+  mpi_limb_t cy;
 
   for (i = 0; i < n; i++)
     {
       mpi_limb_t ui = tp[i] * minv;
-      mpi_limb_t cy;
 
-      cy = _gcry_mpih_addmul_1 (tp + i, up, n, ui);
+      cy = _gcry_mpih_addmul_1 (tp + i, tp, n, ui);
       tp[n+i] += cy;
     }
 
@@ -115,7 +115,7 @@ mont_exp (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   memcpy (a, temp0, n*sizeof (mpi_limb_t));
 
   /* TEMP0 := (R mod m)^2 */
-  _gcry_mpih_sqr_n_basecase (temp0, a, n)
+  _gcry_mpih_sqr_n_basecase (temp0, a, n);
 
   /* TEMP0 := R^2 mod m */
   _gcry_mpih_divrem (temp1, 0, temp0, n*2, mp, n);
