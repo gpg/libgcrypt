@@ -261,6 +261,9 @@ mpi_limb_t _gcry_mpih_lshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 							   unsigned cnt);
 mpi_limb_t _gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 							   unsigned cnt);
+/*-- mpih-pow.c --*/
+void _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp,
+                          mpi_size_t n, mpi_ptr_t ep, mpi_size_t en);
 
 /*-- mpih-const-time.c --*/
 #define mpih_set_cond(w,u,s,o) _gcry_mpih_set_cond ((w),(u),(s),(o))

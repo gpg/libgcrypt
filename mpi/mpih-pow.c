@@ -89,39 +89,51 @@ mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
 
 #define MAX_SCRATCH_SPACE 256
 
-static void
-mont_exp (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
-          mpi_ptr_t ep, mpi_size_t en)
+void
+_gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
+                     mpi_ptr_t ep, mpi_size_t en)
 {
   mpi_limb_t temp0[MAX_SCRATCH_SPACE*2];
   mpi_limb_t temp1[MAX_SCRATCH_SPACE];
+  mpi_limb_t temp2[MAX_SCRATCH_SPACE];
   mpi_limb_t a[MAX_SCRATCH_SPACE*2];
   mpi_limb_t x_tilda[MAX_SCRATCH_SPACE];
   mpi_limb_t minv;
   mpi_size_t i;
   mpi_limb_t e;
   int c;
+  int mod_shift_cnt;
 
   gcry_assert (n < MAX_SCRATCH_SPACE);
 
   minv = compute_minv (mp[0]);
 
-  memset (temp0, 0, sizeof temp0);
+  MPN_ZERO (temp0, MAX_SCRATCH_SPACE);
   temp0[n] = 1;
 
+  count_leading_zeros (mod_shift_cnt, mp[n-1]);
+  if (mod_shift_cnt)
+    _gcry_mpih_lshift (temp2, mp, n, mod_shift_cnt);
+  else
+    MPN_COPY (temp2, mp, n);
+
   /* TEMP0 := R mod m */
-  _gcry_mpih_divrem (temp1, 0, temp0, n+1, mp, n);
+  _gcry_mpih_divrem (temp1, 0, temp0, n+1, temp2, n);
+  if (mod_shift_cnt)
+    _gcry_mpih_rshift (temp0, temp0, n, mod_shift_cnt);
   /* A := R mod m */
-  memcpy (a, temp0, n*sizeof (mpi_limb_t));
+  MPN_COPY (a, temp0, n);
 
   /* TEMP0 := (R mod m)^2 */
   _gcry_mpih_sqr_n_basecase (temp0, a, n);
 
   /* TEMP0 := R^2 mod m */
-  _gcry_mpih_divrem (temp1, 0, temp0, n*2, mp, n);
+  _gcry_mpih_divrem (temp1, 0, temp0, n*2, temp2, n);
+  if (mod_shift_cnt)
+    _gcry_mpih_rshift (temp0, temp0, n, mod_shift_cnt);
   /* TEMP0 := Mont(x, R^2 mod m) */
   mont_mul (temp0, bp, temp0, mp, n, minv);
-  memcpy (x_tilda, temp0, n*sizeof (mpi_limb_t));
+  MPN_COPY (x_tilda, temp0, n);
 
   i = en - 1;
   e = ep[i];
@@ -146,9 +158,9 @@ mont_exp (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
       c = BITS_PER_MPI_LIMB;
     }
 
-  memset (temp0, 0, sizeof temp0);
+  MPN_ZERO (temp0, MAX_SCRATCH_SPACE);
   temp0[0] = 1;
   mont_mul (a, a, temp0, mp, n, minv);
 
-  memcpy (rp, temp0, n*sizeof (mpi_limb_t));
+  MPN_COPY (rp, temp0, n);
 }
