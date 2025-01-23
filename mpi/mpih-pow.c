@@ -75,7 +75,7 @@ mont_reduc (mpi_ptr_t tp, mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
     }
 
   cy = _gcry_mpih_sub_n (tp, tp + n, mp, n);
-  _gcry_mpih_set_cond (tp, tp + n, n, cy);
+  _gcry_mpih_set_cond (tp, tp + n, n, !cy);
 }
 
 /* RP should have 2*N limbs */
@@ -109,15 +109,19 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   minv = compute_minv (mp[0]);
 
   MPN_ZERO (temp0, MAX_SCRATCH_SPACE);
-  temp0[n] = 1;
-
-  count_leading_zeros (mod_shift_cnt, mp[n-1]);
-  if (mod_shift_cnt)
-    _gcry_mpih_lshift (temp2, mp, n, mod_shift_cnt);
-  else
-    MPN_COPY (temp2, mp, n);
 
   /* TEMP0 := R mod m */
+  count_leading_zeros (mod_shift_cnt, mp[n-1]);
+  if (mod_shift_cnt)
+    {
+      _gcry_mpih_lshift (temp2, mp, n, mod_shift_cnt);
+      temp0[n] = (mpi_limb_t)1 << mod_shift_cnt;
+    }
+  else
+    {
+      MPN_COPY (temp2, mp, n);
+      temp0[n] = 1;
+    }
   _gcry_mpih_divrem (temp1, 0, temp0, n+1, temp2, n);
   if (mod_shift_cnt)
     _gcry_mpih_rshift (temp0, temp0, n, mod_shift_cnt);
@@ -128,6 +132,8 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   _gcry_mpih_sqr_n_basecase (temp0, a, n);
 
   /* TEMP0 := R^2 mod m */
+  if (mod_shift_cnt)
+    _gcry_mpih_lshift (temp0, temp0, n*2, mod_shift_cnt);
   _gcry_mpih_divrem (temp1, 0, temp0, n*2, temp2, n);
   if (mod_shift_cnt)
     _gcry_mpih_rshift (temp0, temp0, n, mod_shift_cnt);
