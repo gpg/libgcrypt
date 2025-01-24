@@ -67,31 +67,22 @@ mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
             mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
 {
   mpi_size_t i;
-  mpi_limb_t cy;
+  mpi_limb_t cy0;
+  mpi_limb_t cy1 = 0;
 
   for (i = 0; i < n; i++)
     {
       mpi_limb_t ui = tp[i] * minv;
 
-      cy = _gcry_mpih_addmul_1 (tp + i, mp, n, ui);
+      cy0 = _gcry_mpih_addmul_1 (tp + i, mp, n, ui);
       /* XXX: Not CT! */
-      _gcry_mpih_add_1 (tp + n + i, tp + n + i, n - i, cy);
+      cy1 += _gcry_mpih_add_1 (tp + n + i, tp + n + i, n - i, cy0);
     }
 
-#define TESTING 1
-#ifdef TESTING
-  {
-    mpi_limb_t res = 0;
-
-    for (i = 0; i < n; i++)
-      res |= tp[i];
-
-    gcry_assert (res == 0);
-  }
-#endif
-
-  cy = _gcry_mpih_sub_n (rp, tp + n, mp, n);
-  _gcry_mpih_set_cond (rp, tp + n, n, mpih_limb_is_not_zero (cy));
+  cy0 = _gcry_mpih_sub_n (rp, tp + n, mp, n);
+  _gcry_mpih_set_cond (rp, tp + n, n,
+		       mpih_limb_is_not_zero (cy0)
+		       & mpih_limb_is_zero (cy1));
 }
 
 /* RP should have 2*N limbs */
