@@ -421,9 +421,6 @@ _gcry_mpi_powm (gcry_mpi_t res,
   mpi_ptr_t bp_marker = NULL;
   mpi_ptr_t ep_marker = NULL;
   mpi_ptr_t xp_marker = NULL;
-#ifdef TESTING
-  mpi_ptr_t rp_dash = NULL;
-#endif
   unsigned int mp_nlimbs = 0;
   unsigned int bp_nlimbs = 0;
   unsigned int ep_nlimbs = 0;
@@ -545,14 +542,21 @@ _gcry_mpi_powm (gcry_mpi_t res,
       rp = res->d;
     }
 
-#ifdef TESTING
   if (esec || bsec || msec)
     {
-      gcry_assert (bsize == msize);
-      rp_dash = mpi_alloc_limb_space (msize, 1);
-      _gcry_mpih_powm_sec (rp_dash, bp, mod->d, msize, ep, esize);
+      mpi_ptr_t  bp1 = NULL;
 
-#if 0
+      if (bsize < msize)
+	{
+	  bp1 = mpi_alloc_limb_space (msize, 1);
+	  MPN_ZERO (bp1, msize);
+	  MPN_COPY (bp1, bp, bsize);
+	}
+
+      _gcry_mpih_powm_sec (rp, bp1?bp1:bp, mod->d, msize, ep, esize);
+      if (bp1)
+	_gcry_mpi_free_limb_space (bp1, msize);
+
       rsign = 0;
       negative_result = (ep[0] & 1) && bsign;
       if (negative_result)
@@ -561,9 +565,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
       res->nlimbs = msize;
       res->sign = rsign;
       goto leave;
-#endif
     }
-#endif
 
   /* Main processing.  */
   {
@@ -779,21 +781,6 @@ _gcry_mpi_powm (gcry_mpi_t res,
       rsign = msign;
       MPN_NORMALIZE(rp, rsize);
     }
-#ifdef TESTING
-  if (rp_dash)
-    {
-      int fail = 0;
-      gcry_assert (rsize = msize);
-      {
-        int i;
-        for (i = 0; i < msize; i++)
-          fail |= (rp[i] != rp_dash[i]);
-      }
-      printf ("fail=%d: rp, rp_dash: %p, %p: ep, esize: %p, %d\n", fail, rp, rp_dash, ep, esize);
-      // gcry_assert (fail == 0);
-      _gcry_mpi_free_limb_space (rp_dash, msize);
-    }
-#endif
   gcry_assert (res->d == rp);
   res->nlimbs = rsize;
   res->sign = rsign;
