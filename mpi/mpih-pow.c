@@ -62,6 +62,26 @@ compute_minv (mpi_limb_t n)
 
 #define MAX_SCRATCH_SPACE 256
 
+static mpi_limb_t
+ct_mpih_add_1 (mpi_ptr_t s1_ptr, mpi_size_t s1_size, mpi_limb_t s2_limb)
+{
+  mpi_limb_t x;
+  mpi_limb_t cy;
+
+  x = *s1_ptr;
+  s2_limb += x;
+  *s1_ptr++ = s2_limb;
+  cy = (s2_limb < x);
+  while ( --s1_size )
+    {
+      x = *s1_ptr + cy;
+      *s1_ptr++ = x;
+      cy = mpih_limb_is_zero (x) & mpih_limb_is_not_zero (cy);
+    }
+
+  return cy;
+}
+
 static void
 mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
             mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
@@ -75,8 +95,7 @@ mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
       mpi_limb_t ui = tp[i] * minv;
 
       cy0 = _gcry_mpih_addmul_1 (tp + i, mp, n, ui);
-      /* XXX: Not CT! */
-      cy1 += _gcry_mpih_add_1 (tp + n + i, tp + n + i, n - i, cy0);
+      cy1 += ct_mpih_add_1 (tp + n + i, n - i, cy0);
     }
 
   cy0 = _gcry_mpih_sub_n (rp, tp + n, mp, n);
