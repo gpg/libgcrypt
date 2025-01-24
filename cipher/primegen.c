@@ -864,6 +864,9 @@ check_prime( gcry_mpi_t prime, gcry_mpi_t val_2, int rm_rounds,
   unsigned int x;
   unsigned int count=0;
 
+  if (prime->nlimbs && !(prime->d[0] & 1))
+    return 0;
+
   /* Check against small primes. */
   for (i=0; (x = small_prime_numbers[i]); i++ )
     {
