@@ -606,26 +606,40 @@ check_cipher_o_s_e_d_c (int reject)
 {
   static struct {
     int algo;
+    int mode;
     const char *key;
     int keylen;
+    const char *tag;
+    int taglen;
     const char *expect;
     int expect_failure;
   } tv[] = {
 #if USE_DES
-      { GCRY_CIPHER_3DES,
-	"\xe3\x34\x7a\x6b\x0b\xc1\x15\x2c\x64\x2a\x25\xcb\xd3\xbc\x31\xab"
-	"\xfb\xa1\x62\xa8\x1f\x19\x7c\x15", 24,
-        "\x3f\x1a\xb8\x83\x18\x8b\xb5\x97", 1 },
+   { GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_ECB,
+	 "\xe3\x34\x7a\x6b\x0b\xc1\x15\x2c\x64\x2a\x25\xcb\xd3\xbc\x31\xab"
+	 "\xfb\xa1\x62\xa8\x1f\x19\x7c\x15", 24,
+     "", -1,
+     "\x3f\x1a\xb8\x83\x18\x8b\xb5\x97", 1 },
 #endif
-      { GCRY_CIPHER_AES,
-	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c", 16,
-        "\x5c\x71\xd8\x5d\x26\x5e\xcd\xb5\x95\x40\x41\xab\xff\x25\x6f\xd1" }
+   { GCRY_CIPHER_AES, GCRY_CIPHER_MODE_ECB,
+	 "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c", 16,
+     "", -1,
+     "\x5c\x71\xd8\x5d\x26\x5e\xcd\xb5\x95\x40\x41\xab\xff\x25\x6f\xd1" },
+   { GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_SIV,
+	 "\xff\xfe\xfd\xfc\xfb\xfa\xf9\xf8\xf7\xf6\xf5\xf4\xf3\xf2\xf1\xf0"
+	 "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff", 32,
+     "\x51\x66\x54\xc4\xe1\xb5\xd9\x37\x31\x52\xdb\xea\x35\x10\x8b\x7b", 16,
+     "\x83\x69\xf6\xf3\x20\xff\xa2\x72\x31\x67\x15\xcf\xf4\x75\x01\x9a", 1 }
   };
+
   const char *pt = "Shohei Ohtani 2024: 54 HR, 59 SB";
   int ptlen;
   int tvidx;
   unsigned char out[MAX_DATA_LEN];
   gpg_error_t err;
+
+  unsigned char tag[16];
+  size_t taglen = 0;
 
   ptlen = strlen (pt);
   assert (ptlen == 32);
@@ -640,10 +654,12 @@ check_cipher_o_s_e_d_c (int reject)
                  tvidx);
 
       blklen = gcry_cipher_get_algo_blklen (tv[tvidx].algo);
+
       assert (blklen != 0);
       assert (blklen <= ptlen);
       assert (blklen <= DIM (out));
-      err = gcry_cipher_open (&h, tv[tvidx].algo, GCRY_CIPHER_MODE_ECB, 0);
+      assert (tv[tvidx].taglen <= 16);
+      err = gcry_cipher_open (&h, tv[tvidx].algo, tv[tvidx].mode, 0);
       if (err)
         {
           if (in_fips_mode && reject && tv[tvidx].expect_failure)
@@ -694,6 +710,18 @@ check_cipher_o_s_e_d_c (int reject)
           continue;
         }
 
+      if (tv[tvidx].taglen >= 0)
+        {
+          err = gcry_cipher_info (h, GCRYCTL_GET_TAGLEN, NULL, &taglen);
+          if (err)
+              fail ("gcry_cipher_info %d failed: %s\n", tvidx,
+                    gpg_strerror (err));
+
+          if (taglen != tv[tvidx].taglen)
+              fail ("gcry_cipher_info %d failed: taglen mismatch %d != %ld\n", tvidx,
+                    tv[tvidx].taglen, taglen);
+        }
+
       err = gcry_cipher_encrypt (h, out, MAX_DATA_LEN, pt, blklen);
       if (err)
         {
@@ -713,6 +741,35 @@ check_cipher_o_s_e_d_c (int reject)
             fprintf (stderr, " %02x", out[i]);
           putc ('\n', stderr);
         }
+
+      if (tv[tvidx].taglen >= 0)
+        {
+           err = gcry_cipher_gettag (h, tag, tv[tvidx].taglen);
+           if (err)
+              fail ("gcry_cipher_gettag %d failed: %s", tvidx,
+                     gpg_strerror(err));
+
+          if (memcmp (tv[tvidx].tag, tag, tv[tvidx].taglen))
+            {
+              int i;
+
+              fail ("gcry_cipher_gettag %d: tag mismatch\n", tvidx);
+              fputs ("got:", stderr);
+              for (i=0; i < 16 ; i++)
+                fprintf (stderr, " %02x", tag[i]);
+              putc ('\n', stderr);
+            }
+
+          err = gcry_cipher_reset (h);
+          if (err)
+            fail("gcry_cipher_reset %d failed: %s", tvidx,
+                  gpg_strerror(err));
+
+          err = gcry_cipher_set_decryption_tag (h, tag, 16);
+          if (err)
+            fail ("gcry_cipher_set_decryption_tag %d failed: %s\n", tvidx<
+                   gpg_strerror (err));
+      }
 
       err = gcry_cipher_decrypt (h, out, blklen, NULL, 0);
       if (err)
@@ -1483,6 +1540,7 @@ main (int argc, char **argv)
 
   xgcry_control ((GCRYCTL_FIPS_REJECT_NON_FIPS,
                   (GCRY_FIPS_FLAG_REJECT_MD_MD5
+                   | GCRY_FIPS_FLAG_REJECT_CIPHER_MODE
                    | GCRY_FIPS_FLAG_REJECT_PK_MD
                    | GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2
                    | GCRY_FIPS_FLAG_REJECT_COMPAT110)));
