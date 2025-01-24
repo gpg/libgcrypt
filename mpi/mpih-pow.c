@@ -74,7 +74,8 @@ mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
       mpi_limb_t ui = tp[i] * minv;
 
       cy = _gcry_mpih_addmul_1 (tp + i, mp, n, ui);
-      tp[n+i] += cy;
+      /* XXX: Not CT! */
+      _gcry_mpih_add_1 (tp + n + i, tp + n + i, n - i, cy);
     }
 
 #define TESTING 1
@@ -90,7 +91,7 @@ mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
 #endif
 
   cy = _gcry_mpih_sub_n (rp, tp + n, mp, n);
-  _gcry_mpih_set_cond (rp, tp + n, n, cy != 0);
+  _gcry_mpih_set_cond (rp, tp + n, n, mpih_limb_is_not_zero (cy));
 }
 
 /* RP should have 2*N limbs */
@@ -157,17 +158,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   /* x~ := Mont(x, R^2 mod m) */
   mont_mul (x_tilde, bp, temp0, mp, n, minv);
 
-  mont_mul (a, a, x_tilde, mp, n, minv);
-#ifdef TESTING
-  {
-    int i;
-    for (i = 0; i < n; i++)
-      gcry_assert (a[i] == x_tilde[i]);
-  }
-#endif
-#if 0
   MPN_COPY (a, x_tilde, n);
-#endif
   i = en - 1;
   e = ep[i];
   count_leading_zeros (c, e);
@@ -179,7 +170,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
         {
           mont_mul (a, a, a, mp, n, minv);
           mont_mul (temp0, a, x_tilde, mp, n, minv);
-          _gcry_mpih_set_cond (a, temp0, n, ((mpi_limb_signed_t)e < 0));
+          _gcry_mpih_set_cond (a, temp0, n, e >> (BITS_PER_MPI_LIMB - 1));
           e <<= 1;
           c--;
         }
