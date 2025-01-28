@@ -504,8 +504,9 @@ _gcry_cipher_open (gcry_cipher_hd_t *handle,
   return rc;
 }
 
-int
-_gcry_cipher_is_mode_fips_compliant(int mode)
+
+gcry_err_code_t
+_gcry_cipher_mode_fips_compliance (enum gcry_cipher_modes mode)
 {
   switch (mode)
     {
@@ -555,7 +556,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
               err = 0;
             }
         }
-      else if ((err = _gcry_cipher_is_mode_fips_compliant(mode)))
+      else if ((err = _gcry_cipher_mode_fips_compliance (mode)))
         {
           if (!fips_check_rejection (GCRY_FIPS_FLAG_REJECT_CIPHER_MODE))
             {

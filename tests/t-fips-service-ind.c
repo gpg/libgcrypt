@@ -767,7 +767,7 @@ check_cipher_o_s_e_d_c (int reject)
 
           err = gcry_cipher_set_decryption_tag (h, tag, 16);
           if (err)
-            fail ("gcry_cipher_set_decryption_tag %d failed: %s\n", tvidx<
+            fail ("gcry_cipher_set_decryption_tag %d failed: %s\n", tvidx,
                    gpg_strerror (err));
       }
 
