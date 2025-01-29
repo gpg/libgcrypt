@@ -82,6 +82,7 @@ ct_mpih_add_1 (mpi_ptr_t s1_ptr, mpi_size_t s1_size, mpi_limb_t s2_limb)
   return cy;
 }
 
+/* R := T * R^(-1) mod M (where R is represented by MINV)  */
 static void
 mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
             mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
@@ -100,11 +101,12 @@ mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
 
   cy0 = _gcry_mpih_sub_n (rp, tp + n, mp, n);
   _gcry_mpih_set_cond (rp, tp + n, n,
-		       mpih_limb_is_not_zero (cy0)
-		       & mpih_limb_is_zero (cy1));
+                       mpih_limb_is_not_zero (cy0)
+                       & mpih_limb_is_zero (cy1));
 }
 
-/* RP should have 2*N limbs */
+/* R := X * Y mod M
+   RP should have 2*N limbs */
 static void
 mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
           mpi_size_t n, mpi_limb_t minv)
@@ -115,10 +117,39 @@ mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
   mont_reduc (rp, temp0, mp, n, minv);
 }
 
+#if BITS_PER_MPI_LIMB > 32
+#define MAX_WINDOW 4
+#else
+#define MAX_WINDOW 5
+#endif
+
+static int
+window_size (mpi_size_t esize)
+{
+  int W;
+
+#if BITS_PER_MPI_LIMB > 32
+  if (esize > 85)
+    W = 5;
+  else
+#endif
+  if (esize > 24)
+    W = 4;
+  else if (esize > 4)
+    W = 3;
+  else if (esize > 1)
+    W = 2;
+  else
+    W = 1;
+
+  return W;
+}
+
 void
 _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
                      mpi_ptr_t ep, mpi_size_t en)
 {
+  mpi_limb_t precomp[MAX_SCRATCH_SPACE*(1 << MAX_WINDOW)];
   mpi_limb_t temp0[MAX_SCRATCH_SPACE*2];
   mpi_limb_t temp1[MAX_SCRATCH_SPACE];
   mpi_limb_t temp2[MAX_SCRATCH_SPACE];
@@ -126,9 +157,9 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   mpi_limb_t x_tilde[MAX_SCRATCH_SPACE];
   mpi_limb_t minv;
   mpi_size_t i;
-  mpi_limb_t e;
-  int c;
   int mod_shift_cnt;
+  int windowsize = window_size (en);
+  mpi_limb_t wmask = (((mpi_limb_t) 1 << windowsize) - 1);
 
   gcry_assert (n < MAX_SCRATCH_SPACE);
 
@@ -154,10 +185,10 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   if (mod_shift_cnt)
     _gcry_mpih_rshift (temp0, temp0, n, mod_shift_cnt);
   /* A := R mod m */
-  MPN_COPY (a, temp0, n);
+  MPN_COPY (precomp, temp0, n);
 
   /* TEMP0 := (R mod m)^2 */
-  _gcry_mpih_sqr_n_basecase (temp0, a, n);
+  _gcry_mpih_sqr_n_basecase (temp0, precomp, n);
 
   /* TEMP0 := R^2 mod m */
   if (mod_shift_cnt)
@@ -168,29 +199,56 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   /* x~ := Mont(x, R^2 mod m) */
   mont_mul (x_tilde, bp, temp0, mp, n, minv);
 
-  MPN_COPY (a, x_tilde, n);
-  i = en - 1;
-  e = ep[i];
-  count_leading_zeros (c, e);
-  e = (e << c) << 1;
-  c = BITS_PER_MPI_LIMB - 1 - c;
-  for (;;)
+  MPN_COPY (precomp+n, x_tilde, n);
+  for (i = 0; i < (1 << windowsize) - 2; i += 2)
     {
-      while (c)
+      _gcry_mpih_sqr_n_basecase (temp0, precomp+n*(i/2+1), n);
+      mont_reduc (precomp+n*(i+2), temp0, mp, n, minv);
+      mont_mul (precomp+n*(i+3), x_tilde, precomp+n*(i+2), mp, n, minv);
+    }
+
+  MPN_COPY (a, precomp, n);
+  i = en * BITS_PER_MPI_LIMB;
+  do
+    {
+      mpi_limb_t e;
+      int w;
+
+      if (i < windowsize)
         {
-          mont_mul (a, a, a, mp, n, minv);
-          mont_mul (temp0, a, x_tilde, mp, n, minv);
-          _gcry_mpih_set_cond (a, temp0, n, e >> (BITS_PER_MPI_LIMB - 1));
-          e <<= 1;
-          c--;
+          e = ep[0] & (((mpi_limb_t) 1 << i) - 1);
+          w = i;
+          i = 0;
+        }
+      else
+        {
+          mpi_limb_t v;
+          mpi_size_t shift;
+          mpi_size_t j;
+          int nbits_in_v;
+
+          i -= windowsize;
+          j = i / BITS_PER_MPI_LIMB;
+          shift = i % BITS_PER_MPI_LIMB;
+          v = ep[j] >> shift;
+          nbits_in_v = BITS_PER_MPI_LIMB - shift;
+          if (nbits_in_v < windowsize)
+            v += ep[j + 1] << nbits_in_v;
+          e = v & wmask;
+          w = windowsize;
         }
 
-      i--;
-      if (i < 0)
-        break;
-      e = ep[i];
-      c = BITS_PER_MPI_LIMB;
+      do
+        {
+          _gcry_mpih_sqr_n_basecase (temp0, a, n);
+          mont_reduc (a, temp0, mp, n, minv);
+        }
+      while (--w);
+
+      _gcry_mpih_table_lookup (temp1, precomp, n, (1 << windowsize), e);
+      mont_mul (a, a, temp1, mp, n, minv);
     }
+  while (i);
 
   MPN_ZERO (temp0, MAX_SCRATCH_SPACE);
   temp0[0] = 1;
