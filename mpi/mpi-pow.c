@@ -401,7 +401,6 @@ mul_mod (mpi_ptr_t xp, mpi_size_t *xsize_p,
  *   Handbook of Applied Cryptography
  *       Algorithm 14.83: Modified left-to-right k-ary exponentiation
  */
-#define TESTING 1
 void
 _gcry_mpi_powm (gcry_mpi_t res,
                 gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
@@ -544,7 +543,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
 
   if (esec || bsec || msec)
     {
-      mpi_ptr_t  bp1 = NULL;
+      mpi_ptr_t bp1 = NULL;
 
       if (bsize < msize)
 	{
