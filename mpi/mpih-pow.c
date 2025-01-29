@@ -25,6 +25,14 @@
 #include "mpi-internal.h"
 #include "longlong.h"
 
+#if BITS_PER_MPI_LIMB <= 32
+#define MAX_SCRATCH_SPACE 256*2
+#define MAX_WINDOW 8
+#else
+#define MAX_SCRATCH_SPACE 256
+#define MAX_WINDOW 4
+#endif
+
 /*
   Compute -n^(-1) mod 2^BITS_PER_MPI_LIMB
 
@@ -59,8 +67,6 @@ compute_minv (mpi_limb_t n)
 # error "Please implement multiplicative inverse mod power of 2"
 #endif
 }
-
-#define MAX_SCRATCH_SPACE 256
 
 static mpi_limb_t
 ct_mpih_add_1 (mpi_ptr_t s1_ptr, mpi_size_t s1_size, mpi_limb_t s2_limb)
@@ -117,31 +123,34 @@ mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
   mont_reduc (rp, temp0, mp, n, minv);
 }
 
-#if BITS_PER_MPI_LIMB > 32
-#define MAX_WINDOW 4
-#else
-#define MAX_WINDOW 5
-#endif
-
 static int
 window_size (mpi_size_t esize)
 {
   int W;
 
-#if BITS_PER_MPI_LIMB > 32
-  if (esize > 85)
-    W = 5;
-  else
-#endif
+#if BITS_PER_MPI_LIMB <= 32
   if (esize > 24)
+    W = 5;
+  else if (esize > 16)
     W = 4;
-  else if (esize > 4)
+  else if (esize > 12)
     W = 3;
-  else if (esize > 1)
+  else if (esize > 8)
     W = 2;
   else
     W = 1;
-
+  return W;
+#else
+  if (esize > 8)
+    W = 4;
+  else if (esize > 6)
+    W = 3;
+  else if (esize > 4)
+    W = 2;
+  else
+    W = 1;
+  return W;
+#endif
   return W;
 }
 
@@ -149,12 +158,12 @@ void
 _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
                      mpi_ptr_t ep, mpi_size_t en)
 {
-  mpi_limb_t precomp[MAX_SCRATCH_SPACE*(1 << MAX_WINDOW)];
   mpi_limb_t temp0[MAX_SCRATCH_SPACE*2];
   mpi_limb_t temp1[MAX_SCRATCH_SPACE];
   mpi_limb_t temp2[MAX_SCRATCH_SPACE];
   mpi_limb_t a[MAX_SCRATCH_SPACE];
   mpi_limb_t x_tilde[MAX_SCRATCH_SPACE];
+  mpi_limb_t precomp[MAX_SCRATCH_SPACE*(1 << MAX_WINDOW)];
   mpi_limb_t minv;
   mpi_size_t i;
   int mod_shift_cnt;
