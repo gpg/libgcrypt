@@ -159,16 +159,16 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
                      mpi_ptr_t ep, mpi_size_t en)
 {
   mpi_limb_t temp0[MAX_SCRATCH_SPACE*2];
-  mpi_limb_t temp1[MAX_SCRATCH_SPACE];
-  mpi_limb_t temp2[MAX_SCRATCH_SPACE];
   mpi_limb_t a[MAX_SCRATCH_SPACE];
-  mpi_limb_t x_tilde[MAX_SCRATCH_SPACE];
   mpi_limb_t precomp[MAX_SCRATCH_SPACE*(1 << MAX_WINDOW)];
   mpi_limb_t minv;
   mpi_size_t i;
   int mod_shift_cnt;
   int windowsize = window_size (en);
   mpi_limb_t wmask = (((mpi_limb_t) 1 << windowsize) - 1);
+#define temp1 (precomp+n)
+#define temp2 (precomp+n*2)
+#define x_tilde (precomp+n)
 
   gcry_assert (n < MAX_SCRATCH_SPACE);
 
@@ -193,7 +193,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   _gcry_mpih_divrem (temp1, 0, temp0, n+1, temp2, n);
   if (mod_shift_cnt)
     _gcry_mpih_rshift (temp0, temp0, n, mod_shift_cnt);
-  /* A := R mod m */
+  /* PRECOMP[0] := R mod m */
   MPN_COPY (precomp, temp0, n);
 
   /* TEMP0 := (R mod m)^2 */
@@ -208,7 +208,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   /* x~ := Mont(x, R^2 mod m) */
   mont_mul (x_tilde, bp, temp0, mp, n, minv);
 
-  MPN_COPY (precomp+n, x_tilde, n);
+  /* PRECOMP[i] := x~ ^ i */
   for (i = 0; i < (1 << windowsize) - 2; i += 2)
     {
       _gcry_mpih_sqr_n_basecase (temp0, precomp+n*(i/2+1), n);
@@ -254,8 +254,8 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
         }
       while (--w);
 
-      _gcry_mpih_table_lookup (temp1, precomp, n, (1 << windowsize), e);
-      mont_mul (a, a, temp1, mp, n, minv);
+      _gcry_mpih_table_lookup (temp0, precomp, n, (1 << windowsize), e);
+      mont_mul (a, a, temp0, mp, n, minv);
     }
   while (i);
 
