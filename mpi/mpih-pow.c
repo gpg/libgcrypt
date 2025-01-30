@@ -115,12 +115,10 @@ mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
    RP should have 2*N limbs */
 static void
 mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
-          mpi_size_t n, mpi_limb_t minv)
+          mpi_size_t n, mpi_limb_t minv, mpi_ptr_t scratch_2n)
 {
-  mpi_limb_t temp0[MAX_SCRATCH_SPACE*2];
-
-  _gcry_mpih_mul_sec (temp0, xp, n, yp, n);
-  mont_reduc (rp, temp0, mp, n, minv);
+  _gcry_mpih_mul_sec (scratch_2n, xp, n, yp, n);
+  mont_reduc (rp, scratch_2n, mp, n, minv);
 }
 
 static int
@@ -159,6 +157,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
                      mpi_ptr_t ep, mpi_size_t en)
 {
   mpi_limb_t temp0[MAX_SCRATCH_SPACE*2];
+  mpi_limb_t temp3[MAX_SCRATCH_SPACE*2];
   mpi_limb_t a[MAX_SCRATCH_SPACE];
   mpi_limb_t precomp[MAX_SCRATCH_SPACE*(1 << MAX_WINDOW)];
   mpi_limb_t minv;
@@ -176,7 +175,7 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
 
   gcry_assert (mp[0]*(-minv) == 1);
 
-  MPN_ZERO (temp0, MAX_SCRATCH_SPACE);
+  MPN_ZERO (temp0, n);
 
   /* TEMP0 := R mod m */
   count_leading_zeros (mod_shift_cnt, mp[n-1]);
@@ -206,14 +205,14 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
   if (mod_shift_cnt)
     _gcry_mpih_rshift (temp0, temp0, n, mod_shift_cnt);
   /* x~ := Mont(x, R^2 mod m) */
-  mont_mul (x_tilde, bp, temp0, mp, n, minv);
+  mont_mul (x_tilde, bp, temp0, mp, n, minv, temp3);
 
   /* PRECOMP[i] := x~ ^ i */
   for (i = 0; i < (1 << windowsize) - 2; i += 2)
     {
       _gcry_mpih_sqr_n_basecase (temp0, precomp+n*(i/2+1), n);
       mont_reduc (precomp+n*(i+2), temp0, mp, n, minv);
-      mont_mul (precomp+n*(i+3), x_tilde, precomp+n*(i+2), mp, n, minv);
+      mont_mul (precomp+n*(i+3), x_tilde, precomp+n*(i+2), mp, n, minv, temp3);
     }
 
   MPN_COPY (a, precomp, n);
@@ -255,13 +254,13 @@ _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
       while (--w);
 
       _gcry_mpih_table_lookup (temp0, precomp, n, (1 << windowsize), e);
-      mont_mul (a, a, temp0, mp, n, minv);
+      mont_mul (a, a, temp0, mp, n, minv, temp3);
     }
   while (i);
 
-  MPN_ZERO (temp0, MAX_SCRATCH_SPACE);
+  MPN_ZERO (temp0, n);
   temp0[0] = 1;
-  mont_mul (a, a, temp0, mp, n, minv);
+  mont_mul (a, a, temp0, mp, n, minv, temp3);
 
   MPN_COPY (rp, a, n);
 }
