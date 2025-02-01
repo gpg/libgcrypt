@@ -20,6 +20,8 @@ along with this file; see the file COPYING.LIB.  If not, see <https://www.gnu.or
 SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include "const-time.h"
+
 /* On 32-bit, use 64-bit 'unsigned long long' for UDWtype, if available. */
 #if !defined (UDWtype) && SIZEOF_UNSIGNED_LONG_LONG * 8 == W_TYPE_SIZE * 2
 #  define UDWtype unsigned long long
@@ -1582,22 +1584,29 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 #  define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   do {									\
     UDWtype __audw = (ah);						\
+    UWtype __auwh, __auwl;						\
     UDWtype __budw = (bh);						\
     __audw <<= W_TYPE_SIZE;						\
     __audw |= (al);							\
     __budw <<= W_TYPE_SIZE;						\
     __budw |= (bl);							\
     __audw += __budw;							\
-    (sh) = (UWtype)(__audw >> W_TYPE_SIZE);				\
-    (sl) = (UWtype)(__audw); 						\
+    __auwh = (UWtype)(__audw >> W_TYPE_SIZE);				\
+    __auwl = (UWtype)(__audw);						\
+    CT_DEOPTIMIZE_VAR(__auwh);						\
+    (sh) = __auwh;							\
+    (sl) = __auwl;							\
   } while (0)
 #elif !defined (add_ssaaaa)
 #  define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   do {									\
-    UWtype __x; 							\
-    __x = (al) + (bl);							\
-    (sh) = (ah) + (bh) + (__x < (al));					\
-    (sl) = __x; 							\
+    UWtype __xl, __xh; 							\
+    __xl = (al) + (bl);							\
+    __xh = __xl < (al);							\
+    __xh = (ah) + (bh) + __xh;						\
+    CT_DEOPTIMIZE_VAR(__xh);						\
+    (sh) = __xh;							\
+    (sl) = __xl; 							\
   } while (0)
 #endif
 
@@ -1606,22 +1615,29 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 #  define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   do {									\
     UDWtype __audw = (ah);						\
+    UWtype __auwh, __auwl;						\
     UDWtype __budw = (bh);						\
     __audw <<= W_TYPE_SIZE;						\
     __audw |= (al);							\
     __budw <<= W_TYPE_SIZE;						\
     __budw |= (bl);							\
     __audw -= __budw;							\
-    (sh) = (UWtype)(__audw >> W_TYPE_SIZE);				\
-    (sl) = (UWtype)(__audw); 						\
+    __auwh = (UWtype)(__audw >> W_TYPE_SIZE);				\
+    __auwl = (UWtype)(__audw);						\
+    CT_DEOPTIMIZE_VAR(__auwh);						\
+    (sh) = __auwh;							\
+    (sl) = __auwl;							\
   } while (0)
 #elif !defined (sub_ddmmss)
 #  define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   do {									\
-    UWtype __x; 							\
-    __x = (al) - (bl);							\
-    (sh) = (ah) - (bh) - (__x > (al));					\
-    (sl) = __x; 							\
+    UWtype __xl, __xh; 							\
+    __xl = (al) - (bl);							\
+    __xh = (__xl > (al));						\
+    __xh = (ah) - (bh) - __xh;						\
+    CT_DEOPTIMIZE_VAR(__xh);						\
+    (sh) = __xh;							\
+    (sl) = __xl; 							\
   } while (0)
 #endif
 
@@ -1651,10 +1667,9 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
     __x3 = (UWtype) __uh * __vh;					\
 									\
     __x1 += __ll_highpart (__x0);/* this can't give carry */            \
-    __x1 += __x2;		/* but this indeed can */		\
-    if (__x1 < __x2)		/* did we get it? */			\
-      __x3 += __ll_B;		/* yes, add it in the proper pos. */	\
-									\
+    /* but this indeed can, and if so, add it in the proper pos: */	\
+    add_ssaaaa(__x2, __x1, 0, __x1, 0, __x2);				\
+    __x3 += __x2 << (W_TYPE_SIZE / 2);					\
     (w1) = __x3 + __ll_highpart (__x1); 				\
     (w0) = (__ll_lowpart (__x1) << W_TYPE_SIZE/2) + __ll_lowpart (__x0);\
   } while (0)
