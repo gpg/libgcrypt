@@ -505,8 +505,9 @@ _gcry_cipher_open (gcry_cipher_hd_t *handle,
 }
 
 
-gcry_err_code_t
-_gcry_cipher_mode_fips_compliance (enum gcry_cipher_modes mode)
+/* Return an error if the give cipher mode is non-FIPS compliant.  */
+static gcry_err_code_t
+cipher_modes_fips_compliance (enum gcry_cipher_modes mode)
 {
   switch (mode)
     {
@@ -519,10 +520,48 @@ _gcry_cipher_mode_fips_compliance (enum gcry_cipher_modes mode)
     case GCRY_CIPHER_MODE_CCM:
     case GCRY_CIPHER_MODE_XTS:
     case GCRY_CIPHER_MODE_AESWRAP:
-      return GPG_ERR_NO_ERROR;
-    default:
-      return GPG_ERR_NOT_SUPPORTED;
+      return 0;
+    case GCRY_CIPHER_MODE_NONE:
+    case GCRY_CIPHER_MODE_STREAM:
+    case GCRY_CIPHER_MODE_GCM:
+    case GCRY_CIPHER_MODE_POLY1305:
+    case GCRY_CIPHER_MODE_OCB:
+    case GCRY_CIPHER_MODE_EAX:
+    case GCRY_CIPHER_MODE_SIV:
+    case GCRY_CIPHER_MODE_GCM_SIV:
+      break;
     }
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+
+/* This is similar to cipher_modes_fips_compliance but only for the
+ * internal modes (i.e. CMAC).  Return an error if the mode is
+ * non-FIPS compliant. */
+static gcry_err_code_t
+cipher_int_modes_fips_compliance (enum gcry_cipher_internal_modes mode)
+{
+  switch (mode)
+    {
+    case GCRY_CIPHER_MODE_INTERNAL:
+      break;
+    case GCRY_CIPHER_MODE_CMAC:
+      return 0;
+    }
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+
+/* Return an error if the give cipher mode is non-FIPS compliant. The
+ * mode is not an enum here so that we can use it for real modes and
+ * for internal modes.  */
+gcry_err_code_t
+_gcry_cipher_mode_fips_compliance (int mode)
+{
+  if (mode >= GCRY_CIPHER_MODE_INTERNAL)
+    return cipher_int_modes_fips_compliance (mode);
+  else
+    return cipher_modes_fips_compliance (mode);
 }
 
 
