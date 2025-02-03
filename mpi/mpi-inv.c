@@ -452,7 +452,7 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
           MPN_COPY (ap, a->d, a->nlimbs);
         }
       else
-        ap = _gcry_mpih_mod (a->d, a->nlimbs, n->d, n->nlimbs);
+        ap = _gcry_mpih_mod_lli (a->d, a->nlimbs, n->d, n->nlimbs);
 
       xp = mpih_invm_odd (ap, n->d, n->nlimbs);
       _gcry_mpi_free_limb_space (ap, n->nlimbs);
@@ -506,7 +506,7 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
       mpi_rshift (q, n, k);
 
       /* X2 = invm (A%Q, Q) */
-      ap = _gcry_mpih_mod (a->d, a->nlimbs, q->d, q->nlimbs);
+      ap = _gcry_mpih_mod_lli (a->d, a->nlimbs, q->d, q->nlimbs);
       x2p = mpih_invm_odd (ap, q->d, q->nlimbs);
       _gcry_mpi_free_limb_space (ap, q->nlimbs);
       if (!x2p)

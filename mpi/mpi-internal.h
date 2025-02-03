@@ -268,7 +268,7 @@ mpi_limb_t _gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 #define mpih_sub_n_cond(w,u,v,s,o) _gcry_mpih_sub_n_cond ((w),(u),(v),(s),(o))
 #define mpih_swap_cond(u,v,s,o) _gcry_mpih_swap_cond ((u),(v),(s),(o))
 #define mpih_abs_cond(w,u,s,o) _gcry_mpih_abs_cond ((w),(u),(s),(o))
-#define mpih_mod(v,vs,u,us) _gcry_mpih_mod ((v),(vs),(u),(us))
+#define mpih_mod_lli(v,vs,u,us) _gcry_mpih_mod_lli ((v),(vs),(u),(us))
 
 DEFINE_CT_TYPE_GEN_MASK(limb, mpi_limb_t)
 DEFINE_CT_TYPE_GEN_INV_MASK(limb, mpi_limb_t)
@@ -301,8 +301,8 @@ void _gcry_mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                            unsigned long op_enable);
 void _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up,
                           mpi_size_t usize, unsigned long op_enable);
-mpi_ptr_t _gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
-                          mpi_ptr_t up, mpi_size_t usize);
+mpi_ptr_t _gcry_mpih_mod_lli (mpi_ptr_t vp, mpi_size_t vsize,
+                              mpi_ptr_t up, mpi_size_t usize);
 int _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v);
 
 

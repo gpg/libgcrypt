@@ -188,8 +188,8 @@ _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
  * compute W = V % U, then return W
  */
 mpi_ptr_t
-_gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
-                mpi_ptr_t up, mpi_size_t usize)
+_gcry_mpih_mod_lli (mpi_ptr_t vp, mpi_size_t vsize,
+                    mpi_ptr_t up, mpi_size_t usize)
 {
   int secure;
   mpi_ptr_t rp;
