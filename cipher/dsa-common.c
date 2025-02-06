@@ -35,7 +35,7 @@
  *
  * Originally, (EC)DSA computation requires k where 0 < k < q.  Here,
  * we add q (the order), to keep k in a range: q < k < 2*q (or,
- * addming more q, to keep k in a range: 2*q < k < 3*q), so that
+ * adding more q, to keep k in a range: 2*q < k < 3*q), so that
  * timing difference of the EC multiply (or exponentiation) operation
  * can be small.  The result of (EC)DSA computation is same.
  */
@@ -48,7 +48,7 @@ _gcry_dsa_modify_k (gcry_mpi_t k, gcry_mpi_t q, int qbits)
   k->nlimbs = k->alloced;
   mpi_add (k, k, q);
   mpi_add (k1, k, q);
-  mpi_set_cond (k, k1, !mpi_test_bit (k, qbits));
+  mpi_set_cond (k, k1, (1 - mpi_test_bit (k, qbits)));
 
   mpi_free (k1);
 }
