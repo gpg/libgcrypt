@@ -19,6 +19,7 @@
 #ifndef GCRYPT_BITHELP_H
 #define GCRYPT_BITHELP_H
 
+#include "config.h"
 #include "types.h"
 
 
@@ -77,13 +78,25 @@ _gcry_bswap64(u64 x)
 
 
 /* Count trailing zero bits in an unsigend int.  We return an int
-   because that is what gcc's builtin does.  Returns the number of
-   bits in X if X is 0. */
+   because that is what gcc's builtin does.  X must not be zero. */
 static inline int
-_gcry_ctz (unsigned int x)
+_gcry_ctz_no_zero (unsigned int x)
 {
-#if defined (HAVE_BUILTIN_CTZ)
-  return x ? __builtin_ctz (x) : 8 * sizeof (x);
+#if defined(__riscv) && \
+    (defined(__riscv_f) && __riscv_f >= 2002000) && \
+    (!defined(__riscv_zbb) || __riscv_zbb < 2002000) && \
+    defined(HAVE_GCC_ATTRIBUTE_MAY_ALIAS)
+  /* Use float cast approach when building for RISC-V without Zbb extension.
+   * Without Zbb, GCC gives us slower generic version for __builtin_ctz().
+   *
+   * See:
+   * http://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightFloatCast
+   */
+  float f = (float)(x & -x);
+  typedef u32 __attribute__((may_alias)) may_alias_u32;
+  return ((*(const may_alias_u32 *)&f) >> 23) - 0x7f;
+#elif defined (HAVE_BUILTIN_CTZ)
+  return __builtin_ctz (x);
 #else
   /* See
    * http://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
@@ -97,6 +110,16 @@ _gcry_ctz (unsigned int x)
     };
   return (int)mod37[(-x & x) % 37];
 #endif
+}
+
+
+/* Count trailing zero bits in an unsigend int.  We return an int
+   because that is what gcc's builtin does.  Returns the number of
+   bits in X if X is 0. */
+static inline int
+_gcry_ctz (unsigned int x)
+{
+  return x ? _gcry_ctz_no_zero (x) : 8 * sizeof (x);
 }
 
 

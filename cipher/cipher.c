@@ -504,6 +504,26 @@ _gcry_cipher_open (gcry_cipher_hd_t *handle,
   return rc;
 }
 
+int
+_gcry_cipher_is_mode_fips_compliant(int mode)
+{
+  switch (mode)
+    {
+    case GCRY_CIPHER_MODE_ECB:
+    case GCRY_CIPHER_MODE_CBC:
+    case GCRY_CIPHER_MODE_CFB:
+    case GCRY_CIPHER_MODE_CFB8:
+    case GCRY_CIPHER_MODE_OFB:
+    case GCRY_CIPHER_MODE_CTR:
+    case GCRY_CIPHER_MODE_CCM:
+    case GCRY_CIPHER_MODE_XTS:
+    case GCRY_CIPHER_MODE_AESWRAP:
+      return GPG_ERR_NO_ERROR;
+    default:
+      return GPG_ERR_NOT_SUPPORTED;
+    }
+}
+
 
 gcry_err_code_t
 _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
@@ -523,14 +543,25 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
     err = GPG_ERR_CIPHER_ALGO;
   else if (spec->flags.disabled)
     err = GPG_ERR_CIPHER_ALGO;
-  else if (!spec->flags.fips && fips_mode ())
+  else if (fips_mode ())
     {
-      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_CIPHER))
-        err = GPG_ERR_CIPHER_ALGO;
-      else
+      if (!spec->flags.fips)
         {
-          fips_service_indicator_mark_non_compliant ();
-          err = 0;
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_CIPHER))
+            err = GPG_ERR_CIPHER_ALGO;
+          else
+            {
+              fips_service_indicator_mark_non_compliant ();
+              err = 0;
+            }
+        }
+      else if ((err = _gcry_cipher_is_mode_fips_compliant(mode)))
+        {
+          if (!fips_check_rejection (GCRY_FIPS_FLAG_REJECT_CIPHER_MODE))
+            {
+              fips_service_indicator_mark_non_compliant ();
+              err = 0;
+            }
         }
     }
   else

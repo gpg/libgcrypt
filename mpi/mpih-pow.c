@@ -117,7 +117,7 @@ static void
 mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
           mpi_size_t n, mpi_limb_t minv, mpi_ptr_t scratch_2n)
 {
-  _gcry_mpih_mul_sec (scratch_2n, xp, n, yp, n);
+  _gcry_mpih_mul_lli (scratch_2n, xp, n, yp, n);
   mont_reduc (rp, scratch_2n, mp, n, minv);
 }
 
@@ -153,7 +153,7 @@ window_size (mpi_size_t esize)
 }
 
 void
-_gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
+_gcry_mpih_powm_lli (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
                      mpi_ptr_t ep, mpi_size_t en)
 {
   mpi_size_t scratch_size;

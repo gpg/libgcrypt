@@ -1,5 +1,5 @@
-/* SSSE3 vector permutation AES for Libgcrypt
- * Copyright (C) 2014-2017 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+/* AArch64 SIMD vector permutation AES for Libgcrypt
+ * Copyright (C) 2014-2025 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -48,6 +48,62 @@
 
 
 #ifdef USE_VP_AARCH64
+
+
+/**********************************************************************
+  AT&T x86 asm to intrinsics conversion macros (ARM)
+ **********************************************************************/
+
+#include "simd-common-aarch64.h"
+#include <arm_neon.h>
+
+#define __m128i uint64x2_t
+
+#define pand128(a, o)           (o = vandq_u64(o, a))
+#define pandn128(a, o)          (o = vbicq_u64(a, o))
+#define pxor128(a, o)           (o = veorq_u64(o, a))
+#define paddq128(a, o)          (o = vaddq_u64(o, a))
+#define paddd128(a, o)          (o = (__m128i)vaddq_u32((uint32x4_t)o, (uint32x4_t)a))
+#define paddb128(a, o)          (o = (__m128i)vaddq_u8((uint8x16_t)o, (uint8x16_t)a))
+
+#define psrld128(s, o)          (o = (__m128i)vshrq_n_u32((uint32x4_t)o, s))
+#define psraq128(s, o)          (o = (__m128i)vshrq_n_s64((int64x2_t)o, s))
+#define psrldq128(s, o)         ({ uint64x2_t __tmp = { 0, 0 }; \
+				   o = (__m128i)vextq_u8((uint8x16_t)o, \
+				                         (uint8x16_t)__tmp, (s) & 15);})
+#define pslldq128(s, o)         ({ uint64x2_t __tmp = { 0, 0 }; \
+                                   o = (__m128i)vextq_u8((uint8x16_t)__tmp, \
+                                                         (uint8x16_t)o, (16 - (s)) & 15);})
+#define psrl_byte_128(s, o)     (o = (__m128i)vshrq_n_u8((uint8x16_t)o, s))
+
+#define pshufb128(m8, o)        (o = (__m128i)vqtbl1q_u8((uint8x16_t)o, (uint8x16_t)m8))
+#define pshufd128(m32, a, o)    ({ static const __m128i __tmp1 = PSHUFD_MASK_TO_PSHUFB_MASK(m32); \
+				   __m128i __tmp2; \
+				   movdqa128(a, o); \
+				   movdqa128_memld(&__tmp1, __tmp2); \
+				   pshufb128(__tmp2, o); })
+#define pshufd128_0x93(a, o)    (o = (__m128i)vextq_u8((uint8x16_t)a, (uint8x16_t)a, 12))
+#define pshufd128_0xFF(a, o)    (o = (__m128i)vdupq_laneq_u32((uint32x4_t)a, 3))
+#define pshufd128_0xFE(a, o)    pshufd128(0xFE, a, o)
+#define pshufd128_0x4E(a, o)    (o = (__m128i)vextq_u8((uint8x16_t)a, (uint8x16_t)a, 8))
+
+#define palignr128(s, a, o)     (o = (__m128i)vextq_u8((uint8x16_t)a, (uint8x16_t)o, s))
+
+#define movdqa128(a, o)         (o = a)
+
+#define movdqa128_memld(a, o)   (o = (__m128i)vld1q_u8((const uint8_t *)(a)))
+
+#define pand128_amemld(m, o)    pand128((__m128i)vld1q_u8((const uint8_t *)(m)), o)
+#define pxor128_amemld(m, o)    pxor128((__m128i)vld1q_u8((const uint8_t *)(m)), o)
+#define paddq128_amemld(m, o)   paddq128((__m128i)vld1q_u8((const uint8_t *)(m)), o)
+#define paddd128_amemld(m, o)   paddd128((__m128i)vld1q_u8((const uint8_t *)(m)), o)
+#define pshufb128_amemld(m, o)  pshufb128((__m128i)vld1q_u8((const uint8_t *)(m)), o)
+
+/* Following operations may have unaligned memory input */
+#define movdqu128_memld(a, o)   (o = (__m128i)vld1q_u8((const uint8_t *)(a)))
+
+/* Following operations may have unaligned memory output */
+#define movdqu128_memst(a, o)   vst1q_u8((uint8_t *)(o), (uint8x16_t)a)
 
 
 #ifdef HAVE_GCC_ATTRIBUTE_OPTIMIZE

@@ -91,6 +91,11 @@ static struct
     { HWF_S390X_MSA_8,         "s390x-msa-8" },
     { HWF_S390X_MSA_9,         "s390x-msa-9" },
     { HWF_S390X_VX,            "s390x-vx" },
+#elif defined(HAVE_CPU_ARCH_RISCV)
+    { HWF_RISCV_IMAFDC,        "riscv-imafdc" },
+    { HWF_RISCV_V,             "riscv-v" },
+    { HWF_RISCV_ZBB,           "riscv-zbb" },
+    { HWF_RISCV_ZBC,           "riscv-zbc" },
 #endif
   };
 
@@ -244,6 +249,10 @@ _gcry_detect_hw_features (void)
 #elif defined (HAVE_CPU_ARCH_S390X)
   {
     hw_features = _gcry_hwf_detect_s390x ();
+  }
+#elif defined (HAVE_CPU_ARCH_RISCV)
+  {
+    hw_features = _gcry_hwf_detect_riscv ();
   }
 #endif
   hw_features &= ~disabled_hw_features;

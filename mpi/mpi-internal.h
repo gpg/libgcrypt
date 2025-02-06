@@ -230,8 +230,8 @@ void _gcry_mpih_mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp,
 						   mpi_size_t size);
 mpi_limb_t _gcry_mpih_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
 					 mpi_ptr_t vp, mpi_size_t vsize);
-mpi_limb_t _gcry_mpih_mul_sec( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
-					 mpi_ptr_t vp, mpi_size_t vsize);
+mpi_limb_t _gcry_mpih_mul_lli(mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
+                              mpi_ptr_t vp, mpi_size_t vsize);
 void _gcry_mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size );
 void _gcry_mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size,
 						mpi_ptr_t tspace);
@@ -262,7 +262,7 @@ mpi_limb_t _gcry_mpih_lshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 mpi_limb_t _gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 							   unsigned cnt);
 /*-- mpih-pow.c --*/
-void _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp,
+void _gcry_mpih_powm_lli (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp,
                           mpi_size_t n, mpi_ptr_t ep, mpi_size_t en);
 
 /*-- mpih-const-time.c --*/
@@ -271,7 +271,7 @@ void _gcry_mpih_powm_sec (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp,
 #define mpih_sub_n_cond(w,u,v,s,o) _gcry_mpih_sub_n_cond ((w),(u),(v),(s),(o))
 #define mpih_swap_cond(u,v,s,o) _gcry_mpih_swap_cond ((u),(v),(s),(o))
 #define mpih_abs_cond(w,u,s,o) _gcry_mpih_abs_cond ((w),(u),(s),(o))
-#define mpih_mod(v,vs,u,us) _gcry_mpih_mod ((v),(vs),(u),(us))
+#define mpih_mod_lli(v,vs,u,us) _gcry_mpih_mod_lli ((v),(vs),(u),(us))
 
 DEFINE_CT_TYPE_GEN_MASK(limb, mpi_limb_t)
 DEFINE_CT_TYPE_GEN_INV_MASK(limb, mpi_limb_t)
@@ -307,8 +307,8 @@ void _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up,
                           mpi_size_t usize, unsigned long op_enable);
 void _gcry_mpih_table_lookup (mpi_ptr_t rp, const mpi_limb_t *table,
                               mpi_size_t n, mpi_size_t nents, mpi_size_t idx);
-mpi_ptr_t _gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
-                          mpi_ptr_t up, mpi_size_t usize);
+mpi_ptr_t _gcry_mpih_mod_lli (mpi_ptr_t vp, mpi_size_t vsize,
+                              mpi_ptr_t up, mpi_size_t usize);
 int _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v);
 
 

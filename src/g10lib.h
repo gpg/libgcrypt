@@ -274,6 +274,13 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_S390X_MSA_9         (1 << 3)
 #define HWF_S390X_VX            (1 << 4)
 
+#elif defined(HAVE_CPU_ARCH_RISCV)
+
+#define HWF_RISCV_IMAFDC        (1 << 0)
+#define HWF_RISCV_V             (1 << 1)
+#define HWF_RISCV_ZBB           (1 << 2)
+#define HWF_RISCV_ZBC           (1 << 3)
+
 #endif
 
 gpg_err_code_t _gcry_disable_hw_feature (const char *name);

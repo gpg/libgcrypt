@@ -87,11 +87,12 @@ EXTRA_libcipher_la_SOURCES = \
 	cast5.c cast5-amd64.S cast5-arm.S \
 	chacha20.c chacha20-amd64-ssse3.S chacha20-amd64-avx2.S \
 	chacha20-amd64-avx512.S chacha20-armv7-neon.S chacha20-aarch64.S \
-	chacha20-ppc.c chacha20-s390x.S \
-	chacha20-p10le-8x.s \
+	chacha20-ppc.c chacha20-s390x.S chacha20-p10le-8x.s \
+	chacha20-riscv-v.c \
 	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c \
 	cipher-gcm-aarch64-simd.c cipher-gcm-armv7-neon.S \
 	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
+	cipher-gcm-riscv-zbb-zbc.c \
 	crc.c crc-intel-pclmul.c crc-armv8-ce.c \
 	crc-armv8-aarch64-ce.S \
 	crc-ppc.c \
@@ -119,7 +120,8 @@ EXTRA_libcipher_la_SOURCES = \
 	rijndael-p10le.c rijndael-gcm-p10le.s              \
 	rijndael-ppc-common.h rijndael-ppc-functions.h     \
 	rijndael-s390x.c                                   \
-	rijndael-vp-aarch64.c rijndael-vp-simd128.h        \
+	rijndael-vp-aarch64.c rijndael-vp-riscv.c          \
+	rijndael-vp-simd128.h                              \
 	rmd160.c \
 	rsa.c \
 	salsa20.c salsa20-amd64.S salsa20-armv7-neon.S \
@@ -349,3 +351,22 @@ serpent-avx512-x86.o: $(srcdir)/serpent-avx512-x86.c Makefile
 
 serpent-avx512-x86.lo: $(srcdir)/serpent-avx512-x86.c Makefile
 	`echo $(LTCOMPILE) $(avx512f_cflags) -c $< | $(instrumentation_munging) `
+
+if ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS
+# Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
+riscv_vector_cflags = -O2 -march=rv64imafdcv -mstrict-align
+else
+riscv_vector_cflags =
+endif
+
+chacha20-riscv-v.o: $(srcdir)/chacha20-riscv-v.c Makefile
+	`echo $(COMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
+
+chacha20-riscv-v.lo: $(srcdir)/chacha20-riscv-v.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
+
+rijndael-vp-riscv.o: $(srcdir)/rijndael-vp-riscv.c Makefile
+	`echo $(COMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
+
+rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `

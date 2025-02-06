@@ -552,7 +552,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
 	  MPN_COPY (bp1, bp, bsize);
 	}
 
-      _gcry_mpih_powm_sec (rp, bp1?bp1:bp, mod->d, msize, ep, esize);
+      _gcry_mpih_powm_lli (rp, bp1?bp1:bp, mod->d, msize, ep, esize);
       if (bp1)
 	_gcry_mpi_free_limb_space (bp1, msize);
 

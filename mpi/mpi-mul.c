@@ -184,7 +184,7 @@ _gcry_mpi_mul (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 	wsize = 0;
     else {
 	if (usecure || vsecure)
-	    cy = _gcry_mpih_mul_sec( wp, up, usize, vp, vsize );
+	    cy = _gcry_mpih_mul_lli( wp, up, usize, vp, vsize );
 	else
 	    cy = _gcry_mpih_mul( wp, up, usize, vp, vsize );
 	wsize -= cy? 0:1;

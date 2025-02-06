@@ -113,6 +113,12 @@
 # endif /* USE_S390X_VX */
 #endif
 
+/* USE_RISCV_V indicates whether to enable RISC-V vector extension code. */
+#undef USE_RISCV_V
+#if defined (__riscv) && defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS)
+# define USE_RISCV_V 1
+#endif
+
 /* Assembly implementations use SystemV ABI, ABI conversion and additional
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
@@ -137,6 +143,7 @@ typedef struct CHACHA20_context_s
   unsigned int use_p9:1;
   unsigned int use_p10:1;
   unsigned int use_s390x:1;
+  unsigned int use_riscv_v:1;
 } CHACHA20_context_t;
 
 
@@ -258,6 +265,16 @@ unsigned int _gcry_chacha20_poly1305_aarch64_blocks4(
 		void *poly1305_state, const byte *poly1305_src);
 
 #endif /* USE_AARCH64_SIMD */
+
+#ifdef USE_RISCV_V
+
+unsigned int _gcry_chacha20_riscv_v_blocks(u32 *state, byte *dst,
+					   const byte *src,
+					   size_t nblks);
+
+unsigned int _gcry_chacha20_riscv_v_check_hw(void);
+
+#endif /* USE_RISCV_V */
 
 
 static const char *selftest (void);
@@ -393,6 +410,13 @@ chacha20_blocks (CHACHA20_context_t *ctx, byte *dst, const byte *src,
   if (ctx->use_s390x)
     {
       return _gcry_chacha20_s390x_vx_blocks4_2_1(ctx->input, dst, src, nblks);
+    }
+#endif
+
+#ifdef USE_RISCV_V
+  if (ctx->use_riscv_v)
+    {
+      return _gcry_chacha20_riscv_v_blocks(ctx->input, dst, src, nblks);
     }
 #endif
 
@@ -537,6 +561,11 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 #endif
 #ifdef USE_S390X_VX
   ctx->use_s390x = (features & HWF_S390X_VX) != 0;
+#endif
+#ifdef USE_RISCV_V
+  ctx->use_riscv_v = (features & HWF_RISCV_IMAFDC)
+		     && (features & HWF_RISCV_V)
+		     && _gcry_chacha20_riscv_v_check_hw();
 #endif
 
   (void)features;

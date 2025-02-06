@@ -57,7 +57,9 @@ libgcrypt_la_SOURCES = \
 	context.c context.h const-time.h const-time.c \
 	ec-context.h
 
-EXTRA_libgcrypt_la_SOURCES = hwf-x86.c hwf-arm.c hwf-ppc.c hwf-s390x.c
+EXTRA_libgcrypt_la_SOURCES = \
+	hwf-x86.c hwf-arm.c hwf-ppc.c hwf-s390x.c hwf-riscv.c
+
 gcrypt_hwf_modules = @GCRYPT_HWF_MODULES@
 
 

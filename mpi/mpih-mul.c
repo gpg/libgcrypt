@@ -528,8 +528,10 @@ _gcry_mpih_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
     return *prod_endp;
 }
 
+
+/* Do same calculation as _gcry_mpih_mul does, but Least Leak Intended.  */
 mpi_limb_t
-_gcry_mpih_mul_sec( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
+_gcry_mpih_mul_lli( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
                     mpi_ptr_t vp, mpi_size_t vsize )
 {
     mpi_limb_t cy;
