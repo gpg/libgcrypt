@@ -25,6 +25,7 @@
 
 #include "g10lib.h"
 #include "mpi.h"
+#include "mpi-internal.h"
 #include "cipher.h"
 #include "pubkey-internal.h"
 
@@ -42,15 +43,21 @@
 void
 _gcry_dsa_modify_k (gcry_mpi_t k, gcry_mpi_t q, int qbits)
 {
-  gcry_mpi_t k1 = mpi_new (qbits+2);
+  mpi_limb_t cy;
+  unsigned long once_more;
+  mpi_size_t ksize;
 
-  mpi_resize (k, (qbits+2+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB);
-  k->nlimbs = k->alloced;
-  mpi_add (k, k, q);
-  mpi_add (k1, k, q);
-  mpi_set_cond (k, k1, (1 - mpi_test_bit (k, qbits)));
+  ksize = (qbits+1+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB;
+  mpi_resize (k, ksize);
+  k->nlimbs = ksize;
 
-  mpi_free (k1);
+  cy = _gcry_mpih_add_lli (k->d, k->d, q->d, q->nlimbs);
+  if (k->nlimbs > q->nlimbs)
+      k->d[k->nlimbs-1] = cy;
+  once_more = 1 - mpi_test_bit (k, qbits);
+  _gcry_mpih_add_n_cond (k->d, k->d, q->d, q->nlimbs, once_more);
+  if (k->nlimbs > q->nlimbs)
+      k->d[k->nlimbs-1] = 1;
 }
 
 /*
