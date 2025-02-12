@@ -34,15 +34,18 @@
 #endif
 
 /*
-  Compute -n^(-1) mod 2^BITS_PER_MPI_LIMB
-
-  For n^(-1) mod 2^N:
-
-  An Improved Integer Modular Multiplicative Inverse (modulo 2w)
-  Jeffrey Hurchalla
-
-  https://arxiv.org/abs/2204.04342
-*/
+ * Compute -N^(-1) mod 2^BITS_PER_MPI_LIMB
+ *
+ *  (1) Compute N^(-1) mod 2^BITS_PER_MPI_LIMB
+ *  (2) Then, negate the value of (1)
+ *
+ * For computing N^(-1) mod (power of two), see:
+ *
+ *   Jeffrey Hurchalla
+ *   An Improved Integer Modular Multiplicative Inverse (modulo 2^w)
+ *   https://arxiv.org/abs/2204.04342
+ *
+ */
 static mpi_limb_t
 compute_minv (mpi_limb_t n)
 {
@@ -88,7 +91,13 @@ ct_mpih_add_1 (mpi_ptr_t s1_ptr, mpi_size_t s1_size, mpi_limb_t s2_limb)
   return cy;
 }
 
-/* R := T * R^(-1) mod M (where R is represented by MINV)  */
+/*
+ * Compute T * R^(-1) mod M (where R is represented by MINV)
+ *
+ * Reference:
+ *   Handbook of Applied Cryptography
+ *       Algorithm 14.82: Montgomery reduction
+ */
 static void
 mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
             mpi_ptr_t mp, mpi_size_t n, mpi_limb_t minv)
@@ -111,8 +120,16 @@ mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
                        & mpih_limb_is_zero (cy1));
 }
 
-/* R := X * Y mod M
-   RP should have 2*N limbs */
+/*
+ * Compute X * Y * R^(-1) mod M (where R is represented by MINV)
+ *
+ * Reference:
+ *   Handbook of Applied Cryptography
+ *       Algorithm 14.86: Montgomery multiplication
+ *
+ * RP should have space of 2*N limbs.
+ *
+ */
 static void
 mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
           mpi_size_t n, mpi_limb_t minv, mpi_ptr_t scratch_2n)
@@ -121,6 +138,7 @@ mont_mul (mpi_ptr_t rp, mpi_ptr_t xp, mpi_ptr_t yp, mpi_ptr_t mp,
   mont_reduc (rp, scratch_2n, mp, n, minv);
 }
 
+/* Determine the window size for computing exponentiation.  */
 static int
 window_size (mpi_size_t esize)
 {
@@ -152,6 +170,21 @@ window_size (mpi_size_t esize)
   return W;
 }
 
+/*
+ * Compute X ^ E mod M
+ *
+ * where X is in BP, M is in MP.
+ * The size of limbs for BP and MP are N.
+ * E is in EP, size of limbs EN.
+ *
+ * Result will be in RP with size N.
+ *
+ * Reference:
+ *   Handbook of Applied Cryptography
+ *       Algorithm 14.82: Left-to-right k-ary exponentiation
+ *       Algorithm 14.94: Montgomery exponentiation
+ *
+ */
 void
 _gcry_mpih_powm_lli (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
                      mpi_ptr_t ep, mpi_size_t en)
