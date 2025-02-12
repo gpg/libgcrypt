@@ -34,12 +34,30 @@
 #include "longlong.h"
 
 
+#ifndef USE_ALGORITHM_LLI_EXPONENTIATION
+/*
+ * When you don't need least-leak implementation, please add compilation option
+ * -DUSE_ALGORITHM_LLI_EXPONENTIATION=0
+ */
+#define USE_ALGORITHM_LLI_EXPONENTIATION 1
+#endif
+
 /*
  * When you need old implementation, please add compilation option
  * -DUSE_ALGORITHM_SIMPLE_EXPONENTIATION
  * or expose this line:
 #define USE_ALGORITHM_SIMPLE_EXPONENTIATION 1
  */
+
+const char *
+_gcry_mpi_get_powm_config (void)
+{
+#if USE_ALGORITHM_LLI_EXPONENTIATION
+  return "fixed-window";
+#else
+  return "sliding-window";
+#endif
+}
 
 #if defined(USE_ALGORITHM_SIMPLE_EXPONENTIATION)
 /****************
@@ -541,7 +559,8 @@ _gcry_mpi_powm (gcry_mpi_t res,
       rp = res->d;
     }
 
-  if (esec || bsec || msec)
+#if USE_ALGORITHM_LLI_EXPONENTIATION
+  if ((esec || bsec || msec) && (mod->d[0] & 1))
     {
       mpi_ptr_t bp1 = NULL;
 
@@ -565,6 +584,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
       res->sign = rsign;
       goto leave;
     }
+#endif
 
   /* Main processing.  */
   {

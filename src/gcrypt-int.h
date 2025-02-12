@@ -474,6 +474,7 @@ void _gcry_mpi_mul_2exp (gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt);
 void _gcry_mpi_div (gcry_mpi_t q, gcry_mpi_t r,
                    gcry_mpi_t dividend, gcry_mpi_t divisor, int round);
 void _gcry_mpi_mod (gcry_mpi_t r, gcry_mpi_t dividend, gcry_mpi_t divisor);
+const char *_gcry_mpi_get_powm_config (void);
 void _gcry_mpi_powm (gcry_mpi_t w,
                     const gcry_mpi_t b, const gcry_mpi_t e,
                     const gcry_mpi_t m);

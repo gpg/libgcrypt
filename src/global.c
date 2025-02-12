@@ -378,6 +378,9 @@ print_config (const char *what, gpgrt_stream_t fp)
   if (!what || !strcmp (what, "mpi-asm"))
     gpgrt_fprintf (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
 
+  if (!what || !strcmp (what, "mpi-pow"))
+    gpgrt_fprintf (fp, "mpi-pow:%s\n", _gcry_mpi_get_powm_config ());
+
   if (!what || !strcmp (what, "hwflist"))
     {
       unsigned int hwfeatures, afeature;
