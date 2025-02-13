@@ -739,6 +739,99 @@ test_addm_subm_mulm (void)
 }
 
 
+static int
+test_invm_cmpui(void)
+{
+  unsigned char a[2][9] = {
+    /* _gcry_mpih_cmp_ui, is_all_zero == 0 */
+    { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1, },
+    /* _gcry_mpih_cmp_ui, is_all_zero == 1 */
+    { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x2, }
+  };
+  unsigned char b[2][9] = {
+    { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1, },
+    { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1, }
+  };
+  int expect_ret[2] = { 0, 1 };
+  gcry_mpi_t A;
+  gcry_mpi_t B;
+  gcry_mpi_t C;
+  int i;
+
+  for (i = 0; i < DIM(a); i++)
+    {
+      gcry_mpi_scan(&A, GCRYMPI_FMT_USG, a[i], sizeof(a[i]), NULL);
+      gcry_mpi_scan(&B, GCRYMPI_FMT_USG, b[i], sizeof(b[i]), NULL);
+      C = gcry_mpi_new(0);
+
+      if (gcry_mpi_invm(C, A, B) != expect_ret[i])
+	{
+	  die ("test_invm_cmpui failed i=%d at %d\n", i, __LINE__);
+	}
+
+      gcry_mpi_release(A);
+      gcry_mpi_release(B);
+      gcry_mpi_release(C);
+    }
+
+  return 1;
+}
+
+
+static int
+test_invm(void)
+{
+  const char *a[2] = {
+    "12cf3a8ca3d97bea2f080362600cee355",
+    "36fb5bdb5daa9864113ad8a49a41722fc7003a40b02a13daca6997859c2d8534192" \
+      "ff6c02447"
+  };
+  const char *b[2] = {
+    "1c3fddf62aee0be2f6dc2ef8471f1be2e",
+    "25c88352cfa171fc728503df037c355a6d5588b22e3510b08f10848ad7c0980b400"
+  };
+  const char *expected_c[2] = {
+    "01339462644931FD624528EA6B3FB1F985",
+    NULL
+  };
+  gcry_mpi_t A;
+  gcry_mpi_t B;
+  gcry_mpi_t C;
+  char *pc;
+  int i;
+
+  for (i = 0; i < DIM(a); i++)
+    {
+      int expected_inverse = expected_c[i] != NULL;
+
+      gcry_mpi_scan(&A, GCRYMPI_FMT_HEX, a[i], 0, NULL);
+      gcry_mpi_scan(&B, GCRYMPI_FMT_HEX, b[i], 0, NULL);
+      C = gcry_mpi_new(0);
+
+      if (gcry_mpi_invm(C, A, B) != expected_inverse)
+	{
+	  die ("test_invm failed i=%d at line %d\n", i, __LINE__);
+	}
+
+      if (expected_inverse)
+	{
+	  gcry_mpi_aprint(GCRYMPI_FMT_HEX, (unsigned char **)&pc, NULL, C);
+	  if (strcmp (pc, expected_c[i]) != 0)
+	    fail ("test_invm failed i=%d at line %d", i, __LINE__);
+	  gcry_free(pc);
+	}
+
+      gcry_mpi_release(A);
+      gcry_mpi_release(B);
+      gcry_mpi_release(C);
+    }
+
+  test_invm_cmpui();
+
+  return 1;
+}
+
+
 int
 main (int argc, char* argv[])
 {
@@ -763,6 +856,7 @@ main (int argc, char* argv[])
   test_mul ();
   test_powm ();
   test_addm_subm_mulm ();
+  test_invm ();
 
   return !!error_count;
 }

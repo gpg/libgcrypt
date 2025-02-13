@@ -232,5 +232,5 @@ _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v)
   for (i = 1; i < usize; i++)
     is_all_zero &= ct_ulong_gen_mask(mpih_limb_is_zero (up[i]));
 
-  return cmp0 & (int)is_all_zero;
+  return (int)((cmp0 & is_all_zero) | (~is_all_zero & 1));
 }
