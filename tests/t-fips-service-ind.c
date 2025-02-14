@@ -767,7 +767,7 @@ check_cipher_o_s_e_d_c (int reject)
 
           err = gcry_cipher_set_decryption_tag (h, tag, 16);
           if (err)
-            fail ("gcry_cipher_set_decryption_tag %d failed: %s\n", tvidx<
+            fail ("gcry_cipher_set_decryption_tag %d failed: %s\n", tvidx,
                    gpg_strerror (err));
       }
 
@@ -816,7 +816,7 @@ check_mac_o_w_r_c (int reject)
 #if USE_SHA1
     { GCRY_MAC_HMAC_SHA1, "hmac input abc", 14, "hmac key input", 14,
       "\xc9\x62\x9d\x16\x0f\xc2\xc4\xcd\x38\xac\x3a\x00\xdc\x29\x61\x03"
-      "\x69\x50\xd7\x3a" },
+      "\x69\x50\xd7\x3a", 1 },
 #endif
     { GCRY_MAC_HMAC_SHA256, "hmac input abc", 14, "hmac key input", 14,
       "\x6a\xda\x4d\xd5\xf3\xa7\x32\x9d\xd2\x55\xc0\x7f\xe6\x0a\x93\xb8"
@@ -973,7 +973,7 @@ check_md_o_w_r_c (int reject)
 #if USE_SHA1
     { GCRY_MD_SHA1, "abc", 3,
       "\xA9\x99\x3E\x36\x47\x06\x81\x6A\xBA\x3E"
-      "\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D" },
+      "\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D", 1 },
 #endif
     { GCRY_MD_SHA256, "abc", 3,
       "\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23"
@@ -1049,7 +1049,6 @@ check_md_o_w_r_c (int reject)
                 tvidx);
           continue;
         }
-
       if (in_fips_mode && !tv[tvidx].expect_failure && ec)
         {
           /* Success with the FIPS service indicator == 0 expected, but != 0.  */
@@ -1099,7 +1098,7 @@ check_hash_buffer (void)
 #if USE_SHA1
     { GCRY_MD_SHA1, "abc", 3,
       "\xA9\x99\x3E\x36\x47\x06\x81\x6A\xBA\x3E"
-      "\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D" },
+      "\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D", 1 },
 #endif
     { GCRY_MD_SHA256, "abc", 3,
       "\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23"
@@ -1208,7 +1207,7 @@ check_hash_buffers (void)
     { GCRY_MD_SHA1, "abc", 3,
       "key", 3,
       "\x4f\xd0\xb2\x15\x27\x6e\xf1\x2f\x2b\x3e"
-      "\x4c\x8e\xca\xc2\x81\x14\x98\xb6\x56\xfc" },
+      "\x4c\x8e\xca\xc2\x81\x14\x98\xb6\x56\xfc", 1 },
 #endif
     { GCRY_MD_SHA256, "abc", 3,
       "key", 3,
@@ -1340,7 +1339,7 @@ check_kdf_derive (void)
       "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
       "\xd8\x36\x62\xc0\xe4\x4a\x8b\x29\x1a\x96"
       "\x4c\xf2\xf0\x70\x38",
-      0
+      1 /* not-compliant because subalgo is not the one of approved */
     },
     {
       "pleaseletmein", 13,
@@ -1356,45 +1355,45 @@ check_kdf_derive (void)
     },
     {
       "passwor", 7,
-      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA256,
       "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
       4096,
       25,
-      "\xf4\x93\xee\x2b\xbf\x44\x0b\x9e\x64\x53"
-      "\xc2\xb3\x87\xdc\x73\xf8\xfd\xe6\x97\xda"
-      "\xb8\x24\xa0\x26\x50",
+      "\x2d\x72\xa9\xe5\x4e\x2f\x37\x6e\xe5\xe4"
+      "\xf5\x55\x76\xb5\xaa\x49\x73\x01\x97\x1c"
+      "\xad\x3a\x7c\xc4\xde",
       1 /* not-compliant because passphrase len is too small */
     },
     {
       "passwordPASSWORDpassword", 24,
-      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA256,
       "saltSALTsaltSAL", 15,
       4096,
       25,
-      "\x14\x05\xa4\x2a\xf4\xa8\x12\x14\x7b\x65"
-      "\x8f\xaa\xf0\x7f\x25\xe5\x0f\x0b\x2b\xb7"
-      "\xcf\x8d\x29\x23\x4b",
+      "\xf7\x55\xdd\x3c\x5e\xfb\x23\x06\xa7\x85"
+      "\x94\xa7\x31\x12\x45\xcf\x5a\x4b\xdc\x09"
+      "\xee\x65\x4b\x50\x3f",
       1 /* not-compliant because salt len is too small */
     },
     {
       "passwordPASSWORDpassword", 24,
-      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA256,
       "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
       999,
       25,
-      "\xac\xf8\xb4\x67\x41\xc7\xf3\xd1\xa0\xc0"
-      "\x08\xbe\x9b\x23\x96\x78\xbd\x93\xda\x4a"
-      "\x30\xd4\xfb\xf0\x33",
+      "\x09\x3e\x1a\xd8\x63\x30\x71\x9c\x17\xcf"
+      "\xb0\x53\x3e\x1f\xc8\x51\x29\x71\x54\x28"
+      "\x5d\xf7\x8e\x41\xaa",
       1 /* not-compliant because too few iterations */
     },
     {
       "passwordPASSWORDpassword", 24,
-      GCRY_KDF_PBKDF2, GCRY_MD_SHA1,
+      GCRY_KDF_PBKDF2, GCRY_MD_SHA256,
       "saltSALTsaltSALTsaltSALTsaltSALTsalt", 36,
       4096,
       13,
-      "\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8"
-      "\xd8\x36\x62",
+      "\x34\x8c\x89\xdb\xcb\xd3\x2b\x2f\x32\xd8"
+      "\x14\xb8\x11",
       1 /* not-compliant because key size too small */
     },
     {
@@ -1540,6 +1539,7 @@ main (int argc, char **argv)
 
   xgcry_control ((GCRYCTL_FIPS_REJECT_NON_FIPS,
                   (GCRY_FIPS_FLAG_REJECT_MD_MD5
+                   | GCRY_FIPS_FLAG_REJECT_MD_SHA1
                    | GCRY_FIPS_FLAG_REJECT_CIPHER_MODE
                    | GCRY_FIPS_FLAG_REJECT_PK_MD
                    | GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2

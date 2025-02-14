@@ -238,6 +238,15 @@
         compiling using gcc (e.g. version 4.1.2) and the option -O3;
         using -O2 solves the problem.
 
+      * i686-pc-linux-gnu with gcc 4.1
+
+        There are reports on linking problems with CFI instructions.
+        Disable the use of CFI with
+
+         ./configure gcry_cv_gcc_asm_cfi_directives=no
+
+
+
 
     License
     -------

@@ -245,20 +245,15 @@ _gcry_mpih_mod_lli (mpi_ptr_t vp, mpi_size_t vsize,
 int
 _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v)
 {
-  int is_all_zero = 1;
+  unsigned long is_all_zero = ct_ulong_gen_mask(1);
+  int cmp0;
   mpi_size_t i;
 
-  for (i = 1; i < usize; i++)
-    is_all_zero &= mpih_limb_is_zero (up[i]);
+  cmp0 = -mpih_ct_limb_less_than (up[0], v);
+  cmp0 |= mpih_ct_limb_greater_than (up[0], v);
 
-  if (is_all_zero)
-    {
-      if (up[0] < v)
-        return -1;
-      else if (up[0] > v)
-        return 1;
-      else
-        return 0;
-    }
-  return 1;
+  for (i = 1; i < usize; i++)
+    is_all_zero &= ct_ulong_gen_mask(mpih_limb_is_zero (up[i]));
+
+  return (int)((cmp0 & is_all_zero) | (~is_all_zero & 1));
 }
