@@ -197,10 +197,9 @@ _gcry_mpih_table_lookup (mpi_ptr_t rp, const mpi_limb_t *table,
 
   for (k = 0; k < nents; k++)
     {
-      unsigned long idx_neq = ((-(unsigned long)(idx ^ k))
-                               >> (sizeof (unsigned long)*8 - 1));
+      unsigned long idx_neq_k = ct_is_not_zero (idx ^ k);
       for (i = 0; i < n; i++)
-        rp[i] = ct_limb_select (rp[i], tp[i], idx_neq);
+        rp[i] = ct_limb_select (rp[i], tp[i], idx_neq_k);
       tp += n;
     }
 }
