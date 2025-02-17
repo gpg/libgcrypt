@@ -257,3 +257,27 @@ _gcry_mpih_cmp_lli (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
 
   return (int)(res_gt - res_lt); /* return 0 if U==V, 1 if U>V, -1 if U<V */
 }
+
+/*
+ *  W = U + V
+ */
+mpi_limb_t
+_gcry_mpih_add_lli (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize)
+{
+  mpi_size_t i;
+  mpi_limb_t cy;
+
+  cy = 0;
+  for (i = 0; i < usize; i++)
+    {
+      mpi_limb_t u = up[i];
+      mpi_limb_t v = vp[i];
+      mpi_limb_t w;
+
+      add_ssaaaa (cy, w, 0, u, 0, cy);
+      add_ssaaaa (cy, w, cy, w, 0, v);
+      wp[i] = w;
+    }
+
+  return cy;
+}
