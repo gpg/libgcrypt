@@ -112,13 +112,13 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
           mpi_clear_bit (k, nbits-1);
 	}
 
-      if (!(mpi_cmp (k, q) < 0))    /* check: k < q */
+      if (!(_gcry_mpih_cmp_lli (k->d, q->d, k->nlimbs) < 0))    /* check: k < q */
         {
           if (DBG_CIPHER)
             log_debug ("\tk too large - again\n");
           continue; /* no  */
         }
-      if (!(mpi_cmp_ui (k, 0) > 0)) /* check: k > 0 */
+      if (!(_gcry_mpih_cmp_ui (k->d, k->nlimbs, 0) > 0)) /* check: k > 0 */
         {
           if (DBG_CIPHER)
             log_debug ("\tk is zero - again\n");
@@ -330,7 +330,8 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
     }
 
   /* Check: k < q and k > 1 */
-  if (!(mpi_cmp (k, dsa_q) < 0 && mpi_cmp_ui (k, 0) > 0))
+  if (!(_gcry_mpih_cmp_lli (k->d, dsa_q->d, k->nlimbs) < 0
+        && _gcry_mpih_cmp_ui (k->d, k->nlimbs, 0) > 0))
     {
       /* K = HMAC_K(V || 0x00) */
       rc = _gcry_md_setkey (hd, K, hlen);
