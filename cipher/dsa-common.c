@@ -320,12 +320,14 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
 
   /* k = bits2int (T) */
   mpi_free (k);
-  k = NULL;
-  rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, t, (tbits+7)/8, NULL);
-  if (rc)
-    goto leave;
-  if (tbits > qbits)
-    mpi_rshift (k, k, tbits - qbits);
+  k = mpi_alloc_secure ((qbits+7)/8);
+  _gcry_mpi_set_buffer (k, t, (qbits+7)/8, 0);
+  if (qbits % 8)
+    {
+      unsigned int nbits = 8 - (qbits % 8);
+
+      _gcry_mpih_rshift (k->d, k->d, k->nlimbs, nbits);
+    }
 
   /* Check: k < q and k > 1 */
   if (!(mpi_cmp (k, dsa_q) < 0 && mpi_cmp_ui (k, 0) > 0))
