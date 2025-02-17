@@ -304,7 +304,7 @@ void _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up,
 mpi_ptr_t _gcry_mpih_mod_lli (mpi_ptr_t vp, mpi_size_t vsize,
                               mpi_ptr_t up, mpi_size_t usize);
 int _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v);
-
+int _gcry_mpih_cmp_lli ( mpi_ptr_t op1_ptr, mpi_ptr_t op2_ptr, mpi_size_t size );
 
 /* Define stuff for longlong.h.  */
 #define W_TYPE_SIZE BITS_PER_MPI_LIMB

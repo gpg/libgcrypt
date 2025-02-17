@@ -234,3 +234,26 @@ _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v)
 
   return (int)((cmp0 & is_all_zero) | (~is_all_zero & 1));
 }
+
+/* Do same calculation as _gcry_mpih_cmp does, Least Leak Intended.
+ * Return 1 if U > V, 0 if they are equal, and -1 if U < V.  */
+int
+_gcry_mpih_cmp_lli (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
+{
+  mpi_size_t i;
+  mpi_limb_t res_gt = 0;
+  mpi_limb_t res_lt = 0;
+
+  for (i = 0; i < size ; i++)
+    {
+      mpi_limb_t gt, lt, eq, neq;
+      gt = mpih_ct_limb_greater_than (up[i], vp[i]);
+      lt = mpih_ct_limb_less_than (up[i], vp[i]);
+      neq = ct_limb_gen_mask (gt | lt);
+      eq = ct_limb_gen_inv_mask (gt | lt);
+      res_gt = (eq & res_gt) | (neq & gt);
+      res_lt = (eq & res_lt) | (neq & lt);
+    }
+
+  return (int)(res_gt - res_lt); /* return 0 if U==V, 1 if U>V, -1 if U<V */
+}
