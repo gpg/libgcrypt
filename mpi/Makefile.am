@@ -172,7 +172,7 @@ libmpi_la_SOURCES = longlong.h	   \
 	      mpi-scan.c     \
 	      mpicoder.c     \
 	      mpih-div.c     \
-	      mpih-mul.c     \
+	      mpih-mul.c mpih-pow.c \
 	      mpih-const-time.c \
 	      mpiutil.c         \
               ec.c ec-internal.h ec-ed25519.c ec-nist.c ec-inline.h \
