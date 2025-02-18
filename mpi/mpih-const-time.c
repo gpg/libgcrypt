@@ -184,28 +184,6 @@ _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 
 
 /*
- *  Lookup an MPI value from TABLE at IDX, and put into RP.
- *  The size of the MPI value is N limbs.
- *  The Table has NENTS entries.
- */
-void
-_gcry_mpih_table_lookup (mpi_ptr_t rp, const mpi_limb_t *table,
-                         mpi_size_t n, mpi_size_t nents, mpi_size_t idx)
-{
-  mpi_size_t i, k;
-  const mpi_limb_t *tp = table;
-
-  for (k = 0; k < nents; k++)
-    {
-      unsigned long idx_neq_k = ct_is_not_zero (idx ^ k);
-      for (i = 0; i < n; i++)
-        rp[i] = ct_limb_select (rp[i], tp[i], idx_neq_k);
-      tp += n;
-    }
-}
-
-
-/*
  * Allocating memory for W,
  * compute W = V % U, then return W
  */
@@ -255,4 +233,73 @@ _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v)
     is_all_zero &= ct_ulong_gen_mask(mpih_limb_is_zero (up[i]));
 
   return (int)((cmp0 & is_all_zero) | (~is_all_zero & 1));
+}
+
+/* Do same calculation as _gcry_mpih_cmp does, Least Leak Intended.
+ * Return 1 if U > V, 0 if they are equal, and -1 if U < V.  */
+int
+_gcry_mpih_cmp_lli (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
+{
+  mpi_size_t i;
+  mpi_limb_t res_gt = 0;
+  mpi_limb_t res_lt = 0;
+
+  for (i = 0; i < size ; i++)
+    {
+      mpi_limb_t gt, lt, eq, neq;
+      gt = mpih_ct_limb_greater_than (up[i], vp[i]);
+      lt = mpih_ct_limb_less_than (up[i], vp[i]);
+      neq = ct_limb_gen_mask (gt | lt);
+      eq = ct_limb_gen_inv_mask (gt | lt);
+      res_gt = (eq & res_gt) | (neq & gt);
+      res_lt = (eq & res_lt) | (neq & lt);
+    }
+
+  return (int)(res_gt - res_lt); /* return 0 if U==V, 1 if U>V, -1 if U<V */
+}
+
+/*
+ *  W = U + V
+ */
+mpi_limb_t
+_gcry_mpih_add_lli (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize)
+{
+  mpi_size_t i;
+  mpi_limb_t cy;
+
+  cy = 0;
+  for (i = 0; i < usize; i++)
+    {
+      mpi_limb_t u = up[i];
+      mpi_limb_t v = vp[i];
+      mpi_limb_t w;
+
+      add_ssaaaa (cy, w, 0, u, 0, cy);
+      add_ssaaaa (cy, w, cy, w, 0, v);
+      wp[i] = w;
+    }
+
+  return cy;
+}
+
+
+/*
+ *  Lookup an MPI value from TABLE at IDX, and put into RP.
+ *  The size of the MPI value is N limbs.
+ *  TABLE has NENTS entries.
+ */
+void
+_gcry_mpih_lookup_lli (mpi_ptr_t rp, const mpi_limb_t *table,
+                       mpi_size_t n, mpi_size_t nents, mpi_size_t idx)
+{
+  mpi_size_t i, k;
+  const mpi_limb_t *tp = table;
+
+  for (k = 0; k < nents; k++)
+    {
+      unsigned long idx_neq_k = ct_is_not_zero (idx ^ k);
+      for (i = 0; i < n; i++)
+        rp[i] = ct_limb_select (rp[i], tp[i], idx_neq_k);
+      tp += n;
+    }
 }
