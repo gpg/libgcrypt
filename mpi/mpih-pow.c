@@ -269,7 +269,7 @@ _gcry_mpih_powm_lli (mpi_ptr_t rp, mpi_ptr_t bp, mpi_ptr_t mp, mpi_size_t n,
         }
       while (--w);
 
-      _gcry_mpih_table_lookup (temp0, precomp, n, (1 << windowsize), e);
+      _gcry_mpih_lookup_lli (temp0, precomp, n, (1 << windowsize), e);
       mont_mul (a, a, temp0, mp, n, minv, temp2);
     }
   while (i);
