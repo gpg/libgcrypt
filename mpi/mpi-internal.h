@@ -272,6 +272,7 @@ mpi_limb_t _gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 
 DEFINE_CT_TYPE_GEN_MASK(limb, mpi_limb_t)
 DEFINE_CT_TYPE_GEN_INV_MASK(limb, mpi_limb_t)
+DEFINE_CT_TYPE_SELECT_FUNC(limb, mpi_limb_t)
 
 static inline int
 mpih_limb_is_zero (mpi_limb_t a)
@@ -301,6 +302,8 @@ void _gcry_mpih_swap_cond (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize,
                            unsigned long op_enable);
 void _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up,
                           mpi_size_t usize, unsigned long op_enable);
+void _gcry_mpih_lookup_lli (mpi_ptr_t rp, const mpi_limb_t *table,
+                            mpi_size_t n, mpi_size_t nents, mpi_size_t idx);
 mpi_ptr_t _gcry_mpih_mod_lli (mpi_ptr_t vp, mpi_size_t vsize,
                               mpi_ptr_t up, mpi_size_t usize);
 int _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v);

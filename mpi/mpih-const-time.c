@@ -1,5 +1,5 @@
 /* mpih-const-time.c  -  Constant-time MPI helper functions
- *      Copyright (C) 2020  g10 Code GmbH
+ *      Copyright (C) 2020, 2025  g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -280,4 +280,26 @@ _gcry_mpih_add_lli (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t usize)
     }
 
   return cy;
+}
+
+
+/*
+ *  Lookup an MPI value from TABLE at IDX, and put into RP.
+ *  The size of the MPI value is N limbs.
+ *  TABLE has NENTS entries.
+ */
+void
+_gcry_mpih_lookup_lli (mpi_ptr_t rp, const mpi_limb_t *table,
+                       mpi_size_t n, mpi_size_t nents, mpi_size_t idx)
+{
+  mpi_size_t i, k;
+  const mpi_limb_t *tp = table;
+
+  for (k = 0; k < nents; k++)
+    {
+      unsigned long idx_neq_k = ct_is_not_zero (idx ^ k);
+      for (i = 0; i < n; i++)
+        rp[i] = ct_limb_select (rp[i], tp[i], idx_neq_k);
+      tp += n;
+    }
 }
