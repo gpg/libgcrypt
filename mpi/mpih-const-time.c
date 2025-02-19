@@ -260,9 +260,18 @@ _gcry_mpih_cmp_lli (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
 
 
 /*
- *  Lookup an MPI value from TABLE at IDX, and put into RP.
- *  The size of the MPI value is N limbs.
- *  TABLE has NENTS entries.
+ * Lookup an MPI value from TABLE at IDX, and put into RP.
+ * The size of the MPI value is N limbs.
+ * TABLE has NENTS entries.
+ *
+ * Note: This is an implementation which accesses all the entries in
+ * the table, so that it can mitigate cache timing attacks.  For some
+ * architectures, there may be possible optimization:
+ *
+ *  - Access an entry only, with an instruction like
+ *    __mm_stream_load_si128 (it makes sense when table is larger and
+ *    read-only, and no timing difference)
+ *
  */
 void
 _gcry_mpih_lookup_lli (mpi_ptr_t rp, const mpi_limb_t *table,
