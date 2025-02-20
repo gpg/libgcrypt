@@ -25,7 +25,6 @@
 
 #include "g10lib.h"
 #include "mpi.h"
-#include "mpi-internal.h"
 #include "cipher.h"
 #include "pubkey-internal.h"
 

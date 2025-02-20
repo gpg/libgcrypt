@@ -106,10 +106,6 @@ _gcry_mpih_add(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
 }
 
 
-/* Do same calculation as _gcry_mpih_add does (under the condition
-   of RES_PTR == S1_PTR and the size is same), Least Leak Intended.  */
-#define _gcry_mpih_add_lli _gcry_mpih_add_n
-
 
 G10_MPI_INLINE_DECL mpi_limb_t
 _gcry_mpih_sub_1(mpi_ptr_t res_ptr,  mpi_ptr_t s1_ptr,
