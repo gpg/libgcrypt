@@ -759,7 +759,7 @@ static const gcry_md_oid_spec_t oid_spec_sha1[] =
 
 const gcry_md_spec_t _gcry_digest_spec_sha1 =
   {
-    GCRY_MD_SHA1, {0, 0},
+    GCRY_MD_SHA1, {0, 1},
     "SHA1", asn, DIM (asn), oid_spec_sha1, 20,
     sha1_init, _gcry_md_block_write, sha1_final, sha1_read, NULL,
     _gcry_sha1_hash_buffers,

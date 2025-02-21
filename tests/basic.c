@@ -17127,15 +17127,9 @@ verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
   if (rc)
     fail ("gcry_pk_verify failed: %s\n", gpg_strerror (rc));
   rc = gcry_pk_verify (sig, badhash, pkey);
-  if (gcry_err_code (rc) != GPG_ERR_BAD_SIGNATURE) {
-      if (verbose) {
-          show_sexp ("pkey: ", pkey);
-          show_sexp ("hash: ", hash);
-          show_sexp ("badhash: ", badhash);
-      }
+  if (gcry_err_code (rc) != GPG_ERR_BAD_SIGNATURE)
     fail ("gcry_pk_verify failed to detect a bad signature: %s\n",
 	  gpg_strerror (rc));
-  }
 }
 
 
@@ -17150,7 +17144,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
   int dataidx;
   static const char baddata[] =
     "(data\n (flags pkcs1)\n"
-    " (hash sha256 #F972DABC31BBD154CC83A5208BEF1CB087100BDA548A9D704F789AC748694416#))\n";
+    " (hash sha1 #11223344556677889900AABBCCDDEEFF10203041#))\n";
   static const struct
   {
     const char *data;
@@ -17162,7 +17156,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
       { "(data\n (flags pkcs1)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	GCRY_PK_RSA,
-	0, FLAG_NOFIPS },
+	0 },
       { "(data\n (flags pkcs1-raw)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	GCRY_PK_RSA,
@@ -17177,7 +17171,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
 	" (hash oid.1.3.14.3.2.29 "
         "       #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	GCRY_PK_RSA,
-	0, FLAG_NOFIPS },
+	0 },
       {	"(data\n (flags )\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	0,
@@ -17273,7 +17267,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo,
           goto next;
         }
       if (gcry_err_code (rc) != datas[dataidx].expected_rc)
-	fail ("gcry_pk_sign %d failed: %s\n", dataidx, gpg_strerror (rc));
+	fail ("gcry_pk_sign failed: %s\n", gpg_strerror (rc));
 
       if (!rc)
 	verify_one_signature (pkey, hash, badhash, sig);

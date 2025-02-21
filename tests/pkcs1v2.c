@@ -720,14 +720,6 @@ main (int argc, char **argv)
   /* No valuable keys are create, so we can speed up our RNG. */
   xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
 
-  if (in_fips_mode) /* skip tests for now */
-    {
-      if (verbose)
-        fprintf (stderr, "\nAll tests skiped in FIPS mode...\n");
-
-      return 0;
-    }
-
   if (run_oaep)
     check_oaep ();
   if (run_pss)

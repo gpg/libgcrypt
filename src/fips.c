@@ -430,6 +430,7 @@ _gcry_fips_indicator_mac (va_list arg_ptr)
   switch (alg)
     {
     case GCRY_MAC_CMAC_AES:
+    case GCRY_MAC_HMAC_SHA1:
     case GCRY_MAC_HMAC_SHA224:
     case GCRY_MAC_HMAC_SHA256:
     case GCRY_MAC_HMAC_SHA384:
@@ -453,6 +454,7 @@ _gcry_fips_indicator_md (va_list arg_ptr)
 
   switch (alg)
     {
+    case GCRY_MD_SHA1:
     case GCRY_MD_SHA224:
     case GCRY_MD_SHA256:
     case GCRY_MD_SHA384:
@@ -624,6 +626,7 @@ run_digest_selftests (int extended)
 {
   static int algos[] =
     {
+      GCRY_MD_SHA1,
       GCRY_MD_SHA224,
 #ifndef ENABLE_HMAC_BINARY_CHECK
       GCRY_MD_SHA256,
@@ -654,6 +657,7 @@ run_mac_selftests (int extended)
 {
   static int algos[] =
     {
+      GCRY_MAC_HMAC_SHA1,
       GCRY_MAC_HMAC_SHA224,
 #ifndef ENABLE_HMAC_BINARY_CHECK
       GCRY_MAC_HMAC_SHA256,
