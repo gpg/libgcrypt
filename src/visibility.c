@@ -1373,6 +1373,9 @@ gcry_md_info (gcry_md_hd_t h, int what, void *buffer, size_t *nbytes)
 gcry_error_t
 gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_algo_info (algo, what, buffer, nbytes));
 }
 

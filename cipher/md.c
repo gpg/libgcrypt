@@ -436,16 +436,34 @@ _gcry_md_algo_name (int algorithm)
 
 
 static gcry_err_code_t
-check_digest_algo (int algorithm)
+check_digest_algo (int algo)
 {
   const gcry_md_spec_t *spec;
+  int reject = 0;
 
-  spec = spec_from_algo (algorithm);
-  if (spec && !spec->flags.disabled && (spec->flags.fips || !fips_mode ()))
+  spec = spec_from_algo (algo);
+  if (!spec)
+    return GPG_ERR_DIGEST_ALGO;
+
+  if (spec->flags.disabled)
+    return GPG_ERR_DIGEST_ALGO;
+
+  if (!fips_mode ())
     return 0;
 
-  return GPG_ERR_DIGEST_ALGO;
+  if (spec->flags.fips)
+    return 0;
 
+  if (algo == GCRY_MD_MD5)
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+  else
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
+
+  if (reject)
+    return GPG_ERR_DIGEST_ALGO;
+
+  fips_service_indicator_mark_non_compliant ();
+  return 0;
 }
 
 
