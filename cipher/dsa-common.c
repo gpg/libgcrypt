@@ -98,18 +98,7 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
 	}
       _gcry_mpi_set_buffer (k, rndbuf, nbytes, 0);
 
-      /* Make sure we have the requested number of bits.  This code
-         looks a bit funny but it is easy to understand if you
-         consider that mpi_set_highbit clears all higher bits.  We
-         don't have a clear_highbit, thus we first set the high bit
-         and then clear it again.  */
-      if (mpi_test_bit (k, nbits-1))
-        mpi_set_highbit (k, nbits-1);
-      else
-        {
-          mpi_set_highbit (k, nbits-1);
-          mpi_clear_bit (k, nbits-1);
-	}
+      mpi_clear_highbit (k, nbits);
 
       if (!(_gcry_mpih_cmp_lli (k->d, q->d, k->nlimbs) < 0))    /* check: k < q */
         {
