@@ -438,7 +438,7 @@ _gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 {
   mpi_ptr_t ap, xp;
 
-  if (!mpi_cmp_ui (a, 0))
+  if (!_gcry_mpih_cmp_ui (a->d, a->nlimbs, 0))
     return 0; /* Inverse does not exists.  */
   if (!mpi_cmp_ui (n, 1))
     return 0; /* Inverse does not exists.  */
