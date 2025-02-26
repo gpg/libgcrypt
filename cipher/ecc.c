@@ -93,15 +93,40 @@ static const char ecdsa_sample_secret_key_secp256[] =
   /**/  "7903FE1008B8BC99A41AE9E95628BC64F2F1B20C2D7E9F5177A3C294D4462299#)))";
 
 /* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
-static const char ecdsa_sample_data[] =
+static const char rfc6979_ecdsa_sample_data[] =
   "(data (flags rfc6979 prehash)"
   " (hash-algo sha256)"
   " (value 6:sample))";
 
-static const char ecdsa_sample_data_bad[] =
+static const char rfc6979_ecdsa_sample_data_bad[] =
   "(data (flags rfc6979)"
   " (hash sha256 #bf2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e98915"
   /**/           "62113d8a62add1bf#))";
+
+static const char *rfc6979_ecdsa_data_tmpl =
+  "(data (flags rfc6979)"
+  " (hash %s %b))";
+
+/*
+ * Sample data from RFC 6979 section A.2.5, with fixed k,
+ * hash is of message "sample".
+ */
+static const char ecdsa_sample_data[] =
+  "(data (flags raw prehash)"
+  " (label #A6E3C57DD01ABE90086538398355DD4C3B17AA873382B0F24D6129493D8AAD60#)"
+  " (hash-algo sha256)"
+  " (value 6:sample))";
+
+static const char ecdsa_sample_data_bad[] =
+  "(data (flags raw)"
+  " (label #A6E3C57DD01ABE90086538398355DD4C3B17AA873382B0F24D6129493D8AAD60#)"
+  " (hash sha256 #bf2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e98915"
+  /**/           "62113d8a62add1bf#))";
+
+static const char *ecdsa_data_tmpl =
+  "(data (flags raw)"
+  " (label #A6E3C57DD01ABE90086538398355DD4C3B17AA873382B0F24D6129493D8AAD60#)"
+  " (hash %s %b))";
 
 static const char ecdsa_signature_r[] =
   "efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716";
@@ -109,7 +134,6 @@ static const char ecdsa_signature_r[] =
 static const char ecdsa_signature_s[] =
   "f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8";
 
-static const char *ecdsa_data_tmpl = "(data (flags rfc6979) (hash %s %b))";
 /* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
 static const char ecdsa_sample_data_string[] = "sample";
 static const char ecdsa_sample_data_bad_string[] = "sbmple";
@@ -2404,6 +2428,16 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
                      ecdsa_sample_public_key_secp256,
                      ecdsa_sample_data, ecdsa_sample_data_bad,
                      ecdsa_data_tmpl,
+                     ecdsa_sample_data_string, ecdsa_sample_data_bad_string,
+                     ecdsa_signature_r, ecdsa_signature_s);
+  if (r)
+    return r;
+
+  r = selftests_ecc (report, extended, 0,
+                     ecdsa_sample_secret_key_secp256,
+                     ecdsa_sample_public_key_secp256,
+                     rfc6979_ecdsa_sample_data, rfc6979_ecdsa_sample_data_bad,
+                     rfc6979_ecdsa_data_tmpl,
                      ecdsa_sample_data_string, ecdsa_sample_data_bad_string,
                      ecdsa_signature_r, ecdsa_signature_s);
   if (r)
