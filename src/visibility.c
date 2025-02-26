@@ -1085,6 +1085,18 @@ gcry_pk_hash_verify (gcry_sexp_t sigval, const char *data_tmpl, gcry_sexp_t pkey
 gcry_error_t
 gcry_pk_random_override_new (gcry_ctx_t *r_ctx, const unsigned char *p, size_t len)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
+
+  if (fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        return gpg_error (GPG_ERR_INV_OP);
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
   return gpg_error (_gcry_pk_single_data_push (r_ctx, p, len));
 }
 
