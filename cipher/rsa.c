@@ -1501,7 +1501,19 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
      be practically mounted over the network as shown by Brumley and
      Boney in 2003.  */
   if ((ctx.flags & PUBKEY_FLAG_NO_BLINDING))
-    secret (plain, data, &sk);
+    {
+      if (fips_mode ())
+        {
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+            {
+              rc = GPG_ERR_INV_FLAG;
+              goto leave;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
+      secret (plain, data, &sk);
+    }
   else
     secret_blinded (plain, data, &sk, nbits);
 
@@ -1632,8 +1644,22 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   /* Do RSA computation.  */
   sig = mpi_new (0);
+
   if ((ctx.flags & PUBKEY_FLAG_NO_BLINDING))
-    secret (sig, data, &sk);
+    {
+      if (fips_mode ())
+        {
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+            {
+              rc = GPG_ERR_INV_FLAG;
+              goto leave;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
+
+        secret (sig, data, &sk);
+    }
   else
     secret_blinded (sig, data, &sk, nbits);
   if (DBG_CIPHER)
