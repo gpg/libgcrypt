@@ -961,7 +961,16 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     log_mpidump ("ecc_sign   data", data);
 
   if (ctx.label)
-    rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, ctx.label, ctx.labellen, NULL);
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_ECC_K))
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+      rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, ctx.label, ctx.labellen, NULL);
+    }
   if (rc)
     goto leave;
 
@@ -1118,6 +1127,21 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
   if (rc)
     goto leave;
+
+  if (ctx.label)
+    {
+      if (fips_mode ())
+        {
+          if(fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_ECC_K))
+            {
+              rc = GPG_ERR_INV_DATA;
+              goto leave;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
+    }
+
   if (DBG_CIPHER)
     log_mpidump ("ecc_verify data", data);
 

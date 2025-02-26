@@ -728,7 +728,7 @@ check_pk_hash_sign_verify (void)
       "ce4014c68811f9a21a1fdb2c0e6113e06db7ca93b7404e78dc7ccd5ca89a4ca9#)))",
       "(data(flags raw)(hash %s %b)(label %b))",
       "94a1bbb14b906a61a280f245f9e93c7f3b4a6247824f5d33b9670787642a68de",
-      0, 0
+      1, 0,
     }
   };
   int tvidx;
@@ -827,7 +827,7 @@ check_pk_hash_sign_verify (void)
       if (ec == GPG_ERR_INV_OP)
         {
           /* libgcrypt is old, no support of the FIPS service indicator.  */
-          fail ("gcry_pk_hash test %d unexpectedly failed to check the FIPS service indicator.\n",
+          fail ("gcry_pk_hash_sign test %d unexpectedly failed to check the FIPS service indicator.\n",
                 tvidx);
           goto next;
         }
@@ -835,7 +835,7 @@ check_pk_hash_sign_verify (void)
       if (in_fips_mode && !tv[tvidx].expect_failure && ec)
         {
           /* Success with the FIPS service indicator == 0 expected, but != 0.  */
-          fail ("gcry_pk_hash test %d unexpectedly set the indicator in FIPS mode.\n",
+          fail ("gcry_pk_hash_sign test %d unexpectedly set the indicator in FIPS mode.\n",
                 tvidx);
           goto next;
         }
@@ -859,7 +859,7 @@ check_pk_hash_sign_verify (void)
       if (ec == GPG_ERR_INV_OP)
         {
           /* libgcrypt is old, no support of the FIPS service indicator.  */
-          fail ("gcry_pk_hash test %d unexpectedly failed to check the FIPS service indicator.\n",
+          fail ("gcry_pk_hash_verify test %d unexpectedly failed to check the FIPS service indicator.\n",
                 tvidx);
           goto next;
         }
@@ -867,7 +867,7 @@ check_pk_hash_sign_verify (void)
       if (in_fips_mode && !tv[tvidx].expect_failure && ec)
         {
           /* Success with the FIPS service indicator == 0 expected, but != 0.  */
-          fail ("gcry_pk_hash test %d unexpectedly set the indicator in FIPS mode.\n",
+          fail ("gcry_pk_hash_verify test %d unexpectedly set the indicator in FIPS mode.\n",
                 tvidx);
           goto next;
         }
@@ -1834,6 +1834,7 @@ main (int argc, char **argv)
                    | GCRY_FIPS_FLAG_REJECT_CIPHER_MODE
                    | GCRY_FIPS_FLAG_REJECT_PK_MD
                    | GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2
+                   | GCRY_FIPS_FLAG_REJECT_PK_ECC_K
                    | GCRY_FIPS_FLAG_REJECT_COMPAT110)));
 
   check_md_o_w_r_c (1);
