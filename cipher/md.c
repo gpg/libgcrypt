@@ -436,14 +436,9 @@ _gcry_md_algo_name (int algorithm)
 
 
 static gcry_err_code_t
-check_digest_algo (int algo)
+check_digest_algo_spec (int algo, const gcry_md_spec_t *spec)
 {
-  const gcry_md_spec_t *spec;
   int reject = 0;
-
-  spec = spec_from_algo (algo);
-  if (!spec)
-    return GPG_ERR_DIGEST_ALGO;
 
   if (spec->flags.disabled)
     return GPG_ERR_DIGEST_ALGO;
@@ -464,6 +459,17 @@ check_digest_algo (int algo)
 
   fips_service_indicator_mark_non_compliant ();
   return 0;
+}
+
+static gcry_err_code_t
+check_digest_algo (int algo)
+{
+  const gcry_md_spec_t *spec = spec_from_algo (algo);
+
+  if (!spec)
+    return GPG_ERR_DIGEST_ALGO;
+  else
+    return check_digest_algo_spec (algo, spec);
 }
 
 
@@ -1808,9 +1814,7 @@ _gcry_md_selftest (int algo, int extended, selftest_report_func_t report)
   const gcry_md_spec_t *spec;
 
   spec = spec_from_algo (algo);
-  if (spec && !spec->flags.disabled
-      && (spec->flags.fips || !fips_mode ())
-      && spec->selftest)
+  if (spec && !check_digest_algo_spec (algo, spec) && spec->selftest)
     ec = spec->selftest (algo, extended, report);
   else
     {
