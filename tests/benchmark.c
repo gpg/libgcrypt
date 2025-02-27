@@ -882,7 +882,7 @@ cipher_bench ( const char *algoname )
   raw_buf = gcry_xcalloc (allocated_buflen+15, 1);
   buf = (raw_buf
          + ((16 - ((size_t)raw_buf & 0x0f)) % buffer_alignment));
-  outbuf = raw_outbuf = gcry_xmalloc (allocated_buflen+15);
+  raw_outbuf = gcry_xmalloc (allocated_buflen+15);
   outbuf = (raw_outbuf
             + ((16 - ((size_t)raw_outbuf & 0x0f)) % buffer_alignment));
 
