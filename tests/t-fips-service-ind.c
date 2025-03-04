@@ -290,7 +290,9 @@ check_pk_s_v (int reject)
       " 00112233445566778899AABBCCDDEEFF000102030405060708090A0B0C0D0E0F"
       " 00112233445566778899AABBCCDDEEFF000102030405060708090A0B0C0D0E0F#))",
       0
-    },
+    }
+#if USE_RSA
+    ,
     {                           /* RSA with compliant hash for signing */
       "(private-key"
       " (rsa"
@@ -559,6 +561,7 @@ check_pk_s_v (int reject)
       " (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
       1
     }
+#endif /* USE_RSA */
   };
   int tvidx;
   gpg_error_t err;
