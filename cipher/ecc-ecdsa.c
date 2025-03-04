@@ -111,10 +111,12 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, gcry_mpi_t k_supplied, mpi_ec_t ec,
                        || hashalgo == GCRY_MD_SHAKE256))
                     {
                       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-                        rc = GPG_ERR_DIGEST_ALGO;
+                        {
+                          rc = GPG_ERR_DIGEST_ALGO;
+                          goto leave;
+                        }
                       else
                         fips_service_indicator_mark_non_compliant ();
-                      goto leave;
                     }
 
                   /* Use Pornin's method for deterministic DSA.  If this

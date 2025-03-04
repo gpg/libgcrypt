@@ -330,11 +330,15 @@ _gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-        rc = GPG_ERR_PUBKEY_ALGO;
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
       else
         fips_service_indicator_mark_non_compliant ();
     }
-  else if (spec->encrypt)
+
+  if (spec->encrypt)
     rc = spec->encrypt (r_ciph, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -448,11 +452,15 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-        rc = GPG_ERR_PUBKEY_ALGO;
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
       else
         fips_service_indicator_mark_non_compliant ();
     }
-  else if (spec->sign)
+
+  if (spec->sign)
     rc = spec->sign (r_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -649,11 +657,15 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-        rc = GPG_ERR_PUBKEY_ALGO;
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
       else
         fips_service_indicator_mark_non_compliant ();
     }
-  else if (spec->sign)
+
+  if (spec->sign)
     rc = spec->sign (r_sig, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -688,11 +700,15 @@ _gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-        rc = GPG_ERR_PUBKEY_ALGO;
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
       else
         fips_service_indicator_mark_non_compliant ();
     }
-  else if (spec->verify)
+
+  if (spec->verify)
     rc = spec->verify (s_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -736,11 +752,15 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-        rc = GPG_ERR_PUBKEY_ALGO;
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
       else
         fips_service_indicator_mark_non_compliant ();
     }
-  else if (spec->verify)
+
+  if (spec->verify)
     rc = spec->verify (s_sig, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -777,11 +797,15 @@ _gcry_pk_testkey (gcry_sexp_t s_key)
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
-        rc = GPG_ERR_PUBKEY_ALGO;
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
       else
         fips_service_indicator_mark_non_compliant ();
     }
-  else if (spec->check_secret_key)
+
+  if (spec->check_secret_key)
     rc = spec->check_secret_key (keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
