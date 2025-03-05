@@ -202,7 +202,7 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
 
   if (fips_mode () && igninvflag)
     {
-      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
         rc = GPG_ERR_INV_FLAG;
       else
         fips_service_indicator_mark_non_compliant ();

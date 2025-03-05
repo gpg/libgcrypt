@@ -1504,7 +1504,7 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     {
       if (fips_mode ())
         {
-          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
             {
               rc = GPG_ERR_INV_FLAG;
               goto leave;
@@ -1649,7 +1649,7 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     {
       if (fips_mode ())
         {
-          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
             {
               rc = GPG_ERR_INV_FLAG;
               goto leave;
