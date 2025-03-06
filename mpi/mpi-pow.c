@@ -42,11 +42,11 @@
  * For performance (by tests/benchmark rsa), it's comparable to leaky
  * sliding window implementation on 64-bit architecture.  On 32-bit
  * architecture, it's slower with 3072-bit and 4096-bit.  In future,
- * it's good to have non-leaky Karatsuba multiplication, then, it's an
- * option to use it.
+ * it's good to have non-leaky Karatsuba multiplication, then, it's
+ * possible to use this for all architectures.
  *
  */
-#define USE_ALGORITHM_LLI_EXPONENTIATION 1
+#define USE_ALGORITHM_LLI_EXPONENTIATION (BITS_PER_MPI_LIMB >= 64)
 #endif
 
 /*
