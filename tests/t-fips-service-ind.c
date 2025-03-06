@@ -1835,6 +1835,7 @@ main (int argc, char **argv)
                    | GCRY_FIPS_FLAG_REJECT_PK_MD
                    | GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2
                    | GCRY_FIPS_FLAG_REJECT_PK_ECC_K
+                   | GCRY_FIPS_FLAG_REJECT_PK_FLAGS
                    | GCRY_FIPS_FLAG_REJECT_COMPAT110)));
 
   check_md_o_w_r_c (1);

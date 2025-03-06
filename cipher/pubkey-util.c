@@ -975,7 +975,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
             {
               if (fips_mode ())
                 {
-                  if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+                  if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
                     {
                       sexp_release (list);
                       rc = GPG_ERR_INV_FLAG;
@@ -1162,7 +1162,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
             {
               if (fips_mode ())
                 {
-                  if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+                  if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
                     {
                       sexp_release (list);
                       rc = GPG_ERR_INV_FLAG;
@@ -1272,7 +1272,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
         {
           if (fips_mode ())
             {
-              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
                 {
                   sexp_release (list);
                   rc = GPG_ERR_INV_FLAG;

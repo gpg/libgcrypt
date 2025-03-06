@@ -1091,7 +1091,7 @@ gcry_pk_random_override_new (gcry_ctx_t *r_ctx, const unsigned char *p, size_t l
 
   if (fips_mode ())
     {
-      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
         return gpg_error (GPG_ERR_INV_OP);
       else
         fips_service_indicator_mark_non_compliant ();
