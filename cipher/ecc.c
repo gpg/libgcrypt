@@ -962,17 +962,21 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   if (ctx.label)
     {
-      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_ECC_K))
+      /* ECDSA signing can have supplied K (for testing, deterministic).  */
+      if (fips_mode ())
         {
-          rc = GPG_ERR_INV_DATA;
-          goto leave;
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_ECC_K))
+            {
+              rc = GPG_ERR_INV_DATA;
+              goto leave;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
         }
-      else
-        fips_service_indicator_mark_non_compliant ();
       rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, ctx.label, ctx.labellen, NULL);
+      if (rc)
+        goto leave;
     }
-  if (rc)
-    goto leave;
 
   if (fips_mode ()
       && ((ctx.flags & PUBKEY_FLAG_GOST) || (ctx.flags & PUBKEY_FLAG_SM2)))
@@ -1128,18 +1132,21 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   if (rc)
     goto leave;
 
-  if (ctx.label)
+  /*
+   * ECDSA signing can have supplied K (for testing, deterministic),
+   * but it's non-compliant.  For ECDSA signature verification, having
+   * K is irrelevant, but an application may use same flags as the one
+   * for signing.
+   */
+  if (ctx.label && fips_mode ())
     {
-      if (fips_mode ())
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_ECC_K))
         {
-          if(fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_ECC_K))
-            {
-              rc = GPG_ERR_INV_DATA;
-              goto leave;
-            }
-          else
-            fips_service_indicator_mark_non_compliant ();
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
         }
+      else
+        fips_service_indicator_mark_non_compliant ();
     }
 
   if (DBG_CIPHER)
