@@ -1107,7 +1107,7 @@ check_mac_o_w_r_c (int reject)
 #if USE_SHA1
     { GCRY_MAC_HMAC_SHA1, "hmac input abc", 14, "hmac key input", 14,
       "\xc9\x62\x9d\x16\x0f\xc2\xc4\xcd\x38\xac\x3a\x00\xdc\x29\x61\x03"
-      "\x69\x50\xd7\x3a" },
+      "\x69\x50\xd7\x3a", 1 },
 #endif
     { GCRY_MAC_HMAC_SHA256, "hmac input abc", 14, "hmac key input", 14,
       "\x6a\xda\x4d\xd5\xf3\xa7\x32\x9d\xd2\x55\xc0\x7f\xe6\x0a\x93\xb8"
@@ -1264,7 +1264,7 @@ check_md_o_w_r_c (int reject)
 #if USE_SHA1
     { GCRY_MD_SHA1, "abc", 3,
       "\xA9\x99\x3E\x36\x47\x06\x81\x6A\xBA\x3E"
-      "\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D" },
+      "\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D", 1 },
 #endif
     { GCRY_MD_SHA256, "abc", 3,
       "\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23"
@@ -1390,7 +1390,7 @@ check_hash_buffer (void)
 #if USE_SHA1
     { GCRY_MD_SHA1, "abc", 3,
       "\xA9\x99\x3E\x36\x47\x06\x81\x6A\xBA\x3E"
-      "\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D" },
+      "\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D", 1 },
 #endif
     { GCRY_MD_SHA256, "abc", 3,
       "\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23"
@@ -1499,7 +1499,7 @@ check_hash_buffers (void)
     { GCRY_MD_SHA1, "abc", 3,
       "key", 3,
       "\x4f\xd0\xb2\x15\x27\x6e\xf1\x2f\x2b\x3e"
-      "\x4c\x8e\xca\xc2\x81\x14\x98\xb6\x56\xfc" },
+      "\x4c\x8e\xca\xc2\x81\x14\x98\xb6\x56\xfc", 1 },
 #endif
     { GCRY_MD_SHA256, "abc", 3,
       "key", 3,
@@ -1834,6 +1834,7 @@ main (int argc, char **argv)
                    | GCRY_FIPS_FLAG_REJECT_CIPHER_MODE
                    | GCRY_FIPS_FLAG_REJECT_PK_MD
                    | GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2
+                   | GCRY_FIPS_FLAG_REJECT_MD_SHA1
                    | GCRY_FIPS_FLAG_REJECT_PK_ECC_K
                    | GCRY_FIPS_FLAG_REJECT_PK_FLAGS
                    | GCRY_FIPS_FLAG_REJECT_COMPAT110)));

@@ -451,6 +451,8 @@ check_digest_algo_spec (int algo, const gcry_md_spec_t *spec)
 
   if (algo == GCRY_MD_MD5)
     reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+  else if (algo == GCRY_MD_SHA1)
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
   else
     reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
 
@@ -590,6 +592,8 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
           if (algo == GCRY_MD_MD5)
             reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else if (algo == GCRY_MD_SHA1)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
           else
             reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
 
@@ -625,6 +629,8 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 
   if (algorithm == GCRY_MD_MD5)
     reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+  else if (algorithm == GCRY_MD_SHA1)
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
   else
     reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
 
@@ -703,6 +709,8 @@ _gcry_md_enable (gcry_md_hd_t hd, int algorithm)
 
           if (algorithm == GCRY_MD_MD5)
             reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else if (algorithm == GCRY_MD_SHA1)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
           else
             reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
 
@@ -780,6 +788,8 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 
           if (spec->algo == GCRY_MD_MD5)
             reject |= fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else if (spec->algo == GCRY_MD_SHA1)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
           else
             reject |= fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
         }
