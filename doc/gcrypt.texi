@@ -1082,7 +1082,7 @@ When using ``dynamic'' service indicator, this command with FLAGS=0
 disables all rejections.
 @example
   gcry_control (GCRYCTL_FIPS_REJECT_NON_FIPS, 0);
-@endexample
+@end example
 
 @end table
 
