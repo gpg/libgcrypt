@@ -1803,11 +1803,6 @@ enum gcry_kem_algos
 #define GCRY_KEM_RAW_BP384_SHARED_LEN   (1+48+48)
 
 /* Generate a new key pair with ALGO.  */
-gcry_error_t gcry_kem_genkey (int algo,
-                              void *pubkey, size_t pubkey_len,
-                              void *seckey, size_t seckey_len,
-                              const void *optional, size_t optional_len);
-
 gcry_error_t gcry_kem_keypair (int algo,
                                void *pubkey, size_t pubkey_len,
                                void *seckey, size_t seckey_len);
