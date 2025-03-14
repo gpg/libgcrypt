@@ -57,6 +57,45 @@
 #
 .text
 
+.macro clear_vec_regs
+	xxlxor 0, 0, 0
+	xxlxor 1, 1, 1
+	xxlxor 2, 2, 2
+	xxlxor 3, 3, 3
+	xxlxor 4, 4, 4
+	xxlxor 5, 5, 5
+	xxlxor 6, 6, 6
+	xxlxor 7, 7, 7
+	xxlxor 8, 8, 8
+	xxlxor 9, 9, 9
+	xxlxor 10, 10, 10
+	xxlxor 11, 11, 11
+	xxlxor 12, 12, 12
+	xxlxor 13, 13, 13
+	# vs14-vs31 (f14-f31) are  ABI callee saved.
+	xxlxor 32, 32, 32
+	xxlxor 33, 33, 33
+	xxlxor 34, 34, 34
+	xxlxor 35, 35, 35
+	xxlxor 36, 36, 36
+	xxlxor 37, 37, 37
+	xxlxor 38, 38, 38
+	xxlxor 39, 39, 39
+	xxlxor 40, 40, 40
+	xxlxor 41, 41, 41
+	xxlxor 42, 42, 42
+	xxlxor 43, 43, 43
+	xxlxor 44, 44, 44
+	xxlxor 45, 45, 45
+	xxlxor 46, 46, 46
+	xxlxor 47, 47, 47
+	xxlxor 48, 48, 48
+	xxlxor 49, 49, 49
+	xxlxor 50, 50, 50
+	xxlxor 51, 51, 51
+	# vs52-vs63 (v20-v31) are ABI callee saved.
+.endm
+
 # Block size 16 bytes
 # key = (r, s)
 # clamp r &= 0x0FFFFFFC0FFFFFFC 0x0FFFFFFC0FFFFFFF
@@ -744,6 +783,8 @@ do_final_update:
 
 Out_loop:
 	li	3, 0
+
+	clear_vec_regs
 
 	li	14, 256
 	lvx	20, 14, 1

@@ -290,6 +290,7 @@ _gcry_sm4_armv8_ce_expand_key:
     st1 {v1.16b}, [x2], #16;
     st1 {v0.16b}, [x2];
 
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_expand_key,.-_gcry_sm4_armv8_ce_expand_key;)
@@ -383,6 +384,7 @@ _gcry_sm4_armv8_ce_crypt_blk1_8:
     st1 {v7.16b}, [x1];
 
 .Lblk8_store_output_done:
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_crypt_blk1_8,.-_gcry_sm4_armv8_ce_crypt_blk1_8;)
@@ -416,6 +418,7 @@ _gcry_sm4_armv8_ce_crypt:
     b .Lcrypt_loop_blk;
 
 .Lcrypt_end:
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_crypt,.-_gcry_sm4_armv8_ce_crypt;)
@@ -468,6 +471,7 @@ _gcry_sm4_armv8_ce_cbc_dec:
     /* store new IV */
     st1 {RIV.16b}, [x3];
 
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_cbc_dec,.-_gcry_sm4_armv8_ce_cbc_dec;)
@@ -520,6 +524,7 @@ _gcry_sm4_armv8_ce_cfb_dec:
     /* store new IV */
     st1 {v0.16b}, [x3];
 
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_cfb_dec,.-_gcry_sm4_armv8_ce_cfb_dec;)
@@ -588,6 +593,7 @@ _gcry_sm4_armv8_ce_ctr_enc:
     rev x8, x8;
     stp x7, x8, [x3];
 
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_ctr_enc,.-_gcry_sm4_armv8_ce_ctr_enc;)
@@ -713,17 +719,8 @@ _gcry_sm4_armv8_ce_xts_crypt:
     /* store new tweak */
     st1         {v8.16b}, [x3]
 
-    CLEAR_REG(v8)
-    CLEAR_REG(v9)
-    CLEAR_REG(v10)
-    CLEAR_REG(v11)
-    CLEAR_REG(v12)
-    CLEAR_REG(v13)
-    CLEAR_REG(v14)
-    CLEAR_REG(v15)
-    CLEAR_REG(RIV)
-
     VPOP_ABI
+    CLEAR_ALL_REGS();
     ret_spec_stop
     CFI_ENDPROC()
 ELF(.size _gcry_sm4_armv8_ce_xts_crypt,.-_gcry_sm4_armv8_ce_xts_crypt;)

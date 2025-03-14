@@ -2008,7 +2008,7 @@ main (int argc, char **argv)
       check_onestep_kdf ();
       check_hkdf ();
       if (in_fips_mode)
-        check_fips_indicators();
+        check_fips_indicators ();
     }
 
   return error_count ? 1 : 0;

@@ -61,6 +61,45 @@
 #
 .text
 
+.macro clear_vec_regs
+	xxlxor 0, 0, 0
+	xxlxor 1, 1, 1
+	xxlxor 2, 2, 2
+	xxlxor 3, 3, 3
+	xxlxor 4, 4, 4
+	xxlxor 5, 5, 5
+	xxlxor 6, 6, 6
+	xxlxor 7, 7, 7
+	xxlxor 8, 8, 8
+	xxlxor 9, 9, 9
+	xxlxor 10, 10, 10
+	xxlxor 11, 11, 11
+	xxlxor 12, 12, 12
+	xxlxor 13, 13, 13
+	# vs14-vs31 (f14-f31) are  ABI callee saved.
+	xxlxor 32, 32, 32
+	xxlxor 33, 33, 33
+	xxlxor 34, 34, 34
+	xxlxor 35, 35, 35
+	xxlxor 36, 36, 36
+	xxlxor 37, 37, 37
+	xxlxor 38, 38, 38
+	xxlxor 39, 39, 39
+	xxlxor 40, 40, 40
+	xxlxor 41, 41, 41
+	xxlxor 42, 42, 42
+	xxlxor 43, 43, 43
+	xxlxor 44, 44, 44
+	xxlxor 45, 45, 45
+	xxlxor 46, 46, 46
+	xxlxor 47, 47, 47
+	xxlxor 48, 48, 48
+	xxlxor 49, 49, 49
+	xxlxor 50, 50, 50
+	xxlxor 51, 51, 51
+	# vs52-vs63 (v20-v31) are ABI callee saved.
+.endm
+
 .macro QT_loop_8x
 	# QR(v0, v4,  v8, v12, v1, v5,  v9, v13, v2, v6, v10, v14, v3, v7, v11, v15)
 	xxlor	0, 32+25, 32+25
@@ -781,6 +820,8 @@ Out_loop:
 	lvx	29, 25, 9
 	lvx	30, 26, 9
 	lvx	31, 27, 9
+
+	clear_vec_regs
 
 	add	9, 9, 27
 	addi	14, 17, 16

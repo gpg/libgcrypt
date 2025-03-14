@@ -380,6 +380,16 @@ _gcry_rsa_pkcs1_encode_raw_for_sig (gcry_mpi_t *r_result, unsigned int nbits,
   int i;
   size_t n;
 
+  /* With RAW encoding, we can't know if the hash used is compliant or
+   * not.  Reject or mark it's non-compliant.  */
+  if (fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_MD))
+        return GPG_ERR_DIGEST_ALGO;
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
   if ( !valuelen || valuelen + 4 > nframe)
     {
       /* Can't encode an DLEN byte digest MD into an NFRAME byte
@@ -840,8 +850,13 @@ _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   /* The FIPS 186-4 Section 5.5 allows only 0 <= sLen <= hLen */
   if (fips_mode () && saltlen > hlen)
     {
-      rc = GPG_ERR_INV_ARG;
-      goto leave;
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_INV_ARG;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
     }
 
   /* Allocate a help buffer and setup some pointers.  */
@@ -1006,8 +1021,13 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
   /* The FIPS 186-4 Section 5.5 allows only 0 <= sLen <= hLen */
   if (fips_mode () && saltlen > hlen)
     {
-      rc = GPG_ERR_INV_ARG;
-      goto leave;
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_INV_ARG;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
     }
 
   /* Allocate a help buffer and setup some pointers.

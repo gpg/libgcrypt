@@ -1,5 +1,5 @@
 /* mpih-const-time.c  -  Constant-time MPI helper functions
- *      Copyright (C) 2020  g10 Code GmbH
+ *      Copyright (C) 2020, 2025  g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -188,8 +188,8 @@ _gcry_mpih_abs_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
  * compute W = V % U, then return W
  */
 mpi_ptr_t
-_gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
-                mpi_ptr_t up, mpi_size_t usize)
+_gcry_mpih_mod_lli (mpi_ptr_t vp, mpi_size_t vsize,
+                    mpi_ptr_t up, mpi_size_t usize)
 {
   int secure;
   mpi_ptr_t rp;
@@ -222,20 +222,69 @@ _gcry_mpih_mod (mpi_ptr_t vp, mpi_size_t vsize,
 int
 _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v)
 {
-  int is_all_zero = 1;
+  unsigned long is_all_zero = ct_ulong_gen_mask(1);
+  int cmp0;
   mpi_size_t i;
 
-  for (i = 1; i < usize; i++)
-    is_all_zero &= mpih_limb_is_zero (up[i]);
+  cmp0 = -mpih_ct_limb_less_than (up[0], v);
+  cmp0 |= mpih_ct_limb_greater_than (up[0], v);
 
-  if (is_all_zero)
+  for (i = 1; i < usize; i++)
+    is_all_zero &= ct_ulong_gen_mask(mpih_limb_is_zero (up[i]));
+
+  return (int)((cmp0 & is_all_zero) | (~is_all_zero & 1));
+}
+
+/* Do same calculation as _gcry_mpih_cmp does, Least Leak Intended.
+ * Return 1 if U > V, 0 if they are equal, and -1 if U < V.  */
+int
+_gcry_mpih_cmp_lli (mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
+{
+  mpi_size_t i;
+  mpi_limb_t res_gt = 0;
+  mpi_limb_t res_lt = 0;
+
+  for (i = 0; i < size ; i++)
     {
-      if (up[0] < v)
-        return -1;
-      else if (up[0] > v)
-        return 1;
-      else
-        return 0;
+      mpi_limb_t gt, lt, eq, neq;
+      gt = mpih_ct_limb_greater_than (up[i], vp[i]);
+      lt = mpih_ct_limb_less_than (up[i], vp[i]);
+      neq = ct_limb_gen_mask (gt | lt);
+      eq = ct_limb_gen_inv_mask (gt | lt);
+      res_gt = (eq & res_gt) | (neq & gt);
+      res_lt = (eq & res_lt) | (neq & lt);
     }
-  return 1;
+
+  return (int)(res_gt - res_lt); /* return 0 if U==V, 1 if U>V, -1 if U<V */
+}
+
+
+/*
+ * Lookup an MPI value from TABLE at IDX, and put into RP.
+ * The size of the MPI value is N limbs.
+ * TABLE has NENTS entries.
+ *
+ * Note: This is an implementation which accesses all the entries in
+ * the table, so that it can mitigate cache timing attacks.  For some
+ * architectures, there may be possible optimization:
+ *
+ *  - Access an entry only, with an instruction like
+ *    __mm_stream_load_si128 (it makes sense when table is larger and
+ *    read-only, and no timing difference)
+ *
+ */
+void
+_gcry_mpih_lookup_lli (mpi_ptr_t rp, const mpi_limb_t *table,
+                       mpi_size_t n, mpi_size_t nents, mpi_size_t idx)
+{
+  mpi_size_t i, k;
+  const mpi_limb_t *tp = table;
+
+  for (k = 0; k < nents; k++)
+    {
+      unsigned long idx_neq_k = ct_is_not_zero (idx ^ k);
+      for (i = 0; i < n; i++)
+        rp[i] = ct_limb_select (rp[i], tp[i], idx_neq_k);
+      tp += n;
+    }
 }

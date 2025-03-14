@@ -82,6 +82,14 @@ unsigned int _gcry_ct_not_memequal (const void *b1, const void *b2, size_t len);
    any structure.  */
 unsigned int _gcry_ct_memequal (const void *b1, const void *b2, size_t len);
 
+/* Prevent compiler from assuming value of variable and from making
+   non-constant time optimizations.  */
+#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
+#  define CT_DEOPTIMIZE_VAR(var) asm volatile ("\n" : "+r" (var) :: "memory")
+#else
+#  define CT_DEOPTIMIZE_VAR(var) (void)((var) += _gcry_ct_vzero)
+#endif
+
 /*
  * Return all bits set if A is 1 and return 0 otherwise.
  */

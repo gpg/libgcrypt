@@ -736,7 +736,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
       *handle = NULL;
       return gpg_error (fips_not_operational ());
     }
-
+  fips_service_indicator_init ();
   return gpg_error (_gcry_cipher_open (handle, algo, mode, flags));
 }
 
@@ -751,7 +751,7 @@ gcry_cipher_setkey (gcry_cipher_hd_t hd, const void *key, size_t keylen)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
-
+  fips_service_indicator_init ();
   return gcry_error (_gcry_cipher_setkey (hd, key, keylen));
 }
 
@@ -946,7 +946,7 @@ gcry_mac_open (gcry_mac_hd_t *handle, int algo, unsigned int flags,
       *handle = NULL;
       return gpg_error (fips_not_operational ());
     }
-
+  fips_service_indicator_init ();
   return gpg_error (_gcry_mac_open (handle, algo, flags, ctx));
 }
 
@@ -962,8 +962,9 @@ gcry_mac_setkey (gcry_mac_hd_t hd, const void *key, size_t keylen)
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
 
+  fips_service_indicator_init ();
   if (fips_mode () && keylen < 14)
-    return GPG_ERR_INV_VALUE;
+    fips_service_indicator_mark_non_compliant ();
 
   return gpg_error (_gcry_mac_setkey (hd, key, keylen));
 }
@@ -1021,6 +1022,7 @@ gcry_pk_encrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t pkey)
       *result = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_encrypt (result, data, pkey));
 }
 
@@ -1032,6 +1034,7 @@ gcry_pk_decrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey)
       *result = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_decrypt (result, data, skey));
 }
 
@@ -1043,6 +1046,7 @@ gcry_pk_sign (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey)
       *result = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_sign (result, data, skey));
 }
 
@@ -1055,6 +1059,7 @@ gcry_pk_hash_sign (gcry_sexp_t *result, const char *data_tmpl, gcry_sexp_t skey,
       *result = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_sign_md (result, data_tmpl, hd, skey, ctx));
 }
 
@@ -1063,6 +1068,7 @@ gcry_pk_verify (gcry_sexp_t sigval, gcry_sexp_t data, gcry_sexp_t pkey)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_verify (sigval, data, pkey));
 }
 
@@ -1072,12 +1078,25 @@ gcry_pk_hash_verify (gcry_sexp_t sigval, const char *data_tmpl, gcry_sexp_t pkey
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_verify_md (sigval, data_tmpl, hd, pkey, ctx));
 }
 
 gcry_error_t
 gcry_pk_random_override_new (gcry_ctx_t *r_ctx, const unsigned char *p, size_t len)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
+
+  if (fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
+        return gpg_error (GPG_ERR_INV_OP);
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
   return gpg_error (_gcry_pk_single_data_push (r_ctx, p, len));
 }
 
@@ -1086,6 +1105,7 @@ gcry_pk_testkey (gcry_sexp_t key)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_testkey (key));
 }
 
@@ -1097,6 +1117,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       *r_key = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_pk_genkey (r_key, s_parms));
 }
 
@@ -1135,7 +1156,7 @@ gcry_pk_get_nbits (gcry_sexp_t key)
       (void)fips_not_operational ();
       return 0;
     }
-
+  fips_service_indicator_init ();
   return _gcry_pk_get_nbits (key);
 }
 
@@ -1158,6 +1179,7 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
       (void)fips_not_operational ();
       return NULL;
     }
+  fips_service_indicator_init ();
   return _gcry_pk_get_curve (key, iterator, r_nbits);
 }
 
@@ -1204,7 +1226,7 @@ gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
       *h = NULL;
       return gpg_error (fips_not_operational ());
     }
-
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_open (h, algo, flags));
 }
 
@@ -1219,6 +1241,7 @@ gcry_md_enable (gcry_md_hd_t hd, int algo)
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_enable (hd, algo));
 }
 
@@ -1230,6 +1253,7 @@ gcry_md_copy (gcry_md_hd_t *bhd, gcry_md_hd_t ahd)
       *bhd = NULL;
       return gpg_error (fips_not_operational ());
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_copy (bhd, ahd));
 }
 
@@ -1281,6 +1305,7 @@ gcry_md_hash_buffer (int algo, void *digest,
       (void)fips_not_operational ();
       fips_signal_error ("called in non-operational state");
     }
+  fips_service_indicator_init ();
   _gcry_md_hash_buffer (algo, digest, buffer, length);
 }
 
@@ -1293,6 +1318,7 @@ gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
       (void)fips_not_operational ();
       fips_signal_error ("called in non-operational state");
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_hash_buffers (algo, flags, digest, iov, iovcnt));
 }
 
@@ -1306,6 +1332,7 @@ gcry_md_hash_buffers_ext (int algo, unsigned int flags, void *digest,
       (void)fips_not_operational ();
       fips_signal_error ("called in non-operational state");
     }
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_hash_buffers_extract (algo, flags, digest,
                                                    digestlen, iov, iovcnt));
 }
@@ -1358,6 +1385,9 @@ gcry_md_info (gcry_md_hd_t h, int what, void *buffer, size_t *nbytes)
 gcry_error_t
 gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_md_algo_info (algo, what, buffer, nbytes));
 }
 
@@ -1379,8 +1409,9 @@ gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
 
+  fips_service_indicator_init ();
   if (fips_mode () && keylen < 14)
-    return GPG_ERR_INV_VALUE;
+    fips_service_indicator_mark_non_compliant ();
 
   return gpg_error (_gcry_md_setkey (hd, key, keylen));
 }
@@ -1400,6 +1431,7 @@ gcry_kdf_derive (const void *passphrase, size_t passphraselen,
 {
   if (!fips_is_operational ())
     return gpg_error (fips_not_operational ());
+  fips_service_indicator_init ();
   return gpg_error (_gcry_kdf_derive (passphrase, passphraselen, algo, hashalgo,
                                       salt, saltlen, iterations,
                                       keysize, keybuffer));

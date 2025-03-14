@@ -200,6 +200,14 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
         }
     }
 
+  if (fips_mode () && igninvflag)
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
+        rc = GPG_ERR_INV_FLAG;
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
   if (r_flags)
     *r_flags = flags;
   if (r_encoding)
@@ -965,6 +973,17 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
           list = sexp_find_token (ldata, "random-override", 0);
           if (list)
             {
+              if (fips_mode ())
+                {
+                  if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
+                    {
+                      sexp_release (list);
+                      rc = GPG_ERR_INV_FLAG;
+                      goto leave;
+                    }
+                  else
+                    fips_service_indicator_mark_non_compliant ();
+                }
               s = sexp_nth_data (list, 1, &n);
               if (!s)
                 rc = GPG_ERR_NO_OBJ;
@@ -1141,6 +1160,17 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
           list = sexp_find_token (ldata, "random-override", 0);
           if (list)
             {
+              if (fips_mode ())
+                {
+                  if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
+                    {
+                      sexp_release (list);
+                      rc = GPG_ERR_INV_FLAG;
+                      goto leave;
+                    }
+                  else
+                    fips_service_indicator_mark_non_compliant ();
+                }
               s = sexp_nth_data (list, 1, &n);
               if (!s)
                 rc = GPG_ERR_NO_OBJ;
@@ -1240,6 +1270,17 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       list = sexp_find_token (ldata, "random-override", 0);
       if (list)
         {
+          if (fips_mode ())
+            {
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_FLAGS))
+                {
+                  sexp_release (list);
+                  rc = GPG_ERR_INV_FLAG;
+                  goto leave;
+                }
+              else
+                fips_service_indicator_mark_non_compliant ();
+            }
           s = sexp_nth_data (list, 1, &n);
           if (!s)
             rc = GPG_ERR_NO_OBJ;

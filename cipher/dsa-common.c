@@ -35,22 +35,28 @@
  *
  * Originally, (EC)DSA computation requires k where 0 < k < q.  Here,
  * we add q (the order), to keep k in a range: q < k < 2*q (or,
- * addming more q, to keep k in a range: 2*q < k < 3*q), so that
+ * adding more q, to keep k in a range: 2*q < k < 3*q), so that
  * timing difference of the EC multiply (or exponentiation) operation
  * can be small.  The result of (EC)DSA computation is same.
  */
 void
 _gcry_dsa_modify_k (gcry_mpi_t k, gcry_mpi_t q, int qbits)
 {
-  gcry_mpi_t k1 = mpi_new (qbits+2);
+  mpi_limb_t cy;
+  unsigned long once_more;
+  mpi_size_t ksize;
 
-  mpi_resize (k, (qbits+2+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB);
-  k->nlimbs = k->alloced;
-  mpi_add (k, k, q);
-  mpi_add (k1, k, q);
-  mpi_set_cond (k, k1, !mpi_test_bit (k, qbits));
+  ksize = (qbits+1+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB;
+  mpi_resize (k, ksize);
+  k->nlimbs = ksize;
 
-  mpi_free (k1);
+  cy = _gcry_mpih_add_lli (k->d, k->d, q->d, q->nlimbs);
+  if (k->nlimbs > q->nlimbs)
+      k->d[k->nlimbs-1] = cy;
+  once_more = 1 - mpi_test_bit (k, qbits);
+  _gcry_mpih_add_n_cond (k->d, k->d, q->d, q->nlimbs, once_more);
+  if (k->nlimbs > q->nlimbs)
+      k->d[k->nlimbs-1] = 1;
 }
 
 /*
@@ -92,26 +98,15 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
 	}
       _gcry_mpi_set_buffer (k, rndbuf, nbytes, 0);
 
-      /* Make sure we have the requested number of bits.  This code
-         looks a bit funny but it is easy to understand if you
-         consider that mpi_set_highbit clears all higher bits.  We
-         don't have a clear_highbit, thus we first set the high bit
-         and then clear it again.  */
-      if (mpi_test_bit (k, nbits-1))
-        mpi_set_highbit (k, nbits-1);
-      else
-        {
-          mpi_set_highbit (k, nbits-1);
-          mpi_clear_bit (k, nbits-1);
-	}
+      mpi_clear_highbit (k, nbits);
 
-      if (!(mpi_cmp (k, q) < 0))    /* check: k < q */
+      if (!(_gcry_mpih_cmp_lli (k->d, q->d, k->nlimbs) < 0))    /* check: k < q */
         {
           if (DBG_CIPHER)
             log_debug ("\tk too large - again\n");
           continue; /* no  */
         }
-      if (!(mpi_cmp_ui (k, 0) > 0)) /* check: k > 0 */
+      if (!(_gcry_mpih_cmp_ui (k->d, k->nlimbs, 0) > 0)) /* check: k > 0 */
         {
           if (DBG_CIPHER)
             log_debug ("\tk is zero - again\n");
@@ -313,15 +308,18 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
 
   /* k = bits2int (T) */
   mpi_free (k);
-  k = NULL;
-  rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, t, (tbits+7)/8, NULL);
-  if (rc)
-    goto leave;
-  if (tbits > qbits)
-    mpi_rshift (k, k, tbits - qbits);
+  k = mpi_alloc_secure ((qbits+7)/8);
+  _gcry_mpi_set_buffer (k, t, (qbits+7)/8, 0);
+  if (qbits % 8)
+    {
+      unsigned int nbits = 8 - (qbits % 8);
+
+      _gcry_mpih_rshift (k->d, k->d, k->nlimbs, nbits);
+    }
 
   /* Check: k < q and k > 1 */
-  if (!(mpi_cmp (k, dsa_q) < 0 && mpi_cmp_ui (k, 0) > 0))
+  if (!(_gcry_mpih_cmp_lli (k->d, dsa_q->d, k->nlimbs) < 0
+        && _gcry_mpih_cmp_ui (k->d, k->nlimbs, 0) > 0))
     {
       /* K = HMAC_K(V || 0x00) */
       rc = _gcry_md_setkey (hd, K, hlen);

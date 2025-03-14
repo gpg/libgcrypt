@@ -335,7 +335,9 @@ enum gcry_ctl_cmds
     GCRYCTL_FIPS_SERVICE_INDICATOR_MAC = 85,
     GCRYCTL_FIPS_SERVICE_INDICATOR_MD = 86,
     GCRYCTL_FIPS_SERVICE_INDICATOR_PK_FLAGS = 87,
-    GCRYCTL_MD_CUSTOMIZE = 88
+    GCRYCTL_MD_CUSTOMIZE = 88,
+    GCRYCTL_FIPS_SERVICE_INDICATOR = 89,
+    GCRYCTL_FIPS_REJECT_NON_FIPS = 90
   };
 
 /* Perform various operations defined by CMD. */
@@ -1558,7 +1560,7 @@ enum gcry_mac_algos
 /* Flags used with the open function.  */
 enum gcry_mac_flags
   {
-    GCRY_MAC_FLAG_SECURE = 1   /* Allocate all buffers in "secure" memory.  */
+    GCRY_MAC_FLAG_SECURE = 1  /* Allocate all buffers in "secure" memory.  */
   };
 
 /* Create a MAC handle for algorithm ALGO.  FLAGS may be given as an bitwise OR
@@ -1968,6 +1970,41 @@ void gcry_log_debugpnt (const char *text,
 void gcry_log_debugsxp (const char *text, gcry_sexp_t sexp);
 
 char *gcry_get_config (int mode, const char *what);
+
+/* Convinience macro to access the FIPS service indicator.  */
+#define gcry_get_fips_service_indicator()       \
+  gcry_control (GCRYCTL_FIPS_SERVICE_INDICATOR)
+
+#define GCRY_FIPS_FLAG_REJECT_KDF           (1 << 0)
+#define GCRY_FIPS_FLAG_REJECT_MD_MD5        (1 << 1)
+#define GCRY_FIPS_FLAG_REJECT_MD_OTHERS     (1 << 2)
+#define GCRY_FIPS_FLAG_REJECT_MAC           (1 << 3)
+#define GCRY_FIPS_FLAG_REJECT_CIPHER        (1 << 4)
+#define GCRY_FIPS_FLAG_REJECT_PK            (1 << 5)
+#define GCRY_FIPS_FLAG_REJECT_PK_MD         (1 << 6)
+#define GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2   (1 << 7)
+#define GCRY_FIPS_FLAG_REJECT_CIPHER_MODE   (1 << 8)
+/**/
+#define GCRY_FIPS_FLAG_REJECT_MD_SHA1       (1 << 9)
+#define GCRY_FIPS_FLAG_REJECT_PK_ECC_K      (1 << 10)
+#define GCRY_FIPS_FLAG_REJECT_PK_FLAGS      (1 << 11)
+
+#define GCRY_FIPS_FLAG_REJECT_MD                                \
+  (GCRY_FIPS_FLAG_REJECT_MD_MD5 | GCRY_FIPS_FLAG_REJECT_MD_SHA1 \
+   | GCRY_FIPS_FLAG_REJECT_MD_OTHERS)
+
+/* Note: Don't reject MD5, PK MD, PK GOST, PK SM2,
+                      SHA1, PK ECC K, and PK FLAGS */
+#define GCRY_FIPS_FLAG_REJECT_COMPAT110 \
+  (GCRY_FIPS_FLAG_REJECT_MD_OTHERS      \
+   | GCRY_FIPS_FLAG_REJECT_MAC          \
+   | GCRY_FIPS_FLAG_REJECT_CIPHER       \
+   | GCRY_FIPS_FLAG_REJECT_KDF          \
+   | GCRY_FIPS_FLAG_REJECT_PK)
+
+#define GCRY_FIPS_FLAG_REJECT_DEFAULT \
+  GCRY_FIPS_FLAG_REJECT_COMPAT110
+
 
 /* Log levels used by the internal logging facility. */
 enum gcry_log_levels

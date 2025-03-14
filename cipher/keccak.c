@@ -91,6 +91,15 @@
 #endif /* USE_S390X_CRYPTO */
 
 
+/* GCM_USE_RISCV_ZBB indicates whether to compile GCM with RISC-V Zbb extension
+ * code. */
+#undef USE_RISCV_ZBB
+#if defined (__riscv) && (__riscv_xlen == 64) && \
+    defined(HAVE_GCC_INLINE_ASM_RISCV)
+# define USE_RISCV_ZBB 1
+#endif
+
+
 /* x86-64 vector register assembly implementations use SystemV ABI, ABI
  * conversion needed on Win64 through function attribute. */
 #undef ASM_FUNC_ABI
@@ -175,11 +184,83 @@ const u64 _gcry_keccak_round_consts_64bit[24 + 1] =
   U64_C(0xFFFFFFFFFFFFFFFF)
 };
 
+
+#if defined (__riscv) && (__riscv_xlen == 64) \
+    && defined(HAVE_GCC_INLINE_ASM_RISCV)
+
+#define load_aligned_u64(ptr, offset) ({ \
+      u64 tmp; \
+      asm ("ld %0, " #offset " (%1)" : "=r" (tmp) : "r" (ptr) : "memory"); \
+      tmp; })
+
+#define HAVE_ALIGNED_ABSORB_LANES64 1
+
+static inline void aligned_absorb_lanes64_8(u64 *dst, const byte *in)
+{
+  dst[0] ^= load_aligned_u64(in, 0);
+  dst[1] ^= load_aligned_u64(in, 8);
+  dst[2] ^= load_aligned_u64(in, 16);
+  dst[3] ^= load_aligned_u64(in, 24);
+  dst[4] ^= load_aligned_u64(in, 32);
+  dst[5] ^= load_aligned_u64(in, 40);
+  dst[6] ^= load_aligned_u64(in, 48);
+  dst[7] ^= load_aligned_u64(in, 56);
+}
+
+static inline void aligned_absorb_lanes64_4(u64 *dst, const byte *in)
+{
+  dst[0] ^= load_aligned_u64(in, 0);
+  dst[1] ^= load_aligned_u64(in, 8);
+  dst[2] ^= load_aligned_u64(in, 16);
+  dst[3] ^= load_aligned_u64(in, 24);
+}
+
+static inline void aligned_absorb_lanes64_2(u64 *dst, const byte *in)
+{
+  dst[0] ^= load_aligned_u64(in, 0);
+  dst[1] ^= load_aligned_u64(in, 8);
+}
+
+static inline void aligned_absorb_lanes64_1(u64 *dst, const byte *in)
+{
+  dst[0] ^= load_aligned_u64(in, 0);
+}
+
+#undef load_aligned_u64
+
+
+#define HAVE_ALIGNED_EXTRACT64
+static inline unsigned int
+aligned_extract64(KECCAK_STATE *hd, unsigned int pos, byte *outbuf,
+		 unsigned int outlen)
+{
+  unsigned int i;
+
+  /* NOTE: when pos == 0, hd and outbuf may point to same memory (SHA-3). */
+
+  for (i = pos; i < pos + outlen / 8 + !!(outlen % 8); i++)
+    {
+      u64 tmp = hd->u.state64[i];
+      asm ("sd %1, 0(%0)" :: "r" (outbuf),  "r" (tmp) : "memory");
+      outbuf += 8;
+    }
+
+  return 0;
+}
+
+#endif /* __riscv */
+
+
 static unsigned int
 keccak_extract64(KECCAK_STATE *hd, unsigned int pos, byte *outbuf,
 		 unsigned int outlen)
 {
   unsigned int i;
+
+#ifdef HAVE_ALIGNED_EXTRACT64
+  if (LIKELY(((uintptr_t)outbuf & 7) == 0))
+    return aligned_extract64(hd, pos, outbuf, outlen);
+#endif
 
   /* NOTE: when pos == 0, hd and outbuf may point to same memory (SHA-3). */
 
@@ -275,7 +356,7 @@ keccak_absorb_lane32bi(u32 *lane, u32 x0, u32 x1)
 
 #if __GNUC__ >= 4 && defined(__x86_64__)
 
-static inline void absorb_lanes64_8(u64 *dst, const byte *in)
+static inline void unaligned_absorb_lanes64_8(u64 *dst, const byte *in)
 {
   asm ("movdqu 0*16(%[dst]), %%xmm0\n\t"
        "movdqu 0*16(%[in]), %%xmm4\n\t"
@@ -298,7 +379,7 @@ static inline void absorb_lanes64_8(u64 *dst, const byte *in)
        : "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "memory");
 }
 
-static inline void absorb_lanes64_4(u64 *dst, const byte *in)
+static inline void unaligned_absorb_lanes64_4(u64 *dst, const byte *in)
 {
   asm ("movdqu 0*16(%[dst]), %%xmm0\n\t"
        "movdqu 0*16(%[in]), %%xmm4\n\t"
@@ -313,7 +394,7 @@ static inline void absorb_lanes64_4(u64 *dst, const byte *in)
        : "xmm0", "xmm1", "xmm4", "xmm5", "memory");
 }
 
-static inline void absorb_lanes64_2(u64 *dst, const byte *in)
+static inline void unaligned_absorb_lanes64_2(u64 *dst, const byte *in)
 {
   asm ("movdqu 0*16(%[dst]), %%xmm0\n\t"
        "movdqu 0*16(%[in]), %%xmm4\n\t"
@@ -326,7 +407,7 @@ static inline void absorb_lanes64_2(u64 *dst, const byte *in)
 
 #else /* __x86_64__ */
 
-static inline void absorb_lanes64_8(u64 *dst, const byte *in)
+static inline void unaligned_absorb_lanes64_8(u64 *dst, const byte *in)
 {
   dst[0] ^= buf_get_le64(in + 8 * 0);
   dst[1] ^= buf_get_le64(in + 8 * 1);
@@ -338,7 +419,7 @@ static inline void absorb_lanes64_8(u64 *dst, const byte *in)
   dst[7] ^= buf_get_le64(in + 8 * 7);
 }
 
-static inline void absorb_lanes64_4(u64 *dst, const byte *in)
+static inline void unaligned_absorb_lanes64_4(u64 *dst, const byte *in)
 {
   dst[0] ^= buf_get_le64(in + 8 * 0);
   dst[1] ^= buf_get_le64(in + 8 * 1);
@@ -346,7 +427,7 @@ static inline void absorb_lanes64_4(u64 *dst, const byte *in)
   dst[3] ^= buf_get_le64(in + 8 * 3);
 }
 
-static inline void absorb_lanes64_2(u64 *dst, const byte *in)
+static inline void unaligned_absorb_lanes64_2(u64 *dst, const byte *in)
 {
   dst[0] ^= buf_get_le64(in + 8 * 0);
   dst[1] ^= buf_get_le64(in + 8 * 1);
@@ -354,9 +435,95 @@ static inline void absorb_lanes64_2(u64 *dst, const byte *in)
 
 #endif /* !__x86_64__ */
 
-static inline void absorb_lanes64_1(u64 *dst, const byte *in)
+static inline void unaligned_absorb_lanes64_1(u64 *dst, const byte *in)
 {
   dst[0] ^= buf_get_le64(in + 8 * 0);
+}
+
+
+static inline void absorb_lanes64_21(u64 *dst, const byte *in)
+{
+#ifdef HAVE_ALIGNED_ABSORB_LANES64
+  if (LIKELY(((uintptr_t)in & 7) == 0))
+    {
+      aligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+      aligned_absorb_lanes64_8(&dst[8], in); in += 8 * 8;
+      aligned_absorb_lanes64_4(&dst[16], in); in += 8 * 4;
+      aligned_absorb_lanes64_1(&dst[20], in);
+      return;
+    }
+#endif
+
+  unaligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+  unaligned_absorb_lanes64_8(&dst[8], in); in += 8 * 8;
+  unaligned_absorb_lanes64_4(&dst[16], in); in += 8 * 4;
+  unaligned_absorb_lanes64_1(&dst[20], in);
+}
+
+static inline void absorb_lanes64_18(u64 *dst, const byte *in)
+{
+#ifdef HAVE_ALIGNED_ABSORB_LANES64
+  if (LIKELY(((uintptr_t)in & 7) == 0))
+    {
+      aligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+      aligned_absorb_lanes64_8(&dst[8], in); in += 8 * 8;
+      aligned_absorb_lanes64_2(&dst[16], in);
+      return;
+    }
+#endif
+
+  unaligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+  unaligned_absorb_lanes64_8(&dst[8], in); in += 8 * 8;
+  unaligned_absorb_lanes64_2(&dst[16], in);
+}
+
+static inline void absorb_lanes64_17(u64 *dst, const byte *in)
+{
+#ifdef HAVE_ALIGNED_ABSORB_LANES64
+  if (LIKELY(((uintptr_t)in & 7) == 0))
+    {
+      aligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+      aligned_absorb_lanes64_8(&dst[8], in); in += 8 * 8;
+      aligned_absorb_lanes64_1(&dst[16], in);
+      return;
+    }
+#endif
+
+  unaligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+  unaligned_absorb_lanes64_8(&dst[8], in); in += 8 * 8;
+  unaligned_absorb_lanes64_1(&dst[16], in);
+}
+
+static inline void absorb_lanes64_13(u64 *dst, const byte *in)
+{
+#ifdef HAVE_ALIGNED_ABSORB_LANES64
+  if (LIKELY(((uintptr_t)in & 7) == 0))
+    {
+      aligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+      aligned_absorb_lanes64_4(&dst[8], in); in += 4 * 8;
+      aligned_absorb_lanes64_1(&dst[12], in);
+      return;
+    }
+#endif
+
+  unaligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+  unaligned_absorb_lanes64_4(&dst[8], in); in += 4 * 8;
+  unaligned_absorb_lanes64_1(&dst[12], in);
+}
+
+static inline void absorb_lanes64_9(u64 *dst, const byte *in)
+{
+#ifdef HAVE_ALIGNED_ABSORB_LANES64
+  if (LIKELY(((uintptr_t)in & 7) == 0))
+    {
+      aligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+      aligned_absorb_lanes64_1(&dst[8], in);
+      return;
+    }
+#endif
+
+  unaligned_absorb_lanes64_8(&dst[0], in); in += 8 * 8;
+  unaligned_absorb_lanes64_1(&dst[8], in);
 }
 
 
@@ -448,6 +615,48 @@ static const keccak_ops_t keccak_bmi2_64_ops =
 };
 
 #endif /* USE_64BIT_BMI2 */
+
+
+/* Construct 64-bit RISC-V Zbb extension implementation. */
+#ifdef USE_RISCV_ZBB
+
+# define ANDN64(x, y) ({ \
+			u64 tmp; \
+			asm (".option push;\n\t" \
+			    ".option arch, +zbb;\n\t" \
+			    "andn %0, %1, %2;\n\t" \
+			    ".option pop;\n\t" \
+			    : "=r" (tmp) \
+			    : "r" (y), "r" (x)); \
+			tmp; })
+
+# define ROL64(x, n) ({ \
+			u64 tmp; \
+			asm (".option push;\n\t" \
+			    ".option arch, +zbb;\n\t" \
+			    "rori %0, %1, %2;\n\t" \
+			    ".option pop;\n\t" \
+			    : "=r" (tmp) \
+			    : "r" (x), "I" ((64 - n) & 63)); \
+			tmp; })
+
+# define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute64_riscv_zbb
+# define KECCAK_F1600_ABSORB_FUNC_NAME keccak_absorb_lanes64_riscv_zbb
+# include "keccak_permute_64.h"
+
+# undef ANDN64
+# undef ROL64
+# undef KECCAK_F1600_PERMUTE_FUNC_NAME
+# undef KECCAK_F1600_ABSORB_FUNC_NAME
+
+static const keccak_ops_t keccak_riscv_zbb_64_ops =
+{
+  .permute = keccak_f1600_state_permute64_riscv_zbb,
+  .absorb = keccak_absorb_lanes64_riscv_zbb,
+  .extract = keccak_extract64,
+};
+
+#endif /* USE_RISCV_ZBB */
 
 
 /* 64-bit Intel AVX512 implementation. */
@@ -1001,6 +1210,10 @@ keccak_init (int algo, void *context, unsigned int flags)
 #ifdef USE_64BIT_SHLD
   else if (features & HWF_INTEL_FAST_SHLD)
     ctx->ops = &keccak_shld_64_ops;
+#endif
+#ifdef USE_RISCV_ZBB
+  else if ((features & HWF_RISCV_IMAFDC) && (features & HWF_RISCV_ZBB))
+    ctx->ops = &keccak_riscv_zbb_64_ops;
 #endif
 
   /* Set input block size, in Keccak terms this is called 'rate'. */

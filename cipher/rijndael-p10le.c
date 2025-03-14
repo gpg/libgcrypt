@@ -30,6 +30,8 @@
 
 #ifdef USE_PPC_CRYPTO_WITH_PPC9LE
 
+#include "simd-common-ppc.h"
+
 
 extern size_t _gcry_ppc10_aes_gcm_encrypt (const void *inp, void *out,
                                            size_t len,
@@ -113,6 +115,9 @@ _gcry_aes_p10le_gcm_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
    */
   s = ndone / GCRY_GCM_BLOCK_LEN;
   s = nblocks - s;
+
+  clear_vec_regs();
+
   return ( s );
 }
 

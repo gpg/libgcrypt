@@ -610,6 +610,7 @@ _gcry_ghash_setup_armv8_ce_pmull:
   /* H³ */
   PMUL_128x128(rr0, rr1, rh2, rh1, t0, t1, __)
   REDUCTION(rh3, rr0, rr1, rrconst, t0, t1, __, __, __)
+  CLEAR_REG(rh1)
 
   /* H⁴ */
   PMUL_128x128(rr0, rr1, rh2, rh2, t0, t1, __)
@@ -622,9 +623,18 @@ _gcry_ghash_setup_armv8_ce_pmull:
   /* H⁶ */
   PMUL_128x128(rr0, rr1, rh3, rh3, t0, t1, __)
   REDUCTION(rh6, rr0, rr1, rrconst, t0, t1, __, __, __)
+  CLEAR_REG(rr0)
+  CLEAR_REG(rr1)
+  CLEAR_REG(t0)
+  CLEAR_REG(t1)
 
   st1 {rh2.16b-rh4.16b}, [x1], #(3*16)
+  CLEAR_REG(rh2)
+  CLEAR_REG(rh3)
+  CLEAR_REG(rh4)
   st1 {rh5.16b-rh6.16b}, [x1]
+  CLEAR_REG(rh5)
+  CLEAR_REG(rh6)
 
   ret_spec_stop
   CFI_ENDPROC()

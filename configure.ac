@@ -90,9 +90,6 @@ AC_ARG_VAR(SYSROOT,[locate config scripts also below that directory])
 AH_TOP([
 #ifndef _GCRYPT_CONFIG_H_INCLUDED
 #define _GCRYPT_CONFIG_H_INCLUDED
-
-/* Enable gpg-error's strerror macro for W32CE.  */
-#define GPG_ERR_ENABLE_ERRNO_MACROS 1
 ])
 
 AH_BOTTOM([
@@ -216,7 +213,7 @@ available_ciphers="$available_ciphers sm4 aria"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
-available_pubkey_ciphers="dsa elgamal rsa ecc"
+available_pubkey_ciphers="dsa elgamal rsa ecc kyber"
 enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
@@ -238,7 +235,6 @@ LIBGCRYPT_THREAD_MODULES=""
 
 # Other definitions.
 have_w32_system=no
-have_w32ce_system=no
 have_pthread=no
 
 
@@ -247,15 +243,7 @@ case "${host}" in
     *-*-mingw32*)
       ac_cv_have_dev_random=no
       have_w32_system=yes
-      case "${host}" in
-        *-mingw32ce*)
-            have_w32ce_system=yes
-            available_random_modules="w32ce"
-            ;;
-        *)
-            available_random_modules="w32"
-            ;;
-      esac
+      available_random_modules="w32"
       AC_DEFINE(USE_ONLY_8DOT3,1,
                 [set this to limit filenames to the 8.3 format])
       AC_DEFINE(HAVE_DRIVE_LETTERS,1,
@@ -307,21 +295,12 @@ esac
 
 if test "$have_w32_system" = yes; then
    AC_DEFINE(HAVE_W32_SYSTEM,1, [Defined if we run on a W32 API based system])
-   if test "$have_w32ce_system" = yes; then
-     AC_DEFINE(HAVE_W32CE_SYSTEM,1,[Defined if we run on WindowsCE])
-   fi
 fi
 AM_CONDITIONAL(HAVE_W32_SYSTEM, test "$have_w32_system" = yes)
-AM_CONDITIONAL(HAVE_W32CE_SYSTEM, test "$have_w32ce_system" = yes)
-
 
 
 # A printable OS Name is sometimes useful.
 case "${host}" in
-    *-*-mingw32ce*)
-        PRINTABLE_OS_NAME="W32CE"
-        ;;
-
     *-*-mingw32*)
         PRINTABLE_OS_NAME="W32"
         ;;
@@ -1489,6 +1468,21 @@ if test "$gcry_cv_gcc_attribute_sysv_abi" = "yes" ; then
    fi
 fi
 
+#
+# Check whether compiler support '__thread' storage class specifier.
+#
+AC_CACHE_CHECK([whether compiler supports '__thread' storage class specifier],
+       [gcry_cv_gcc_storage_class__thread],
+       [gcry_cv_gcc_storage_class__thread=no
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+          [[static __thread int bar;]],
+          [[(void)bar;]]
+          )],
+          [gcry_cv_gcc_storage_class__thread=yes])])
+if test "$gcry_cv_gcc_storage_class__thread" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_STORAGE_CLASS__THREAD,1,
+     [Defined if compiler supports "__thread" storage class specifier])
+fi
 
 # Restore flags.
 CFLAGS=$_gcc_cflags_save;
@@ -2605,6 +2599,206 @@ if test "$gcry_cv_gcc_inline_asm_s390x_vx" = "yes" ; then
 fi
 
 
+#
+# Check whether GCC inline assembler supports RISC-V instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports RISC-V instructions],
+      [gcry_cv_gcc_inline_asm_riscv],
+      [if test "$mpi_cpu_arch" != "riscv64" ||
+	  test "$try_asm_modules" != "yes" ; then
+	  gcry_cv_gcc_inline_asm_riscv="n/a"
+	else
+	  gcry_cv_gcc_inline_asm_riscv=no
+	  AC_LINK_IFELSE([AC_LANG_PROGRAM(
+	  [[unsigned int testfunc(unsigned int x)
+	    {
+	      unsigned int y;
+	      asm volatile ("add %0, %1, %2" :
+			    "=r" (y) : "r" (1), "r" (x) : "a5");
+	      asm volatile (".option push;\n\t"
+			    ".option arch, +zba;\n\t"
+			    "sh3add %0, %1, %1;\n\t"
+			    ".option pop;\n\t"
+			    : "=r" (y)
+			    : "r" (y));
+	      asm volatile (".option push;\n\t"
+			    ".option arch, +zbb;\n\t"
+			    "cpop %0, %1;\n\t"
+			    ".option pop;\n\t"
+			    : "=r" (y)
+			    : "r" (y));
+	      asm volatile (".option push;\n\t"
+			    ".option arch, +zbs;\n\t"
+			    "bexti %0, %1, 1;\n\t"
+			    ".option pop;\n\t"
+			    : "=r" (y)
+			    : "r" (y));
+	      asm volatile (".option push;\n\t"
+			    ".option arch, +zbc;\n\t"
+			    "clmulr %0, %1, %2;\n\t"
+			    ".option pop;\n\t"
+			    : "=r" (y)
+			    : "r" (y), "r" (y));
+	      return y;
+	    }
+	    ]] , [ testfunc(0); ])],
+	  [gcry_cv_gcc_inline_asm_riscv=yes])
+	fi])
+if test "$gcry_cv_gcc_inline_asm_riscv" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_RISCV,1,
+     [Defined if inline assembler supports RISC-V instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports RISC-V vector instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports RISC-V vector instructions],
+      [gcry_cv_gcc_inline_asm_riscv_v],
+      [if test "$mpi_cpu_arch" != "riscv64" ||
+	  test "$try_asm_modules" != "yes" ; then
+	  gcry_cv_gcc_inline_asm_riscv_v="n/a"
+	else
+	  gcry_cv_gcc_inline_asm_riscv_v=no
+	  if test "$gcry_cv_gcc_inline_asm_riscv" = "yes" ; then
+	    AC_LINK_IFELSE([AC_LANG_PROGRAM(
+	    [[unsigned int testfunc(void)
+	      {
+		unsigned int vlmax;
+		asm volatile (".option push;\n\t"
+			      ".option arch, +v;\n\t"
+			      "vsetvli %0, %1, e8, m1, ta, ma;\n\t"
+			      "vxor.vv v1, v1, v1;\n\t"
+			      ".option pop;\n\t"
+			      : "=r" (vlmax)
+			      : "r" (~0)
+			      : "vl", "vtype", "v1");
+		return vlmax;
+	      }
+	      ]], [ testfunc(); ])],
+	    [gcry_cv_gcc_inline_asm_riscv_v=yes])
+	  fi
+	fi])
+if test "$gcry_cv_gcc_inline_asm_riscv_v" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_RISCV_V,1,
+     [Defined if inline assembler supports RISC-V vector instructions])
+fi
+
+
+#
+# Check whether compiler supports RISC-V vector intrinsics
+#
+AC_CACHE_CHECK([whether compiler supports RISC-V vector intrinsics],
+      [gcry_cv_cc_riscv_vector_intrinsics],
+      [if test "$mpi_cpu_arch" != "riscv64" ||
+	  test "$try_asm_modules" != "yes" ; then
+	gcry_cv_cc_riscv_vector_intrinsics="n/a"
+      else
+	gcry_cv_cc_riscv_vector_intrinsics=no
+	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	[[#if !(defined(__riscv_v_intrinsic) && __riscv_v_intrinsic >= 12000)
+	  #error __riscv_v_intrinsic not defined or too old version
+	  #endif
+	  #include <riscv_vector.h>
+	  typedef vuint8m1_t __m128i;
+	  #define cast_m128i_to_u64(a) (__riscv_vreinterpret_v_u8m1_u64m1(a))
+	  #define cast_u64_to_m128i(a) (__riscv_vreinterpret_v_u64m1_u8m1(a))
+	  #define paddq128(a, o) (o = cast_u64_to_m128i( \
+					__riscv_vadd_vv_u64m1( \
+					  cast_m128i_to_u64(o), \
+					  cast_m128i_to_u64(a), 2)))
+	  #define pshufb128(m8, o) (o = __riscv_vrgather_vv_u8m1((o), (m8), 16))
+	  #define memory_barrier_with_vec(a) __asm__("" : "+vr"(a) :: "memory")
+	  #define clear_vec_reg_v0() \
+	    __asm__ volatile("vsetivli zero, 16, e8, m1, ta, ma;\n" \
+			     "vmv.v.x v0, zero;\n" \
+			     ::: "memory", "vtype", "vl", "v0")
+	  static inline __attribute__((always_inline)) __m128i
+	  fn2(__m128i a)
+	  {
+	    paddq128(a, a);
+	    return a;
+	  }
+	  __m128i fn(__m128i in)
+	  {
+	    __m128i x;
+	    memory_barrier_with_vec(in);
+	    x = fn2(in);
+	    memory_barrier_with_vec(x);
+	    pshufb128(in, x);
+	    memory_barrier_with_vec(in);
+	    clear_vec_reg_v0();
+	    return in;
+	  }
+	  ]])],
+	[gcry_cv_cc_riscv_vector_intrinsics=yes])
+      fi])
+if test "$gcry_cv_cc_riscv_vector_intrinsics" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS,1,
+	    [Defined if underlying compiler supports RISC-V vector intrinsics])
+fi
+
+_gcc_cflags_save=$CFLAGS
+CFLAGS="$CFLAGS -O2 -march=rv64imafdcv -mstrict-align"
+
+if test "$gcry_cv_cc_riscv_vector_intrinsics" = "no" &&
+   test "$mpi_cpu_arch" = "riscv64" &&
+   test "$try_asm_modules" = "yes" ; then
+  AC_CACHE_CHECK([whether compiler supports RISC-V vector intrinsics with extra GCC flags],
+    [gcry_cv_cc_riscv_vector_intrinsics_cflags],
+    [gcry_cv_cc_riscv_vector_intrinsics_cflags=no
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+      [[#if !(defined(__riscv_v_intrinsic) && __riscv_v_intrinsic >= 12000)
+	#error __riscv_v_intrinsic not defined or too old version
+	#endif
+	#include <riscv_vector.h>
+	typedef vuint8m1_t __m128i;
+	#define cast_m128i_to_u64(a) (__riscv_vreinterpret_v_u8m1_u64m1(a))
+	#define cast_u64_to_m128i(a) (__riscv_vreinterpret_v_u64m1_u8m1(a))
+	#define paddq128(a, o) (o = cast_u64_to_m128i( \
+					__riscv_vadd_vv_u64m1( \
+					  cast_m128i_to_u64(o), \
+					  cast_m128i_to_u64(a), 2)))
+	#define pshufb128(m8, o) (o = __riscv_vrgather_vv_u8m1((o), (m8), 16))
+	#define memory_barrier_with_vec(a) __asm__("" : "+vr"(a) :: "memory")
+	#define clear_vec_reg_v0() \
+	  __asm__ volatile("vsetivli zero, 16, e8, m1, ta, ma;\n" \
+			    "vmv.v.x v0, zero;\n" \
+			    ::: "memory", "vl", "v0")
+	static inline __attribute__((always_inline)) __m128i
+	fn2(__m128i a)
+	{
+	  paddq128(a, a);
+	  return a;
+	}
+	__m128i fn(__m128i in)
+	{
+	  __m128i x;
+	  memory_barrier_with_vec(in);
+	  x = fn2(in);
+	  memory_barrier_with_vec(x);
+	  pshufb128(in, x);
+	  memory_barrier_with_vec(in);
+	  clear_vec_reg_v0();
+	  return in;
+	}
+	]])],
+      [gcry_cv_cc_riscv_vector_intrinsics_cflags=yes])])
+  if test "$gcry_cv_cc_riscv_vector_intrinsics_cflags" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS,1,
+	      [Defined if underlying compiler supports RISC-V vector intrinsics])
+    AC_DEFINE(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS_WITH_CFLAGS,1,
+	      [Defined if underlying compiler supports RISC-V vector intrinsics with extra GCC flags])
+  fi
+fi
+
+AM_CONDITIONAL(ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS,
+	       test "$gcry_cv_cc_riscv_vector_intrinsics_cflags" = "yes")
+
+# Restore flags.
+CFLAGS=$_gcc_cflags_save;
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
@@ -2621,12 +2815,6 @@ AC_CHECK_FUNCS(syscall fcntl ftruncate flockfile getauxval elf_aux_info)
 AC_CHECK_FUNCS(explicit_bzero explicit_memset getentropy sysctlbyname)
 
 GNUPG_CHECK_MLOCK
-
-#
-# Replacement functions.
-#
-AC_REPLACE_FUNCS([getpid clock])
-
 
 #
 # Check whether it is necessary to link against libdl.
@@ -2697,10 +2885,6 @@ if test "$random" = "default"; then
         random_modules="linux"
     else
         case "${host}" in
-        *-*-mingw32ce*)
-          # WindowsCE random device.
-          random_modules="w32ce"
-          ;;
         *-*-mingw32*|*-*-cygwin*)
           # Windows random device.
           random_modules="w32"
@@ -3054,6 +3238,9 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-aarch64.lo"
 
+         # Build with the vector permute SIMD128 implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vp-aarch64.lo"
+
          # Build with the ARMv8/AArch64 CE implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-armv8-ce.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-armv8-aarch64-ce.lo"
@@ -3079,6 +3266,10 @@ if test "$found" = "1" ; then
          # Big-Endian.
          # Build with the crypto extension implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-ppc.lo"
+      ;;
+      riscv64-*-*)
+         # Build with the vector permute SIMD128 implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vp-riscv.lo"
       ;;
       s390x-*-*)
          # Big-Endian.
@@ -3289,6 +3480,10 @@ if test "$found" = "1" ; then
          # Build with the s390x/zSeries vector implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-s390x.lo"
       ;;
+      riscv64-*-*)
+         # Build with the RISC-V vector implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-riscv-v.lo"
+      ;;
    esac
 fi
 
@@ -3362,6 +3557,14 @@ if test "$found" = "1" ; then
                           ecc-ecdh.lo ecc-ecdsa.lo ecc-eddsa.lo ecc-gost.lo \
                           ecc-sm2.lo"
    AC_DEFINE(USE_ECC, 1, [Defined if this module should be included])
+fi
+
+LIST_MEMBER(kyber, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_KYBER, [test "$found" = "1"])
+if test "$found" = "1" ; then
+   GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS \
+                          kyber.c"
+   AC_DEFINE(USE_KYBER, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(crc, $enabled_digests)
@@ -3633,10 +3836,14 @@ case "${host}" in
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-armv8-aarch32-ce.lo"
   ;;
   aarch64-*-*)
+    GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-aarch64-simd.lo"
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-armv8-aarch64-ce.lo"
   ;;
   powerpc64le-*-* | powerpc64-*-* | powerpc-*-*)
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-ppc.lo"
+  ;;
+  riscv64-*-*)
+    GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-riscv-zbb-zbc.lo"
   ;;
 esac
 
@@ -3692,13 +3899,6 @@ if test "$found" = "1" ; then
    GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo"
    AC_DEFINE(USE_RNDW32, 1,
              [Defined if the Windows specific RNG should be used.])
-fi
-
-LIST_MEMBER(w32ce, $random_modules)
-if test "$found" = "1" ; then
-   GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32ce.lo"
-   AC_DEFINE(USE_RNDW32CE, 1,
-             [Defined if the WindowsCE specific RNG should be used.])
 fi
 
 if test "$try_asm_modules" = yes ; then
@@ -3771,6 +3971,10 @@ case "$mpi_cpu_arch" in
      s390x)
         AC_DEFINE(HAVE_CPU_ARCH_S390X, 1, [Defined for s390x/zSeries platforms])
         GCRYPT_HWF_MODULES="libgcrypt_la-hwf-s390x.lo"
+        ;;
+     riscv64)
+        AC_DEFINE(HAVE_CPU_ARCH_RISCV, 1, [Defined for RISC-V platforms])
+        GCRYPT_HWF_MODULES="libgcrypt_la-hwf-riscv.lo"
         ;;
 esac
 AC_SUBST([GCRYPT_HWF_MODULES])

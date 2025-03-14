@@ -93,15 +93,40 @@ static const char ecdsa_sample_secret_key_secp256[] =
   /**/  "7903FE1008B8BC99A41AE9E95628BC64F2F1B20C2D7E9F5177A3C294D4462299#)))";
 
 /* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
-static const char ecdsa_sample_data[] =
+static const char rfc6979_ecdsa_sample_data[] =
   "(data (flags rfc6979 prehash)"
   " (hash-algo sha256)"
   " (value 6:sample))";
 
-static const char ecdsa_sample_data_bad[] =
+static const char rfc6979_ecdsa_sample_data_bad[] =
   "(data (flags rfc6979)"
   " (hash sha256 #bf2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e98915"
   /**/           "62113d8a62add1bf#))";
+
+static const char *rfc6979_ecdsa_data_tmpl =
+  "(data (flags rfc6979)"
+  " (hash %s %b))";
+
+/*
+ * Sample data from RFC 6979 section A.2.5, with fixed k,
+ * hash is of message "sample".
+ */
+static const char ecdsa_sample_data[] =
+  "(data (flags raw prehash)"
+  " (label #A6E3C57DD01ABE90086538398355DD4C3B17AA873382B0F24D6129493D8AAD60#)"
+  " (hash-algo sha256)"
+  " (value 6:sample))";
+
+static const char ecdsa_sample_data_bad[] =
+  "(data (flags raw)"
+  " (label #A6E3C57DD01ABE90086538398355DD4C3B17AA873382B0F24D6129493D8AAD60#)"
+  " (hash sha256 #bf2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e98915"
+  /**/           "62113d8a62add1bf#))";
+
+static const char *ecdsa_data_tmpl =
+  "(data (flags raw)"
+  " (label #A6E3C57DD01ABE90086538398355DD4C3B17AA873382B0F24D6129493D8AAD60#)"
+  " (hash %s %b))";
 
 static const char ecdsa_signature_r[] =
   "efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716";
@@ -109,7 +134,6 @@ static const char ecdsa_signature_r[] =
 static const char ecdsa_signature_s[] =
   "f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8";
 
-static const char *ecdsa_data_tmpl = "(data (flags rfc6979) (hash %s %b))";
 /* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
 static const char ecdsa_sample_data_string[] = "sample";
 static const char ecdsa_sample_data_bad_string[] = "sbmple";
@@ -937,9 +961,34 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     log_mpidump ("ecc_sign   data", data);
 
   if (ctx.label)
-    rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, ctx.label, ctx.labellen, NULL);
-  if (rc)
-    goto leave;
+    {
+      /* ECDSA signing can have supplied K (for testing, deterministic).  */
+      if (fips_mode ())
+        {
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_ECC_K))
+            {
+              rc = GPG_ERR_INV_DATA;
+              goto leave;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
+      rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, ctx.label, ctx.labellen, NULL);
+      if (rc)
+        goto leave;
+    }
+
+  if (fips_mode ()
+      && ((ctx.flags & PUBKEY_FLAG_GOST) || (ctx.flags & PUBKEY_FLAG_SM2)))
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2))
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
 
   /* Hash algo is determined by curve in EdDSA.  */
   if ((ctx.flags & PUBKEY_FLAG_EDDSA))
@@ -952,8 +1001,13 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                   || (ec->dialect == ECC_DIALECT_SAFECURVE
                       && ctx.hash_algo != GCRY_MD_SHAKE256)))
             {
-              rc = GPG_ERR_DIGEST_ALGO;
-              goto leave;
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+                {
+                  rc = GPG_ERR_DIGEST_ALGO;
+                  goto leave;
+                }
+              else
+                fips_service_indicator_mark_non_compliant ();
             }
         }
       else
@@ -962,6 +1016,23 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
             ctx.hash_algo = GCRY_MD_SHA512;
           else if (ec->dialect == ECC_DIALECT_SAFECURVE)
             ctx.hash_algo = GCRY_MD_SHAKE256;
+        }
+    }
+  else
+    {
+      if (fips_mode ())
+        {
+          if (_gcry_md_algo_info (ctx.hash_algo, GCRYCTL_TEST_ALGO, NULL, NULL)
+              || ctx.hash_algo == GCRY_MD_SHA1)
+            {
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_MD))
+                {
+                  rc = GPG_ERR_DIGEST_ALGO;
+                  goto leave;
+                }
+              else
+                fips_service_indicator_mark_non_compliant ();
+            }
         }
     }
 
@@ -1060,8 +1131,38 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
   if (rc)
     goto leave;
+
+  /*
+   * ECDSA signing can have supplied K (for testing, deterministic),
+   * but it's non-compliant.  For ECDSA signature verification, having
+   * K is irrelevant, but an application may use same flags as the one
+   * for signing.
+   */
+  if (ctx.label && fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_ECC_K))
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
   if (DBG_CIPHER)
     log_mpidump ("ecc_verify data", data);
+
+  if (fips_mode ()
+      && ((ctx.flags & PUBKEY_FLAG_GOST) || (ctx.flags & PUBKEY_FLAG_SM2)))
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_GOST_SM2))
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
 
   /* Hash algo is determined by curve in EdDSA.  */
   if ((ctx.flags & PUBKEY_FLAG_EDDSA))
@@ -1074,8 +1175,13 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
                   || (ec->dialect == ECC_DIALECT_SAFECURVE
                       && ctx.hash_algo != GCRY_MD_SHAKE256)))
             {
-              rc = GPG_ERR_DIGEST_ALGO;
-              goto leave;
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+                {
+                  rc = GPG_ERR_DIGEST_ALGO;
+                  goto leave;
+                }
+              else
+                fips_service_indicator_mark_non_compliant ();
             }
         }
       else
@@ -1084,6 +1190,23 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
             ctx.hash_algo = GCRY_MD_SHA512;
           else if (ec->dialect == ECC_DIALECT_SAFECURVE)
             ctx.hash_algo = GCRY_MD_SHAKE256;
+        }
+    }
+  else
+    {
+      if (fips_mode ())
+        {
+          if (_gcry_md_algo_info (ctx.hash_algo, GCRYCTL_TEST_ALGO, NULL, NULL)
+              || ctx.hash_algo == GCRY_MD_SHA1)
+            {
+              if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK_MD))
+                {
+                  rc = GPG_ERR_DIGEST_ALGO;
+                  goto leave;
+                }
+              else
+                fips_service_indicator_mark_non_compliant ();
+            }
         }
     }
 
@@ -2336,6 +2459,16 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
                      ecdsa_sample_public_key_secp256,
                      ecdsa_sample_data, ecdsa_sample_data_bad,
                      ecdsa_data_tmpl,
+                     ecdsa_sample_data_string, ecdsa_sample_data_bad_string,
+                     ecdsa_signature_r, ecdsa_signature_s);
+  if (r)
+    return r;
+
+  r = selftests_ecc (report, extended, 0,
+                     ecdsa_sample_secret_key_secp256,
+                     ecdsa_sample_public_key_secp256,
+                     rfc6979_ecdsa_sample_data, rfc6979_ecdsa_sample_data_bad,
+                     rfc6979_ecdsa_data_tmpl,
                      ecdsa_sample_data_string, ecdsa_sample_data_bad_string,
                      ecdsa_signature_r, ecdsa_signature_s);
   if (r)

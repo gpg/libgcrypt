@@ -1179,11 +1179,6 @@ getfnc_gather_random (void))(void (*)(const void*, size_t,
   return fnc;
 #endif
 
-#if USE_RNDW32CE
-  fnc = _gcry_rndw32ce_gather_random;
-  return fnc;
-#endif
-
   log_fatal (_("no entropy gathering module detected\n"));
 
   return NULL; /*NOTREACHED*/
@@ -1198,9 +1193,6 @@ getfnc_fast_random_poll (void))( void (*)(const void*, size_t,
 {
 #if USE_RNDW32
   return _gcry_rndw32_gather_random_fast;
-#endif
-#if USE_RNDW32CE
-  return _gcry_rndw32ce_gather_random_fast;
 #endif
   return NULL;
 }

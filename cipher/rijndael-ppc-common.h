@@ -26,6 +26,7 @@
 #ifndef G10_RIJNDAEL_PPC_COMMON_H
 #define G10_RIJNDAEL_PPC_COMMON_H
 
+#include "simd-common-ppc.h"
 #include <altivec.h>
 
 
@@ -136,6 +137,7 @@ typedef union
 
 #define PRELOAD_ROUND_KEYS_ALL(nrounds) \
   do { \
+    static const block preload_zero = { 0 }; \
     rkey0 = ALIGNED_LOAD (rk, 0); \
     rkey1 = ALIGNED_LOAD (rk, 1); \
     rkey2 = ALIGNED_LOAD (rk, 2); \
@@ -146,6 +148,10 @@ typedef union
     rkey7 = ALIGNED_LOAD (rk, 7); \
     rkey8 = ALIGNED_LOAD (rk, 8); \
     rkey9 = ALIGNED_LOAD (rk, 9); \
+    rkey10 = preload_zero; \
+    rkey11 = preload_zero; \
+    rkey12 = preload_zero; \
+    rkey13 = preload_zero; \
     if (nrounds >= 12) \
       { \
 	rkey10 = ALIGNED_LOAD (rk, 10); \

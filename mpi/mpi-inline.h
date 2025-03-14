@@ -28,6 +28,8 @@
 #ifndef G10_MPI_INLINE_H
 #define G10_MPI_INLINE_H
 
+#include "longlong.h"
+
 /* Starting with gcc 4.3 "extern inline" conforms in c99 mode to the
    c99 semantics.  To keep the useful old semantics we use an
    attribute.  */
@@ -68,6 +70,25 @@ _gcry_mpih_add_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 }
 
 
+/* Do same calculation as _gcry_mpih_add_1 does (under the condition
+   of RES_PTR == S1_PTR), Least Leak Intended.  */
+G10_MPI_INLINE_DECL mpi_limb_t
+_gcry_mpih_add_1_lli (mpi_ptr_t s1_ptr, mpi_size_t s1_size, mpi_limb_t s2_limb)
+{
+  mpi_limb_t x;
+  mpi_limb_t cy;
+
+  cy = s2_limb;
+  while ( s1_size )
+    {
+      x = *s1_ptr;
+      add_ssaaaa (cy, x, 0, cy, 0, x);
+      *s1_ptr++ = x;
+      s1_size--;
+    }
+  return cy;
+}
+
 
 G10_MPI_INLINE_DECL mpi_limb_t
 _gcry_mpih_add(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
@@ -83,6 +104,7 @@ _gcry_mpih_add(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
 			    s1_size - s2_size, cy);
     return cy;
 }
+
 
 
 G10_MPI_INLINE_DECL mpi_limb_t

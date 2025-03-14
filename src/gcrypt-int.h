@@ -298,6 +298,22 @@ void _gcry_set_log_handler (gcry_handler_log_t f, void *opaque);
 void _gcry_set_gettext_handler (const char *(*f)(const char*));
 void _gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data);
 
+void _gcry_thread_context_set_reject (unsigned int flags);
+int _gcry_thread_context_check_rejection (unsigned int flag);
+
+#define fips_check_rejection(flag) \
+  _gcry_thread_context_check_rejection (flag)
+
+void _gcry_thread_context_set_fsi (unsigned long fsi);
+unsigned long _gcry_thread_context_get_fsi (void);
+#define fips_service_indicator_init() do \
+  {                                      \
+    if (fips_mode ())                    \
+      _gcry_thread_context_set_fsi (0);  \
+  } while (0)
+/* Should be used only when fips_mode()==TRUE.  */
+#define fips_service_indicator_mark_non_compliant() \
+  _gcry_thread_context_set_fsi (1)
 
 /* Return a pointer to a string containing a description of the error
    code in the error value ERR.  */
@@ -458,6 +474,7 @@ void _gcry_mpi_mul_2exp (gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt);
 void _gcry_mpi_div (gcry_mpi_t q, gcry_mpi_t r,
                    gcry_mpi_t dividend, gcry_mpi_t divisor, int round);
 void _gcry_mpi_mod (gcry_mpi_t r, gcry_mpi_t dividend, gcry_mpi_t divisor);
+const char *_gcry_mpi_get_powm_config (void);
 void _gcry_mpi_powm (gcry_mpi_t w,
                     const gcry_mpi_t b, const gcry_mpi_t e,
                     const gcry_mpi_t m);

@@ -201,6 +201,8 @@ _gcry_aes_ppc8_setkey (RIJNDAEL_context *ctx, const byte *key)
     }
 
   wipememory(tk_vu32, sizeof(tk_vu32));
+
+  clear_vec_regs();
 }
 
 
@@ -208,6 +210,8 @@ void PPC_OPT_ATTR
 _gcry_aes_ppc8_prepare_decryption (RIJNDAEL_context *ctx)
 {
   internal_aes_ppc_prepare_decryption (ctx);
+
+  clear_vec_regs();
 }
 
 

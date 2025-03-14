@@ -110,6 +110,12 @@ ELF(.size _gcry_sm4_aarch64_consts,.-_gcry_sm4_aarch64_consts)
         zip1 s2.2d, RTMP3.2d, RTMP1.2d;     \
         zip2 s3.2d, RTMP3.2d, RTMP1.2d;
 
+#define clear_volatile_vec_regs() \
+	CLEAR_REG(v0); CLEAR_REG(v1); CLEAR_REG(v2); CLEAR_REG(v3); \
+	CLEAR_REG(v4); CLEAR_REG(v5); CLEAR_REG(v6); \
+	/* v8-v15 are ABI callee saved. */ \
+	/* v16-v31 are loaded with non-secret (SM4 sbox). */
+
 
 .text
 
@@ -385,6 +391,7 @@ _gcry_sm4_aarch64_crypt_blk1_8:
 
 .Lblk8_store_output_done:
     VPOP_ABI;
+    clear_volatile_vec_regs();
     ldp x29, x30, [sp], #16;
     CFI_ADJUST_CFA_OFFSET(-16);
     CFI_RESTORE(x29);
@@ -427,6 +434,7 @@ _gcry_sm4_aarch64_crypt:
 
 .Lcrypt_end:
     VPOP_ABI;
+    clear_volatile_vec_regs();
     ldp x29, x30, [sp], #16;
     CFI_ADJUST_CFA_OFFSET(-16);
     CFI_RESTORE(x29);
@@ -491,6 +499,7 @@ _gcry_sm4_aarch64_cbc_dec:
     st1 {RIV.16b}, [x3];
 
     VPOP_ABI;
+    clear_volatile_vec_regs();
     ldp x29, x30, [sp], #16;
     CFI_ADJUST_CFA_OFFSET(-16);
     CFI_RESTORE(x29);
@@ -554,6 +563,7 @@ _gcry_sm4_aarch64_cfb_dec:
     st1 {v0.16b}, [x3];
 
     VPOP_ABI;
+    clear_volatile_vec_regs();
     ldp x29, x30, [sp], #16;
     CFI_ADJUST_CFA_OFFSET(-16);
     CFI_RESTORE(x29);
@@ -633,6 +643,7 @@ _gcry_sm4_aarch64_ctr_enc:
     stp x7, x8, [x3];
 
     VPOP_ABI;
+    clear_volatile_vec_regs();
     ldp x29, x30, [sp], #16;
     CFI_ADJUST_CFA_OFFSET(-16);
     CFI_RESTORE(x29);

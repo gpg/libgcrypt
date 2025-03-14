@@ -333,6 +333,13 @@ case "${host}" in
 	path="powerpc32"
         mpi_cpu_arch="ppc"
 	;;
+
+    riscv64-*-*)
+       echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
+       path=""
+       mpi_cpu_arch="riscv64"
+       ;;
+
     *)
 	echo '/* Platform not known */' >>./mpi/asm-syntax.h
 	path=""

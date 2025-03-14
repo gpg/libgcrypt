@@ -67,10 +67,44 @@ GPGRT_LOCK_DEFINE (fsm_lock);
    used while in fips mode. Change this only while holding fsm_lock. */
 static enum module_states current_state;
 
+struct gcry_thread_context {
+  unsigned long fips_service_indicator;
+  unsigned int flags_reject_non_fips;
+};
 
-
-
+#ifdef HAVE_GCC_STORAGE_CLASS__THREAD
+static __thread struct gcry_thread_context the_tc = {
+  0, GCRY_FIPS_FLAG_REJECT_DEFAULT
+};
+#else
+#error libgcrypt requires thread-local storage to support FIPS mode
+#endif
 
+void
+_gcry_thread_context_set_reject (unsigned int flags)
+{
+  the_tc.flags_reject_non_fips = flags;
+}
+
+int
+_gcry_thread_context_check_rejection (unsigned int flag)
+{
+  return !!(the_tc.flags_reject_non_fips & flag);
+}
+
+void
+_gcry_thread_context_set_fsi (unsigned long fsi)
+{
+  the_tc.fips_service_indicator = fsi;
+}
+
+unsigned long
+_gcry_thread_context_get_fsi (void)
+{
+  return the_tc.fips_service_indicator;
+}
+
+
 static void fips_new_state (enum module_states new_state);
 
 
@@ -342,6 +376,17 @@ _gcry_fips_test_operational (void)
       unlock_fsm ();
     }
   return result;
+}
+
+gpg_err_code_t
+_gcry_fips_indicator (void)
+{
+  /* If anything recorded, it means that the operation is not
+     supported under FIPS mode.  */
+  if (_gcry_thread_context_get_fsi ())
+    return GPG_ERR_NOT_SUPPORTED;
+
+  return 0;
 }
 
 int

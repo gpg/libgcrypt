@@ -45,7 +45,6 @@ rndoldlinux.c \
 rndegd.c \
 rndunix.c \
 rndw32.c  \
-rndw32ce.c \
 jitterentropy-gcd.c jitterentropy-gcd.h \
 jitterentropy-health.c jitterentropy-health.h \
 jitterentropy-noise.c jitterentropy-noise.h \

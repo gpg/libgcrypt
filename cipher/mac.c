@@ -513,11 +513,12 @@ check_mac_algo (int algorithm)
  * Open a message digest handle for use with algorithm ALGO.
  */
 static gcry_err_code_t
-mac_open (gcry_mac_hd_t * hd, int algo, int secure, gcry_ctx_t ctx)
+mac_open (gcry_mac_hd_t * hd, int algo, unsigned int flags, gcry_ctx_t ctx)
 {
   const gcry_mac_spec_t *spec;
   gcry_err_code_t err;
   gcry_mac_hd_t h;
+  int secure = !!(flags & GCRY_MAC_FLAG_SECURE);
 
   spec = spec_from_algo (algo);
   if (!spec)
@@ -525,7 +526,12 @@ mac_open (gcry_mac_hd_t * hd, int algo, int secure, gcry_ctx_t ctx)
   else if (spec->flags.disabled)
     return GPG_ERR_MAC_ALGO;
   else if (!spec->flags.fips && fips_mode ())
-    return GPG_ERR_MAC_ALGO;
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MAC))
+        return GPG_ERR_MAC_ALGO;
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
   else if (!spec->ops)
     return GPG_ERR_MAC_ALGO;
   else if (!spec->ops->open || !spec->ops->write || !spec->ops->setkey ||
@@ -646,7 +652,7 @@ _gcry_mac_open (gcry_mac_hd_t * h, int algo, unsigned int flags,
   if ((flags & ~GCRY_MAC_FLAG_SECURE))
     rc = GPG_ERR_INV_ARG;
   else
-    rc = mac_open (&hd, algo, !!(flags & GCRY_MAC_FLAG_SECURE), ctx);
+    rc = mac_open (&hd, algo, flags, ctx);
 
   *h = rc ? NULL : hd;
   return rc;

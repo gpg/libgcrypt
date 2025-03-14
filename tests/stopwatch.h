@@ -41,15 +41,9 @@ static void
 start_timer (void)
 {
 #ifdef _WIN32
-#ifdef __MINGW32CE__
-  GetThreadTimes (GetCurrentThread (),
-                   &started_at.creation_time, &started_at.exit_time,
-                   &started_at.kernel_time, &started_at.user_time);
-#else
   GetProcessTimes (GetCurrentProcess (),
                    &started_at.creation_time, &started_at.exit_time,
                    &started_at.kernel_time, &started_at.user_time);
-#endif
   stopped_at = started_at;
 #else
   struct tms tmp;
@@ -63,15 +57,9 @@ static void
 stop_timer (void)
 {
 #ifdef _WIN32
-#ifdef __MINGW32CE__
-  GetThreadTimes (GetCurrentThread (),
-                   &stopped_at.creation_time, &stopped_at.exit_time,
-                   &stopped_at.kernel_time, &stopped_at.user_time);
-#else
   GetProcessTimes (GetCurrentProcess (),
                    &stopped_at.creation_time, &stopped_at.exit_time,
                    &stopped_at.kernel_time, &stopped_at.user_time);
-#endif
 #else
   struct tms tmp;
 

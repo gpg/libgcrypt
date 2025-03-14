@@ -378,6 +378,9 @@ print_config (const char *what, gpgrt_stream_t fp)
   if (!what || !strcmp (what, "mpi-asm"))
     gpgrt_fprintf (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
 
+  if (!what || !strcmp (what, "mpi-pow"))
+    gpgrt_fprintf (fp, "mpi-powm:%s\n", _gcry_mpi_get_powm_config ());
+
   if (!what || !strcmp (what, "hwflist"))
     {
       unsigned int hwfeatures, afeature;
@@ -785,6 +788,17 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
          error code. */
       global_init ();
       rc = _gcry_fips_run_selftests (1);
+      break;
+
+    case GCRYCTL_FIPS_SERVICE_INDICATOR:
+      rc = _gcry_fips_indicator ();
+      break;
+
+    case GCRYCTL_FIPS_REJECT_NON_FIPS:
+      {
+        unsigned int flags = va_arg (arg_ptr, unsigned int);
+        _gcry_thread_context_set_reject (flags);
+      }
       break;
 
     case GCRYCTL_FIPS_SERVICE_INDICATOR_CIPHER:

@@ -80,6 +80,9 @@ struct gcry_mpi
 #define mpi_get_nlimbs(a)     ((a)->nlimbs)
 #define mpi_has_sign(a)	      ((a)->sign)
 
+typedef mpi_limb_t *mpi_ptr_t; /* pointer to a limb */
+typedef int mpi_size_t;        /* (must be a signed type) */
+
 /*-- mpiutil.c --*/
 
 #ifdef M_DEBUG
@@ -320,6 +323,23 @@ gpg_err_code_t _gcry_mpi_ec_internal_new (mpi_ec_t *r_ec, int *r_flags,
                                           gcry_sexp_t keyparam,
                                           const char *curvename);
 
+/*-- mpih-shift.c --*/
+mpi_limb_t _gcry_mpih_rshift (mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
+                              unsigned cnt);
+
+/*-- mpih-const-time.c --*/
+mpi_limb_t _gcry_mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
+                                  mpi_size_t usize, unsigned long op_enable);
+int _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v);
+int _gcry_mpih_cmp_lli (mpi_ptr_t op1_ptr, mpi_ptr_t op2_ptr, mpi_size_t size);
+
+/*-- mpih-add.c --*/
+mpi_limb_t _gcry_mpih_add_n (mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+                             mpi_ptr_t s2_ptr,  mpi_size_t size);
+
+/* Do same calculation as _gcry_mpih_add does (under the condition
+   of RES_PTR == S1_PTR and the size is same), Least Leak Intended.  */
+#define _gcry_mpih_add_lli _gcry_mpih_add_n
 
 
 #endif /*G10_MPI_H*/

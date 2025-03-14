@@ -40,6 +40,8 @@ ENCRYPT_BLOCK_FUNC (const RIJNDAEL_context *ctx, unsigned char *out,
   AES_ENCRYPT (b, rounds);
   VEC_STORE_BE (out, 0, b, bige_const);
 
+  clear_vec_regs();
+
   return 0; /* does not use stack */
 }
 
@@ -60,6 +62,8 @@ DECRYPT_BLOCK_FUNC (const RIJNDAEL_context *ctx, unsigned char *out,
 
   AES_DECRYPT (b, rounds);
   VEC_STORE_BE (out, 0, b, bige_const);
+
+  clear_vec_regs();
 
   return 0; /* does not use stack */
 }
@@ -116,6 +120,8 @@ CFB_ENC_FUNC (void *context, unsigned char *iv_arg, void *outbuf_arg,
     }
 
   VEC_STORE_BE (iv_arg, 0, outiv, bige_const);
+
+  clear_vec_regs();
 }
 
 
@@ -373,6 +379,8 @@ ECB_CRYPT_FUNC (void *context, void *outbuf_arg, const void *inbuf_arg,
       out++;
       in++;
     }
+
+  clear_vec_regs();
 }
 
 
@@ -571,6 +579,8 @@ CFB_DEC_FUNC (void *context, unsigned char *iv_arg, void *outbuf_arg,
     }
 
   VEC_STORE_BE (iv_arg, 0, iv, bige_const);
+
+  clear_vec_regs();
 }
 
 
@@ -640,6 +650,8 @@ CBC_ENC_FUNC (void *context, unsigned char *iv_arg, void *outbuf_arg,
   while (nblocks);
 
   VEC_STORE_BE (iv_arg, 0, outiv, bige_const);
+
+  clear_vec_regs();
 }
 
 
@@ -845,6 +857,8 @@ CBC_DEC_FUNC (void *context, unsigned char *iv_arg, void *outbuf_arg,
     }
 
   VEC_STORE_BE (iv_arg, 0, iv, bige_const);
+
+  clear_vec_regs();
 }
 
 
@@ -1078,6 +1092,8 @@ CTR_ENC_FUNC (void *context, unsigned char *ctr_arg, void *outbuf_arg,
     }
 
   VEC_STORE_BE (ctr_arg, 0, ctr, bige_const);
+
+  clear_vec_regs();
 }
 
 
@@ -1584,6 +1600,8 @@ OCB_CRYPT_FUNC (gcry_cipher_hd_t c, void *outbuf_arg, const void *inbuf_arg,
   VEC_STORE_BE (c->u_ctr.ctr, 0, ctr, bige_const);
   c->u_mode.ocb.data_nblocks = data_nblocks;
 
+  clear_vec_regs();
+
   return 0;
 }
 
@@ -1793,6 +1811,8 @@ OCB_AUTH_FUNC (gcry_cipher_hd_t c, void *abuf_arg, size_t nblocks)
   VEC_STORE_BE (c->u_mode.ocb.aad_offset, 0, iv, bige_const);
   VEC_STORE_BE (c->u_mode.ocb.aad_sum, 0, ctr, bige_const);
   c->u_mode.ocb.aad_nblocks = data_nblocks;
+
+  clear_vec_regs();
 
   return 0;
 }
@@ -2295,6 +2315,8 @@ XTS_CRYPT_FUNC (void *context, unsigned char *tweak_arg, void *outbuf_arg,
   VEC_STORE_BE (tweak_arg, 0, tweak, bige_const);
 
 #undef GEN_TWEAK
+
+  clear_vec_regs();
 }
 
 
@@ -2541,4 +2563,6 @@ CTR32LE_ENC_FUNC(void *context, unsigned char *ctr_arg, void *outbuf_arg,
 #undef VEC_ADD_CTRLE32
 
   VEC_STORE_BE (ctr_arg, 0, vec_reve((block)ctr), bige_const);
+
+  clear_vec_regs();
 }

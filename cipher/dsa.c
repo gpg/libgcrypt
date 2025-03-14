@@ -150,7 +150,12 @@ static gpg_err_code_t
 dsa_check_keysize (unsigned int nbits)
 {
   if (fips_mode () && nbits < 2048)
-    return GPG_ERR_INV_VALUE;
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        return GPG_ERR_INV_VALUE;
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
 
   return 0;
 }

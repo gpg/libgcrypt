@@ -1052,6 +1052,38 @@ is responsible to check also the internal members.  For example:
   /* ok */
 @end example
 
+@item GCRYCTL_FIPS_SERVICE_INDICATOR; Arguments: none
+This commands provides ``dynamic'' service indicator.
+
+After a function call (of the use of security services), this command
+can be used to check if the call is valid or not.  If the computation
+is done in an approved way, it returns @code{GPG_ERR_NO_ERROR}.
+Otherwise @code{GPG_ERR_NOT_SUPPORTED} is returned.
+
+An application may use this command directly or use the convenience
+macro below.
+
+@deftypefun gcry_error_t gcry_get_fips_service_indicator (void)
+
+Returns @code{GPG_ERR_NO_ERROR} if a preceeding function call is
+valid.  Otherwise @code{GPG_ERR_NOT_SUPPORTED} is returned.
+@end deftypefun
+
+@item GCRYCTL_FIPS_REJECT_NON_FIPS; Arguments: unsigned int flags
+In Libgcrypt 1.10, static implicit indicator is used; For an approved
+function (which can be checked by
+GCRYCTL_FIPS_SERVICE_INDICATOR_FUNCTION command) with an approved
+algo/operation (which can be checked GCRYCTL_FIPS_SERVICE_INDICATOR_*
+command), success of the function call means that it's valid and error
+return (rejection) means it's invalid.  This command controls thread
+specific behavior of the rejection.
+
+When using ``dynamic'' service indicator, this command with FLAGS=0
+disables all rejections.
+@example
+  gcry_control (GCRYCTL_FIPS_REJECT_NON_FIPS, 0);
+@end example
+
 @end table
 
 @end deftypefun

@@ -436,16 +436,42 @@ _gcry_md_algo_name (int algorithm)
 
 
 static gcry_err_code_t
-check_digest_algo (int algorithm)
+check_digest_algo_spec (int algo, const gcry_md_spec_t *spec)
 {
-  const gcry_md_spec_t *spec;
+  int reject = 0;
 
-  spec = spec_from_algo (algorithm);
-  if (spec && !spec->flags.disabled && (spec->flags.fips || !fips_mode ()))
+  if (spec->flags.disabled)
+    return GPG_ERR_DIGEST_ALGO;
+
+  if (!fips_mode ())
     return 0;
 
-  return GPG_ERR_DIGEST_ALGO;
+  if (spec->flags.fips)
+    return 0;
 
+  if (algo == GCRY_MD_MD5)
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+  else if (algo == GCRY_MD_SHA1)
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
+  else
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
+
+  if (reject)
+    return GPG_ERR_DIGEST_ALGO;
+
+  fips_service_indicator_mark_non_compliant ();
+  return 0;
+}
+
+static gcry_err_code_t
+check_digest_algo (int algo)
+{
+  const gcry_md_spec_t *spec = spec_from_algo (algo);
+
+  if (!spec)
+    return GPG_ERR_DIGEST_ALGO;
+  else
+    return check_digest_algo_spec (algo, spec);
 }
 
 
@@ -547,6 +573,41 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
   else
     rc = md_open (&hd, algo, flags);
 
+  if (!rc && fips_mode ())
+    {
+      GcryDigestEntry *entry = hd->ctx->list;
+      /* No ENTRY means that ALGO==0.
+         It's not yet known, if it's FIPS compliant or not.  */
+      int is_compliant_algo = 1;
+
+      if (entry)
+        {
+          const gcry_md_spec_t *spec = entry->spec;
+          is_compliant_algo = spec->flags.fips;
+        }
+
+      if (!is_compliant_algo)
+        {
+          int reject = 0;
+
+          if (algo == GCRY_MD_MD5)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else if (algo == GCRY_MD_SHA1)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
+          else
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
+
+          if (reject)
+            {
+              md_close (hd);
+              hd = NULL;
+              rc = GPG_ERR_DIGEST_ALGO;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
+    }
+
   *h = rc? NULL : hd;
   return rc;
 }
@@ -560,10 +621,18 @@ md_enable (gcry_md_hd_t hd, int algorithm)
   const gcry_md_spec_t *spec;
   GcryDigestEntry *entry;
   gcry_err_code_t err = 0;
+  int reject;
 
   for (entry = h->list; entry; entry = entry->next)
     if (entry->spec->algo == algorithm)
       return 0; /* Already enabled */
+
+  if (algorithm == GCRY_MD_MD5)
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+  else if (algorithm == GCRY_MD_SHA1)
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
+  else
+    reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
 
   spec = spec_from_algo (algorithm);
   if (!spec)
@@ -576,7 +645,7 @@ md_enable (gcry_md_hd_t hd, int algorithm)
     err = GPG_ERR_DIGEST_ALGO;
 
   /* Any non-FIPS algorithm should go this way */
-  if (!err && !spec->flags.fips && fips_mode ())
+  if (!err && reject && !spec->flags.fips && fips_mode ())
     err = GPG_ERR_DIGEST_ALGO;
 
   if (!err && h->flags.hmac && spec->read == NULL)
@@ -619,19 +688,54 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 gcry_err_code_t
 _gcry_md_enable (gcry_md_hd_t hd, int algorithm)
 {
-  return md_enable (hd, algorithm);
+  gcry_err_code_t rc;
+
+  rc = md_enable (hd, algorithm);
+  if (!rc && fips_mode ())
+    {
+      GcryDigestEntry *entry = hd->ctx->list;
+      /* No ENTRY means, something goes wrong.  */
+      int is_compliant_algo = 0;
+
+      if (entry)
+        {
+          const gcry_md_spec_t *spec = entry->spec;
+          is_compliant_algo = spec->flags.fips;
+        }
+
+      if (!is_compliant_algo)
+        {
+          int reject = 0;
+
+          if (algorithm == GCRY_MD_MD5)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else if (algorithm == GCRY_MD_SHA1)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
+          else
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
+
+          if (reject)
+            rc = GPG_ERR_DIGEST_ALGO;
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
+    }
+
+  return rc;
 }
 
 
 static gcry_err_code_t
 md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 {
-  gcry_err_code_t err = 0;
+  gcry_err_code_t rc = 0;
   struct gcry_md_context *a = ahd->ctx;
   struct gcry_md_context *b;
   GcryDigestEntry *ar, *br;
   gcry_md_hd_t bhd;
   size_t n;
+  int is_compliant_algo = 1;
+  int reject = 0;
 
   if (ahd->bufpos)
     md_write (ahd, NULL, 0);
@@ -644,7 +748,7 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 
   if (!bhd)
     {
-      err = gpg_err_code_from_syserror ();
+      rc = gpg_err_code_from_syserror ();
       goto leave;
     }
 
@@ -658,19 +762,36 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
   b->list = NULL;
   b->debug = NULL;
 
+  if (!a->list)
+    is_compliant_algo = 0;
+
   /* Copy the complete list of algorithms.  The copied list is
      reversed, but that doesn't matter. */
   for (ar = a->list; ar; ar = ar->next)
     {
+      const gcry_md_spec_t *spec = ar->spec;
+
       if (a->flags.secure)
         br = xtrymalloc_secure (ar->actual_struct_size);
       else
         br = xtrymalloc (ar->actual_struct_size);
       if (!br)
         {
-          err = gpg_err_code_from_syserror ();
+          rc = gpg_err_code_from_syserror ();
           md_close (bhd);
           goto leave;
+        }
+
+      if (!spec->flags.fips)
+        {
+          is_compliant_algo = 0;
+
+          if (spec->algo == GCRY_MD_MD5)
+            reject |= fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_MD5);
+          else if (spec->algo == GCRY_MD_SHA1)
+            reject = fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_SHA1);
+          else
+            reject |= fips_check_rejection (GCRY_FIPS_FLAG_REJECT_MD_OTHERS);
         }
 
       memcpy (br, ar, ar->actual_struct_size);
@@ -681,10 +802,22 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
   if (a->debug)
     md_start_debug (bhd, "unknown");
 
-  *b_hd = bhd;
+  if (!is_compliant_algo && fips_mode ())
+    {
+      if (reject)
+        {
+          rc = GPG_ERR_DIGEST_ALGO;
+          md_close (bhd);
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  if (!rc)
+    *b_hd = bhd;
 
  leave:
-  return err;
+  return rc;
 }
 
 
@@ -1260,7 +1393,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
       iov.off = 0;
       iov.len = length;
 
-      if (spec->flags.disabled || (!spec->flags.fips && fips_mode ()))
+      if (spec->flags.disabled)
         log_bug ("gcry_md_hash_buffer failed for algo %d: %s",
                 algo, gpg_strerror (gcry_error (GPG_ERR_DIGEST_ALGO)));
 
@@ -1281,6 +1414,12 @@ _gcry_md_hash_buffer (int algo, void *digest,
       md_final (h);
       memcpy (digest, md_read (h, algo), md_digest_length (algo));
       md_close (h);
+    }
+
+  if (fips_mode ())
+    {
+      if (!spec->flags.fips)
+        fips_service_indicator_mark_non_compliant ();
     }
 }
 
@@ -1336,7 +1475,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
 
   if (!hmac && spec->hash_buffers)
     {
-      if (spec->flags.disabled || (!spec->flags.fips && fips_mode ()))
+      if (spec->flags.disabled)
         return GPG_ERR_DIGEST_ALGO;
 
       spec->hash_buffers (digest, digestlen, iov, iovcnt);
@@ -1372,6 +1511,12 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
       else if (digestlen > 0)
 	md_extract (h, algo, digest, digestlen);
       md_close (h);
+    }
+
+  if (fips_mode ())
+    {
+      if (!spec->flags.fips)
+        fips_service_indicator_mark_non_compliant ();
     }
 
   return 0;
@@ -1679,9 +1824,7 @@ _gcry_md_selftest (int algo, int extended, selftest_report_func_t report)
   const gcry_md_spec_t *spec;
 
   spec = spec_from_algo (algo);
-  if (spec && !spec->flags.disabled
-      && (spec->flags.fips || !fips_mode ())
-      && spec->selftest)
+  if (spec && !check_digest_algo_spec (algo, spec) && spec->selftest)
     ec = spec->selftest (algo, extended, report);
   else
     {

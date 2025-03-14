@@ -47,6 +47,7 @@
 /**********************************************************************
   AT&T x86 asm to intrinsics conversion macros (PowerPC VSX+crypto)
  **********************************************************************/
+#include "simd-common-ppc.h"
 #include <altivec.h>
 
 typedef vector signed char int8x16_t;
@@ -151,8 +152,6 @@ static const uint8x16_t shift_row =
 #define if_aes_subbytes(...) __VA_ARGS__
 #define if_not_aes_subbytes(...) /*_*/
 
-#define memory_barrier_with_vec(a) __asm__("" : "+wa"(a) :: "memory")
-
 #endif /* __powerpc__ */
 
 #ifdef __ARM_NEON
@@ -160,6 +159,7 @@ static const uint8x16_t shift_row =
 /**********************************************************************
   AT&T x86 asm to intrinsics conversion macros (ARMv8-CE)
  **********************************************************************/
+#include "simd-common-aarch64.h"
 #include <arm_neon.h>
 
 #define __m128i uint64x2_t
@@ -231,8 +231,6 @@ static const uint8x16_t shift_row =
 	vpshufb128(shufmask_reg, a, o)
 #define if_aes_subbytes(...) /*_*/
 #define if_not_aes_subbytes(...) __VA_ARGS__
-
-#define memory_barrier_with_vec(a) __asm__("" : "+w"(a) :: "memory")
 
 #endif /* __ARM_NEON */
 
@@ -307,6 +305,7 @@ static const uint8x16_t shift_row =
 #define if_not_aes_subbytes(...) __VA_ARGS__
 
 #define memory_barrier_with_vec(a) __asm__("" : "+x"(a) :: "memory")
+#define clear_vec_regs() ((void)0)
 
 #endif /* defined(__x86_64__) || defined(__i386__) */
 
@@ -1123,6 +1122,8 @@ FUNC_ENC_BLK16(const void *key_table, void *vout, const void *vin,
 
   write_output(x7, x6, x5, x4, x3, x2, x1, x0, x15, x14, x13, x12, x11, x10, x9,
 	       x8, out);
+
+  clear_vec_regs();
 }
 
 /* Decrypts 16 input block from IN and writes result to OUT. IN and OUT may
@@ -1193,6 +1194,8 @@ FUNC_DEC_BLK16(const void *key_table, void *vout, const void *vin,
 
   write_output(x7, x6, x5, x4, x3, x2, x1, x0, x15, x14, x13, x12, x11, x10, x9,
 	       x8, out);
+
+  clear_vec_regs();
 }
 
 /********* Key setup **********************************************************/
@@ -1688,6 +1691,8 @@ camellia_setup128(void *key_table, __m128i x0)
   load_zero(tmp0);
   vmovq128_memst(tmp0, cmll_sub(1, ctx));
   vmovq128_memst(tmp0, cmll_sub(25, ctx));
+
+  clear_vec_regs();
 }
 
 static ASM_FUNC_ATTR_INLINE void
@@ -2188,6 +2193,8 @@ camellia_setup256(void *key_table, __m128i x0, __m128i x1)
   load_zero(tmp0);
   vmovq128_memst(tmp0, cmll_sub(1, ctx));
   vmovq128_memst(tmp0, cmll_sub(33, ctx));
+
+  clear_vec_regs();
 }
 
 void ASM_FUNC_ATTR_NOINLINE

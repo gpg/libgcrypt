@@ -112,6 +112,12 @@
 #endif
 #endif /* GCM_USE_ARM_NEON */
 
+/* GCM_USE_AARCH64 indicates whether to compile GCM with AArch64 SIMD code. */
+#undef GCM_USE_AARCH64
+#if defined(__AARCH64EL__) && defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS)
+# define GCM_USE_AARCH64 1
+#endif
+
 /* GCM_USE_S390X_CRYPTO indicates whether to enable zSeries code. */
 #undef GCM_USE_S390X_CRYPTO
 #if defined(HAVE_GCC_INLINE_ASM_S390X)
@@ -129,6 +135,14 @@
 #  define NEED_16BYTE_ALIGNED_CONTEXT 1 /* this also aligns gcm_table */
 #endif
 #endif /* GCM_USE_PPC_VPMSUM */
+
+/* GCM_USE_RISCV_ZBB_ZBC indicates whether to compile GCM with RISC-V Zbb+Zbc
+ * code. */
+#undef GCM_USE_RISCV_ZBB_ZBC
+#if defined (__riscv) && (__riscv_xlen == 64) && \
+    defined(HAVE_GCC_INLINE_ASM_RISCV)
+# define GCM_USE_RISCV_ZBB_ZBC 1
+#endif
 
 typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);
@@ -769,7 +783,7 @@ ocb_get_l (gcry_cipher_hd_t c, u64 n)
         : [low] "r" ((unsigned long)n)
         : "cc");
 #else
-  ntz = _gcry_ctz (n);
+  ntz = _gcry_ctz_no_zero (n);
 #endif
 
   return c->u_mode.ocb.L[ntz];

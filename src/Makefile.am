@@ -38,15 +38,6 @@ nodist_include_HEADERS = gcrypt.h
 lib_LTLIBRARIES = libgcrypt.la
 bin_PROGRAMS = dumpsexp hmac256 mpicalc
 
-# Depending on the architecture some targets require libgpg-error.
-if HAVE_W32CE_SYSTEM
-arch_gpg_error_cflags = $(GPG_ERROR_CFLAGS)
-arch_gpg_error_libs   = $(GPG_ERROR_LIBS)
-else
-arch_gpg_error_cflags =
-arch_gpg_error_libs   =
-endif
-
 AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
@@ -66,7 +57,9 @@ libgcrypt_la_SOURCES = \
 	context.c context.h const-time.h const-time.c \
 	ec-context.h
 
-EXTRA_libgcrypt_la_SOURCES = hwf-x86.c hwf-arm.c hwf-ppc.c hwf-s390x.c
+EXTRA_libgcrypt_la_SOURCES = \
+	hwf-x86.c hwf-arm.c hwf-ppc.c hwf-s390x.c hwf-riscv.c
+
 gcrypt_hwf_modules = @GCRYPT_HWF_MODULES@
 
 
@@ -129,8 +122,8 @@ libgcrypt_la_LIBADD = $(gcrypt_res) \
 
 
 dumpsexp_SOURCES = dumpsexp.c
-dumpsexp_CFLAGS = $(arch_gpg_error_cflags)
-dumpsexp_LDADD = $(arch_gpg_error_libs)
+dumpsexp_CFLAGS =
+dumpsexp_LDADD =
 
 mpicalc_SOURCES = mpicalc.c
 mpicalc_CFLAGS = $(GPG_ERROR_CFLAGS)
@@ -138,9 +131,8 @@ mpicalc_LDADD = libgcrypt.la $(GPG_ERROR_LIBS)
 EXTRA_mpicalc_DEPENDENCIES = libgcrypt.la.done
 
 hmac256_SOURCES = hmac256.c hmac256.h
-hmac256_CFLAGS = -DSTANDALONE @DEF_HMAC_BINARY_CHECK@ \
-	$(arch_gpg_error_cflags)
-hmac256_LDADD = $(arch_gpg_error_libs)
+hmac256_CFLAGS = -DSTANDALONE @DEF_HMAC_BINARY_CHECK@
+hmac256_LDADD =
 
 CLEANFILES = libgcrypt.la.done
 if USE_HMAC_BINARY_CHECK

@@ -80,6 +80,7 @@
 
 #ifdef GCM_USE_PPC_VPMSUM
 
+#include "simd-common-ppc.h"
 #include <altivec.h>
 
 #define ALWAYS_INLINE inline __attribute__((always_inline))
@@ -370,6 +371,8 @@ _gcry_ghash_setup_ppc_vpmsum (void *gcm_table_arg, void *gcm_key)
   STORE_TABLE (gcm_table, 10, H4l);
   STORE_TABLE (gcm_table, 11, H4);
   STORE_TABLE (gcm_table, 12, H4h);
+
+  clear_vec_regs();
 }
 
 unsigned int ASM_FUNC_ATTR
@@ -541,6 +544,8 @@ _gcry_ghash_ppc_vpmsum (byte *result, void *gcm_table,
     }
 
   vec_store_he (vec_be_swap (cur, bswap_const), 0, result);
+
+  clear_vec_regs();
 
   return 0;
 }

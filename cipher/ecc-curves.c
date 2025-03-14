@@ -645,7 +645,12 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
      possible to bypass this check by specifying the curve parameters
      directly.  */
   if (fips_mode () && !domain_parms[idx].fips )
-    return GPG_ERR_NOT_SUPPORTED;
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        return GPG_ERR_NOT_SUPPORTED;
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
 
   switch (domain_parms[idx].model)
     {
@@ -839,6 +844,15 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
           if (r_nbits)
             *r_nbits = domain_parms[idx].nbits;
         }
+
+      if (fips_mode () && !domain_parms[idx].fips)
+        {
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+            return NULL;
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
+
       return result;
     }
 

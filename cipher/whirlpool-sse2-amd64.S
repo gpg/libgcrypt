@@ -27,6 +27,8 @@
 
 .text
 
+#define CLEAR_REG(v) pxor v, v
+
 /* look-up table offsets on RTAB */
 #define RC (0)
 #define C0 (RC + (8 * 10))
@@ -338,6 +340,24 @@ _gcry_whirlpool_transform_amd64:
 	CFI_RESTORE(%r15);
 	addq $STACK_MAX, %rsp;
 	CFI_ADJUST_CFA_OFFSET(-STACK_MAX);
+
+	CLEAR_REG(%xmm0);
+	CLEAR_REG(%xmm1);
+	CLEAR_REG(%xmm2);
+	CLEAR_REG(%xmm3);
+	CLEAR_REG(%xmm4);
+	CLEAR_REG(%xmm5);
+	CLEAR_REG(%xmm6);
+	CLEAR_REG(%xmm7);
+	CLEAR_REG(%xmm8);
+	CLEAR_REG(%xmm9);
+	CLEAR_REG(%xmm10);
+	CLEAR_REG(%xmm11);
+	CLEAR_REG(%xmm12);
+	CLEAR_REG(%xmm13);
+	CLEAR_REG(%xmm14);
+	CLEAR_REG(%xmm15);
+
 .Lskip:
 	movl $(STACK_MAX + 8), %eax;
 	ret_spec_stop;

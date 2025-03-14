@@ -350,6 +350,7 @@ ELF(.size _gcry_sm4_armv9_svesm4_consts,.-_gcry_sm4_armv9_svesm4_consts)
         ext         b0.16b, b0.16b, b0.16b, #8;     \
         rev32       b0.16b, b0.16b;
 
+.text
 
 .align 4
 .global _gcry_sm4_armv9_sve_ce_crypt
@@ -617,6 +618,7 @@ _gcry_sm4_armv9_sve_ce_cbc_dec:
     st1         {RIVv.16b}, [x3];
 
     VPOP_ABI;
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv9_sve_ce_cbc_dec,.-_gcry_sm4_armv9_sve_ce_cbc_dec;)
@@ -791,6 +793,7 @@ _gcry_sm4_armv9_sve_ce_cfb_dec:
     st1         {RIVv.16b}, [x3];
 
     VPOP_ABI;
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv9_sve_ce_cfb_dec,.-_gcry_sm4_armv9_sve_ce_cfb_dec;)
@@ -947,6 +950,7 @@ _gcry_sm4_armv9_sve_ce_ctr_enc:
     rev x8, x8;
     stp x7, x8, [x3];
 
+    CLEAR_ALL_REGS();
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv9_sve_ce_ctr_enc,.-_gcry_sm4_armv9_sve_ce_ctr_enc;)

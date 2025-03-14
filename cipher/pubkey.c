@@ -328,8 +328,17 @@ _gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   if (spec->flags.disabled)
     rc = GPG_ERR_PUBKEY_ALGO;
   else if (!spec->flags.fips && fips_mode ())
-    rc = GPG_ERR_PUBKEY_ALGO;
-  else if (spec->encrypt)
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  if (spec->encrypt)
     rc = spec->encrypt (r_ciph, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -441,8 +450,17 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (spec->flags.disabled)
     rc = GPG_ERR_PUBKEY_ALGO;
   else if (!spec->flags.fips && fips_mode ())
-    rc = GPG_ERR_PUBKEY_ALGO;
-  else if (spec->sign)
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  if (spec->sign)
     rc = spec->sign (r_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -502,7 +520,10 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
   /* Check if it has fixed hash name or %s */
   s = strstr (tmpl, "(hash ");
   if (s == NULL)
-    return GPG_ERR_DIGEST_ALGO;
+    {
+      _gcry_md_close (hd);
+      return GPG_ERR_DIGEST_ALGO;
+    }
 
   s += 6;
   if (!strncmp (s, "%s", 2))
@@ -511,8 +532,13 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
 
       if (fips_mode () && algo == GCRY_MD_SHA1)
         {
-          _gcry_md_close (hd);
-          return GPG_ERR_DIGEST_ALGO;
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+            {
+              _gcry_md_close (hd);
+              return GPG_ERR_DIGEST_ALGO;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
         }
 
       digest_name = _gcry_md_algo_name (algo);
@@ -529,18 +555,31 @@ prepare_datasexp_to_be_signed (const char *tmpl, gcry_md_hd_t hd,
 
       digest_name_supplied = xtrymalloc (p - s + 1);
       if (!digest_name_supplied)
-	return gpg_error_from_syserror ();
+        {
+          rc = gpg_err_code_from_syserror ();
+          _gcry_md_close (hd);
+          return rc;
+        }
       memcpy (digest_name_supplied, s, p - s);
       digest_name_supplied[p - s] = 0;
 
       algo = _gcry_md_map_name (digest_name_supplied);
       xfree (digest_name_supplied);
-      if (algo == 0
-          || (fips_mode () && algo == GCRY_MD_SHA1))
+      if (algo == 0)
 	{
 	  _gcry_md_close (hd);
 	  return GPG_ERR_DIGEST_ALGO;
 	}
+      else if (fips_mode () && algo == GCRY_MD_SHA1)
+        {
+          if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+            {
+              _gcry_md_close (hd);
+              return GPG_ERR_DIGEST_ALGO;
+            }
+          else
+            fips_service_indicator_mark_non_compliant ();
+        }
 
       digest_size = (int)_gcry_md_get_algo_dlen (algo);
       digest = _gcry_md_read (hd, algo);
@@ -616,8 +655,17 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (spec->flags.disabled)
     rc = GPG_ERR_PUBKEY_ALGO;
   else if (!spec->flags.fips && fips_mode ())
-    rc = GPG_ERR_PUBKEY_ALGO;
-  else if (spec->sign)
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  if (spec->sign)
     rc = spec->sign (r_sig, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -650,8 +698,17 @@ _gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
   if (spec->flags.disabled)
     rc = GPG_ERR_PUBKEY_ALGO;
   else if (!spec->flags.fips && fips_mode ())
-    rc = GPG_ERR_PUBKEY_ALGO;
-  else if (spec->verify)
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  if (spec->verify)
     rc = spec->verify (s_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -693,8 +750,17 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
   if (spec->flags.disabled)
     rc = GPG_ERR_PUBKEY_ALGO;
   else if (!spec->flags.fips && fips_mode ())
-    rc = GPG_ERR_PUBKEY_ALGO;
-  else if (spec->verify)
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  if (spec->verify)
     rc = spec->verify (s_sig, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -729,8 +795,17 @@ _gcry_pk_testkey (gcry_sexp_t s_key)
   if (spec->flags.disabled)
     rc = GPG_ERR_PUBKEY_ALGO;
   else if (!spec->flags.fips && fips_mode ())
-    rc = GPG_ERR_PUBKEY_ALGO;
-  else if (spec->check_secret_key)
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  if (spec->check_secret_key)
     rc = spec->check_secret_key (keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -808,10 +883,20 @@ _gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   spec = spec_from_name (name);
   xfree (name);
   name = NULL;
-  if (!spec || spec->flags.disabled || (!spec->flags.fips && fips_mode ()))
+  if (!spec || spec->flags.disabled)
     {
       rc = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
       goto leave;
+    }
+  else if (!spec->flags.fips && fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
     }
 
   if (spec->generate)
@@ -848,12 +933,22 @@ _gcry_pk_get_nbits (gcry_sexp_t key)
 
   if (spec_from_sexp (key, 0, &spec, &parms))
     return 0; /* Error - 0 is a suitable indication for that.  */
-  if (spec->flags.disabled)
-    return 0;
-  if (!spec->flags.fips && fips_mode ())
-    return 0;
 
-  nbits = spec->get_nbits (parms);
+  if (spec->flags.disabled)
+    nbits = 0;                  /* Error */
+  else if (!spec->flags.fips && fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        nbits = 0;              /* Error */
+      else
+        {
+          fips_service_indicator_mark_non_compliant ();
+          nbits = spec->get_nbits (parms);
+        }
+    }
+  else
+    nbits = spec->get_nbits (parms);
+
   sexp_release (parms);
   return nbits;
 }
@@ -986,10 +1081,18 @@ _gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
     }
 
   if (spec->flags.disabled)
-    return NULL;
-  if (!spec->flags.fips && fips_mode ())
-    return NULL;
-  if (spec->get_curve)
+    result = NULL;
+  else if (!spec->flags.fips && fips_mode ())
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        result = NULL;
+      else
+        {
+          fips_service_indicator_mark_non_compliant ();
+          result = spec->get_curve (keyparms, iterator, r_nbits);
+        }
+    }
+  else if (spec->get_curve)
     result = spec->get_curve (keyparms, iterator, r_nbits);
 
   sexp_release (keyparms);

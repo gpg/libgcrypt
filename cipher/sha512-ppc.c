@@ -25,6 +25,7 @@
     defined(USE_SHA512) && \
     __GNUC__ >= 4
 
+#include "simd-common-ppc.h"
 #include <altivec.h>
 #include "bufhelp.h"
 
@@ -704,6 +705,8 @@ sha512_transform_ppc(u64 state[8], const unsigned char *data, size_t nblks)
   vec_u64_store (h2, 8 * 2, (unsigned long long *)state);
   vec_u64_store (h4, 8 * 4, (unsigned long long *)state);
   vec_u64_store (h6, 8 * 6, (unsigned long long *)state);
+
+  clear_vec_regs();
 
   return sizeof(w) + sizeof(w2);
 }

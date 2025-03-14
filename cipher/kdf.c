@@ -248,6 +248,7 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
                   size_t keysize, void *keybuffer)
 {
   gpg_err_code_t ec;
+  int is_compliant_algo = 0;
 
   if (!passphrase)
     {
@@ -279,25 +280,29 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
       break;
 
     case GCRY_KDF_PBKDF2:
-      if (!saltlen)
+      is_compliant_algo = 1;
+      if (!saltlen || !iterations)
         ec = GPG_ERR_INV_VALUE;
       else
         {
-          /* FIPS requires minimum passphrase length, see FIPS 140-3 IG D.N */
-          if (fips_mode () && passphraselen < 8)
-            return GPG_ERR_INV_VALUE;
+          if (fips_mode ())
+            {
+              /* FIPS requires minimum passphrase length, see FIPS 140-3 IG D.N */
+              if (passphraselen < 8)
+                fips_service_indicator_mark_non_compliant ();
 
-          /* FIPS requires minimum salt length of 128 b (SP 800-132 sec. 5.1, p.6) */
-          if (fips_mode () && saltlen < 16)
-            return GPG_ERR_INV_VALUE;
+              /* FIPS requires minimum salt length of 128 b (SP 800-132 sec. 5.1, p.6) */
+              if (saltlen < 16)
+                fips_service_indicator_mark_non_compliant ();
 
-          /* FIPS requires minimum iterations bound (SP 800-132 sec 5.2, p.6) */
-          if (fips_mode () && iterations < 1000)
-            return GPG_ERR_INV_VALUE;
+              /* FIPS requires minimum iterations bound (SP 800-132 sec 5.2, p.6) */
+              if (iterations < 1000)
+                fips_service_indicator_mark_non_compliant ();
 
-          /* Check minimum key size */
-          if (fips_mode () && keysize < 14)
-            return GPG_ERR_INV_VALUE;
+              /* Check minimum key size */
+              if (keysize < 14)
+                fips_service_indicator_mark_non_compliant ();
+            }
 
           ec = _gcry_kdf_pkdf2 (passphrase, passphraselen, subalgo,
                                 salt, saltlen, iterations, keysize, keybuffer);
@@ -318,6 +323,9 @@ _gcry_kdf_derive (const void *passphrase, size_t passphraselen,
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
       break;
     }
+
+  if (!ec && !is_compliant_algo && fips_mode ())
+    fips_service_indicator_mark_non_compliant ();
 
  leave:
   return ec;
@@ -487,6 +495,7 @@ argon2_init (argon2_ctx_t a, unsigned int parallelism,
 {
   gpg_err_code_t ec = 0;
   unsigned int memory_blocks;
+  size_t memory_bytes;
   unsigned int segment_length;
   void *block;
   struct argon2_thread_data *thread_data;
@@ -507,13 +516,17 @@ argon2_init (argon2_ctx_t a, unsigned int parallelism,
   a->block = NULL;
   a->thread_data = NULL;
 
-  block = xtrymalloc (1024 * memory_blocks);
+  if (U64_C(1024) * memory_blocks > SIZE_MAX)
+    return GPG_ERR_INV_VALUE;
+
+  memory_bytes = 1024 * (size_t)memory_blocks;
+  block = xtrymalloc (memory_bytes);
   if (!block)
     {
       ec = gpg_err_code_from_errno (errno);
       return ec;
     }
-  memset (block, 0, 1024 * memory_blocks);
+  memset (block, 0, memory_bytes);
 
   thread_data = xtrymalloc (a->lanes * sizeof (struct argon2_thread_data));
   if (!thread_data)
@@ -864,6 +877,9 @@ argon2_open (gcry_kdf_hd_t *hd, int subalgo,
     }
 
   if (parallelism == 0)
+    return GPG_ERR_INV_VALUE;
+
+  if (U64_C(1024) * m_cost > SIZE_MAX)
     return GPG_ERR_INV_VALUE;
 
   n = offsetof (struct argon2_context, out) + taglen;

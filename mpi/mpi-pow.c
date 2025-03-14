@@ -34,12 +34,37 @@
 #include "longlong.h"
 
 
+#ifndef USE_ALGORITHM_LLI_EXPONENTIATION
+/*
+ * When you don't need least-leak implementation, please add compilation option
+ * -DUSE_ALGORITHM_LLI_EXPONENTIATION=0
+ *
+ * For performance (by tests/benchmark rsa), it's comparable to leaky
+ * sliding window implementation on 64-bit architecture.  On 32-bit
+ * architecture, it's slower with 3072-bit and 4096-bit.  In future,
+ * it's good to have non-leaky Karatsuba multiplication, then, it's
+ * possible to use this for all architectures.
+ *
+ */
+#define USE_ALGORITHM_LLI_EXPONENTIATION (BITS_PER_MPI_LIMB >= 64)
+#endif
+
 /*
  * When you need old implementation, please add compilation option
  * -DUSE_ALGORITHM_SIMPLE_EXPONENTIATION
  * or expose this line:
 #define USE_ALGORITHM_SIMPLE_EXPONENTIATION 1
  */
+
+const char *
+_gcry_mpi_get_powm_config (void)
+{
+#if USE_ALGORITHM_LLI_EXPONENTIATION
+  return "fixed-window";
+#else
+  return "sliding-window";
+#endif
+}
 
 #if defined(USE_ALGORITHM_SIMPLE_EXPONENTIATION)
 /****************
@@ -540,6 +565,33 @@ _gcry_mpi_powm (gcry_mpi_t res,
       mpi_resize (res, size);
       rp = res->d;
     }
+
+#if USE_ALGORITHM_LLI_EXPONENTIATION
+  if ((esec || bsec || msec) && (mod->d[0] & 1))
+    {
+      mpi_ptr_t bp1 = NULL;
+
+      if (bsize < msize)
+	{
+	  bp1 = mpi_alloc_limb_space (msize, 1);
+	  MPN_ZERO (bp1, msize);
+	  MPN_COPY (bp1, bp, bsize);
+	}
+
+      _gcry_mpih_powm_lli (rp, bp1?bp1:bp, mod->d, msize, ep, esize);
+      if (bp1)
+	_gcry_mpi_free_limb_space (bp1, msize);
+
+      rsign = 0;
+      negative_result = (ep[0] & 1) && bsign;
+      if (negative_result)
+	rsign = msign;
+
+      res->nlimbs = msize;
+      res->sign = rsign;
+      goto leave;
+    }
+#endif
 
   /* Main processing.  */
   {
