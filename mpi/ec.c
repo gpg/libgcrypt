@@ -1968,7 +1968,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
     }
   z1 = mpi_copy (mpi_const (MPI_C_ONE));
 
-  mpi_mul (h, k, mpi_const (MPI_C_THREE)); /* h = 3k */
+  mpi_mul_ui (h, k, 3); /* h = 3k */
   loops = mpi_get_nbits (h);
   if (loops < 2)
     {
@@ -2078,20 +2078,19 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
         /* We check if right hand is quadratic residue or not by
            Euler's criterion.  */
         /* CTX->A has (a-2)/4 and CTX->B has b^-1 */
-        ec_mulm (w, ctx->a, mpi_const (MPI_C_FOUR), ctx);
-        ec_addm (w, w, mpi_const (MPI_C_TWO), ctx);
+        mpi_mul_ui (w, ctx->a, 4);
+        mpi_add_ui (w, w, 2);
         ec_mulm (w, w, x, ctx);
         ec_pow2 (xx, x, ctx);
         ec_addm (w, w, xx, ctx);
-        ec_addm (w, w, mpi_const (MPI_C_ONE), ctx);
         ec_mulm (w, w, x, ctx);
+        ec_addm (w, w, x, ctx);
         ec_mulm (w, w, ctx->b, ctx);
 #undef xx
         /* Compute Euler's criterion: w^(p-1)/2 */
-#define p_minus1 y
-        ec_subm (p_minus1, ctx->p, mpi_const (MPI_C_ONE), ctx);
-        mpi_rshift (p_minus1, p_minus1, 1);
-        ec_powm (w, w, p_minus1, ctx);
+#define p_minus1_half y
+        mpi_rshift (p_minus1_half, ctx->p, 1); /* p is odd */
+        ec_powm (w, w, p_minus1_half, ctx);
 
         res = !mpi_cmp_ui (w, 1);
 #undef p_minus1
