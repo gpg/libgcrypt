@@ -1450,25 +1450,12 @@ add_points_weierstrass (mpi_point_t result,
     }
   else
     {
-      int z1_is_one = !mpi_cmp_ui (z1, 1);
-      int z2_is_one = !mpi_cmp_ui (z2, 1);
-
       /* l1 = x1 z2^2  */
       /* l2 = x2 z1^2  */
-      if (z2_is_one)
-        mpi_set (l1, x1);
-      else
-        {
-          ec_pow2 (l1, z2, ctx);
-          ec_mulm (l1, l1, x1, ctx);
-        }
-      if (z1_is_one)
-        mpi_set (l2, x2);
-      else
-        {
-          ec_pow2 (l2, z1, ctx);
-          ec_mulm (l2, l2, x2, ctx);
-        }
+      ec_pow2 (l4, z2, ctx);
+      ec_mulm (l1, l4, x1, ctx);
+      ec_pow2 (l5, z1, ctx);
+      ec_mulm (l2, l5, x2, ctx);
       /* l3 = l1 - l2 */
       ec_subm (l3, l1, l2, ctx);
       /* l4 = y1 z2^3  */
