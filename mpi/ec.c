@@ -1966,7 +1966,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       mpi_free (z2);
       mpi_free (z3);
     }
-  z1 = mpi_copy (mpi_const (MPI_C_ONE));
+  z1 = mpi_set_ui (NULL, 1);
 
   mpi_mul_ui (h, k, 3); /* h = 3k */
   loops = mpi_get_nbits (h);
