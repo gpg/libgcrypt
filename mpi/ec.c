@@ -1235,7 +1235,8 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
           /*                          T2: used for the right term.  */
           ec_pow2 (t1, point->z, ctx);
           ec_subm (l1, point->x, t1, ctx);
-          ec_mulm (l1, l1, mpi_const (MPI_C_THREE), ctx);
+          ec_addm (t3, l1, l1, ctx);
+          ec_addm (l1, l1, t3, ctx);
           ec_addm (t2, point->x, t1, ctx);
           ec_mulm (l1, l1, t2, ctx);
         }
@@ -1244,7 +1245,8 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
           /* L1 = 3X^2 + aZ^4 */
           /*                          T1: used for aZ^4. */
           ec_pow2 (l1, point->x, ctx);
-          ec_mulm (l1, l1, mpi_const (MPI_C_THREE), ctx);
+          ec_addm (t3, l1, l1, ctx);
+          ec_addm (l1, l1, t3, ctx);
           ec_pow2 (t1, point->z, ctx);
           ec_pow2 (t1, t1, ctx);
           ec_mulm (t1, t1, ctx->a, ctx);
@@ -1258,7 +1260,8 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
       /*                              T2: used for Y2; required later. */
       ec_pow2 (t2, point->y, ctx);
       ec_mulm (l2, t2, point->x, ctx);
-      ec_mulm (l2, l2, mpi_const (MPI_C_FOUR), ctx);
+      ec_addm (l2, l2, l2, ctx);
+      ec_addm (l2, l2, l2, ctx);
 
       /* X3 = L1^2 - 2L2 */
       /*                              T1: used for L2^2. */
@@ -1269,7 +1272,9 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
       /* L3 = 8Y^4 */
       /*                              T2: taken from above. */
       ec_pow2 (t2, t2, ctx);
-      ec_mulm (l3, t2, mpi_const (MPI_C_EIGHT), ctx);
+      ec_addm (l3, t2, t2, ctx);
+      ec_addm (l3, l3, l3, ctx);
+      ec_addm (l3, l3, l3, ctx);
 
       /* Y3 = L1(L2 - X3) - L3 */
       ec_subm (y3, l2, x3, ctx);
