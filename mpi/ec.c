@@ -333,16 +333,6 @@ ec_pow2 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
 }
 
 
-/* Shortcut for
-     ec_powm (B, B, mpi_const (MPI_C_THREE), ctx);
-   for easier optimization.  */
-static void
-ec_pow3 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
-{
-  mpi_powm (w, b, mpi_const (MPI_C_THREE), ctx->p);
-}
-
-
 static void
 ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
 {
@@ -1255,7 +1245,8 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
           /*                          T1: used for aZ^4. */
           ec_pow2 (l1, point->x, ctx);
           ec_mulm (l1, l1, mpi_const (MPI_C_THREE), ctx);
-          ec_powm (t1, point->z, mpi_const (MPI_C_FOUR), ctx);
+          ec_pow2 (t1, point->z, ctx);
+          ec_pow2 (t1, t1, ctx);
           ec_mulm (t1, t1, ctx->a, ctx);
           ec_addm (l1, l1, t1, ctx);
         }
@@ -1426,8 +1417,6 @@ add_points_weierstrass (mpi_point_t result,
 #define l7 (ctx->t.scratch[6])
 #define l8 (ctx->t.scratch[7])
 #define l9 (ctx->t.scratch[8])
-#define t1 (ctx->t.scratch[9])
-#define t2 (ctx->t.scratch[10])
 
   if ( (!mpi_cmp (x1, x2)) && (!mpi_cmp (y1, y2)) && (!mpi_cmp (z1, z2)) )
     {
@@ -1459,10 +1448,10 @@ add_points_weierstrass (mpi_point_t result,
       /* l3 = l1 - l2 */
       ec_subm (l3, l1, l2, ctx);
       /* l4 = y1 z2^3  */
-      ec_powm (l4, z2, mpi_const (MPI_C_THREE), ctx);
+      ec_mulm (l4, z2, l4, ctx);
       ec_mulm (l4, l4, y1, ctx);
       /* l5 = y2 z1^3  */
-      ec_powm (l5, z1, mpi_const (MPI_C_THREE), ctx);
+      ec_mulm (l5, z1, l5, ctx);
       ec_mulm (l5, l5, y2, ctx);
       /* l6 = l4 - l5  */
       ec_subm (l6, l4, l5, ctx);
@@ -1492,18 +1481,18 @@ add_points_weierstrass (mpi_point_t result,
           ec_mulm (z3, z1, z2, ctx);
           ec_mulm (z3, z3, l3, ctx);
           /* x3 = l6^2 - l7 l3^2  */
-          ec_pow2 (t1, l6, ctx);
-          ec_pow2 (t2, l3, ctx);
-          ec_mulm (t2, t2, l7, ctx);
-          ec_subm (x3, t1, t2, ctx);
+          ec_pow2 (l1, l6, ctx);
+          ec_pow2 (l2, l3, ctx);
+          ec_mulm (l4, l2, l7, ctx);
+          ec_subm (x3, l1, l4, ctx);
           /* l9 = l7 l3^2 - 2 x3  */
-          ec_mul2 (t1, x3, ctx);
-          ec_subm (l9, t2, t1, ctx);
+          ec_mul2 (l1, x3, ctx);
+          ec_subm (l9, l4, l1, ctx);
           /* y3 = (l9 l6 - l8 l3^3)/2  */
           ec_mulm (l9, l9, l6, ctx);
-          ec_powm (t1, l3, mpi_const (MPI_C_THREE), ctx); /* fixme: Use saved value*/
-          ec_mulm (t1, t1, l8, ctx);
-          ec_subm (y3, l9, t1, ctx);
+          ec_mulm (l1, l3, l2, ctx);
+          ec_mulm (l1, l1, l8, ctx);
+          ec_subm (y3, l9, l1, ctx);
           ec_mulm (y3, y3, ec_get_two_inv_p (ctx), ctx);
         }
     }
@@ -1526,8 +1515,6 @@ add_points_weierstrass (mpi_point_t result,
 #undef l7
 #undef l8
 #undef l9
-#undef t1
-#undef t2
 }
 
 
@@ -2068,7 +2055,8 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
         /* y^2 == x^3 + a·x + b */
         ec_pow2 (y, y, ctx);
 
-        ec_pow3 (xxx, x, ctx);
+        ec_pow2 (xxx, x, ctx);
+        ec_mulm (xxx, xxx, x, ctx);
         ec_mulm (w, ctx->a, x, ctx);
         ec_addm (w, w, ctx->b, ctx);
         ec_addm (w, w, xxx, ctx);
