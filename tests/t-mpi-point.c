@@ -1247,6 +1247,11 @@ point_on_curve (void)
           if (!lastcurve || !ctx)
             die ("invalid test vectors at idx %d\n", tidx);
         }
+      else if (gcry_fips_mode_active () && strncmp(t[tidx].curve, "NIST", 4))
+        {
+          /* Skip non-NIST curves in FIPS mode. */
+          continue;
+        }
       else if (!ctx || !lastcurve || strcmp (t[tidx].curve, lastcurve))
         {
           lastcurve = t[tidx].curve;
