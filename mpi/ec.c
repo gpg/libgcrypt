@@ -577,10 +577,6 @@ ec_secp256k1_mod (gcry_mpi_t w, mpi_ec_t ctx)
   mpi_limb_t cy, borrow;
   mpi_ptr_t wp;
 
-  MPN_NORMALIZE (w->d, w->nlimbs);
-  if (w->nlimbs > 2 * 256 / BITS_PER_MPI_LIMB)
-    log_bug ("W must be less than m^2\n");
-
   RESIZE_AND_CLEAR_IF_NEEDED (w, wsize * 2);
 
   wp = w->d;

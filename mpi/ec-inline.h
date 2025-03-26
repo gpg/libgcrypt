@@ -1203,33 +1203,4 @@ LIMB64_HILO(mpi_limb_t hi, mpi_limb_t lo)
 #endif
 
 
-/* Helper functions.  */
-
-static inline int
-mpi_nbits_more_than (gcry_mpi_t w, unsigned int nbits)
-{
-  unsigned int nbits_nlimbs;
-  mpi_limb_t wlimb;
-  unsigned int n;
-
-  nbits_nlimbs = (nbits + BITS_PER_MPI_LIMB - 1) / BITS_PER_MPI_LIMB;
-
-  /* Note: Assumes that 'w' is normalized. */
-
-  if (w->nlimbs > nbits_nlimbs)
-    return 1;
-  if (w->nlimbs < nbits_nlimbs)
-    return 0;
-  if ((nbits % BITS_PER_MPI_LIMB) == 0)
-    return 0;
-
-  wlimb = w->d[nbits_nlimbs - 1];
-  if (wlimb == 0)
-    log_bug ("mpi_nbits_more_than: input mpi not normalized\n");
-
-  count_leading_zeros (n, wlimb);
-
-  return (BITS_PER_MPI_LIMB - n) > (nbits % BITS_PER_MPI_LIMB);
-}
-
 #endif /* GCRY_EC_INLINE_H */
