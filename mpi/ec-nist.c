@@ -96,10 +96,6 @@ _gcry_mpi_ec_nist192_mod (gcry_mpi_t w, mpi_ec_t ctx)
   mpi_limb_t s_is_negative;
   int carry;
 
-  MPN_NORMALIZE (w->d, w->nlimbs);
-  if (mpi_nbits_more_than (w, 2 * 192))
-    log_bug ("W must be less than m^2\n");
-
   RESIZE_AND_CLEAR_IF_NEEDED (w, wsize * 2 * LIMBS_PER_LIMB64);
   RESIZE_AND_CLEAR_IF_NEEDED (ctx->p, wsize * LIMBS_PER_LIMB64);
 
@@ -188,10 +184,6 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
   mpi_limb_t mask2;
   mpi_limb_t s_is_negative;
   int carry;
-
-  MPN_NORMALIZE (w->d, w->nlimbs);
-  if (mpi_nbits_more_than (w, 2 * 224))
-    log_bug ("W must be less than m^2\n");
 
   RESIZE_AND_CLEAR_IF_NEEDED (w, wsize * 2 * LIMBS_PER_LIMB64);
   RESIZE_AND_CLEAR_IF_NEEDED (ctx->p, wsize * LIMBS_PER_LIMB64);
@@ -351,10 +343,6 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
   mpi_limb_t s_is_negative;
   mpi_limb_t d_is_negative;
   int carry;
-
-  MPN_NORMALIZE (w->d, w->nlimbs);
-  if (mpi_nbits_more_than (w, 2 * 256))
-    log_bug ("W must be less than m^2\n");
 
   RESIZE_AND_CLEAR_IF_NEEDED (w, wsize * 2 * LIMBS_PER_LIMB64);
   RESIZE_AND_CLEAR_IF_NEEDED (ctx->p, wsize * LIMBS_PER_LIMB64);
@@ -607,10 +595,6 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
   mpi_limb_t s_is_negative;
   int carry;
 
-  MPN_NORMALIZE (w->d, w->nlimbs);
-  if (mpi_nbits_more_than (w, 2 * 384))
-    log_bug ("W must be less than m^2\n");
-
   RESIZE_AND_CLEAR_IF_NEEDED (w, wsize * 2 * LIMBS_PER_LIMB64);
   RESIZE_AND_CLEAR_IF_NEEDED (ctx->p, wsize * LIMBS_PER_LIMB64);
   ctx->p->nlimbs = psize;
@@ -798,10 +782,6 @@ _gcry_mpi_ec_nist521_mod (gcry_mpi_t w, mpi_ec_t ctx)
   const mpi_size_t wsize = DIM(s);
   mpi_limb_t cy;
   mpi_ptr_t wp;
-
-  MPN_NORMALIZE (w->d, w->nlimbs);
-  if (mpi_nbits_more_than (w, 2 * 521))
-    log_bug ("W must be less than m^2\n");
 
   RESIZE_AND_CLEAR_IF_NEEDED (w, wsize * 2);
 
