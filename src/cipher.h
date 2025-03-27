@@ -48,7 +48,7 @@
  * The internal flag to select least leak implementation for ECC.
  * It needs to be a distinct value not covered by PUBKEY_* above.
  */
-#define GCRYECC_FLAG_LEAST_LEAK   (1 << 30)
+#define GCRYECC_FLAG_LEAST_LEAK    (1 << 30)
 
 
 enum pk_operation
