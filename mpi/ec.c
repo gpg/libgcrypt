@@ -1396,6 +1396,83 @@ _gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 }
 
 
+/* RESULT = P1 + P2  (Weierstrass version).
+ * P2 is represented by affine coordinate (X2,Y2).
+ * P1 is never same to P2.
+ * P1 may be at infinity, in this case, it results invalid RESULT.
+ * It's caller's responsibility not to use the invalid RESULT.  */
+static void
+add_points_weierstrass_a (mpi_point_t result,
+                          mpi_point_t p1,
+                          gcry_mpi_t x2, gcry_mpi_t y2,
+                          mpi_ec_t ctx)
+{
+#define x1 (p1->x    )
+#define y1 (p1->y    )
+#define z1 (p1->z    )
+#define x3 (result->x)
+#define y3 (result->y)
+#define z3 (result->z)
+#define l1 (ctx->t.scratch[0])
+#define l2 (ctx->t.scratch[1])
+#define l3 (ctx->t.scratch[2])
+#define l4 (ctx->t.scratch[3])
+#define l5 (ctx->t.scratch[4])
+#define l6 (ctx->t.scratch[5])
+#define l7 (ctx->t.scratch[6])
+#define l8 (ctx->t.scratch[7])
+#define l9 (ctx->t.scratch[8])
+
+  /* l2 = x2 z1^2  */
+  ec_pow2 (l5, z1, ctx);
+  ec_mulm (l2, l5, x2, ctx);
+  /* l3 = x1 - l2 */
+  ec_subm (l3, x1, l2, ctx);
+  /* l5 = y2 z1^3  */
+  ec_mulm (l5, z1, l5, ctx);
+  ec_mulm (l5, l5, y2, ctx);
+  /* l6 = y1 - l5  */
+  ec_subm (l6, y1, l5, ctx);
+
+  /* l7 = x1 + l2  */
+  ec_addm (l7, x1, l2, ctx);
+  /* l8 = y1 + l5  */
+  ec_addm (l8, y1, l5, ctx);
+  /* z3 = z1 l3  */
+  ec_mulm (z3, z1, l3, ctx);
+  /* x3 = l6^2 - l7 l3^2  */
+  ec_pow2 (l1, l6, ctx);
+  ec_pow2 (l2, l3, ctx);
+  ec_mulm (l4, l2, l7, ctx);
+  ec_subm (x3, l1, l4, ctx);
+  /* l9 = l7 l3^2 - 2 x3  */
+  ec_mul2 (l1, x3, ctx);
+  ec_subm (l9, l4, l1, ctx);
+  /* y3 = (l9 l6 - l8 l3^3)/2  */
+  ec_mulm (l9, l9, l6, ctx);
+  ec_mulm (l1, l3, l2, ctx);
+  ec_mulm (l1, l1, l8, ctx);
+  ec_subm (y3, l9, l1, ctx);
+  ec_mulm (y3, y3, ec_get_two_inv_p (ctx), ctx);
+
+#undef x1
+#undef y1
+#undef z1
+#undef x3
+#undef y3
+#undef z3
+#undef l1
+#undef l2
+#undef l3
+#undef l4
+#undef l5
+#undef l6
+#undef l7
+#undef l8
+#undef l9
+}
+
+
 /* RESULT = P1 + P2  (Weierstrass version).*/
 static void
 add_points_weierstrass (mpi_point_t result,
@@ -1562,7 +1639,7 @@ add_points_edwards (mpi_point_t result,
 
   mpi_point_resize (result, ctx);
 
-  /* Compute: (X_3 : Y_3 : Z_3) = (X_1 : Y_1 : Z_1) + (X_2 : Y_2 : Z_3)  */
+  /* Compute: (X_3 : Y_3 : Z_3) = (X_1 : Y_1 : Z_1) + (X_2 : Y_2 : Z_2)  */
 
   /* A = Z1 · Z2 */
   ctx->mulm (A, Z1, Z2, ctx);
@@ -1618,6 +1695,99 @@ add_points_edwards (mpi_point_t result,
 #undef X2
 #undef Y2
 #undef Z2
+#undef X3
+#undef Y3
+#undef Z3
+#undef A
+#undef B
+#undef C
+#undef D
+#undef E
+#undef F
+#undef G
+#undef tmp
+}
+
+
+/* RESULT = P1 + P2  (Twisted Edwards version).
+ * P2 is represented by affine coordinate (X2,Y2).
+ * P1 is never same to P1.  */
+static void
+add_points_edwards_a (mpi_point_t result,
+                      mpi_point_t p1,
+                      gcry_mpi_t x2, gcry_mpi_t y2,
+                      mpi_ec_t ctx)
+{
+#define X1 (p1->x)
+#define Y1 (p1->y)
+#define Z1 (p1->z)
+#define X2 x2
+#define Y2 y2
+#define X3 (result->x)
+#define Y3 (result->y)
+#define Z3 (result->z)
+#define B (ctx->t.scratch[1])
+#define C (ctx->t.scratch[2])
+#define D (ctx->t.scratch[3])
+#define E (ctx->t.scratch[4])
+#define F (ctx->t.scratch[5])
+#define G (ctx->t.scratch[6])
+#define tmp (ctx->t.scratch[7])
+
+  mpi_point_resize (result, ctx);
+
+  /* Compute: (X_3 : Y_3 : Z_3) = (X_1 : Y_1 : Z_1) + (X_2 : Y_2 : 1)  */
+
+  /* B = Z1^2 */
+  ctx->pow2 (B, Z1, ctx);
+
+  /* C = X1 · X2 */
+  ctx->mulm (C, X1, X2, ctx);
+
+  /* D = Y1 · Y2 */
+  ctx->mulm (D, Y1, Y2, ctx);
+
+  /* E = d · C · D */
+  ctx->mulm (E, ctx->b, C, ctx);
+  ctx->mulm (E, E, D, ctx);
+
+  /* F = B - E */
+  ctx->subm (F, B, E, ctx);
+
+  /* G = B + E */
+  ctx->addm (G, B, E, ctx);
+
+  /* X_3 = Z1 · F · ((X_1 + Y_1) · (X_2 + Y_2) - C - D) */
+  ctx->addm (tmp, X1, Y1, ctx);
+  ctx->addm (X3, X2, Y2, ctx);
+  ctx->mulm (X3, X3, tmp, ctx);
+  ctx->subm (X3, X3, C, ctx);
+  ctx->subm (X3, X3, D, ctx);
+  ctx->mulm (X3, X3, F, ctx);
+  ctx->mulm (X3, X3, Z1, ctx);
+
+  /* Y_3 = Z1 · G · (D - aC) */
+  if (ctx->dialect == ECC_DIALECT_ED25519)
+    {
+      ctx->addm (Y3, D, C, ctx);
+    }
+  else
+    {
+      ctx->mulm (Y3, ctx->a, C, ctx);
+      ctx->subm (Y3, D, Y3, ctx);
+    }
+  ctx->mulm (Y3, Y3, G, ctx);
+  ctx->mulm (Y3, Y3, Z1, ctx);
+
+  /* Z_3 = F · G */
+  ctx->mulm (Z3, F, G, ctx);
+
+
+#undef X1
+#undef Y1
+#undef Z1
+#undef X2
+#undef Y2
 #undef X3
 #undef Y3
 #undef Z3
@@ -1858,17 +2028,50 @@ montgomery_mul_point (mpi_point_t result,
 /* Compute scalar point multiplication, Least Leak Intended.  */
 static void
 mpi_ec_mul_point_lli (mpi_point_t result,
-                      gcry_mpi_t scalar, mpi_point_t point,
+                      gcry_mpi_t scalar, mpi_point_t point1,
                       mpi_ec_t ctx)
 {
   unsigned int nbits;
   int j;
   mpi_point_struct tmppnt;
+  mpi_point_struct point_;
+  mpi_point_t point = &point_;
 
-  if (mpi_cmp (scalar, ctx->p) >= 0)
-    nbits = mpi_get_nbits (scalar);
+  mpi_point_resize (point1, ctx);
+
+  /* Convert POINT1 into affine coordinate, so that we can use
+     add_points_*_a routine with affine coordinate.  */
+  point_init (point);
+  if (_gcry_mpih_cmp_ui (point1->z->d, ctx->p->nlimbs, 1))
+    {
+      gcry_mpi_t x, y;
+
+      x = mpi_new (0);
+      y = mpi_new (0);
+
+      if (_gcry_mpi_ec_get_affine (x, y, point1, ctx))
+        {
+          mpi_free (x);
+          mpi_free (y);
+          point_free (point);
+          point_set (result, point1);
+          return;
+        }
+
+      mpi_set (point->x, x);
+      mpi_set (point->y, y);
+      mpi_set_ui (point->z, 1);
+      mpi_free (x);
+      mpi_free (y);
+    }
   else
-    nbits = mpi_get_nbits (ctx->p);
+    point_set (point, point1);
+
+  mpi_point_resize (point, ctx);
+
+  nbits = mpi_get_nbits (scalar);
+  if (nbits < ctx->nbits)
+    nbits = ctx->nbits;
 
   if (ctx->model == MPI_EC_WEIERSTRASS)
     {
@@ -1881,19 +2084,40 @@ mpi_ec_mul_point_lli (mpi_point_t result,
       mpi_set_ui (result->x, 0);
       mpi_set_ui (result->y, 1);
       mpi_set_ui (result->z, 1);
-      mpi_point_resize (point, ctx);
     }
 
   point_init (&tmppnt);
   mpi_point_resize (result, ctx);
   mpi_point_resize (&tmppnt, ctx);
-  for (j=nbits-1; j >= 0; j--)
+  if (ctx->model == MPI_EC_WEIERSTRASS)
     {
-      _gcry_mpi_ec_dup_point (result, result, ctx);
-      _gcry_mpi_ec_add_points (&tmppnt, result, point, ctx);
-      point_swap_cond (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
+      for (j=nbits-1; j >= 0; j--)
+        {
+          unsigned long is_z_zero;
+
+          dup_point_weierstrass (result, result, ctx);
+          is_z_zero = _gcry_mpih_cmp_ui (result->z->d, ctx->p->nlimbs, 0) == 0;
+          add_points_weierstrass_a (&tmppnt, result, point->x, point->y, ctx);
+          mpi_point_resize (&tmppnt, ctx);
+          /* When P1 is O (at infinity), computation of
+             add_points_weierstrass_a is invalid, and RESULT is P2.  */
+          mpih_set_cond (tmppnt.x->d, point->x->d, ctx->p->nlimbs, is_z_zero);
+          mpih_set_cond (tmppnt.y->d, point->y->d, ctx->p->nlimbs, is_z_zero);
+          mpih_set_cond (tmppnt.z->d, point->z->d, ctx->p->nlimbs, is_z_zero);
+          point_swap_cond (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
+        }
+    }
+  else /* MPI_EC_EDWARDS */
+    {
+      for (j=nbits-1; j >= 0; j--)
+        {
+          dup_point_edwards (result, result, ctx);
+          add_points_edwards_a (&tmppnt, result, point->x, point->y, ctx);
+          point_swap_cond (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
+        }
     }
   point_free (&tmppnt);
+  point_free (point);
 }
 
 
@@ -1920,6 +2144,11 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   if (ctx->model == MPI_EC_MONTGOMERY)
     {
       montgomery_mul_point (result, scalar, point, ctx);
+      return;
+    }
+  else if ((ctx->flags & GCRYECC_FLAG_LEAST_LEAK))
+    {
+      mpi_ec_mul_point_lli (result, scalar, point, ctx);
       return;
     }
   else if (mpi_is_secure (scalar))
