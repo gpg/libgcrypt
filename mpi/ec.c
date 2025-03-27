@@ -308,6 +308,61 @@ ec_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
   ctx->mod (w, ctx);
 }
 
+static void
+ec_addm_lli (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
+{
+  mpi_limb_t cy1, cy2;
+
+  w->nlimbs = ctx->p->nlimbs;
+  cy1 = _gcry_mpih_add_lli (w->d, u->d, v->d, ctx->p->nlimbs);
+  cy2 = _gcry_mpih_sub_n (w->d, w->d, ctx->p->d, ctx->p->nlimbs);
+  _gcry_mpih_add_n_cond (w->d, w->d, ctx->p->d, ctx->p->nlimbs,
+                         ~cy1 &
+                         ((-cy2) >> (BITS_PER_MPI_LIMB - 1)));
+}
+
+static void
+ec_subm_lli (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ec)
+{
+  mpi_limb_t cy;
+
+  w->nlimbs = ec->p->nlimbs;
+  cy = _gcry_mpih_sub_n (w->d, u->d, v->d, ec->p->nlimbs);
+  _gcry_mpih_add_n_cond (w->d, w->d, ec->p->d, ec->p->nlimbs,
+                         (-cy) >> (BITS_PER_MPI_LIMB - 1));
+}
+
+static void
+ec_mulm_lli (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
+{
+  mpi_ptr_t wp;
+  mpi_ptr_t tmp_limb = NULL;
+  unsigned int tmp_limb_nlimbs = 0;
+  mpi_limb_t cy;
+  mpi_size_t usize, vsize, wsize;
+
+  usize = u->nlimbs;
+  vsize = v->nlimbs;
+  wsize = usize + vsize;
+  mpi_resize (w, wsize);
+  w->nlimbs = wsize;
+  if (w->d == u->d || w->d == v->d)
+    {
+      tmp_limb_nlimbs = wsize;
+      wp = tmp_limb = mpi_alloc_limb_space (tmp_limb_nlimbs, 0);
+    }
+  else
+    wp = w->d;
+  cy = _gcry_mpih_mul_lli (wp, u->d, usize, v->d, vsize);
+  wp[w->nlimbs - 1] = cy;
+  if (tmp_limb)
+    {
+      MPN_COPY (w->d, tmp_limb, wsize);
+      _gcry_mpi_free_limb_space (tmp_limb, tmp_limb_nlimbs);
+    }
+  ctx->mod (w, ctx);
+}
+
 /* W = 2 * U mod P.  */
 static void
 ec_mul2 (gcry_mpi_t w, gcry_mpi_t u, mpi_ec_t ctx)
@@ -1296,6 +1351,85 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 }
 
 
+/*  RESULT = 2 * POINT  (Weierstrass version). */
+static void
+dup_point_weierstrass_lli (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
+{
+#define x3 (result->x)
+#define y3 (result->y)
+#define z3 (result->z)
+#define t1 (ctx->t.scratch[0])
+#define t2 (ctx->t.scratch[1])
+#define t3 (ctx->t.scratch[2])
+#define l1 (ctx->t.scratch[3])
+#define l2 (ctx->t.scratch[4])
+#define l3 (ctx->t.scratch[5])
+
+  if (ec_get_a_is_pminus3 (ctx))  /* Use the faster case.  */
+    {
+      /* L1 = 3(X - Z^2)(X + Z^2) */
+      /*                          T1: used for Z^2. */
+      /*                          T2: used for the right term.  */
+      ec_mulm_lli (t1, point->z, point->z, ctx);
+      ec_subm_lli (l1, point->x, t1, ctx);
+      ec_addm_lli (t3, l1, l1, ctx);
+      ec_addm_lli (l1, l1, t3, ctx);
+      ec_addm_lli (t2, point->x, t1, ctx);
+      ec_mulm_lli (l1, l1, t2, ctx);
+    }
+  else /* Standard case. */
+    {
+      /* L1 = 3X^2 + aZ^4 */
+      /*                          T1: used for aZ^4. */
+      ec_mulm_lli (l1, point->x, point->x, ctx);
+      ec_addm_lli (t3, l1, l1, ctx);
+      ec_addm_lli (l1, l1, t3, ctx);
+      ec_mulm_lli (t1, point->z, point->z, ctx);
+      ec_mulm_lli (t1, t1, t1, ctx);
+      ec_mulm_lli (t1, t1, ctx->a, ctx);
+      ec_addm_lli (l1, l1, t1, ctx);
+    }
+  /* Z3 = 2YZ */
+  ec_mulm_lli (z3, point->y, point->z, ctx);
+  ec_addm_lli (z3, z3, z3, ctx);
+
+  /* L2 = 4XY^2 */
+  /*                              T2: used for Y2; required later. */
+  ec_mulm_lli (t2, point->y, point->y, ctx);
+  ec_mulm_lli (l2, t2, point->x, ctx);
+  ec_addm_lli (l2, l2, l2, ctx);
+  ec_addm_lli (l2, l2, l2, ctx);
+
+  /* X3 = L1^2 - 2L2 */
+  /*                              T1: used for L2^2. */
+  ec_mulm_lli (x3, l1, l1, ctx);
+  ec_addm_lli (t1, l2, l2, ctx);
+  ec_subm_lli (x3, x3, t1, ctx);
+
+  /* L3 = 8Y^4 */
+  /*                              T2: taken from above. */
+  ec_mulm_lli (t2, t2, t2, ctx);
+  ec_addm_lli (l3, t2, t2, ctx);
+  ec_addm_lli (l3, l3, l3, ctx);
+  ec_addm_lli (l3, l3, l3, ctx);
+
+  /* Y3 = L1(L2 - X3) - L3 */
+  ec_subm_lli (y3, l2, x3, ctx);
+  ec_mulm_lli (y3, y3, l1, ctx);
+  ec_subm_lli (y3, y3, l3, ctx);
+
+#undef x3
+#undef y3
+#undef z3
+#undef t1
+#undef t2
+#undef t3
+#undef l1
+#undef l2
+#undef l3
+}
+
+
 /*  RESULT = 2 * POINT  (Montgomery version). */
 static void
 dup_point_montgomery (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
@@ -1428,36 +1562,36 @@ add_points_weierstrass_a (mpi_point_t result,
 #define l9 (ctx->t.scratch[8])
 
   /* l2 = x2 z1^2  */
-  ec_pow2 (l5, z1, ctx);
-  ec_mulm (l2, l5, x2, ctx);
+  ec_mulm_lli (l5, z1, z1, ctx);
+  ec_mulm_lli (l2, l5, x2, ctx);
   /* l3 = x1 - l2 */
-  ec_subm (l3, x1, l2, ctx);
+  ec_subm_lli (l3, x1, l2, ctx);
   /* l5 = y2 z1^3  */
-  ec_mulm (l5, z1, l5, ctx);
-  ec_mulm (l5, l5, y2, ctx);
+  ec_mulm_lli (l5, z1, l5, ctx);
+  ec_mulm_lli (l5, l5, y2, ctx);
   /* l6 = y1 - l5  */
-  ec_subm (l6, y1, l5, ctx);
+  ec_subm_lli (l6, y1, l5, ctx);
 
   /* l7 = x1 + l2  */
-  ec_addm (l7, x1, l2, ctx);
+  ec_addm_lli (l7, x1, l2, ctx);
   /* l8 = y1 + l5  */
-  ec_addm (l8, y1, l5, ctx);
+  ec_addm_lli (l8, y1, l5, ctx);
   /* z3 = z1 l3  */
-  ec_mulm (z3, z1, l3, ctx);
+  ec_mulm_lli (z3, z1, l3, ctx);
   /* x3 = l6^2 - l7 l3^2  */
-  ec_pow2 (l1, l6, ctx);
-  ec_pow2 (l2, l3, ctx);
-  ec_mulm (l4, l2, l7, ctx);
-  ec_subm (x3, l1, l4, ctx);
+  ec_mulm_lli (l1, l6, l6, ctx);
+  ec_mulm_lli (l2, l3, l3, ctx);
+  ec_mulm_lli (l4, l2, l7, ctx);
+  ec_subm_lli (x3, l1, l4, ctx);
   /* l9 = l7 l3^2 - 2 x3  */
-  ec_mul2 (l1, x3, ctx);
-  ec_subm (l9, l4, l1, ctx);
+  ec_addm_lli (l1, x3, x3, ctx);
+  ec_subm_lli (l9, l4, l1, ctx);
   /* y3 = (l9 l6 - l8 l3^3)/2  */
-  ec_mulm (l9, l9, l6, ctx);
-  ec_mulm (l1, l3, l2, ctx);
-  ec_mulm (l1, l1, l8, ctx);
-  ec_subm (y3, l9, l1, ctx);
-  ec_mulm (y3, y3, ec_get_two_inv_p (ctx), ctx);
+  ec_mulm_lli (l9, l9, l6, ctx);
+  ec_mulm_lli (l1, l3, l2, ctx);
+  ec_mulm_lli (l1, l1, l8, ctx);
+  ec_subm_lli (y3, l9, l1, ctx);
+  ec_mulm_lli (y3, y3, ec_get_two_inv_p (ctx), ctx);
 
 #undef x1
 #undef y1
@@ -2099,10 +2233,9 @@ mpi_ec_mul_point_lli (mpi_point_t result,
         {
           unsigned long is_z_zero;
 
-          dup_point_weierstrass (result, result, ctx);
+          dup_point_weierstrass_lli (result, result, ctx);
           is_z_zero = _gcry_mpih_cmp_ui (result->z->d, ctx->p->nlimbs, 0) == 0;
           add_points_weierstrass_a (&tmppnt, result, point->x, point->y, ctx);
-          mpi_point_resize (&tmppnt, ctx);
           /* When P1 is O (at infinity), computation of
              add_points_weierstrass_a is invalid, and RESULT is P2.  */
           mpih_set_cond (tmppnt.x->d, point->x->d, ctx->p->nlimbs, is_z_zero);
