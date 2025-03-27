@@ -1744,6 +1744,156 @@ _gcry_mpi_ec_sub_points (mpi_point_t result,
 }
 
 
+/* Compute scalar point multiplication with Montgomery Ladder.
+   Note that we don't use Y-coordinate in the points at all.
+   RESULT->Y will be filled by zero.  */
+static void
+montgomery_mul_point (mpi_point_t result,
+                      gcry_mpi_t scalar, mpi_point_t point,
+                      mpi_ec_t ctx)
+{
+  unsigned int nbits;
+  int j;
+  gcry_mpi_t z1;
+  mpi_point_struct p1, p2;
+  mpi_point_struct p1_, p2_;
+  mpi_point_t q1, q2, prd, sum;
+  unsigned long sw;
+  mpi_size_t rsize;
+  int scalar_copied = 0;
+
+  nbits = mpi_get_nbits (scalar);
+  point_init (&p1);
+  point_init (&p2);
+  point_init (&p1_);
+  point_init (&p2_);
+  mpi_set_ui (p1.x, 1);
+  mpi_free (p2.x);
+  p2.x  = mpi_copy (point->x);
+  mpi_set_ui (p2.z, 1);
+
+  if (mpi_is_opaque (scalar))
+    {
+      const unsigned int pbits = ctx->nbits;
+      gcry_mpi_t a;
+      unsigned int n;
+      unsigned char *raw;
+
+      scalar_copied = 1;
+
+      raw = _gcry_mpi_get_opaque_copy (scalar, &n);
+      if ((n+7)/8 != (pbits+7)/8)
+        log_fatal ("scalar size (%d) != prime size (%d)\n",
+                   (n+7)/8, (pbits+7)/8);
+
+      reverse_buffer (raw, (n+7)/8);
+      if ((pbits % 8))
+        raw[0] &= (1 << (pbits % 8)) - 1;
+      raw[0] |= (1 << ((pbits + 7) % 8));
+      raw[(pbits+7)/8 - 1] &= (256 - ctx->h);
+      a = mpi_is_secure (scalar) ? mpi_snew (pbits): mpi_new (pbits);
+      _gcry_mpi_set_buffer (a, raw, (n+7)/8, 0);
+      xfree (raw);
+
+      scalar = a;
+    }
+
+  mpi_point_resize (&p1, ctx);
+  mpi_point_resize (&p2, ctx);
+  mpi_point_resize (&p1_, ctx);
+  mpi_point_resize (&p2_, ctx);
+
+  mpi_resize (point->x, ctx->p->nlimbs);
+  point->x->nlimbs = ctx->p->nlimbs;
+
+  q1 = &p1;
+  q2 = &p2;
+  prd = &p1_;
+  sum = &p2_;
+
+  for (j=nbits-1; j >= 0; j--)
+    {
+      mpi_point_t t;
+
+      sw = mpi_test_bit (scalar, j);
+      point_swap_cond (q1, q2, sw, ctx);
+      montgomery_ladder (prd, sum, q1, q2, point->x, ctx);
+      point_swap_cond (prd, sum, sw, ctx);
+      t = q1;  q1 = prd;  prd = t;
+      t = q2;  q2 = sum;  sum = t;
+    }
+
+  mpi_clear (result->y);
+  sw = (nbits & 1);
+  point_swap_cond (&p1, &p1_, sw, ctx);
+
+  rsize = p1.z->nlimbs;
+  MPN_NORMALIZE (p1.z->d, rsize);
+  if (rsize == 0)
+    {
+      mpi_set_ui (result->x, 1);
+      mpi_set_ui (result->z, 0);
+    }
+  else
+    {
+      z1 = mpi_new (0);
+      ec_invm (z1, p1.z, ctx);
+      ec_mulm (result->x, p1.x, z1, ctx);
+      mpi_set_ui (result->z, 1);
+      mpi_free (z1);
+    }
+
+  point_free (&p1);
+  point_free (&p2);
+  point_free (&p1_);
+  point_free (&p2_);
+  if (scalar_copied)
+    _gcry_mpi_release (scalar);
+}
+
+
+/* Compute scalar point multiplication, Least Leak Intended.  */
+static void
+mpi_ec_mul_point_lli (mpi_point_t result,
+                      gcry_mpi_t scalar, mpi_point_t point,
+                      mpi_ec_t ctx)
+{
+  unsigned int nbits;
+  int j;
+  mpi_point_struct tmppnt;
+
+  if (mpi_cmp (scalar, ctx->p) >= 0)
+    nbits = mpi_get_nbits (scalar);
+  else
+    nbits = mpi_get_nbits (ctx->p);
+
+  if (ctx->model == MPI_EC_WEIERSTRASS)
+    {
+      mpi_set_ui (result->x, 1);
+      mpi_set_ui (result->y, 1);
+      mpi_set_ui (result->z, 0);
+    }
+  else
+    {
+      mpi_set_ui (result->x, 0);
+      mpi_set_ui (result->y, 1);
+      mpi_set_ui (result->z, 1);
+      mpi_point_resize (point, ctx);
+    }
+
+  point_init (&tmppnt);
+  mpi_point_resize (result, ctx);
+  mpi_point_resize (&tmppnt, ctx);
+  for (j=nbits-1; j >= 0; j--)
+    {
+      _gcry_mpi_ec_dup_point (result, result, ctx);
+      _gcry_mpi_ec_add_points (&tmppnt, result, point, ctx);
+      point_swap_cond (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
+    }
+  point_free (&tmppnt);
+}
+
+
 /* Scalar point multiplication - the main function for ECC.  It takes
    an integer SCALAR and a POINT as well as the usual context CTX.
    RESULT will be set to the resulting point. */
@@ -1764,175 +1914,44 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       return;
     }
 
-  if (ctx->model == MPI_EC_EDWARDS
-      || (ctx->model == MPI_EC_WEIERSTRASS
-          && mpi_is_secure (scalar)))
+  if (ctx->model == MPI_EC_MONTGOMERY)
     {
+      montgomery_mul_point (result, scalar, point, ctx);
+      return;
+    }
+  else if (mpi_is_secure (scalar))
+    {
+      mpi_ec_mul_point_lli (result, scalar, point, ctx);
+      return;
+    }
+  else if (ctx->model == MPI_EC_EDWARDS)
+    {
+      int j;
+      unsigned int nbits = mpi_get_nbits (scalar);
+
+      mpi_set_ui (result->x, 0);
+      mpi_set_ui (result->y, 1);
+      mpi_set_ui (result->z, 1);
+
+      mpi_point_resize (result, ctx);
+      mpi_point_resize (point, ctx);
+
       /* Simple left to right binary method.  Algorithm 3.27 from
        * {author={Hankerson, Darrel and Menezes, Alfred J. and Vanstone, Scott},
        *  title = {Guide to Elliptic Curve Cryptography},
        *  year = {2003}, isbn = {038795273X},
        *  url = {http://www.cacr.math.uwaterloo.ca/ecc/},
        *  publisher = {Springer-Verlag New York, Inc.}} */
-      unsigned int nbits;
-      int j;
-
-      if (mpi_cmp (scalar, ctx->p) >= 0)
-        nbits = mpi_get_nbits (scalar);
-      else
-        nbits = mpi_get_nbits (ctx->p);
-
-      if (ctx->model == MPI_EC_WEIERSTRASS)
-        {
-          mpi_set_ui (result->x, 1);
-          mpi_set_ui (result->y, 1);
-          mpi_set_ui (result->z, 0);
-        }
-      else
-        {
-          mpi_set_ui (result->x, 0);
-          mpi_set_ui (result->y, 1);
-          mpi_set_ui (result->z, 1);
-          mpi_point_resize (point, ctx);
-        }
-
-      if (mpi_is_secure (scalar))
-        {
-          /* If SCALAR is in secure memory we assume that it is the
-             secret key we use constant time operation.  */
-          mpi_point_struct tmppnt;
-
-          point_init (&tmppnt);
-          mpi_point_resize (result, ctx);
-          mpi_point_resize (&tmppnt, ctx);
-          for (j=nbits-1; j >= 0; j--)
-            {
-              _gcry_mpi_ec_dup_point (result, result, ctx);
-              _gcry_mpi_ec_add_points (&tmppnt, result, point, ctx);
-              point_swap_cond (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
-            }
-          point_free (&tmppnt);
-        }
-      else
-        {
-          if (ctx->model == MPI_EC_EDWARDS)
-            {
-              mpi_point_resize (result, ctx);
-              mpi_point_resize (point, ctx);
-            }
-
-          for (j=nbits-1; j >= 0; j--)
-            {
-              _gcry_mpi_ec_dup_point (result, result, ctx);
-              if (mpi_test_bit (scalar, j))
-                _gcry_mpi_ec_add_points (result, result, point, ctx);
-            }
-        }
-      return;
-    }
-  else if (ctx->model == MPI_EC_MONTGOMERY)
-    {
-      unsigned int nbits;
-      int j;
-      mpi_point_struct p1_, p2_;
-      mpi_point_t q1, q2, prd, sum;
-      unsigned long sw;
-      mpi_size_t rsize;
-      int scalar_copied = 0;
-
-      /* Compute scalar point multiplication with Montgomery Ladder.
-         Note that we don't use Y-coordinate in the points at all.
-         RESULT->Y will be filled by zero.  */
-
-      nbits = mpi_get_nbits (scalar);
-      point_init (&p1);
-      point_init (&p2);
-      point_init (&p1_);
-      point_init (&p2_);
-      mpi_set_ui (p1.x, 1);
-      mpi_free (p2.x);
-      p2.x  = mpi_copy (point->x);
-      mpi_set_ui (p2.z, 1);
-
-      if (mpi_is_opaque (scalar))
-        {
-          const unsigned int pbits = ctx->nbits;
-          gcry_mpi_t a;
-          unsigned int n;
-          unsigned char *raw;
-
-          scalar_copied = 1;
-
-          raw = _gcry_mpi_get_opaque_copy (scalar, &n);
-          if ((n+7)/8 != (pbits+7)/8)
-            log_fatal ("scalar size (%d) != prime size (%d)\n",
-                       (n+7)/8, (pbits+7)/8);
-
-          reverse_buffer (raw, (n+7)/8);
-          if ((pbits % 8))
-            raw[0] &= (1 << (pbits % 8)) - 1;
-          raw[0] |= (1 << ((pbits + 7) % 8));
-          raw[(pbits+7)/8 - 1] &= (256 - ctx->h);
-          a = mpi_is_secure (scalar) ? mpi_snew (pbits): mpi_new (pbits);
-          _gcry_mpi_set_buffer (a, raw, (n+7)/8, 0);
-          xfree (raw);
-
-          scalar = a;
-        }
-
-      mpi_point_resize (&p1, ctx);
-      mpi_point_resize (&p2, ctx);
-      mpi_point_resize (&p1_, ctx);
-      mpi_point_resize (&p2_, ctx);
-
-      mpi_resize (point->x, ctx->p->nlimbs);
-      point->x->nlimbs = ctx->p->nlimbs;
-
-      q1 = &p1;
-      q2 = &p2;
-      prd = &p1_;
-      sum = &p2_;
-
       for (j=nbits-1; j >= 0; j--)
         {
-          mpi_point_t t;
-
-          sw = mpi_test_bit (scalar, j);
-          point_swap_cond (q1, q2, sw, ctx);
-          montgomery_ladder (prd, sum, q1, q2, point->x, ctx);
-          point_swap_cond (prd, sum, sw, ctx);
-          t = q1;  q1 = prd;  prd = t;
-          t = q2;  q2 = sum;  sum = t;
+          _gcry_mpi_ec_dup_point (result, result, ctx);
+          if (mpi_test_bit (scalar, j))
+            _gcry_mpi_ec_add_points (result, result, point, ctx);
         }
-
-      mpi_clear (result->y);
-      sw = (nbits & 1);
-      point_swap_cond (&p1, &p1_, sw, ctx);
-
-      rsize = p1.z->nlimbs;
-      MPN_NORMALIZE (p1.z->d, rsize);
-      if (rsize == 0)
-        {
-          mpi_set_ui (result->x, 1);
-          mpi_set_ui (result->z, 0);
-        }
-      else
-        {
-          z1 = mpi_new (0);
-          ec_invm (z1, p1.z, ctx);
-          ec_mulm (result->x, p1.x, z1, ctx);
-          mpi_set_ui (result->z, 1);
-          mpi_free (z1);
-        }
-
-      point_free (&p1);
-      point_free (&p2);
-      point_free (&p1_);
-      point_free (&p2_);
-      if (scalar_copied)
-        _gcry_mpi_release (scalar);
       return;
     }
+
+  /* The case of Weierstrass curve.  */
 
   x1 = mpi_alloc_like (ctx->p);
   y1 = mpi_alloc_like (ctx->p);
