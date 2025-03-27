@@ -29,6 +29,7 @@
 #include "context.h"
 #include "ec-context.h"
 #include "ec-internal.h"
+#include "cipher.h" /* for GCRYECC_FLAG_LEAST_LEAK */
 
 extern void reverse_buffer (unsigned char *buffer, unsigned int length);
 
@@ -887,24 +888,26 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
           ctx->mul2 = field_table[i].mul2 ? field_table[i].mul2 : ctx->mul2;
           ctx->pow2 = field_table[i].pow2 ? field_table[i].pow2 : ctx->pow2;
           ctx->mod = field_table[i].mod ? field_table[i].mod : ctx->mod;
-
-	  if (ctx->a)
-	    {
-	      mpi_resize (ctx->a, ctx->p->nlimbs);
-	      ctx->a->nlimbs = ctx->p->nlimbs;
-	    }
-
-	  if (ctx->b)
-	    {
-	      mpi_resize (ctx->b, ctx->p->nlimbs);
-	      ctx->b->nlimbs = ctx->p->nlimbs;
-	    }
-
-          for (i=0; i< DIM(ctx->t.scratch) && ctx->t.scratch[i]; i++)
-            ctx->t.scratch[i]->nlimbs = ctx->p->nlimbs;
-
           break;
         }
+    }
+
+  if (field_table[i].p || (flags & GCRYECC_FLAG_LEAST_LEAK))
+    {
+      if (ctx->a)
+        {
+          mpi_resize (ctx->a, ctx->p->nlimbs);
+          ctx->a->nlimbs = ctx->p->nlimbs;
+        }
+
+      if (ctx->b)
+        {
+          mpi_resize (ctx->b, ctx->p->nlimbs);
+          ctx->b->nlimbs = ctx->p->nlimbs;
+        }
+
+      for (i=0; i< DIM(ctx->t.scratch) && ctx->t.scratch[i]; i++)
+        ctx->t.scratch[i]->nlimbs = ctx->p->nlimbs;
     }
 
   /* Prepare for fast reduction.  */
