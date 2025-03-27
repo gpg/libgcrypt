@@ -280,6 +280,9 @@ ec_mod (gcry_mpi_t w, mpi_ec_t ec)
     _gcry_mpi_mod_barrett (w, w, ec->t.p_barrett);
   else
     _gcry_mpi_mod (w, w, ec->p);
+
+  if ((ec->flags & GCRYECC_FLAG_LEAST_LEAK))
+    w->nlimbs = ec->p->nlimbs;
 }
 
 static void
@@ -612,7 +615,8 @@ ec_secp256k1_mod (gcry_mpi_t w, mpi_ec_t ctx)
 		 mpih_limb_is_not_zero (cy) | mpih_limb_is_zero (borrow));
 
   w->nlimbs = wsize;
-  MPN_NORMALIZE (wp, w->nlimbs);
+  if (!(ctx->flags & GCRYECC_FLAG_LEAST_LEAK))
+    MPN_NORMALIZE (wp, w->nlimbs);
 }
 
 

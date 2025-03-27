@@ -33,6 +33,7 @@
 #include "ec-context.h"
 #include "ec-inline.h"
 #include "const-time.h"
+#include "cipher.h" /* for GCRYECC_FLAG_LEAST_LEAK */
 
 
 static inline
@@ -145,7 +146,8 @@ _gcry_mpi_ec_nist192_mod (gcry_mpi_t w, mpi_ec_t ctx)
   STORE64_COND(wp, 2, mask2, o[2], mask1, s[2]);
 
   w->nlimbs = 192 / BITS_PER_MPI_LIMB;
-  MPN_NORMALIZE (wp, w->nlimbs);
+  if (!(ctx->flags & GCRYECC_FLAG_LEAST_LEAK))
+    MPN_NORMALIZE (wp, w->nlimbs);
 }
 
 void
@@ -265,7 +267,8 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
   STORE64_COND(wp, 3, mask2, d[3], mask1, s[3]);
 
   w->nlimbs = wsize * LIMBS_PER_LIMB64;
-  MPN_NORMALIZE (wp, w->nlimbs);
+  if (!(ctx->flags & GCRYECC_FLAG_LEAST_LEAK))
+    MPN_NORMALIZE (wp, w->nlimbs);
 }
 
 void
@@ -504,7 +507,8 @@ _gcry_mpi_ec_nist256_mod (gcry_mpi_t w, mpi_ec_t ctx)
   STORE64(wp, 3, s[3]);
 
   w->nlimbs = wsize * LIMBS_PER_LIMB64;
-  MPN_NORMALIZE (wp, w->nlimbs);
+  if (!(ctx->flags & GCRYECC_FLAG_LEAST_LEAK))
+    MPN_NORMALIZE (wp, w->nlimbs);
 }
 
 void
@@ -768,7 +772,8 @@ _gcry_mpi_ec_nist384_mod (gcry_mpi_t w, mpi_ec_t ctx)
   STORE64_COND(wp, 5, mask2, d[5], mask1, s[5]);
 
   w->nlimbs = wsize * LIMBS_PER_LIMB64;
-  MPN_NORMALIZE (wp, w->nlimbs);
+  if (!(ctx->flags & GCRYECC_FLAG_LEAST_LEAK))
+    MPN_NORMALIZE (wp, w->nlimbs);
 
 #if (BITS_PER_MPI_LIMB64 == BITS_PER_MPI_LIMB) && defined(WORDS_BIGENDIAN)
   wipememory(wp_shr32, sizeof(wp_shr32));
@@ -800,7 +805,8 @@ _gcry_mpi_ec_nist521_mod (gcry_mpi_t w, mpi_ec_t ctx)
   mpih_set_cond (wp, s, wsize, mpih_limb_is_not_zero (cy));
 
   w->nlimbs = wsize;
-  MPN_NORMALIZE (wp, w->nlimbs);
+  if (!(ctx->flags & GCRYECC_FLAG_LEAST_LEAK))
+    MPN_NORMALIZE (wp, w->nlimbs);
 }
 
 #endif /* !ASM_DISABLED */
