@@ -734,7 +734,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   gcry_sexp_t curve_flags = NULL;
   gcry_mpi_t base = NULL;
   gcry_mpi_t public = NULL;
-  int flags = 0;
+  int flags = GCRYECC_FLAG_LEAST_LEAK;
 
   rc = _gcry_mpi_ec_internal_new (&ec, &flags, "ecgen curve", genparms, NULL);
   if (rc)
@@ -894,7 +894,7 @@ static gcry_err_code_t
 ecc_check_secret_key (gcry_sexp_t keyparms)
 {
   gcry_err_code_t rc;
-  int flags = 0;
+  int flags = GCRYECC_FLAG_LEAST_LEAK;
   mpi_ec_t ec = NULL;
 
   /*
@@ -930,7 +930,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_mpi_t sig_r = NULL;
   gcry_mpi_t sig_s = NULL;
   mpi_ec_t ec = NULL;
-  int flags = 0;
+  int flags = GCRYECC_FLAG_LEAST_LEAK;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, 0);
 
@@ -1475,7 +1475,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   mpi_point_struct kG;
   mpi_point_struct R;
   gcry_mpi_t r = NULL;
-  int flags = 0;
+  int flags = GCRYECC_FLAG_LEAST_LEAK;
   int enable_specific_point_validation;
 
   point_init (&kG);

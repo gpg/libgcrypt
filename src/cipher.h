@@ -44,6 +44,11 @@
 #define PUBKEY_FLAG_DJB_TWEAK      (1 << 15)
 #define PUBKEY_FLAG_SM2            (1 << 16)
 #define PUBKEY_FLAG_PREHASH        (1 << 17)
+/*
+ * The internal flag to select least leak implementation for ECC.
+ * It needs to be a distinct value not covered by PUBKEY_* above.
+ */
+#define GCRYECC_FLAG_LEAST_LEAK   (1 << 30)
 
 
 enum pk_operation
