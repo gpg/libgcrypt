@@ -308,8 +308,7 @@ ec_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 static void
 ec_mul2 (gcry_mpi_t w, gcry_mpi_t u, mpi_ec_t ctx)
 {
-  mpi_lshift (w, u, 1);
-  ctx->mod (w, ctx);
+  ec_addm (w, u, u, ctx);
 }
 
 static void
