@@ -266,7 +266,7 @@ _gcry_mpi_ec_nist224_mod (gcry_mpi_t w, mpi_ec_t ctx)
   STORE64_COND(wp, 2, mask2, d[2], mask1, s[2]);
   STORE64_COND(wp, 3, mask2, d[3], mask1, s[3]);
 
-  w->nlimbs = wsize * LIMBS_PER_LIMB64;
+  w->nlimbs = (224 + BITS_PER_MPI_LIMB- 1) / BITS_PER_MPI_LIMB;
   if (!(ctx->flags & GCRYECC_FLAG_LEAST_LEAK))
     MPN_NORMALIZE (wp, w->nlimbs);
 }
