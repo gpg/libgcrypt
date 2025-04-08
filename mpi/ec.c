@@ -2290,7 +2290,9 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
     }
   else if (mpi_is_secure (scalar))
     {
+      ctx->flags |= GCRYECC_FLAG_LEAST_LEAK;
       mpi_ec_mul_point_lli (result, scalar, point, ctx);
+      ctx->flags &= ~GCRYECC_FLAG_LEAST_LEAK;
       return;
     }
   else if (ctx->model == MPI_EC_EDWARDS)
