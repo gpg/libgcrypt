@@ -96,6 +96,10 @@ extern "C" {
 #define _GCRY_GCC_ATTR_SENTINEL(a) __attribute__ ((sentinel(a)))
 #endif
 
+#if _GCRY_GCC_VERSION >= 80000
+#define _GCRY_GCC_ATTR_NONSTRING __attribute__((__nonstring__))
+#endif
+
 #endif /*__GNUC__*/
 
 #ifndef _GCRY_GCC_ATTR_DEPRECATED
@@ -112,6 +116,9 @@ extern "C" {
 #endif
 #ifndef _GCRY_GCC_ATTR_SENTINEL
 #define _GCRY_GCC_ATTR_SENTINEL(a)
+#endif
+#ifndef _GCRY_GCC_ATTR_NONSTRING
+#define _GCRY_GCC_ATTR_NONSTRING
 #endif
 
 /* Make up an attribute to mark functions and types as deprecated but

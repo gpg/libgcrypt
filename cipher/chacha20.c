@@ -428,8 +428,8 @@ static void
 chacha20_keysetup (CHACHA20_context_t *ctx, const byte *key,
                    unsigned int keylen)
 {
-  static const char sigma[16] = "expand 32-byte k";
-  static const char tau[16] = "expand 16-byte k";
+  static const char sigma[16] _GCRY_GCC_ATTR_NONSTRING = "expand 32-byte k";
+  static const char tau[16] _GCRY_GCC_ATTR_NONSTRING = "expand 16-byte k";
   const char *constants;
 
   ctx->input[4] = buf_get_le32(key + 0);

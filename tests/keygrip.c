@@ -56,7 +56,7 @@ static struct
 {
   int algo;
   const char *key;
-  const unsigned char grip[20];
+  const unsigned char grip[20] _GCRY_GCC_ATTR_NONSTRING;
   int skip_when_fips;
 } key_grips[] =
   {
