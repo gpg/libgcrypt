@@ -94,6 +94,8 @@ t_secmem_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
 testapi_LDADD = $(standard_ldadd) @LDADD_FOR_TESTS_KLUDGE@
 t_lock_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS) @LDADD_FOR_TESTS_KLUDGE@
 t_lock_CFLAGS = $(GPG_ERROR_MT_CFLAGS)
+t_thread_local_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS) @LDADD_FOR_TESTS_KLUDGE@
+t_thread_local_CFLAGS = $(GPG_ERROR_MT_CFLAGS)
 testdrv_LDADD = $(LDADD_FOR_TESTS_KLUDGE)
 
 # Build a version of the test driver for the build platform.
