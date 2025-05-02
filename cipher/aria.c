@@ -641,12 +641,6 @@ u32 rotr32(u32 v, u32 r)
   return ror(v, r);
 }
 
-static ALWAYS_INLINE
-u32 bswap32(u32 v)
-{
-  return _gcry_bswap32(v);
-}
-
 static ALWAYS_INLINE u32
 get_u8(u32 x, u32 y)
 {
@@ -727,7 +721,7 @@ static inline void aria_diff_byte(u32 *t1, u32 *t2, u32 *t3)
 {
   *t1 = ((*t1 << 8) & 0xff00ff00) ^ ((*t1 >> 8) & 0x00ff00ff);
   *t2 = rotr32(*t2, 16);
-  *t3 = bswap32(*t3);
+  *t3 = _gcry_bswap32(*t3);
 }
 
 /* Key XOR Layer */
