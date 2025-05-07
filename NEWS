@@ -1,5 +1,59 @@
-Noteworthy changes in version 1.11.1 (unreleased)  [C25/A5/R_]
+Noteworthy changes in version 1.11.1 (2025-05-07)  [C25/A5/R1]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix build regression on 32 bit Windows using Clang. [T7175]
+
+   - Fix build regression on macOS due to symbol naming.  [T7170]
+
+   - Fix Kyber secret-dependent branch introduced by recent versions
+     of Clang.  [rCf765778e82]
+
+   - Fix build regression due to the use of AVX512 in Blake.  [T7184]
+
+   - Do not build i386 asm on amd64 and vice versa.  [T7220]
+
+   - Fix build regression on armhf with gcc-14.  [T7226]
+
+   - Return the proper error code on malloc failure in hex2buffer.
+     [rCc51151f5b0]
+
+   - Fix long standing bug for PRIME % 2 == 0.  [rC639b0fca15]
+
+ * Performance:
+
+   - Add AES Vector Permute intrinsics implementation for AArch64.
+     [rC94a63aedbb]
+
+   - Add GHASH AArch64/SIMD intrinsics implementation.  [rCfec871fd18]
+
+   - Add RISC-V vector permute AES.  [rCb24ebd6163]
+
+   - Add GHASH RISC-V Zbb+Zbc implementation.  [rC0f1fec12b0]
+
+   - Add ChaCha20 RISC-V vector intrinsics implementation.
+     [rC8dbee93ac2]
+
+   - Add SHA3 acceleration for RISC-V Zbb extension.  [rC1a660068ba]
+
+ * Other:
+
+   - Add CET support for i386 and amd64 assembly.  [T7220]
+
+   - Add PAC/BTI support for AArch64 asm.  [T7220]
+
+   - Apply changes to Kyber from upstream for final FIPS 203.
+     [rCcc95c36e7f]
+
+   - Introduce an internal API for a revampled FIPS service indicator.
+     [T7340]
+
+   - Several improvements for constant time operation by the
+     introduction of Least Leak Intended (LLI) variants of internal
+     functions.  [T7519,T7490]
+
+   - Remove WindowsCE support.  [T7486]
 
 
  Release-info: https://dev.gnupg.org/T7166
