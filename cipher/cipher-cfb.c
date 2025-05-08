@@ -70,7 +70,7 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
 
   /* Now we can process complete blocks.  We use a loop as long as we
      have at least 2 blocks and use conditions for the rest.  This
-     also allows to use a bulk encryption function if available.  */
+     also allows using a bulk encryption function if available.  */
   if (inbuflen >= blocksize_x_2 && c->bulk.cfb_enc)
     {
       size_t nblocks = inbuflen >> blocksize_shift;
@@ -168,7 +168,7 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
 
   /* Now we can process complete blocks.  We use a loop as long as we
      have at least 2 blocks and use conditions for the rest.  This
-     also allows to use a bulk encryption function if available.  */
+     also allows using a bulk encryption function if available.  */
   if (inbuflen >= blocksize_x_2 && c->bulk.cfb_dec)
     {
       size_t nblocks = inbuflen >> blocksize_shift;

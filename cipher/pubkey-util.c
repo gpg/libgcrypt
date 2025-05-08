@@ -259,7 +259,7 @@ get_hash_algo (const char *s, size_t n)
     {
       /* In case of not listed or dynamically allocated hash
 	 algorithm we fall back to this somewhat slower
-	 method.  Further, it also allows to use OIDs as
+	 method.  Further, it also allows using OIDs as
 	 algorithm names. */
       char *tmpname;
 
@@ -666,7 +666,7 @@ _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx)
 /* Take the hash value and convert into an MPI, suitable for
    passing to the low level functions.  We currently support the
    old style way of passing just a MPI and the modern interface which
-   allows to pass flags so that we can choose between raw and pkcs1
+   allows passing flags so that we can choose between raw and pkcs1
    padding - may be more padding options later.
 
    (<mpi>)

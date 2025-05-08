@@ -247,7 +247,7 @@ struct gcry_cipher_handle
   gcry_cipher_spec_t *spec;
 
   /* The algorithm id.  This is a hack required because the module
-     interface does not easily allow to retrieve this value. */
+     interface does not easily allow retrieving this value. */
   int algo;
 
   /* A structure with function pointers for mode operations. */

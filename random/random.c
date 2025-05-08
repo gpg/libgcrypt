@@ -176,8 +176,8 @@ _gcry_set_preferred_rng_type (int type)
     }
   else if (any_init)
     {
-      /* After any initialization has been done we only allow to
-         upgrade to the standard RNG (handled above).  All other
+      /* After any initialization has been done we only allow
+         upgrading to the standard RNG (handled above).  All other
          requests are ignored.  The idea is that the application needs
          to declare a preference for a weaker RNG as soon as possible
          and before any library sets a preference.  We assume that a

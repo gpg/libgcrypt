@@ -727,7 +727,7 @@ Noteworthy changes in version 1.8.0 (2017-07-18)  [C22/A2/R0]
 
    - New function gcry_get_config.
 
-   - GCRYCTL_REINIT_SYSCALL_CLAMP allows to init nPth after Libgcrypt.
+   - GCRYCTL_REINIT_SYSCALL_CLAMP allows initializing nPth after Libgcrypt.
 
    - New global configuration file /etc/gcrypt/random.conf.
 
@@ -1391,7 +1391,7 @@ Noteworthy changes in version 1.3.1 (2007-10-26)
 Noteworthy changes in version 1.3.0 (2007-05-04)
 ------------------------------------------------
 
- * Changed the way the RNG gets initialized. This allows to keep it
+ * Changed the way the RNG gets initialized. This allows keeping it
    uninitialized as long as no random numbers are used.  To override
    this, the new macro gcry_fast_random_poll may be used.  It is in
    general a good idea to spread this macro into the application code
@@ -1423,7 +1423,7 @@ Noteworthy changes in version 1.3.0 (2007-05-04)
 
  * New configure option --enable-random-daemon to support a system
    wide random daemon.  The daemon code is experimental and not yet
-   very well working.  It will eventually allow to keep a global
+   very well working.  It will eventually allow keeping a global
    random pool for the sake of short living processes.
 
  * Non executable stack support is now used by default on systems

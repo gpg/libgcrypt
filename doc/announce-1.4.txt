@@ -2,7 +2,7 @@ To: gnupg-announce@gnupg.org, info-gnu@gnu.org
 Cc: gcrypt-devel@gnupg.org
 
 
-Hello! 
+Hello!
 
 We are pleased to announce the availability of Libgcrypt 1.4.0.  This
 is the new stable version of Libgcrypt and upward compatible with the
@@ -22,7 +22,7 @@ Noteworthy changes between 1.2.x and 1.4.0 are:
 
  * Support for the SEED cipher.
 
- * Support for the Camellia cipher. 
+ * Support for the Camellia cipher.
 
  * Support for OFB encryption mode.
 
@@ -38,7 +38,7 @@ Noteworthy changes between 1.2.x and 1.4.0 are:
 
  * The ACE engine of VIA processors is now used for AES-128.
 
- * Changed the way the RNG gets initialized.  This allows to keep it
+ * Changed the way the RNG gets initialized.  This allows keeping it
    uninitialized as long as no random numbers are used.
 
  * Updated the entropy gatherer for W32.
@@ -72,7 +72,7 @@ Noteworthy changes between 1.2.x and 1.4.0 are:
 
  * New configure option --enable-random-daemon to support a system
    wide random daemon.  The daemon code is experimental and not yet
-   very well working.  It will eventually allow to keep a global
+   very well working.  It will eventually allow keeping a global
    random pool for the sake of short living processes.
 
  * Minor changes to some function declarations.  Buffer arguments are
@@ -93,7 +93,7 @@ Noteworthy changes between 1.2.x and 1.4.0 are:
    GCRY_CIPHER_CAMELLIA128    NEW.
    GCRY_CIPHER_CAMELLIA192    NEW.
    GCRY_CIPHER_CAMELLIA256    NEW.
-   GCRYCTL_FAKED_RANDOM_P     NEW. 
+   GCRYCTL_FAKED_RANDOM_P     NEW.
    GCRYCTL_PRINT_CONFIG       NEW.
    GCRYCTL_SET_RNDEGD_SOCKET  NEW.
    gcry_mpi_scan           CHANGED: Argument BUFFER is now void*.
@@ -109,7 +109,7 @@ Noteworthy changes between 1.2.x and 1.4.0 are:
    gcry_randomize          CHANGED: Argument BUFFER is now void*.
    gcry_cipher_register    CHANGED: Argument ALGORITHM_ID is now int*.
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  
+
 
 Source code is hosted at the GnuPG FTP server and its mirrors as
 listed at http://www.gnupg.org/download/mirrors.html .  On the primary

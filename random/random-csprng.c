@@ -980,7 +980,7 @@ read_pool (byte *buffer, size_t length, int level)
 
   gcry_assert (pool_is_locked);
 
-  /* Our code does not allow to extract more than POOLSIZE.  Better
+  /* Our code does not allow extracting more than POOLSIZE.  Better
      check it here. */
   if (length > POOLSIZE)
     {
