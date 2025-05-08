@@ -472,8 +472,8 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
     {
       /* Parameters to derive the key are given.  */
       /* Note that we explicitly need to setup the values of tbl
-         because some compilers (e.g. OpenWatcom, IRIX) don't allow to
-         initialize a structure with automatic variables.  */
+         because some compilers (e.g. OpenWatcom, IRIX) don't allow
+         initializing a structure with automatic variables.  */
       struct { const char *name; gcry_mpi_t *value; } tbl[] = {
         { "e" },
         { "p" },
@@ -825,7 +825,7 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
         /* Parameters to derive the key are given.  */
         /* Note that we explicitly need to setup the values of tbl
            because some compilers (e.g. OpenWatcom, IRIX) don't allow
-           to initialize a structure with automatic variables.  */
+           initializing a structure with automatic variables.  */
         struct { const char *name; gcry_mpi_t *value; } tbl[] = {
           { "Xp1" },
           { "Xp2" },

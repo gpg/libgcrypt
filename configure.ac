@@ -2890,14 +2890,14 @@ if test "$random" = "default"; then
           random_modules="w32"
           ;;
         *)
-          # Build everything, allow to select at runtime.
+          # Build everything, allow selecting at runtime.
           random_modules="$auto_random_modules"
           ;;
         esac
     fi
 else
     if test "$random" = "auto"; then
-        # Build everything, allow to select at runtime.
+        # Build everything, allow selecting at runtime.
         random_modules="$auto_random_modules"
     else
         random_modules="$random"

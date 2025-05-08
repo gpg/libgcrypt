@@ -1109,7 +1109,7 @@ for many error codes what they mean usually.  Some error values have
 specific meanings if returned by a certain functions.  Such cases are
 described in the documentation of those functions.
 
-Libgcrypt uses the @code{libgpg-error} library.  This allows to share
+Libgcrypt uses the @code{libgpg-error} library.  This allows sharing
 the error codes with other components of the GnuPG system, and to pass
 error values transparently from the crypto engine, or some helper
 application of the crypto engine, to the user.  This way no
@@ -1401,8 +1401,8 @@ This value means a verification failed because the public key is not
 available.
 
 @item GPG_ERR_NOT_OPERATIONAL
-This value means that the library is not yet in state which allows to
-use this function.  This error code is in particular returned if
+This value means that the library is not yet in state which allows
+using this function.  This error code is in particular returned if
 Libgcrypt is operated in FIPS mode and the internal state of the
 library does not yet or not anymore allow the use of a service.
 
@@ -2427,7 +2427,7 @@ indicate parameters, whereas lowercase words are literals.
 
 Note that all MPI (multi-precision-integers) values are expected to be in
 @code{GCRYMPI_FMT_USG} format.  An easy way to create S-expressions is
-by using @code{gcry_sexp_build} which allows to pass a string with
+by using @code{gcry_sexp_build} which allows passing a string with
 printf-like escapes to insert MPI values.
 
 @menu
@@ -2863,7 +2863,7 @@ Obviously a public key must be provided for encryption.  It is
 expected as an appropriate S-expression (see above) in @var{pkey}.
 The data to be encrypted can either be in the simple old format, which
 is a very simple S-expression consisting only of one MPI, or it may be
-a more complex S-expression which also allows to specify flags for
+a more complex S-expression which also allows specifying flags for
 operation, like e.g., padding rules.
 
 @noindent
@@ -2984,7 +2984,7 @@ This function creates a digital signature for @var{data} using the
 private key @var{skey} and place it into the variable at the address of
 @var{r_sig}.  @var{data} may either be the simple old style S-expression
 with just one MPI or a modern and more versatile S-expression which
-allows to let Libgcrypt handle padding:
+allows letting Libgcrypt handle padding:
 
 @example
  (data
@@ -3370,7 +3370,7 @@ above example.
 
 @item curve @var{name}
 For ECC a named curve may be used instead of giving the number of
-requested bits.  This allows to request a specific curve to override a
+requested bits.  This allows requesting a specific curve to override a
 default selection Libgcrypt would have taken if @code{nbits} has been
 given.  The available names are listed with the description of the ECC
 public key parameters.
@@ -5551,7 +5551,7 @@ result in @var{x}.
 
 @noindent
 Libgcrypt provides an API to access low level functions used by its
-elliptic curve implementation.  These functions allow to implement
+elliptic curve implementation.  These functions allow implementing
 elliptic curve methods for which no explicit support is available.
 
 @deftypefun gcry_mpi_point_t gcry_mpi_point_new (@w{unsigned int @var{nbits}})

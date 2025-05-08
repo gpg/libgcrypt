@@ -55,8 +55,8 @@ _gcry_mpi_get_hw_config (void)
 }
 
 
-/* Initialize the MPI subsystem.  This is called early and allows to
-   do some initialization without taking care of threading issues.  */
+/* Initialize the MPI subsystem.  This is called early and allows
+   doing some initialization without taking care of threading issues.  */
 gcry_err_code_t
 _gcry_mpi_init (void)
 {

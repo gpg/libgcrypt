@@ -83,8 +83,8 @@ _gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*),
 
 
 /* Return a pointer to the private part of the context CTX.  TYPE is
-   the requested context type.  Using an explicit type allows to cross
-   check the type and eventually allows to store several private
+   the requested context type.  Using an explicit type allows cross
+   checking the type and eventually allows storing several private
    contexts in one context object.  The function does not return an
    error but aborts if the provided CTX is not valid.
    Special usage: using TYPE with 0, which returns CTX->NEXT.
@@ -105,8 +105,8 @@ _gcry_ctx_get_pointer (gcry_ctx_t ctx, int type)
 }
 
 /* Return a pointer to the private part of the context CTX.  TYPE is
-   the requested context type.  Using an explicit type allows to cross
-   check the type and eventually allows to store several private
+   the requested context type.  Using an explicit type allows cross
+   checking the type and eventually allows storing several private
    contexts in one context object.  In contrast to
    _gcry_ctx_get_pointer, this function returns NULL if no context for
    the given type was found.  If CTX is NULL the function does not

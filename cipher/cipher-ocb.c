@@ -238,7 +238,7 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
 
 
 /* Process additional authentication data.  This implementation allows
-   to add additional authentication data at any time before the final
+   adding additional authentication data at any time before the final
    gcry_cipher_gettag.  */
 gcry_err_code_t
 _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,

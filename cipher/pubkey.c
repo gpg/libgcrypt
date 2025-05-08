@@ -296,7 +296,7 @@ pubkey_get_nenc (int algo)
    Caller has to provide a public key as the SEXP pkey and data as a
    SEXP with just one MPI in it. Alternatively S_DATA might be a
    complex S-Expression, similar to the one used for signature
-   verification.  This provides a flag which allows to handle PKCS#1
+   verification.  This provides a flag which allows handling PKCS#1
    block type 2 padding.  The function returns a sexp which may be
    passed to to pk_decrypt.
 

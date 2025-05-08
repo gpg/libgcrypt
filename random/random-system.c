@@ -103,7 +103,7 @@ unlock_rng (void)
 
 /* Helper variables for read_cb().
 
-   The _gcry_rnd*_gather_random interface does not allow to provide a
+   The _gcry_rnd*_gather_random interface does not allow providing a
    data pointer.  Thus we need to use a global variable for
    communication.  However, the then required locking is anyway a good
    idea because it does not make sense to have several readers of (say

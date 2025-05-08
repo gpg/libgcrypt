@@ -57,7 +57,7 @@ replace_sysroot () {
     extraoptions=$(echo $extraoptions | sed "s#@SYSROOT@#${w32root}#g")
 }
 
-# Allow to override the default tool names
+# Allow overriding the default tool names
 AUTOCONF=${AUTOCONF_PREFIX}${AUTOCONF:-autoconf}${AUTOCONF_SUFFIX}
 AUTOHEADER=${AUTOCONF_PREFIX}${AUTOHEADER:-autoheader}${AUTOCONF_SUFFIX}
 

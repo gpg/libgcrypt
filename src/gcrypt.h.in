@@ -375,7 +375,7 @@ gcry_error_t gcry_sexp_new (gcry_sexp_t *retsexp,
                             const void *buffer, size_t length,
                             int autodetect);
 
- /* Same as gcry_sexp_new but allows to pass a FREEFNC which has the
+ /* Same as gcry_sexp_new but allows passing a FREEFNC which has the
     effect to transfer ownership of BUFFER to the created object.  */
 gcry_error_t gcry_sexp_create (gcry_sexp_t *retsexp,
                                void *buffer, size_t length,
