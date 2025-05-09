@@ -647,6 +647,15 @@ void poly_uniform_eta(poly *a,
 *              - const uint8_t seed[]: byte array with seed of length CRHBYTES
 *              - uint16_t nonce: 16-bit nonce
 **************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define polyz_unpack polyz_unpack_17
+#define poly_uniform_gamma1 poly_uniform_gamma1_17
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define polyz_unpack polyz_unpack_19
+#define poly_uniform_gamma1 poly_uniform_gamma1_19
+#endif
+void polyz_unpack(poly *r, const uint8_t *a);/* Forward declarations */
 #define POLY_UNIFORM_GAMMA1_NBLOCKS ((POLYZ_PACKEDBYTES + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 void poly_uniform_gamma1(poly *a,
                          const uint8_t seed[CRHBYTES],
@@ -983,17 +992,18 @@ void polyt0_unpack(poly *r, const uint8_t *a) {
 *                            POLYZ_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define polyz_pack polyz_pack_17
 void polyz_pack(uint8_t *r, const poly *a) {
   unsigned int i;
   uint32_t t[4];
   DBENCH_START();
 
-#if GAMMA1 == (1 << 17)
   for(i = 0; i < N/4; ++i) {
-    t[0] = GAMMA1 - a->coeffs[4*i+0];
-    t[1] = GAMMA1 - a->coeffs[4*i+1];
-    t[2] = GAMMA1 - a->coeffs[4*i+2];
-    t[3] = GAMMA1 - a->coeffs[4*i+3];
+    t[0] = GAMMA1_17 - a->coeffs[4*i+0];
+    t[1] = GAMMA1_17 - a->coeffs[4*i+1];
+    t[2] = GAMMA1_17 - a->coeffs[4*i+2];
+    t[3] = GAMMA1_17 - a->coeffs[4*i+3];
 
     r[9*i+0]  = t[0];
     r[9*i+1]  = t[0] >> 8;
@@ -1008,10 +1018,20 @@ void polyz_pack(uint8_t *r, const poly *a) {
     r[9*i+7]  = t[3] >> 2;
     r[9*i+8]  = t[3] >> 10;
   }
-#elif GAMMA1 == (1 << 19)
+
+  DBENCH_STOP(*tpack);
+}
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define polyz_pack polyz_pack_19
+void polyz_pack(uint8_t *r, const poly *a) {
+  unsigned int i;
+  uint32_t t[4];
+  DBENCH_START();
+
   for(i = 0; i < N/2; ++i) {
-    t[0] = GAMMA1 - a->coeffs[2*i+0];
-    t[1] = GAMMA1 - a->coeffs[2*i+1];
+    t[0] = GAMMA1_19 - a->coeffs[2*i+0];
+    t[1] = GAMMA1_19 - a->coeffs[2*i+1];
 
     r[5*i+0]  = t[0];
     r[5*i+1]  = t[0] >> 8;
@@ -1020,10 +1040,10 @@ void polyz_pack(uint8_t *r, const poly *a) {
     r[5*i+3]  = t[1] >> 4;
     r[5*i+4]  = t[1] >> 12;
   }
-#endif
 
   DBENCH_STOP(*tpack);
 }
+#endif
 
 /*************************************************
 * Name:        polyz_unpack
@@ -1034,11 +1054,11 @@ void polyz_pack(uint8_t *r, const poly *a) {
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
 void polyz_unpack(poly *r, const uint8_t *a) {
   unsigned int i;
   DBENCH_START();
 
-#if GAMMA1 == (1 << 17)
   for(i = 0; i < N/4; ++i) {
     r->coeffs[4*i+0]  = a[9*i+0];
     r->coeffs[4*i+0] |= (uint32_t)a[9*i+1] << 8;
@@ -1060,12 +1080,21 @@ void polyz_unpack(poly *r, const uint8_t *a) {
     r->coeffs[4*i+3] |= (uint32_t)a[9*i+8] << 10;
     r->coeffs[4*i+3] &= 0x3FFFF;
 
-    r->coeffs[4*i+0] = GAMMA1 - r->coeffs[4*i+0];
-    r->coeffs[4*i+1] = GAMMA1 - r->coeffs[4*i+1];
-    r->coeffs[4*i+2] = GAMMA1 - r->coeffs[4*i+2];
-    r->coeffs[4*i+3] = GAMMA1 - r->coeffs[4*i+3];
+    r->coeffs[4*i+0] = GAMMA1_17 - r->coeffs[4*i+0];
+    r->coeffs[4*i+1] = GAMMA1_17 - r->coeffs[4*i+1];
+    r->coeffs[4*i+2] = GAMMA1_17 - r->coeffs[4*i+2];
+    r->coeffs[4*i+3] = GAMMA1_17 - r->coeffs[4*i+3];
   }
-#elif GAMMA1 == (1 << 19)
+
+  DBENCH_STOP(*tpack);
+}
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+void polyz_unpack(poly *r, const uint8_t *a) {
+  unsigned int i;
+  DBENCH_START();
+
   for(i = 0; i < N/2; ++i) {
     r->coeffs[2*i+0]  = a[5*i+0];
     r->coeffs[2*i+0] |= (uint32_t)a[5*i+1] << 8;
@@ -1077,13 +1106,13 @@ void polyz_unpack(poly *r, const uint8_t *a) {
     r->coeffs[2*i+1] |= (uint32_t)a[5*i+4] << 12;
     /* r->coeffs[2*i+1] &= 0xFFFFF; */ /* No effect, since we're anyway at 20 bits */
 
-    r->coeffs[2*i+0] = GAMMA1 - r->coeffs[2*i+0];
-    r->coeffs[2*i+1] = GAMMA1 - r->coeffs[2*i+1];
+    r->coeffs[2*i+0] = GAMMA1_19 - r->coeffs[2*i+0];
+    r->coeffs[2*i+1] = GAMMA1_19 - r->coeffs[2*i+1];
   }
-#endif
 
   DBENCH_STOP(*tpack);
 }
+#endif
 
 /*************************************************
 * Name:        polyw1_pack
