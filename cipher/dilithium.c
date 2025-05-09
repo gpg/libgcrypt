@@ -198,6 +198,8 @@ shake256 (uint8_t *out, size_t outlen, const uint8_t *in,
 #define ROOT_OF_UNITY 1753
 
 /* DILITHIUM_MODE dependent values (part 1) */
+#define ETA2 2
+#define ETA4 4
 #define POLYZ_PACKEDBYTES_17   576
 #define POLYZ_PACKEDBYTES_19   640
 #define POLYW1_PACKEDBYTES_88  192
