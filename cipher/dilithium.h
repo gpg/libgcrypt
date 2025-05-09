@@ -49,4 +49,15 @@
  */
 #ifndef DILITHIUM_H
 #define DILITHIUM_H
+
+#if defined(DILITHIUM_MODE)
+# if DILITHIUM_MODE == 2
+# elif DILITHIUM_MODE == 3
+# elif DILITHIUM_MODE == 5
+# else
+# error "DILITHIUM_MODE should be either 2, 3 or 5"
+# endif
+#else
+#endif
+
 #endif
