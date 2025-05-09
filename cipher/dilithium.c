@@ -43,6 +43,25 @@
 
   Dilithium Home: https://github.com/pq-crystals/dilithium.git
  */
+/*
+ * This implementation consists of four files: dilithium.h (header),
+ * dilithium.c (this), dilithium-common.c (common part), and
+ * dilithium-dep.c (DILITHIUM_MODE dependent part).
+ *
+ * It is for inclusion in libgcrypt library.  Also, standalone use of
+ * the implementation is possible.  With DILITHIUM_MODE defined, it
+ * can offer the variant of that DILITHIUM_MODE specified.  Otherwise,
+ * three variants are offered.
+ *
+ * From original code, following modification was made.
+ *
+ * - C++ style comments are changed to C-style.
+ *
+ * - No use of DILITHIUM_NAMESPACE and FIPS202_NAMESPACE.  Don't export
+ *   internal symbols.
+ *
+ */
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -190,8 +209,8 @@ typedef struct {
 } poly;
 
 /*************** dilithium/ref/reduce.h */
-#define MONT -4186625 // 2^32 % Q
-#define QINV 58728449 // q^(-1) mod 2^32
+#define MONT -4186625 /* 2^32 % Q */
+#define QINV 58728449 /* q^(-1) mod 2^32 */
 
 /*************** dilithium/ref/symmetric.h */
 typedef keccak_state stream128_state;
