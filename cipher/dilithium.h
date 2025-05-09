@@ -50,14 +50,46 @@
 #ifndef DILITHIUM_H
 #define DILITHIUM_H
 
+#define SEEDBYTES 32
+#define TRBYTES 64
+#define POLYT1_PACKEDBYTES  320
+#define POLYT0_PACKEDBYTES  416
+
 #if defined(DILITHIUM_MODE)
 # if DILITHIUM_MODE == 2
+# define K 4
+# define L 4
+# define CTILDEBYTES 32
+# define POLYETA_PACKEDBYTES  96
+# define POLYZ_PACKEDBYTES   576
+# define OMEGA 80
 # elif DILITHIUM_MODE == 3
+# define K 6
+# define L 5
+# define POLYETA_PACKEDBYTES 128
+# define CTILDEBYTES 48
+# define POLYZ_PACKEDBYTES   640
+# define OMEGA 55
 # elif DILITHIUM_MODE == 5
+# define K 8
+# define L 7
+# define CTILDEBYTES 64
+# define POLYETA_PACKEDBYTES  96
+# define POLYZ_PACKEDBYTES   640
+# define OMEGA 75
 # else
 # error "DILITHIUM_MODE should be either 2, 3 or 5"
 # endif
+# define POLYVECH_PACKEDBYTES (OMEGA + K)
+# define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + K*POLYT1_PACKEDBYTES)
+# define CRYPTO_SECRETKEYBYTES (2*SEEDBYTES \
+                                + TRBYTES \
+                                + L*POLYETA_PACKEDBYTES \
+                                + K*POLYETA_PACKEDBYTES \
+                                + K*POLYT0_PACKEDBYTES)
+# define CRYPTO_BYTES (CTILDEBYTES + L*POLYZ_PACKEDBYTES + POLYVECH_PACKEDBYTES)
 #else
+/* TBD */
 #endif
 
 #endif

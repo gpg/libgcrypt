@@ -80,6 +80,8 @@
 #include "g10lib.h"
 #include "gcrypt-int.h"
 #include "const-time.h"
+
+#define DILITHIUM_MODE 2
 #include "dilithium.h"
 
 static void
@@ -228,7 +230,6 @@ typedef keccak_state stream256_state;
 #define STREAM256_BLOCKBYTES SHAKE256_RATE
 
 /*************** dilithium/ref/params.h */
-#define DILITHIUM_MODE 2
 #if DILITHIUM_MODE == 2
 #define K 4
 #define L 4
@@ -285,14 +286,6 @@ typedef keccak_state stream256_state;
 #elif ETA == 4
 #define POLYETA_PACKEDBYTES 128
 #endif
-
-#define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + K*POLYT1_PACKEDBYTES)
-#define CRYPTO_SECRETKEYBYTES (2*SEEDBYTES \
-                               + TRBYTES \
-                               + L*POLYETA_PACKEDBYTES \
-                               + K*POLYETA_PACKEDBYTES \
-                               + K*POLYT0_PACKEDBYTES)
-#define CRYPTO_BYTES (CTILDEBYTES + L*POLYZ_PACKEDBYTES + POLYVECH_PACKEDBYTES)
 
 /*************** */
 /* Forward declarations */
