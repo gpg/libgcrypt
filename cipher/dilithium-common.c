@@ -517,7 +517,7 @@ void poly_uniform(poly *a,
 * Returns number of sampled coefficients. Can be smaller than len if not enough
 * random bytes were given.
 **************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
 #define rej_eta rej_eta_2
 static unsigned int rej_eta(int32_t *a,
                             unsigned int len,
@@ -548,7 +548,7 @@ static unsigned int rej_eta(int32_t *a,
 }
 #endif
 
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
 #define rej_eta rej_eta_4
 static unsigned int rej_eta(int32_t *a,
                             unsigned int len,
@@ -586,7 +586,7 @@ static unsigned int rej_eta(int32_t *a,
 *              - const uint8_t seed[]: byte array with seed of length CRHBYTES
 *              - uint16_t nonce: 2-byte nonce
 **************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
 #define poly_uniform_eta poly_uniform_eta_2
 #define POLY_UNIFORM_ETA_NBLOCKS_2 ((136 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 void poly_uniform_eta(poly *a,
@@ -611,7 +611,7 @@ void poly_uniform_eta(poly *a,
 }
 #endif
 
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
 #define poly_uniform_eta poly_uniform_eta_4
 #define POLY_UNIFORM_ETA_NBLOCKS_4 ((227 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 void poly_uniform_eta(poly *a,
@@ -724,7 +724,7 @@ void poly_challenge(poly *c, const uint8_t seed[CTILDEBYTES]) {
 *                            POLYETA_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
 #define polyeta_pack polyeta_pack_2
 void polyeta_pack(uint8_t *r, const poly *a) {
   unsigned int i;
@@ -750,7 +750,7 @@ void polyeta_pack(uint8_t *r, const poly *a) {
 }
 #endif
 
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
 #define polyeta_pack polyeta_pack_4
 void polyeta_pack(uint8_t *r, const poly *a) {
   unsigned int i;
@@ -775,7 +775,7 @@ void polyeta_pack(uint8_t *r, const poly *a) {
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
 #define polyeta_unpack polyeta_unpack_2
 void polyeta_unpack(poly *r, const uint8_t *a) {
   unsigned int i;
@@ -805,7 +805,7 @@ void polyeta_unpack(poly *r, const uint8_t *a) {
 }
 #endif
 
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
 #define polyeta_unpack polyeta_unpack_4
 void polyeta_unpack(poly *r, const uint8_t *a) {
   unsigned int i;
