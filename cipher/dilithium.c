@@ -60,6 +60,8 @@
  * - No use of DILITHIUM_NAMESPACE and FIPS202_NAMESPACE.  Don't export
  *   internal symbols.
  *
+ * - Different external API for shake128 and shake256, having _init
+ *   and _close.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -301,8 +303,10 @@ void polyz_unpack(poly *r, const uint8_t *a);
 /* Glue code */
 #define stream128_squeezeblocks(OUT, OUTBLOCKS, STATE) \
 	shake128_squeeze(OUT, SHAKE128_RATE*OUTBLOCKS, STATE)
+#define stream128_close(STATE) shake128_close(STATE)
 #define stream256_squeezeblocks(OUT, OUTBLOCKS, STATE) \
 	shake256_squeeze(OUT, SHAKE256_RATE*OUTBLOCKS, STATE)
+#define stream256_close(STATE) shake256_close(STATE)
 
 #define shake256_squeezeblocks(OUT, OUTBLOCKS, STATE) \
 	shake256_squeeze(OUT, SHAKE256_RATE*OUTBLOCKS, STATE)
