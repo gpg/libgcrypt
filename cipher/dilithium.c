@@ -202,6 +202,8 @@ shake256 (uint8_t *out, size_t outlen, const uint8_t *in,
 #define ETA4 4
 #define GAMMA1_17 (1 << 17)
 #define GAMMA1_19 (1 << 19)
+#define GAMMA2_32 ((Q-1)/32)
+#define GAMMA2_88 ((Q-1)/88)
 #define POLYZ_PACKEDBYTES_17   576
 #define POLYZ_PACKEDBYTES_19   640
 #define POLYW1_PACKEDBYTES_88  192

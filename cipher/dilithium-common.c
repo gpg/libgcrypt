@@ -139,6 +139,145 @@ void invntt_tomont(int32_t a[N]) {
   }
 }
 
+/*************** dilithium/ref/rounding.c */
+
+/*************************************************
+* Name:        power2round
+*
+* Description: For finite field element a, compute a0, a1 such that
+*              a mod^+ Q = a1*2^D + a0 with -2^{D-1} < a0 <= 2^{D-1}.
+*              Assumes a to be standard representative.
+*
+* Arguments:   - int32_t a: input element
+*              - int32_t *a0: pointer to output element a0
+*
+* Returns a1.
+**************************************************/
+int32_t power2round(int32_t *a0, int32_t a)  {
+  int32_t a1;
+
+  a1 = (a + (1 << (D-1)) - 1) >> D;
+  *a0 = a - (a1 << D);
+  return a1;
+}
+
+/*************************************************
+* Name:        decompose
+*
+* Description: For finite field element a, compute high and low bits a0, a1 such
+*              that a mod^+ Q = a1*ALPHA + a0 with -ALPHA/2 < a0 <= ALPHA/2 except
+*              if a1 = (Q-1)/ALPHA where we set a1 = 0 and
+*              -ALPHA/2 <= a0 = a mod^+ Q - Q < 0. Assumes a to be standard
+*              representative.
+*
+* Arguments:   - int32_t a: input element
+*              - int32_t *a0: pointer to output element a0
+*
+* Returns a1.
+**************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define decompose decompose_88
+int32_t decompose(int32_t *a0, int32_t a) {
+  int32_t a1;
+
+  a1  = (a + 127) >> 7;
+  a1  = (a1*11275 + (1 << 23)) >> 24;
+  a1 ^= ((43 - a1) >> 31) & a1;
+
+  *a0  = a - a1*2*GAMMA2_88;
+  *a0 -= (((Q-1)/2 - *a0) >> 31) & Q;
+  return a1;
+}
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define decompose decompose_32
+int32_t decompose(int32_t *a0, int32_t a) {
+  int32_t a1;
+
+  a1  = (a + 127) >> 7;
+  a1  = (a1*1025 + (1 << 21)) >> 22;
+  a1 &= 15;
+
+  *a0  = a - a1*2*GAMMA2_32;
+  *a0 -= (((Q-1)/2 - *a0) >> 31) & Q;
+  return a1;
+}
+#endif
+
+/*************************************************
+* Name:        make_hint
+*
+* Description: Compute hint bit indicating whether the low bits of the
+*              input element overflow into the high bits.
+*
+* Arguments:   - int32_t a0: low bits of input element
+*              - int32_t a1: high bits of input element
+*
+* Returns 1 if overflow.
+**************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define make_hint make_hint_88
+unsigned int make_hint(int32_t a0, int32_t a1) {
+  if(a0 > GAMMA2_88 || a0 < -GAMMA2_88 || (a0 == -GAMMA2_88 && a1 != 0))
+    return 1;
+
+  return 0;
+}
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define make_hint make_hint_32
+unsigned int make_hint(int32_t a0, int32_t a1) {
+  if(a0 > GAMMA2_32 || a0 < -GAMMA2_32 || (a0 == -GAMMA2_32 && a1 != 0))
+    return 1;
+
+  return 0;
+}
+#endif
+
+/*************************************************
+* Name:        use_hint
+*
+* Description: Correct high bits according to hint.
+*
+* Arguments:   - int32_t a: input element
+*              - unsigned int hint: hint bit
+*
+* Returns corrected high bits.
+**************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define use_hint use_hint_88
+int32_t use_hint(int32_t a, unsigned int hint) {
+  int32_t a0, a1;
+
+  a1 = decompose(&a0, a);
+  if(hint == 0)
+    return a1;
+
+  if(a0 > 0)
+    return (a1 == 43) ?  0 : a1 + 1;
+  else
+    return (a1 ==  0) ? 43 : a1 - 1;
+}
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define use_hint use_hint_32
+int32_t use_hint(int32_t a, unsigned int hint) {
+  int32_t a0, a1;
+
+  a1 = decompose(&a0, a);
+  if(hint == 0)
+    return a1;
+
+  if(a0 > 0)
+    return (a1 + 1) & 15;
+  else
+    return (a1 - 1) & 15;
+}
+#endif
+
 /*************** dilithium/ref/poly.c */
 
 #ifdef DBENCH
@@ -1124,11 +1263,12 @@ void polyz_unpack(poly *r, const uint8_t *a) {
 *                            POLYW1_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define polyw1_pack polyw1_pack_88
 void polyw1_pack(uint8_t *r, const poly *a) {
   unsigned int i;
   DBENCH_START();
 
-#if GAMMA2 == (Q-1)/88
   for(i = 0; i < N/4; ++i) {
     r[3*i+0]  = a->coeffs[4*i+0];
     r[3*i+0] |= a->coeffs[4*i+1] << 6;
@@ -1137,13 +1277,22 @@ void polyw1_pack(uint8_t *r, const poly *a) {
     r[3*i+2]  = a->coeffs[4*i+2] >> 4;
     r[3*i+2] |= a->coeffs[4*i+3] << 2;
   }
-#elif GAMMA2 == (Q-1)/32
-  for(i = 0; i < N/2; ++i)
-    r[i] = a->coeffs[2*i+0] | (a->coeffs[2*i+1] << 4);
-#endif
 
   DBENCH_STOP(*tpack);
 }
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define polyw1_pack polyw1_pack_32
+void polyw1_pack(uint8_t *r, const poly *a) {
+  unsigned int i;
+  DBENCH_START();
+
+  for(i = 0; i < N/2; ++i)
+    r[i] = a->coeffs[2*i+0] | (a->coeffs[2*i+1] << 4);
+
+  DBENCH_STOP(*tpack);
+}
+#endif
 
 /*************** dilithium/ref/reduce.c */
 
@@ -1211,105 +1360,4 @@ int32_t freeze(int32_t a) {
   a = reduce32(a);
   a = caddq(a);
   return a;
-}
-
-/*************** dilithium/ref/rounding.c */
-
-/*************************************************
-* Name:        power2round
-*
-* Description: For finite field element a, compute a0, a1 such that
-*              a mod^+ Q = a1*2^D + a0 with -2^{D-1} < a0 <= 2^{D-1}.
-*              Assumes a to be standard representative.
-*
-* Arguments:   - int32_t a: input element
-*              - int32_t *a0: pointer to output element a0
-*
-* Returns a1.
-**************************************************/
-int32_t power2round(int32_t *a0, int32_t a)  {
-  int32_t a1;
-
-  a1 = (a + (1 << (D-1)) - 1) >> D;
-  *a0 = a - (a1 << D);
-  return a1;
-}
-
-/*************************************************
-* Name:        decompose
-*
-* Description: For finite field element a, compute high and low bits a0, a1 such
-*              that a mod^+ Q = a1*ALPHA + a0 with -ALPHA/2 < a0 <= ALPHA/2 except
-*              if a1 = (Q-1)/ALPHA where we set a1 = 0 and
-*              -ALPHA/2 <= a0 = a mod^+ Q - Q < 0. Assumes a to be standard
-*              representative.
-*
-* Arguments:   - int32_t a: input element
-*              - int32_t *a0: pointer to output element a0
-*
-* Returns a1.
-**************************************************/
-int32_t decompose(int32_t *a0, int32_t a) {
-  int32_t a1;
-
-  a1  = (a + 127) >> 7;
-#if GAMMA2 == (Q-1)/32
-  a1  = (a1*1025 + (1 << 21)) >> 22;
-  a1 &= 15;
-#elif GAMMA2 == (Q-1)/88
-  a1  = (a1*11275 + (1 << 23)) >> 24;
-  a1 ^= ((43 - a1) >> 31) & a1;
-#endif
-
-  *a0  = a - a1*2*GAMMA2;
-  *a0 -= (((Q-1)/2 - *a0) >> 31) & Q;
-  return a1;
-}
-
-/*************************************************
-* Name:        make_hint
-*
-* Description: Compute hint bit indicating whether the low bits of the
-*              input element overflow into the high bits.
-*
-* Arguments:   - int32_t a0: low bits of input element
-*              - int32_t a1: high bits of input element
-*
-* Returns 1 if overflow.
-**************************************************/
-unsigned int make_hint(int32_t a0, int32_t a1) {
-  if(a0 > GAMMA2 || a0 < -GAMMA2 || (a0 == -GAMMA2 && a1 != 0))
-    return 1;
-
-  return 0;
-}
-
-/*************************************************
-* Name:        use_hint
-*
-* Description: Correct high bits according to hint.
-*
-* Arguments:   - int32_t a: input element
-*              - unsigned int hint: hint bit
-*
-* Returns corrected high bits.
-**************************************************/
-int32_t use_hint(int32_t a, unsigned int hint) {
-  int32_t a0, a1;
-
-  a1 = decompose(&a0, a);
-  if(hint == 0)
-    return a1;
-
-#if GAMMA2 == (Q-1)/32
-  if(a0 > 0)
-    return (a1 + 1) & 15;
-  else
-    return (a1 - 1) & 15;
-#elif GAMMA2 == (Q-1)/88
-  if(a0 > 0)
-    return (a1 == 43) ?  0 : a1 + 1;
-  else
-    return (a1 ==  0) ? 43 : a1 - 1;
-#endif
 }
