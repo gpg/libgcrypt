@@ -810,51 +810,6 @@ void poly_uniform_gamma1(poly *a,
 }
 
 /*************************************************
-* Name:        challenge
-*
-* Description: Implementation of H. Samples polynomial with TAU nonzero
-*              coefficients in {-1,1} using the output stream of
-*              SHAKE256(seed).
-*
-* Arguments:   - poly *c: pointer to output polynomial
-*              - const uint8_t mu[]: byte array containing seed of length CTILDEBYTES
-**************************************************/
-void poly_challenge(poly *c, const uint8_t seed[CTILDEBYTES]) {
-  unsigned int i, b, pos;
-  uint64_t signs;
-  uint8_t buf[SHAKE256_RATE];
-  keccak_state state;
-
-  shake256_init(&state);
-  shake256_absorb(&state, seed, CTILDEBYTES);
-  shake256_finalize(&state);
-  shake256_squeezeblocks(buf, 1, &state);
-
-  signs = 0;
-  for(i = 0; i < 8; ++i)
-    signs |= (uint64_t)buf[i] << 8*i;
-  pos = 8;
-
-  for(i = 0; i < N; ++i)
-    c->coeffs[i] = 0;
-  for(i = N-TAU; i < N; ++i) {
-    do {
-      if(pos >= SHAKE256_RATE) {
-        shake256_squeezeblocks(buf, 1, &state);
-        pos = 0;
-      }
-
-      b = buf[pos++];
-    } while(b > i);
-
-    c->coeffs[i] = c->coeffs[b];
-    c->coeffs[b] = 1 - 2*(signs & 1);
-    signs >>= 1;
-  }
-  shake256_close(&state);
-}
-
-/*************************************************
 * Name:        polyeta_pack
 *
 * Description: Bit-pack polynomial with coefficients in [-ETA,ETA].
