@@ -51,45 +51,60 @@
 #define DILITHIUM_H
 
 #define SEEDBYTES 32
-#define TRBYTES 64
-#define POLYT1_PACKEDBYTES  320
-#define POLYT0_PACKEDBYTES  416
+#define RNDBYTES 32
 
 #if defined(DILITHIUM_MODE)
 # if DILITHIUM_MODE == 2
-# define K 4
-# define L 4
-# define CTILDEBYTES 32
-# define POLYETA_PACKEDBYTES  96
-# define POLYZ_PACKEDBYTES   576
-# define OMEGA 80
+# define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + 4*320)
+# define CRYPTO_SECRETKEYBYTES (2*SEEDBYTES \
+                                + 64 \
+                                + 4*96 \
+                                + 4*96 \
+                                + 4*416)
+# define CRYPTO_BYTES (32 + L*576 + 80 + 4)
 # elif DILITHIUM_MODE == 3
-# define K 6
-# define L 5
-# define POLYETA_PACKEDBYTES 128
-# define CTILDEBYTES 48
-# define POLYZ_PACKEDBYTES   640
-# define OMEGA 55
+# define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + 6*320)
+# define CRYPTO_SECRETKEYBYTES (2*SEEDBYTES \
+                                + 64 \
+                                + 5*128 \
+                                + 6*128 \
+                                + 6*416)
+# define CRYPTO_BYTES (48 + 5*640 + 55 + 6)
 # elif DILITHIUM_MODE == 5
-# define K 8
-# define L 7
-# define CTILDEBYTES 64
-# define POLYETA_PACKEDBYTES  96
-# define POLYZ_PACKEDBYTES   640
-# define OMEGA 75
+# define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + 8*320)
+# define CRYPTO_SECRETKEYBYTES (2*SEEDBYTES \
+                                + 64 \
+                                + 7*96 \
+                                + 8*96 \
+                                + 8*416)
+# define CRYPTO_BYTES (64 + 7*640 + 75 + 8)
 # else
 # error "DILITHIUM_MODE should be either 2, 3 or 5"
 # endif
-# define POLYVECH_PACKEDBYTES (OMEGA + K)
-# define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + K*POLYT1_PACKEDBYTES)
-# define CRYPTO_SECRETKEYBYTES (2*SEEDBYTES \
-                                + TRBYTES \
-                                + L*POLYETA_PACKEDBYTES \
-                                + K*POLYETA_PACKEDBYTES \
-                                + K*POLYT0_PACKEDBYTES)
-# define CRYPTO_BYTES (CTILDEBYTES + L*POLYZ_PACKEDBYTES + POLYVECH_PACKEDBYTES)
 #else
-/* TBD */
+# define CRYPTO_PUBLICKEYBYTES_2 (SEEDBYTES + 4*320)
+# define CRYPTO_SECRETKEYBYTES_2 (2*SEEDBYTES \
+                                  + 64 \
+                                  + 4*96 \
+                                  + 4*96 \
+                                  + 4*416)
+# define CRYPTO_BYTES_2 (32 + L*576 + 80 + 4))
+
+# define CRYPTO_PUBLICKEYBYTES_3 (SEEDBYTES + 6*320)
+# define CRYPTO_SECRETKEYBYTES_3 (2*SEEDBYTES \
+                                  + 64 \
+                                  + 5*128 \
+                                  + 6*128 \
+                                  + 6*416)
+# define CRYPTO_BYTES_3 (48 + 5*640 + 55 + 6)
+
+# define CRYPTO_PUBLICKEYBYTES_5 (SEEDBYTES + 8*320)
+# define CRYPTO_SECRETKEYBYTES_5 (2*SEEDBYTES \
+                                  + 64 \
+                                  + 7*96 \
+                                  + 8*96 \
+                                  + 8*416)
+# define CRYPTO_BYTES_5 (64 + 7*640 + 75 + 8)
 #endif
 
 #endif
