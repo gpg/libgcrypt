@@ -789,13 +789,14 @@ void poly_uniform_eta(poly *a,
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
 #define polyz_unpack polyz_unpack_17
 #define poly_uniform_gamma1 poly_uniform_gamma1_17
+#define POLY_UNIFORM_GAMMA1_NBLOCKS ((POLYZ_PACKEDBYTES_17 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
 #define polyz_unpack polyz_unpack_19
 #define poly_uniform_gamma1 poly_uniform_gamma1_19
+#define POLY_UNIFORM_GAMMA1_NBLOCKS ((POLYZ_PACKEDBYTES_19 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 #endif
 void polyz_unpack(poly *r, const uint8_t *a);/* Forward declarations */
-#define POLY_UNIFORM_GAMMA1_NBLOCKS ((POLYZ_PACKEDBYTES + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 void poly_uniform_gamma1(poly *a,
                          const uint8_t seed[CRHBYTES],
                          uint16_t nonce)

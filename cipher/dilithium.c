@@ -230,62 +230,10 @@ typedef keccak_state stream256_state;
 #define STREAM256_BLOCKBYTES SHAKE256_RATE
 
 /*************** dilithium/ref/params.h */
-#if DILITHIUM_MODE == 2
-#define K 4
-#define L 4
-#define ETA 2
-#define TAU 39
-#define BETA 78
-#define GAMMA1 (1 << 17)
-#define GAMMA2 ((Q-1)/88)
-#define OMEGA 80
-#define CTILDEBYTES 32
-
-#elif DILITHIUM_MODE == 3
-#define K 6
-#define L 5
-#define ETA 4
-#define TAU 49
-#define BETA 196
-#define GAMMA1 (1 << 19)
-#define GAMMA2 ((Q-1)/32)
-#define OMEGA 55
-#define CTILDEBYTES 48
-
-#elif DILITHIUM_MODE == 5
-#define K 8
-#define L 7
-#define ETA 2
-#define TAU 60
-#define BETA 120
-#define GAMMA1 (1 << 19)
-#define GAMMA2 ((Q-1)/32)
-#define OMEGA 75
-#define CTILDEBYTES 64
-
-#endif
 
 #define POLYT1_PACKEDBYTES  320
 #define POLYT0_PACKEDBYTES  416
 #define POLYVECH_PACKEDBYTES (OMEGA + K)
-
-#if GAMMA1 == (1 << 17)
-#define POLYZ_PACKEDBYTES   576
-#elif GAMMA1 == (1 << 19)
-#define POLYZ_PACKEDBYTES   640
-#endif
-
-#if GAMMA2 == (Q-1)/88
-#define POLYW1_PACKEDBYTES  192
-#elif GAMMA2 == (Q-1)/32
-#define POLYW1_PACKEDBYTES  128
-#endif
-
-#if ETA == 2
-#define POLYETA_PACKEDBYTES  96
-#elif ETA == 4
-#define POLYETA_PACKEDBYTES 128
-#endif
 
 /*************** */
 /* Forward declarations */
@@ -337,4 +285,65 @@ void stream256_init(keccak_state *state, const uint8_t seed[CRHBYTES], uint16_t 
 
 #include "dilithium-common.c"
 
+#ifdef DILITHIUM_MODE
+
+#if DILITHIUM_MODE == 2
+#define K 4
+#define L 4
+#define ETA 2
+#define TAU 39
+#define BETA 78
+#define GAMMA1 (1 << 17)
+#define GAMMA2 ((Q-1)/88)
+#define OMEGA 80
+#define CTILDEBYTES 32
+
+#elif DILITHIUM_MODE == 3
+#define K 6
+#define L 5
+#define ETA 4
+#define TAU 49
+#define BETA 196
+#define GAMMA1 (1 << 19)
+#define GAMMA2 ((Q-1)/32)
+#define OMEGA 55
+#define CTILDEBYTES 48
+
+#elif DILITHIUM_MODE == 5
+#define K 8
+#define L 7
+#define ETA 2
+#define TAU 60
+#define BETA 120
+#define GAMMA1 (1 << 19)
+#define GAMMA2 ((Q-1)/32)
+#define OMEGA 75
+#define CTILDEBYTES 64
+
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
+#define POLYETA_PACKEDBYTES POLYETA_PACKEDBYTES_2
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
+#define POLYETA_PACKEDBYTES POLYETA_PACKEDBYTES_4
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define POLYZ_PACKEDBYTES   POLYZ_PACKEDBYTES_17
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define POLYZ_PACKEDBYTES   POLYZ_PACKEDBYTES_19
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define POLYW1_PACKEDBYTES  POLYW1_PACKEDBYTES_88
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define POLYW1_PACKEDBYTES  POLYW1_PACKEDBYTES_32
+#endif
+
 #include "dilithium-dep.c"
+#else
+/*TBD soon*/
+#endif
