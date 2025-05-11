@@ -35,9 +35,8 @@
  * License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with the nettle library; see the file COPYING.LIB.  If not, write to
- * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02111-1301, USA.
+ * along with the nettle library; see the file COPYING.LIB.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
