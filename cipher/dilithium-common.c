@@ -176,8 +176,7 @@ int32_t power2round(int32_t *a0, int32_t a)  {
 * Returns a1.
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-#define decompose decompose_88
-int32_t decompose(int32_t *a0, int32_t a) {
+int32_t decompose_88(int32_t *a0, int32_t a) {
   int32_t a1;
 
   a1  = (a + 127) >> 7;
@@ -191,8 +190,7 @@ int32_t decompose(int32_t *a0, int32_t a) {
 #endif
 
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-#define decompose decompose_32
-int32_t decompose(int32_t *a0, int32_t a) {
+int32_t decompose_32(int32_t *a0, int32_t a) {
   int32_t a1;
 
   a1  = (a + 127) >> 7;
@@ -217,8 +215,7 @@ int32_t decompose(int32_t *a0, int32_t a) {
 * Returns 1 if overflow.
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-#define make_hint make_hint_88
-unsigned int make_hint(int32_t a0, int32_t a1) {
+unsigned int make_hint_88(int32_t a0, int32_t a1) {
   if(a0 > GAMMA2_88 || a0 < -GAMMA2_88 || (a0 == -GAMMA2_88 && a1 != 0))
     return 1;
 
@@ -227,8 +224,7 @@ unsigned int make_hint(int32_t a0, int32_t a1) {
 #endif
 
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-#define make_hint make_hint_32
-unsigned int make_hint(int32_t a0, int32_t a1) {
+unsigned int make_hint_32(int32_t a0, int32_t a1) {
   if(a0 > GAMMA2_32 || a0 < -GAMMA2_32 || (a0 == -GAMMA2_32 && a1 != 0))
     return 1;
 
@@ -247,11 +243,10 @@ unsigned int make_hint(int32_t a0, int32_t a1) {
 * Returns corrected high bits.
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-#define use_hint use_hint_88
-int32_t use_hint(int32_t a, unsigned int hint) {
+int32_t use_hint_88(int32_t a, unsigned int hint) {
   int32_t a0, a1;
 
-  a1 = decompose(&a0, a);
+  a1 = decompose_88(&a0, a);
   if(hint == 0)
     return a1;
 
@@ -261,13 +256,11 @@ int32_t use_hint(int32_t a, unsigned int hint) {
     return (a1 ==  0) ? 43 : a1 - 1;
 }
 #endif
-
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-#define use_hint use_hint_32
-int32_t use_hint(int32_t a, unsigned int hint) {
+int32_t use_hint_32(int32_t a, unsigned int hint) {
   int32_t a0, a1;
 
-  a1 = decompose(&a0, a);
+  a1 = decompose_32(&a0, a);
   if(hint == 0)
     return a1;
 
@@ -474,15 +467,28 @@ void poly_power2round(poly *a1, poly *a0, const poly *a) {
 *              - poly *a0: pointer to output polynomial with coefficients c0
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-void poly_decompose(poly *a1, poly *a0, const poly *a) {
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+void poly_decompose_88(poly *a1, poly *a0, const poly *a) {
   unsigned int i;
   DBENCH_START();
 
   for(i = 0; i < N; ++i)
-    a1->coeffs[i] = decompose(&a0->coeffs[i], a->coeffs[i]);
+    a1->coeffs[i] = decompose_88(&a0->coeffs[i], a->coeffs[i]);
 
   DBENCH_STOP(*tround);
 }
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+void poly_decompose_32(poly *a1, poly *a0, const poly *a) {
+  unsigned int i;
+  DBENCH_START();
+
+  for(i = 0; i < N; ++i)
+    a1->coeffs[i] = decompose_32(&a0->coeffs[i], a->coeffs[i]);
+
+  DBENCH_STOP(*tround);
+}
+#endif
 
 /*************************************************
 * Name:        poly_make_hint
@@ -497,18 +503,34 @@ void poly_decompose(poly *a1, poly *a0, const poly *a) {
 *
 * Returns number of 1 bits.
 **************************************************/
-unsigned int poly_make_hint(poly *h, const poly *a0, const poly *a1) {
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+unsigned int poly_make_hint_88(poly *h, const poly *a0, const poly *a1) {
   unsigned int i, s = 0;
   DBENCH_START();
 
   for(i = 0; i < N; ++i) {
-    h->coeffs[i] = make_hint(a0->coeffs[i], a1->coeffs[i]);
+    h->coeffs[i] = make_hint_88(a0->coeffs[i], a1->coeffs[i]);
     s += h->coeffs[i];
   }
 
   DBENCH_STOP(*tround);
   return s;
 }
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+unsigned int poly_make_hint_32(poly *h, const poly *a0, const poly *a1) {
+  unsigned int i, s = 0;
+  DBENCH_START();
+
+  for(i = 0; i < N; ++i) {
+    h->coeffs[i] = make_hint_32(a0->coeffs[i], a1->coeffs[i]);
+    s += h->coeffs[i];
+  }
+
+  DBENCH_STOP(*tround);
+  return s;
+}
+#endif
 
 /*************************************************
 * Name:        poly_use_hint
@@ -519,15 +541,28 @@ unsigned int poly_make_hint(poly *h, const poly *a0, const poly *a1) {
 *              - const poly *a: pointer to input polynomial
 *              - const poly *h: pointer to input hint polynomial
 **************************************************/
-void poly_use_hint(poly *b, const poly *a, const poly *h) {
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+void poly_use_hint_88(poly *b, const poly *a, const poly *h) {
   unsigned int i;
   DBENCH_START();
 
   for(i = 0; i < N; ++i)
-    b->coeffs[i] = use_hint(a->coeffs[i], h->coeffs[i]);
+    b->coeffs[i] = use_hint_88(a->coeffs[i], h->coeffs[i]);
 
   DBENCH_STOP(*tround);
 }
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+void poly_use_hint_32(poly *b, const poly *a, const poly *h) {
+  unsigned int i;
+  DBENCH_START();
+
+  for(i = 0; i < N; ++i)
+    b->coeffs[i] = use_hint_32(a->coeffs[i], h->coeffs[i]);
+
+  DBENCH_STOP(*tround);
+}
+#endif
 
 /*************************************************
 * Name:        poly_chknorm
@@ -657,11 +692,10 @@ void poly_uniform(poly *a,
 * random bytes were given.
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
-#define rej_eta rej_eta_2
-static unsigned int rej_eta(int32_t *a,
-                            unsigned int len,
-                            const uint8_t *buf,
-                            unsigned int buflen)
+static unsigned int rej_eta_2(int32_t *a,
+                              unsigned int len,
+                              const uint8_t *buf,
+                              unsigned int buflen)
 {
   unsigned int ctr, pos;
   uint32_t t0, t1;
@@ -688,11 +722,10 @@ static unsigned int rej_eta(int32_t *a,
 #endif
 
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
-#define rej_eta rej_eta_4
-static unsigned int rej_eta(int32_t *a,
-                            unsigned int len,
-                            const uint8_t *buf,
-                            unsigned int buflen)
+static unsigned int rej_eta_4(int32_t *a,
+                              unsigned int len,
+                              const uint8_t *buf,
+                              unsigned int buflen)
 {
   unsigned int ctr, pos;
   uint32_t t0, t1;
@@ -726,11 +759,10 @@ static unsigned int rej_eta(int32_t *a,
 *              - uint16_t nonce: 2-byte nonce
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
-#define poly_uniform_eta poly_uniform_eta_2
 #define POLY_UNIFORM_ETA_NBLOCKS_2 ((136 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
-void poly_uniform_eta(poly *a,
-                      const uint8_t seed[CRHBYTES],
-                      uint16_t nonce)
+void poly_uniform_eta_2(poly *a,
+                        const uint8_t seed[CRHBYTES],
+                        uint16_t nonce)
 {
   unsigned int ctr;
   unsigned int buflen = POLY_UNIFORM_ETA_NBLOCKS_2*STREAM256_BLOCKBYTES;
@@ -740,22 +772,21 @@ void poly_uniform_eta(poly *a,
   stream256_init(&state, seed, nonce);
   stream256_squeezeblocks(buf, POLY_UNIFORM_ETA_NBLOCKS_2, &state);
 
-  ctr = rej_eta(a->coeffs, N, buf, buflen);
+  ctr = rej_eta_2(a->coeffs, N, buf, buflen);
 
   while(ctr < N) {
     stream256_squeezeblocks(buf, 1, &state);
-    ctr += rej_eta(a->coeffs + ctr, N - ctr, buf, STREAM256_BLOCKBYTES);
+    ctr += rej_eta_2(a->coeffs + ctr, N - ctr, buf, STREAM256_BLOCKBYTES);
   }
   stream256_close(&state);
 }
 #endif
 
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
-#define poly_uniform_eta poly_uniform_eta_4
 #define POLY_UNIFORM_ETA_NBLOCKS_4 ((227 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
-void poly_uniform_eta(poly *a,
-                      const uint8_t seed[CRHBYTES],
-                      uint16_t nonce)
+void poly_uniform_eta_4(poly *a,
+                        const uint8_t seed[CRHBYTES],
+                        uint16_t nonce)
 {
   unsigned int ctr;
   unsigned int buflen = POLY_UNIFORM_ETA_NBLOCKS_4*STREAM256_BLOCKBYTES;
@@ -765,11 +796,11 @@ void poly_uniform_eta(poly *a,
   stream256_init(&state, seed, nonce);
   stream256_squeezeblocks(buf, POLY_UNIFORM_ETA_NBLOCKS_4, &state);
 
-  ctr = rej_eta(a->coeffs, N, buf, buflen);
+  ctr = rej_eta_4(a->coeffs, N, buf, buflen);
 
   while(ctr < N) {
     stream256_squeezeblocks(buf, 1, &state);
-    ctr += rej_eta(a->coeffs + ctr, N - ctr, buf, STREAM256_BLOCKBYTES);
+    ctr += rej_eta_4(a->coeffs + ctr, N - ctr, buf, STREAM256_BLOCKBYTES);
   }
   stream256_close(&state);
 }
@@ -787,28 +818,37 @@ void poly_uniform_eta(poly *a,
 *              - uint16_t nonce: 16-bit nonce
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-#define polyz_unpack polyz_unpack_17
-#define poly_uniform_gamma1 poly_uniform_gamma1_17
-#define POLY_UNIFORM_GAMMA1_NBLOCKS ((POLYZ_PACKEDBYTES_17 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
-#endif
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-#define polyz_unpack polyz_unpack_19
-#define poly_uniform_gamma1 poly_uniform_gamma1_19
-#define POLY_UNIFORM_GAMMA1_NBLOCKS ((POLYZ_PACKEDBYTES_19 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
-#endif
-void polyz_unpack(poly *r, const uint8_t *a);/* Forward declarations */
-void poly_uniform_gamma1(poly *a,
-                         const uint8_t seed[CRHBYTES],
-                         uint16_t nonce)
+#define POLY_UNIFORM_GAMMA1_NBLOCKS_17 ((POLYZ_PACKEDBYTES_17 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
+void polyz_unpack_17(poly *r, const uint8_t *a);/* Forward declarations */
+void poly_uniform_gamma1_17(poly *a,
+                            const uint8_t seed[CRHBYTES],
+                            uint16_t nonce)
 {
-  uint8_t buf[POLY_UNIFORM_GAMMA1_NBLOCKS*STREAM256_BLOCKBYTES];
+  uint8_t buf[POLY_UNIFORM_GAMMA1_NBLOCKS_17*STREAM256_BLOCKBYTES];
   stream256_state state;
 
   stream256_init(&state, seed, nonce);
-  stream256_squeezeblocks(buf, POLY_UNIFORM_GAMMA1_NBLOCKS, &state);
-  polyz_unpack(a, buf);
+  stream256_squeezeblocks(buf, POLY_UNIFORM_GAMMA1_NBLOCKS_17, &state);
+  polyz_unpack_17(a, buf);
   stream256_close(&state);
 }
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+#define POLY_UNIFORM_GAMMA1_NBLOCKS_19 ((POLYZ_PACKEDBYTES_19 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
+void polyz_unpack_19(poly *r, const uint8_t *a);/* Forward declarations */
+void poly_uniform_gamma1_19(poly *a,
+                            const uint8_t seed[CRHBYTES],
+                            uint16_t nonce)
+{
+  uint8_t buf[POLY_UNIFORM_GAMMA1_NBLOCKS_19*STREAM256_BLOCKBYTES];
+  stream256_state state;
+
+  stream256_init(&state, seed, nonce);
+  stream256_squeezeblocks(buf, POLY_UNIFORM_GAMMA1_NBLOCKS_19, &state);
+  polyz_unpack_19(a, buf);
+  stream256_close(&state);
+}
+#endif
 
 /*************************************************
 * Name:        polyeta_pack
@@ -820,8 +860,7 @@ void poly_uniform_gamma1(poly *a,
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
-#define polyeta_pack polyeta_pack_2
-void polyeta_pack(uint8_t *r, const poly *a) {
+void polyeta_pack_2(uint8_t *r, const poly *a) {
   unsigned int i;
   uint8_t t[8];
   DBENCH_START();
@@ -844,10 +883,8 @@ void polyeta_pack(uint8_t *r, const poly *a) {
   DBENCH_STOP(*tpack);
 }
 #endif
-
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
-#define polyeta_pack polyeta_pack_4
-void polyeta_pack(uint8_t *r, const poly *a) {
+void polyeta_pack_4(uint8_t *r, const poly *a) {
   unsigned int i;
   uint8_t t[8];
   DBENCH_START();
@@ -871,8 +908,7 @@ void polyeta_pack(uint8_t *r, const poly *a) {
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
-#define polyeta_unpack polyeta_unpack_2
-void polyeta_unpack(poly *r, const uint8_t *a) {
+void polyeta_unpack_2(poly *r, const uint8_t *a) {
   unsigned int i;
   DBENCH_START();
 
@@ -901,8 +937,7 @@ void polyeta_unpack(poly *r, const uint8_t *a) {
 #endif
 
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
-#define polyeta_unpack polyeta_unpack_4
-void polyeta_unpack(poly *r, const uint8_t *a) {
+void polyeta_unpack_4(poly *r, const uint8_t *a) {
   unsigned int i;
   DBENCH_START();
 
@@ -1088,8 +1123,7 @@ void polyt0_unpack(poly *r, const uint8_t *a) {
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-#define polyz_pack polyz_pack_17
-void polyz_pack(uint8_t *r, const poly *a) {
+void polyz_pack_17(uint8_t *r, const poly *a) {
   unsigned int i;
   uint32_t t[4];
   DBENCH_START();
@@ -1118,8 +1152,7 @@ void polyz_pack(uint8_t *r, const poly *a) {
 }
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-#define polyz_pack polyz_pack_19
-void polyz_pack(uint8_t *r, const poly *a) {
+void polyz_pack_19(uint8_t *r, const poly *a) {
   unsigned int i;
   uint32_t t[4];
   DBENCH_START();
@@ -1150,7 +1183,7 @@ void polyz_pack(uint8_t *r, const poly *a) {
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-void polyz_unpack(poly *r, const uint8_t *a) {
+void polyz_unpack_17(poly *r, const uint8_t *a) {
   unsigned int i;
   DBENCH_START();
 
@@ -1184,9 +1217,8 @@ void polyz_unpack(poly *r, const uint8_t *a) {
   DBENCH_STOP(*tpack);
 }
 #endif
-
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-void polyz_unpack(poly *r, const uint8_t *a) {
+void polyz_unpack_19(poly *r, const uint8_t *a) {
   unsigned int i;
   DBENCH_START();
 
@@ -1220,8 +1252,7 @@ void polyz_unpack(poly *r, const uint8_t *a) {
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-#define polyw1_pack polyw1_pack_88
-void polyw1_pack(uint8_t *r, const poly *a) {
+void polyw1_pack_88(uint8_t *r, const poly *a) {
   unsigned int i;
   DBENCH_START();
 
@@ -1238,8 +1269,7 @@ void polyw1_pack(uint8_t *r, const poly *a) {
 }
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-#define polyw1_pack polyw1_pack_32
-void polyw1_pack(uint8_t *r, const poly *a) {
+void polyw1_pack_32(uint8_t *r, const poly *a) {
   unsigned int i;
   DBENCH_START();
 

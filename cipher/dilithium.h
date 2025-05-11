@@ -88,7 +88,7 @@
                                   + 4*96 \
                                   + 4*96 \
                                   + 4*416)
-# define CRYPTO_BYTES_2 (32 + L*576 + 80 + 4))
+# define CRYPTO_BYTES_2 (32 + L*576 + 80 + 4)
 
 # define CRYPTO_PUBLICKEYBYTES_3 (SEEDBYTES + 6*320)
 # define CRYPTO_SECRETKEYBYTES_3 (2*SEEDBYTES \

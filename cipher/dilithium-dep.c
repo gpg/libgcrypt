@@ -1168,3 +1168,77 @@ badsig:
 
   return -1;
 }
+
+#undef DILITHIUM_MODE
+
+#undef CRYPTO_PUBLICKEYBYTES
+#undef CRYPTO_SECRETKEYBYTES
+#undef CRYPTO_BYTES
+#undef POLYZ_PACKEDBYTES
+#undef POLYW1_PACKEDBYTES
+#undef POLYETA_PACKEDBYTES
+
+#undef CRYPTO_ALGNAME
+#undef K
+#undef L
+#undef ETA
+#undef TAU
+#undef BETA
+#undef GAMMA1
+#undef GAMMA2
+#undef OMEGA
+#undef CTILDEBYTES
+
+#undef poly_decompose
+#undef poly_make_hint
+#undef poly_use_hint
+#undef poly_uniform_eta
+#undef poly_uniform_gamma1
+#undef polyz_pack
+#undef polyz_unpack
+#undef polyeta_pack
+#undef polyeta_unpack
+#undef polyw1_pack
+
+#undef polyvecl
+#undef polyveck
+#undef pack_pk
+#undef unpack_pk
+#undef pack_sk
+#undef unpack_sk
+#undef pack_sig
+#undef unpack_sig
+#undef poly_challenge
+#undef polyvec_matrix_expand
+#undef polyvec_matrix_pointwise_montgomery
+#undef polyveck_power2round
+#undef polyveck_make_hint
+#undef polyveck_use_hint
+#undef polyvecl_uniform_eta
+#undef polyvecl_uniform_gamma1
+#undef polyvecl_reduce
+#undef polyvecl_add
+#undef polyvecl_ntt
+#undef polyvecl_invntt_tomont
+#undef polyvecl_pointwise_poly_montgomery
+#undef polyvecl_pointwise_acc_montgomery
+#undef polyvecl_chknorm
+#undef polyveck_uniform_eta
+#undef polyveck_reduce
+#undef polyveck_caddq
+#undef polyveck_add
+#undef polyveck_sub
+#undef polyveck_shiftl
+#undef polyveck_ntt
+#undef polyveck_invntt_tomont
+#undef polyveck_pointwise_poly_montgomery
+#undef polyveck_chknorm
+#undef polyveck_pack_w1
+#undef polyveck_decompose
+#undef crypto_sign_keypair
+#undef crypto_sign_signature_internal
+#undef crypto_sign_signature
+#undef crypto_sign
+#undef crypto_sign_verify_internal
+#undef crypto_sign_verify
+#undef crypto_sign_open
