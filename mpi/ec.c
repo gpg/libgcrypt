@@ -1186,17 +1186,17 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
 
         z1 = mpi_new (0);
         z2 = mpi_new (0);
-        ec_invm (z1, point->z, ctx);  /* z1 = z^(-1) mod p  */
-        ec_mulm (z2, z1, z1, ctx);    /* z2 = z^(-2) mod p  */
+        ec_invm (z1, point->z, ctx);   /* z1 = z^(-1) mod p  */
+        ec_mulm_lli (z2, z1, z1, ctx); /* z2 = z^(-2) mod p  */
 
         if (x)
-          ec_mulm (x, point->x, z2, ctx);
+          ec_mulm_lli (x, point->x, z2, ctx);
 
         if (y)
           {
             z3 = mpi_new (0);
-            ec_mulm (z3, z2, z1, ctx);      /* z3 = z^(-3) mod p  */
-            ec_mulm (y, point->y, z3, ctx);
+            ec_mulm_lli (z3, z2, z1, ctx); /* z3 = z^(-3) mod p  */
+            ec_mulm_lli (y, point->y, z3, ctx);
             mpi_free (z3);
           }
 
