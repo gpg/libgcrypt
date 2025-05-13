@@ -157,6 +157,8 @@ enum gcry_mpi_constants
 
 
 gcry_mpi_t _gcry_mpi_const (enum gcry_mpi_constants no);
+void _gcry_mpi_assign_limb_space( gcry_mpi_t a, mpi_ptr_t ap,
+                                  unsigned int nlimbs );
 
 
 /*-- mpicoder.c --*/
@@ -332,6 +334,8 @@ mpi_limb_t _gcry_mpih_add_n_cond (mpi_ptr_t wp, mpi_ptr_t up, mpi_ptr_t vp,
                                   mpi_size_t usize, unsigned long op_enable);
 int _gcry_mpih_cmp_ui (mpi_ptr_t up, mpi_size_t usize, unsigned long v);
 int _gcry_mpih_cmp_lli (mpi_ptr_t op1_ptr, mpi_ptr_t op2_ptr, mpi_size_t size);
+mpi_ptr_t _gcry_mpih_mod_lli (mpi_ptr_t vp, mpi_size_t vsize,
+                              mpi_ptr_t up, mpi_size_t usize);
 
 /*-- mpih-add.c --*/
 mpi_limb_t _gcry_mpih_add_n (mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
@@ -341,5 +345,8 @@ mpi_limb_t _gcry_mpih_add_n (mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
    of RES_PTR == S1_PTR and the size is same), Least Leak Intended.  */
 #define _gcry_mpih_add_lli _gcry_mpih_add_n
 
+/*-- mpih-mul.c --*/
+mpi_limb_t _gcry_mpih_mul_lli( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
+                               mpi_ptr_t vp, mpi_size_t vsize );
 
 #endif /*G10_MPI_H*/
