@@ -81,13 +81,9 @@
 #include "gcrypt-int.h"
 #include "const-time.h"
 
-#include "dilithium.h"
+#define DILITHIUM_INTERNAL_API_ONLY 1
 
-static void
-randombytes (uint8_t *out, size_t outlen)
-{
-  _gcry_randomize (out, outlen, GCRY_VERY_STRONG_RANDOM);
-}
+#include "dilithium.h"
 
 typedef struct {
   gcry_md_hd_t h;
@@ -178,9 +174,6 @@ shake256 (uint8_t *out, size_t outlen, const uint8_t *in,
 #else
 /* to be filled soon...  */
 #endif
-
-/*************** dilithium/ref/config.h */
-#define DILITHIUM_RANDOMIZED_SIGNING
 
 /*************** dilithium/ref/fips202.h */
 #define SHAKE128_RATE 168
@@ -448,6 +441,7 @@ void stream256_init(keccak_state *state, const uint8_t seed[CRHBYTES], uint16_t 
 # define polyveck_pack_w1 VARIANT2(polyveck_pack_w1)
 # define polyveck_decompose VARIANT2(polyveck_decompose)
 # define crypto_sign_keypair VARIANT2(crypto_sign_keypair)
+# define crypto_sign_keypair_internal VARIANT2(crypto_sign_keypair_internal)
 # define crypto_sign_signature_internal VARIANT2(crypto_sign_signature_internal)
 # define crypto_sign_signature VARIANT2(crypto_sign_signature)
 # define crypto_sign VARIANT2(crypto_sign)
@@ -523,6 +517,7 @@ void stream256_init(keccak_state *state, const uint8_t seed[CRHBYTES], uint16_t 
 # define polyveck_pack_w1 VARIANT3(polyveck_pack_w1)
 # define polyveck_decompose VARIANT3(polyveck_decompose)
 # define crypto_sign_keypair VARIANT3(crypto_sign_keypair)
+# define crypto_sign_keypair_internal VARIANT3(crypto_sign_keypair_internal)
 # define crypto_sign_signature_internal VARIANT3(crypto_sign_signature_internal)
 # define crypto_sign_signature VARIANT3(crypto_sign_signature)
 # define crypto_sign VARIANT3(crypto_sign)
@@ -598,6 +593,7 @@ void stream256_init(keccak_state *state, const uint8_t seed[CRHBYTES], uint16_t 
 # define polyveck_pack_w1 VARIANT5(polyveck_pack_w1)
 # define polyveck_decompose VARIANT5(polyveck_decompose)
 # define crypto_sign_keypair VARIANT5(crypto_sign_keypair)
+# define crypto_sign_keypair_internal VARIANT5(crypto_sign_keypair_internal)
 # define crypto_sign_signature_internal VARIANT5(crypto_sign_signature_internal)
 # define crypto_sign_signature VARIANT5(crypto_sign_signature)
 # define crypto_sign VARIANT5(crypto_sign)

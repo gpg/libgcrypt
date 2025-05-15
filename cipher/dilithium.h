@@ -54,6 +54,41 @@
 #define RNDBYTES 32
 
 #if defined(DILITHIUM_MODE)
+#ifndef DILITHIUM_INTERNAL_API_ONLY
+int crypto_sign_keypair(uint8_t *pk, uint8_t *sk);
+int crypto_sign(uint8_t *sm,
+                size_t *smlen,
+                const uint8_t *m,
+                size_t mlen,
+                const uint8_t *ctx,
+                size_t ctxlen,
+                const uint8_t *sk);
+int crypto_sign_open(uint8_t *m,
+                     size_t *mlen,
+                     const uint8_t *sm,
+                     size_t smlen,
+                     const uint8_t *ctx,
+                     size_t ctxlen,
+                     const uint8_t *pk);
+#endif
+int crypto_sign_keypair_internal(uint8_t *pk, uint8_t *sk,
+                                 uint8_t seed[SEEDBYTES]);
+int crypto_sign_signature_internal(uint8_t *sig,
+                                   size_t *siglen,
+                                   const uint8_t *m,
+                                   size_t mlen,
+                                   const uint8_t *pre,
+                                   size_t prelen,
+                                   const uint8_t rnd[RNDBYTES],
+                                   const uint8_t *sk);
+int crypto_sign_verify_internal(const uint8_t *sig,
+                                size_t siglen,
+                                const uint8_t *m,
+                                size_t mlen,
+                                const uint8_t *pre,
+                                size_t prelen,
+                                const uint8_t *pk);
+
 # if DILITHIUM_MODE == 2
 # define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + 4*320)
 # define CRYPTO_SECRETKEYBYTES (2*SEEDBYTES \
@@ -61,7 +96,7 @@
                                 + 4*96 \
                                 + 4*96 \
                                 + 4*416)
-# define CRYPTO_BYTES (32 + L*576 + 80 + 4)
+# define CRYPTO_BYTES (32 + 4*576 + 80 + 4)
 # elif DILITHIUM_MODE == 3
 # define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + 6*320)
 # define CRYPTO_SECRETKEYBYTES (2*SEEDBYTES \
