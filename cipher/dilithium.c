@@ -172,7 +172,33 @@ shake256 (uint8_t *out, size_t outlen, const uint8_t *in,
                                  iov, 1);
 }
 #else
-/* to be filled soon...  */
+#include "dilithium.h"
+
+#define DILITHIUM_RANDOMIZED_SIGNING
+
+void randombytes (uint8_t *out, size_t outlen);
+
+typedef struct {
+  uint64_t s[25];
+  unsigned int pos;
+} keccak_state;
+
+void shake128_init (keccak_state *state);
+void shake128_absorb (keccak_state *state, const uint8_t *in, size_t inlen);
+void shake128_finalize (keccak_state *state);
+void shake128_squeeze (uint8_t *out, size_t outlen, keccak_state *state);
+void shake128_close (keccak_state *state)
+{
+}
+
+void shake256_init (keccak_state *state);
+void shake256_absorb (keccak_state *state, const uint8_t *in, size_t inlen);
+void shake256_finalize (keccak_state *state);
+void shake256_squeeze (uint8_t *out, size_t outlen, keccak_state *state);
+void shake256_close (keccak_state *state)
+{
+}
+void shake256 (uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 #endif
 
 /*************** dilithium/ref/fips202.h */
