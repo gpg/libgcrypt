@@ -129,7 +129,7 @@ EXTRA_libcipher_la_SOURCES = \
 	seed.c \
 	serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S \
 	serpent-avx512-x86.c serpent-armv7-neon.S \
-	simd-common-aarch64.h simd-common-ppc.h \
+	simd-common-aarch64.h simd-common-ppc.h simd-common-riscv.h \
 	sm4.c sm4-aesni-avx-amd64.S sm4-aesni-avx2-amd64.S \
 	sm4-gfni-avx2-amd64.S sm4-gfni-avx512-amd64.S \
 	sm4-aarch64.S sm4-armv8-aarch64-ce.S sm4-armv9-aarch64-sve-ce.S \
