@@ -790,7 +790,7 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
 }
 #else
 int crypto_sign_keypair_internal(uint8_t *pk, uint8_t *sk,
-                                 uint8_t seed[SEEDBYTES])
+                                 const uint8_t seed[SEEDBYTES])
 {
   uint8_t seedbuf[2*SEEDBYTES + CRHBYTES];
   uint8_t tr[TRBYTES];

@@ -53,41 +53,48 @@
 #define SEEDBYTES 32
 #define RNDBYTES 32
 
+#ifdef _GCRYPT_IN_LIBGCRYPT
+/**** Start of the glue code to libgcrypt ****/
+#define dilithium_keypair   _gcry_mldsa_keypair
+#define dilithium_encap     _gcry_mldsa_encap
+#define dilithium_decap     _gcry_mldsa_decap
+/**** End of the glue code ****/
+
+int dilithium_keypair (int algo, uint8_t *pk, uint8_t *sk,
+                       const uint8_t seed[SEEDBYTES]);
+int dilithium_sign (int algo, uint8_t *sig, size_t *siglen,
+                    const uint8_t *m, size_t mlen,
+                    const uint8_t *pre, size_t prelen,
+                    const uint8_t *sk, const uint8_t rnd[RNDBYTES]);
+int dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
+                      const uint8_t *m, size_t mlen,
+                      const uint8_t *pre, size_t prelen,
+                      const uint8_t *pk);
+#endif
+
 #if defined(DILITHIUM_MODE)
 #ifndef DILITHIUM_INTERNAL_API_ONLY
-int crypto_sign_keypair(uint8_t *pk, uint8_t *sk);
-int crypto_sign(uint8_t *sm,
-                size_t *smlen,
-                const uint8_t *m,
-                size_t mlen,
-                const uint8_t *ctx,
-                size_t ctxlen,
-                const uint8_t *sk);
-int crypto_sign_open(uint8_t *m,
-                     size_t *mlen,
-                     const uint8_t *sm,
-                     size_t smlen,
-                     const uint8_t *ctx,
-                     size_t ctxlen,
-                     const uint8_t *pk);
+int crypto_sign_keypair (uint8_t *pk, uint8_t *sk);
+int crypto_sign (uint8_t *sm, size_t *smlen,
+                 const uint8_t *m, size_t mlen,
+                 const uint8_t *ctx, size_t ctxlen,
+                 const uint8_t *sk);
+int crypto_sign_open (uint8_t *m, size_t *mlen,
+                      const uint8_t *sm, size_t smlen,
+                      const uint8_t *ctx, size_t ctxlen,
+                      const uint8_t *pk);
 #endif
-int crypto_sign_keypair_internal(uint8_t *pk, uint8_t *sk,
-                                 uint8_t seed[SEEDBYTES]);
-int crypto_sign_signature_internal(uint8_t *sig,
-                                   size_t *siglen,
-                                   const uint8_t *m,
-                                   size_t mlen,
-                                   const uint8_t *pre,
-                                   size_t prelen,
-                                   const uint8_t rnd[RNDBYTES],
-                                   const uint8_t *sk);
-int crypto_sign_verify_internal(const uint8_t *sig,
-                                size_t siglen,
-                                const uint8_t *m,
-                                size_t mlen,
-                                const uint8_t *pre,
-                                size_t prelen,
-                                const uint8_t *pk);
+int crypto_sign_keypair_internal (uint8_t *pk, uint8_t *sk,
+                                  const uint8_t seed[SEEDBYTES]);
+int crypto_sign_signature_internal (uint8_t *sig, size_t *siglen,
+                                    const uint8_t *m, size_t mlen,
+                                    const uint8_t *pre, size_t prelen,
+                                    const uint8_t rnd[RNDBYTES],
+                                    const uint8_t *sk);
+int crypto_sign_verify_internal (const uint8_t *sig, size_t siglen,
+                                 const uint8_t *m, size_t mlen,
+                                 const uint8_t *pre, size_t prelen,
+                                 const uint8_t *pk);
 
 # if DILITHIUM_MODE == 2
 # define CRYPTO_PUBLICKEYBYTES (SEEDBYTES + 4*320)
@@ -117,6 +124,36 @@ int crypto_sign_verify_internal(const uint8_t *sig,
 # error "DILITHIUM_MODE should be either 2, 3 or 5"
 # endif
 #else
+# ifndef DILITHIUM_INTERNAL_API_ONLY
+int crypto_sign_keypair_2 (uint8_t *pk, uint8_t *sk);
+int crypto_sign_keypair_3 (uint8_t *pk, uint8_t *sk);
+int crypto_sign_keypair_5 (uint8_t *pk, uint8_t *sk);
+int crypto_sign_2 (uint8_t *sm, size_t *smlen,
+                   const uint8_t *m, size_t mlen,
+                   const uint8_t *ctx, size_t ctxlen,
+                   const uint8_t *sk);
+int crypto_sign_3 (uint8_t *sm, size_t *smlen,
+                   const uint8_t *m, size_t mlen,
+                   const uint8_t *ctx, size_t ctxlen,
+                   const uint8_t *sk);
+int crypto_sign_5 (uint8_t *sm, size_t *smlen,
+                   const uint8_t *m, size_t mlen,
+                   const uint8_t *ctx, size_t ctxlen,
+                   const uint8_t *sk);
+int crypto_sign_open_2 (uint8_t *m, size_t *mlen,
+                        const uint8_t *sm, size_t smlen,
+                        const uint8_t *ctx, size_t ctxlen,
+                        const uint8_t *pk);
+int crypto_sign_open_3 (uint8_t *m, size_t *mlen,
+                        const uint8_t *sm, size_t smlen,
+                        const uint8_t *ctx, size_t ctxlen,
+                        const uint8_t *pk);
+int crypto_sign_open_5 (uint8_t *m, size_t *mlen,
+                        const uint8_t *sm, size_t smlen,
+                        const uint8_t *ctx, size_t ctxlen,
+                        const uint8_t *pk);
+# endif
+
 # define CRYPTO_PUBLICKEYBYTES_2 (SEEDBYTES + 4*320)
 # define CRYPTO_SECRETKEYBYTES_2 (2*SEEDBYTES \
                                   + 64 \

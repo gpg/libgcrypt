@@ -63,7 +63,6 @@ libcipher_la_SOURCES = \
 	poly1305.c poly1305-internal.h \
 	kem.c sntrup761.c sntrup761.h kyber.c kyber.h kem-ecc.c kem-ecc.h \
 	mceliece6688128f.c mceliece6688128f.h \
-	dilithium.c dilithium.h \
 	kdf.c kdf-internal.h \
 	bithelp.h  \
 	bufhelp.h  \
@@ -99,6 +98,7 @@ EXTRA_libcipher_la_SOURCES = \
 	crc-armv8-aarch64-ce.S \
 	crc-ppc.c \
 	des.c des-amd64.S \
+	dilithium.c dilithium.h pubkey-dilithium.c \
 	dsa.c \
 	elgamal.c \
 	ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
