@@ -2385,7 +2385,8 @@ _gcry_rngdrbg_healthcheck_one (struct gcry_drbg_test_vector * test)
 
   ret = _gcry_rngdrbg_cavs_test (test, buf);
   /* FIXME: The next line is wrong.   */
-  ret = memcmp (test->expected, buf, test->expectedlen);
+  if (ret == 0)
+    ret = memcmp (test->expected, buf, test->expectedlen);
 
   xfree (buf);
   return ret;
