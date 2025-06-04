@@ -612,9 +612,9 @@ int _gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 
 enum gcry_mldsa_algos
   {                             /* See FIPS 204, Table 1 */
-    GCRY_MLDSA_44,              /* Category 2 */
-    GCRY_MLDSA_65,              /* Category 3 */
-    GCRY_MLDSA_87               /* Category 5 */
+    GCRY_MLDSA44,               /* Category 2 */
+    GCRY_MLDSA65,               /* Category 3 */
+    GCRY_MLDSA87                /* Category 5 */
   };
 
 #endif /*GCRY_GCRYPT_INT_H*/

@@ -1162,6 +1162,7 @@ enum gcry_pk_algos
     GCRY_PK_ECDSA = 301,    /* (only for external use).  */
     GCRY_PK_ECDH  = 302,    /* (only for external use).  */
     GCRY_PK_EDDSA = 303,    /* (only for external use).  */
+    GCRY_PK_MLDSA = 332,    /* Dilithium (ML-DSA).  */
     GCRY_PK_KEM   = 333     /* Pseudo ID for KEM algos.  */
   };
 

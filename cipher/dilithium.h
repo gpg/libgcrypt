@@ -62,13 +62,13 @@
 
 int dilithium_keypair (int algo, uint8_t *pk, uint8_t *sk,
                        const uint8_t seed[SEEDBYTES]);
-int dilithium_sign (int algo, uint8_t *sig, size_t *siglen,
+int dilithium_sign (int algo, uint8_t *sig, size_t siglen,
                     const uint8_t *m, size_t mlen,
-                    const uint8_t *pre, size_t prelen,
+                    const uint8_t *ctx, size_t ctxlen,
                     const uint8_t *sk, const uint8_t rnd[RNDBYTES]);
 int dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
                       const uint8_t *m, size_t mlen,
-                      const uint8_t *pre, size_t prelen,
+                      const uint8_t *ctx, size_t ctxlen,
                       const uint8_t *pk);
 #endif
 
@@ -160,7 +160,7 @@ int crypto_sign_open_5 (uint8_t *m, size_t *mlen,
                                   + 4*96 \
                                   + 4*96 \
                                   + 4*416)
-# define CRYPTO_BYTES_2 (32 + L*576 + 80 + 4)
+# define CRYPTO_BYTES_2 (32 + 4*576 + 80 + 4)
 
 # define CRYPTO_PUBLICKEYBYTES_3 (SEEDBYTES + 6*320)
 # define CRYPTO_SECRETKEYBYTES_3 (2*SEEDBYTES \
