@@ -687,7 +687,7 @@ _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx)
 
    HASH-ALGO is specific to OAEP, PSS and EDDSA.
 
-   LABEL is specific to OAEP.
+   LABEL is used for OAEP, RAW or RFC6979.
 
    SALT-LENGTH is for PSS, it is limited to 16384 bytes.
 
@@ -738,6 +738,37 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
     rc = GPG_ERR_INV_OBJ; /* none or both given */
   else if (unknown_flag)
     rc = GPG_ERR_INV_FLAG;
+  else if (ctx->encoding == PUBKEY_ENC_RAW
+           && (ctx->flags & PUBKEY_FLAG_BYTE_STRING))
+    {
+      gcry_sexp_t list;
+      void *value;
+      size_t valuelen;
+
+      if (!lvalue)
+        {
+          rc = GPG_ERR_INV_OBJ;
+          goto leave;
+        }
+
+      /* Get optional LABEL. */
+      list = sexp_find_token (ldata, "label", 0);
+      if (list)
+        {
+          ctx->label = sexp_nth_buffer (list, 1, &ctx->labellen);
+          sexp_release (list);
+        }
+
+      /* Get VALUE.  */
+      value = sexp_nth_buffer (lvalue, 1, &valuelen);
+      if (!value)
+        rc = GPG_ERR_INV_OBJ;
+      if (rc)
+        goto leave;
+
+      /* Note that mpi_set_opaque takes ownership of VALUE.  */
+      *ret_mpi = mpi_set_opaque (NULL, value, valuelen*8);
+    }
   else if (ctx->encoding == PUBKEY_ENC_RAW
            && ((parsed_flags & PUBKEY_FLAG_EDDSA)
                || (ctx->flags & PUBKEY_FLAG_EDDSA)))
