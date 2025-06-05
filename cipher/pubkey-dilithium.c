@@ -159,9 +159,6 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   const unsigned char *data;
   size_t data_len;
 
-  const unsigned char *context = NULL;
-  size_t context_len = 0;
-
   const unsigned char *sk;
   const struct mldsa_info *info = mldsa_get_info (keyparms);
   int r;
@@ -170,6 +167,9 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     return GPG_ERR_PUBKEY_ALGO;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, 0);
+
+  /* Dilithium requires the byte string for its DATA.  */
+  ctx.flags |= PUBKEY_FLAG_BYTE_STRING;
 
   /*
    * Extract the secret key.
@@ -189,6 +189,8 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_data_to_mpi (s_data, &data_mpi, &ctx);
   if (rc)
     goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("mldsa_sign    data", data_mpi);
   if (!mpi_is_opaque (data_mpi))
     {
       rc = GPG_ERR_INV_DATA;
@@ -206,8 +208,7 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   randombytes (rnd, RNDBYTES);
   r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
-                      context, context_len,
-                      sk, rnd);
+                      ctx.label, ctx.labellen, sk, rnd);
   if (r < 0)
     {
       rc = GPG_ERR_INTERNAL;
@@ -249,9 +250,6 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   const unsigned char *data;
   size_t data_len;
 
-  const unsigned char *context = NULL;
-  size_t context_len = 0;
-
   const unsigned char *pk;
   const struct mldsa_info *info = mldsa_get_info (keyparms);
   int r;
@@ -275,9 +273,14 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY, 0);
 
+  /* Dilithium requires the byte string for its DATA.  */
+  ctx.flags |= PUBKEY_FLAG_BYTE_STRING;
+
   rc = _gcry_pk_util_data_to_mpi (s_data, &data_mpi, &ctx);
   if (rc)
     goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("mldsa_verify  data", data_mpi);
   if (!mpi_is_opaque (data_mpi))
     {
       rc = GPG_ERR_INV_DATA;
@@ -301,10 +304,8 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       goto leave;
     }
 
-  r = dilithium_verify (info->algo, sig, info->sig_len,
-                        data, data_len,
-                        context, context_len,
-                        pk);
+  r = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
+                        ctx.label, ctx.labellen, pk);
   if (r < 0)
     {
       rc = GPG_ERR_INTERNAL;
@@ -317,7 +318,7 @@ leave:
   _gcry_mpi_release (data_mpi);
   _gcry_mpi_release (sig_mpi);
   if (DBG_CIPHER)
-    log_debug ("mldsa_verify    => %s\n", gpg_strerror (rc));
+    log_debug ("mldsa_verify  => %s\n", gpg_strerror (rc));
   return rc;
 }
 
