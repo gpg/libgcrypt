@@ -129,7 +129,8 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                      " (public-key(%s(p%b)))"
                      " (private-key(%s(s%b)(S%b))))",
                      info->name, info->pubkey_len, pk,
-                     info->name, info->seckey_len, sk, SEEDBYTES, seed,
+                     info->name, info->seckey_len, sk,
+                     SEEDBYTES, seed,
                      NULL);
 
 leave:
