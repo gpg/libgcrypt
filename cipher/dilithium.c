@@ -158,18 +158,18 @@ dilithium_sign (int algo, uint8_t *sig, size_t siglen,
       if (siglen != CRYPTO_BYTES_2)
         return -1;
       return crypto_sign_signature_internal_2 (sig, &siglen, m, mlen,
-                                               pre, prelen, sk, rnd);
+                                               pre, prelen, rnd, sk);
     case GCRY_MLDSA65:
     default:
       if (siglen != CRYPTO_BYTES_3)
         return -1;
       return crypto_sign_signature_internal_3 (sig, &siglen, m, mlen,
-                                               pre, prelen, sk, rnd);
+                                               pre, prelen, rnd, sk);
     case GCRY_MLDSA87:
       if (siglen != CRYPTO_BYTES_5)
         return -1;
       return crypto_sign_signature_internal_5 (sig, &siglen, m, mlen,
-                                               pre, prelen, sk, rnd);
+                                               pre, prelen, rnd, sk);
     }
 }
 
@@ -327,10 +327,8 @@ void shake256 (uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 #define SHA3_256_RATE 136
 
 /*************** dilithium/ref/params.h */
-#define SEEDBYTES 32
 #define CRHBYTES 64
 #define TRBYTES 64
-#define RNDBYTES 32
 #define N 256
 #define Q 8380417
 #define D 13
