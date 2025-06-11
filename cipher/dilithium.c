@@ -325,7 +325,6 @@ void shake256 (uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 #define SHAKE128_RATE 168
 #define SHAKE256_RATE 136
 #define SHA3_256_RATE 136
-#define SHA3_512_RATE 72
 
 /*************** dilithium/ref/params.h */
 #define SEEDBYTES 32

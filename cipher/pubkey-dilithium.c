@@ -51,9 +51,9 @@ struct mldsa_info
  * s-expression interface.  */
 static const struct mldsa_info mldsa_infos[] =
   {
-    { "dilithium2", 10, GCRY_MLDSA44,   1312*8, 1, 1312, 2560 },
-    { "dilithium3", 10, GCRY_MLDSA65,   1952*8, 1, 1952, 4032 },
-    { "dilithium5", 10, GCRY_MLDSA87,    2592*8, 1, 2592, 4896 },
+    { "dilithium2", 10, GCRY_MLDSA44, 1312*8, 1, 1312, 2560, 2420 },
+    { "dilithium3", 10, GCRY_MLDSA65, 1952*8, 1, 1952, 4032, 3309 },
+    { "dilithium5", 10, GCRY_MLDSA87, 2592*8, 1, 2592, 4896, 4627 },
     { NULL }
   };
 
@@ -308,7 +308,7 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                         ctx.label, ctx.labellen, pk);
   if (r < 0)
     {
-      rc = GPG_ERR_INTERNAL;
+      rc = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
 
