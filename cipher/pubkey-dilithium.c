@@ -35,6 +35,9 @@ static const char *mldsa_names[] =
     NULL,
   };
 
+#define MAX_PUBKEY_LEN 2592
+#define MAX_SECKEY_LEN 4896
+#define MAX_SIG_LEN 4627
 struct mldsa_info
 {
   const char *name;            /* Name of the algo.  */
@@ -46,10 +49,6 @@ struct mldsa_info
   int seckey_len;      /* Length of the secret key.  */
   int sig_len;         /* Length of the signature.  */
 };
-
-#define MAX_PUBKEY_LEN 2592
-#define MAX_SECKEY_LEN 4896
-#define MAX_SIG_LEN 4627
 /* Information about the the ML-DSA algoithms for use by the
  * s-expression interface.  */
 static const struct mldsa_info mldsa_infos[] =
@@ -91,7 +90,7 @@ mldsa_get_nbits (gcry_sexp_t keyparam)
 }
 
 static void
-randombytes (uint8_t *out, size_t outlen)
+randombytes (unsigned char *out, size_t outlen)
 {
   _gcry_randomize (out, outlen, GCRY_VERY_STRONG_RANDOM);
 }
@@ -100,7 +99,8 @@ static gcry_err_code_t
 mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
   gpg_err_code_t rc = 0;
-  uint8_t seed[SEEDBYTES];
+  gcry_mpi_t seed_mpi = NULL;
+  unsigned char seed[SEEDBYTES];
   unsigned char pk[MAX_PUBKEY_LEN];
   unsigned char sk[MAX_SECKEY_LEN];
   const struct mldsa_info *info = mldsa_get_info (genparms);
@@ -114,7 +114,31 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   if (info->seckey_len > MAX_SECKEY_LEN)
     return GPG_ERR_INTERNAL;
 
-  randombytes (seed, SEEDBYTES);
+  /*
+   * Extract the seed (if any).
+   */
+  rc = sexp_extract_param (genparms, NULL, "/S", &seed_mpi, NULL);
+  if (rc == GPG_ERR_NOT_FOUND)
+    {
+      randombytes (seed, SEEDBYTES);
+      rc = 0;
+    }
+  else if (rc)
+    goto leave;
+  else
+    {
+      const unsigned char *seed_supplied;
+      unsigned int n;
+
+      seed_supplied = mpi_get_opaque (seed_mpi, &n);
+      if (SEEDBYTES != (n + 7) / 8)
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+      memcpy (seed, seed_supplied, SEEDBYTES);
+    }
+
   dilithium_keypair (info->algo, pk, sk, seed);
 
   if (!rc)
@@ -128,6 +152,8 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                      SEEDBYTES, seed,
                      NULL);
 
+ leave:
+  _gcry_mpi_release (seed_mpi);
   wipememory (seed, SEEDBYTES);
   wipememory (sk, info->seckey_len);
   return rc;
@@ -143,7 +169,7 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_mpi_t sk_mpi = NULL;
   gcry_mpi_t data_mpi = NULL;
   unsigned char sig[MAX_SIG_LEN];
-  uint8_t rnd[RNDBYTES];
+  unsigned char rnd[RNDBYTES];
   const unsigned char *data;
   size_t data_len;
   const unsigned char *sk;
@@ -299,7 +325,11 @@ gcry_pk_spec_t _gcry_pubkey_spec_mldsa =
     GCRY_PK_MLDSA, {0, 1},
     GCRY_PK_USAGE_SIGN,
     "ML-DSA", mldsa_names,
-    "p", "sS", "", "s", "p",
+    "p",                        /* p: public */
+    "sS",                       /* s: secret, S: seed */
+    "",
+    "s",                        /* s: signature */
+    "p",                        /* p: public */
     mldsa_generate,
     NULL /* mldsa_check_secret_key */,
     NULL,
