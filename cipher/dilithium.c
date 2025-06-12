@@ -145,12 +145,17 @@ dilithium_sign (int algo, uint8_t *sig, size_t siglen,
   uint8_t pre[257];
   size_t prelen;
 
-  /* Prepare pre = (0, ctxlen, ctx) */
-  pre[0] = 0;
-  pre[1] = ctxlen;
-  for(i = 0; i < ctxlen; i++)
-    pre[2 + i] = ctx[i];
-  prelen = 2 + ctxlen;
+  if (ctx == NULL && ctxlen == -1)
+    prelen = 0;
+  else
+    {
+      /* Prepare pre = (0, ctxlen, ctx) */
+      pre[0] = 0;
+      pre[1] = ctxlen;
+      for(i = 0; i < ctxlen; i++)
+        pre[2 + i] = ctx[i];
+      prelen = 2 + ctxlen;
+    }
 
   switch (algo)
     {
@@ -183,12 +188,17 @@ dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
   uint8_t pre[257];
   size_t prelen;
 
-  /* Prepare pre = (0, ctxlen, ctx) */
-  pre[0] = 0;
-  pre[1] = ctxlen;
-  for(i = 0; i < ctxlen; i++)
-    pre[2 + i] = ctx[i];
-  prelen = 2 + ctxlen;
+  if (ctx == NULL && ctxlen == -1)
+    prelen = 0;
+  else
+    {
+      /* Prepare pre = (0, ctxlen, ctx) */
+      pre[0] = 0;
+      pre[1] = ctxlen;
+      for(i = 0; i < ctxlen; i++)
+        pre[2 + i] = ctx[i];
+      prelen = 2 + ctxlen;
+    }
 
   switch (algo)
     {
