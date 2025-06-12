@@ -87,6 +87,10 @@ struct pk_encoding_ctx
   /* for PSS */
   size_t saltlen;
 
+  /* for deterministic signature */
+  unsigned char *rnd;
+  size_t rndlen;
+
   int (* verify_cmp) (void *opaque, gcry_mpi_t tmp);
   void *verify_arg;
 };
