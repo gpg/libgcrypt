@@ -47,6 +47,9 @@ struct mldsa_info
   int sig_len;         /* Length of the signature.  */
 };
 
+#define MAX_PUBKEY_LEN 2592
+#define MAX_SECKEY_LEN 4896
+#define MAX_SIG_LEN 4627
 /* Information about the the ML-DSA algoithms for use by the
  * s-expression interface.  */
 static const struct mldsa_info mldsa_infos[] =
@@ -98,26 +101,18 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
   gpg_err_code_t rc = 0;
   uint8_t seed[SEEDBYTES];
-  unsigned char *sk = NULL;
-  unsigned char *pk = NULL;
+  unsigned char pk[MAX_PUBKEY_LEN];
+  unsigned char sk[MAX_SECKEY_LEN];
   const struct mldsa_info *info = mldsa_get_info (genparms);
 
   if (!info)
     return GPG_ERR_PUBKEY_ALGO;
 
-  sk = xtrymalloc_secure (info->seckey_len);
-  if (!sk)
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
+  if (info->pubkey_len > MAX_PUBKEY_LEN)
+    return GPG_ERR_INTERNAL;
 
-  pk = xtrymalloc (info->pubkey_len);
-  if (!pk)
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
+  if (info->seckey_len > MAX_SECKEY_LEN)
+    return GPG_ERR_INTERNAL;
 
   randombytes (seed, SEEDBYTES);
   dilithium_keypair (info->algo, pk, sk, seed);
@@ -133,11 +128,8 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                      SEEDBYTES, seed,
                      NULL);
 
-leave:
   wipememory (seed, SEEDBYTES);
   wipememory (sk, info->seckey_len);
-  xfree (sk);
-  xfree (pk);
   return rc;
 }
 
@@ -145,27 +137,24 @@ leave:
 static gcry_err_code_t
 mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
-  struct pk_encoding_ctx ctx;
-
   gpg_err_code_t rc = 0;
-
   unsigned int n;
-
+  struct pk_encoding_ctx ctx;
   gcry_mpi_t sk_mpi = NULL;
   gcry_mpi_t data_mpi = NULL;
-
-  unsigned char *sig  = NULL;
+  unsigned char sig[MAX_SIG_LEN];
   uint8_t rnd[RNDBYTES];
-
   const unsigned char *data;
   size_t data_len;
-
   const unsigned char *sk;
   const struct mldsa_info *info = mldsa_get_info (keyparms);
   int r;
 
   if (!info)
     return GPG_ERR_PUBKEY_ALGO;
+
+  if (info->sig_len > MAX_SIG_LEN)
+    return GPG_ERR_INTERNAL;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, 0);
 
@@ -178,7 +167,6 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = sexp_extract_param (keyparms, NULL, "/s", &sk_mpi, NULL);
   if (rc)
     goto leave;
-
   sk = mpi_get_opaque (sk_mpi, &n);
   if (!sk || info->seckey_len != (n + 7) / 8)
     {
@@ -197,15 +185,8 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       rc = GPG_ERR_INV_DATA;
       goto leave;
     }
-
   data = mpi_get_opaque (data_mpi, &n);
   data_len = (n + 7) / 8;
-
-  if (!(sig = xtrymalloc (info->sig_len)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
 
   randombytes (rnd, RNDBYTES);
   r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
@@ -223,9 +204,9 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
 leave:
   _gcry_pk_util_free_encoding_ctx (&ctx);
-  xfree (sig);
   _gcry_mpi_release (sk_mpi);
   _gcry_mpi_release (data_mpi);
+  wipememory (rnd, RNDBYTES);
   if (DBG_CIPHER)
     log_debug ("mldsa_sign    => %s\n", gpg_strerror (rc));
   return rc;
@@ -235,22 +216,15 @@ leave:
 static gcry_err_code_t
 mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
-  struct pk_encoding_ctx ctx;
-
   gpg_err_code_t rc = 0;
-
   unsigned int n;
-
+  struct pk_encoding_ctx ctx;
   gcry_mpi_t sig_mpi = NULL;
   gcry_mpi_t data_mpi = NULL;
-
   gcry_mpi_t pk_mpi = NULL;
-
-  unsigned char *sig  = NULL;
-
+  const unsigned char *sig;
   const unsigned char *data;
   size_t data_len;
-
   const unsigned char *pk;
   const struct mldsa_info *info = mldsa_get_info (keyparms);
   int r;
@@ -258,24 +232,23 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (!info)
     return GPG_ERR_PUBKEY_ALGO;
 
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY, 0);
+
+  /* Dilithium requires the byte string for its DATA.  */
+  ctx.flags |= PUBKEY_FLAG_BYTE_STRING;
+
   /*
    * Extract the public key.
    */
   rc = sexp_extract_param (keyparms, NULL, "/p", &pk_mpi, NULL);
   if (rc)
     goto leave;
-
   pk = mpi_get_opaque (pk_mpi, &n);
   if (!pk || info->pubkey_len != (n + 7) / 8)
     {
       rc = GPG_ERR_BAD_PUBKEY;
       goto leave;
     }
-
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY, 0);
-
-  /* Dilithium requires the byte string for its DATA.  */
-  ctx.flags |= PUBKEY_FLAG_BYTE_STRING;
 
   rc = _gcry_pk_util_data_to_mpi (s_data, &data_mpi, &ctx);
   if (rc)
@@ -287,7 +260,6 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       rc = GPG_ERR_INV_DATA;
       goto leave;
     }
-
   data = mpi_get_opaque (data_mpi, &n);
   data_len = (n + 7) / 8;
 
@@ -297,7 +269,6 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     goto leave;
   if (DBG_CIPHER)
     log_printmpi ("mldsa_verify  sig", sig_mpi);
-
   sig = mpi_get_opaque (sig_mpi, &n);
   if (!sig || info->sig_len != (n + 7) / 8)
     {
