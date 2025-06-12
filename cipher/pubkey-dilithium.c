@@ -214,7 +214,17 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   data = mpi_get_opaque (data_mpi, &n);
   data_len = (n + 7) / 8;
 
-  randombytes (rnd, RNDBYTES);
+  if (ctx.rnd)
+    {
+      if (ctx.rndlen != RNDBYTES)
+        {
+          rc = GPG_ERR_INV_DATA;
+          goto leave;
+        }
+      memcpy (rnd, ctx.rnd, RNDBYTES);
+    }
+  else
+    randombytes (rnd, RNDBYTES);
   r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
                       ctx.label, ctx.labellen, sk, rnd);
   if (r < 0)
