@@ -603,7 +603,6 @@ check_mldsa_kat (const char *fname)
           if (!(ntests % 256))
             show_note ("%d of %d tests done\n", ntests, N_TESTS);
           xfree (pk_str); pk_str = NULL;
-          xfree (sk_str);  sk_str = NULL;
           xfree (msg_str); msg_str = NULL;
           xfree (ctx_str); ctx_str = NULL;
           xfree (sig_str); sig_str = NULL;
