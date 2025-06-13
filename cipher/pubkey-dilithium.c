@@ -89,6 +89,37 @@ mldsa_get_nbits (gcry_sexp_t keyparam)
   return info->nbits;
 }
 
+static gpg_err_code_t
+mldsa_compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
+{
+  gcry_sexp_t l1;
+  const char *data;
+  size_t datalen;
+
+  const struct mldsa_info *info = mldsa_get_info (keyparam);
+  if (!info)
+    return GPG_ERR_WRONG_PUBKEY_ALGO;
+
+  _gcry_md_write (md, info->name, info->namelen+1); /* (also hash the nul) */
+
+  l1 = sexp_find_token (keyparam, "p", 1);
+  if (!l1)
+    return GPG_ERR_NO_OBJ;
+
+  data = sexp_nth_data (l1, 1, &datalen);
+  if (!data)
+    {
+      sexp_release (l1);
+      return GPG_ERR_NO_OBJ;
+    }
+
+  _gcry_md_write (md, data, datalen);
+  sexp_release (l1);
+
+  return 0;
+}
+
+
 static void
 randombytes (unsigned char *out, size_t outlen)
 {
@@ -146,9 +177,9 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                      NULL,
                      "(key-data"
                      " (public-key(%s(p%b)))"
-                     " (private-key(%s(s%b)(S%b))))",
+                     " (private-key(%s(p%b)(s%b)(S%b))))",
                      info->name, info->pubkey_len, pk,
-                     info->name, info->seckey_len, sk,
+                     info->name, info->pubkey_len, pk, info->seckey_len, sk,
                      SEEDBYTES, seed,
                      NULL);
 
@@ -356,5 +387,5 @@ gcry_pk_spec_t _gcry_pubkey_spec_mldsa =
     mldsa_verify,
     mldsa_get_nbits,
     NULL, /*run_selftests*/
-    NULL /* compute_keygrip */
+    mldsa_compute_keygrip
   };
