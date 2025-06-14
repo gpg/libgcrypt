@@ -166,7 +166,7 @@
                    s9, s10, s11, s12, s13, s14, s15) \
         vmovd (s0)*4(RINBLKS), m1; \
           vmovd (s1)*4(RINBLKS), m2; \
-            vmovq (s8)*4(RINBLKS), m3; \
+            vmovq (s8)*4(RINBLKS), m3; /* merged load */ \
               vmovd (s9)*4(RINBLKS), m4; \
         vpinsrd $1, (s2)*4(RINBLKS), m1, m1; \
           vpinsrd $1, (s3)*4(RINBLKS), m2, m2; \
