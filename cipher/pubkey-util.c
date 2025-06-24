@@ -650,6 +650,8 @@ _gcry_pk_util_init_encoding_ctx (struct pk_encoding_ctx *ctx,
     }
   ctx->label = NULL;
   ctx->labellen = 0;
+  ctx->rnd = NULL;
+  ctx->rndlen = 0;
   ctx->saltlen = 20;
   ctx->verify_cmp = NULL;
   ctx->verify_arg = NULL;
@@ -660,6 +662,7 @@ void
 _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx)
 {
   xfree (ctx->label);
+  xfree (ctx->rnd);
 }
 
 
@@ -756,6 +759,14 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       if (list)
         {
           ctx->label = sexp_nth_buffer (list, 1, &ctx->labellen);
+          sexp_release (list);
+        }
+
+      /* Get optional RANDOM-OVERRIDE. */
+      list = sexp_find_token (ldata, "random-override", 0);
+      if (list)
+        {
+          ctx->rnd = sexp_nth_buffer (list, 1, &ctx->rndlen);
           sexp_release (list);
         }
 
@@ -1430,6 +1441,8 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
     {
       xfree (ctx->label);
       ctx->label = NULL;
+      xfree (ctx->rnd);
+      ctx->rnd = NULL;
     }
 
   return rc;
