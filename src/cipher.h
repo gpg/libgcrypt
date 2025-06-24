@@ -44,6 +44,7 @@
 #define PUBKEY_FLAG_DJB_TWEAK      (1 << 15)
 #define PUBKEY_FLAG_SM2            (1 << 16)
 #define PUBKEY_FLAG_PREHASH        (1 << 17)
+#define PUBKEY_FLAG_BYTE_STRING    (1 << 18)
 /*
  * The internal flag to select least leak implementation for ECC.
  * It needs to be a distinct value not covered by PUBKEY_* above.
