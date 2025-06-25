@@ -1728,12 +1728,13 @@ enum gcry_kem_algos
     /* From here, ECC KEMs */
     GCRY_KEM_RAW_X25519 =31,    /* Using X25519 with Identity KDF */
     GCRY_KEM_RAW_X448   =32,    /* Using X448 with Identity KDF */
-    GCRY_KEM_RAW_BP256  =33,
-    GCRY_KEM_RAW_BP384  =34,
-    GCRY_KEM_RAW_BP512  =35,
-    GCRY_KEM_RAW_P256R1 =36,
-    GCRY_KEM_RAW_P384R1 =37,
-    GCRY_KEM_RAW_P521R1 =38,
+    GCRY_KEM_RAW_BP256  =33,    /* brainpoolP256r1 */
+    GCRY_KEM_RAW_BP384  =34,    /* brainpoolP384r1 */
+    GCRY_KEM_RAW_BP512  =35,    /* brainpoolP512r1 */
+    GCRY_KEM_RAW_P256R1 =36,    /* NIST P-256, aka SECP256R1 */
+    GCRY_KEM_RAW_P384R1 =37,    /* NIST P-384, aka SECP384R1 */
+    GCRY_KEM_RAW_P521R1 =38,    /* NIST P-521, aka SECP521R1 */
+    GCRY_KEM_RAW_P256K1 =39,    /* SECP256K1 */
     GCRY_KEM_DHKEM25519 =41,    /* DHKEM with X25519, HKDF, and SHA256 */
     GCRY_KEM_DHKEM448 =  42,    /* DHKEM with X448, HKDF, and SHA512 */
     GCRY_KEM_DHKEMP256R1=43,

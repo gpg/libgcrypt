@@ -64,6 +64,9 @@ algo_to_curve (int algo)
     case GCRY_KEM_RAW_P521R1:
       return "NIST P-521";
 
+    case GCRY_KEM_RAW_P256K1:
+      return "secp256k1";
+
     default:
       return 0;
     }
@@ -100,6 +103,9 @@ algo_to_seckey_len (int algo)
 
     case GCRY_KEM_RAW_P521R1:
       return 66;
+
+    case GCRY_KEM_RAW_P256K1:
+      return 32;
 
     default:
       return 0;
