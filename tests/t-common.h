@@ -260,7 +260,7 @@ prepend_srcdir (const char *fname)
 static char *
 read_textline (FILE *fp, int *lineno)
 {
-  char line[8192];
+  char line[16384];
   char *p;
 
   do
