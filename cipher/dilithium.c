@@ -21,14 +21,9 @@
   Dilithium Home: https://github.com/pq-crystals/dilithium.git
  */
 /*************** dilithium/ref/fips202.h */
-#ifndef FIPS202_H
-#define FIPS202_H
-
-
 #define SHAKE128_RATE 168
 #define SHAKE256_RATE 136
 #define SHA3_256_RATE 136
-#define SHA3_512_RATE 72
 
 
 typedef struct {
@@ -57,22 +52,12 @@ void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
 
-#endif
 /*************** dilithium/ref/ntt.h */
-#ifndef NTT_H
-#define NTT_H
-
-
 void ntt(int32_t a[N]);
 
 void invntt_tomont(int32_t a[N]);
 
-#endif
 /*************** dilithium/ref/packing.h */
-#ifndef PACKING_H
-#define PACKING_H
-
-
 void pack_pk(uint8_t pk[CRYPTO_PUBLICKEYBYTES], const uint8_t rho[SEEDBYTES], const polyveck *t1);
 
 void pack_sk(uint8_t sk[CRYPTO_SECRETKEYBYTES],
@@ -97,12 +82,7 @@ void unpack_sk(uint8_t rho[SEEDBYTES],
 
 int unpack_sig(uint8_t c[CTILDEBYTES], polyvecl *z, polyveck *h, const uint8_t sig[CRYPTO_BYTES]);
 
-#endif
 /*************** dilithium/ref/params.h */
-#ifndef PARAMS_H
-#define PARAMS_H
-
-
 #define SEEDBYTES 32
 #define CRHBYTES 64
 #define TRBYTES 64
@@ -177,12 +157,7 @@ int unpack_sig(uint8_t c[CTILDEBYTES], polyvecl *z, polyveck *h, const uint8_t s
                                + K*POLYT0_PACKEDBYTES)
 #define CRYPTO_BYTES (CTILDEBYTES + L*POLYZ_PACKEDBYTES + POLYVECH_PACKEDBYTES)
 
-#endif
 /*************** dilithium/ref/poly.h */
-#ifndef POLY_H
-#define POLY_H
-
-
 typedef struct {
   int32_t coeffs[N];
 } poly;
@@ -229,12 +204,7 @@ void polyz_unpack(poly *r, const uint8_t *a);
 
 void polyw1_pack(uint8_t *r, const poly *a);
 
-#endif
 /*************** dilithium/ref/polyvec.h */
-#ifndef POLYVEC_H
-#define POLYVEC_H
-
-
 /* Vectors of polynomials of length L */
 typedef struct {
   poly vec[L];
@@ -251,7 +221,6 @@ void polyvecl_add(polyvecl *w, const polyvecl *u, const polyvecl *v);
 void polyvecl_ntt(polyvecl *v);
 void polyvecl_invntt_tomont(polyvecl *v);
 void polyvecl_pointwise_poly_montgomery(polyvecl *r, const poly *a, const polyvecl *v);
-#define polyvecl_pointwise_acc_montgomery \
 void polyvecl_pointwise_acc_montgomery(poly *w,
                                        const polyvecl *u,
                                        const polyvecl *v);
@@ -294,20 +263,10 @@ void polyvec_matrix_expand(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
 
 void polyvec_matrix_pointwise_montgomery(polyveck *t, const polyvecl mat[K], const polyvecl *v);
 
-#endif
 /*************** dilithium/ref/randombytes.h */
-#ifndef RANDOMBYTES_H
-#define RANDOMBYTES_H
-
-
 void randombytes(uint8_t *out, size_t outlen);
 
-#endif
 /*************** dilithium/ref/reduce.h */
-#ifndef REDUCE_H
-#define REDUCE_H
-
-
 #define MONT -4186625 // 2^32 % Q
 #define QINV 58728449 // q^(-1) mod 2^32
 
@@ -319,12 +278,7 @@ int32_t caddq(int32_t a);
 
 int32_t freeze(int32_t a);
 
-#endif
 /*************** dilithium/ref/rounding.h */
-#ifndef ROUNDING_H
-#define ROUNDING_H
-
-
 int32_t power2round(int32_t *a0, int32_t a);
 
 int32_t decompose(int32_t *a0, int32_t a);
@@ -333,12 +287,7 @@ unsigned int make_hint(int32_t a0, int32_t a1);
 
 int32_t use_hint(int32_t a, unsigned int hint);
 
-#endif
 /*************** dilithium/ref/sign.h */
-#ifndef SIGN_H
-#define SIGN_H
-
-
 int crypto_sign_keypair(uint8_t *pk, uint8_t *sk);
 
 int crypto_sign_signature_internal(uint8_t *sig,
@@ -378,13 +327,7 @@ int crypto_sign_open(uint8_t *m, size_t *mlen,
                      const uint8_t *ctx, size_t ctxlen,
                      const uint8_t *pk);
 
-#endif
 /*************** dilithium/ref/symmetric.h */
-#ifndef SYMMETRIC_H
-#define SYMMETRIC_H
-
-
-
 typedef keccak_state stream128_state;
 typedef keccak_state stream256_state;
 
@@ -408,7 +351,6 @@ void dilithium_shake256_stream_init(keccak_state *state,
 #define stream256_squeezeblocks(OUT, OUTBLOCKS, STATE) \
         shake256_squeezeblocks(OUT, OUTBLOCKS, STATE)
 
-#endif
 /*************** dilithium/ref/ntt.c */
 
 static const int32_t zetas[N] = {
