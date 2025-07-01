@@ -26,7 +26,8 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
-EXTRA_DIST = gost-s-box.c kyber-common.c kyber-kdep.c
+EXTRA_DIST = gost-s-box.c kyber-common.c kyber-kdep.c \
+             dilithium-common.c dilithium-dep.c
 
 CLEANFILES = gost-s-box$(EXEEXT_FOR_BUILD)
 DISTCLEANFILES = gost-sb.h
@@ -97,6 +98,7 @@ EXTRA_libcipher_la_SOURCES = \
 	crc-armv8-aarch64-ce.S \
 	crc-ppc.c \
 	des.c des-amd64.S \
+	dilithium.c dilithium.h \
 	dsa.c \
 	elgamal.c \
 	ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
