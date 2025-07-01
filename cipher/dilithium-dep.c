@@ -404,6 +404,7 @@ void poly_challenge(poly *c, const uint8_t seed[CTILDEBYTES]) {
     c->coeffs[b] = 1 - 2*(signs & 1);
     signs >>= 1;
   }
+  shake256_close(&state);
 }
 /*************** dilithium/ref/polyvec.c */
 
@@ -899,6 +900,7 @@ int crypto_sign_signature_internal(uint8_t *sig,
   shake256_absorb(&state, m, mlen);
   shake256_finalize(&state);
   shake256_squeeze(mu, CRHBYTES, &state);
+  shake256_close(&state);
 
   /* Compute rhoprime = CRH(key, rnd, mu) */
   shake256_init(&state);
@@ -907,6 +909,7 @@ int crypto_sign_signature_internal(uint8_t *sig,
   shake256_absorb(&state, mu, CRHBYTES);
   shake256_finalize(&state);
   shake256_squeeze(rhoprime, CRHBYTES, &state);
+  shake256_close(&state);
 
   /* Expand matrix and transform vectors */
   polyvec_matrix_expand(mat, rho);
@@ -935,6 +938,7 @@ rej:
   shake256_absorb(&state, sig, K*POLYW1_PACKEDBYTES);
   shake256_finalize(&state);
   shake256_squeeze(sig, CTILDEBYTES, &state);
+  shake256_close(&state);
   poly_challenge(&cp, sig);
   poly_ntt(&cp);
 
@@ -1107,6 +1111,7 @@ int crypto_sign_verify_internal(const uint8_t *sig,
   shake256_absorb(&state, m, mlen);
   shake256_finalize(&state);
   shake256_squeeze(mu, CRHBYTES, &state);
+  shake256_close(&state);
 
   /* Matrix-vector multiplication; compute Az - c2^dt1 */
   poly_challenge(&cp, c);
@@ -1135,6 +1140,7 @@ int crypto_sign_verify_internal(const uint8_t *sig,
   shake256_absorb(&state, buf, K*POLYW1_PACKEDBYTES);
   shake256_finalize(&state);
   shake256_squeeze(c2, CTILDEBYTES, &state);
+  shake256_close(&state);
   for(i = 0; i < CTILDEBYTES; ++i)
     if(c[i] != c2[i])
       return -1;

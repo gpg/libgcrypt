@@ -43,37 +43,175 @@
 
   Dilithium Home: https://github.com/pq-crystals/dilithium.git
  */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+#ifdef _GCRYPT_IN_LIBGCRYPT
+#include <stdarg.h>
+#include <gpg-error.h>
+
+#include "types.h"
+#include "g10lib.h"
+#include "gcrypt-int.h"
+#include "const-time.h"
+
+#include "dilithium.h"
+
+static int crypto_sign_keypair_internal_2 (uint8_t *pk, uint8_t *sk,
+                                           const uint8_t seed[SEEDBYTES]);
+static int crypto_sign_keypair_internal_3 (uint8_t *pk, uint8_t *sk,
+                                           const uint8_t seed[SEEDBYTES]);
+static int crypto_sign_keypair_internal_5 (uint8_t *pk, uint8_t *sk,
+                                           const uint8_t seed[SEEDBYTES]);
+static int crypto_sign_signature_internal_2 (uint8_t *sig, size_t *siglen,
+                                             const uint8_t *m, size_t mlen,
+                                             const uint8_t *pre, size_t prelen,
+                                             const uint8_t rnd[RNDBYTES],
+                                             const uint8_t *sk);
+static int crypto_sign_signature_internal_3 (uint8_t *sig, size_t *siglen,
+                                             const uint8_t *m, size_t mlen,
+                                             const uint8_t *pre, size_t prelen,
+                                             const uint8_t rnd[RNDBYTES],
+                                             const uint8_t *sk);
+static int crypto_sign_signature_internal_5 (uint8_t *sig, size_t *siglen,
+                                             const uint8_t *m, size_t mlen,
+                                             const uint8_t *pre, size_t prelen,
+                                             const uint8_t rnd[RNDBYTES],
+                                             const uint8_t *sk);
+static int crypto_sign_verify_internal_2 (const uint8_t *sig, size_t siglen,
+                                          const uint8_t *m, size_t mlen,
+                                          const uint8_t *pre, size_t prelen,
+                                          const uint8_t *pk);
+static int crypto_sign_verify_internal_3 (const uint8_t *sig, size_t siglen,
+                                          const uint8_t *m, size_t mlen,
+                                          const uint8_t *pre, size_t prelen,
+                                          const uint8_t *pk);
+static int crypto_sign_verify_internal_5 (const uint8_t *sig, size_t siglen,
+                                          const uint8_t *m, size_t mlen,
+                                          const uint8_t *pre, size_t prelen,
+                                          const uint8_t *pk);
+
+typedef struct {
+  gcry_md_hd_t h;
+} keccak_state;
+
+static void
+shake128_init (keccak_state *state)
+{
+  gcry_err_code_t ec;
+
+  ec = _gcry_md_open (&state->h, GCRY_MD_SHAKE128, 0);
+  if (ec)
+    log_fatal ("internal md_open failed: %d\n", ec);
+}
+
+static void
+shake128_absorb (keccak_state *state, const uint8_t *in, size_t inlen)
+{
+  _gcry_md_write (state->h, in, inlen);
+}
+
+static void
+shake128_finalize (keccak_state *state)
+{
+  (void)state;
+}
+
+static void
+shake128_squeeze (uint8_t *out, size_t outlen, keccak_state *state)
+{
+  _gcry_md_extract (state->h, GCRY_MD_SHAKE128, out, outlen);
+}
+
+static void
+shake128_close (keccak_state *state)
+{
+  _gcry_md_close (state->h);
+}
+
+static void
+shake256_init (keccak_state *state)
+{
+  gcry_err_code_t ec;
+
+  ec = _gcry_md_open (&state->h, GCRY_MD_SHAKE256, 0);
+  if (ec)
+    log_fatal ("internal md_open failed: %d\n", ec);
+}
+
+static void
+shake256_absorb (keccak_state *state, const uint8_t *in, size_t inlen)
+{
+  _gcry_md_write (state->h, in, inlen);
+}
+
+static void
+shake256_finalize (keccak_state *state)
+{
+  (void)state;
+}
+
+static void
+shake256_squeeze (uint8_t *out, size_t outlen, keccak_state *state)
+{
+  _gcry_md_extract (state->h, GCRY_MD_SHAKE256, out, outlen);
+}
+
+static void
+shake256_close (keccak_state *state)
+{
+  _gcry_md_close (state->h);
+}
+
+static void
+shake256 (uint8_t *out, size_t outlen, const uint8_t *in,
+	  size_t inlen)
+{
+  gcry_buffer_t iov[1];
+
+  iov[0].size = 0;
+  iov[0].data = (uint8_t *)in;
+  iov[0].off = 0;
+  iov[0].len = inlen;
+
+  _gcry_md_hash_buffers_extract (GCRY_MD_SHAKE256, 0, out, outlen,
+                                 iov, 1);
+}
+#else
+#include "dilithium.h"
+
+#define DILITHIUM_RANDOMIZED_SIGNING
+
+/*************** dilithium/ref/randombytes.h */
+void randombytes (uint8_t *out, size_t outlen);
+
 /*************** dilithium/ref/fips202.h */
-#define SHAKE128_RATE 168
-#define SHAKE256_RATE 136
-#define SHA3_256_RATE 136
-
-
 typedef struct {
   uint64_t s[25];
   unsigned int pos;
 } keccak_state;
 
-extern const uint64_t KeccakF_RoundConstants[];
-
 void shake128_init(keccak_state *state);
 void shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
 void shake128_finalize(keccak_state *state);
 void shake128_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
-void shake128_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen);
-void shake128_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state);
 
 void shake256_init(keccak_state *state);
 void shake256_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
 void shake256_finalize(keccak_state *state);
 void shake256_squeeze(uint8_t *out, size_t outlen, keccak_state *state);
-void shake256_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen);
-void shake256_squeezeblocks(uint8_t *out, size_t nblocks,  keccak_state *state);
-
-void shake128(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
-void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen);
-void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen);
+#endif /* _GCRYPT_IN_LIBGCRYPT */
+
+/*************** dilithium/ref/fips202.h */
+#define SHAKE128_RATE 168
+#define SHAKE256_RATE 136
+#define SHA3_256_RATE 136
 
 /*************** dilithium/ref/params.h */
 #define SEEDBYTES 32
@@ -197,9 +335,6 @@ static void polyz_unpack(poly *r, const uint8_t *a);
 
 static void polyw1_pack(uint8_t *r, const poly *a);
 
-/*************** dilithium/ref/randombytes.h */
-void randombytes(uint8_t *out, size_t outlen);
-
 /*************** dilithium/ref/reduce.h */
 #define MONT -4186625 /* 2^32 % Q */
 #define QINV 58728449 /* q^(-1) mod 2^32 */
@@ -310,6 +445,18 @@ void dilithium_shake256_stream_init(keccak_state *state, const uint8_t seed[CRHB
   shake256_absorb(state, t, 2);
   shake256_finalize(state);
 }
+
+/* Glue code */
+#define shake128_squeezeblocks(OUT, OUTBLOCKS, STATE) \
+	shake128_squeeze(OUT, SHAKE128_RATE*OUTBLOCKS, STATE)
+#define stream128_close(STATE) shake128_close(STATE)
+#define shake256_squeezeblocks(OUT, OUTBLOCKS, STATE) \
+	shake256_squeeze(OUT, SHAKE256_RATE*OUTBLOCKS, STATE)
+#define stream256_close(STATE) shake256_close(STATE)
+#ifndef _GCRYPT_IN_LIBGCRYPT
+static void shake256_close (keccak_state *state) { (void)state; }
+static void shake128_close (keccak_state *state) { (void)state; }
+#endif
 
 #include "dilithium-common.c"
 #include "dilithium-dep.c"
