@@ -43,6 +43,28 @@
 
   Dilithium Home: https://github.com/pq-crystals/dilithium.git
  */
+/*
+ * This implementation consists of four files: dilithium.h (header),
+ * dilithium.c (this), dilithium-common.c (common part), and
+ * dilithium-dep.c (DILITHIUM_MODE dependent part).
+ *
+ * It is for inclusion in libgcrypt library.  Also, standalone use of
+ * the implementation is possible.  With DILITHIUM_MODE defined, it
+ * can offer the variant of that DILITHIUM_MODE specified.  Otherwise,
+ * three variants are offered.
+ *
+ * From original code, following modification was made.
+ *
+ * - C++ style comments are changed to C-style.
+ *
+ * - No use of DILITHIUM_NAMESPACE and FIPS202_NAMESPACE.  Don't export
+ *   internal symbols.
+ *
+ * - Different external API for shake128 and shake256, having _close.
+ *
+ * - Add crypto_sign_keypair_internal function.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -59,6 +81,8 @@
 #include "g10lib.h"
 #include "gcrypt-int.h"
 #include "const-time.h"
+
+#define DILITHIUM_INTERNAL_API_ONLY 1
 
 #include "dilithium.h"
 

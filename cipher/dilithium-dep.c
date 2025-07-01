@@ -806,6 +806,7 @@ void polyveck_pack_w1(uint8_t r[K*POLYW1_PACKEDBYTES], const polyveck *w1) {
 *
 * Returns 0 (success)
 **************************************************/
+#ifndef DILITHIUM_INTERNAL_API_ONLY
 int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
   uint8_t seedbuf[2*SEEDBYTES + CRHBYTES];
   uint8_t tr[TRBYTES];
@@ -851,6 +852,57 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
 
   return 0;
 }
+#else
+int crypto_sign_keypair_internal(uint8_t *pk, uint8_t *sk,
+                                 const uint8_t seed[SEEDBYTES])
+{
+  uint8_t seedbuf[2*SEEDBYTES + CRHBYTES];
+  uint8_t tr[TRBYTES];
+  const uint8_t *rho, *rhoprime, *key;
+  polyvecl mat[K];
+  polyvecl s1, s1hat;
+  polyveck s2, t1, t0;
+  size_t i;
+
+  /* Get randomness for rho, rhoprime and key */
+  for (i = 0; i < SEEDBYTES; i++)
+    seedbuf[i] = seed[i];
+  seedbuf[SEEDBYTES+0] = K;
+  seedbuf[SEEDBYTES+1] = L;
+  shake256(seedbuf, 2*SEEDBYTES + CRHBYTES, seedbuf, SEEDBYTES+2);
+  rho = seedbuf;
+  rhoprime = rho + SEEDBYTES;
+  key = rhoprime + CRHBYTES;
+
+  /* Expand matrix */
+  polyvec_matrix_expand(mat, rho);
+
+  /* Sample short vectors s1 and s2 */
+  polyvecl_uniform_eta(&s1, rhoprime, 0);
+  polyveck_uniform_eta(&s2, rhoprime, L);
+
+  /* Matrix-vector multiplication */
+  s1hat = s1;
+  polyvecl_ntt(&s1hat);
+  polyvec_matrix_pointwise_montgomery(&t1, mat, &s1hat);
+  polyveck_reduce(&t1);
+  polyveck_invntt_tomont(&t1);
+
+  /* Add error vector s2 */
+  polyveck_add(&t1, &t1, &s2);
+
+  /* Extract t1 and write public key */
+  polyveck_caddq(&t1);
+  polyveck_power2round(&t1, &t0, &t1);
+  pack_pk(pk, rho, &t1);
+
+  /* Compute H(rho, t1) and write secret key */
+  shake256(tr, TRBYTES, pk, CRYPTO_PUBLICKEYBYTES);
+  pack_sk(sk, rho, tr, key, &t0, &s1, &s2);
+
+  return 0;
+}
+#endif
 
 /*************************************************
 * Name:        crypto_sign_signature_internal
@@ -992,6 +1044,7 @@ rej:
 *
 * Returns 0 (success) or -1 (context string too long)
 **************************************************/
+#ifndef DILITHIUM_INTERNAL_API_ONLY
 int crypto_sign_signature(uint8_t *sig,
                           size_t *siglen,
                           const uint8_t *m,
@@ -1023,6 +1076,7 @@ int crypto_sign_signature(uint8_t *sig,
   crypto_sign_signature_internal(sig,siglen,m,mlen,pre,2+ctxlen,rnd,sk);
   return 0;
 }
+#endif
 
 /*************************************************
 * Name:        crypto_sign
@@ -1042,6 +1096,7 @@ int crypto_sign_signature(uint8_t *sig,
 *
 * Returns 0 (success) or -1 (context string too long)
 **************************************************/
+#ifndef DILITHIUM_INTERNAL_API_ONLY
 int crypto_sign(uint8_t *sm,
                 size_t *smlen,
                 const uint8_t *m,
@@ -1059,6 +1114,7 @@ int crypto_sign(uint8_t *sm,
   *smlen += mlen;
   return ret;
 }
+#endif
 
 /*************************************************
 * Name:        crypto_sign_verify_internal
@@ -1163,6 +1219,7 @@ int crypto_sign_verify_internal(const uint8_t *sig,
 *
 * Returns 0 if signature could be verified correctly and -1 otherwise
 **************************************************/
+#ifndef DILITHIUM_INTERNAL_API_ONLY
 int crypto_sign_verify(const uint8_t *sig,
                        size_t siglen,
                        const uint8_t *m,
@@ -1184,6 +1241,7 @@ int crypto_sign_verify(const uint8_t *sig,
 
   return crypto_sign_verify_internal(sig,siglen,m,mlen,pre,2+ctxlen,pk);
 }
+#endif
 
 /*************************************************
 * Name:        crypto_sign_open
@@ -1201,6 +1259,7 @@ int crypto_sign_verify(const uint8_t *sig,
 *
 * Returns 0 if signed message could be verified correctly and -1 otherwise
 **************************************************/
+#ifndef DILITHIUM_INTERNAL_API_ONLY
 int crypto_sign_open(uint8_t *m,
                      size_t *mlen,
                      const uint8_t *sm,
@@ -1232,3 +1291,4 @@ badsig:
 
   return -1;
 }
+#endif
