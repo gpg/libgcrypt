@@ -302,8 +302,6 @@ static int32_t reduce32(int32_t a);
 
 static int32_t caddq(int32_t a);
 
-static int32_t freeze(int32_t a);
-
 /*************** dilithium/ref/rounding.h */
 static int32_t power2round(int32_t *a0, int32_t a);
 

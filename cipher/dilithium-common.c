@@ -1366,6 +1366,7 @@ int32_t caddq(int32_t a) {
   return a;
 }
 
+#if 0 /* Not used */
 /*************************************************
 * Name:        freeze
 *
@@ -1381,3 +1382,4 @@ int32_t freeze(int32_t a) {
   a = caddq(a);
   return a;
 }
+#endif
