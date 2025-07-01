@@ -201,8 +201,8 @@ static void polyw1_pack(uint8_t *r, const poly *a);
 void randombytes(uint8_t *out, size_t outlen);
 
 /*************** dilithium/ref/reduce.h */
-#define MONT -4186625 // 2^32 % Q
-#define QINV 58728449 // q^(-1) mod 2^32
+#define MONT -4186625 /* 2^32 % Q */
+#define QINV 58728449 /* q^(-1) mod 2^32 */
 
 static int32_t montgomery_reduce(int64_t a);
 
