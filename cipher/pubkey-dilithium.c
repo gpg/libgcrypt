@@ -256,8 +256,12 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
   else
     randombytes (rnd, RNDBYTES);
-  r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
-                      ctx.label, ctx.labellen, sk, rnd);
+  if (ctx.flags & PUBKEY_FLAG_NO_PREFIX)
+    r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
+                        NULL, -1, sk, rnd);
+  else
+    r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
+                        ctx.label, ctx.labellen, sk, rnd);
   if (r < 0)
     {
       rc = GPG_ERR_INTERNAL;
@@ -343,8 +347,12 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       goto leave;
     }
 
-  r = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
-                        ctx.label, ctx.labellen, pk);
+  if (ctx.flags & PUBKEY_FLAG_NO_PREFIX)
+    r = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
+                          NULL, -1, pk);
+  else
+    r = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
+                          ctx.label, ctx.labellen, pk);
   if (r < 0)
     {
       rc = GPG_ERR_BAD_SIGNATURE;

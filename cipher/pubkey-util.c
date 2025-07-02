@@ -162,6 +162,8 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
               encoding = PUBKEY_ENC_RAW;
               flags |= PUBKEY_FLAG_DJB_TWEAK;
             }
+          else if (!memcmp (s, "no-prefix", 9))
+            flags |= PUBKEY_FLAG_NO_PREFIX;
           else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
