@@ -120,6 +120,102 @@ static int crypto_sign_verify_internal_5 (const uint8_t *sig, size_t siglen,
                                           const uint8_t *pre, size_t prelen,
                                           const uint8_t *pk);
 
+int
+dilithium_keypair (int algo, uint8_t *pk, uint8_t *sk,
+                   const uint8_t seed[SEEDBYTES])
+{
+  switch (algo)
+    {
+    case GCRY_MLDSA44:
+      return crypto_sign_keypair_internal_2 (pk, sk, seed);
+    case GCRY_MLDSA65:
+    default:
+      return crypto_sign_keypair_internal_3 (pk, sk, seed);
+    case GCRY_MLDSA87:
+      return crypto_sign_keypair_internal_5 (pk, sk, seed);
+    }
+}
+
+int
+dilithium_sign (int algo, uint8_t *sig, size_t siglen,
+                const uint8_t *m, size_t mlen,
+                const uint8_t *ctx, size_t ctxlen,
+                const uint8_t *sk, const uint8_t rnd[RNDBYTES])
+{
+  size_t i;
+  uint8_t pre[257];
+  size_t prelen;
+
+  if (ctx == NULL && ctxlen == -1)
+    prelen = 0;
+  else
+    {
+      /* Prepare pre = (0, ctxlen, ctx) */
+      pre[0] = 0;
+      pre[1] = ctxlen;
+      for(i = 0; i < ctxlen; i++)
+        pre[2 + i] = ctx[i];
+      prelen = 2 + ctxlen;
+    }
+
+  switch (algo)
+    {
+    case GCRY_MLDSA44:
+      if (siglen != CRYPTO_BYTES_2)
+        return -1;
+      return crypto_sign_signature_internal_2 (sig, &siglen, m, mlen,
+                                               pre, prelen, rnd, sk);
+    case GCRY_MLDSA65:
+    default:
+      if (siglen != CRYPTO_BYTES_3)
+        return -1;
+      return crypto_sign_signature_internal_3 (sig, &siglen, m, mlen,
+                                               pre, prelen, rnd, sk);
+    case GCRY_MLDSA87:
+      if (siglen != CRYPTO_BYTES_5)
+        return -1;
+      return crypto_sign_signature_internal_5 (sig, &siglen, m, mlen,
+                                               pre, prelen, rnd, sk);
+    }
+}
+
+int
+dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
+                  const uint8_t *m, size_t mlen,
+                  const uint8_t *ctx, size_t ctxlen,
+                  const uint8_t *pk)
+{
+  size_t i;
+  uint8_t pre[257];
+  size_t prelen;
+
+  if (ctx == NULL && ctxlen == -1)
+    prelen = 0;
+  else
+    {
+      /* Prepare pre = (0, ctxlen, ctx) */
+      pre[0] = 0;
+      pre[1] = ctxlen;
+      for(i = 0; i < ctxlen; i++)
+        pre[2 + i] = ctx[i];
+      prelen = 2 + ctxlen;
+    }
+
+  switch (algo)
+    {
+    case GCRY_MLDSA44:
+      return crypto_sign_verify_internal_2 (sig, siglen, m, mlen,
+                                            pre, prelen, pk);
+    case GCRY_MLDSA65:
+    default:
+      return crypto_sign_verify_internal_3 (sig, siglen, m, mlen,
+                                            pre, prelen, pk);
+    case GCRY_MLDSA87:
+      return crypto_sign_verify_internal_5 (sig, siglen, m, mlen,
+                                            pre, prelen, pk);
+    }
+}
+
 typedef struct {
   gcry_md_hd_t h;
 } keccak_state;
