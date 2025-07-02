@@ -39,6 +39,9 @@ if USE_ECC
 tests_bin += curves t-ecdsa t-ed25519 t-cv25519 t-x448 t-ed448
 endif
 
+if USE_DILITHIUM
+tests_bin += t-mldsa
+endif
 
 tests_bin_last = benchmark bench-slope
 
@@ -81,7 +84,7 @@ CLEANFILES = testdrv-build
 EXTRA_DIST = README rsa-16k.key \
 	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h \
 	     t-ed25519.inp t-ed448.inp t-dsa.inp t-ecdsa.inp t-rsa-15.inp \
-	     t-rsa-pss.inp t-mlkem.inp \
+	     t-rsa-pss.inp t-mlkem.inp t-mldsa.inp \
 	     stopwatch.h hashtest-6g.in hashtest-256g.in \
 	     sha3-224.h sha3-256.h sha3-384.h sha3-512.h blake2b.h blake2s.h \
 	     basic-disable-all-hwf.in basic_all_hwfeature_combinations.sh
