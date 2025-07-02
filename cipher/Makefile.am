@@ -98,7 +98,7 @@ EXTRA_libcipher_la_SOURCES = \
 	crc-armv8-aarch64-ce.S \
 	crc-ppc.c \
 	des.c des-amd64.S \
-	dilithium.c dilithium.h \
+	dilithium.c dilithium.h pubkey-dilithium.c \
 	dsa.c \
 	elgamal.c \
 	ecc.c ecc-curves.c ecc-misc.c ecc-common.h \

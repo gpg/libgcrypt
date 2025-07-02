@@ -213,7 +213,7 @@ available_ciphers="$available_ciphers sm4 aria"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
-available_pubkey_ciphers="dsa elgamal rsa ecc kyber"
+available_pubkey_ciphers="dsa elgamal rsa ecc kyber dilithium"
 enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
@@ -3565,6 +3565,14 @@ if test "$found" = "1" ; then
    GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS \
                           kyber.c"
    AC_DEFINE(USE_KYBER, 1, [Defined if this module should be included])
+fi
+
+LIST_MEMBER(dilithium, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_DILITHIUM, [test "$found" = "1"])
+if test "$found" = "1" ; then
+   GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS \
+                          dilithium.lo pubkey-dilithium.lo"
+   AC_DEFINE(USE_DILITHIUM, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(crc, $enabled_digests)
