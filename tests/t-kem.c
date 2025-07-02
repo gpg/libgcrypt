@@ -149,6 +149,7 @@ test_kem_mceliece6688128f (int testno)
 }
 
 
+#ifdef USE_KYBER
 static void
 test_kem_mlkem512 (int testno)
 {
@@ -319,6 +320,7 @@ test_kem_mlkem1024 (int testno)
       putc ('\n', stderr);
     }
 }
+#endif
 
 
 static void
@@ -489,6 +491,7 @@ check_kem (int n_loops)
       ntests += n_loops;
     }
 
+#ifdef USE_KYBER
   if ((selected_algo & SELECTED_ALGO_MLKEM512))
     {
       for (; testno < ntests + n_loops; testno++)
@@ -509,6 +512,7 @@ check_kem (int n_loops)
         test_kem_mlkem1024 (testno);
       ntests += n_loops;
     }
+#endif
 
   if ((selected_algo & SELECTED_ALGO_RAW_X25519))
     {
@@ -561,9 +565,11 @@ main (int argc, char **argv)
                  "  --loops N       specify the loop count\n"
                  "  --sntrup761     select SNTRUP761 algo\n"
                  "  --cm6688128f    select CM6688128F algo\n"
+#ifdef USE_KYBER
                  "  --mlkem512      select MLKEM512 algo\n"
                  "  --mlkem768      select MLKEM768 algo\n"
                  "  --mlkem1024     select MLKEM1024 algo\n"
+#endif
                  "  --dhkem25519    select DHKEM25519 algo\n",
                  stdout);
           exit (0);
@@ -601,6 +607,7 @@ main (int argc, char **argv)
           argc--;
           argv++;
         }
+#ifdef USE_KYBER
       else if (!strcmp (*argv, "--mlkem512"))
         {
           selected_algo = SELECTED_ALGO_MLKEM512;
@@ -619,6 +626,7 @@ main (int argc, char **argv)
           argc--;
           argv++;
         }
+#endif
       else if (!strcmp (*argv, "--raw-x25519"))
         {
           selected_algo = SELECTED_ALGO_RAW_X25519;
