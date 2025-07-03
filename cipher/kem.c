@@ -29,7 +29,9 @@
 #include "cipher.h"
 #include "sntrup761.h"
 #include "mceliece6688128f.h"
+#if USE_KYBER
 #include "kyber.h"
+#endif
 #include "kem-ecc.h"
 
 
@@ -100,6 +102,7 @@ _gcry_kem_genkey (int algo,
       mceliece6688128f_keypair (pubkey, seckey);
       return 0;
 
+#if USE_KYBER
     case GCRY_KEM_MLKEM512:
       if (seckey_len != GCRY_KEM_MLKEM512_SECKEY_LEN
           || pubkey_len != GCRY_KEM_MLKEM512_PUBKEY_LEN
@@ -123,6 +126,7 @@ _gcry_kem_genkey (int algo,
         return GPG_ERR_INV_ARG;
       kyber_keypair (algo, pubkey, seckey, optional);
       return 0;
+#endif
 
     case GCRY_KEM_RAW_X25519:
     case GCRY_KEM_RAW_X448:
@@ -170,6 +174,7 @@ _gcry_kem_encap (int algo,
       mceliece6688128f_enc (ciphertext, shared, pubkey);
       return 0;
 
+#if USE_KYBER
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
@@ -177,6 +182,7 @@ _gcry_kem_encap (int algo,
 	return GPG_ERR_INV_VALUE;
       kyber_encap (algo, ciphertext, shared, pubkey, optional);
       return 0;
+#endif
 
     case GCRY_KEM_RAW_X25519:
     case GCRY_KEM_RAW_X448:
@@ -230,6 +236,7 @@ _gcry_kem_decap (int algo,
       mceliece6688128f_dec (shared, ciphertext, seckey);
       return 0;
 
+#if USE_KYBER
     case GCRY_KEM_MLKEM512:
     case GCRY_KEM_MLKEM768:
     case GCRY_KEM_MLKEM1024:
@@ -237,6 +244,7 @@ _gcry_kem_decap (int algo,
         return GPG_ERR_INV_VALUE;
       kyber_decap (algo, shared, ciphertext, seckey);
       return 0;
+#endif
 
     case GCRY_KEM_RAW_X25519:
     case GCRY_KEM_RAW_X448:

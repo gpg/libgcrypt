@@ -670,9 +670,11 @@ check_kem_keys (void)
     int flags;
   } tv[] = {
     { "sntrup761", TEST_NOFIPS },
+#if USE_KYBER
     { "kyber512", TEST_NOFIPS },
     { "kyber768", TEST_NOFIPS },
     { "kyber1024", TEST_NOFIPS },
+#endif
   };
 
   int testno;
