@@ -483,6 +483,7 @@ generate_fips (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       int idx;
       gcry_sexp_t oneparm;
 
+      e = p = q = NULL;
       tbl[0].value = &e;
       tbl[1].value = &p;
       tbl[2].value = &q;
