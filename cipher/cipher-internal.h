@@ -352,7 +352,7 @@ struct gcry_cipher_handle
       } u_tag;
 
       /* Space to save partial input lengths for MAC. */
-      unsigned char macbuf[GCRY_CCM_BLOCK_LEN];
+      unsigned char macbuf[GCRY_GCM_BLOCK_LEN];
       int mac_unused;  /* Number of unprocessed bytes in MACBUF. */
 
       /* byte counters for GCM */
