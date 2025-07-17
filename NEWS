@@ -1,8 +1,36 @@
-Noteworthy changes in version 1.11.1 (unreleased)  [C25/A5/R_]
+Noteworthy changes in version 1.12.0 (unreleased)  [C27/A7/R0]
 -------------------------------------------------
 
+ Changes also found in 1.11.1:
 
- Release-info: https://dev.gnupg.org/T7166
+ FIXME: entries below are not finished:
+
+   - Allow access to the FIPS service indicator via the new
+     GCRYCTL_FIPS_SERVICE_INDICATOR control code.  [T7338]
+
+   - Add GCRYCTL_FIPS_REJECT_NON_FIPS control code.  [T7338]
+
+   - Add GCRY_FIPS_FLAG_REJECT_PK_FLAGS constant.  [T7338]
+
+   - Make SHA-1 non-FIPS internally for the 1.12 API.  This introduces
+     the GCRY_FIPS_FLAG_REJECT_MD_SHA1 constant.  [rC4ee91a94bc]
+
+   - Add GCRY_FIPS_FLAG_REJECT_PK_FLAGS
+
+
+
+ * Interface changes relative to the 1.11.0 release:
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   GCRY_KEM_RAW_P256R1                   NEW enum.
+
+
+ Release-info: https://dev.gnupg.org/T7643
+
+
+Release dates of 1.11 versions
+------------------------------
+
+ Version 1.11.1 (2025-05-07) https://dev.gnupg.org/T7166
 
 
 Noteworthy changes in version 1.11.0 (2024-06-19)  [C25/A5/R0]
