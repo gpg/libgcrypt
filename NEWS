@@ -1,7 +1,11 @@
-Noteworthy changes in version 1.11.2 (unreleased)  [C25/A5/R_]
+Noteworthy changes in version 1.11.2 (unreleased)  [C26/A6/R0]
 -------------------------------------------------
 
  Release-info: https://dev.gnupg.org/T7642
+
+ * Interface changes relative to the 1.11.1 release:
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   GCRY_KEM_RAW_P256R1                   NEW enum.
 
 
 Noteworthy changes in version 1.11.1 (2025-05-07)  [C25/A5/R1]
