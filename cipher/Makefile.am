@@ -60,7 +60,7 @@ libcipher_la_SOURCES = \
 	mac.c mac-internal.h \
 	mac-hmac.c mac-cmac.c mac-gmac.c mac-poly1305.c \
 	poly1305.c poly1305-internal.h \
-	kem.c sntrup761.c sntrup761.h kyber.c kyber.h kem-ecc.c kem-ecc.h \
+	kem.c sntrup761.c sntrup761.h kem-ecc.c kem-ecc.h \
 	mceliece6688128f.c mceliece6688128f.h \
 	kdf.c kdf-internal.h \
 	bithelp.h  \
@@ -101,6 +101,7 @@ EXTRA_libcipher_la_SOURCES = \
 	elgamal.c \
 	ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
 	ecc-ecdh.c ecc-ecdsa.c ecc-eddsa.c ecc-gost.c ecc-sm2.c \
+	kyber.c kyber.h \
 	idea.c \
 	gost28147.c gost.h \
 	gostr3411-94.c \
