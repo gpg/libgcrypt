@@ -61,6 +61,7 @@
 #
 
 .machine        "any"
+.abiversion     2
 .text
 
 .macro clear_vec_regs
