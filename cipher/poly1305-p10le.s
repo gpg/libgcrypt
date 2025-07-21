@@ -55,6 +55,8 @@
 #  r4 = mlen
 #  r5 = m
 #
+
+.machine        "any"
 .text
 
 .macro clear_vec_regs
