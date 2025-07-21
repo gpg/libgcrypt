@@ -59,6 +59,8 @@
 # Column round (v0, v4,  v8, v12, v1, v5,  v9, v13, v2, v6, v10, v14, v3, v7, v11, v15)
 # Diagnal round (v0, v5, v10, v15, v1, v6, v11, v12, v2, v7,  v8, v13, v3, v4,  v9, v14)
 #
+
+.machine        "any"
 .text
 
 .macro clear_vec_regs

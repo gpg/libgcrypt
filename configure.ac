@@ -2415,7 +2415,8 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerPC AltiVec/VSX/crypto
         else
           gcry_cv_gcc_inline_asm_ppc_altivec=no
           AC_LINK_IFELSE([AC_LANG_PROGRAM(
-          [[__asm__(".globl testfn;\n"
+          [[__asm__(".machine \"any\"\n"
+                    ".globl testfn;\n"
                     ".text\n\t"
                     "testfn:\n"
                     "stvx %v31,%r12,%r0;\n"
@@ -2448,7 +2449,8 @@ AC_CACHE_CHECK([whether GCC inline assembler supports PowerISA 3.00 instructions
         else
           gcry_cv_gcc_inline_asm_ppc_arch_3_00=no
           AC_LINK_IFELSE([AC_LANG_PROGRAM(
-          [[__asm__(".text\n\t"
+          [[__asm__(".machine \"any\"\n"
+                    ".text\n\t"
                     ".globl testfn;\n"
                     "testfn:\n"
                     "stxvb16x %r1,%v12,%v30;\n"
