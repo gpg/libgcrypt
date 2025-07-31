@@ -192,7 +192,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
     (q) = __udiv_qrnnd (&__r, (n1), (n0), (d)); 			\
     (r) = __r;								\
   } while (0)
-extern UDItype __udiv_qrnnd ();
+extern UDItype __udiv_qrnnd (UDItype *, UDItype, UDItype, UDItype);
 #  define UDIV_TIME 220
 # endif /* !LONGLONG_STANDALONE */
 #endif /* __alpha */
@@ -448,7 +448,7 @@ extern UDItype __udiv_qrnnd ();
     (q) = __udiv_qrnnd (&__r, (n1), (n0), (d)); 			\
     (r) = __r;								\
   } while (0)
-extern USItype __udiv_qrnnd ();
+extern USItype __udiv_qrnnd (USItype *, USItype, USItype, USItype);
 # endif /* !LONGLONG_STANDALONE && !ASM_DISABLED */
 # define count_leading_zeros(count, x) \
   do {								       \
@@ -1408,7 +1408,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
     (q) = __udiv_qrnnd (&__r, (n1), (n0), (d)); 			\
     (r) = __r;								\
   } while (0)
-extern USItype __udiv_qrnnd ();
+extern USItype __udiv_qrnnd (USItype *, USItype, USItype, USItype);
 #   define UDIV_TIME 140
 #  endif /* LONGLONG_STANDALONE */
 # endif /* udiv_qrnnd */
