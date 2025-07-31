@@ -1699,7 +1699,7 @@ static gpg_err_code_t
 compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
 {
 #define N_COMPONENTS 6
-  static const char names[N_COMPONENTS] = "pabgnq";
+  static const char names[N_COMPONENTS] _GCRY_GCC_ATTR_NONSTRING = "pabgnq";
   gpg_err_code_t rc;
   gcry_sexp_t l1;
   gcry_mpi_t values[N_COMPONENTS];

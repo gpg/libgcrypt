@@ -1880,9 +1880,9 @@ serpent_test (void)
   static struct test
   {
     int key_length;
-    unsigned char key[32];
-    unsigned char text_plain[16];
-    unsigned char text_cipher[16];
+    unsigned char key[32] _GCRY_GCC_ATTR_NONSTRING;
+    unsigned char text_plain[16] _GCRY_GCC_ATTR_NONSTRING;
+    unsigned char text_cipher[16] _GCRY_GCC_ATTR_NONSTRING;
   } test_data[] =
     {
       {

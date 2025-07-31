@@ -589,7 +589,7 @@ check_cbc_mac_cipher (void)
 static void
 check_aes128_cbc_cts_cipher (void)
 {
-  static const char key[128 / 8] = "chicken teriyaki";
+  static const char key[128 / 8] _GCRY_GCC_ATTR_NONSTRING = "chicken teriyaki";
   static const unsigned char plaintext[] =
     "I would like the General Gau's Chicken, please, and wonton soup.";
   static const struct tv
@@ -3550,15 +3550,15 @@ _check_gcm_cipher (unsigned int step)
   static const struct tv
   {
     int algo;
-    char key[MAX_DATA_LEN];
-    char iv[MAX_DATA_LEN];
+    char key[MAX_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
+    char iv[MAX_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
     int ivlen;
-    unsigned char aad[MAX_DATA_LEN];
+    unsigned char aad[MAX_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
     int aadlen;
-    unsigned char plaintext[MAX_GCM_DATA_LEN];
+    unsigned char plaintext[MAX_GCM_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
     int inlen;
-    char out[MAX_GCM_DATA_LEN];
-    char tag[MAX_DATA_LEN];
+    char out[MAX_GCM_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
+    char tag[MAX_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
     int taglen;
     int should_fail;
   } tv[] =
@@ -5743,14 +5743,14 @@ check_gcm_siv_cipher (void)
   {
     int algo;
     int flags;
-    char key[MAX_DATA_LEN];
-    char nonce[12];
-    char ad[MAX_DATA_LEN];
+    char key[MAX_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
+    char nonce[12] _GCRY_GCC_ATTR_NONSTRING;
+    char ad[MAX_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
     int adlen;
-    unsigned char plaintext[MAX_DATA_LEN * 2];
+    unsigned char plaintext[MAX_DATA_LEN * 2] _GCRY_GCC_ATTR_NONSTRING;
     int inlen;
-    char out[MAX_DATA_LEN * 2];
-    char tag[MAX_DATA_LEN];
+    char out[MAX_DATA_LEN * 2] _GCRY_GCC_ATTR_NONSTRING;
+    char tag[MAX_DATA_LEN] _GCRY_GCC_ATTR_NONSTRING;
   } tv[] =
     {
       /* Test vectors from RFC8452 */
@@ -9059,10 +9059,10 @@ static void
 check_ocb_cipher_largebuf_split (int algo, int keylen, const char *tagexpect,
 				 unsigned int splitpos)
 {
-  static const unsigned char key[32] =
+  static const unsigned char key[32] _GCRY_GCC_ATTR_NONSTRING =
         "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
         "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F";
-  static const unsigned char nonce[12] =
+  static const unsigned char nonce[12] _GCRY_GCC_ATTR_NONSTRING =
         "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x00\x01\x02\x03";
   const size_t buflen = 1024 * 1024 * 2 + 32;
   unsigned char *inbuf;
@@ -9282,10 +9282,10 @@ out_free:
 static void
 check_ocb_cipher_checksum (int algo, int keylen)
 {
-  static const unsigned char key[32] =
+  static const unsigned char key[32] _GCRY_GCC_ATTR_NONSTRING =
 	"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
 	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F";
-  static const unsigned char nonce[12] =
+  static const unsigned char nonce[12] _GCRY_GCC_ATTR_NONSTRING =
 	"\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x00\x01\x02\x03";
   const size_t buflen = 128 * 16;
   unsigned char *inbuf, *outbuf;

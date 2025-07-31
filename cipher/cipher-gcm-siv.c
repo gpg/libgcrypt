@@ -248,22 +248,22 @@ do_ctr_le32 (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 static int
 gcm_siv_selftest (gcry_cipher_hd_t c)
 {
-  static const byte in1[GCRY_SIV_BLOCK_LEN] =
+  static const byte in1[GCRY_SIV_BLOCK_LEN] _GCRY_GCC_ATTR_NONSTRING =
       "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-  static const byte out1[GCRY_SIV_BLOCK_LEN] =
+  static const byte out1[GCRY_SIV_BLOCK_LEN] _GCRY_GCC_ATTR_NONSTRING =
       "\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-  static const byte in2[GCRY_SIV_BLOCK_LEN] =
+  static const byte in2[GCRY_SIV_BLOCK_LEN] _GCRY_GCC_ATTR_NONSTRING =
       "\x9c\x98\xc0\x4d\xf9\x38\x7d\xed\x82\x81\x75\xa9\x2b\xa6\x52\xd8";
-  static const byte out2[GCRY_SIV_BLOCK_LEN] =
+  static const byte out2[GCRY_SIV_BLOCK_LEN] _GCRY_GCC_ATTR_NONSTRING =
       "\x4e\x4c\x60\x26\xfc\x9c\x3e\xf6\xc1\x40\xba\xd4\x95\xd3\x29\x6c";
-  static const byte polyval_key[GCRY_SIV_BLOCK_LEN] =
+  static const byte polyval_key[GCRY_SIV_BLOCK_LEN] _GCRY_GCC_ATTR_NONSTRING =
       "\x25\x62\x93\x47\x58\x92\x42\x76\x1d\x31\xf8\x26\xba\x4b\x75\x7b";
-  static const byte ghash_key[GCRY_SIV_BLOCK_LEN] =
+  static const byte ghash_key[GCRY_SIV_BLOCK_LEN] _GCRY_GCC_ATTR_NONSTRING =
       "\xdc\xba\xa5\xdd\x13\x7c\x18\x8e\xbb\x21\x49\x2c\x23\xc9\xb1\x12";
-  static const byte polyval_data[GCRY_SIV_BLOCK_LEN * 2] =
+  static const byte polyval_data[GCRY_SIV_BLOCK_LEN * 2] _GCRY_GCC_ATTR_NONSTRING =
       "\x4f\x4f\x95\x66\x8c\x83\xdf\xb6\x40\x17\x62\xbb\x2d\x01\xa2\x62"
       "\xd1\xa2\x4d\xdd\x27\x21\xd0\x06\xbb\xe4\x5f\x20\xd3\xc9\xf3\x62";
-  static const byte polyval_tag[GCRY_SIV_BLOCK_LEN] =
+  static const byte polyval_tag[GCRY_SIV_BLOCK_LEN] _GCRY_GCC_ATTR_NONSTRING =
       "\xf7\xa3\xb4\x7b\x84\x61\x19\xfa\xe5\xb7\x86\x6c\xf5\xe5\xb7\x7e";
   byte tmp[GCRY_SIV_BLOCK_LEN];
 
