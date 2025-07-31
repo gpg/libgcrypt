@@ -154,8 +154,6 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
   const unsigned char *buf;
   unsigned int rawmpilen;
   gcry_mpi_t x, y;
-  unsigned char *enc;
-  unsigned int enclen;
 
   if (!mpi_is_opaque (value))
     return GPG_ERR_INV_OBJ;
@@ -168,6 +166,9 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
     {
       if (buf[0] == 0x04)
         {
+          unsigned char *enc = NULL;
+          unsigned int enclen = 0;
+
           /* Buffer is in SEC1 uncompressed format.  Extract y and
              compress.  */
           rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG,
