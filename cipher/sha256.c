@@ -110,6 +110,15 @@
 # endif
 #endif
 
+/* USE_RISCV_V_CRYPTO indicates whether to enable RISC-V vector cryptography
+ * extension code. */
+#undef USE_RISCV_V_CRYPTO
+#if defined (__riscv) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_CRYPTO_INTRINSICS)
+# define USE_RISCV_V_CRYPTO 1
+#endif
+
 /* USE_S390X_CRYPTO indicates whether to enable zSeries code. */
 #undef USE_S390X_CRYPTO
 #if defined(HAVE_GCC_INLINE_ASM_S390X)
@@ -242,6 +251,23 @@ do_sha256_transform_ppc9(void *ctx, const unsigned char *data, size_t nblks)
 }
 #endif
 
+#ifdef USE_RISCV_V_CRYPTO
+unsigned int _gcry_sha256_riscv_v_check_hw(void);
+
+unsigned int
+_gcry_sha256_transform_riscv_zvknha_zvkb(u32 state[8],
+					 const unsigned char *input_data,
+					 size_t num_blks);
+
+static unsigned int
+do_sha256_transform_riscv_zvknha(void *ctx, const unsigned char *data,
+				 size_t nblks)
+{
+  SHA256_CONTEXT *hd = ctx;
+  return _gcry_sha256_transform_riscv_zvknha_zvkb (hd->h, data, nblks);
+}
+#endif
+
 #ifdef USE_S390X_CRYPTO
 #include "asm-inline-s390x.h"
 
@@ -323,6 +349,14 @@ sha256_common_init (SHA256_CONTEXT *hd)
     hd->bctx.bwrite = do_sha256_transform_ppc8;
   if ((features & HWF_PPC_VCRYPTO) != 0 && (features & HWF_PPC_ARCH_3_00) != 0)
     hd->bctx.bwrite = do_sha256_transform_ppc9;
+#endif
+#ifdef USE_RISCV_V_CRYPTO
+  if ((features & HWF_RISCV_IMAFDC)
+      && (features & HWF_RISCV_V)
+      && (features & HWF_RISCV_ZVKB)
+      && ((features & HWF_RISCV_ZVKNHA) || (features & HWF_RISCV_ZVKNHB))
+      && _gcry_sha256_riscv_v_check_hw())
+    hd->bctx.bwrite = do_sha256_transform_riscv_zvknha;
 #endif
 #ifdef USE_S390X_CRYPTO
   hd->use_s390x_crypto = 0;
