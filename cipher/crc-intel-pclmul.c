@@ -68,6 +68,10 @@ struct crc32_consts_s
   u64 k[6];
   /* my_p: { floor(x^64 / P(x)), P(x) } */
   u64 my_p[2];
+  /* k_ymm: { x^(32*33), x^(32*31) } mod P(x) */
+  u64 k_ymm[2];
+  /* k_zmm: { x^(32*65), x^(32*63) } mod P(x) */
+  u64 k_zmm[2];
 };
 
 
@@ -81,6 +85,12 @@ static const struct crc32_consts_s crc32_consts ALIGNED_16 =
   },
   { /* my_p[2] = reverse_33bits ( { floor(x^64 / P(x)), P(x) } ) */
     U64_C(0x1f7011641), U64_C(0x1db710641)
+  },
+  { /* k_ymm[2] */
+    U64_C(0x1e88ef372), U64_C(0x14a7fe880)  /* y = { 33, 31 } */,
+  },
+  { /* k_zmm[2] */
+    U64_C(0x11542778a), U64_C(0x1322d1430)  /* y = { 65, 63 } */
   }
 };
 
@@ -94,6 +104,12 @@ static const struct crc32_consts_s crc24rfc2440_consts ALIGNED_16 =
   },
   { /* my_p[2] = { floor(x^64 / P(x)), P(x) } */
     U64_C(0x1f845fe24), U64_C(0x1864cfb00)
+  },
+  { /* k_ymm[2] */
+    U64_C(0xaee5d500) << 32, U64_C(0x1a43ea00) << 32  /* y = { 33, 31 } */
+  },
+  { /* k_zmm[2] */
+    U64_C(0x21342700) << 32, U64_C(0x5d2b6300) << 32  /* y = { 65, 63 } */
   }
 };
 
@@ -144,31 +160,216 @@ static const u64 crc32_merge5to7_shuf[7 - 5 + 1][2] ALIGNED_16 =
 /* PCLMUL functions for reflected CRC32. */
 static ASM_FUNC_ATTR_INLINE void
 crc32_reflected_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
-		      const struct crc32_consts_s *consts)
+		      const struct crc32_consts_s *consts, u32 hwfeatures)
 {
   if (inlen >= 8 * 16)
     {
-      asm volatile ("movd %[crc], %%xmm4\n\t"
-		    "movdqu %[inbuf_0], %%xmm0\n\t"
-		    "movdqu %[inbuf_1], %%xmm1\n\t"
-		    "movdqu %[inbuf_2], %%xmm2\n\t"
-		    "movdqu %[inbuf_3], %%xmm3\n\t"
-		    "pxor %%xmm4, %%xmm0\n\t"
-		    :
-		    : [inbuf_0] "m" (inbuf[0 * 16]),
-		      [inbuf_1] "m" (inbuf[1 * 16]),
-		      [inbuf_2] "m" (inbuf[2 * 16]),
-		      [inbuf_3] "m" (inbuf[3 * 16]),
-		      [crc] "m" (*pcrc)
-		    );
+      if ((hwfeatures & HWF_INTEL_VAES_VPCLMUL)
+	  && (hwfeatures & HWF_INTEL_AVX2)
+	  && inlen >= 8 * 32)
+	{
+	  if ((hwfeatures & HWF_INTEL_VAES_VPCLMUL)
+	      && (hwfeatures & HWF_INTEL_AVX512)
+	      && inlen >= 8 * 64)
+	    {
+	      asm volatile("vmovd %[crc], %%xmm4\n\t"
+			   "vpopcntb %%xmm4, %%xmm0\n\t" /* spec stop for old AVX512 CPUs */
+			   "vmovdqu64 %[inbuf_0], %%zmm0\n\t"
+			   "vmovdqu64 %[inbuf_1], %%zmm1\n\t"
+			   "vmovdqu64 %[inbuf_2], %%zmm2\n\t"
+			   "vmovdqu64 %[inbuf_3], %%zmm3\n\t"
+			   "vpxorq %%zmm4, %%zmm0, %%zmm0\n\t"
+			   :
+			   : [crc] "m" (*pcrc),
+			     [inbuf_0] "m" (inbuf[0 * 64]),
+			     [inbuf_1] "m" (inbuf[1 * 64]),
+			     [inbuf_2] "m" (inbuf[2 * 64]),
+			     [inbuf_3] "m" (inbuf[3 * 64]),
+			     [k_zmm] "m" (consts->k_zmm[0])
+			   );
 
-      inbuf += 4 * 16;
-      inlen -= 4 * 16;
+	      inbuf += 4 * 64;
+	      inlen -= 4 * 64;
 
-      asm volatile ("movdqa %[k1k2], %%xmm4\n\t"
-		    :
-		    : [k1k2] "m" (consts->k[1 - 1])
-		    );
+	      asm volatile("vbroadcasti32x4 %[k_zmm], %%zmm4\n\t"
+			   :
+			   : [k_zmm] "m" (consts->k_zmm[0])
+			   );
+
+	      /* Fold by 16. */
+	      while (inlen >= 4 * 64)
+		{
+		  asm volatile ("vmovdqu64 %[inbuf_0], %%zmm5\n\t"
+				"vmovdqa64 %%zmm0, %%zmm6\n\t"
+				"vpclmulqdq $0x00, %%zmm4, %%zmm0, %%zmm0\n\t"
+				"vpclmulqdq $0x11, %%zmm4, %%zmm6, %%zmm6\n\t"
+				"vpternlogq $0x96, %%zmm5, %%zmm6, %%zmm0\n\t"
+
+				"vmovdqu64 %[inbuf_1], %%zmm5\n\t"
+				"vmovdqa64 %%zmm1, %%zmm6\n\t"
+				"vpclmulqdq $0x00, %%zmm4, %%zmm1, %%zmm1\n\t"
+				"vpclmulqdq $0x11, %%zmm4, %%zmm6, %%zmm6\n\t"
+				"vpternlogq $0x96, %%zmm5, %%zmm6, %%zmm1\n\t"
+
+				"vmovdqu64 %[inbuf_2], %%zmm5\n\t"
+				"vmovdqa64 %%zmm2, %%zmm6\n\t"
+				"vpclmulqdq $0x00, %%zmm4, %%zmm2, %%zmm2\n\t"
+				"vpclmulqdq $0x11, %%zmm4, %%zmm6, %%zmm6\n\t"
+				"vpternlogq $0x96, %%zmm5, %%zmm6, %%zmm2\n\t"
+
+				"vmovdqu64 %[inbuf_3], %%zmm5\n\t"
+				"vmovdqa64 %%zmm3, %%zmm6\n\t"
+				"vpclmulqdq $0x00, %%zmm4, %%zmm3, %%zmm3\n\t"
+				"vpclmulqdq $0x11, %%zmm4, %%zmm6, %%zmm6\n\t"
+				"vpternlogq $0x96, %%zmm5, %%zmm6, %%zmm3\n\t"
+				:
+				: [inbuf_0] "m" (inbuf[0 * 64]),
+				  [inbuf_1] "m" (inbuf[1 * 64]),
+				  [inbuf_2] "m" (inbuf[2 * 64]),
+				  [inbuf_3] "m" (inbuf[3 * 64])
+				);
+
+		  inbuf += 4 * 64;
+		  inlen -= 4 * 64;
+		}
+
+	      /* Fold 16 to 8. */
+	      asm volatile("vbroadcasti32x4 %[k_ymm], %%zmm4\n\t"
+			   /* Fold zmm2 into zmm0. */
+			   "vmovdqa64 %%zmm0, %%zmm5\n\t"
+			   "vpclmulqdq $0x00, %%zmm4, %%zmm5, %%zmm5\n\t"
+			   "vpclmulqdq $0x11, %%zmm4, %%zmm0, %%zmm0\n\t"
+			   "vpternlogq $0x96, %%zmm2, %%zmm5, %%zmm0\n\t"
+			   /* Fold zmm3 into zmm1. */
+			   "vmovdqa64 %%zmm1, %%zmm5\n\t"
+			   "vpclmulqdq $0x00, %%zmm4, %%zmm5, %%zmm5\n\t"
+			   "vpclmulqdq $0x11, %%zmm4, %%zmm1, %%zmm1\n\t"
+			   "vpternlogq $0x96, %%zmm3, %%zmm5, %%zmm1\n\t"
+			   :
+			   : [k_ymm] "m" (consts->k_ymm[0]));
+
+	      asm volatile("vextracti64x4 $1, %%zmm1, %%ymm3\n\t"
+			   "vmovdqa %%ymm1, %%ymm2\n\t"
+			   "vextracti64x4 $1, %%zmm0, %%ymm1\n\t"
+			   :
+			   : );
+	    }
+	  else
+	    {
+	      asm volatile ("vmovd %[crc], %%xmm4\n\t"
+			    "vmovdqu %[inbuf_0], %%ymm0\n\t"
+			    "vmovdqu %[inbuf_1], %%ymm1\n\t"
+			    "vmovdqu %[inbuf_2], %%ymm2\n\t"
+			    "vmovdqu %[inbuf_3], %%ymm3\n\t"
+			    "vpxor %%ymm4, %%ymm0, %%ymm0\n\t"
+			    :
+			    : [inbuf_0] "m" (inbuf[0 * 32]),
+			      [inbuf_1] "m" (inbuf[1 * 32]),
+			      [inbuf_2] "m" (inbuf[2 * 32]),
+			      [inbuf_3] "m" (inbuf[3 * 32]),
+			      [crc] "m" (*pcrc)
+			    );
+
+	      inbuf += 4 * 32;
+	      inlen -= 4 * 32;
+
+	      asm volatile ("vbroadcasti128 %[k_ymm], %%ymm4\n\t"
+			    :
+			    : [k_ymm] "m" (consts->k_ymm[0])
+			    );
+	    }
+
+	  /* Fold by 8. */
+	  while (inlen >= 4 * 32)
+	    {
+	      asm volatile ("vmovdqu %[inbuf_0], %%ymm5\n\t"
+			    "vmovdqa %%ymm0, %%ymm6\n\t"
+			    "vpclmulqdq $0x00, %%ymm4, %%ymm0, %%ymm0\n\t"
+			    "vpclmulqdq $0x11, %%ymm4, %%ymm6, %%ymm6\n\t"
+			    "vpxor %%ymm5, %%ymm0, %%ymm0\n\t"
+			    "vpxor %%ymm6, %%ymm0, %%ymm0\n\t"
+
+			    "vmovdqu %[inbuf_1], %%ymm5\n\t"
+			    "vmovdqa %%ymm1, %%ymm6\n\t"
+			    "vpclmulqdq $0x00, %%ymm4, %%ymm1, %%ymm1\n\t"
+			    "vpclmulqdq $0x11, %%ymm4, %%ymm6, %%ymm6\n\t"
+			    "vpxor %%ymm5, %%ymm1, %%ymm1\n\t"
+			    "vpxor %%ymm6, %%ymm1, %%ymm1\n\t"
+
+			    "vmovdqu %[inbuf_2], %%ymm5\n\t"
+			    "vmovdqa %%ymm2, %%ymm6\n\t"
+			    "vpclmulqdq $0x00, %%ymm4, %%ymm2, %%ymm2\n\t"
+			    "vpclmulqdq $0x11, %%ymm4, %%ymm6, %%ymm6\n\t"
+			    "vpxor %%ymm5, %%ymm2, %%ymm2\n\t"
+			    "vpxor %%ymm6, %%ymm2, %%ymm2\n\t"
+
+			    "vmovdqu %[inbuf_3], %%ymm5\n\t"
+			    "vmovdqa %%ymm3, %%ymm6\n\t"
+			    "vpclmulqdq $0x00, %%ymm4, %%ymm3, %%ymm3\n\t"
+			    "vpclmulqdq $0x11, %%ymm4, %%ymm6, %%ymm6\n\t"
+			    "vpxor %%ymm5, %%ymm3, %%ymm3\n\t"
+			    "vpxor %%ymm6, %%ymm3, %%ymm3\n\t"
+			    :
+			    : [inbuf_0] "m" (inbuf[0 * 32]),
+			      [inbuf_1] "m" (inbuf[1 * 32]),
+			      [inbuf_2] "m" (inbuf[2 * 32]),
+			      [inbuf_3] "m" (inbuf[3 * 32])
+			    );
+
+	      inbuf += 4 * 32;
+	      inlen -= 4 * 32;
+	    }
+
+	  /* Fold 8 to 4. */
+	  asm volatile("vbroadcasti128 %[k1k2], %%ymm4\n\t"
+
+		       /* Fold ymm2 into ymm0. */
+		       "vmovdqa %%ymm0, %%ymm5\n\t"
+		       "vpclmulqdq $0x00, %%ymm4, %%ymm5, %%ymm5\n\t"
+		       "vpclmulqdq $0x11, %%ymm4, %%ymm0, %%ymm0\n\t"
+		       "vpxor %%ymm2, %%ymm5, %%ymm5\n\t"
+		       "vpxor %%ymm5, %%ymm0, %%ymm0\n\t"
+
+		       /* Fold ymm3 into ymm1. */
+		       "vmovdqa %%ymm1, %%ymm5\n\t"
+		       "vpclmulqdq $0x00, %%ymm4, %%ymm5, %%ymm5\n\t"
+		       "vpclmulqdq $0x11, %%ymm4, %%ymm1, %%ymm1\n\t"
+		       "vpxor %%ymm3, %%ymm5, %%ymm5\n\t"
+		       "vpxor %%ymm5, %%ymm1, %%ymm1\n\t"
+
+		       "vextracti128 $1, %%ymm1, %%xmm3\n\t"
+		       "vmovdqa %%xmm1, %%xmm2\n\t"
+		       "vextracti128 $1, %%ymm0, %%xmm1\n\t"
+
+		       "vzeroupper\n\t"
+		       :
+		       : [k1k2] "m" (consts->k[1 - 1])
+		       );
+      }
+      else
+	{
+	  asm volatile ("movd %[crc], %%xmm4\n\t"
+			"movdqu %[inbuf_0], %%xmm0\n\t"
+			"movdqu %[inbuf_1], %%xmm1\n\t"
+			"movdqu %[inbuf_2], %%xmm2\n\t"
+			"movdqu %[inbuf_3], %%xmm3\n\t"
+			"pxor %%xmm4, %%xmm0\n\t"
+			:
+			: [inbuf_0] "m" (inbuf[0 * 16]),
+			  [inbuf_1] "m" (inbuf[1 * 16]),
+			  [inbuf_2] "m" (inbuf[2 * 16]),
+			  [inbuf_3] "m" (inbuf[3 * 16]),
+			  [crc] "m" (*pcrc)
+			);
+
+	  inbuf += 4 * 16;
+	  inlen -= 4 * 16;
+
+	  asm volatile ("movdqa %[k1k2], %%xmm4\n\t"
+			:
+			: [k1k2] "m" (consts->k[1 - 1])
+			);
+	}
 
       /* Fold by 4. */
       while (inlen >= 4 * 16)
@@ -219,7 +420,6 @@ crc32_reflected_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
 		    );
 
       /* Fold 4 to 1. */
-
       asm volatile ("movdqa %%xmm0, %%xmm4\n\t"
 		    "pclmulqdq $0x00, %%xmm6, %%xmm0\n\t"
 		    "pclmulqdq $0x11, %%xmm6, %%xmm4\n\t"
@@ -489,7 +689,7 @@ crc32_reflected_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
 /* PCLMUL functions for non-reflected CRC32. */
 static ASM_FUNC_ATTR_INLINE void
 crc32_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
-	    const struct crc32_consts_s *consts)
+	    const struct crc32_consts_s *consts, u32 hwfeatures)
 {
   asm volatile ("movdqa %[bswap], %%xmm7\n\t"
 		:
@@ -498,31 +698,230 @@ crc32_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
 
   if (inlen >= 8 * 16)
     {
-      asm volatile ("movd %[crc], %%xmm4\n\t"
-		    "movdqu %[inbuf_0], %%xmm0\n\t"
-		    "movdqu %[inbuf_1], %%xmm1\n\t"
-		    "movdqu %[inbuf_2], %%xmm2\n\t"
-		    "pxor %%xmm4, %%xmm0\n\t"
-		    "movdqu %[inbuf_3], %%xmm3\n\t"
-		    "pshufb %%xmm7, %%xmm0\n\t"
-		    "pshufb %%xmm7, %%xmm1\n\t"
-		    "pshufb %%xmm7, %%xmm2\n\t"
-		    "pshufb %%xmm7, %%xmm3\n\t"
-		    :
-		    : [inbuf_0] "m" (inbuf[0 * 16]),
-		      [inbuf_1] "m" (inbuf[1 * 16]),
-		      [inbuf_2] "m" (inbuf[2 * 16]),
-		      [inbuf_3] "m" (inbuf[3 * 16]),
-		      [crc] "m" (*pcrc)
-		    );
+      if ((hwfeatures & HWF_INTEL_VAES_VPCLMUL)
+	  && (hwfeatures & HWF_INTEL_AVX2)
+	  && inlen >= 8 * 32)
+	{
+	  if ((hwfeatures & HWF_INTEL_VAES_VPCLMUL)
+	      && (hwfeatures & HWF_INTEL_AVX512)
+	      && inlen >= 8 * 64)
+	    {
+	      asm volatile("vpopcntb %%xmm7, %%xmm0\n\t" /* spec stop for old AVX512 CPUs */
+			   "vshufi32x4 $0x00, %%zmm7, %%zmm7, %%zmm7\n\t"
+			   "vmovd %[crc], %%xmm4\n\t"
+			   "vmovdqu64 %[inbuf_0], %%zmm0\n\t"
+			   "vmovdqu64 %[inbuf_1], %%zmm1\n\t"
+			   "vmovdqu64 %[inbuf_2], %%zmm2\n\t"
+			   "vmovdqu64 %[inbuf_3], %%zmm3\n\t"
+			   "vpxorq %%zmm4, %%zmm0, %%zmm0\n\t"
+			   "vpshufb %%zmm7, %%zmm0, %%zmm0\n\t"
+			   "vpshufb %%zmm7, %%zmm1, %%zmm1\n\t"
+			   "vpshufb %%zmm7, %%zmm2, %%zmm2\n\t"
+			   "vpshufb %%zmm7, %%zmm3, %%zmm3\n\t"
+			   :
+			   : [crc] "m" (*pcrc),
+			     [inbuf_0] "m" (inbuf[0 * 64]),
+			     [inbuf_1] "m" (inbuf[1 * 64]),
+			     [inbuf_2] "m" (inbuf[2 * 64]),
+			     [inbuf_3] "m" (inbuf[3 * 64])
+			   );
 
-      inbuf += 4 * 16;
-      inlen -= 4 * 16;
+	      inbuf += 4 * 64;
+	      inlen -= 4 * 64;
 
-      asm volatile ("movdqa %[k1k2], %%xmm4\n\t"
-		    :
-		    : [k1k2] "m" (consts->k[1 - 1])
-		    );
+	      asm volatile ("vbroadcasti32x4 %[k_zmm], %%zmm4\n\t"
+			    :
+			    : [k_zmm] "m" (consts->k_zmm[0])
+			    );
+
+	      /* Fold by 16. */
+	      while (inlen >= 4 * 64)
+		{
+		  asm volatile ("vmovdqu64 %[inbuf_0], %%zmm5\n\t"
+				"vmovdqa64 %%zmm0, %%zmm6\n\t"
+				"vpshufb %%zmm7, %%zmm5, %%zmm5\n\t"
+				"vpclmulqdq $0x01, %%zmm4, %%zmm0, %%zmm0\n\t"
+				"vpclmulqdq $0x10, %%zmm4, %%zmm6, %%zmm6\n\t"
+				"vpternlogq $0x96, %%zmm5, %%zmm6, %%zmm0\n\t"
+
+				"vmovdqu64 %[inbuf_1], %%zmm5\n\t"
+				"vmovdqa64 %%zmm1, %%zmm6\n\t"
+				"vpshufb %%zmm7, %%zmm5, %%zmm5\n\t"
+				"vpclmulqdq $0x01, %%zmm4, %%zmm1, %%zmm1\n\t"
+				"vpclmulqdq $0x10, %%zmm4, %%zmm6, %%zmm6\n\t"
+				"vpternlogq $0x96, %%zmm5, %%zmm6, %%zmm1\n\t"
+
+				"vmovdqu64 %[inbuf_2], %%zmm5\n\t"
+				"vmovdqa64 %%zmm2, %%zmm6\n\t"
+				"vpshufb %%zmm7, %%zmm5, %%zmm5\n\t"
+				"vpclmulqdq $0x01, %%zmm4, %%zmm2, %%zmm2\n\t"
+				"vpclmulqdq $0x10, %%zmm4, %%zmm6, %%zmm6\n\t"
+				"vpternlogq $0x96, %%zmm5, %%zmm6, %%zmm2\n\t"
+
+				"vmovdqu64 %[inbuf_3], %%zmm5\n\t"
+				"vmovdqa64 %%zmm3, %%zmm6\n\t"
+				"vpshufb %%zmm7, %%zmm5, %%zmm5\n\t"
+				"vpclmulqdq $0x01, %%zmm4, %%zmm3, %%zmm3\n\t"
+				"vpclmulqdq $0x10, %%zmm4, %%zmm6, %%zmm6\n\t"
+				"vpternlogq $0x96, %%zmm5, %%zmm6, %%zmm3\n\t"
+				:
+				: [inbuf_0] "m" (inbuf[0 * 64]),
+				  [inbuf_1] "m" (inbuf[1 * 64]),
+				  [inbuf_2] "m" (inbuf[2 * 64]),
+				  [inbuf_3] "m" (inbuf[3 * 64])
+				);
+
+		  inbuf += 4 * 64;
+		  inlen -= 4 * 64;
+		}
+
+	      asm volatile("vbroadcasti32x4 %[k_ymm], %%zmm4\n\t"
+			   /* Fold zmm2 into zmm0. */
+			   "vmovdqa64 %%zmm0, %%zmm5\n\t"
+			   "vpclmulqdq $0x01, %%zmm4, %%zmm5, %%zmm5\n\t"
+			   "vpclmulqdq $0x10, %%zmm4, %%zmm0, %%zmm0\n\t"
+			   "vpternlogq $0x96, %%zmm2, %%zmm5, %%zmm0\n\t"
+			   /* Fold zmm3 into zmm1. */
+			   "vmovdqa64 %%zmm1, %%zmm5\n\t"
+			   "vpclmulqdq $0x01, %%zmm4, %%zmm5, %%zmm5\n\t"
+			   "vpclmulqdq $0x10, %%zmm4, %%zmm1, %%zmm1\n\t"
+			   "vpternlogq $0x96, %%zmm3, %%zmm5, %%zmm1\n\t"
+			   :
+			   : [k_ymm] "m" (consts->k_ymm[0])
+			   );
+
+	      asm volatile("vextracti64x4 $1, %%zmm1, %%ymm3\n\t"
+			   "vmovdqa %%ymm1, %%ymm2\n\t"
+			   "vextracti64x4 $1, %%zmm0, %%ymm1\n\t"
+			   :
+			   :
+			   );
+	    }
+	  else
+	    {
+	      asm volatile("vinserti128 $1, %%xmm7, %%ymm7, %%ymm7\n\t"
+			  "vmovd %[crc], %%xmm4\n\t"
+			  "vmovdqu %[inbuf_0], %%ymm0\n\t"
+			  "vmovdqu %[inbuf_1], %%ymm1\n\t"
+			  "vmovdqu %[inbuf_2], %%ymm2\n\t"
+			  "vmovdqu %[inbuf_3], %%ymm3\n\t"
+			  "vpxor %%ymm4, %%ymm0, %%ymm0\n\t"
+			  "vpshufb %%ymm7, %%ymm0, %%ymm0\n\t"
+			  "vpshufb %%ymm7, %%ymm1, %%ymm1\n\t"
+			  "vpshufb %%ymm7, %%ymm2, %%ymm2\n\t"
+			  "vpshufb %%ymm7, %%ymm3, %%ymm3\n\t"
+			  :
+			  : [crc] "m" (*pcrc),
+			    [inbuf_0] "m" (inbuf[0 * 32]),
+			    [inbuf_1] "m" (inbuf[1 * 32]),
+			    [inbuf_2] "m" (inbuf[2 * 32]),
+			    [inbuf_3] "m" (inbuf[3 * 32])
+			  );
+
+	      inbuf += 4 * 32;
+	      inlen -= 4 * 32;
+
+	      asm volatile ("vbroadcasti128 %[k_ymm], %%ymm4\n\t"
+			  : : [k_ymm] "m" (consts->k_ymm[0]));
+	    }
+
+	  /* Fold by 8. */
+	  while (inlen >= 4 * 32)
+	    {
+	      asm volatile ("vmovdqu %[inbuf_0], %%ymm5\n\t"
+			    "vmovdqa %%ymm0, %%ymm6\n\t"
+			    "vpshufb %%ymm7, %%ymm5, %%ymm5\n\t"
+			    "vpclmulqdq $0x01, %%ymm4, %%ymm0, %%ymm0\n\t"
+			    "vpclmulqdq $0x10, %%ymm4, %%ymm6, %%ymm6\n\t"
+			    "vpxor %%ymm5, %%ymm0, %%ymm0\n\t"
+			    "vpxor %%ymm6, %%ymm0, %%ymm0\n\t"
+
+			    "vmovdqu %[inbuf_1], %%ymm5\n\t"
+			    "vmovdqa %%ymm1, %%ymm6\n\t"
+			    "vpshufb %%ymm7, %%ymm5, %%ymm5\n\t"
+			    "vpclmulqdq $0x01, %%ymm4, %%ymm1, %%ymm1\n\t"
+			    "vpclmulqdq $0x10, %%ymm4, %%ymm6, %%ymm6\n\t"
+			    "vpxor %%ymm5, %%ymm1, %%ymm1\n\t"
+			    "vpxor %%ymm6, %%ymm1, %%ymm1\n\t"
+
+			    "vmovdqu %[inbuf_2], %%ymm5\n\t"
+			    "vmovdqa %%ymm2, %%ymm6\n\t"
+			    "vpshufb %%ymm7, %%ymm5, %%ymm5\n\t"
+			    "vpclmulqdq $0x01, %%ymm4, %%ymm2, %%ymm2\n\t"
+			    "vpclmulqdq $0x10, %%ymm4, %%ymm6, %%ymm6\n\t"
+			    "vpxor %%ymm5, %%ymm2, %%ymm2\n\t"
+			    "vpxor %%ymm6, %%ymm2, %%ymm2\n\t"
+
+			    "vmovdqu %[inbuf_3], %%ymm5\n\t"
+			    "vmovdqa %%ymm3, %%ymm6\n\t"
+			    "vpshufb %%ymm7, %%ymm5, %%ymm5\n\t"
+			    "vpclmulqdq $0x01, %%ymm4, %%ymm3, %%ymm3\n\t"
+			    "vpclmulqdq $0x10, %%ymm4, %%ymm6, %%ymm6\n\t"
+			    "vpxor %%ymm5, %%ymm3, %%ymm3\n\t"
+			    "vpxor %%ymm6, %%ymm3, %%ymm3\n\t"
+			    :
+			    : [inbuf_0] "m" (inbuf[0 * 32]),
+			      [inbuf_1] "m" (inbuf[1 * 32]),
+			      [inbuf_2] "m" (inbuf[2 * 32]),
+			      [inbuf_3] "m" (inbuf[3 * 32])
+			    );
+
+	      inbuf += 4 * 32;
+	      inlen -= 4 * 32;
+	    }
+
+	  asm volatile("vbroadcasti128 %[k1k2], %%ymm4\n\t"
+
+		       /* Fold ymm2 into ymm0. */
+		       "vmovdqa %%ymm0, %%ymm5\n\t"
+		       "vpclmulqdq $0x01, %%ymm4, %%ymm5, %%ymm5\n\t"
+		       "vpclmulqdq $0x10, %%ymm4, %%ymm0, %%ymm0\n\t"
+		       "vpxor %%ymm2, %%ymm5, %%ymm5\n\t"
+		       "vpxor %%ymm5, %%ymm0, %%ymm0\n\t"
+
+		       /* Fold ymm3 into ymm1. */
+		       "vmovdqa %%ymm1, %%ymm5\n\t"
+		       "vpclmulqdq $0x01, %%ymm4, %%ymm5, %%ymm5\n\t"
+		       "vpclmulqdq $0x10, %%ymm4, %%ymm1, %%ymm1\n\t"
+		       "vpxor %%ymm3, %%ymm5, %%ymm5\n\t"
+		       "vpxor %%ymm5, %%ymm1, %%ymm1\n\t"
+
+		       "vextracti128 $1, %%ymm1, %%xmm3\n\t"
+		       "vmovdqa %%xmm1, %%xmm2\n\t"
+		       "vextracti128 $1, %%ymm0, %%xmm1\n\t"
+		       "vzeroupper\n\t"
+		       :
+		       : [k1k2] "m" (consts->k[1 - 1])
+		       );
+	}
+      else
+	{
+	  asm volatile ("movd %[crc], %%xmm4\n\t"
+			"movdqu %[inbuf_0], %%xmm0\n\t"
+			"movdqu %[inbuf_1], %%xmm1\n\t"
+			"movdqu %[inbuf_2], %%xmm2\n\t"
+			"pxor %%xmm4, %%xmm0\n\t"
+			"movdqu %[inbuf_3], %%xmm3\n\t"
+			"pshufb %%xmm7, %%xmm0\n\t"
+			"pshufb %%xmm7, %%xmm1\n\t"
+			"pshufb %%xmm7, %%xmm2\n\t"
+			"pshufb %%xmm7, %%xmm3\n\t"
+			:
+			: [inbuf_0] "m" (inbuf[0 * 16]),
+			  [inbuf_1] "m" (inbuf[1 * 16]),
+			  [inbuf_2] "m" (inbuf[2 * 16]),
+			  [inbuf_3] "m" (inbuf[3 * 16]),
+			  [crc] "m" (*pcrc)
+			);
+
+	  inbuf += 4 * 16;
+	  inlen -= 4 * 16;
+
+	  asm volatile ("movdqa %[k1k2], %%xmm4\n\t"
+			:
+			: [k1k2] "m" (consts->k[1 - 1])
+			);
+	}
 
       /* Fold by 4. */
       while (inlen >= 4 * 16)
@@ -577,7 +976,6 @@ crc32_bulk (u32 *pcrc, const byte *inbuf, size_t inlen,
 		    );
 
       /* Fold 4 to 1. */
-
       asm volatile ("movdqa %%xmm0, %%xmm4\n\t"
 		    "pclmulqdq $0x01, %%xmm6, %%xmm0\n\t"
 		    "pclmulqdq $0x10, %%xmm6, %%xmm4\n\t"
@@ -865,7 +1263,8 @@ crc32_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
 }
 
 void ASM_FUNC_ATTR
-_gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
+_gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen,
+			  u32 hwfeatures)
 {
   const struct crc32_consts_s *consts = &crc32_consts;
 #if defined(__x86_64__) && defined(__WIN64__)
@@ -883,7 +1282,7 @@ _gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
     return;
 
   if (inlen >= 16)
-    crc32_reflected_bulk(pcrc, inbuf, inlen, consts);
+    crc32_reflected_bulk(pcrc, inbuf, inlen, consts, hwfeatures);
   else
     crc32_reflected_less_than_16(pcrc, inbuf, inlen, consts);
 
@@ -898,7 +1297,8 @@ _gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
 }
 
 void ASM_FUNC_ATTR
-_gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
+_gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen,
+				 u32 hwfeatures)
 {
   const struct crc32_consts_s *consts = &crc24rfc2440_consts;
 #if defined(__x86_64__) && defined(__WIN64__)
@@ -918,7 +1318,7 @@ _gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen)
   /* Note: *pcrc in input endian. */
 
   if (inlen >= 16)
-    crc32_bulk(pcrc, inbuf, inlen, consts);
+    crc32_bulk(pcrc, inbuf, inlen, consts, hwfeatures);
   else
     crc32_less_than_16(pcrc, inbuf, inlen, consts);
 

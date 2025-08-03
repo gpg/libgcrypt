@@ -70,6 +70,7 @@ typedef struct
   u32 CRC;
 #ifdef USE_INTEL_PCLMUL
   unsigned int use_pclmul:1;           /* Intel PCLMUL shall be used.  */
+  u32 hwfeatures;
 #endif
 #ifdef USE_ARM_PMULL
   unsigned int use_pmull:1;            /* ARMv8 PMULL shall be used. */
@@ -84,9 +85,10 @@ CRC_CONTEXT;
 
 #ifdef USE_INTEL_PCLMUL
 /*-- crc-intel-pclmul.c --*/
-void _gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen);
+void _gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen,
+			       u32 hwfeatures);
 void _gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf,
-				      size_t inlen);
+				      size_t inlen, u32 hwfeatures);
 #endif
 
 #ifdef USE_ARM_PMULL
@@ -407,6 +409,7 @@ crc32_init (void *context, unsigned int flags)
 
 #ifdef USE_INTEL_PCLMUL
   ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
+  ctx->hwfeatures = hwf;
 #endif
 #ifdef USE_ARM_PMULL
   ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
@@ -431,7 +434,7 @@ crc32_write (void *context, const void *inbuf_arg, size_t inlen)
 #ifdef USE_INTEL_PCLMUL
   if (ctx->use_pclmul)
     {
-      _gcry_crc32_intel_pclmul(&ctx->CRC, inbuf, inlen);
+      _gcry_crc32_intel_pclmul(&ctx->CRC, inbuf, inlen, ctx->hwfeatures);
       return;
     }
 #endif
@@ -506,6 +509,7 @@ crc32rfc1510_init (void *context, unsigned int flags)
 
 #ifdef USE_INTEL_PCLMUL
   ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
+  ctx->hwfeatures = hwf;
 #endif
 #ifdef USE_ARM_PMULL
   ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
@@ -843,6 +847,7 @@ crc24rfc2440_init (void *context, unsigned int flags)
 
 #ifdef USE_INTEL_PCLMUL
   ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
+  ctx->hwfeatures = hwf;
 #endif
 #ifdef USE_ARM_PMULL
   ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
@@ -867,7 +872,7 @@ crc24rfc2440_write (void *context, const void *inbuf_arg, size_t inlen)
 #ifdef USE_INTEL_PCLMUL
   if (ctx->use_pclmul)
     {
-      _gcry_crc24rfc2440_intel_pclmul(&ctx->CRC, inbuf, inlen);
+      _gcry_crc24rfc2440_intel_pclmul(&ctx->CRC, inbuf, inlen, ctx->hwfeatures);
       return;
     }
 #endif
