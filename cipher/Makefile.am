@@ -355,11 +355,15 @@ serpent-avx512-x86.o: $(srcdir)/serpent-avx512-x86.c Makefile
 serpent-avx512-x86.lo: $(srcdir)/serpent-avx512-x86.c Makefile
 	`echo $(LTCOMPILE) $(avx512f_cflags) -c $< | $(instrumentation_munging) `
 
-if ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS
 # Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
+if ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS
 riscv_vector_cflags = -O2 -march=rv64imafdcv -mstrict-align
 else
+if SUPPORT_CC_RISCV_MSTRICT_ALIGN
+riscv_vector_cflags = -O2 -mstrict-align
+else
 riscv_vector_cflags =
+endif
 endif
 
 chacha20-riscv-v.o: $(srcdir)/chacha20-riscv-v.c Makefile
@@ -374,11 +378,15 @@ rijndael-vp-riscv.o: $(srcdir)/rijndael-vp-riscv.c Makefile
 rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
 	`echo $(LTCOMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
 
-if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
 # Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
+if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
 riscv_vector_crypto_cflags = -O2 -march=rv64imafdcv_zvbc_zvkg_zvkn_zvks -mstrict-align
 else
+if SUPPORT_CC_RISCV_MSTRICT_ALIGN
+riscv_vector_crypto_cflags = -O2 -mstrict-align
+else
 riscv_vector_crypto_cflags =
+endif
 endif
 
 sha256-riscv-zvknha-zvkb.o: $(srcdir)/sha256-riscv-zvknha-zvkb.c Makefile

@@ -2667,6 +2667,31 @@ fi
 
 
 #
+# Check whether compiler supports RISC-V -mstrict-align flag
+#
+_gcc_cflags_save=$CFLAGS
+# Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
+CFLAGS="$CFLAGS -mstrict-align"
+
+AC_CACHE_CHECK([whether compiler supports RISC-V -mstrict-align flag],
+      [gcry_cv_cc_riscv_mstrict_align],
+      [if test "$mpi_cpu_arch" != "riscv64" ||
+	  test "$try_asm_modules" != "yes" ; then
+	gcry_cv_cc_riscv_mstrict_align="n/a"
+      else
+	gcry_cv_cc_riscv_mstrict_align=no
+	AC_COMPILE_IFELSE(
+	  [AC_LANG_SOURCE([[void testfn(void) { }]])],
+	  [gcry_cv_cc_riscv_mstrict_align=yes])
+      fi])
+AM_CONDITIONAL(SUPPORT_CC_RISCV_MSTRICT_ALIGN,
+	       test "$gcry_cv_cc_riscv_mstrict_align" = "yes")
+
+# Restore flags.
+CFLAGS=$_gcc_cflags_save;
+
+
+#
 # Check whether compiler supports RISC-V vector intrinsics
 #
 m4_define([GCRY_RISCV_VECTOR_INTRINSICS_TEST],
