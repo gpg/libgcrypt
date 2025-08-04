@@ -1,11 +1,38 @@
-Noteworthy changes in version 1.11.2 (unreleased)  [C26/A6/R0]
+Noteworthy changes in version 1.11.2 (2025-08-04)  [C26/A6/R0]
 -------------------------------------------------
 
- Release-info: https://dev.gnupg.org/T7642
+ * Bug fixes:
+
+   - Fix link errors in regression test t-thread-local on some
+     platforms (e.g. NetBSD).  [T7634]
+
+   - Add missing file to allow building for RISC-V.  [T7647]
+
+   - Support secp256k1 by KEM API.  GnuPG has recently switched to use
+     the KEM interface and a few folks are using this curve.  [T7698]
+
+   - Fix a missing initialization in RSA's generate_fips.
+     [rG448693047f]
+
+ * Other:
+
+   - Silence GCC 15 warnings [rG7ebe90e555,T7617]
+
+   - Provide a prototype for __udiv_qrnnd for PowerPC and Alpha which
+     is required due to GCC-15 changes.  [T7721]
+
+   - Add missing abi versions and machine tags for PowerPC assembly
+     with GCC-15.  [T7721]
+
+   - Use '.rodata' section for read-only data of poly1305-p10le.
+     [T7721]
 
  * Interface changes relative to the 1.11.1 release:
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    GCRY_KEM_RAW_P256R1                   NEW enum.
+
+
+ Release-info: https://dev.gnupg.org/T7642
 
 
 Noteworthy changes in version 1.11.1 (2025-05-07)  [C25/A5/R1]
