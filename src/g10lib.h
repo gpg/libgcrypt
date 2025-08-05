@@ -281,8 +281,9 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_RISCV_ZBB           (1 << 2)
 #define HWF_RISCV_ZBC           (1 << 3)
 #define HWF_RISCV_ZVKB          (1 << 4)
-#define HWF_RISCV_ZVKNHA        (1 << 5)
-#define HWF_RISCV_ZVKNHB        (1 << 6)
+#define HWF_RISCV_ZVKNED        (1 << 5)
+#define HWF_RISCV_ZVKNHA        (1 << 6)
+#define HWF_RISCV_ZVKNHB        (1 << 7)
 
 #endif
 

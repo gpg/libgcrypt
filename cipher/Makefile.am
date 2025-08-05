@@ -122,6 +122,7 @@ EXTRA_libcipher_la_SOURCES = \
 	rijndael-ppc.c rijndael-ppc9le.c                   \
 	rijndael-p10le.c rijndael-gcm-p10le.s              \
 	rijndael-ppc-common.h rijndael-ppc-functions.h     \
+	rijndael-riscv-zvkned.c                            \
 	rijndael-s390x.c                                   \
 	rijndael-vp-aarch64.c rijndael-vp-riscv.c          \
 	rijndael-vp-simd128.h                              \
@@ -380,23 +381,32 @@ rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
 
 # Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
 if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
-riscv_vector_crypto_cflags = -O2 -march=rv64imafdcv_zvbc_zvkg_zvkn_zvks -mstrict-align
+riscv_vector_crypto_aes_cflags = -O2 -march=rv64imafdcv_zvkned -mstrict-align
+riscv_vector_crypto_sha_cflags = -O2 -march=rv64imafdcv_zvknha_zvknhb_zvkb -mstrict-align
 else
 if SUPPORT_CC_RISCV_MSTRICT_ALIGN
-riscv_vector_crypto_cflags = -O2 -mstrict-align
+riscv_vector_crypto_aes_cflags = -O2 -mstrict-align
+riscv_vector_crypto_sha_cflags = -O2 -mstrict-align
 else
-riscv_vector_crypto_cflags =
+riscv_vector_crypto_aes_cflags =
+riscv_vector_crypto_sha_cflags =
 endif
 endif
+
+rijndael-riscv-zvkned.o: $(srcdir)/rijndael-riscv-zvkned.c Makefile
+	`echo $(COMPILE) $(riscv_vector_crypto_aes_cflags) -c $< | $(instrumentation_munging) `
+
+rijndael-riscv-zvkned.lo: $(srcdir)/rijndael-riscv-zvkned.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_aes_cflags) -c $< | $(instrumentation_munging) `
 
 sha256-riscv-zvknha-zvkb.o: $(srcdir)/sha256-riscv-zvknha-zvkb.c Makefile
-	`echo $(COMPILE) $(riscv_vector_crypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `
 
 sha256-riscv-zvknha-zvkb.lo: $(srcdir)/sha256-riscv-zvknha-zvkb.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_crypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `
 
 sha512-riscv-zvknhb-zvkb.o: $(srcdir)/sha512-riscv-zvknhb-zvkb.c Makefile
-	`echo $(COMPILE) $(riscv_vector_crypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `
 
 sha512-riscv-zvknhb-zvkb.lo: $(srcdir)/sha512-riscv-zvknhb-zvkb.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_crypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `

@@ -124,6 +124,15 @@
 # endif
 #endif /* ENABLE_ARM_CRYPTO_SUPPORT */
 
+/* USE_RISCV_V_CRYPTO indicates whether to enable RISC-V vector cryptography
+ * extension code. */
+#undef USE_RISCV_V_CRYPTO
+#if defined (__riscv) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_CRYPTO_INTRINSICS)
+# define USE_RISCV_V_CRYPTO 1
+#endif
+
 /* USE_VP_AARCH64 indicates whether to enable vector permute AArch64 SIMD code. */
 #undef USE_VP_AARCH64
 #if defined(__AARCH64EL__) && defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS)
