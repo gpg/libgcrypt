@@ -84,7 +84,7 @@ _gcry_ctz_no_zero (unsigned int x)
 {
 #if defined(__riscv) && \
     (defined(__riscv_f) && __riscv_f >= 2002000) && \
-    (!defined(__riscv_zbb) || __riscv_zbb < 2002000) && \
+    (!defined(__riscv_zbb) || __riscv_zbb < 1000000) && \
     defined(HAVE_GCC_ATTRIBUTE_MAY_ALIAS)
   /* Use float cast approach when building for RISC-V without Zbb extension.
    * Without Zbb, GCC gives us slower generic version for __builtin_ctz().
