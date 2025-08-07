@@ -2814,7 +2814,7 @@ static ASM_FUNC_ATTR_INLINE __m128i xts_gfmul_byA (__m128i xmm5)
   return xmm5;
 }
 
-ASM_FUNC_ATTR_NOINLINE void
+static ASM_FUNC_ATTR_NOINLINE void
 aes_simd128_xts_enc (void *context, unsigned char *tweak, void *outbuf_arg,
 		     const void *inbuf_arg, size_t nblocks)
 {
@@ -2914,7 +2914,7 @@ aes_simd128_xts_enc (void *context, unsigned char *tweak, void *outbuf_arg,
   clear_vec_regs();
 }
 
-ASM_FUNC_ATTR_NOINLINE void
+static ASM_FUNC_ATTR_NOINLINE void
 aes_simd128_xts_dec (void *context, unsigned char *tweak, void *outbuf_arg,
 		     const void *inbuf_arg, size_t nblocks)
 {

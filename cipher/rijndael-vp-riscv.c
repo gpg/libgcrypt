@@ -44,7 +44,7 @@
 #include "cipher.h"
 #include "bufhelp.h"
 #include "rijndael-internal.h"
-#include "./cipher-internal.h"
+#include "cipher-internal.h"
 
 
 #ifdef USE_VP_RISCV
