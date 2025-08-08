@@ -109,6 +109,16 @@ extern unsigned int _gcry_ghash_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result,
 					      const byte *buf, size_t nblocks);
 #endif /* GCM_USE_RISCV_ZBB_ZBC */
 
+#ifdef GCM_USE_RISCV_ZVKG
+extern int _gcry_ghash_setup_riscv_zvkg(gcry_cipher_hd_t c);
+
+extern unsigned int _gcry_ghash_riscv_zvkg(gcry_cipher_hd_t c, byte *result,
+					   const byte *buf, size_t nblocks);
+
+extern unsigned int _gcry_polyval_riscv_zvkg(gcry_cipher_hd_t c, byte *result,
+					     const byte *buf, size_t nblocks);
+#endif /* GCM_USE_RISCV_ZVKG */
+
 #ifdef GCM_USE_AARCH64
 extern void _gcry_ghash_setup_aarch64_simd(gcry_cipher_hd_t c);
 
@@ -626,6 +636,16 @@ setupM (gcry_cipher_hd_t c)
     {
       c->u_mode.gcm.ghash_fn = _gcry_ghash_aarch64_simd;
       _gcry_ghash_setup_aarch64_simd (c);
+    }
+#endif
+#ifdef GCM_USE_RISCV_ZVKG
+  else if ((features & HWF_RISCV_IMAFDC)
+	   && (features & HWF_RISCV_V)
+	   && (features & HWF_RISCV_ZVKG)
+	   && _gcry_ghash_setup_riscv_zvkg (c))
+    {
+      c->u_mode.gcm.ghash_fn = _gcry_ghash_riscv_zvkg;
+      c->u_mode.gcm.polyval_fn = _gcry_polyval_riscv_zvkg;
     }
 #endif
 #ifdef GCM_USE_RISCV_ZBB_ZBC

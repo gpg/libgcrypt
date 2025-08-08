@@ -144,6 +144,15 @@
 # define GCM_USE_RISCV_ZBB_ZBC 1
 #endif
 
+/* GCM_USE_RISCV_V_ZVKG indicates whether to enable RISC-V vector Zvkg
+ * code. */
+#undef GCM_USE_RISCV_ZVKG
+#if defined (__riscv) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_CRYPTO_INTRINSICS)
+# define GCM_USE_RISCV_ZVKG 1
+#endif
+
 typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);
 

@@ -2838,6 +2838,15 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	__riscv_vse32_v_u32m1(ptr + 3 * vl, f, vl);
 	__riscv_vse32_v_u32m1(ptr + 4 * vl, g, vl);
       }
+      void test_ghash(unsigned int *ptr)
+      {
+	int vl = __riscv_vsetvl_e32m1 (4);
+	vuint32m1_t a = __riscv_vle32_v_u32m1(ptr + 0 * vl, vl);
+	vuint32m1_t b = __riscv_vle32_v_u32m1(ptr + 1 * vl, vl);
+	vuint32m1_t c = __riscv_vle32_v_u32m1(ptr + 2 * vl, vl);
+	vuint32m1_t d = __riscv_vghsh_vv_u32m1(a, b, c, vl);
+	__riscv_vse32_v_u32m1(ptr + 0 * vl, d, vl);
+      }
       void test_inline_vec_asm(unsigned int *ptr)
       {
 	int vl = __riscv_vsetvl_e32m1 (4);
@@ -4059,6 +4068,7 @@ case "${host}" in
   ;;
   riscv64-*-*)
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-riscv-zbb-zbc.lo"
+    GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS cipher-gcm-riscv-zvkg.lo"
   ;;
 esac
 

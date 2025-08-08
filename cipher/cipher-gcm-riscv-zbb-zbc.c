@@ -23,7 +23,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
-#include "./cipher-internal.h"
+#include "cipher-internal.h"
 
 #ifdef GCM_USE_RISCV_ZBB_ZBC
 
@@ -236,7 +236,6 @@ _gcry_ghash_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result, const byte *buf,
   rhash = byteswap_u64x2(rhash);
 
   store_aligned_u64x2(result, rhash);
-
 
   return 0;
 }

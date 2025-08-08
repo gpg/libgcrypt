@@ -93,7 +93,7 @@ EXTRA_libcipher_la_SOURCES = \
 	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c \
 	cipher-gcm-aarch64-simd.c cipher-gcm-armv7-neon.S \
 	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
-	cipher-gcm-riscv-zbb-zbc.c \
+	cipher-gcm-riscv-zbb-zbc.c cipher-gcm-riscv-zvkg.c \
 	crc.c crc-intel-pclmul.c crc-armv8-ce.c \
 	crc-armv8-aarch64-ce.S \
 	crc-ppc.c \
@@ -383,15 +383,24 @@ rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
 if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
 riscv_vector_crypto_aes_cflags = -O2 -march=rv64imafdcv_zvkned -mstrict-align
 riscv_vector_crypto_sha_cflags = -O2 -march=rv64imafdcv_zvknha_zvknhb_zvkb -mstrict-align
+riscv_vector_crypto_gcm_cflags = -O2 -march=rv64imafdcv_zvkg -mstrict-align
 else
 if SUPPORT_CC_RISCV_MSTRICT_ALIGN
 riscv_vector_crypto_aes_cflags = -O2 -mstrict-align
 riscv_vector_crypto_sha_cflags = -O2 -mstrict-align
+riscv_vector_crypto_gcm_cflags = -O2 -mstrict-align
 else
 riscv_vector_crypto_aes_cflags =
 riscv_vector_crypto_sha_cflags =
+riscv_vector_crypto_gcm_cflags =
 endif
 endif
+
+cipher-gcm-riscv-zvkg.o: $(srcdir)/cipher-gcm-riscv-zvkg.c Makefile
+	`echo $(COMPILE) $(riscv_vector_crypto_gcm_cflags) -c $< | $(instrumentation_munging) `
+
+cipher-gcm-riscv-zvkg.lo: $(srcdir)/cipher-gcm-riscv-zvkg.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_gcm_cflags) -c $< | $(instrumentation_munging) `
 
 rijndael-riscv-zvkned.o: $(srcdir)/rijndael-riscv-zvkned.c Makefile
 	`echo $(COMPILE) $(riscv_vector_crypto_aes_cflags) -c $< | $(instrumentation_munging) `

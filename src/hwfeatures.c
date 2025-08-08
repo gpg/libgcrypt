@@ -97,6 +97,7 @@ static struct
     { HWF_RISCV_ZBB,           "riscv-zbb" },
     { HWF_RISCV_ZBC,           "riscv-zbc" },
     { HWF_RISCV_ZVKB,          "riscv-zvkb" },
+    { HWF_RISCV_ZVKNED,        "riscv-zvkg" },
     { HWF_RISCV_ZVKNED,        "riscv-zvkned" },
     { HWF_RISCV_ZVKNHA,        "riscv-zvknha" },
     { HWF_RISCV_ZVKNHB,        "riscv-zvknhb" },
