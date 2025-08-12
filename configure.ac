@@ -3805,6 +3805,10 @@ if test "$found" = "1" ; then
       powerpc-*-*)
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS crc-ppc.lo"
       ;;
+      riscv64-*-*)
+         # Build with the RISC-V vector implementation
+         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS crc-riscv-zbb-zbc.lo"
+      ;;
    esac
 fi
 

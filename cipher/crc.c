@@ -64,6 +64,13 @@
 # endif
 #endif /* USE_PPC_VPMSUM */
 
+/* USE_RISCV_ZBB_ZBC indicates whether to enable RISC-V Zbb+Zbc code. */
+#undef USE_RISCV_ZBB_ZBC
+#if defined (__riscv) && (__riscv_xlen == 64) && \
+    defined(HAVE_GCC_INLINE_ASM_RISCV)
+# define USE_RISCV_ZBB_ZBC 1
+#endif
+
 
 typedef struct
 {
@@ -77,6 +84,9 @@ typedef struct
 #endif
 #ifdef USE_PPC_VPMSUM
   unsigned int use_vpmsum:1;           /* POWER vpmsum shall be used. */
+#endif
+#ifdef USE_RISCV_ZBB_ZBC
+  unsigned int use_riscv_zbc:1;        /* RISC-V Zbc shall be used. */
 #endif
   byte buf[4];
 }
@@ -103,6 +113,13 @@ void _gcry_crc24rfc2440_armv8_ce_pmull (u32 *pcrc, const byte *inbuf,
 void _gcry_crc32_ppc8_vpmsum (u32 *pcrc, const byte *inbuf, size_t inlen);
 void _gcry_crc24rfc2440_ppc8_vpmsum (u32 *pcrc, const byte *inbuf,
 				     size_t inlen);
+#endif
+
+#ifdef USE_RISCV_ZBB_ZBC
+/*-- crc-ppc.c --*/
+void _gcry_crc32_riscv_zbb_zbc (u32 *pcrc, const byte *inbuf, size_t inlen);
+void _gcry_crc24rfc2440_riscv_zbb_zbc (u32 *pcrc, const byte *inbuf,
+				       size_t inlen);
 #endif
 
 
@@ -402,7 +419,7 @@ crc32_next4 (u32 crc, u32 data)
 }
 
 static void
-crc32_init (void *context, unsigned int flags)
+generic_crc32_init (void *context, unsigned int flags, u32 init_value)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   u32 hwf = _gcry_get_hw_features ();
@@ -417,11 +434,22 @@ crc32_init (void *context, unsigned int flags)
 #ifdef USE_PPC_VPMSUM
   ctx->use_vpmsum = !!(hwf & HWF_PPC_ARCH_2_07);
 #endif
+#ifdef USE_RISCV_ZBB_ZBC
+  ctx->use_riscv_zbc = (hwf & HWF_RISCV_IMAFDC)
+		       && (hwf & HWF_RISCV_ZBB)
+		       && (hwf & HWF_RISCV_ZBC);
+#endif
 
   (void)flags;
   (void)hwf;
 
-  ctx->CRC = 0 ^ 0xffffffffL;
+  ctx->CRC = init_value;
+}
+
+static void
+crc32_init (void *context, unsigned int flags)
+{
+  generic_crc32_init(context, flags, 0xffffffffUL);
 }
 
 static void
@@ -449,6 +477,13 @@ crc32_write (void *context, const void *inbuf_arg, size_t inlen)
   if (ctx->use_vpmsum)
     {
       _gcry_crc32_ppc8_vpmsum(&ctx->CRC, inbuf, inlen);
+      return;
+    }
+#endif
+#ifdef USE_RISCV_ZBB_ZBC
+  if (ctx->use_riscv_zbc)
+    {
+      _gcry_crc32_riscv_zbb_zbc(&ctx->CRC, inbuf, inlen);
       return;
     }
 #endif
@@ -504,24 +539,7 @@ crc32_final (void *context)
 static void
 crc32rfc1510_init (void *context, unsigned int flags)
 {
-  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
-  u32 hwf = _gcry_get_hw_features ();
-
-#ifdef USE_INTEL_PCLMUL
-  ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
-  ctx->hwfeatures = hwf;
-#endif
-#ifdef USE_ARM_PMULL
-  ctx->use_pmull = (hwf & HWF_ARM_NEON) && (hwf & HWF_ARM_PMULL);
-#endif
-#ifdef USE_PPC_VPMSUM
-  ctx->use_vpmsum = !!(hwf & HWF_PPC_ARCH_2_07);
-#endif
-
-  (void)flags;
-  (void)hwf;
-
-  ctx->CRC = 0;
+  generic_crc32_init(context, flags, 0);
 }
 
 static void
@@ -855,6 +873,11 @@ crc24rfc2440_init (void *context, unsigned int flags)
 #ifdef USE_PPC_VPMSUM
   ctx->use_vpmsum = !!(hwf & HWF_PPC_ARCH_2_07);
 #endif
+#ifdef USE_RISCV_ZBB_ZBC
+  ctx->use_riscv_zbc = (hwf & HWF_RISCV_IMAFDC)
+		       && (hwf & HWF_RISCV_ZBB)
+		       && (hwf & HWF_RISCV_ZBC);
+#endif
 
   (void)hwf;
   (void)flags;
@@ -887,6 +910,13 @@ crc24rfc2440_write (void *context, const void *inbuf_arg, size_t inlen)
   if (ctx->use_vpmsum)
     {
       _gcry_crc24rfc2440_ppc8_vpmsum(&ctx->CRC, inbuf, inlen);
+      return;
+    }
+#endif
+#ifdef USE_RISCV_ZBB_ZBC
+  if (ctx->use_riscv_zbc)
+    {
+      _gcry_crc24rfc2440_riscv_zbb_zbc(&ctx->CRC, inbuf, inlen);
       return;
     }
 #endif
