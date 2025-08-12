@@ -69,9 +69,6 @@
 #endif
 
 
-typedef mpi_limb_t *mpi_ptr_t; /* pointer to a limb */
-typedef int mpi_size_t;        /* (must be a signed type) */
-
 #define ABS(x) (x >= 0 ? x : -x)
 #define MIN(l,o) ((l) < (o) ? (l) : (o))
 #define MAX(h,i) ((h) > (i) ? (h) : (i))
