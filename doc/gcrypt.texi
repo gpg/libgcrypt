@@ -611,6 +611,16 @@ are
 @item s390x-msa-8
 @item s390x-msa-9
 @item s390x-vx
+@item riscv-imafdc
+@item riscv-b
+@item riscv-v
+@item riscv-zbb
+@item riscv-zbc
+@item riscv-zvkb
+@item riscv-zvkg
+@item riscv-zvkned
+@item riscv-zvknha
+@item riscv-zvknhb
 @end table
 
 To disable a feature for all processes using Libgcrypt 1.6 or newer,

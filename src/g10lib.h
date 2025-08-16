@@ -277,14 +277,15 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #elif defined(HAVE_CPU_ARCH_RISCV)
 
 #define HWF_RISCV_IMAFDC        (1 << 0)
-#define HWF_RISCV_V             (1 << 1)
-#define HWF_RISCV_ZBB           (1 << 2)
-#define HWF_RISCV_ZBC           (1 << 3)
-#define HWF_RISCV_ZVKB          (1 << 4)
-#define HWF_RISCV_ZVKG          (1 << 5)
-#define HWF_RISCV_ZVKNED        (1 << 6)
-#define HWF_RISCV_ZVKNHA        (1 << 7)
-#define HWF_RISCV_ZVKNHB        (1 << 8)
+#define HWF_RISCV_B             (1 << 1)
+#define HWF_RISCV_V             (1 << 2)
+#define HWF_RISCV_ZBB           (1 << 3)
+#define HWF_RISCV_ZBC           (1 << 4)
+#define HWF_RISCV_ZVKB          (1 << 5)
+#define HWF_RISCV_ZVKG          (1 << 6)
+#define HWF_RISCV_ZVKNED        (1 << 7)
+#define HWF_RISCV_ZVKNHA        (1 << 8)
+#define HWF_RISCV_ZVKNHB        (1 << 9)
 
 #endif
 

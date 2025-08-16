@@ -93,6 +93,7 @@ static struct
     { HWF_S390X_VX,            "s390x-vx" },
 #elif defined(HAVE_CPU_ARCH_RISCV)
     { HWF_RISCV_IMAFDC,        "riscv-imafdc" },
+    { HWF_RISCV_B,             "riscv-b" },
     { HWF_RISCV_V,             "riscv-v" },
     { HWF_RISCV_ZBB,           "riscv-zbb" },
     { HWF_RISCV_ZBC,           "riscv-zbc" },

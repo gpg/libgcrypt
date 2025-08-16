@@ -352,9 +352,11 @@ sha256_common_init (SHA256_CONTEXT *hd)
 #endif
 #ifdef USE_RISCV_V_CRYPTO
   if ((features & HWF_RISCV_IMAFDC)
-      && (features & HWF_RISCV_V)
-      && (features & HWF_RISCV_ZVKB)
-      && ((features & HWF_RISCV_ZVKNHA) || (features & HWF_RISCV_ZVKNHB))
+      && (features & HWF_RISCV_B)           /* Mandatory in RVA23U64 */
+      && (features & HWF_RISCV_V)           /* Mandatory in RVA23U64 */
+      && (features & HWF_RISCV_ZVKB)        /* Mandatory in RVA23U64 (Zvbb) */
+      && ((features & HWF_RISCV_ZVKNHA)     /* Optional in RVA23U64 (Zvkng) */
+          || (features & HWF_RISCV_ZVKNHB)) /* Optional in RVA23U64 (Zvkng) */
       && _gcry_sha256_riscv_v_check_hw())
     hd->bctx.bwrite = do_sha256_transform_riscv_zvknha;
 #endif

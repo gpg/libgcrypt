@@ -510,9 +510,10 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 #endif
 #ifdef USE_RISCV_V_CRYPTO
   if ((features & HWF_RISCV_IMAFDC)
-      && (features & HWF_RISCV_V)
-      && (features & HWF_RISCV_ZVKB)
-      && (features & HWF_RISCV_ZVKNHB)
+      && (features & HWF_RISCV_B)      /* Mandatory in RVA23U64 */
+      && (features & HWF_RISCV_V)      /* Mandatory in RVA23U64 */
+      && (features & HWF_RISCV_ZVKB)   /* Mandatory in RVA23U64 (Zvbb) */
+      && (features & HWF_RISCV_ZVKNHB) /* Optional in RVA23U64 (Zvkng) */
       && _gcry_sha512_riscv_v_check_hw())
     ctx->bctx.bwrite = do_sha512_transform_riscv_zvknhb;
 #endif

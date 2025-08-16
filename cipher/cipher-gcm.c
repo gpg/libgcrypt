@@ -640,8 +640,9 @@ setupM (gcry_cipher_hd_t c)
 #endif
 #ifdef GCM_USE_RISCV_ZVKG
   else if ((features & HWF_RISCV_IMAFDC)
-	   && (features & HWF_RISCV_V)
-	   && (features & HWF_RISCV_ZVKG)
+	   && (features & HWF_RISCV_B)      /* Mandatory in RVA23U64 */
+	   && (features & HWF_RISCV_V)      /* Mandatory in RVA23U64 */
+	   && (features & HWF_RISCV_ZVKG)   /* Optional in RVA23U64 */
 	   && _gcry_ghash_setup_riscv_zvkg (c))
     {
       c->u_mode.gcm.ghash_fn = _gcry_ghash_riscv_zvkg;

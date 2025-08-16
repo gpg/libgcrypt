@@ -564,7 +564,8 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 #endif
 #ifdef USE_RISCV_V
   ctx->use_riscv_v = (features & HWF_RISCV_IMAFDC)
-		     && (features & HWF_RISCV_V)
+		     && (features & HWF_RISCV_B) /* Mandatory in RVA22U64 */
+		     && (features & HWF_RISCV_V) /* Optional in RVA22U64 */
 		     && _gcry_chacha20_riscv_v_check_hw();
 #endif
 

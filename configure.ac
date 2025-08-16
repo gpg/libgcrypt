@@ -2751,8 +2751,12 @@ if test "$gcry_cv_cc_riscv_vector_intrinsics" = "yes" ; then
 fi
 
 _gcc_cflags_save=$CFLAGS
+# Enable B extension (Zba+Zbb+Zbs) to align with RVA22U64 profile and for
+# better code generation for RISC-V vector implementations.
+MARCH_RVA22U64_WITH_VEC=rv64imafdcv_zba_zbb_zbs
+AC_SUBST([MARCH_RVA22U64_WITH_VEC])
 # Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
-CFLAGS="$CFLAGS -O2 -march=rv64imafdcv -mstrict-align"
+CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA22U64_WITH_VEC -mstrict-align"
 
 if test "$gcry_cv_cc_riscv_vector_intrinsics" = "no" &&
    test "$mpi_cpu_arch" = "riscv64" &&
@@ -2882,8 +2886,13 @@ if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "yes" ; then
 fi
 
 _gcc_cflags_save=$CFLAGS
+# Enable B extension (Zba+Zbb+Zbs) to align with RVA23U64 profile and for
+# better code generation for RISC-V vector implementations.
+MARCH_RVA23U64_BASE=${MARCH_RVA22U64_WITH_VEC}
+MARCH_RVA23U64_WITH_VEC_CRYPTO=${MARCH_RVA23U64_BASE}_zvbc_zvkg_zvkn_zvks
+AC_SUBST([MARCH_RVA23U64_BASE])
 # Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
-CFLAGS="$CFLAGS -O2 -march=rv64imafdcv_zvbc_zvkg_zvkn_zvks -mstrict-align"
+CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO -mstrict-align"
 
 if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "no" &&
    test "$mpi_cpu_arch" = "riscv64" &&
@@ -2922,7 +2931,7 @@ if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "yes" ||
   # Setup flags for test if needed.
   _gcc_cflags_save=$CFLAGS
   if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags" = "yes"; then
-    CFLAGS="$CFLAGS -O2 -march=rv64imafdcv_zvbc_zvkg_zvkn_zvks -mstrict-align"
+    CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO -mstrict-align"
   fi
 
   AC_CACHE_CHECK([whether compiler has working RISC-V __riscv_vsha2cl intrinsics],
@@ -2967,7 +2976,7 @@ if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "yes" ||
   # Setup flags for test.
   _gcc_cflags_save=$CFLAGS
   if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags" = "yes"; then
-    CFLAGS="$CFLAGS -O2 -march=rv64imafdcv_zvbc_zvkg_zvkn_zvks -mstrict-align"
+    CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO -mstrict-align"
   else
     CFLAGS="$CFLAGS -O2"
   fi

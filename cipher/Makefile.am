@@ -359,7 +359,7 @@ serpent-avx512-x86.lo: $(srcdir)/serpent-avx512-x86.c Makefile
 
 # Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
 if ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS
-riscv_vector_cflags = -O2 -march=rv64imafdcv -mstrict-align
+riscv_vector_cflags = -O2 -march=@MARCH_RVA22U64_WITH_VEC@ -mstrict-align
 else
 if SUPPORT_CC_RISCV_MSTRICT_ALIGN
 riscv_vector_cflags = -O2 -mstrict-align
@@ -382,9 +382,9 @@ rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
 
 # Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
 if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
-riscv_vector_crypto_aes_cflags = -O2 -march=rv64imafdcv_zvkned -mstrict-align
-riscv_vector_crypto_sha_cflags = -O2 -march=rv64imafdcv_zvknha_zvknhb_zvkb -mstrict-align
-riscv_vector_crypto_gcm_cflags = -O2 -march=rv64imafdcv_zvkg -mstrict-align
+riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned -mstrict-align
+riscv_vector_crypto_sha_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknha_zvknhb_zvkb -mstrict-align
+riscv_vector_crypto_gcm_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkg -mstrict-align
 else
 if SUPPORT_CC_RISCV_MSTRICT_ALIGN
 riscv_vector_crypto_aes_cflags = -O2 -mstrict-align
