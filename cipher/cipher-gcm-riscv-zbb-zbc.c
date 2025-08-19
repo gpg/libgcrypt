@@ -190,9 +190,9 @@ reduction(u64x2x2 r0r1)
   return veor_u64x2(r0, r1);
 }
 
-ASM_FUNC_ATTR_NOINLINE unsigned int
-_gcry_ghash_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result, const byte *buf,
-			  size_t nblocks)
+static ASM_FUNC_ATTR_INLINE unsigned int
+ghash_polyval_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result, const byte *buf,
+			    size_t nblocks, int is_polyval)
 {
   u64x2 rhash;
   u64x2 rh1;
@@ -211,7 +211,7 @@ _gcry_ghash_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result, const byte *buf,
   buf += 16;
   nblocks--;
 
-  rbuf = byteswap_u64x2(rbuf);
+  rbuf = is_polyval ? rbuf : byteswap_u64x2(rbuf);
 
   rhash = veor_u64x2(rhash, rbuf);
 
@@ -223,7 +223,7 @@ _gcry_ghash_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result, const byte *buf,
 
       rr0rr1 = pmul_128x128(rhash, rh1);
 
-      rbuf = byteswap_u64x2(rbuf);
+      rbuf = is_polyval ? rbuf : byteswap_u64x2(rbuf);
 
       rhash = reduction(rr0rr1);
 
@@ -238,6 +238,20 @@ _gcry_ghash_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result, const byte *buf,
   store_aligned_u64x2(result, rhash);
 
   return 0;
+}
+
+ASM_FUNC_ATTR_NOINLINE unsigned int
+_gcry_ghash_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result, const byte *buf,
+			  size_t nblocks)
+{
+  return ghash_polyval_riscv_zbb_zbc(c, result, buf, nblocks, 0);
+}
+
+ASM_FUNC_ATTR_NOINLINE unsigned int
+_gcry_polyval_riscv_zbb_zbc(gcry_cipher_hd_t c, byte *result, const byte *buf,
+			    size_t nblocks)
+{
+  return ghash_polyval_riscv_zbb_zbc(c, result, buf, nblocks, 1);
 }
 
 static ASM_FUNC_ATTR_INLINE void
