@@ -905,7 +905,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
             {
               j = 0;
               temp0 = sbox4(rol(temp0, 24)) ^ rcon;
-              rcon = ((rcon << 1) ^ (-(rcon >> 7) & 0x1b)) & 0xff;
+              rcon = ((rcon << 1) ^ (ct_ulong_gen_mask(rcon >> 7) & 0x1b)) & 0xff;
             }
           else if (KC == 8 && j == 4)
             {
@@ -1674,7 +1674,7 @@ _gcry_aes_xts_crypt (void *context, unsigned char *tweak,
       buf_put_le64 (outbuf + 8, tmp_hi);
 
       /* Generate next tweak. */
-      carry = -(tweak_next_hi >> 63) & 0x87;
+      carry = ct_ulong_gen_mask(tweak_next_hi >> 63) & 0x87;
       tweak_next_hi = (tweak_next_hi << 1) + (tweak_next_lo >> 63);
       tweak_next_lo = (tweak_next_lo << 1) ^ carry;
 
