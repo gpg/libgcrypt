@@ -588,9 +588,14 @@ fill_block (const u64 *prev_block, const u64 *ref_block, u64 *curr_block,
   u64 block_tmp[ARGON2_WORDS_IN_BLOCK];
   int i;
 
-  memcpy (block_r, ref_block, 1024);
   if (prev_block)
-    xor_block (block_r, prev_block);
+    {
+      for (i = 0; i < ARGON2_WORDS_IN_BLOCK; i++)
+        block_r[i] = ref_block[i] ^ prev_block[i];
+    }
+  else
+    memcpy (block_r, ref_block, 1024);
+
   memcpy (block_tmp, block_r, 1024);
 
   if (with_xor)
