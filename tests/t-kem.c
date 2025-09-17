@@ -483,17 +483,17 @@ check_kem (int n_loops)
   info ("Checking KEM.\n");
 
   ntests = 0;
-  testno = 0;
+
   if ((selected_algo & SELECTED_ALGO_SNTRUP761))
     {
-      for (; testno < n_loops; testno++)
+      for (testno = 0; testno < n_loops; testno++)
         test_kem_sntrup761 (testno);
       ntests += n_loops;
     }
 
   if ((selected_algo & SELECTED_ALGO_CM6688128F))
     {
-      for (; testno < n_loops; testno++)
+      for (testno = 0; testno < n_loops; testno++)
         test_kem_mceliece6688128f (testno);
       ntests += n_loops;
     }
@@ -501,21 +501,21 @@ check_kem (int n_loops)
 #ifdef USE_KYBER
   if ((selected_algo & SELECTED_ALGO_MLKEM512))
     {
-      for (; testno < ntests + n_loops; testno++)
+      for (testno = 0; testno < ntests + n_loops; testno++)
         test_kem_mlkem512 (testno);
       ntests += n_loops;
     }
 
   if ((selected_algo & SELECTED_ALGO_MLKEM768))
     {
-      for (; testno < ntests + n_loops; testno++)
+      for (testno = 0; testno < ntests + n_loops; testno++)
         test_kem_mlkem768 (testno);
       ntests += n_loops;
     }
 
   if ((selected_algo & SELECTED_ALGO_MLKEM1024))
     {
-      for (; testno < ntests + n_loops; testno++)
+      for (testno = 0; testno < ntests + n_loops; testno++)
         test_kem_mlkem1024 (testno);
       ntests += n_loops;
     }
@@ -523,14 +523,14 @@ check_kem (int n_loops)
 
   if ((selected_algo & SELECTED_ALGO_RAW_X25519))
     {
-      for (; testno < ntests + n_loops; testno++)
+      for (testno = 0; testno < ntests + n_loops; testno++)
         test_kem_raw_x25519 (testno);
       ntests += n_loops;
     }
 
   if ((selected_algo & SELECTED_ALGO_DHKEM25519))
     {
-      for (; testno < ntests + n_loops; testno++)
+      for (testno = 0; testno < ntests + n_loops; testno++)
         test_kem_dhkem_x25519 (testno);
       ntests += n_loops;
     }
