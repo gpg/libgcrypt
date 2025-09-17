@@ -97,7 +97,7 @@ mont_reduc (mpi_ptr_t rp, mpi_ptr_t tp,
 
   cy0 = _gcry_mpih_sub_n (rp, tp + n, mp, n);
   _gcry_mpih_set_cond (rp, tp + n, n,
-                       mpih_limb_is_not_zero (cy0)
+                       ct_ulong_gen_mask (mpih_limb_is_not_zero (cy0))
                        & mpih_limb_is_zero (cy1));
 }
 
