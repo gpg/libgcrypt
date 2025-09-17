@@ -132,6 +132,7 @@
 
 #include "g10lib.h"
 #include "bufhelp.h"
+#include "const-time.h"
 #include "mceliece6688128f.h"
 
 static void
@@ -195,7 +196,7 @@ static void crypto_declassify(void *crypto_declassify_v,long long crypto_declass
 GCC_ATTR_UNUSED
 static crypto_int64 crypto_int64_negative_mask(crypto_int64 crypto_int64_x)
 {
-  return crypto_int64_x >> (64-1);
+  return ct_u64_gen_mask((u64)crypto_int64_x >> (64-1));
 }
 
 GCC_ATTR_UNUSED
@@ -287,7 +288,7 @@ static void crypto_int64_minmax(crypto_int64 *crypto_int64_a,crypto_int64 *crypt
 GCC_ATTR_UNUSED
 static crypto_int16 crypto_int16_negative_mask(crypto_int16 crypto_int16_x)
 {
-  return crypto_int16_x >> (16-1);
+  return ct_ulong_gen_mask((u16)crypto_int16_x >> (16-1));
 }
 
 GCC_ATTR_UNUSED
@@ -379,7 +380,7 @@ static void crypto_int16_minmax(crypto_int16 *crypto_int16_a,crypto_int16 *crypt
 GCC_ATTR_UNUSED
 static crypto_int32 crypto_int32_negative_mask(crypto_int32 crypto_int32_x)
 {
-  return crypto_int32_x >> (32-1);
+  return ct_ulong_gen_mask((u32)crypto_int32_x >> (32-1));
 }
 
 GCC_ATTR_UNUSED
@@ -472,7 +473,7 @@ static void crypto_int32_minmax(crypto_int32 *crypto_int32_a,crypto_int32 *crypt
 GCC_ATTR_UNUSED
 static crypto_uint64_signed crypto_uint64_signed_negative_mask(crypto_uint64_signed crypto_uint64_signed_x)
 {
-  return crypto_uint64_signed_x >> (64-1);
+  return ct_u64_gen_mask((u64)crypto_uint64_signed_x >> (64-1));
 }
 
 GCC_ATTR_UNUSED
@@ -557,7 +558,7 @@ static void crypto_uint64_minmax(crypto_uint64 *crypto_uint64_a,crypto_uint64 *c
 GCC_ATTR_UNUSED
 static crypto_uint16_signed crypto_uint16_signed_negative_mask(crypto_uint16_signed crypto_uint16_signed_x)
 {
-  return crypto_uint16_signed_x >> (16-1);
+  return ct_ulong_gen_mask((crypto_uint16)crypto_uint16_signed_x >> (16-1));
 }
 
 GCC_ATTR_UNUSED
@@ -642,7 +643,7 @@ static void crypto_uint16_minmax(crypto_uint16 *crypto_uint16_a,crypto_uint16 *c
 GCC_ATTR_UNUSED
 static crypto_uint32_signed crypto_uint32_signed_negative_mask(crypto_uint32_signed crypto_uint32_signed_x)
 {
-  return crypto_uint32_signed_x >> (32-1);
+  return ct_ulong_gen_mask((crypto_uint32)crypto_uint32_signed_x >> (32-1));
 }
 
 GCC_ATTR_UNUSED
@@ -1484,7 +1485,7 @@ static inline uint16_t mask_nonzero(gf a)
 
 	ret -= 1;
 	ret >>= 31;
-	ret -= 1;
+	ret = ct_ulong_gen_inv_mask(ret);
 
 	return ret;
 }
@@ -1496,7 +1497,7 @@ static inline uint16_t mask_leq(uint16_t a, uint16_t b)
 	uint32_t ret = b_tmp - a_tmp;
 
 	ret >>= 31;
-	ret -= 1;
+	ret = ct_ulong_gen_inv_mask(ret);
 
 	return ret;
 }
@@ -1508,7 +1509,7 @@ static inline void vec_cmov(vec * out, vec * in, uint16_t mask)
 	vec m0, m1;
 
 	m0 = vec_set1_16b(mask);
-	m1 = ~m0;
+	m1 = vec_set1_16b((uint16_t)ct_ulong_gen_inv_mask(mask & 1));
 
 	for (i = 0; i < GFBITS; i++)
 	{
@@ -1884,8 +1885,7 @@ static void layer(int16_t *p, const unsigned char *cb, int s, int n)
     for (j = 0; j < stride; j++)
     {
       d = p[ i+j ] ^ p[ i+j+stride ];
-      m = (cb[ index >> 3 ] >> (index & 7)) & 1;
-      m = -m;
+      m = ct_ulong_gen_mask((cb[ index >> 3 ] >> (index & 7)) & 1);
       d &= m;
       p[ i+j ] ^= d;
       p[ i+j+stride ] ^= d;
@@ -2224,7 +2224,7 @@ static void gen_e(unsigned char *e)
 			mask = i ^ (ind[j] >> 6);
 			mask -= 1;
 			mask >>= 63;
-			mask = -mask;
+			mask = ct_u64_gen_mask(mask);
 
 			e_int[i] |= val[j] & mask;
 		}
@@ -2799,7 +2799,7 @@ gf gf_mul(gf in0, gf in1)
 	t0 = in0;
 	t1 = in1;
 
-	tmp = t0 * (t1 & 1);
+	tmp = t0 & ct_u64_gen_mask(t1 & 1);
 
 	for (i = 1; i < GFBITS; i++)
 		tmp ^= (t0 * (t1 & (1 << i)));
@@ -3241,7 +3241,7 @@ static inline uint64_t same_mask(uint16_t x, uint16_t y)
         mask = x ^ y;
         mask -= 1;
         mask >>= 63;
-        mask = -mask;
+        mask = ct_u64_gen_mask(mask);
 
         return mask;
 }
@@ -3408,7 +3408,7 @@ static int pk_gen_mat(unsigned char * pk, const unsigned char * irr, uint32_t * 
 		{
 			mask = mat[ row ][ i ] >> j;
 			mask &= 1;
-			mask -= 1;
+			mask = ct_u64_gen_inv_mask(mask);
 
 			for (c = 0; c < nblocks_H; c++)
 				mat[ row ][ c ] ^= mat[ k ][ c ] & mask;
@@ -3423,7 +3423,7 @@ static int pk_gen_mat(unsigned char * pk, const unsigned char * irr, uint32_t * 
 		{
 			mask = mat[ k ][ i ] >> j;
 			mask &= 1;
-			mask = -mask;
+			mask = ct_u64_gen_mask(mask);
 
 			for (c = 0; c < nblocks_H; c++)
 				mat[ k ][ c ] ^= mat[ row ][ c ] & mask;
@@ -3433,7 +3433,7 @@ static int pk_gen_mat(unsigned char * pk, const unsigned char * irr, uint32_t * 
 		{
 			mask = mat[ k ][ i ] >> j;
 			mask &= 1;
-			mask = -mask;
+			mask = ct_u64_gen_mask(mask);
 
 			for (c = 0; c < nblocks_H; c++)
 				mat[ k ][ c ] ^= mat[ row ][ c ] & mask;
