@@ -114,6 +114,7 @@ unsigned int _gcry_ct_memequal (const void *b1, const void *b2, size_t len);
 DEFINE_CT_TYPE_GEN_MASK(uintptr, uintptr_t)
 DEFINE_CT_TYPE_GEN_MASK(ulong, unsigned long)
 DEFINE_CT_TYPE_GEN_MASK(int16, int16_t)
+DEFINE_CT_TYPE_GEN_MASK(u64, u64)
 
 /*
  * Return all bits set if A is 0 and return 1 otherwise.
@@ -139,6 +140,7 @@ DEFINE_CT_TYPE_GEN_MASK(int16, int16_t)
 DEFINE_CT_TYPE_GEN_INV_MASK(uintptr, uintptr_t)
 DEFINE_CT_TYPE_GEN_INV_MASK(ulong, unsigned long)
 DEFINE_CT_TYPE_GEN_INV_MASK(int16, int16_t)
+DEFINE_CT_TYPE_GEN_INV_MASK(u64, u64)
 
 /*
  *  Return A when OP_ENABLED=1
@@ -155,6 +157,7 @@ DEFINE_CT_TYPE_GEN_INV_MASK(int16, int16_t)
 DEFINE_CT_TYPE_SELECT_FUNC(uintptr, uintptr_t)
 DEFINE_CT_TYPE_SELECT_FUNC(ulong, unsigned long)
 DEFINE_CT_TYPE_SELECT_FUNC(int16, int16_t)
+DEFINE_CT_TYPE_SELECT_FUNC(u64, u64)
 
 /*
  *  Return NULL when OP_ENABLED=1
