@@ -2053,14 +2053,7 @@ static int weight_check(unsigned char * e, vec * error)
 
 static uint16_t synd_cmp(vec s0[][ GFBITS ] , vec s1[][ GFBITS ])
 {
-	int i, j;
-	vec diff = 0;
-
-	for (i = 0; i < 4; i++)
-	for (j = 0; j < GFBITS; j++)
-		diff |= (s0[i][j] ^ s1[i][j]);
-
-	return vec_testz(diff);
+	return _gcry_ct_memequal(s0, s1, sizeof(vec) * 4 * GFBITS);
 }
 
 /* Niederreiter decryption with the Berlekamp decoder */
