@@ -33,7 +33,7 @@ static inline void xts_gfmul_byA (unsigned char *out, const unsigned char *in)
 {
   u64 hi = buf_get_le64 (in + 8);
   u64 lo = buf_get_le64 (in + 0);
-  u64 carry = -(hi >> 63) & 0x87;
+  u64 carry = ct_ulong_gen_mask(hi >> 63) & 0x87;
 
   hi = (hi << 1) + (lo >> 63);
   lo = (lo << 1) ^ carry;
