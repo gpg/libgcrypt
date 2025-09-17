@@ -1031,12 +1031,8 @@ sntrup761_enc (unsigned char *c, unsigned char *k, const unsigned char *pk,
 static int
 Ciphertexts_diff_mask (const unsigned char *c, const unsigned char *c2)
 {
-  uint16_t differentbits = 0;
   int len = Ciphertexts_bytes + Confirm_bytes;
-
-  while (len-- > 0)
-    differentbits |= (*c++) ^ (*c2++);
-  return ct_ulong_gen_mask(ct_is_not_zero(differentbits));
+  return ct_ulong_gen_mask(_gcry_ct_not_memequal(c, c2, len));
 }
 
 /* k = Decap(c,sk) */
@@ -1048,6 +1044,7 @@ sntrup761_dec (unsigned char *k, const unsigned char *c, const unsigned char *sk
   const unsigned char *cache = rho + Inputs_bytes;
   Inputs r;
   unsigned char r_enc[Inputs_bytes];
+  unsigned char tmp[Inputs_bytes];
   unsigned char cnew[Ciphertexts_bytes + Confirm_bytes];
   int mask;
   int i;
@@ -1056,6 +1053,7 @@ sntrup761_dec (unsigned char *k, const unsigned char *c, const unsigned char *sk
   Hide (cnew, r_enc, r, pk, cache);
   mask = Ciphertexts_diff_mask (c, cnew);
   for (i = 0; i < Inputs_bytes; ++i)
-    r_enc[i] ^= mask & (r_enc[i] ^ rho[i]);
+    tmp[i] = r_enc[i] ^ rho[i];
+  _gcry_ct_memmov_cond (r_enc, tmp, Inputs_bytes, mask & 1);
   HashSession (k, 1 + mask, r_enc, c);
 }
