@@ -89,7 +89,7 @@
 #define RTMP4   RT1
 #define RTMP4x  RT1x
 
-/* vpgatherdd mask and '-1' */
+/* all bits set mask and '-1' */
 #define RNOT	%ymm6
 #define RNOTx	%xmm6
 

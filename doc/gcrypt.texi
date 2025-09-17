@@ -581,7 +581,6 @@ are
 @item intel-rdrand
 @item intel-avx
 @item intel-avx2
-@item intel-fast-vpgather
 @item intel-rdtsc
 @item intel-shaext
 @item intel-vaes-vpclmul

@@ -58,7 +58,6 @@ static struct
     { HWF_INTEL_RDRAND,        "intel-rdrand" },
     { HWF_INTEL_AVX,           "intel-avx" },
     { HWF_INTEL_AVX2,          "intel-avx2" },
-    { HWF_INTEL_FAST_VPGATHER, "intel-fast-vpgather" },
     { HWF_INTEL_RDTSC,         "intel-rdtsc" },
     { HWF_INTEL_SHAEXT,        "intel-shaext" },
     { HWF_INTEL_VAES_VPCLMUL,  "intel-vaes-vpclmul" },

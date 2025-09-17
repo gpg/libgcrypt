@@ -197,7 +197,6 @@ detect_x86_gnuc (void)
   unsigned int max_cpuid_level;
   unsigned int fms, family, model;
   unsigned int result = 0;
-  unsigned int avoid_vpgather = 0;
   unsigned int is_amd_cpu = 0;
 
   (void)os_supports_avx_avx2_registers;
@@ -255,6 +254,7 @@ detect_x86_gnuc (void)
     {
       /* This is an AMD CPU.  */
       is_amd_cpu = 1;
+      (void)is_amd_cpu;
     }
 
   /* Detect Intel features, that might also be supported by other
@@ -411,61 +411,6 @@ detect_x86_gnuc (void)
 	  result |= HWF_INTEL_FAST_SHLD;
 	  break;
 	}
-
-      /* These Intel Core processors that have AVX2 have slow VPGATHER and
-       * should be avoided for table-lookup use. */
-      switch (model)
-	{
-	case 0x3C:
-	case 0x3F:
-	case 0x45:
-	case 0x46:
-	  /* Haswell */
-	  avoid_vpgather |= 1;
-	  break;
-	}
-
-      /* These Intel Core processors (skylake to tigerlake) have slow VPGATHER
-       * because of mitigation introduced by new microcode (2023-08-08) for
-       * "Downfall" speculative execution vulnerability. */
-      switch (model)
-	{
-	/* Skylake, Cascade Lake, Cooper Lake */
-	case 0x4E:
-	case 0x5E:
-	case 0x55:
-	/* Kaby Lake, Coffee Lake, Whiskey Lake, Amber Lake */
-	case 0x8E:
-	case 0x9E:
-	/* Cannon Lake */
-	case 0x66:
-	/* Comet Lake */
-	case 0xA5:
-	case 0xA6:
-	/* Ice Lake */
-	case 0x7E:
-	case 0x6A:
-	case 0x6C:
-	/* Tiger Lake */
-	case 0x8C:
-	case 0x8D:
-	/* Rocket Lake */
-	case 0xA7:
-	  avoid_vpgather |= 1;
-	  break;
-	}
-    }
-  else if (is_amd_cpu)
-    {
-      /* Non-AVX512 AMD CPUs (pre-Zen4) have slow VPGATHER and should be
-       * avoided for table-lookup use. */
-      avoid_vpgather |= !(result & HWF_INTEL_AVX512);
-    }
-  else
-    {
-      /* Avoid VPGATHER for non-Intel/non-AMD CPUs as testing is needed to
-       * make sure it is fast enough. */
-      avoid_vpgather |= 1;
     }
 
 #ifdef ENABLE_FORCE_SOFT_HWFEATURES
@@ -483,18 +428,7 @@ detect_x86_gnuc (void)
    * only for those Intel processors that benefit from the SHLD
    * instruction. Enabled here unconditionally as requested. */
   result |= HWF_INTEL_FAST_SHLD;
-
-  /* VPGATHER instructions are used for look-up table based
-   * implementations which require VPGATHER to be fast enough to beat
-   * regular parallelized look-up table implementations (see Twofish).
-   * So far, only Intel processors beginning with Skylake and AMD
-   * processors starting with Zen4 have had VPGATHER fast enough to be
-   * enabled. Enable VPGATHER here unconditionally as requested. */
-  avoid_vpgather = 0;
 #endif
-
-  if ((result & HWF_INTEL_AVX2) && !avoid_vpgather)
-    result |= HWF_INTEL_FAST_VPGATHER;
 
   return result;
 }
