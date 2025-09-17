@@ -34,6 +34,7 @@
 #endif
 
 #include "sntrup761.h"
+#include "const-time.h"
 
 /* from supercop-20201130/crypto_sort/int32/portable4/int32_minmax.inc */
 #define int32_MINMAX(a,b) \
@@ -41,7 +42,7 @@ do { \
   int64_t ab = (int64_t)b ^ (int64_t)a; \
   int64_t c = (int64_t)b - (int64_t)a; \
   c ^= ab & (c ^ b); \
-  c >>= 31; \
+  c = ct_ulong_gen_mask((uint64_t)c >> 63); \
   c &= ab; \
   a ^= c; \
   b ^= c; \
@@ -189,7 +190,7 @@ uint32_divmod_uint14 (uint32_t * q, uint16_t * r, uint32_t x, uint16_t m)
 
   x -= m;
   *q += 1;
-  mask = -(x >> 31);
+  mask = ct_ulong_gen_mask(x >> 31);
   x += mask & (uint32_t) m;
   *q += mask;
   /* x < m */
@@ -220,7 +221,7 @@ int32_divmod_uint14 (int32_t * q, uint16_t * r, int32_t x, uint16_t m)
   uint32_divmod_uint14 (&uq2, &ur2, 0x80000000, m);
   ur -= ur2;
   uq -= uq2;
-  mask = -(uint32_t) (ur >> 15);
+  mask = ct_ulong_gen_mask(ur >> 15);
   ur += mask & m;
   uq += mask;
   *r = ur;
@@ -378,7 +379,7 @@ int16_t_nonzero_mask (int16_t x)
   uint32_t v = u;		/* 0, else 1...65535 */
   v = -v;			/* 0, else 2^32-65535...2^32-1 */
   v >>= 31;			/* 0, else 1 */
-  return -v;			/* 0, else -1 */
+  return ct_ulong_gen_mask(v);	/* 0, else -1 */
 }
 
 /* return -1 if x<0; otherwise return 0 */
@@ -387,9 +388,7 @@ int16_t_negative_mask (int16_t x)
 {
   uint16_t u = x;
   u >>= 15;
-  return -(int) u;
-  /* alternative with gcc -fwrapv: */
-  /* x>>15 compiles to CPU's arithmetic right shift */
+  return (int)ct_ulong_gen_mask(u);
 }
 
 /* ----- arithmetic mod 3 */
@@ -1037,7 +1036,7 @@ Ciphertexts_diff_mask (const unsigned char *c, const unsigned char *c2)
 
   while (len-- > 0)
     differentbits |= (*c++) ^ (*c2++);
-  return (1 & ((differentbits - 1) >> 8)) - 1;
+  return ct_ulong_gen_mask(ct_is_not_zero(differentbits));
 }
 
 /* k = Decap(c,sk) */
