@@ -2934,6 +2934,10 @@ if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "yes" ||
     CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO -mstrict-align"
   fi
 
+  # Disable LTO optimization for following check to generate
+  # RISC-V instructions in compiler output
+  CFLAGS="$CFLAGS -fno-lto"
+
   AC_CACHE_CHECK([whether compiler has working RISC-V __riscv_vsha2cl intrinsics],
     [gcry_cv_riscv_vsha2cl_intrinsics_work],
     [gcry_cv_riscv_vsha2cl_intrinsics_work=no
@@ -2980,6 +2984,10 @@ if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "yes" ||
   else
     CFLAGS="$CFLAGS -O2"
   fi
+
+  # Disable LTO optimization for following check to generate
+  # RISC-V instructions in compiler output
+  CFLAGS="$CFLAGS -fno-lto"
 
   AC_CACHE_CHECK([whether compiler has working RISC-V __riscv_vaes*_vs intrinsics],
     [gcry_cv_riscv_vaes_vs_intrinsics_work],
