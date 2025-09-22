@@ -131,6 +131,7 @@
 #endif
 
 #include "g10lib.h"
+#include "bufhelp.h"
 #include "mceliece6688128f.h"
 
 static void
@@ -1763,10 +1764,10 @@ static void cbrecursion(unsigned char *out,long long pos,long long step,const in
   }
   /* B = (p<<16)+c */
 
-  for (x = 0;x < n;++x) A[x] = (A[x]<<16)|x; /* A = (pibar<<16)+id */
+  for (x = 0;x < n;++x) A[x] = ((u32)A[x]<<16)|x; /* A = (pibar<<16)+id */
   int32_sort(A,n); /* A = (id<<16)+pibar^-1 */
 
-  for (x = 0;x < n;++x) A[x] = (A[x]<<16)+(B[x]>>16); /* A = (pibar^(-1)<<16)+pibar */
+  for (x = 0;x < n;++x) A[x] = ((u32)A[x]<<16)+(B[x]>>16); /* A = (pibar^(-1)<<16)+pibar */
   int32_sort(A,n); /* A = (id<<16)+pibar^2 */
 
   if (w <= 10) {
@@ -1778,7 +1779,7 @@ static void cbrecursion(unsigned char *out,long long pos,long long step,const in
       for (x = 0;x < n;++x) A[x] = ((B[x]&~0x3ff)<<6)|x; /* A = (p<<16)+id */
       int32_sort(A,n); /* A = (id<<16)+p^{-1} */
 
-      for (x = 0;x < n;++x) A[x] = (A[x]<<20)|B[x]; /* A = (p^{-1}<<20)+(p<<10)+c */
+      for (x = 0;x < n;++x) A[x] = ((u32)A[x]<<20)|B[x]; /* A = (p^{-1}<<20)+(p<<10)+c */
       int32_sort(A,n); /* A = (id<<20)+(pp<<10)+cp */
 
       for (x = 0;x < n;++x) {
@@ -1789,7 +1790,7 @@ static void cbrecursion(unsigned char *out,long long pos,long long step,const in
     }
     for (x = 0;x < n;++x) B[x] &= 0x3ff;
   } else {
-    for (x = 0;x < n;++x) B[x] = (A[x]<<16)|(B[x]&0xffff);
+    for (x = 0;x < n;++x) B[x] = ((u32)A[x]<<16)|(B[x]&0xffff);
 
     for (i = 1;i < w-1;++i) {
       /* B = (p<<16)+c */
@@ -1797,14 +1798,14 @@ static void cbrecursion(unsigned char *out,long long pos,long long step,const in
       for (x = 0;x < n;++x) A[x] = (B[x]&~0xffff)|x;
       int32_sort(A,n); /* A = (id<<16)+p^(-1) */
 
-      for (x = 0;x < n;++x) A[x] = (A[x]<<16)|(B[x]&0xffff);
+      for (x = 0;x < n;++x) A[x] = ((u32)A[x]<<16)|(B[x]&0xffff);
       /* A = p^(-1)<<16+c */
 
       if (i < w-2) {
         for (x = 0;x < n;++x) B[x] = (A[x]&~0xffff)|(B[x]>>16);
         /* B = (p^(-1)<<16)+p */
         int32_sort(B,n); /* B = (id<<16)+p^(-2) */
-        for (x = 0;x < n;++x) B[x] = (B[x]<<16)|(A[x]&0xffff);
+        for (x = 0;x < n;++x) B[x] = ((u32)B[x]<<16)|(A[x]&0xffff);
         /* B = (p^(-2)<<16)+c */
       }
 
@@ -1830,8 +1831,8 @@ static void cbrecursion(unsigned char *out,long long pos,long long step,const in
     out[pos>>3] ^= fj<<(pos&7);
     pos += step;
 
-    B[lx] = (A[lx]<<16)|Fx;
-    B[lx+1] = (A[lx+1]<<16)|Fx1;
+    B[lx] = ((u32)A[lx]<<16)|Fx;
+    B[lx+1] = ((u32)A[lx+1]<<16)|Fx1;
   }
   /* B = (pi^(-1)<<16)+F */
 
@@ -2242,8 +2243,8 @@ static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e
 {
 	uint64_t b;
 
-	const uint64_t *pk_ptr;
-	const uint64_t *e_ptr = ((uint64_t *) (e + SYND_BYTES));
+	const unsigned char *pk_ptr;
+	const unsigned char *e_ptr = (e + SYND_BYTES);
 
 	int i, j;
 
@@ -2254,13 +2255,13 @@ static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e
 
 	for (i = 0; i < PK_NROWS; i++)
 	{
-		pk_ptr = ((uint64_t *) (pk + PK_ROW_BYTES * i));
+		pk_ptr = (pk + PK_ROW_BYTES * i);
 
 		b = 0;
 		for (j = 0; j < PK_NCOLS/64; j++)
-			b ^= pk_ptr[j] & e_ptr[j];
+			b ^= buf_get_he64(&pk_ptr[j*8]) & buf_get_he64(&e_ptr[j*8]);
 
-		b ^= ((uint32_t *) &pk_ptr[j])[0] & ((uint32_t *) &e_ptr[j])[0];
+		b ^= buf_get_he32(&pk_ptr[j*8]) & buf_get_he32(&e_ptr[j*8]);
 
 		b ^= b >> 32;
 		b ^= b >> 16;
