@@ -480,7 +480,7 @@ if test "x$random" = "x" -o "$random" = "yes" -o "$random" = "no"; then
     random=default
 fi
 AC_MSG_CHECKING([which random module to use])
-if test "$random" != "default" -a "$random" != "auto"; then
+if test "$random" != "default" && test "$random" != "auto"; then
     LIST_MEMBER($random, $available_random_modules)
     if test "$found" = "0"; then
        AC_MSG_ERROR([unsupported random module specified])
@@ -815,7 +815,7 @@ AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
           [The default error source for libgcrypt.])
 
 AM_CONDITIONAL(USE_GPGRT_CONFIG, [test -n "$GPGRT_CONFIG" \
-                                  -a "$ac_cv_path_GPG_ERROR_CONFIG" = no])
+                                  && test "$ac_cv_path_GPG_ERROR_CONFIG" = no])
 
 #
 # Check whether pthreads is available

@@ -46,7 +46,7 @@ EOF
     cl_cv_as_noexecstack=no
   fi
   rm -f conftest*])
-  if test "$noexecstack_support" = yes -a "$cl_cv_as_noexecstack" = yes; then
+  if test "$noexecstack_support" = yes && test "$cl_cv_as_noexecstack" = yes; then
 	NOEXECSTACK_FLAGS="-Wa,--noexecstack"
   else
         NOEXECSTACK_FLAGS=
