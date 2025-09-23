@@ -155,11 +155,11 @@ AC_DEFUN([AM_PATH_GPG_ERROR],
 [ AC_REQUIRE([AC_CANONICAL_HOST])dnl
   AC_REQUIRE([_AM_PATH_POSSIBLE_GPG_ERROR_CONFIG])dnl
   AC_REQUIRE([_AM_PATH_GPGRT_CONFIG])dnl
-  if test x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
+  if test x"$GPGRT_CONFIG" != x && test "$GPGRT_CONFIG" != "no"; then
     GPG_ERROR_CONFIG="$GPGRT_CONFIG gpg-error"
     AC_MSG_NOTICE([Use gpgrt-config with $gpgrt_libdir as gpg-error-config])
     gpg_error_config_version=`$GPG_ERROR_CONFIG --modversion`
-  elif test x"$GPG_ERROR_CONFIG" != x -a "$GPG_ERROR_CONFIG" != "no"; then
+  elif test x"$GPG_ERROR_CONFIG" != x && test "$GPG_ERROR_CONFIG" != "no"; then
     gpg_error_config_version=`$GPG_ERROR_CONFIG --version`
   else
     gpg_error_config_version="0.0"
