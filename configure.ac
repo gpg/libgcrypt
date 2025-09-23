@@ -30,8 +30,8 @@ min_automake_version="1.14"
 # for the LT versions.
 m4_define([mym4_package],[libgcrypt])
 m4_define([mym4_major], [1])
-m4_define([mym4_minor], [11])
-m4_define([mym4_micro], [1])
+m4_define([mym4_minor], [12])
+m4_define([mym4_micro], [0])
 
 # Below is m4 magic to extract and compute the git revision number,
 # the decimalized short revision number, a beta version string and a
