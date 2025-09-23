@@ -146,7 +146,7 @@ if test "$echo_cflags" = "yes"; then
     cflags_final="$cflags"
 
     # Set up `includes'.
-    if test "x$includedir" != "x/usr/include" -a "x$includedir" != "x/include"; then
+    if test "x$includedir" != "x/usr/include" && test "x$includedir" != "x/include"; then
 	includes="-I$includedir"
     fi
     # Set up `cflags_final'.
@@ -166,7 +166,7 @@ if test "$echo_libs" = "yes"; then
     libs_final="$libs"
 
     # Set up `libdirs'.
-    if test "x$libdir" != "x/usr/lib" -a "x$libdir" != "x/lib"; then
+    if test "x$libdir" != "x/usr/lib" && test "x$libdir" != "x/lib"; then
 	libdirs="-L$libdir"
     fi
 
