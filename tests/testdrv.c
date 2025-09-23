@@ -472,7 +472,7 @@ my_spawn (const char *pgmname, char **argv, char **envp, MYPID_T *pid)
                       TRUE,          /* Inherit handles.  */
                       (CREATE_DEFAULT_ERROR_MODE
                        | GetPriorityClass (GetCurrentProcess ())
-                       | CREATE_SUSPENDED | DETACHED_PROCESS),
+                       | CREATE_SUSPENDED),
                       NULL,          /* Environment.  */
                       NULL,          /* Use current drive/directory.  */
                       &si,           /* Startup information. */
@@ -808,7 +808,13 @@ main (int argc, char **argv)
                  "  --list          list all tests\n"
                  "  --files         list all files\n"
                  "  --long          include long running tests\n"
+                 "  --exec          exec given pgm and args\n"
                  , stdout);
+          exit (0);
+        }
+      else if (!strcmp (*argv, "--version"))
+        {
+          fputs (PGM " " PACKAGE_VERSION "\n", stdout);
           exit (0);
         }
       else if (!strcmp (*argv, "--verbose"))
@@ -830,6 +836,11 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--files"))
         {
           listtests = 2;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--exec"))
+        {
+          listtests = 3;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--long"))
@@ -882,6 +893,38 @@ main (int argc, char **argv)
                 srcdir? srcdir :"",
                 srcdir? "/" :"",
                 extratestfiles[i]);
+    }
+  else if (listtests == 3)  /* Simple exec */
+    {
+      MYPID_T pid;
+      int exitcode, rc;
+      const char *pgm;
+
+      if (!argc)
+        die ("no program given for --exec\n");
+      pgm = *argv;
+      argv++, argc--;
+
+      /* The purpose of this option is to show the execution time
+       * thus enable verbose to get the output.  */
+      if (!verbose)
+        verbose = 1;
+
+      start_timer ();
+      rc = my_spawn (pgm, argv, myenviron, &pid);
+      if (rc)
+        info ("Error invoking program %s.\n", pgm);
+      else
+        {
+          rc = my_wait (pgm, pid, &exitcode);
+          stop_timer ();
+          if (rc)
+            info ("Error running program %s.%s\n",
+                  pgm, rc<0? "":" (process crashed)");
+          else
+            info ("Process completed in %s.  Exit code=%d\n",
+                  elapsed_time (1), exitcode);
+        }
     }
   else
     {

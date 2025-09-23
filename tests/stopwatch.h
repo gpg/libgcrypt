@@ -64,7 +64,7 @@ stop_timer (void)
   struct tms tmp;
 
   times (&tmp);
-  stopped_at = tmp.tms_utime;
+  stopped_at = tmp.tms_utime + tmp.tms_cutime;
 #endif
 }
 
