@@ -240,7 +240,7 @@ if [ "$myhost" = "find-version" ]; then
     minor="$3"
     micro="$4"
 
-    if [ -z "$package" -o -z "$major" -o -z "$minor" ]; then
+    if [ -z "$package" ] || [ -z "$major" ] || [ -z "$minor" ]; then
       echo "usage: ./autogen.sh --find-version PACKAGE MAJOR MINOR [MICRO]" >&2
       exit 1
     fi
@@ -446,7 +446,7 @@ q
   gettext_vers_num=`echo "$gettext_vers" | cvtver`
 fi
 
-if [ -z "$autoconf_vers" -o -z "$automake_vers" ]
+if [ -z "$autoconf_vers" ] || [ -z "$automake_vers" ]
 then
   echo "**Error**: version information not found in "\`${configure_ac}\'"." >&2
   exit 1
