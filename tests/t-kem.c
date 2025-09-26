@@ -43,6 +43,8 @@ test_kem_sntrup761 (int testno)
   uint8_t key1[GCRY_KEM_SNTRUP761_SHARED_LEN];
   uint8_t key2[GCRY_KEM_SNTRUP761_SHARED_LEN];
 
+  info (" Checking SNTRUP761.\n");
+
   err = gcry_kem_genkey (GCRY_KEM_SNTRUP761,
                          pubkey, GCRY_KEM_SNTRUP761_PUBKEY_LEN,
                          seckey, GCRY_KEM_SNTRUP761_SECKEY_LEN,
@@ -101,6 +103,8 @@ test_kem_mceliece6688128f (int testno)
   uint8_t ciphertext[GCRY_KEM_CM6688128F_ENCAPS_LEN];
   uint8_t key1[GCRY_KEM_CM6688128F_SHARED_LEN];
   uint8_t key2[GCRY_KEM_CM6688128F_SHARED_LEN];
+
+  info (" Checking CM6688128F.\n");
 
   err = gcry_kem_genkey (GCRY_KEM_CM6688128F,
                          pubkey, GCRY_KEM_CM6688128F_PUBKEY_LEN,
@@ -162,6 +166,8 @@ test_kem_mlkem512 (int testno)
   uint8_t key1[GCRY_KEM_MLKEM512_SHARED_LEN];
   uint8_t key2[GCRY_KEM_MLKEM512_SHARED_LEN];
 
+  info (" Checking MLKEM512.\n");
+
   err = gcry_kem_genkey (GCRY_KEM_MLKEM512,
                          pubkey, GCRY_KEM_MLKEM512_PUBKEY_LEN,
                          seckey, GCRY_KEM_MLKEM512_SECKEY_LEN,
@@ -220,6 +226,8 @@ test_kem_mlkem768 (int testno)
   uint8_t key1[GCRY_KEM_MLKEM768_SHARED_LEN];
   uint8_t key2[GCRY_KEM_MLKEM768_SHARED_LEN];
 
+  info (" Checking MLKEM768.\n");
+
   err = gcry_kem_genkey (GCRY_KEM_MLKEM768,
                          pubkey, GCRY_KEM_MLKEM768_PUBKEY_LEN,
                          seckey, GCRY_KEM_MLKEM768_SECKEY_LEN,
@@ -277,6 +285,8 @@ test_kem_mlkem1024 (int testno)
   uint8_t ciphertext[GCRY_KEM_MLKEM1024_ENCAPS_LEN];
   uint8_t key1[GCRY_KEM_MLKEM1024_SHARED_LEN];
   uint8_t key2[GCRY_KEM_MLKEM1024_SHARED_LEN];
+
+  info (" Checking MLKEM1024.\n");
 
   err = gcry_kem_genkey (GCRY_KEM_MLKEM1024,
                          pubkey, GCRY_KEM_MLKEM1024_PUBKEY_LEN,
@@ -337,6 +347,8 @@ test_kem_raw_x25519 (int testno)
   uint8_t ciphertext[GCRY_KEM_ECC_X25519_ENCAPS_LEN];
   uint8_t key1[GCRY_KEM_RAW_X25519_SHARED_LEN];
   uint8_t key2[GCRY_KEM_RAW_X25519_SHARED_LEN];
+
+  info (" Checking X25519.\n");
 
   err = gcry_kem_genkey (GCRY_KEM_RAW_X25519,
                          pubkey, GCRY_KEM_ECC_X25519_PUBKEY_LEN,
@@ -405,6 +417,8 @@ test_kem_dhkem_x25519 (int testno)
   uint8_t ciphertext[GCRY_KEM_DHKEM25519_ENCAPS_LEN];
   uint8_t key1[GCRY_KEM_DHKEM25519_SHARED_LEN];
   uint8_t key2[GCRY_KEM_DHKEM25519_SHARED_LEN];
+
+  info (" Checking DHKEM25519.\n");
 
   err = gcry_kem_genkey (GCRY_KEM_DHKEM25519,
                          pubkey, GCRY_KEM_DHKEM25519_PUBKEY_LEN,
