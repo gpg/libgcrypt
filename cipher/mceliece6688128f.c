@@ -3315,15 +3315,14 @@ static int mov_columns(uint64_t mat[][ (SYS_N + 63) / 64 ], int16_t * pi, uint64
 	return 0;
 }
 
-static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm, int16_t * pi, uint64_t * pivots)
-{
-	const int nblocks_H = (SYS_N + 63) / 64;
-	const int nblocks_I = (PK_NROWS + 63) / 64;
+#define nblocks_H ((SYS_N + 63) / 64)
+#define nblocks_I ((PK_NROWS + 63) / 64)
 
+static int pk_gen_mat(unsigned char * pk, const unsigned char * irr, uint32_t * perm, int16_t * pi, uint64_t * pivots,
+		      uint64_t mat[ PK_NROWS ][ nblocks_H ])
+{
 	int i, j, k;
 	int row, c;
-
-	uint64_t mat[ PK_NROWS ][ nblocks_H ];
 
 	uint64_t mask;
 
@@ -3457,6 +3456,18 @@ static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm
 	/* */
 
 	return 0;
+}
+
+
+static int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm, int16_t * pi, uint64_t * pivots)
+{
+	/* Allocate large array from heap to avoid stack overflow crash on Win32/Wine. */
+	const size_t sizeof_mat = sizeof(uint64_t) * PK_NROWS * nblocks_H;
+	void *mat = xmalloc(sizeof_mat);
+	int ret = pk_gen_mat(pk, irr, perm, pi, pivots, mat);
+	wipememory(mat, sizeof_mat);
+	xfree(mat);
+	return ret;
 }
 
 
