@@ -46,6 +46,10 @@ crypto_hash_sha512 (unsigned char *out,
   _gcry_md_hash_buffer (GCRY_MD_SHA512, out, in, inlen);
 }
 
+#define SNTRUP761_KEYPAIR_STACK_BURN (26 * 1024)
+#define SNTRUP761_ENC_STACK_BURN (23 * 1024)
+#define SNTRUP761_DEC_STACK_BURN (34 * 1024)
+
 #define sntrup761_keypair _gcry_sntrup761_keypair
 #define sntrup761_enc     _gcry_sntrup761_enc
 #define sntrup761_dec     _gcry_sntrup761_dec

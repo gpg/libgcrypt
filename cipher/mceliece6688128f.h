@@ -30,6 +30,10 @@
 #include "g10lib.h"             /* for GCC_ATTR_UNUSED */
 #include "gcrypt-int.h"
 
+#define MCELIECE6688128F_KEYPAIR_STACK_BURN (360 * 1024)
+#define MCELIECE6688128F_ENC_STACK_BURN (9 * 1024)
+#define MCELIECE6688128F_DEC_STACK_BURN (80 * 1024)
+
 #define mceliece6688128f_keypair _gcry_mceliece6688128f_keypair
 #define mceliece6688128f_enc     _gcry_mceliece6688128f_enc
 #define mceliece6688128f_dec     _gcry_mceliece6688128f_dec

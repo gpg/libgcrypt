@@ -60,6 +60,19 @@
 #define kyber_decap     _gcry_mlkem_decap
 /**** End of the glue code ****/
 
+#define KYBER_KEYPAIR_STACK_BURN(algo) \
+    ((algo) == GCRY_KEM_MLKEM512 ? (9 * 1024) : \
+     (algo) == GCRY_KEM_MLKEM768 ? (15 * 1024) : \
+     /* MLKEM1024 */ (21 * 1024))
+#define KYBER_ENCAP_STACK_BURN(algo) \
+    ((algo) == GCRY_KEM_MLKEM512 ? (13 * 1024) : \
+     (algo) == GCRY_KEM_MLKEM768 ? (19 * 1024) : \
+     /* MLKEM1024 */ (26 * 1024))
+#define KYBER_DECAP_STACK_BURN(algo) \
+    ((algo) == GCRY_KEM_MLKEM512 ? (18 * 1024) : \
+     (algo) == GCRY_KEM_MLKEM768 ? (25 * 1024) : \
+     /* MLKEM1024 */ (35 * 1024))
+
 void kyber_keypair (int algo, uint8_t *pk, uint8_t *sk, const uint8_t *coins);
 void kyber_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk,
                   const uint8_t *coins);
