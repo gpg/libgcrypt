@@ -60,6 +60,10 @@
 #define dilithium_decap     _gcry_mldsa_decap
 /**** End of the glue code ****/
 
+#define DILITHIUM_KEYPAIR_STACK_BURN (128 * 1024)
+#define DILITHIUM_SIGN_STACK_BURN (161 * 1024)
+#define DILITHIUM_VERIFY_STACK_BURN (122 * 1024)
+
 int dilithium_keypair (int algo, uint8_t *pk, uint8_t *sk,
                        const uint8_t seed[SEEDBYTES]);
 int dilithium_sign (int algo, uint8_t *sig, size_t siglen,

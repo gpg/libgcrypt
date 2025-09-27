@@ -171,6 +171,7 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     }
 
   dilithium_keypair (info->algo, pk, sk, seed);
+  _gcry_burn_stack (DILITHIUM_KEYPAIR_STACK_BURN);
 
   if (!rc)
     rc = sexp_build (r_skey,
@@ -262,6 +263,7 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   else
     r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
                         ctx.label, ctx.labellen, sk, rnd);
+  _gcry_burn_stack (DILITHIUM_SIGN_STACK_BURN);
   if (r < 0)
     {
       rc = GPG_ERR_INTERNAL;
@@ -353,6 +355,7 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   else
     r = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
                           ctx.label, ctx.labellen, pk);
+  _gcry_burn_stack (DILITHIUM_VERIFY_STACK_BURN);
   if (r < 0)
     {
       rc = GPG_ERR_BAD_SIGNATURE;
