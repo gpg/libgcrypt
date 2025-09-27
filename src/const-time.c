@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include "g10lib.h"
 #include "const-time.h"
+#include "../cipher/bufhelp.h"
 
 
 #ifndef HAVE_GCC_ASM_VOLATILE_MEMORY
@@ -42,19 +43,46 @@ _gcry_ct_not_memequal (const void *b1, const void *b2, size_t len)
 {
   const byte *a = b1;
   const byte *b = b2;
-  int ab, ba;
-  size_t i;
+  u32 ab = 0;
+  u32 ba = 0;
 
   /* Constant-time compare. */
-  for (i = 0, ab = 0, ba = 0; i < len; i++)
+
+  if (len >= sizeof(u64))
     {
-      /* If a[i] != b[i], either ab or ba will be negative. */
-      ab |= a[i] - b[i];
-      ba |= b[i] - a[i];
+      u64 ab8 = 0;
+      u64 ba8 = 0;
+
+      while (len >= sizeof(u64))
+	{
+	  u64 a8 = buf_get_he64 (a);
+	  u64 b8 = buf_get_he64 (b);
+
+	  /* If a8 != b8, either ab8 or ba8 will have high bit set. */
+	  ab8 |= a8 - b8;
+	  ba8 |= b8 - a8;
+
+	  a += sizeof(u64);
+	  b += sizeof(u64);
+	  len -= sizeof(u64);
+	}
+
+      ab = ct_u64_gen_mask ((ab8 >> (sizeof(u64) * 8 - 1)) & 1);
+      ba = ct_u64_gen_mask ((ba8 >> (sizeof(u64) * 8 - 1)) & 1);
     }
 
-  /* 'ab | ba' is negative when buffers are not equal, extract sign bit.  */
-  return ((unsigned int)(ab | ba) >> (sizeof(unsigned int) * 8 - 1)) & 1;
+  while (len > 0)
+    {
+      /* If *a != *b, either ab or ba will have high bit set. */
+      ab |= *a - *b;
+      ba |= *b - *a;
+      a++;
+      b++;
+      len--;
+    }
+
+  /* 'ab | ba' has high bit set when buffers are not equal.  */
+  return ((ab | ba) >> (sizeof(u32) * 8 - 1)) & 1;
 }
 
 /*
@@ -77,12 +105,28 @@ _gcry_ct_memmov_cond (void *dst, const void *src, size_t len,
 		      unsigned long op_enable)
 {
   /* Note: dual mask with AND/OR used for EM leakage mitigation */
-  unsigned char mask1 = ct_ulong_gen_mask(op_enable);
-  unsigned char mask2 = ct_ulong_gen_inv_mask(op_enable);
+  u64 mask1 = ct_u64_gen_mask (op_enable);
+  u64 mask2 = ct_u64_gen_inv_mask (op_enable);
   unsigned char *b_dst = dst;
   const unsigned char *b_src = src;
-  size_t i;
 
-  for (i = 0; i < len; i++)
-    b_dst[i] = (b_dst[i] & mask2) | (b_src[i] & mask1);
+  while (len >= sizeof(u64))
+    {
+      u64 dst8 = buf_get_he64 (b_dst);
+      u64 src8 = buf_get_he64 (b_src);
+
+      buf_put_he64 (b_dst, (dst8 & mask2) | (src8 & mask1));
+
+      b_dst += sizeof(u64);
+      b_src += sizeof(u64);
+      len -= sizeof(u64);
+    }
+
+  while (len > 0)
+    {
+      *b_dst = (*b_dst & mask2) | (*b_src & mask1);
+      b_dst++;
+      b_src++;
+      len--;
+    }
 }
