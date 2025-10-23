@@ -113,8 +113,8 @@
 GPGRT_LOCK_DEFINE (jent_rng_lock);
 static int jent_rng_is_locked;
 
-/* This flag tracks whether the RNG has been initialized - either
- * with error or with success.  Protected by JENT_RNG_LOCK. */
+/* This flag tracks whether the RNG has been initialized successfully.
+ * Protected by JENT_RNG_LOCK. */
 static int jent_rng_is_initialized;
 
 /* Our collector.  The RNG is in a working state if its value is not
@@ -290,13 +290,16 @@ _gcry_rndjent_poll (void (*add)(const void*, size_t, enum random_origins),
       if (!jent_rng_is_initialized)
         {
           /* Auto-initialize.  */
-          jent_rng_is_initialized = 1;
           jent_entropy_collector_free (jent_rng_collector);
           jent_rng_collector = NULL;
           if ( !(_gcry_random_read_conf () & RANDOM_CONF_DISABLE_JENT))
             {
               if (!jent_entropy_init ())
-                jent_rng_collector = jent_entropy_collector_alloc (1, 0);
+                {
+                  jent_rng_collector = jent_entropy_collector_alloc (1, 0);
+                  if (jent_rng_collector != NULL)
+                    jent_rng_is_initialized = 1;
+                }
             }
         }
 
@@ -402,6 +405,7 @@ _gcry_rndjent_fini (void)
     {
       jent_entropy_collector_free (jent_rng_collector);
       jent_rng_collector = NULL;
+      jent_rng_is_initialized = 0;
     }
 
   unlock_rng ();
