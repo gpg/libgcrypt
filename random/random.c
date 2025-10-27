@@ -39,8 +39,9 @@
 #include "rand-internal.h"
 #include "cipher.h"         /* For _gcry_sha1_hash_buffer().  */
 
-/* The name of a file used to globally configure the RNG. */
-#define RANDOM_CONF_FILE "/etc/gcrypt/random.conf"
+/* The name of a file used to globally configure the RNG.
+ * Do not use this macro directly; use get_random_conf_file.  */
+#define RANDOM_CONF_FILE "random.conf"
 
 
 /* If not NULL a progress function called from certain places and the
@@ -88,6 +89,26 @@ _gcry_random_progress (const char *what, int printchar, int current, int total)
 }
 
 
+static const char *
+get_random_conf_file (void)
+{
+#ifdef HAVE_W32_SYSTEM
+  static char *fname;
+
+  if (!fname)
+    {
+      const char *sysconfdir = _gcry_get_sysconfdir();
+
+      fname = xmalloc (strlen (sysconfdir) + strlen (RANDOM_CONF_FILE) + 1);
+      strcpy (fname, sysconfdir);
+      strcat (fname, RANDOM_CONF_FILE);
+    }
+  return fname;
+#else
+  return "/etc/gcrypt/" RANDOM_CONF_FILE;
+#endif
+}
+
 /* Read a file with configure options.  The file is a simple text file
  * where empty lines and lines with the first non white-space
  * character being '#' are ignored.  Supported configure options are:
@@ -102,7 +123,7 @@ _gcry_random_progress (const char *what, int printchar, int current, int total)
 unsigned int
 _gcry_random_read_conf (void)
 {
-  const char *fname = RANDOM_CONF_FILE;
+  const char *fname = get_random_conf_file ();
   FILE *fp;
   char buffer[256];
   char *p, *pend;

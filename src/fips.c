@@ -1,6 +1,7 @@
 /* fips.c - FIPS mode management
  * Copyright (C) 2008  Free Software Foundation, Inc.
- *
+ * Copyright (C) 2025 g10- Code GmbH
+
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
@@ -34,7 +35,8 @@
 #endif /*HAVE_SYSLOG*/
 
 /* The name of the file used to force libgcrypt into fips mode. */
-#define FIPS_FORCE_FILE "/etc/gcrypt/fips_enabled"
+/* Note: Always use get_fips_force_file to get this name.       */
+#define FIPS_FORCE_FILE "fips_enabled"
 
 #include "g10lib.h"
 #include "cipher-proto.h"
@@ -118,6 +120,28 @@ static void fips_new_state (enum module_states new_state);
 
 
 
+
+static const char *
+get_fips_force_file (void)
+{
+#ifdef HAVE_W32_SYSTEM
+  static char *fname;
+
+  if (!fname)
+    {
+      const char *sysconfdir = _gcry_get_sysconfdir();
+
+      fname = xmalloc (strlen (sysconfdir) + strlen (FIPS_FORCE_FILE) + 1);
+      strcpy (fname, sysconfdir);
+      strcat (fname, FIPS_FORCE_FILE);
+    }
+  return fname;
+#else
+  return "/etc/gcrypt/" FIPS_FORCE_FILE;
+#endif
+}
+
+
 /*
  * Returns 1 if the FIPS mode is to be activated based on the
  * environment variable LIBGCRYPT_FORCE_FIPS_MODE, the file defined by
@@ -136,10 +160,11 @@ check_fips_system_setting (void)
      file.  The filename is hardwired so that there won't be any
      confusion on whether /etc/gcrypt/ or /usr/local/etc/gcrypt/ is
      actually used.  The file itself may be empty.  */
-  if ( !access (FIPS_FORCE_FILE, F_OK) )
+  if ( !access (get_fips_force_file (), F_OK) )
     return 1;
 
   /* Checking based on /proc file properties.  */
+#ifndef HAVE_W32_SYSTEM
   {
     static const char procfname[] = "/proc/sys/crypto/fips_enabled";
     FILE *fp;
@@ -174,6 +199,7 @@ check_fips_system_setting (void)
         abort ();
       }
   }
+#endif /* Unix */
 
   return 0;
 }
