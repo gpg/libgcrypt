@@ -293,6 +293,8 @@ void _gcry_detect_hw_features (void);
 unsigned int _gcry_get_hw_features (void);
 const char *_gcry_enum_hw_features (int idx, unsigned int *r_feature);
 
+const char *_gcry_get_sysconfdir (void);
+
 
 /*-- mpi/mpiutil.c --*/
 const char *_gcry_mpi_get_hw_config (void);
