@@ -29,11 +29,32 @@
 # include <syslog.h>
 #endif /*HAVE_SYSLOG*/
 
+#ifdef HAVE_W32_SYSTEM
+#include <winsock2.h>   /* Due to the stupid mingw64 requirement to
+                           include this header before windows.h which
+                           is often implicitly included.  */
+#include <shlobj.h>
+#ifndef CSIDL_APPDATA
+#define CSIDL_APPDATA 0x001a
+#endif
+#ifndef CSIDL_LOCAL_APPDATA
+#define CSIDL_LOCAL_APPDATA 0x001c
+#endif
+#ifndef CSIDL_COMMON_APPDATA
+#define CSIDL_COMMON_APPDATA 0x0023
+#endif
+#ifndef CSIDL_FLAG_CREATE
+#define CSIDL_FLAG_CREATE 0x8000
+#endif
+#endif /*HAVE_W32_SYSTEM*/
+
+
 #include "g10lib.h"
 #include "hwf-common.h"
 
-/* The name of a file used to globally disable selected features. */
-#define HWF_DENY_FILE "/etc/gcrypt/hwf.deny"
+/* The name of a file used to globally disable selected features.
+ * Note: Always used get_hwf_deny_file to get this name  */
+#define HWF_DENY_FILE "hwf.deny"
 
 /* A table to map hardware features to a string.  */
 static struct
@@ -75,6 +96,27 @@ static unsigned int hw_features;
 
 
 
+static const char *
+get_hwf_deny_file (void)
+{
+#ifdef HAVE_W32_SYSTEM
+  static char *fname;
+
+  if (!fname)
+    {
+      const char *sysconfdir = _gcry_get_sysconfdir();
+
+      fname = xmalloc (strlen (sysconfdir) + strlen (HWF_DENY_FILE) + 1);
+      strcpy (fname, sysconfdir);
+      strcat (fname, HWF_DENY_FILE);
+    }
+  return fname;
+#else
+  return "/etc/gcrypt/" HWF_DENY_FILE;
+#endif
+}
+
+
 /* Disable a feature by name.  This function must be called *before*
    _gcry_detect_hw_features is called.  */
 gpg_err_code_t
@@ -140,7 +182,7 @@ _gcry_enum_hw_features (int idx, unsigned int *r_feature)
 static void
 parse_hwf_deny_file (void)
 {
-  const char *fname = HWF_DENY_FILE;
+  const char *fname = get_hwf_deny_file ();
   FILE *fp;
   char buffer[256];
   char *p, *pend;
@@ -215,4 +257,45 @@ _gcry_detect_hw_features (void)
 #endif /* HAVE_CPU_ARCH_ARM */
 
   hw_features &= ~disabled_hw_features;
+}
+
+
+/* This is a helper function to return the system configuration
+ * directory on Windows.  On Windows the respective function is used
+ * and if that fails a standard name is used.  On Unix "/etc/gcrypt/"
+ * is returned.  There is always a traling slash.  */
+const char *
+_gcry_get_sysconfdir (void)
+{
+#ifdef HAVE_W32_SYSTEM
+  static char *appdata;
+
+  if (!appdata)
+    {
+      HRESULT (WINAPI *func)(HWND,int,HANDLE,DWORD,LPSTR);
+      void *handle;
+      char *buf;
+
+      handle = LoadLibraryEx ("shell32.dll", NULL, 0);
+      if (handle)
+        {
+          buf = xmalloc (MAX_PATH+17+1); /* Space for "/GNU/etc/gcrypt/" */
+          func = GetProcAddress (handle, "SHGetFolderPathA");
+          if (func && func (NULL, CSIDL_COMMON_APPDATA, NULL, 0, buf) >= 0)
+            {
+              appdata = xmalloc (strlen (buf) + 17 + 1);
+              strcpy (appdata, buf);
+              strcat (appdata, "/GNU/etc/gcrypt/");
+            }
+          xfree (buf);
+          CloseHandle (handle);
+        }
+      if (!appdata)
+        appdata = xstrdup ("c:/ProgramData/GNU/etc/gcrypt/");
+    }
+
+  return appdata;
+#else  /*!HAVE_W32_SYSTEM*/
+  return "/etc/gcrypt/";
+#endif /*!HAVE_W32_SYSTEM*/
 }
