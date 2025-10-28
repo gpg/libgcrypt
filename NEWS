@@ -1,5 +1,12 @@
-Noteworthy changes in version 1.8.12 (unreleased)  [C22/A2/R__]
+Noteworthy changes in version 1.8.12 (2025-10-28)  [C22/A2/R13]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - For configuration files on Windows use CSIDL_COMMON_APPDATA
+     instead of /etc on the current drive.  [rC33413bf3dd]
+
+ Release-info: https://dev.gnupg.org/T7887
 
 
 Noteworthy changes in version 1.8.11 (2023-11-16)  [C22/A2/R12]
