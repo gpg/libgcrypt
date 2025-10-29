@@ -227,9 +227,7 @@ _gcry_mpi_free( gcry_mpi_t a )
     return;
   if ((a->flags & 32))
   {
-#if GPGRT_VERSION_NUMBER >= 0x011600  /* 1.22 */
     gpgrt_annotate_leaked_object(a);
-#endif
     return; /* Never release a constant. */
   }
   if ((a->flags & 4))
