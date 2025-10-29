@@ -337,9 +337,17 @@ lock_pool_pages (void *p, size_t n)
   uid = getuid ();
 
 #ifdef HAVE_BROKEN_MLOCK
+#if defined(__has_feature) && __has_feature(address_sanitizer)
+  /* Address sanitizer and mlock is incompatible.  We can't use mlock
+   * with address sanitizer enabled.  Proceed with NO_MLOCK=1.  */
+  (void)p;
+  (void)n;
+  no_mlock = 1;
+  err = 0;
+#else
   /* Under HP/UX mlock segfaults if called by non-root.  Note, we have
      noch checked whether mlock does really work under AIX where we
-     also detected a broken nlock.  Note further, that using plock ()
+     also detected a broken mlock.  Note further, that using plock ()
      is not a good idea under AIX. */
   if (uid)
     {
@@ -352,6 +360,7 @@ lock_pool_pages (void *p, size_t n)
       if (err && errno)
 	err = errno;
     }
+#endif
 #else /* !HAVE_BROKEN_MLOCK */
   err = no_mlock? 0 : mlock (p, n);
   if (err && errno)
