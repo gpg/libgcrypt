@@ -408,6 +408,9 @@ static struct rand_data
 		uint32_t memsize = jent_memsize(flags);
 
 		entropy_collector->mem = _gcry_calloc (1, memsize);
+#ifdef _GCRYPT_IN_LIBGCRYPT
+                gpgrt_annotate_leaked_object (entropy_collector->mem);
+#endif
 
 #ifdef JENT_RANDOM_MEMACCESS
 		/*
