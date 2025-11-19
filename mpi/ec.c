@@ -184,6 +184,30 @@ point_swap_cond (mpi_point_t d, mpi_point_t s, unsigned long swap,
 }
 
 
+/*
+ * Move the point value of A from B, when DIR is 1.
+ * Move the point value of A to B, when DIR is 0.
+ *
+ * For the use case when DIR is 0, it's actually dummy operations (the
+ * value copied into B is not used after the call).  The intention
+ * here is to be constant-time and to reduce possible EM signal/noise
+ * ratio (by decreasing signal and increasing noise).
+ *
+ * The word "tfr" comes from the mnemonic of Motorola 6809
+ * instruction, which does "transfer" a register value to another
+ * register.  "TFR A,B" means "Transfer A to B".
+ */
+static void
+point_tfr (mpi_point_t a, mpi_point_t b, unsigned long dir,
+           mpi_ec_t ctx)
+{
+  mpi_tfr (a->x, b->x, dir);
+  if (ctx->model != MPI_EC_MONTGOMERY)
+    mpi_tfr (a->y, b->y, dir);
+  mpi_tfr (a->z, b->z, dir);
+}
+
+
 /* Set the projective coordinates from POINT into X, Y, and Z.  If a
    coordinate is not required, X, Y, or Z may be passed as NULL.  */
 void
@@ -2241,7 +2265,7 @@ mpi_ec_mul_point_lli (mpi_point_t result,
           mpih_set_cond (tmppnt.x->d, point->x->d, ctx->p->nlimbs, is_z_zero);
           mpih_set_cond (tmppnt.y->d, point->y->d, ctx->p->nlimbs, is_z_zero);
           mpih_set_cond (tmppnt.z->d, point->z->d, ctx->p->nlimbs, is_z_zero);
-          point_swap_cond (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
+          point_tfr (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
         }
     }
   else /* MPI_EC_EDWARDS */
@@ -2250,7 +2274,7 @@ mpi_ec_mul_point_lli (mpi_point_t result,
         {
           dup_point_edwards (result, result, ctx);
           add_points_edwards_a (&tmppnt, result, point->x, point->y, ctx);
-          point_swap_cond (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
+          point_tfr (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
         }
     }
   point_free (&tmppnt);
