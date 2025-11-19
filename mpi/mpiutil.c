@@ -646,6 +646,59 @@ _gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 
 
 /****************
+ * Move the MPI value of A from B, when DIR is 1.
+ * Move the MPI value of A to B, when DIR is 0.
+ * This implementation should be constant-time regardless of DIR.
+ *
+ * The word "tfr" comes from the mnemonic of Motorola 6809
+ * instruction, which does "transfer" a register value to another
+ * register.  "TFR A,B" means "Transfer A to B".
+ */
+void
+_gcry_mpi_tfr (gcry_mpi_t a, gcry_mpi_t b, unsigned long dir)
+{
+  /* Note: dual mask with AND/OR used for EM leakage mitigation */
+  mpi_limb_t mask1 = ct_limb_gen_mask(dir);
+  mpi_limb_t mask2 = ct_limb_gen_inv_mask(dir);
+  mpi_size_t i;
+  mpi_size_t nlimbs;
+  mpi_limb_t *ua = a->d;
+  mpi_limb_t *ub = b->d;
+  mpi_limb_t xa;
+  mpi_limb_t xb;
+  mpi_limb_t v;
+
+  if (a->alloced > b->alloced)
+    nlimbs = b->alloced;
+  else
+    nlimbs = a->alloced;
+  if (a->nlimbs > nlimbs || b->nlimbs > nlimbs)
+    log_bug ("mpi_c0py: different sizes\n");
+
+  for (i = 0; i < nlimbs; i++)
+    {
+      xa = ua[i];
+      xb = ub[i];
+      v = (xa & mask2) | (xb & mask1);
+      ua[i] = v;
+      ub[i] = v;
+    }
+
+  xa = a->nlimbs;
+  xb = b->nlimbs;
+  v = (xa & mask2) | (xb & mask1);
+  a->nlimbs = v;
+  b->nlimbs = v;
+
+  xa = a->sign;
+  xb = b->sign;
+  v = (xa & mask2) | (xb & mask1);
+  a->sign = v;
+  b->sign = v;
+}
+
+
+/****************
  * Set bit N of A, when SET is 1.
  * This implementation should be constant-time regardless of SET.
  */

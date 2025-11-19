@@ -122,6 +122,7 @@ void _gcry_mpi_immutable_failed (void);
 #define mpi_alloc_set_ui(a)   _gcry_mpi_alloc_set_ui ((a))
 #define mpi_const(n)          _gcry_mpi_const ((n))
 #define mpi_swap_cond(a,b,sw)  _gcry_mpi_swap_cond ((a),(b),(sw))
+#define mpi_tfr(a,b,dir)       _gcry_mpi_tfr ((a),(b),(dir))
 #define mpi_set_cond(w,u,set)  _gcry_mpi_set_cond ((w),(u),(set))
 #define mpi_set_bit_cond(a,n,set) _gcry_mpi_set_bit_cond ((a),(n),(set))
 
@@ -132,6 +133,7 @@ gcry_mpi_t  _gcry_mpi_alloc_like( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_set_ui( unsigned long u);
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
 void _gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap);
+void _gcry_mpi_tfr (gcry_mpi_t a, gcry_mpi_t b, unsigned long dir);
 void _gcry_mpi_set_bit_cond (gcry_mpi_t a, unsigned int n, unsigned long set);
 gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_snew (unsigned int nbits);
