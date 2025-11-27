@@ -66,7 +66,7 @@ do_mpi_cmp (gcry_mpi_t u, gcry_mpi_t v, int absmode)
 
   if (mpi_is_opaque (u) || mpi_is_opaque (v))
     {
-      /* We have no signan and thus ABSMODE has no efeect here.  */
+      /* We have no sign and thus ABSMODE has no effect here.  */
       if (mpi_is_opaque (u) && !mpi_is_opaque (v))
         return -1;
       if (!mpi_is_opaque (u) && mpi_is_opaque (v))
