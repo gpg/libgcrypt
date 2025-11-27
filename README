@@ -67,6 +67,19 @@
       make pdf
 
 
+    Installation under Windows
+    --------------------------
+
+    Due to the way file system permissions are implemented under
+    Windows it is important to make sure that the directory
+    %ALLUSERSPROFILE%\GNU\etc\gcrypt is only writable by
+    administrators, so that users can't add a configuration file.
+    that.  (%ALLUSERSPROFILE% is commonly c:\ProgramData).  A Windows
+    installer script should take care of this.  It is also possible
+    and suggested to set these restricted permissions direct for the
+    parent directory %ALLUSERSPROFILE%\GNU\etc.
+
+
 
     Mailing List
     ------------
