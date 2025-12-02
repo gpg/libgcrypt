@@ -365,6 +365,10 @@ lock_pool_pages (void *p, size_t n)
      * this whole Windows !@#$% and their user base are inherently insecure. */
   (void)p;
   (void)n;
+#elif defined (__MVS__)
+  /* On z/OS secure memory locking is not implemented */
+  (void)p;
+  (void)n;
 #else
   (void)p;
   (void)n;

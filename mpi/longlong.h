@@ -1505,7 +1505,7 @@ extern USItype __udiv_qrnnd (USItype *, USItype, USItype, USItype);
 /***************************************
  *********** s390x/zSeries  ************
  ***************************************/
-#if defined (__s390x__) && W_TYPE_SIZE == 64 && __GNUC__ >= 4
+#if defined (__s390x__) && !defined (__MVS__) && W_TYPE_SIZE == 64 && __GNUC__ >= 4
 # define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("algr %1,%5\n"                                               \
 	   "alcgr %0,%3\n"                                              \
