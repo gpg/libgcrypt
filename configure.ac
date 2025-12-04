@@ -241,6 +241,13 @@ have_pthread=no
 
 # Setup some stuff depending on host.
 case "${host}" in
+    *-*-linux*)
+        # It makes no sense to check the requirement of -lpthread for
+        # libgcrypt.  It's done by libgpg-error and we use
+        # GPG_ERROR_MT_CFLAGS and GPG_ERROR_MT_LIBS in libgcrypt.
+        have_pthread=yes
+        ;;
+
     *-*-mingw32*)
       ac_cv_have_dev_random=no
       have_w32_system=yes
@@ -290,8 +297,17 @@ case "${host}" in
                   [defined if we use posix_spawn in test program])
         AC_CHECK_HEADERS(spawn.h)
         ;;
+
+    *-openedition*)
+        # The z/OS C runtime includes pthread support, and linking is
+        # handled automatically at build time.
+        have_pthread=yes
+        # mmap is not fully supported on z/OS.
+        ac_cv_func_mmap=no
+        ;;
+
     *)
-      ;;
+        ;;
 esac
 
 if test "$have_w32_system" = yes; then
@@ -316,6 +332,10 @@ case "${host}" in
 
     *-linux*)
         PRINTABLE_OS_NAME="GNU/Linux"
+        ;;
+
+    *-openedition*)
+        PRINTABLE_OS_NAME="IBM z/OS"
         ;;
 
     *)
@@ -821,13 +841,12 @@ AM_CONDITIONAL(USE_GPGRT_CONFIG, [test -n "$GPGRT_CONFIG" \
 #
 # Check whether pthreads is available
 #
-if test "$have_w32_system" != yes; then
+if test "$have_w32_system" != yes && test "$have_pthread" != yes; then
   AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
-  if test "$have_pthread" = yes; then
-    AC_DEFINE(HAVE_PTHREAD, 1 ,[Define if we have pthread.])
-  fi
 fi
-
+if test "$have_pthread" = yes; then
+  AC_DEFINE(HAVE_PTHREAD, 1 ,[Define if we have pthread.])
+fi
 
 # Solaris needs -lsocket and -lnsl. Unisys system includes
 # gethostbyname in libsocket but needs libnsl for socket.
