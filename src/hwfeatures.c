@@ -328,7 +328,7 @@ _gcry_get_sysconfdir (void)
       if (handle)
         {
           buf = xmalloc (MAX_PATH+17+1); /* Space for "/GNU/etc/gcrypt/" */
-          func = GetProcAddress (handle, "SHGetFolderPathA");
+          func = (void *)GetProcAddress (handle, "SHGetFolderPathA");
           if (func && func (NULL, CSIDL_COMMON_APPDATA, NULL, 0, buf) >= 0)
             {
               appdata = xmalloc (strlen (buf) + 17 + 1);
