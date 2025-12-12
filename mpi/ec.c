@@ -1198,6 +1198,7 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
     case MPI_EC_WEIERSTRASS: /* Using Jacobian coordinates.  */
       {
         gcry_mpi_t z1, z2, z3;
+        int saved_flags;
 
 	if (!mpi_cmp_ui (point->z, 1))
 	  {
@@ -1208,21 +1209,33 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
 	    return 0;
 	  }
 
+        /* Since we use LLI computations, the LL flag should be set.  */
+        saved_flags = ctx->flags;
+        ctx->flags |= GCRYECC_FLAG_LEAST_LEAK;
+
         z1 = mpi_new (0);
         z2 = mpi_new (0);
         ec_invm (z1, point->z, ctx);   /* z1 = z^(-1) mod p  */
         ec_mulm_lli (z2, z1, z1, ctx); /* z2 = z^(-2) mod p  */
 
         if (x)
-          ec_mulm_lli (x, point->x, z2, ctx);
+          {
+            mpi_resize (point->x, ctx->p->nlimbs);
+            point->x->nlimbs = ctx->p->nlimbs;
+            ec_mulm_lli (x, point->x, z2, ctx);
+          }
 
         if (y)
           {
+            mpi_resize (point->y, ctx->p->nlimbs);
+            point->y->nlimbs = ctx->p->nlimbs;
             z3 = mpi_new (0);
             ec_mulm_lli (z3, z2, z1, ctx); /* z3 = z^(-3) mod p  */
             ec_mulm_lli (y, point->y, z3, ctx);
             mpi_free (z3);
           }
+
+        ctx->flags = saved_flags;
 
         mpi_free (z2);
         mpi_free (z1);
