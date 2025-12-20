@@ -1,6 +1,6 @@
 /* camellia-gfni-avx512-amd64.S - GFNI/AVX512 implementation of Camellia
  *
- * Copyright (C) 2022-2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2022-2023,2025 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -691,6 +691,21 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15
 .Lbige_addb_16:
 	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16
+
+.align 16
+/* Shuffling constants for AVX512+GFNI 1-way variant. */
+.Lsp1mask_swap32_gfni:
+	.byte 0xff, 0x04, 0x04, 0x04, 0xff, 0x04, 0x04, 0x04
+	.byte 0xff, 0x03, 0x03, 0x03, 0x03, 0xff, 0xff, 0x03
+.Lsp2mask_swap32_gfni:
+	.byte 0x07, 0x07, 0x07, 0xff, 0x07, 0x07, 0x07, 0xff
+	.byte 0x02, 0x02, 0x02, 0xff, 0xff, 0xff, 0x02, 0x02
+.Lsp3mask_swap32_gfni:
+	.byte 0x06, 0x06, 0xff, 0x06, 0x06, 0x06, 0xff, 0x06
+	.byte 0x01, 0x01, 0xff, 0x01, 0xff, 0x01, 0x01, 0xff
+.Lsp4mask_swap32_gfni:
+	.byte 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff
+	.byte 0x05, 0xff, 0x05, 0x05, 0x05, 0xff, 0x05, 0x05
 
 ELF(.size _gcry_camellia_gfni_avx512__constants,.-_gcry_camellia_gfni_avx512__constants;)
 
@@ -1629,6 +1644,225 @@ _gcry_camellia_gfni_avx512_dec_blk64:
 	ret_spec_stop;
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_gfni_avx512_dec_blk64,.-_gcry_camellia_gfni_avx512_dec_blk64;)
+
+/**********************************************************************
+  1-block non-parallel camellia
+ **********************************************************************/
+
+/* Camellia F function, AVX512+GFNI version */
+#define camellia_f_gfni(ab, cd, x1, x2, x3, x4, \
+			pre_filter_bitmatrix_s123, pre_filter_bitmatrix_s4, \
+			post_filter_bitmatrix_s14, post_filter_bitmatrix_s2, \
+			post_filter_bitmatrix_s3, sp1mask, sp2mask, sp3mask, \
+			sp4mask) \
+	/* camellia sboxes s1, s2, s3, s4 */ \
+	vgf2p8affineqb $(pre_filter_constant_s1234), \
+		       pre_filter_bitmatrix_s4, ab, x4; \
+	vgf2p8affineinvqb $(post_filter_constant_s14), \
+			  post_filter_bitmatrix_s14, x4, x4; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), \
+		       pre_filter_bitmatrix_s123, ab, x1; \
+	vgf2p8affineinvqb $(post_filter_constant_s2), \
+			  post_filter_bitmatrix_s2, x1, x2; \
+	vgf2p8affineinvqb $(post_filter_constant_s3), \
+			  post_filter_bitmatrix_s3, x1, x3; \
+	vgf2p8affineinvqb $(post_filter_constant_s14), \
+			  post_filter_bitmatrix_s14, x1, x1; \
+	\
+	/* permutation */ \
+	vpshufb sp4mask, x4, x4; \
+	vpshufb sp2mask, x2, x2; \
+	vpshufb sp3mask, x3, x3; \
+	vpshufb sp1mask, x1, x1; \
+	vpxor x4, x2, x2; \
+	vpternlogd $0x96, x3, x1, x2; \
+	vpsrldq $8, x2, x1; \
+	\
+	/* output xor */ \
+	vpternlogd $0x96, x2, x1, cd;
+
+#define preload_camellia_f_consts() \
+	vmovq .Lpre_filter_bitmatrix_s123 rRIP, %xmm14; \
+	vmovq .Lpre_filter_bitmatrix_s4 rRIP, %xmm13; \
+	vmovq .Lpost_filter_bitmatrix_s14 rRIP, %xmm12; \
+	vmovq .Lpost_filter_bitmatrix_s2 rRIP, %xmm11; \
+	vmovq .Lpost_filter_bitmatrix_s3 rRIP, %xmm10; \
+	vmovdqa .Lsp1mask_swap32_gfni rRIP, %xmm9; \
+	vmovdqa .Lsp2mask_swap32_gfni rRIP, %xmm8; \
+	vmovdqa .Lsp3mask_swap32_gfni rRIP, %xmm7; \
+	vmovdqa .Lsp4mask_swap32_gfni rRIP, %xmm6;
+
+#define do_camellia_f(ab, cd, t0, t1, t2, t3) \
+	camellia_f_gfni(ab, cd, t0, t1, t2, t3, \
+			%xmm14, %xmm13, %xmm12, %xmm11, %xmm10, \
+			%xmm9, %xmm8, %xmm7, %xmm6);
+
+#define preload_camellia_key_consts() \
+	kxnorb %k1, %k1, %k1; \
+	vmovdqa .Lpack_bswap rRIP, %xmm15; \
+	kshiftrb $7, %k1, %k1;
+
+#define add_roundkey_blk1(cd, key) \
+	vpxorq key, cd, cd{%k1}{z};
+
+#define do_fls_blk1(ll, lr, rl, rr, t0, t1, kll, klr, krl, krr) \
+	  vpternlogd $0x1E, krr, rr, rl{%k1}{z}; \
+	vpandd kll, ll, t0{%k1}{z}; \
+	  vpandd krl, rl, t1{%k1}{z}; \
+	vprold $1, t0, t0; \
+	  vprold $1, t1, t1; \
+	vpxor t0, lr, lr; \
+	  vpxor t1, rr, rr; \
+	vpternlogd $0x1E, klr, lr, ll{%k1}{z};
+
+#define clear_regs_blk1() \
+	kxorq %k1, %k1, %k1; \
+	vzeroall;
+
+#define roundsm_blk1(ab, cd, t0, t1, t2, t3, key) \
+	add_roundkey_blk1(cd, key); \
+	do_camellia_f(ab, cd, t0, t1, t2, t3);
+
+#define two_roundsm_blk1(ab, cd, t0, t1, t2, t3, i, dir, ctx) \
+	roundsm_blk1(ab, cd, t0, t1, t2, t3, \
+		     (key_table + (i) * 8)(ctx)); \
+	roundsm_blk1(cd, ab, t0, t1, t2, t3, \
+		     (key_table + ((i) + (dir)) * 8)(ctx));
+
+#define enc_rounds_blk1(ab, cd, t0, t1, t2, t3, i, ctx) \
+	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 2, 1, ctx); \
+	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 4, 1, ctx); \
+	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 6, 1, ctx);
+
+#define dec_rounds_blk1(ab, cd, t0, t1, t2, t3, i, ctx) \
+	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 7, -1, ctx); \
+	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 5, -1, ctx); \
+	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 3, -1, ctx);
+
+#define fls_blk1(ll_lr, rl_rr, tmp_lr, tmp_rr, t0, t1, kll, klr, krl, krr) \
+	vpsrlq $32, rl_rr, tmp_rr; \
+	vpsrlq $32, ll_lr, tmp_lr; \
+	do_fls_blk1(ll_lr, tmp_lr, rl_rr, tmp_rr, t0, t1, kll, klr, krl, krr); \
+	vpunpckldq tmp_lr, ll_lr, ll_lr; \
+	vpunpckldq tmp_rr, rl_rr, rl_rr;
+
+#define inpack_blk1(ab, cd, src, key) \
+	vmovq 0(src), ab; \
+	vmovq 8(src), cd; \
+	vpshufb %xmm15, ab, ab; \
+	vpshufb %xmm15, cd, cd; \
+	add_roundkey_blk1(ab, key);
+
+#define outunpack_blk1(ab, cd, dst, key) \
+	add_roundkey_blk1(cd, key); \
+	vpshufb %xmm15, ab, ab; \
+	vpshufb %xmm15, cd, cd; \
+	vmovq ab, 8(dst); \
+	vmovq cd, 0(dst);
+
+.align 16
+.globl _gcry_camellia_gfni_avx512_enc_blk1
+ELF(.type   _gcry_camellia_gfni_avx512_enc_blk1,@function;)
+
+_gcry_camellia_gfni_avx512_enc_blk1:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (16 bytes)
+	 *	%rdx: src (16 bytes)
+	 */
+	CFI_STARTPROC();
+	spec_stop_avx512;
+
+	preload_camellia_key_consts();
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
+
+	inpack_blk1(%xmm0, %xmm1, %rdx, (key_table)(CTX));
+
+	preload_camellia_f_consts();
+
+	leaq (-8 * 8)(CTX, %r8, 8), %r8;
+
+.align 16
+.Lenc_loop_blk1:
+	enc_rounds_blk1(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, 0, CTX);
+
+	cmpq %r8, CTX;
+	je .Lenc_done_blk1;
+	leaq (8 * 8)(CTX), CTX;
+
+	fls_blk1(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5,
+		 ((key_table) + 0)(CTX),
+	         ((key_table) + 4)(CTX),
+	         ((key_table) + 8)(CTX),
+	         ((key_table) + 12)(CTX));
+
+	jmp .Lenc_loop_blk1;
+
+.align 16
+.Lenc_done_blk1:
+	outunpack_blk1(%xmm0, %xmm1, %rsi, ((key_table) + 8 * 8)(CTX));
+
+	clear_regs_blk1();
+
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_camellia_gfni_avx512_enc_blk1,.-_gcry_camellia_gfni_avx512_enc_blk1;)
+
+.align 16
+.globl _gcry_camellia_gfni_avx512_dec_blk1
+ELF(.type   _gcry_camellia_gfni_avx512_dec_blk1,@function;)
+
+_gcry_camellia_gfni_avx512_dec_blk1:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (16 bytes)
+	 *	%rdx: src (16 bytes)
+	 */
+	CFI_STARTPROC();
+	spec_stop_avx512;
+
+	preload_camellia_key_consts();
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %eax;
+	cmovel %eax, %r8d; /* max */
+
+	inpack_blk1(%xmm0, %xmm1, %rdx, (key_table)(CTX, %r8, 8));
+
+	preload_camellia_f_consts();
+
+	leaq (-8 * 8)(CTX, %r8, 8), %rax;
+
+.align 16
+.Ldec_loop_blk1:
+	dec_rounds_blk1(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, 0, %rax);
+
+	cmpq CTX, %rax;
+	je .Ldec_done_blk1;
+
+	fls_blk1(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5,
+		 ((key_table) + 8)(%rax),
+	         ((key_table) + 12)(%rax),
+	         ((key_table) + 0)(%rax),
+	         ((key_table) + 4)(%rax));
+
+	leaq (-8 * 8)(%rax), %rax;
+	jmp .Ldec_loop_blk1;
+
+.align 16
+.Ldec_done_blk1:
+	outunpack_blk1(%xmm0, %xmm1, %rsi, (key_table)(CTX));
+
+	clear_regs_blk1();
+
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_camellia_gfni_avx512_dec_blk1,.-_gcry_camellia_gfni_avx512_dec_blk1;)
 
 #endif /* defined(ENABLE_GFNI_SUPPORT) && defined(ENABLE_AVX512_SUPPORT) */
 #endif /* __x86_64 */

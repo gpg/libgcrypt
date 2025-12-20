@@ -427,6 +427,16 @@ extern void _gcry_camellia_gfni_avx512_dec_blk64(const CAMELLIA_context *ctx,
                                                  const unsigned char *in)
                                                  ASM_FUNC_ABI;
 
+extern void _gcry_camellia_gfni_avx512_enc_blk1(const CAMELLIA_context *ctx,
+                                                unsigned char *out,
+                                                const unsigned char *in)
+                                                ASM_FUNC_ABI;
+
+extern void _gcry_camellia_gfni_avx512_dec_blk1(const CAMELLIA_context *ctx,
+                                                unsigned char *out,
+                                                const unsigned char *in)
+                                                ASM_FUNC_ABI;
+
 /* Stack not used by AVX512 implementation. */
 static const int avx512_burn_stack_depth = 0;
 #endif
@@ -715,6 +725,14 @@ camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   CAMELLIA_context *ctx=c;
 
+#ifdef USE_GFNI_AVX512
+  if (ctx->use_gfni_avx512)
+    {
+      _gcry_camellia_gfni_avx512_enc_blk1(ctx, outbuf, inbuf);
+      return 0;
+    }
+#endif
+
   Camellia_EncryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
 
 #define CAMELLIA_encrypt_stack_burn_size \
@@ -731,6 +749,14 @@ static unsigned int
 camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   CAMELLIA_context *ctx=c;
+
+#ifdef USE_GFNI_AVX512
+  if (ctx->use_gfni_avx512)
+    {
+      _gcry_camellia_gfni_avx512_dec_blk1(ctx, outbuf, inbuf);
+      return 0;
+    }
+#endif
 
   Camellia_DecryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
 
