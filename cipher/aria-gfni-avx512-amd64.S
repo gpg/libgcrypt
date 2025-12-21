@@ -969,6 +969,7 @@ _gcry_aria_gfni_avx512_ctr_crypt_blk64:
 	call __aria_gfni_avx512_ctr_gen_keystream_64way
 
 	pushq %rsi;
+	CFI_ADJUST_CFA_OFFSET(8);
 	movq %rdx, %r11;
 	movq %rcx, %rsi;
 	movq %rcx, %rdx;
@@ -977,6 +978,7 @@ _gcry_aria_gfni_avx512_ctr_crypt_blk64:
 	call __aria_gfni_avx512_crypt_64way;
 
 	popq %rsi;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	vpxorq (0 * 64)(%r11), %zmm3, %zmm3;
 	vpxorq (1 * 64)(%r11), %zmm2, %zmm2;
 	vpxorq (2 * 64)(%r11), %zmm1, %zmm1;

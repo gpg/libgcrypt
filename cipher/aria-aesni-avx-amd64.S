@@ -1057,6 +1057,7 @@ _gcry_aria_aesni_avx_ecb_crypt_blk1_16:
 
 .Lecb_less_than_16:
 	pushq %r8;
+	CFI_ADJUST_CFA_OFFSET(8);
 	inpack_1_15_pre(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 			%xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 			%xmm15, %rdx, %r8d);
@@ -1064,6 +1065,7 @@ _gcry_aria_aesni_avx_ecb_crypt_blk1_16:
 	call __aria_aesni_avx_crypt_16way;
 
 	popq %rax;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	write_output_1_15(%xmm1, %xmm0, %xmm3, %xmm2, %xmm4, %xmm5, %xmm6,
 			  %xmm7, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13,
 			  %xmm14, %xmm15, %r11, %eax);
@@ -1156,6 +1158,7 @@ __aria_aesni_avx_ctr_gen_keystream_16way:
 .Lctr_byteadd_full_ctr_carry:
 	addb $16, 15(%r8);
 	pushq %rcx;
+	CFI_ADJUST_CFA_OFFSET(8);
 	movl $14, %ecx;
 	1:
 	  adcb $0, (%r8, %rcx);
@@ -1163,6 +1166,7 @@ __aria_aesni_avx_ctr_gen_keystream_16way:
 	  loop 1b;
 	2:
 	popq %rcx;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	jmp .Lctr_byteadd_xmm;
 .align 8
 .Lctr_byteadd:
@@ -1215,6 +1219,7 @@ _gcry_aria_aesni_avx_ctr_crypt_blk16:
 	call __aria_aesni_avx_ctr_gen_keystream_16way;
 
 	pushq %rsi;
+	CFI_ADJUST_CFA_OFFSET(8);
 	movq %rdx, %r11;
 	movq %rcx, %rsi; /* use stack for temporary store */
 	movq %rcx, %rdx;
@@ -1223,6 +1228,7 @@ _gcry_aria_aesni_avx_ctr_crypt_blk16:
 	call __aria_aesni_avx_crypt_16way;
 
 	popq %rsi;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	vpxor (0 * 16)(%r11), %xmm1, %xmm1;
 	vpxor (1 * 16)(%r11), %xmm0, %xmm0;
 	vpxor (2 * 16)(%r11), %xmm3, %xmm3;
@@ -1358,6 +1364,7 @@ _gcry_aria_gfni_avx_ecb_crypt_blk1_16:
 
 .Lecb_less_than_16_gfni:
 	pushq %r8;
+	CFI_ADJUST_CFA_OFFSET(8);
 	inpack_1_15_pre(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 			%xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14,
 			%xmm15, %rdx, %r8d);
@@ -1365,6 +1372,7 @@ _gcry_aria_gfni_avx_ecb_crypt_blk1_16:
 	call __aria_gfni_avx_crypt_16way;
 
 	popq %rax;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	write_output_1_15(%xmm1, %xmm0, %xmm3, %xmm2, %xmm4, %xmm5, %xmm6,
 			  %xmm7, %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13,
 			  %xmm14, %xmm15, %r11, %eax);
@@ -1399,6 +1407,7 @@ _gcry_aria_gfni_avx_ctr_crypt_blk16:
 	call __aria_aesni_avx_ctr_gen_keystream_16way
 
 	pushq %rsi;
+	CFI_ADJUST_CFA_OFFSET(8);
 	movq %rdx, %r11;
 	movq %rcx, %rsi; /* use stack for temporary store */
 	movq %rcx, %rdx;
@@ -1407,6 +1416,7 @@ _gcry_aria_gfni_avx_ctr_crypt_blk16:
 	call __aria_gfni_avx_crypt_16way;
 
 	popq %rsi;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	vpxor (0 * 16)(%r11), %xmm1, %xmm1;
 	vpxor (1 * 16)(%r11), %xmm0, %xmm0;
 	vpxor (2 * 16)(%r11), %xmm3, %xmm3;

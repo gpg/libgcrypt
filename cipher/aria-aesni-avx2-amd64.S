@@ -1395,6 +1395,7 @@ __aria_aesni_avx2_ctr_gen_keystream_32way:
 .Lctr_byteadd_full_ctr_carry:
 	addb $32, 15(%r8);
 	pushq %rcx;
+	CFI_ADJUST_CFA_OFFSET(8);
 	movl $14, %ecx;
 	1:
 	  adcb $0, (%r8, %rcx);
@@ -1402,6 +1403,7 @@ __aria_aesni_avx2_ctr_gen_keystream_32way:
 	  loop 1b;
 	2:
 	popq %rcx;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	jmp .Lctr_byteadd_ymm;
 .align 8
 .Lctr_byteadd:
@@ -1457,6 +1459,7 @@ _gcry_aria_aesni_avx2_ctr_crypt_blk32:
 	call __aria_aesni_avx2_ctr_gen_keystream_32way;
 
 	pushq %rsi;
+	CFI_ADJUST_CFA_OFFSET(8);
 	movq %rdx, %r11;
 	movq %rcx, %rsi; /* use stack for temporary store */
 	movq %rcx, %rdx;
@@ -1465,6 +1468,7 @@ _gcry_aria_aesni_avx2_ctr_crypt_blk32:
 	call __aria_aesni_avx2_crypt_32way;
 
 	popq %rsi;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	vpxor (0 * 32)(%r11), %ymm1, %ymm1;
 	vpxor (1 * 32)(%r11), %ymm0, %ymm0;
 	vpxor (2 * 32)(%r11), %ymm3, %ymm3;
@@ -1622,6 +1626,7 @@ _gcry_aria_vaes_avx2_ctr_crypt_blk32:
 	call __aria_aesni_avx2_ctr_gen_keystream_32way;
 
 	pushq %rsi;
+	CFI_ADJUST_CFA_OFFSET(8);
 	movq %rdx, %r11;
 	movq %rcx, %rsi; /* use stack for temporary store */
 	movq %rcx, %rdx;
@@ -1630,6 +1635,7 @@ _gcry_aria_vaes_avx2_ctr_crypt_blk32:
 	call __aria_vaes_avx2_crypt_32way;
 
 	popq %rsi;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	vpxor (0 * 32)(%r11), %ymm1, %ymm1;
 	vpxor (1 * 32)(%r11), %ymm0, %ymm0;
 	vpxor (2 * 32)(%r11), %ymm3, %ymm3;
@@ -1788,6 +1794,7 @@ _gcry_aria_gfni_avx2_ctr_crypt_blk32:
 	call __aria_aesni_avx2_ctr_gen_keystream_32way;
 
 	pushq %rsi;
+	CFI_ADJUST_CFA_OFFSET(8);
 	movq %rdx, %r11;
 	movq %rcx, %rsi; /* use stack for temporary store */
 	movq %rcx, %rdx;
@@ -1796,6 +1803,7 @@ _gcry_aria_gfni_avx2_ctr_crypt_blk32:
 	call __aria_gfni_avx2_crypt_32way;
 
 	popq %rsi;
+	CFI_ADJUST_CFA_OFFSET(-8);
 	vpxor (0 * 32)(%r11), %ymm1, %ymm1;
 	vpxor (1 * 32)(%r11), %ymm0, %ymm0;
 	vpxor (2 * 32)(%r11), %ymm3, %ymm3;
