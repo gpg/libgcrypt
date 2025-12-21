@@ -36,6 +36,12 @@
    features.  */
 #undef HAS_X86_CPUID
 
+
+static struct hwf_x86_cpu_details x86_cpu_details;
+static unsigned int x86_hw_features;
+static int x86_detect_done;
+
+
 #if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
 # define HAS_X86_CPUID 1
 
@@ -48,6 +54,7 @@
 # define CFI_PUSH4
 # define CFI_POP4
 #endif
+
 
 static int
 is_cpuid_available(void)
@@ -184,7 +191,9 @@ get_xgetbv(void)
 
 #ifdef HAS_X86_CPUID
 static unsigned int
-detect_x86_gnuc (void)
+detect_x86_gnuc (
+  struct hwf_x86_cpu_details *cpu_details
+)
 {
   union
   {
@@ -198,9 +207,14 @@ detect_x86_gnuc (void)
   unsigned int fms, family, model;
   unsigned int result = 0;
   unsigned int is_amd_cpu = 0;
+  unsigned int has_avx512bmm = 0;
+  unsigned int has_sse3 = 0;
 
   (void)os_supports_avx_avx2_registers;
   (void)os_supports_avx512_registers;
+
+  /* Assume integer vector latency of 1 by default. */
+  cpu_details->int_vector_latency = 1;
 
   if (!is_cpuid_available())
     return 0;
@@ -320,7 +334,8 @@ detect_x86_gnuc (void)
    * too high max_cpuid_level, so don't check level 7 if processor does not
    * support SSE3 (as cpuid:7 contains only features for newer processors).
    * Source: http://www.sandpile.org/x86/cpuid.htm  */
-  if (max_cpuid_level >= 7 && (features & 0x00000001))
+  has_sse3 = !!(features & 0x00000001);
+  if (max_cpuid_level >= 7 && has_sse3)
     {
       /* Get CPUID:7 contains further Intel feature flags. */
       get_cpuid(7, NULL, &features, &features2, NULL);
@@ -385,6 +400,16 @@ detect_x86_gnuc (void)
         result |= HWF_INTEL_GFNI;
     }
 
+  /* Check additional feature flags. */
+  if (max_cpuid_level >= 0x21 && has_sse3)
+    {
+      get_cpuid(0x21, &features, NULL, NULL, NULL);
+      if (features & (1 << 23))
+	{
+	  has_avx512bmm = 1;
+	}
+    }
+
   if ((result & HWF_INTEL_CPU) && family == 6)
     {
       /* These Intel Core processor models have SHLD/SHRD instruction that
@@ -413,6 +438,14 @@ detect_x86_gnuc (void)
 	}
     }
 
+  if (is_amd_cpu && (family == 0x1a) && !has_avx512bmm)
+    {
+      /* Zen5 has integer vector instruction latency of 2 and powerful
+       * GPR integer performance. */
+      cpu_details->int_vector_latency = 2;
+      cpu_details->prefer_gpr_over_scalar_int_vector = 1;
+    }
+
 #ifdef ENABLE_FORCE_SOFT_HWFEATURES
   /* Soft HW features mark functionality that is available on all systems
    * but not feasible to use because of slow HW implementation. */
@@ -428,6 +461,11 @@ detect_x86_gnuc (void)
    * only for those Intel processors that benefit from the SHLD
    * instruction. Enabled here unconditionally as requested. */
   result |= HWF_INTEL_FAST_SHLD;
+
+  /* Assume that integer vector instructions have minimum latency and
+   * higher scalar performance than GPR. */
+  cpu_details->int_vector_latency = 0;
+  cpu_details->prefer_gpr_over_scalar_int_vector = 0;
 #endif
 
   return result;
@@ -438,9 +476,23 @@ detect_x86_gnuc (void)
 unsigned int
 _gcry_hwf_detect_x86 (void)
 {
+  if (x86_detect_done)
+    return x86_hw_features;
+
+  memset(&x86_cpu_details, 0, sizeof(x86_cpu_details));
+  x86_hw_features = 0;
+
 #if defined (HAS_X86_CPUID)
-  return detect_x86_gnuc ();
-#else
-  return 0;
+  x86_hw_features = detect_x86_gnuc (&x86_cpu_details);
 #endif
+
+  x86_detect_done = 1;
+  return x86_hw_features;
+}
+
+
+const struct hwf_x86_cpu_details *
+_gcry_hwf_x86_cpu_details (void)
+{
+  return &x86_cpu_details;
 }

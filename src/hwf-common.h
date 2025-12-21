@@ -20,6 +20,14 @@
 #ifndef HWF_COMMON_H
 #define HWF_COMMON_H
 
+struct hwf_x86_cpu_details
+{
+  unsigned int int_vector_latency;
+  unsigned int prefer_gpr_over_scalar_int_vector;
+};
+
+const struct hwf_x86_cpu_details *_gcry_hwf_x86_cpu_details (void);
+
 unsigned int _gcry_hwf_detect_x86 (void);
 unsigned int _gcry_hwf_detect_arm (void);
 unsigned int _gcry_hwf_detect_ppc (void);

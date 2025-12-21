@@ -28,6 +28,7 @@
 #include "bithelp.h"
 #include "bufhelp.h"
 #include "cipher.h"
+#include "hwf-common.h"
 #include "hash-common.h"
 
 /* USE_AVX indicates whether to compile with Intel AVX code. */
@@ -491,10 +492,12 @@ static gcry_err_code_t blake2b_init_ctx(void *ctx, unsigned int flags,
   memset (c, 0, sizeof (*c));
 
 #ifdef USE_AVX2
-  c->use_avx2 = !!(features & HWF_INTEL_AVX2);
+  c->use_avx2 = !!(features & HWF_INTEL_AVX2)
+    && !(_gcry_hwf_x86_cpu_details()->prefer_gpr_over_scalar_int_vector);
 #endif
 #ifdef USE_AVX512
-  c->use_avx512 = !!(features & HWF_INTEL_AVX512);
+  c->use_avx512 = !!(features & HWF_INTEL_AVX512)
+    && !(_gcry_hwf_x86_cpu_details()->prefer_gpr_over_scalar_int_vector);
 #endif
 
   c->outlen = dbits / 8;
@@ -828,10 +831,12 @@ static gcry_err_code_t blake2s_init_ctx(void *ctx, unsigned int flags,
   memset (c, 0, sizeof (*c));
 
 #ifdef USE_AVX
-  c->use_avx = !!(features & HWF_INTEL_AVX);
+  c->use_avx = !!(features & HWF_INTEL_AVX)
+    && !(_gcry_hwf_x86_cpu_details()->prefer_gpr_over_scalar_int_vector);
 #endif
 #ifdef USE_AVX512
-  c->use_avx512 = !!(features & HWF_INTEL_AVX512);
+  c->use_avx512 = !!(features & HWF_INTEL_AVX512)
+    && !(_gcry_hwf_x86_cpu_details()->prefer_gpr_over_scalar_int_vector);
 #endif
 
   c->outlen = dbits / 8;
