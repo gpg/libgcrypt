@@ -36,6 +36,7 @@
 #include "types.h"
 #include "g10lib.h"
 #include "cipher.h"
+#include "hwf-common.h"
 #include "cipher-internal.h"
 #include "bufhelp.h"
 
@@ -135,6 +136,9 @@ typedef struct CHACHA20_context_s
   u32 input[16];
   unsigned char pad[CHACHA20_BLOCK_SIZE];
   unsigned int unused; /* bytes in the pad.  */
+#if defined(USE_SSSE3) || defined(USE_AVX512) || defined(USE_AVX2)
+  unsigned int skip_one_block_hw_impl:1;
+#endif
   unsigned int use_ssse3:1;
   unsigned int use_avx2:1;
   unsigned int use_avx512:1;
@@ -382,18 +386,47 @@ static unsigned int
 chacha20_blocks (CHACHA20_context_t *ctx, byte *dst, const byte *src,
 		 size_t nblks)
 {
-#ifdef USE_AVX512
-  if (ctx->use_avx512)
+  unsigned int nburn, burn = 0;
+#if defined(USE_SSSE3) || defined(USE_AVX512)
+  size_t gen_nblks = 0;
+
+  if (ctx->skip_one_block_hw_impl)
     {
-      return _gcry_chacha20_amd64_avx512_blocks(ctx->input, dst, src, nblks);
+      gen_nblks = nblks % 2;
+      nblks = nblks - gen_nblks;
+    }
+#endif
+
+#ifdef USE_AVX512
+  if (nblks && ctx->use_avx512)
+    {
+      if (gen_nblks == 0)
+	return _gcry_chacha20_amd64_avx512_blocks(ctx->input, dst, src, nblks);
+
+      burn = _gcry_chacha20_amd64_avx512_blocks(ctx->input, dst, src, nblks);
+      dst += CHACHA20_BLOCK_SIZE * nblks;
+      src += CHACHA20_BLOCK_SIZE * nblks;
+      nblks = 0;
     }
 #endif
 
 #ifdef USE_SSSE3
-  if (ctx->use_ssse3)
+  if (nblks && ctx->use_ssse3)
     {
-      return _gcry_chacha20_amd64_ssse3_blocks1(ctx->input, dst, src, nblks);
+      if (gen_nblks == 0)
+	return _gcry_chacha20_amd64_ssse3_blocks1(ctx->input, dst, src, nblks);
+
+      burn = _gcry_chacha20_amd64_ssse3_blocks1(ctx->input, dst, src, nblks);
+      dst += CHACHA20_BLOCK_SIZE * nblks;
+      src += CHACHA20_BLOCK_SIZE * nblks;
+      nblks = 0;
     }
+#endif
+
+#if defined(USE_SSSE3) || defined(USE_AVX512)
+  nblks += gen_nblks;
+  if (nblks == 0)
+    return burn;
 #endif
 
 #ifdef USE_PPC_VEC
@@ -420,7 +453,8 @@ chacha20_blocks (CHACHA20_context_t *ctx, byte *dst, const byte *src,
     }
 #endif
 
-  return do_chacha20_blocks (ctx->input, dst, src, nblks);
+  nburn = do_chacha20_blocks (ctx->input, dst, src, nblks);
+  return nburn > burn ? nburn : burn;
 }
 
 
@@ -541,6 +575,12 @@ chacha20_do_setkey (CHACHA20_context_t *ctx,
 #ifdef USE_AVX2
   ctx->use_avx2 = (features & HWF_INTEL_AVX2) != 0;
 #endif
+#if defined(USE_SSSE3) || defined(USE_AVX512) || defined(USE_AVX2)
+  /* If CPU prefers GPR over scalar integer vector implementation, use
+   * generic C chacha20 for single block non-parallel operations. */
+  ctx->skip_one_block_hw_impl =
+    !!_gcry_hwf_x86_cpu_details()->prefer_gpr_over_scalar_int_vector;
+#endif
 #ifdef USE_ARMV7_NEON
   ctx->use_neon = (features & HWF_ARM_NEON) != 0;
 #endif
@@ -603,12 +643,19 @@ do_chacha20_encrypt_stream_tail (CHACHA20_context_t *ctx, byte *outbuf,
   if (ctx->use_avx512 && length >= CHACHA20_BLOCK_SIZE)
     {
       size_t nblocks = length / CHACHA20_BLOCK_SIZE;
-      nburn = _gcry_chacha20_amd64_avx512_blocks(ctx->input, outbuf, inbuf,
-                                                 nblocks);
-      burn = nburn > burn ? nburn : burn;
-      length %= CHACHA20_BLOCK_SIZE;
-      outbuf += nblocks * CHACHA20_BLOCK_SIZE;
-      inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+
+      if (ctx->skip_one_block_hw_impl)
+	nblocks -= nblocks % 2;
+
+      if (nblocks)
+	{
+	  nburn = _gcry_chacha20_amd64_avx512_blocks(ctx->input, outbuf, inbuf,
+						     nblocks);
+	  burn = nburn > burn ? nburn : burn;
+	  length -= nblocks * CHACHA20_BLOCK_SIZE;
+	  outbuf += nblocks * CHACHA20_BLOCK_SIZE;
+	  inbuf  += nblocks * CHACHA20_BLOCK_SIZE;
+	}
     }
 #endif
 
