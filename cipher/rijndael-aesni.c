@@ -419,9 +419,15 @@ do_aesni_prepare_decryption (RIJNDAEL_context *ctx)
                 : [ekey] "m" (ekey[rr]) \
                 : "memory")
 
-  dkey[0] = ekey[ctx->rounds];
-  r=1;
-  rr=ctx->rounds-1;
+  r=0;
+  rr=ctx->rounds;
+  asm volatile ("movdqa %[ekey], %%xmm1\n\t"
+		"movdqa %%xmm1, %[dkey]\n\t"
+		: [dkey] "=m" (dkey[r])
+		: [ekey] "m" (ekey[rr])
+		: "memory");
+  r++; rr--;
+
   DO_AESNI_AESIMC(); r++; rr--; /* round 1 */
   DO_AESNI_AESIMC(); r++; rr--; /* round 2 */
   DO_AESNI_AESIMC(); r++; rr--; /* round 3 */
@@ -431,18 +437,22 @@ do_aesni_prepare_decryption (RIJNDAEL_context *ctx)
   DO_AESNI_AESIMC(); r++; rr--; /* round 7 */
   DO_AESNI_AESIMC(); r++; rr--; /* round 8 */
   DO_AESNI_AESIMC(); r++; rr--; /* round 9 */
-  if (ctx->rounds > 10)
+  if (rr > 0)
     {
       DO_AESNI_AESIMC(); r++; rr--; /* round 10 */
       DO_AESNI_AESIMC(); r++; rr--; /* round 11 */
-      if (ctx->rounds > 12)
+      if (rr > 0)
         {
           DO_AESNI_AESIMC(); r++; rr--; /* round 12 */
           DO_AESNI_AESIMC(); r++; rr--; /* round 13 */
         }
     }
 
-  dkey[r] = ekey[0];
+  asm volatile ("movdqa %[ekey], %%xmm1\n\t"
+		"movdqa %%xmm1, %[dkey]\n\t"
+		: [dkey] "=m" (dkey[r])
+		: [ekey] "m" (ekey[rr])
+		: "memory");
 
 #undef DO_AESNI_AESIMC
 }
