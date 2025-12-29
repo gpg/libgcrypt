@@ -339,14 +339,36 @@ do_prepare_decryption(RIJNDAEL_context *ctx)
   int rr;
   int r;
 
+#define COPY_KEY() \
+      __riscv_vse32_v_u32m1(dkey + r * 4, \
+			    __riscv_vle32_v_u32m1(ekey + rr * 4, vl), \
+			    vl)
+
   r = 0;
   rr = rounds;
-  for (r = 0, rr = rounds; r <= rounds; r++, rr--)
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  COPY_KEY(); r++; rr--;
+  if (rr > 0)
     {
-      __riscv_vse32_v_u32m1(dkey + r * 4,
-			    __riscv_vle32_v_u32m1(ekey + rr * 4, vl),
-			    vl);
+      COPY_KEY(); r++; rr--;
+      COPY_KEY(); r++; rr--;
+      if (rr > 0)
+	{
+	  COPY_KEY(); r++; rr--;
+	  COPY_KEY(); r++; rr--;
+	}
     }
+  COPY_KEY();
+
+#undef COPY_KEY
 }
 
 void ASM_FUNC_ATTR_NOINLINE FUNC_ATTR_OPT_O2
