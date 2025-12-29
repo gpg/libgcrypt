@@ -165,7 +165,7 @@ aes_ocb_get_l (gcry_cipher_hd_t c, u64 n)
 # endif
 #endif
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
   aesni_prepare_2_7_variable;
@@ -447,7 +447,7 @@ do_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 #undef DO_AESNI_AESIMC
 }
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 {
   aesni_prepare();
@@ -1698,7 +1698,7 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
 #endif /* __x86_64__ */
 
 
-unsigned int ASM_FUNC_ATTR
+unsigned int ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)
 {
@@ -1717,7 +1717,7 @@ _gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
 }
 
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_ecb_crypt (RIJNDAEL_context *ctx, unsigned char *dst,
 			   const unsigned char *src, size_t nblocks,
 			   int encrypt)
@@ -1871,7 +1871,7 @@ _gcry_aes_aesni_ecb_crypt (RIJNDAEL_context *ctx, unsigned char *dst,
 }
 
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
@@ -1970,7 +1970,7 @@ _gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *iv,
 }
 
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks, int cbc_mac)
@@ -2082,7 +2082,7 @@ _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *iv,
 }
 
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
@@ -2136,7 +2136,7 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
 }
 
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_ctr32le_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
 			     unsigned char *outbuf, const unsigned char *inbuf,
 			     size_t nblocks)
@@ -2328,7 +2328,7 @@ _gcry_aes_aesni_ctr32le_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
 }
 
 
-unsigned int ASM_FUNC_ATTR
+unsigned int ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)
 {
@@ -2347,7 +2347,7 @@ _gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
 }
 
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
@@ -2524,7 +2524,7 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *iv,
 }
 
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *iv,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
@@ -3855,7 +3855,7 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 
-size_t ASM_FUNC_ATTR
+size_t ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
                           const void *inbuf_arg, size_t nblocks, int encrypt)
 {
@@ -3866,7 +3866,7 @@ _gcry_aes_aesni_ocb_crypt(gcry_cipher_hd_t c, void *outbuf_arg,
 }
 
 
-size_t ASM_FUNC_ATTR
+size_t ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
                           size_t nblocks)
 {
@@ -5015,7 +5015,7 @@ _gcry_aes_aesni_xts_dec (RIJNDAEL_context *ctx, unsigned char *tweak,
 }
 
 
-void ASM_FUNC_ATTR
+void ASM_FUNC_ATTR_NOINLINE
 _gcry_aes_aesni_xts_crypt (RIJNDAEL_context *ctx, unsigned char *tweak,
 			   unsigned char *outbuf, const unsigned char *inbuf,
 			   size_t nblocks, int encrypt)
