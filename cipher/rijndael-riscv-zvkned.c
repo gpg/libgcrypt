@@ -207,10 +207,8 @@ aes192_riscv_setkey (RIJNDAEL_context *ctx, const byte *key)
 
 #define AES192_KF1_GEN(out, input, round192, vl) \
   ({ \
-      u32 temp_array[4] = { 0, 0, 0, 0 }; \
-      vuint32m1_t temp_vec; \
-      temp_array[3] = (input); \
-      temp_vec = __riscv_vle32_v_u32m1(temp_array, (vl)); \
+      vuint32m1_t temp_vec = __riscv_vmv_v_x_u32m1(0, (vl)); \
+      temp_vec = __riscv_vslide1down_vx_u32m1(temp_vec, (input), (vl)); \
       temp_vec = __riscv_vaeskf1_vi_u32m1(temp_vec, (round192), (vl)); \
       (out) = __riscv_vmv_x_s_u32m1_u32(temp_vec); \
   })
