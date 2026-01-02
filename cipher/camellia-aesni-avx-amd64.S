@@ -1,6 +1,6 @@
 /* camellia-avx-aesni-amd64.S  -  AES-NI/AVX implementation of Camellia cipher
  *
- * Copyright (C) 2013-2015,2020,2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2026 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -39,14 +39,19 @@
 /**********************************************************************
   helper macros
  **********************************************************************/
+#define split_nibbles(lo, hi_or_x, x, mask4bit) \
+	vpand x, mask4bit, lo; \
+	vpandn x, mask4bit, hi_or_x; \
+	vpsrld $4, hi_or_x, hi_or_x;
+
+#define filter_8bit_nibbles(x, lo, hi_or_x, lo_t, hi_t, tmp_or_lo) \
+	vpshufb lo, lo_t, tmp_or_lo; \
+	vpshufb hi_or_x, hi_t, x; \
+	vpxor tmp_or_lo, x, x;
+
 #define filter_8bit(x, lo_t, hi_t, mask4bit, tmp0) \
-	vpand x, mask4bit, tmp0; \
-	vpandn x, mask4bit, x; \
-	vpsrld $4, x, x; \
-	\
-	vpshufb tmp0, lo_t, tmp0; \
-	vpshufb x, hi_t, x; \
-	vpxor tmp0, x, x;
+	split_nibbles(tmp0, x, x, mask4bit); \
+	filter_8bit_nibbles(x, tmp0, x, lo_t, hi_t, tmp0);
 
 /**********************************************************************
   16-way camellia
@@ -449,65 +454,6 @@
 	vmovdqu st0, b0; \
 	vmovdqu st1, b1; \
 	/* does not adjust output bytes inside vectors */
-
-#define transpose_8x8b(a, b, c, d, e, f, g, h, t0, t1, t2, t3, t4) \
-	vpunpcklbw a, b, t0; \
-	vpunpckhbw a, b, b; \
-	\
-	vpunpcklbw c, d, t1; \
-	vpunpckhbw c, d, d; \
-	\
-	vpunpcklbw e, f, t2; \
-	vpunpckhbw e, f, f; \
-	\
-	vpunpcklbw g, h, t3; \
-	vpunpckhbw g, h, h; \
-	\
-	vpunpcklwd t0, t1, g; \
-	vpunpckhwd t0, t1, t0; \
-	\
-	vpunpcklwd b, d, t1; \
-	vpunpckhwd b, d, e; \
-	\
-	vpunpcklwd t2, t3, c; \
-	vpunpckhwd t2, t3, t2; \
-	\
-	vpunpcklwd f, h, t3; \
-	vpunpckhwd f, h, b; \
-	\
-	vpunpcklwd e, b, t4; \
-	vpunpckhwd e, b, b; \
-	\
-	vpunpcklwd t1, t3, e; \
-	vpunpckhwd t1, t3, f; \
-	\
-	vmovdqa .Ltranspose_8x8_shuf rRIP, t3; \
-	\
-	vpunpcklwd g, c, d; \
-	vpunpckhwd g, c, c; \
-	\
-	vpunpcklwd t0, t2, t1; \
-	vpunpckhwd t0, t2, h; \
-	\
-	vpunpckhqdq b, h, a; \
-	vpshufb t3, a, a; \
-	vpunpcklqdq b, h, b; \
-	vpshufb t3, b, b; \
-	\
-	vpunpckhqdq e, d, g; \
-	vpshufb t3, g, g; \
-	vpunpcklqdq e, d, h; \
-	vpshufb t3, h, h; \
-	\
-	vpunpckhqdq f, c, e; \
-	vpshufb t3, e, e; \
-	vpunpcklqdq f, c, f; \
-	vpshufb t3, f, f; \
-	\
-	vpunpckhqdq t4, t1, c; \
-	vpshufb t3, c, c; \
-	vpunpcklqdq t4, t1, d; \
-	vpshufb t3, d, d;
 
 /* load blocks to registers and apply pre-whitening */
 #define inpack16_pre(x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, y5, \
@@ -1830,62 +1776,86 @@ _gcry_camellia_aesni_avx_ocb_auth:
 	CFI_ENDPROC();
 ELF(.size _gcry_camellia_aesni_avx_ocb_auth,.-_gcry_camellia_aesni_avx_ocb_auth;)
 
-/*
- * IN:
- *  ab: 64-bit AB state
- *  cd: 64-bit CD state
- */
-#define camellia_f(ab, x, t0, t1, t2, t3, t4, inv_shift_row, sbox4mask, \
-		   _0f0f0f0fmask, pre_s1lo_mask, pre_s1hi_mask, key) \
-	vmovq key, t0; \
-	vpxor x, x, t3; \
-	\
-	vpxor ab, t0, x; \
+/* Camellia F function, AVX+AESNI version */
+#define camellia_f_core(ab, x, t0, t1, t2, t3, t4, \
+			 inv_shift_row_n_s2n3_shuffle, \
+			 _0f0f0f0fmask, pre_s1lo_mask, pre_s1hi_mask, \
+			 sp1mask, sp2mask, sp3mask, sp4mask, fn_out_xor, \
+			 out_xor_dst) \
 	\
 	/* \
 	 * S-function with AES subbytes \
 	 */ \
 	\
-	/* input rotation for sbox4 (<<< 1) */ \
-	vpand x, sbox4mask, t0; \
-	vpandn x, sbox4mask, x; \
-	vpaddw t0, t0, t1; \
-	vpsrlw $7, t0, t0; \
-	vpor t0, t1, t0; \
-	vpand sbox4mask, t0, t0; \
-	vpor t0, x, x; \
+	vmovdqa .Lpre_tf_lo_s4(%rip), t0; \
+	vmovdqa .Lpre_tf_hi_s4(%rip), t1; \
 	\
-	vmovdqa .Lpost_tf_lo_s1 rRIP, t0; \
-	vmovdqa .Lpost_tf_hi_s1 rRIP, t1; \
+	/* prefilter sboxes s1,s2,s3 */ \
+	split_nibbles(t2, x, ab, _0f0f0f0fmask); \
+	filter_8bit_nibbles(t4, t2, x, pre_s1lo_mask, pre_s1hi_mask, t3); \
+	vpxor t3, t3, t3; \
 	\
-	/* prefilter sboxes */ \
-	filter_8bit(x, pre_s1lo_mask, pre_s1hi_mask, _0f0f0f0fmask, t2); \
+	/* prefilter sbox s4 */ \
+	filter_8bit_nibbles(x, t2, x, t0, t1, t2); \
 	\
-	/* AES subbytes + AES shift rows + AES inv shift rows */ \
+	vmovdqa .Lpost_tf_lo_s1(%rip), t0; \
+	vmovdqa .Lpost_tf_hi_s1(%rip), t1; \
+	\
+	/* AES subbytes + AES shift rows */ \
+	vaesenclast t3, t4, t4; \
 	vaesenclast t3, x, x; \
 	\
-	/* postfilter sboxes */ \
+	/* postfilter sboxes s1,s2,s3 */ \
+	filter_8bit(t4, t0, t1, _0f0f0f0fmask, t2); \
+	\
+	/* postfilter sboxes s4 */ \
 	filter_8bit(x, t0, t1, _0f0f0f0fmask, t2); \
+	\
+	/* Unpack 8-bit fields in lower 64-bits of XMM to */ \
+	/* 16-bit fields in full 128-bit XMM. This is to allow faster */ \
+	/* byte rotation for s2&s3 as SSE/AVX lacks native byte */ \
+	/* shift/rotation instructions. */ \
+	vpshufb inv_shift_row_n_s2n3_shuffle, t4, t1; \
+	\
+	vpshufb sp1mask, t4, t4; \
+	vpshufb sp4mask, x, x; \
 	\
 	/* output rotation for sbox2 (<<< 1) */ \
 	/* output rotation for sbox3 (>>> 1) */ \
-	vpshufb inv_shift_row, x, t1; \
-	vpshufb .Lsp0044440444044404mask rRIP, x, t4; \
-	vpshufb .Lsp1110111010011110mask rRIP, x, x; \
 	vpaddb t1, t1, t2; \
 	vpsrlw $7, t1, t0; \
 	vpsllw $7, t1, t3; \
 	vpor t0, t2, t0; \
 	vpsrlw $1, t1, t1; \
-	vpshufb .Lsp0222022222000222mask rRIP, t0, t0; \
+	vpshufb sp2mask, t0, t0; \
 	vpor t1, t3, t1; \
 	\
 	vpxor x, t4, t4; \
-	vpshufb .Lsp3033303303303033mask rRIP, t1, t1; \
+	vpshufb sp3mask, t1, t1; \
 	vpxor t4, t0, t0; \
 	vpxor t1, t0, t0; \
 	vpsrldq $8, t0, x; \
+	fn_out_xor(t0, x, out_xor_dst);
+
+#define camellia_f_xor_x(t0, x, _) \
 	vpxor t0, x, x;
+
+/*
+ * IN:
+ *  ab: 64-bit AB state
+ *  cd: 64-bit CD state
+ */
+#define camellia_f(ab, x, t0, t1, t2, t3, t4, inv_shift_row, \
+		   _0f0f0f0fmask, pre_s1lo_mask, pre_s1hi_mask, key) \
+	vmovq key, t0; \
+	vpxor ab, t0, x; \
+	camellia_f_core(x, x, t0, t1, t2, t3, t4, inv_shift_row, \
+			_0f0f0f0fmask, pre_s1lo_mask, pre_s1hi_mask, \
+			.Lsp1110111010011110mask rRIP, \
+			.Lsp0222022222000222mask rRIP, \
+			.Lsp3033303303303033mask rRIP, \
+			.Lsp0044440444044404mask rRIP, \
+			camellia_f_xor_x, _);
 
 #define vec_rol128(in, out, nrol, t0) \
 	vpshufd $0x4e, in, out; \
@@ -1920,8 +1890,6 @@ _camellia_aesni_avx_keysetup_data:
 .Lsp3033303303303033mask:
 	.long 0x04ff0404, 0x04ff0404;
 	.long 0xff0a0aff, 0x0aff0a0a;
-.Lsbox4_input_mask:
-	.byte 0x00, 0xff, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00;
 .Lsigma1:
 	.long 0x3BCC908B, 0xA09E667F;
 .Lsigma2:
@@ -1953,7 +1921,6 @@ __camellia_avx_setup128:
 	vpshufb .Lbswap128_mask rRIP, KL128, KL128;
 
 	vmovdqa .Linv_shift_row_and_unpcklbw rRIP, %xmm11;
-	vmovq .Lsbox4_input_mask rRIP, %xmm12;
 	vbroadcastss .L0f0f0f0f rRIP, %xmm13;
 	vmovdqa .Lpre_tf_lo_s1 rRIP, %xmm14;
 	vmovdqa .Lpre_tf_hi_s1 rRIP, %xmm15;
@@ -1968,18 +1935,18 @@ __camellia_avx_setup128:
 
 	camellia_f(%xmm2, %xmm4, %xmm1,
 		   %xmm5, %xmm6, %xmm7, %xmm8,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma1 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma1 rRIP);
 	vpxor %xmm4, %xmm3, %xmm3;
 	camellia_f(%xmm3, %xmm2, %xmm1,
 		   %xmm5, %xmm6, %xmm7, %xmm8,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma2 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma2 rRIP);
 	camellia_f(%xmm2, %xmm3, %xmm1,
 		   %xmm5, %xmm6, %xmm7, %xmm8,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma3 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma3 rRIP);
 	vpxor %xmm4, %xmm3, %xmm3;
 	camellia_f(%xmm3, %xmm4, %xmm1,
 		   %xmm5, %xmm6, %xmm7, %xmm8,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma4 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma4 rRIP);
 
 	vpslldq $8, %xmm3, %xmm3;
 	vpxor %xmm4, %xmm2, %xmm2;
@@ -2303,7 +2270,6 @@ __camellia_avx_setup256:
 	vpshufb .Lbswap128_mask rRIP, KR128, KR128;
 
 	vmovdqa .Linv_shift_row_and_unpcklbw rRIP, %xmm11;
-	vmovq .Lsbox4_input_mask rRIP, %xmm12;
 	vbroadcastss .L0f0f0f0f rRIP, %xmm13;
 	vmovdqa .Lpre_tf_lo_s1 rRIP, %xmm14;
 	vmovdqa .Lpre_tf_hi_s1 rRIP, %xmm15;
@@ -2319,20 +2285,20 @@ __camellia_avx_setup256:
 
 	camellia_f(%xmm2, %xmm4, %xmm5,
 		   %xmm7, %xmm8, %xmm9, %xmm10,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma1 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma1 rRIP);
 	vpxor %xmm4, %xmm3, %xmm3;
 	camellia_f(%xmm3, %xmm2, %xmm5,
 		   %xmm7, %xmm8, %xmm9, %xmm10,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma2 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma2 rRIP);
 	vpxor %xmm6, %xmm2, %xmm2;
 	camellia_f(%xmm2, %xmm3, %xmm5,
 		   %xmm7, %xmm8, %xmm9, %xmm10,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma3 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma3 rRIP);
 	vpxor %xmm4, %xmm3, %xmm3;
 	vpxor KR128, %xmm3, %xmm3;
 	camellia_f(%xmm3, %xmm4, %xmm5,
 		   %xmm7, %xmm8, %xmm9, %xmm10,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma4 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma4 rRIP);
 
 	vpslldq $8, %xmm3, %xmm3;
 	vpxor %xmm4, %xmm2, %xmm2;
@@ -2350,12 +2316,12 @@ __camellia_avx_setup256:
 
 	camellia_f(%xmm4, %xmm5, %xmm6,
 		   %xmm7, %xmm8, %xmm9, %xmm10,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma5 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma5 rRIP);
 	vpxor %xmm5, %xmm3, %xmm3;
 
 	camellia_f(%xmm3, %xmm5, %xmm6,
 		   %xmm7, %xmm8, %xmm9, %xmm10,
-		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma6 rRIP);
+		   %xmm11, %xmm13, %xmm14, %xmm15, .Lsigma6 rRIP);
 	vpslldq $8, %xmm3, %xmm3;
 	vpxor %xmm5, %xmm4, %xmm4;
 	vpsrldq $8, %xmm3, %xmm3;
