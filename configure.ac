@@ -3464,6 +3464,7 @@ if test "$found" = "1" ; then
          # Build with the VAES/AVX2 implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes-avx2-amd64.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vaes-avx512-amd64.lo"
       ;;
       arm*-*-*)
          # Build with the assembly implementation

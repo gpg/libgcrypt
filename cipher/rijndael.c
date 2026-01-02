@@ -46,6 +46,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
+#include "hwf-common.h"
 #include "rijndael-internal.h"
 #include "./cipher-internal.h"
 
@@ -726,6 +727,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       if ((hwfeatures & HWF_INTEL_VAES_VPCLMUL) &&
 	  (hwfeatures & HWF_INTEL_AVX2))
 	{
+#ifdef USE_VAES_AVX512
+	  ctx->use_vaes_avx512 = !!(hwfeatures & HWF_INTEL_AVX512);
+#endif
+
 	  /* Setup VAES bulk encryption routines.  */
 	  bulk_ops->cfb_dec = _gcry_aes_vaes_cfb_dec;
 	  bulk_ops->cbc_dec = _gcry_aes_vaes_cbc_dec;

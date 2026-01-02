@@ -1,5 +1,5 @@
 /* VAES/AVX2 AMD64 accelerated AES for Libgcrypt
- * Copyright (C) 2021 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2021,2026 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -99,6 +99,66 @@ extern void _gcry_vaes_avx2_ecb_crypt_amd64 (const void *keysched,
 					     unsigned int nrounds) ASM_FUNC_ABI;
 
 
+#ifdef USE_VAES_AVX512
+extern void _gcry_vaes_avx512_cbc_dec_amd64 (const void *keysched,
+					     unsigned char *iv,
+					     void *outbuf_arg,
+					     const void *inbuf_arg,
+					     size_t nblocks,
+					     unsigned int nrounds) ASM_FUNC_ABI;
+
+extern void _gcry_vaes_avx512_cfb_dec_amd64 (const void *keysched,
+					     unsigned char *iv,
+					     void *outbuf_arg,
+					     const void *inbuf_arg,
+					     size_t nblocks,
+					     unsigned int nrounds) ASM_FUNC_ABI;
+
+extern void _gcry_vaes_avx512_ctr_enc_amd64 (const void *keysched,
+					     unsigned char *ctr,
+					     void *outbuf_arg,
+					     const void *inbuf_arg,
+					     size_t nblocks,
+					     unsigned int nrounds) ASM_FUNC_ABI;
+
+extern void _gcry_vaes_avx512_ctr32le_enc_amd64 (const void *keysched,
+						 unsigned char *ctr,
+						 void *outbuf_arg,
+						 const void *inbuf_arg,
+						 size_t nblocks,
+						 unsigned int nrounds)
+						  ASM_FUNC_ABI;
+
+extern size_t
+_gcry_vaes_avx512_ocb_aligned_crypt_amd64 (const void *keysched,
+					   unsigned int blkn,
+					   void *outbuf_arg,
+					   const void *inbuf_arg,
+					   size_t nblocks,
+					   unsigned int nrounds,
+					   unsigned char *offset,
+					   unsigned char *checksum,
+					   unsigned char *L_table,
+					   int enc_dec_auth) ASM_FUNC_ABI;
+
+extern void _gcry_vaes_avx512_xts_crypt_amd64 (const void *keysched,
+					       unsigned char *tweak,
+					       void *outbuf_arg,
+					       const void *inbuf_arg,
+					       size_t nblocks,
+					       unsigned int nrounds,
+					       int encrypt) ASM_FUNC_ABI;
+
+extern void _gcry_vaes_avx512_ecb_crypt_amd64 (const void *keysched,
+					       int encrypt,
+					       void *outbuf_arg,
+					       const void *inbuf_arg,
+					       size_t nblocks,
+					       unsigned int nrounds)
+						ASM_FUNC_ABI;
+#endif
+
+
 void
 _gcry_aes_vaes_ecb_crypt (void *context, void *outbuf,
 			  const void *inbuf, size_t nblocks,
@@ -113,6 +173,15 @@ _gcry_aes_vaes_ecb_crypt (void *context, void *outbuf,
       _gcry_aes_aesni_prepare_decryption (ctx);
       ctx->decryption_prepared = 1;
     }
+
+#ifdef USE_VAES_AVX512
+  if (ctx->use_vaes_avx512)
+    {
+      _gcry_vaes_avx512_ecb_crypt_amd64 (keysched, encrypt, outbuf, inbuf,
+					 nblocks, nrounds);
+      return;
+    }
+#endif
 
   _gcry_vaes_avx2_ecb_crypt_amd64 (keysched, encrypt, outbuf, inbuf,
 				   nblocks, nrounds);
@@ -133,6 +202,15 @@ _gcry_aes_vaes_cbc_dec (void *context, unsigned char *iv,
       ctx->decryption_prepared = 1;
     }
 
+#ifdef USE_VAES_AVX512
+  if (ctx->use_vaes_avx512)
+    {
+      _gcry_vaes_avx512_cbc_dec_amd64 (keysched, iv, outbuf, inbuf,
+				       nblocks, nrounds);
+      return;
+    }
+#endif
+
   _gcry_vaes_avx2_cbc_dec_amd64 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
 }
 
@@ -144,6 +222,15 @@ _gcry_aes_vaes_cfb_dec (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   const void *keysched = ctx->keyschenc32;
   unsigned int nrounds = ctx->rounds;
+
+#ifdef USE_VAES_AVX512
+  if (ctx->use_vaes_avx512)
+    {
+      _gcry_vaes_avx512_cfb_dec_amd64 (keysched, iv, outbuf, inbuf,
+				       nblocks, nrounds);
+      return;
+    }
+#endif
 
   _gcry_vaes_avx2_cfb_dec_amd64 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
 }
@@ -157,6 +244,15 @@ _gcry_aes_vaes_ctr_enc (void *context, unsigned char *iv,
   const void *keysched = ctx->keyschenc32;
   unsigned int nrounds = ctx->rounds;
 
+#ifdef USE_VAES_AVX512
+  if (ctx->use_vaes_avx512)
+    {
+      _gcry_vaes_avx512_ctr_enc_amd64 (keysched, iv, outbuf, inbuf,
+				       nblocks, nrounds);
+      return;
+    }
+#endif
+
   _gcry_vaes_avx2_ctr_enc_amd64 (keysched, iv, outbuf, inbuf, nblocks, nrounds);
 }
 
@@ -168,6 +264,15 @@ _gcry_aes_vaes_ctr32le_enc (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   const void *keysched = ctx->keyschenc32;
   unsigned int nrounds = ctx->rounds;
+
+#ifdef USE_VAES_AVX512
+  if (ctx->use_vaes_avx512)
+    {
+      _gcry_vaes_avx512_ctr32le_enc_amd64 (keysched, iv, outbuf, inbuf,
+					   nblocks, nrounds);
+      return;
+    }
+#endif
 
   _gcry_vaes_avx2_ctr32le_enc_amd64 (keysched, iv, outbuf, inbuf, nblocks,
 				     nrounds);
@@ -191,6 +296,40 @@ _gcry_aes_vaes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       ctx->decryption_prepared = 1;
     }
 
+#ifdef USE_VAES_AVX512
+  if (ctx->use_vaes_avx512 && nblocks >= 32)
+    {
+      /* Get number of blocks to align nblk to 32 for L-array optimization. */
+      unsigned int num_to_align = (-blkn) & 31;
+      if (nblocks - num_to_align >= 32)
+	{
+	  if (num_to_align)
+	    {
+	      _gcry_vaes_avx2_ocb_crypt_amd64 (keysched, (unsigned int)blkn,
+					       outbuf, inbuf, num_to_align,
+					       nrounds, c->u_iv.iv,
+					       c->u_ctr.ctr, c->u_mode.ocb.L[0],
+					       encrypt);
+	      blkn += num_to_align;
+	      outbuf += num_to_align * BLOCKSIZE;
+	      inbuf += num_to_align * BLOCKSIZE;
+	      nblocks -= num_to_align;
+	    }
+
+	  c->u_mode.ocb.data_nblocks = blkn + nblocks;
+
+	  return _gcry_vaes_avx512_ocb_aligned_crypt_amd64 (keysched,
+							    (unsigned int)blkn,
+							    outbuf, inbuf,
+							    nblocks,
+							    nrounds, c->u_iv.iv,
+							    c->u_ctr.ctr,
+							    c->u_mode.ocb.L[0],
+							    encrypt);
+	}
+    }
+#endif
+
   c->u_mode.ocb.data_nblocks = blkn + nblocks;
 
   return _gcry_vaes_avx2_ocb_crypt_amd64 (keysched, (unsigned int)blkn, outbuf,
@@ -208,6 +347,36 @@ _gcry_aes_vaes_ocb_auth (gcry_cipher_hd_t c, const void *inbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   unsigned int nrounds = ctx->rounds;
   u64 blkn = c->u_mode.ocb.aad_nblocks;
+
+#ifdef USE_VAES_AVX512
+  if (ctx->use_vaes_avx512 && nblocks >= 32)
+    {
+      /* Get number of blocks to align nblk to 32 for L-array optimization. */
+      unsigned int num_to_align = (-blkn) & 31;
+      if (nblocks - num_to_align >= 32)
+	{
+	  if (num_to_align)
+	    {
+	      _gcry_vaes_avx2_ocb_crypt_amd64 (keysched, (unsigned int)blkn,
+					       NULL, inbuf, num_to_align,
+					       nrounds,
+					       c->u_mode.ocb.aad_offset,
+					       c->u_mode.ocb.aad_sum,
+					       c->u_mode.ocb.L[0], 2);
+	      blkn += num_to_align;
+	      inbuf += num_to_align * BLOCKSIZE;
+	      nblocks -= num_to_align;
+	    }
+
+	  c->u_mode.ocb.aad_nblocks = blkn + nblocks;
+
+	  return _gcry_vaes_avx512_ocb_aligned_crypt_amd64 (
+			keysched, (unsigned int)blkn, NULL, inbuf,
+			nblocks, nrounds, c->u_mode.ocb.aad_offset,
+			c->u_mode.ocb.aad_sum, c->u_mode.ocb.L[0], 2);
+	}
+    }
+#endif
 
   c->u_mode.ocb.aad_nblocks = blkn + nblocks;
 
@@ -232,6 +401,15 @@ _gcry_aes_vaes_xts_crypt (void *context, unsigned char *tweak,
       _gcry_aes_aesni_prepare_decryption (ctx);
       ctx->decryption_prepared = 1;
     }
+
+#ifdef USE_VAES_AVX512
+  if (ctx->use_vaes_avx512)
+    {
+      _gcry_vaes_avx512_xts_crypt_amd64 (keysched, tweak, outbuf, inbuf,
+					 nblocks, nrounds, encrypt);
+      return;
+    }
+#endif
 
   _gcry_vaes_avx2_xts_crypt_amd64 (keysched, tweak, outbuf, inbuf, nblocks,
 				   nrounds, encrypt);

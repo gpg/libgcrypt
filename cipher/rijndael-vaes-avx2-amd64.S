@@ -2370,16 +2370,11 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	leaq -8(%r8), %r8;
 
 	leal 8(%esi), %esi;
-	tzcntl %esi, %eax;
-	shll $4, %eax;
 
 	vpxor (0 * 16)(%rsp), %ymm15, %ymm5;
 	vpxor (2 * 16)(%rsp), %ymm15, %ymm6;
 	vpxor (4 * 16)(%rsp), %ymm15, %ymm7;
-
-	vpxor (2 * 16)(%r14), %xmm15, %xmm13; /* offset ^ first key ^ L[2] */
-	vpxor (%r14, %rax), %xmm13, %xmm14; /* offset ^ first key ^ L[2] ^ L[ntz{nblk+8}] */
-	vinserti128 $1, %xmm14, %ymm13, %ymm14;
+	vpxor (6 * 16)(%rsp), %ymm15, %ymm14;
 
 	cmpl $1, %r15d;
 	jb .Locb_aligned_blk8_dec;
