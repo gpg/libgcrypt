@@ -156,6 +156,16 @@ _gcry_mpi_free_limb_space( mpi_ptr_t a, unsigned int nlimbs)
 void
 _gcry_mpi_assign_limb_space( gcry_mpi_t a, mpi_ptr_t ap, unsigned int nlimbs )
 {
+  int secure = _gcry_is_secure (a->d);
+
+  if (secure && !_gcry_is_secure (ap))
+    {
+      mpi_ptr_t sp = mpi_alloc_limb_space (nlimbs, 1);
+      MPN_COPY (sp, ap, nlimbs);
+      _gcry_mpi_free_limb_space (ap, nlimbs);
+      ap = sp;
+    }
+
   _gcry_mpi_free_limb_space (a->d, a->alloced);
   a->d = ap;
   a->alloced = nlimbs;
