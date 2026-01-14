@@ -1,6 +1,6 @@
 # gpg-error.m4 - autoconf macro to detect libgpg-error.
-# Copyright (C) 2002, 2003, 2004, 2011, 2014, 2018, 2020, 2021, 2022, 2024
-#               g10 Code GmbH
+# Copyright (C) 2002, 2003, 2004, 2011, 2014, 2018, 2020, 2021, 2022, 2024,
+#               2025  g10 Code GmbH
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -10,7 +10,7 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
-# Last-changed: 2024-06-13
+# Last-changed: 2025-09-24
 
 dnl
 dnl Find gpg-error-config, for backward compatibility
