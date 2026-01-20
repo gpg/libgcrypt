@@ -326,7 +326,10 @@ _gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_PUBKEY_ALGO;
+    {
+      rc = GPG_ERR_PUBKEY_ALGO;
+      goto leave;
+    }
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
@@ -391,10 +394,22 @@ _gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_PUBKEY_ALGO;
+    {
+      rc = GPG_ERR_PUBKEY_ALGO;
+      goto leave;
+    }
   else if (!spec->flags.fips && fips_mode ())
-    rc = GPG_ERR_PUBKEY_ALGO;
-  else if (spec->decrypt)
+    {
+      if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
+        {
+          rc = GPG_ERR_PUBKEY_ALGO;
+          goto leave;
+        }
+      else
+        fips_service_indicator_mark_non_compliant ();
+    }
+
+  if (spec->decrypt)
     rc = spec->decrypt (r_plain, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
@@ -448,7 +463,10 @@ _gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_PUBKEY_ALGO;
+    {
+      rc = GPG_ERR_PUBKEY_ALGO;
+      goto leave;
+    }
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
@@ -653,7 +671,10 @@ _gcry_pk_sign_md (gcry_sexp_t *r_sig, const char *tmpl, gcry_md_hd_t hd_orig,
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_PUBKEY_ALGO;
+    {
+      rc = GPG_ERR_PUBKEY_ALGO;
+      goto leave;
+    }
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
@@ -696,7 +717,10 @@ _gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_PUBKEY_ALGO;
+    {
+      rc = GPG_ERR_PUBKEY_ALGO;
+      goto leave;
+    }
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
@@ -748,7 +772,10 @@ _gcry_pk_verify_md (gcry_sexp_t s_sig, const char *tmpl, gcry_md_hd_t hd_orig,
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_PUBKEY_ALGO;
+    {
+      rc = GPG_ERR_PUBKEY_ALGO;
+      goto leave;
+    }
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
@@ -793,7 +820,10 @@ _gcry_pk_testkey (gcry_sexp_t s_key)
     goto leave;
 
   if (spec->flags.disabled)
-    rc = GPG_ERR_PUBKEY_ALGO;
+    {
+      rc = GPG_ERR_PUBKEY_ALGO;
+      goto leave;
+    }
   else if (!spec->flags.fips && fips_mode ())
     {
       if (fips_check_rejection (GCRY_FIPS_FLAG_REJECT_PK))
