@@ -109,6 +109,7 @@ testdrv_LDADD = $(LDADD_FOR_TESTS_KLUDGE)
 testdrv-build: testdrv.c
 	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
 	  $(CPPFLAGS_FOR_BUILD) -DTESTDRV_EXEEXT=\"$(EXEEXT)\" \
+	  -DPACKAGE_VERSION=\"$(PACKAGE_VERSION)\" \
           -o $@ $(srcdir)/testdrv.c
 
 if HAVE_W32_SYSTEM
