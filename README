@@ -60,6 +60,11 @@
     installed below $HOME/w64root and installs libgcrypt to that
     directory too.  See the autogen.sh code for details.
 
+    To run the test suite on Windows, go to the tests directory of the
+    build directory and run "make xtestsuite".  This generates a
+    tarball which can be unpacked on Windows.  Over there cd to the
+    respective subdir and run "testdrv --verbose".
+
     The documentation is available as an Info file (gcrypt.info).  To
     build documentation in PDF, run this:
 
@@ -78,7 +83,6 @@
     installer script should take care of this.  It is also possible
     and suggested to set these restricted permissions direct for the
     parent directory %ALLUSERSPROFILE%\GNU\etc.
-
 
 
     Mailing List

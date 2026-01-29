@@ -55,7 +55,6 @@ AC_INIT([mym4_package],[mym4_version],[https://bugs.gnupg.org])
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-# NOTE: Already updated for 1.12.0 - remove this comment for release
 LIBGCRYPT_LT_CURRENT=27
 LIBGCRYPT_LT_AGE=7
 LIBGCRYPT_LT_REVISION=0
@@ -73,7 +72,7 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 
 # If you change the required gpg-error version, please remove
 # unnecessary error code defines in src/gcrypt-int.h.
-NEED_GPG_ERROR_VERSION=1.49
+NEED_GPG_ERROR_VERSION=1.56
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
