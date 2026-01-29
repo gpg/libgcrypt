@@ -1,10 +1,10 @@
 		    Libgcrypt - The GNU Crypto Library
 		   ------------------------------------
-                             Version 1.11
+                             Version 1.12
 
        Copyright (C) 1989,1991-2018 Free Software Foundation, Inc.
-       Copyright (C) 2012-2024 g10 Code GmbH
-       Copyright (C) 2013-2024 Jussi Kivilinna
+       Copyright (C) 2012-2025 g10 Code GmbH
+       Copyright (C) 2013-2025 Jussi Kivilinna
 
     Libgcrypt is free software.  See the file AUTHORS for full copying
     notices, and LICENSES for notices about contributions that require
@@ -52,12 +52,12 @@
     mingw32 cross-building toolchain installed.  Instead of running a
     plain configure you use
 
-      ./autogen.sh --build-w32
+      ./autogen.sh --build-w64
       make
       make install
 
-    By default this command sequences expectsd a libgpg-error
-    installed below $HOME/w32root and installs libgcrypt to that
+    By default this command sequences expects a libgpg-error
+    installed below $HOME/w64root and installs libgcrypt to that
     directory too.  See the autogen.sh code for details.
 
     The documentation is available as an Info file (gcrypt.info).  To
