@@ -72,10 +72,13 @@ static struct {
    { "pkcs1v2"     },
    { "random"      },
    { "dsa-rfc6979" },
+   { "t-rsa-pss"   },
    { "t-ed25519"   },
    { "t-cv25519"   },
    { "t-x448"      },
    { "t-ed448"     },
+   { "t-mlkem"     },
+   { "t-mldsa"     },
    { "benchmark"   },
    { "bench-slope" },
    { "hashtest-6g", "hashtest", "--hugeblock --gigs 6 SHA1 SHA256 SHA512 "
@@ -93,6 +96,9 @@ static const char *extratestfiles[] =
   {
    "t-ed25519.inp",
    "t-ed448.inp",
+   "t-rsa-pss.inp",
+   "t-mlkem.inp",
+   "t-mldsa.inp",
    NULL
   };
 
