@@ -53,6 +53,12 @@
 #  define ADD_RIP
 #endif
 
+#ifdef __PIC__
+#  define AT_PLT ELF(@PLT)
+#else
+#  define AT_PLT
+#endif
+
 #if defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS) || !defined(__PIC__)
 #  define GET_EXTERN_POINTER(name, reg) movabsq $name, reg
 #else
