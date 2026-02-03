@@ -1220,18 +1220,20 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
 
         if (x)
           {
-            mpi_resize (point->x, ctx->p->nlimbs);
-            point->x->nlimbs = ctx->p->nlimbs;
-            ec_mulm_lli (x, point->x, z2, ctx);
+            mpi_set (x, point->x);
+            mpi_resize (x, ctx->p->nlimbs);
+            x->nlimbs = ctx->p->nlimbs;
+            ec_mulm_lli (x, x, z2, ctx);
           }
 
         if (y)
           {
-            mpi_resize (point->y, ctx->p->nlimbs);
-            point->y->nlimbs = ctx->p->nlimbs;
+            mpi_set (y, point->y);
+            mpi_resize (y, ctx->p->nlimbs);
+            y->nlimbs = ctx->p->nlimbs;
             z3 = mpi_new (0);
             ec_mulm_lli (z3, z2, z1, ctx); /* z3 = z^(-3) mod p  */
-            ec_mulm_lli (y, point->y, z3, ctx);
+            ec_mulm_lli (y, y, z3, ctx);
             mpi_free (z3);
           }
 
