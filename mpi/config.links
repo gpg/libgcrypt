@@ -245,6 +245,18 @@ case "${host}" in
 	path="m68k"
         mpi_cpu_arch="m68k"
 	;;
+    m680[234]0*-*-netbsd* | \
+    m68k-*-netbsd*)
+        echo '#define ELF_SYNTAX'           >>./mpi/asm-syntax.h
+        cat  $srcdir/mpi/m68k/syntax.h      >>./mpi/asm-syntax.h
+        path="m68k"
+        mpi_cpu_arch="m68k"
+        ;;
+    m68060*-*-netbsd*)
+        echo '#define ELF_SYNTAX'           >>./mpi/asm-syntax.h
+        cat  $srcdir/mpi/m68k/syntax.h      >>./mpi/asm-syntax.h
+        mpi_cpu_arch="m68k"
+        ;;
     m68k-atari-mint)
 	echo '#define MIT_SYNTAX'           >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/m68k/syntax.h	    >>./mpi/asm-syntax.h
