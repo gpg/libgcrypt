@@ -422,8 +422,8 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
     {
       int any = 0;
       int n_closing;
-      char *buf, *pend;
-      const char *p;
+      char *buf;
+      const char *p, *pend;
       size_t size;
 
       size = sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, NULL, 0);
