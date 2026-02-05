@@ -1002,7 +1002,6 @@ _gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   gcry_pk_spec_t *spec = NULL;
   const char *s;
   char *name = NULL;
-  int idx;
   const char *elems;
   gcry_md_hd_t md = NULL;
   int okay = 0;
@@ -1047,7 +1046,7 @@ _gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   else
     {
       /* Generic method to compute a keygrip.  */
-      for (idx = 0, s = elems; *s; s++, idx++)
+      for (s = elems; *s; s++)
         {
           const char *data;
           size_t datalen;
