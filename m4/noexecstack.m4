@@ -12,8 +12,8 @@ dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 dnl Lesser General Public License for more details.
 dnl
 dnl You should have received a copy of the GNU Lesser General Public
-dnl License along with this library; if not, write to the Free Software
-dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+dnl License along with this library; if not, see <https://www.gnu.org/licenses/>.
+dnl SPDX-License-Identifier: LGPL-2.1-or-later
 
 dnl Checks whether the stack can be marked nonexecutable by passing an
 dnl option to the C-compiler when acting on .s files.  Returns that
@@ -25,7 +25,7 @@ AC_REQUIRE([AM_PROG_AS])
 
 AC_MSG_CHECKING([whether non excutable stack support is requested])
 AC_ARG_ENABLE(noexecstack,
-              AC_HELP_STRING([--disable-noexecstack],
+              AS_HELP_STRING([--disable-noexecstack],
                              [disable non executable stack support]),
               noexecstack_support=$enableval, noexecstack_support=yes)
 AC_MSG_RESULT($noexecstack_support)
@@ -33,7 +33,7 @@ AC_MSG_RESULT($noexecstack_support)
 AC_CACHE_CHECK([whether assembler supports --noexecstack option],
 cl_cv_as_noexecstack, [dnl
   cat > conftest.c <<EOF
-void foo() {}
+void foo(void) {}
 EOF
   if AC_TRY_COMMAND([${CC} $CFLAGS $CPPFLAGS
                      -S -o conftest.s conftest.c >/dev/null]) \
@@ -46,7 +46,7 @@ EOF
     cl_cv_as_noexecstack=no
   fi
   rm -f conftest*])
-  if test "$noexecstack_support" = yes -a "$cl_cv_as_noexecstack" = yes; then
+  if test "$noexecstack_support" = yes && test "$cl_cv_as_noexecstack" = yes; then
 	NOEXECSTACK_FLAGS="-Wa,--noexecstack"
   else
         NOEXECSTACK_FLAGS=
