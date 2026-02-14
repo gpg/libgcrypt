@@ -176,7 +176,7 @@ _gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ec)
    RESULT must have been initialized and is set on success to the
    point given by VALUE.  */
 gpg_err_code_t
-_gcry_ecc_sec_decodepoint  (gcry_mpi_t value, mpi_ec_t ec, mpi_point_t result)
+_gcry_ecc_sec_decodepoint (gcry_mpi_t value, mpi_ec_t ec, mpi_point_t result)
 {
   gpg_err_code_t rc;
   size_t n;
@@ -220,7 +220,7 @@ _gcry_ecc_sec_decodepoint  (gcry_mpi_t value, mpi_ec_t ec, mpi_point_t result)
       gcry_mpi_t p1_4;
       int y_bit = (*buf == 3);
 
-      if (!mpi_test_bit (ec->p, 1))
+      if (ec == NULL || !mpi_test_bit (ec->p, 1))
         {
           xfree (buf_memory);
           return GPG_ERR_NOT_IMPLEMENTED; /* No support for point compression.  */

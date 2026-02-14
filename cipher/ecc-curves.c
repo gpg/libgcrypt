@@ -991,7 +991,11 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       if (!a)
         return GPG_ERR_INV_OBJ;
 
-      point = mpi_point_new (ec->nbits);
+      /* NOTE: EC may be NULL, when it's for Weierstrass curve for
+       * parameter "g".  And it's OK for _gcry_mpi_ec_decode_point
+       * (and _gcry_ecc_sec_decodepoint) to be called with EC=NULL.
+       */
+      point = mpi_point_new (ec? ec->nbits: 0);
       rc = _gcry_mpi_ec_decode_point (point, a, ec);
       mpi_free (a);
       if (rc)
