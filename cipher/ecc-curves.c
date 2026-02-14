@@ -863,7 +863,7 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   if (rc)
     goto leave;
 
-  _gcry_mpi_point_init (&E.G);
+  _gcry_mpi_point_init (&E.G, 0);
   _gcry_mpi_point_set (&E.G, G->x, G->y, G->z);
 
   for (idx = 0; domain_parms[idx].desc; idx++)
@@ -991,7 +991,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       if (!a)
         return GPG_ERR_INV_OBJ;
 
-      point = mpi_point_new (0);
+      point = mpi_point_new (ec->nbits);
       rc = _gcry_mpi_ec_decode_point (point, a, ec);
       mpi_free (a);
       if (rc)
@@ -1120,7 +1120,7 @@ mpi_ec_get_elliptic_curve (elliptic_curve_t *E, int *r_flags,
             goto leave;
           if (G)
             {
-              _gcry_mpi_point_init (&E->G);
+              _gcry_mpi_point_init (&E->G, 0);
               mpi_point_set (&E->G, G->x, G->y, G->z);
               mpi_point_set (G, NULL, NULL, NULL);
               mpi_point_release (G);
@@ -1551,7 +1551,7 @@ _gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
       if (newvalue)
         {
           if (!ec->Q)
-            ec->Q = mpi_point_new (0);
+            ec->Q = mpi_point_new (ec->nbits);
           rc = _gcry_mpi_ec_decode_point (ec->Q, newvalue, ec);
         }
       if (rc || !newvalue)
