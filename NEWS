@@ -1,5 +1,19 @@
-Noteworthy changes in version 1.12.1 (unreleased)  [C27/A7/R_]
+Noteworthy changes in version 1.12.1 (2026-02-20)  [C27/A7/R1]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix for aSmartOS (Solaris) build problem due to AVX2 changes.
+     [T8071]
+
+   - Fix a regression in gcry_mpi_ec_curve_point.  [T8080]
+
+   - Make sure to have MPI limbs pre-allocated in ECC and fix
+     Weierstrass curve use with PUBKEY_FLAG_PARAM.  [T8094]
+
+ * Other:
+
+    - Add MPI configuration for NetBSD m68k.  [T8069]
 
 
  Release-info: https://dev.gnupg.org/T8067
