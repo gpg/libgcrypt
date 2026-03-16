@@ -31,10 +31,10 @@ _gcry_compat_identification (void)
     "\n\n"
     "This is Libgcrypt " PACKAGE_VERSION " - The GNU Crypto Library\n"
     "Copyright (C) 2000-2018 Free Software Foundation, Inc.\n"
-    "Copyright (C) 2012-2024 g10 Code GmbH\n"
-    "Copyright (C) 2013-2024 Jussi Kivilinna\n"
+    "Copyright (C) 2012-2026 g10 Code GmbH\n"
+    "Copyright (C) 2013-2026 Jussi Kivilinna\n"
     "\n"
-    "(" BUILD_REVISION " " BUILD_TIMESTAMP ")\n"
+    "(" BUILD_COMMITID " " BUILD_TIMESTAMP ")\n"
     "\n\n";
   return blurb;
 }
