@@ -343,9 +343,13 @@ int16_t ct_int16_select (int16_t v0, int16_t v1, unsigned long op_enable);
  * Elements of R_q = Z_q[X]/(X^n + 1). Represents polynomial
  * coeffs[0] + X*coeffs[1] + X^2*coeffs[2] + ... + X^{n-1}*coeffs[n-1]
  */
+#ifdef KYBER_VECTOR_IMPLEMENTATION
+#include "kyber-poly-vector.h"
+#else
 typedef struct{
   int16_t coeffs[KYBER_N];
 } poly;
+#endif
 
 #if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
 static void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_2_3], const poly *a);

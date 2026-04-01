@@ -64,6 +64,9 @@
 
 /*************** kyber/ref/cbd.c */
 
+#ifdef KYBER_VECTOR_IMPLEMENTATION
+#include "kyber-common-vector.c"
+#else
 /*************************************************
 * Name:        load32_littleendian
 *
@@ -762,3 +765,4 @@ int16_t barrett_reduce(int16_t a) {
   t *= KYBER_Q;
   return a - t;
 }
+#endif

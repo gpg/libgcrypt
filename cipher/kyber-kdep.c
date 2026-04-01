@@ -551,6 +551,9 @@ int crypto_kem_dec(uint8_t *ss,
 
 /*************** kyber/ref/polyvec.c */
 
+#ifdef KYBER_VECTOR_IMPLEMENTATION
+#include "kyber-kdep-vector.c"
+#else
 /*************************************************
 * Name:        polyvec_compress
 *
@@ -675,6 +678,7 @@ void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES
 #error "KYBER_POLYVECCOMPRESSEDBYTES needs to be in {320*KYBER_K, 352*KYBER_K}"
 #endif
 }
+#endif
 
 /*************************************************
 * Name:        polyvec_tobytes
