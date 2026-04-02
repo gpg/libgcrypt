@@ -344,7 +344,7 @@ int16_t ct_int16_select (int16_t v0, int16_t v1, unsigned long op_enable);
  * coeffs[0] + X*coeffs[1] + X^2*coeffs[2] + ... + X^{n-1}*coeffs[n-1]
  */
 #ifdef KYBER_VECTOR_IMPLEMENTATION
-#include "kyber-poly-vector.h"
+#include "kyber-vector.h"
 #else
 typedef struct{
   int16_t coeffs[KYBER_N];
@@ -394,10 +394,10 @@ static void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_
 #endif
 
 /*************** kyber/ref/reduce.h */
+#ifndef KYBER_VECTOR_IMPLEMENTATION
 #define MONT -1044 /* 2^16 mod q */
 #define QINV -3327 /* q^-1 mod 2^16 */
 
-#ifndef KYBER_VECTOR_IMPLEMENTATION
 static int16_t montgomery_reduce(int32_t a);
 
 static int16_t barrett_reduce(int16_t a);
