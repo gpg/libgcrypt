@@ -383,6 +383,7 @@ static void poly_add(poly *r, const poly *a, const poly *b);
 static void poly_sub(poly *r, const poly *a, const poly *b);
 
 /*************** kyber/ref/ntt.h */
+#ifndef KYBER_VECTOR_IMPLEMENTATION
 static const int16_t zetas[128];
 
 static void ntt(int16_t poly[256]);
@@ -390,14 +391,17 @@ static void ntt(int16_t poly[256]);
 static void invntt(int16_t poly[256]);
 
 static void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
+#endif
 
 /*************** kyber/ref/reduce.h */
 #define MONT -1044 /* 2^16 mod q */
 #define QINV -3327 /* q^-1 mod 2^16 */
 
+#ifndef KYBER_VECTOR_IMPLEMENTATION
 static int16_t montgomery_reduce(int32_t a);
 
 static int16_t barrett_reduce(int16_t a);
+#endif
 
 /*************** kyber/ref/symmetric.h */
 typedef keccak_state xof_state;

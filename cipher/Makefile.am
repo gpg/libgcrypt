@@ -421,3 +421,10 @@ sha512-riscv-zvknhb-zvkb.o: $(srcdir)/sha512-riscv-zvknhb-zvkb.c Makefile
 
 sha512-riscv-zvknhb-zvkb.lo: $(srcdir)/sha512-riscv-zvknhb-zvkb.c Makefile
 	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `
+
+# We may need to add other option
+kyber.o: $(srcdir)/kyber.c $(srcdir)/kyber-common.c $(srcdir)/kyber-common-vector.c Makefile
+	`echo $(COMPILE) @VECTOR_CFLAGS@ -c $< | $(instrumentation_munging) `
+
+kyber.lo: $(srcdir)/kyber.c $(srcdir)/kyber-common.c $(srcdir)/kyber-common-vector.c Makefile
+	`echo $(LTCOMPILE) @VECTOR_CFLAGS@ -c $< | $(instrumentation_munging) `
