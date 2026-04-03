@@ -62,11 +62,26 @@
  * - "poly_getnoise_eta2" directly uses "cbd2" function.
  */
 
-/*************** kyber/ref/cbd.c */
+#if !defined(KYBER_K) || KYBER_K == 2
+typedef struct{
+  poly vec[2];
+} polyvec_2;
+#endif
+#if !defined(KYBER_K) || KYBER_K == 3
+typedef struct{
+  poly vec[3];
+} polyvec_3;
+#endif
+#if !defined(KYBER_K) || KYBER_K == 4
+typedef struct{
+  poly vec[4];
+} polyvec_4;
+#endif
 
 #ifdef KYBER_VECTOR_IMPLEMENTATION
 #include "kyber-common-vector.c"
 #else
+/*************** kyber/ref/cbd.c */
 /*************************************************
 * Name:        load32_littleendian
 *
@@ -728,7 +743,194 @@ int16_t barrett_reduce(int16_t a) {
   t *= KYBER_Q;
   return a - t;
 }
+
+/*************** kyber/ref/polyvec.c */
+/*************************************************
+* Name:        polyvec_compress
+*
+* Description: Compress and serialize vector of polynomials
+*
+* Arguments:   - uint8_t *r: pointer to output byte array
+*                            (needs space for KYBER_POLYVECCOMPRESSEDBYTES)
+*              - const polyvec *a: pointer to input vector of polynomials
+**************************************************/
+#if !defined(KYBER_K) || KYBER_K == 2
+void polyvec_compress_2(uint8_t r[2*320], const polyvec_2 *a)
+{
+  unsigned int i,j,k;
+  uint64_t d0;
+
+  uint16_t t[4];
+  for(i=0;i<2;i++) {
+    for(j=0;j<KYBER_N/4;j++) {
+      for(k=0;k<4;k++) {
+        t[k]  = a->vec[i].coeffs[4*j+k];
+        t[k] += ct_ulong_gen_mask((uint16_t)t[k] >> 15) & KYBER_Q;
+/*      t[k]  = ((((uint32_t)t[k] << 10) + KYBER_Q/2)/ KYBER_Q) & 0x3ff; */
+        d0 = t[k];
+        d0 <<= 10;
+        d0 += 1665;
+        d0 *= 1290167;
+        d0 >>= 32;
+        t[k] = d0 & 0x3ff;
+      }
+
+      r[0] = (t[0] >> 0);
+      r[1] = (t[0] >> 8) | (t[1] << 2);
+      r[2] = (t[1] >> 6) | (t[2] << 4);
+      r[3] = (t[2] >> 4) | (t[3] << 6);
+      r[4] = (t[3] >> 2);
+      r += 5;
+    }
+  }
+}
 #endif
+#if !defined(KYBER_K) || KYBER_K == 3
+void polyvec_compress_3(uint8_t r[3*320], const polyvec_3 *a)
+{
+  unsigned int i,j,k;
+  uint64_t d0;
+
+  uint16_t t[4];
+  for(i=0;i<3;i++) {
+    for(j=0;j<KYBER_N/4;j++) {
+      for(k=0;k<4;k++) {
+        t[k]  = a->vec[i].coeffs[4*j+k];
+        t[k] += ct_ulong_gen_mask((uint16_t)t[k] >> 15) & KYBER_Q;
+/*      t[k]  = ((((uint32_t)t[k] << 10) + KYBER_Q/2)/ KYBER_Q) & 0x3ff; */
+        d0 = t[k];
+        d0 <<= 10;
+        d0 += 1665;
+        d0 *= 1290167;
+        d0 >>= 32;
+        t[k] = d0 & 0x3ff;
+      }
+
+      r[0] = (t[0] >> 0);
+      r[1] = (t[0] >> 8) | (t[1] << 2);
+      r[2] = (t[1] >> 6) | (t[2] << 4);
+      r[3] = (t[2] >> 4) | (t[3] << 6);
+      r[4] = (t[3] >> 2);
+      r += 5;
+    }
+  }
+}
+#endif
+#if !defined(KYBER_K) || KYBER_K == 4
+void polyvec_compress_4(uint8_t r[4 * 352], const polyvec_4 *a)
+{
+  unsigned int i,j,k;
+  uint64_t d0;
+
+  uint16_t t[8];
+  for(i=0;i<4;i++) {
+    for(j=0;j<KYBER_N/8;j++) {
+      for(k=0;k<8;k++) {
+        t[k]  = a->vec[i].coeffs[8*j+k];
+        t[k] += ct_ulong_gen_mask((uint16_t)t[k] >> 15) & KYBER_Q;
+/*      t[k]  = ((((uint32_t)t[k] << 11) + KYBER_Q/2)/KYBER_Q) & 0x7ff; */
+        d0 = t[k];
+        d0 <<= 11;
+        d0 += 1664;
+        d0 *= 645084;
+        d0 >>= 31;
+        t[k] = d0 & 0x7ff;
+
+      }
+
+      r[ 0] = (t[0] >>  0);
+      r[ 1] = (t[0] >>  8) | (t[1] << 3);
+      r[ 2] = (t[1] >>  5) | (t[2] << 6);
+      r[ 3] = (t[2] >>  2);
+      r[ 4] = (t[2] >> 10) | (t[3] << 1);
+      r[ 5] = (t[3] >>  7) | (t[4] << 4);
+      r[ 6] = (t[4] >>  4) | (t[5] << 7);
+      r[ 7] = (t[5] >>  1);
+      r[ 8] = (t[5] >>  9) | (t[6] << 2);
+      r[ 9] = (t[6] >>  6) | (t[7] << 5);
+      r[10] = (t[7] >>  3);
+      r += 11;
+    }
+  }
+}
+#endif
+
+/*************************************************
+* Name:        polyvec_decompress
+*
+* Description: De-serialize and decompress vector of polynomials;
+*              approximate inverse of polyvec_compress
+*
+* Arguments:   - polyvec *r:       pointer to output vector of polynomials
+*              - const uint8_t *a: pointer to input byte array
+*                                  (of length KYBER_POLYVECCOMPRESSEDBYTES)
+**************************************************/
+#if !defined(KYBER_K) || KYBER_K == 2
+void polyvec_decompress_2(polyvec_2 *r, const uint8_t a[2*320])
+{
+  unsigned int i,j,k;
+
+  uint16_t t[4];
+  for(i=0;i<2;i++) {
+    for(j=0;j<KYBER_N/4;j++) {
+      t[0] = (a[0] >> 0) | ((uint16_t)a[1] << 8);
+      t[1] = (a[1] >> 2) | ((uint16_t)a[2] << 6);
+      t[2] = (a[2] >> 4) | ((uint16_t)a[3] << 4);
+      t[3] = (a[3] >> 6) | ((uint16_t)a[4] << 2);
+      a += 5;
+
+      for(k=0;k<4;k++)
+        r->vec[i].coeffs[4*j+k] = ((uint32_t)(t[k] & 0x3FF)*KYBER_Q + 512) >> 10;
+    }
+  }
+}
+#endif
+#if !defined(KYBER_K) || KYBER_K == 3
+void polyvec_decompress_3(polyvec_3 *r, const uint8_t a[3*320])
+{
+  unsigned int i,j,k;
+
+  uint16_t t[4];
+  for(i=0;i<3;i++) {
+    for(j=0;j<KYBER_N/4;j++) {
+      t[0] = (a[0] >> 0) | ((uint16_t)a[1] << 8);
+      t[1] = (a[1] >> 2) | ((uint16_t)a[2] << 6);
+      t[2] = (a[2] >> 4) | ((uint16_t)a[3] << 4);
+      t[3] = (a[3] >> 6) | ((uint16_t)a[4] << 2);
+      a += 5;
+
+      for(k=0;k<4;k++)
+        r->vec[i].coeffs[4*j+k] = ((uint32_t)(t[k] & 0x3FF)*KYBER_Q + 512) >> 10;
+    }
+  }
+}
+#endif
+#if !defined(KYBER_K) || KYBER_K == 4
+void polyvec_decompress_4(polyvec_4 *r, const uint8_t a[4*352])
+{
+  unsigned int i,j,k;
+
+  uint16_t t[8];
+  for(i=0;i<4;i++) {
+    for(j=0;j<KYBER_N/8;j++) {
+      t[0] = (a[0] >> 0) | ((uint16_t)a[ 1] << 8);
+      t[1] = (a[1] >> 3) | ((uint16_t)a[ 2] << 5);
+      t[2] = (a[2] >> 6) | ((uint16_t)a[ 3] << 2) | ((uint16_t)a[4] << 10);
+      t[3] = (a[4] >> 1) | ((uint16_t)a[ 5] << 7);
+      t[4] = (a[5] >> 4) | ((uint16_t)a[ 6] << 4);
+      t[5] = (a[6] >> 7) | ((uint16_t)a[ 7] << 1) | ((uint16_t)a[8] << 9);
+      t[6] = (a[8] >> 2) | ((uint16_t)a[ 9] << 6);
+      t[7] = (a[9] >> 5) | ((uint16_t)a[10] << 3);
+      a += 11;
+
+      for(k=0;k<8;k++)
+        r->vec[i].coeffs[8*j+k] = ((uint32_t)(t[k] & 0x7FF)*KYBER_Q + 1024) >> 11;
+    }
+  }
+}
+#endif
+#endif
+
 /*************** kyber/ref/indcpa.c */
 /*************************************************
 * Name:        rej_uniform
