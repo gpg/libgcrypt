@@ -1499,7 +1499,7 @@ void polyvec_compress_3(uint8_t r[3*320+2], const polyvec_3 *a)
 }
 #endif
 #if !defined(KYBER_K) || KYBER_K == 4
-void polyvec_compress_4(uint8_t r[4*320+2], const polyvec_4 *a)
+void polyvec_compress_4(uint8_t r[4*352+2], const polyvec_4 *a)
 {
   unsigned int i;
 
