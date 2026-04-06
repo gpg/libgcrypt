@@ -79,6 +79,11 @@ typedef struct{
 #endif
 
 #ifdef KYBER_VECTOR_IMPLEMENTATION
+static unsigned int rej_uniform(int16_t *r,
+                                unsigned int len,
+                                const uint8_t *buf,
+                                unsigned int buflen);
+
 #include "kyber-common-vector.c"
 #else
 /*************** kyber/ref/cbd.c */

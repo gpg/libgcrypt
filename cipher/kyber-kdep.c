@@ -70,7 +70,9 @@ static void polyvec_reduce(polyvec *r);
 static void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b);
 
 /*************** kyber/ref/indcpa.h */
+#ifndef KYBER_VECTOR_IMPLEMENTATION
 static void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
+#endif
 
 static void indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                                   uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
@@ -204,6 +206,7 @@ static void unpack_ciphertext(polyvec *b, poly *v, const uint8_t c[KYBER_INDCPA_
 *              - const uint8_t *seed: pointer to input seed
 *              - int transposed: boolean deciding whether A or A^T is generated
 **************************************************/
+#ifndef KYBER_VECTOR_IMPLEMENTATION
 #if(XOF_BLOCKBYTES % 3)
 #error "Implementation of gen_matrix assumes that XOF_BLOCKBYTES is a multiple of 3"
 #endif
@@ -237,6 +240,7 @@ void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
     }
   }
 }
+#endif
 
 /*************************************************
 * Name:        indcpa_keypair_derand
