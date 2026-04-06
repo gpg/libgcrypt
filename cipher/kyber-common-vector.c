@@ -1221,6 +1221,7 @@ void poly_getnoise_eta1122_4x(poly *r0,
 void poly_ntt(poly *r)
 {
   ntt_avx(r->vec, qdata.vec);
+  reduce_avx(r->vec, qdata.vec);
 }
 
 /*************************************************
