@@ -3835,7 +3835,7 @@ if test "$found" = "1" ; then
       x86_64-*-*)
          # Build with the assembly implementation
          AC_DEFINE(KYBER_VECTOR_IMPLEMENTATION, 1, [Defined with vector implementation])
-         VECTOR_CFLAGS="-mavx2"
+         VECTOR_CFLAGS="-mavx2 -mbmi2 -mpopcnt"
          AC_SUBST(VECTOR_CFLAGS)
       ;;
       *)
