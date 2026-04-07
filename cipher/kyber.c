@@ -457,18 +457,21 @@ static void kyber_shake128_absorb (keccak_state *state,
 #  define poly_compress poly_compress_128
 #  define poly_decompress poly_decompress_128
 #  define poly_getnoise_eta1 poly_getnoise_eta1_2
+#  define gen_matrix VARIANT2(gen_matrix)
 # elif KYBER_K == 3
 #  define KYBER_POLYCOMPRESSEDBYTES    128
 #  define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 320)
 #  define poly_compress poly_compress_128
 #  define poly_decompress poly_decompress_128
 #  define poly_getnoise_eta1 poly_getnoise_eta1_3_4
+#  define gen_matrix VARIANT3(gen_matrix)
 # elif KYBER_K == 4
 #  define KYBER_POLYCOMPRESSEDBYTES    160
 #  define KYBER_POLYVECCOMPRESSEDBYTES (KYBER_K * 352)
 #  define poly_compress poly_compress_160
 #  define poly_decompress poly_decompress_160
 #  define poly_getnoise_eta1 poly_getnoise_eta1_3_4
+#  define gen_matrix VARIANT4(gen_matrix)
 # endif
 # include "kyber-kdep.c"
 # else

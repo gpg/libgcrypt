@@ -789,9 +789,6 @@ static void cbd3(poly * restrict r, const uint8_t buf[3*KYBER_N/4+8])
 }
 #endif
 
-/*************** kyber/ref/ntt.c */
-// FIXME put asm implementation here
-
 /*************** kyber/ref/poly.c */
 
 /*************************************************
@@ -1261,7 +1258,8 @@ void poly_invntt_tomont(poly *r)
   invntt_avx(r->vec, qdata.vec);
 }
 
-void poly_nttunpack(poly *r)//FIXME: static?
+static
+void poly_nttunpack(poly *r)
 {
   nttunpack_avx(r->vec, qdata.vec);
 }
@@ -1958,6 +1956,8 @@ unsigned int rej_uniform_avx(int16_t * restrict r, const uint8_t *buf)
   return ctr;
 }
 
+#if !defined(KYBER_K) || KYBER_K == 2
+static
 void gen_matrix_2(polyvec_2 *a, const uint8_t seed[32], int transposed)
 {
   unsigned int ctr0, ctr1, ctr2, ctr3;
@@ -2014,14 +2014,16 @@ void gen_matrix_2(polyvec_2 *a, const uint8_t seed[32], int transposed)
   poly_nttunpack(&a[1].vec[0]);
   poly_nttunpack(&a[1].vec[1]);
 }
+#endif
 
+#if !defined(KYBER_K) || KYBER_K == 3
+static
 void gen_matrix_3(polyvec_3 *a, const uint8_t seed[32], int transposed)
 {
   unsigned int ctr0, ctr1, ctr2, ctr3;
   ALIGNED_UINT8(REJ_UNIFORM_AVX_NBLOCKS*SHAKE128_RATE) buf[4];
   __m256i f;
   keccakx4_state state;
-  //  keccak_state state1x;
   xof_state state1x;
 
   f = _mm256_loadu_si256((__m256i *)seed);
@@ -2124,25 +2126,22 @@ void gen_matrix_3(polyvec_3 *a, const uint8_t seed[32], int transposed)
 
   f = _mm256_loadu_si256((__m256i *)seed);
   _mm256_store_si256(buf[0].vec, f);
-  buf[0].coeffs[32] = 2;
-  buf[0].coeffs[33] = 2;
-  shake128_init(&state1x);
-  shake128_absorb(&state1x, buf[0].coeffs, 34);
-  shake128_squeeze(&state1x, buf[0].coeffs, REJ_UNIFORM_AVX_NBLOCKS*SHAKE128_RATE);
-  // GEN_MATRIX_NBLOCKS == REJ_UNIFORM_AVX_NBLOCKS???
-  //  shake128_absorb_once(&state1x, buf[0].coeffs, 34);
-  //  shake128_squeezeblocks(buf[0].coeffs, REJ_UNIFORM_AVX_NBLOCKS, &state1x);
+  xof_init(&state1x);
+  xof_absorb(&state1x, buf[0].coeffs, 2, 2);
+  xof_squeezeblocks(buf[0].coeffs, REJ_UNIFORM_AVX_NBLOCKS, &state1x);
   ctr0 = rej_uniform_avx(a[2].vec[2].coeffs, buf[0].coeffs);
   while(ctr0 < KYBER_N) {
     xof_squeezeblocks(buf[0].coeffs, 1, &state1x);
-    //    shake128_squeezeblocks(buf[0].coeffs, 1, &state1x);
     ctr0 += rej_uniform(a[2].vec[2].coeffs + ctr0, KYBER_N - ctr0, buf[0].coeffs, SHAKE128_RATE);
   }
-  shake128_close (&state1x);
+  xof_close (&state1x);
 
   poly_nttunpack(&a[2].vec[2]);
 }
+#endif
 
+#if !defined(KYBER_K) || KYBER_K == 3
+static
 void gen_matrix_4(polyvec_4 *a, const uint8_t seed[32], int transposed)
 {
   unsigned int i, ctr0, ctr1, ctr2, ctr3;
@@ -2201,5 +2200,6 @@ void gen_matrix_4(polyvec_4 *a, const uint8_t seed[32], int transposed)
     poly_nttunpack(&a[i].vec[3]);
   }
 }
+#endif
 
 #include "kyber-common-vector-asm.c"
