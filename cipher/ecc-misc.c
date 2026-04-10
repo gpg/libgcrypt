@@ -438,7 +438,10 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ec, mpi_point_t result)
         *--p = *buf++;
 
       if (rawmpilen < nbytes)
-        memset (rawmpi + nbytes - rawmpilen, 0, nbytes - rawmpilen);
+        {
+          memset (rawmpi + rawmpilen, 0, nbytes - rawmpilen);
+          rawmpilen = nbytes;
+        }
     }
   else
     {
