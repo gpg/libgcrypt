@@ -170,7 +170,7 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       memcpy (seed, seed_supplied, SEEDBYTES);
     }
 
-  dilithium_keypair (info->algo, pk, sk, seed);
+  rc = dilithium_keypair (info->algo, pk, sk, seed);
   _gcry_burn_stack (DILITHIUM_KEYPAIR_STACK_BURN);
 
   if (!rc)
@@ -206,7 +206,6 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   size_t data_len;
   const unsigned char *sk;
   const struct mldsa_info *info = mldsa_get_info (keyparms);
-  int r;
 
   if (!info)
     return GPG_ERR_PUBKEY_ALGO;
@@ -258,17 +257,14 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   else
     randombytes (rnd, RNDBYTES);
   if (ctx.flags & PUBKEY_FLAG_NO_PREFIX)
-    r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
-                        NULL, -1, sk, rnd);
+    rc = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
+                         NULL, -1, sk, rnd);
   else
-    r = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
-                        ctx.label, ctx.labellen, sk, rnd);
+    rc = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
+                         ctx.label, ctx.labellen, sk, rnd);
   _gcry_burn_stack (DILITHIUM_SIGN_STACK_BURN);
-  if (r < 0)
-    {
-      rc = GPG_ERR_INTERNAL;
-      goto leave;
-    }
+  if (rc)
+    goto leave;
 
   rc = sexp_build (r_sig, NULL, "(sig-val(%s(s%b)))", info->name,
                    info->sig_len, sig);
@@ -300,7 +296,6 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   size_t data_len;
   const unsigned char *pk;
   const struct mldsa_info *info = mldsa_get_info (keyparms);
-  int r;
 
   if (!info)
     return GPG_ERR_PUBKEY_ALGO;
@@ -350,17 +345,14 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   if (ctx.flags & PUBKEY_FLAG_NO_PREFIX)
-    r = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
-                          NULL, -1, pk);
+    rc = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
+                           NULL, -1, pk);
   else
-    r = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
-                          ctx.label, ctx.labellen, pk);
+    rc = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
+                           ctx.label, ctx.labellen, pk);
   _gcry_burn_stack (DILITHIUM_VERIFY_STACK_BURN);
-  if (r < 0)
-    {
-      rc = GPG_ERR_BAD_SIGNATURE;
-      goto leave;
-    }
+  if (rc)
+    goto leave;
 
 leave:
   _gcry_pk_util_free_encoding_ctx (&ctx);

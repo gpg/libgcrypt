@@ -82,6 +82,7 @@
 #include "gcrypt-int.h"
 #include "const-time.h"
 
+/* With glue code, we only use the "_internal" API of Dilithium.  */
 #define DILITHIUM_INTERNAL_API_ONLY 1
 
 #include "dilithium.h"
@@ -120,23 +121,33 @@ static int crypto_sign_verify_internal_5 (const uint8_t *sig, size_t siglen,
                                           const uint8_t *pre, size_t prelen,
                                           const uint8_t *pk);
 
-int
+gpg_err_code_t
 dilithium_keypair (int algo, uint8_t *pk, uint8_t *sk,
                    const uint8_t seed[SEEDBYTES])
 {
+  int r;
+
   switch (algo)
     {
     case GCRY_MLDSA44:
-      return crypto_sign_keypair_internal_2 (pk, sk, seed);
+      r = crypto_sign_keypair_internal_2 (pk, sk, seed);
+      break;
     case GCRY_MLDSA65:
     default:
-      return crypto_sign_keypair_internal_3 (pk, sk, seed);
+      r = crypto_sign_keypair_internal_3 (pk, sk, seed);
+      break;
     case GCRY_MLDSA87:
-      return crypto_sign_keypair_internal_5 (pk, sk, seed);
+      r = crypto_sign_keypair_internal_5 (pk, sk, seed);
+      break;
     }
+
+  if (r < 0)
+    return GPG_ERR_INTERNAL;
+
+  return 0;
 }
 
-int
+gpg_err_code_t
 dilithium_sign (int algo, uint8_t *sig, size_t siglen,
                 const uint8_t *m, size_t mlen,
                 const uint8_t *ctx, size_t ctxlen,
@@ -145,9 +156,17 @@ dilithium_sign (int algo, uint8_t *sig, size_t siglen,
   size_t i;
   uint8_t pre[257];
   size_t prelen;
+  int r;
 
-  if (ctx == NULL && ctxlen == -1)
-    prelen = 0;
+  if (ctx == NULL)
+    {
+      if (ctxlen == -1)
+        prelen = 0;
+      else
+        return GPG_ERR_INV_DATA;
+    }
+  else if (ctxlen > 255)
+    return GPG_ERR_INV_DATA;
   else
     {
       /* Prepare pre = (0, ctxlen, ctx) */
@@ -158,28 +177,44 @@ dilithium_sign (int algo, uint8_t *sig, size_t siglen,
       prelen = 2 + ctxlen;
     }
 
+  /*
+   * Note that the second argument of the upstream routine is the
+   * pointer to output length of signature.  It assumes the first
+   * argument (pointer to output signature) should have correct (or
+   * more) length, beforehand.
+   *
+   * Before calling the routine, we should check the length.
+   */
   switch (algo)
     {
     case GCRY_MLDSA44:
       if (siglen != CRYPTO_BYTES_2)
-        return -1;
-      return crypto_sign_signature_internal_2 (sig, &siglen, m, mlen,
-                                               pre, prelen, rnd, sk);
+        return GPG_ERR_INV_DATA;
+      r = crypto_sign_signature_internal_2 (sig, &siglen, m, mlen,
+                                            pre, prelen, rnd, sk);
+      break;
     case GCRY_MLDSA65:
     default:
       if (siglen != CRYPTO_BYTES_3)
-        return -1;
-      return crypto_sign_signature_internal_3 (sig, &siglen, m, mlen,
-                                               pre, prelen, rnd, sk);
+        return GPG_ERR_INV_DATA;
+      r = crypto_sign_signature_internal_3 (sig, &siglen, m, mlen,
+                                            pre, prelen, rnd, sk);
+      break;
     case GCRY_MLDSA87:
       if (siglen != CRYPTO_BYTES_5)
-        return -1;
-      return crypto_sign_signature_internal_5 (sig, &siglen, m, mlen,
-                                               pre, prelen, rnd, sk);
+        return GPG_ERR_INV_DATA;
+      r = crypto_sign_signature_internal_5 (sig, &siglen, m, mlen,
+                                            pre, prelen, rnd, sk);
+      break;
     }
+
+  if (r < 0)
+    return GPG_ERR_INTERNAL;
+
+  return 0;
 }
 
-int
+gpg_err_code_t
 dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
                   const uint8_t *m, size_t mlen,
                   const uint8_t *ctx, size_t ctxlen,
@@ -188,9 +223,17 @@ dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
   size_t i;
   uint8_t pre[257];
   size_t prelen;
+  int r;
 
-  if (ctx == NULL && ctxlen == -1)
-    prelen = 0;
+  if (ctx == NULL)
+    {
+      if (ctxlen == -1)
+        prelen = 0;
+      else
+        return GPG_ERR_INV_DATA;
+    }
+  else if (ctxlen > 255)
+    return GPG_ERR_INV_DATA;
   else
     {
       /* Prepare pre = (0, ctxlen, ctx) */
@@ -204,16 +247,24 @@ dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
   switch (algo)
     {
     case GCRY_MLDSA44:
-      return crypto_sign_verify_internal_2 (sig, siglen, m, mlen,
-                                            pre, prelen, pk);
+      r = crypto_sign_verify_internal_2 (sig, siglen, m, mlen,
+                                         pre, prelen, pk);
+      break;
     case GCRY_MLDSA65:
     default:
-      return crypto_sign_verify_internal_3 (sig, siglen, m, mlen,
-                                            pre, prelen, pk);
+      r = crypto_sign_verify_internal_3 (sig, siglen, m, mlen,
+                                         pre, prelen, pk);
+      break;
     case GCRY_MLDSA87:
-      return crypto_sign_verify_internal_5 (sig, siglen, m, mlen,
-                                            pre, prelen, pk);
+      r = crypto_sign_verify_internal_5 (sig, siglen, m, mlen,
+                                         pre, prelen, pk);
+      break;
     }
+
+  if (r < 0)
+    return GPG_ERR_BAD_SIGNATURE;
+
+  return 0;
 }
 
 typedef struct {
