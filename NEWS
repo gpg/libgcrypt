@@ -1,10 +1,11 @@
-Noteworthy changes in version 1.8.13 (unreleased)  [C22/A2/R__]
+Noteworthy changes in version 1.8.13 (2026-04-15)  [C22/A2/R14]
 -------------------------------------------------
 
  * Bug fixes:
 
+   - Fix possible ECDH buffer overwrite with zeroes.  [T8211]
 
- Release-info: https://dev.gnupg.org/Txxxx
+ Release-info: https://dev.gnupg.org/T8224
 
 
 Noteworthy changes in version 1.8.12 (2025-10-28)  [C22/A2/R13]
