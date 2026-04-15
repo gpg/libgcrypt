@@ -1,8 +1,18 @@
-Noteworthy changes in version 1.12.2 (unreleased)  [C27/A7/R_]
+Noteworthy changes in version 1.12.2 (2026-04-15)  [C27/A7/R2]
 -------------------------------------------------
 
  * Bug fixes:
 
+   - Fix possible ECDH buffer overwrite with zeroes.  [T8211]
+
+   - Add a missing bounds check to the Dilithium context handling.
+     [T8208]
+
+   - Add point validation when using the new KEM interface.  [T8212]
+
+ * Other:
+
+   - Fix the dead-code of stronger_key_check for RSA.  [T8171]
 
  Release-info: https://dev.gnupg.org/T8114
 
