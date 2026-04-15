@@ -121,7 +121,7 @@ gpg_err_code_t _gcry_ecc_curve_keypair (const char *curve,
                                         size_t pubkey_len,
                                         unsigned char *seckey,
                                         size_t seckey_len);
-gpg_err_code_t _gcry_ecc_curve_mul_point (const char *curve,
+gpg_err_code_t _gcry_ecc_curve_mul_point (const char *curve, int enable_check,
                                           unsigned char *result,
                                           size_t result_len,
                                           const unsigned char *scalar,

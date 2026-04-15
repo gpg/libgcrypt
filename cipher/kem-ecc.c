@@ -120,7 +120,7 @@ ecc_mul_point (int algo, unsigned char *result, size_t result_len,
 {
   const char *curve = algo_to_curve (algo);
 
-  return _gcry_ecc_curve_mul_point (curve, result, result_len,
+  return _gcry_ecc_curve_mul_point (curve, 1, result, result_len,
                                     scalar, scalar_len, point, point_len);
 }
 

@@ -201,7 +201,7 @@ _gcry_ecc_curve_keypair (const char *curve,
 }
 
 gpg_err_code_t
-_gcry_ecc_curve_mul_point (const char *curve,
+_gcry_ecc_curve_mul_point (const char *curve, int enable_mont_check,
                            unsigned char *result, size_t result_len,
                            const unsigned char *scalar, size_t scalar_len,
                            const unsigned char *point, size_t point_len)
@@ -263,14 +263,45 @@ _gcry_ecc_curve_mul_point (const char *curve,
 
       point_init (&P, ec->nbits);
       if (ec->model == MPI_EC_WEIERSTRASS)
-        err = _gcry_ecc_sec_decodepoint (mpi_u, ec, &P);
+        {
+          err = _gcry_ecc_sec_decodepoint (mpi_u, ec, &P);
+          if (err)
+            {
+              point_free (&P);
+              mpi_free (mpi_u);
+              goto leave;
+            }
+          else if (!_gcry_mpi_ec_curve_point (&P, ec))
+            {
+              err = GPG_ERR_INV_DATA;
+              point_free (&P);
+              mpi_free (mpi_u);
+              goto leave;
+            }
+        }
       else /* MPI_EC_MONTGOMERY */
-        err = _gcry_ecc_mont_decodepoint (mpi_u, ec, &P);
-      mpi_free (mpi_u);
-      if (err)
-        goto leave;
+        {
+          err = _gcry_ecc_mont_decodepoint (mpi_u, ec, &P);
+          if (err)
+            {
+              point_free (&P);
+              mpi_free (mpi_u);
+              goto leave;
+            }
+          /* See comments in ecc.c.  While our implementation has
+             improved to be constant-time, we keep this check to be
+             conservative.  */
+          if (_gcry_mpi_ec_bad_point (&P, ec) && enable_mont_check)
+            {
+              err = GPG_ERR_INV_DATA;
+              point_free (&P);
+              mpi_free (mpi_u);
+              goto leave;
+            }
+        }
       _gcry_mpi_ec_mul_point (&Q, mpi_k, &P, ec);
       point_free (&P);
+      mpi_free (mpi_u);
     }
   else
     _gcry_mpi_ec_mul_point (&Q, mpi_k, ec->G, ec);
@@ -280,7 +311,12 @@ _gcry_ecc_curve_mul_point (const char *curve,
     {
       gcry_mpi_t y = mpi_new (nbits);
 
-      _gcry_mpi_ec_get_affine (x, y, &Q, ec);
+      if (_gcry_mpi_ec_get_affine (x, y, &Q, ec))
+        {
+          err = GPG_ERR_INV_DATA;
+          mpi_free (y);
+          goto leave;
+        }
 
       buf = _gcry_ecc_ec2os_buf (x, y, ec->p, &len);
       if (!buf)
@@ -305,7 +341,17 @@ _gcry_ecc_curve_mul_point (const char *curve,
     }
   else                          /* MPI_EC_MONTGOMERY */
     {
-      _gcry_mpi_ec_get_affine (x, NULL, &Q, ec);
+      if (_gcry_mpi_ec_get_affine (x, NULL, &Q, ec) && enable_mont_check)
+        {
+          /*
+           * Input validation with _gcry_mpi_ec_bad_point (above)
+           * could be removed, when we are sure (no leak from side
+           * channel).  This output check should be kept for our usage
+           * of GnuPG.  See the comments in ecc.c for X25519/X448.
+           */
+          err = GPG_ERR_INV_DATA;
+          goto leave;
+        }
       buf = _gcry_mpi_get_buffer (x, nbytes, &len, NULL);
       if (!buf)
         err = gpg_err_code_from_syserror ();
@@ -321,9 +367,9 @@ _gcry_ecc_curve_mul_point (const char *curve,
           xfree (buf);
         }
     }
-  mpi_free (x);
 
  leave:
+  mpi_free (x);
   point_free (&Q);
   mpi_free (mpi_k);
   _gcry_mpi_ec_free (ec);
@@ -350,7 +396,8 @@ _gcry_ecc_mul_point (int curveid, unsigned char *result,
   else
     return gpg_error (GPG_ERR_UNKNOWN_CURVE);
 
-  return _gcry_ecc_curve_mul_point (curve, result, pubkey_len,
+  return _gcry_ecc_curve_mul_point (curve, 0,
+                                    result, pubkey_len,
                                     scalar, seckey_len,
                                     point, pubkey_len);
 }
