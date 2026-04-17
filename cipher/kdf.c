@@ -1416,7 +1416,7 @@ balloon_close (balloon_ctx_t b)
 
   if (b->block)
     {
-      wipememory (b->block, parallelism * b->n_blocks);
+      wipememory (b->block, parallelism * b->n_blocks * b->blklen);
       xfree (b->block);
     }
 
