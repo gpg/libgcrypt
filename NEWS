@@ -1,5 +1,34 @@
-Noteworthy changes in version 1.11.3 (unreleased)  [C26/A6/R_]
+Noteworthy changes in version 1.11.3 (2026-04-21)  [C26/A6/R1]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix possible ECDH buffer overwrite with zeroes.  [T8211]
+
+   - Add point validation when using the new KEM interface.  [T8212]
+
+   - Fix compiler error on NetBSD.  [T7633]
+
+   - mceliece6688128f: Fix stack overflow crash on win64/wine
+     [rCb17ed8d1af]
+
+   - Apply a Kyber patch from upstream.  [rC5ba143d51f]
+
+   - Use CSIDL_COMMON_APPDATA instead of /etc on Windows.  [rC995b870fd2]
+
+   - Use secure MPI in _gcry_mpi_assign_limb_space.  [rC520c699c82]
+
+   - Fix a regression with disabled public-key algo for FIPS.
+     [T7338,rCc6e0658004]
+
+ * Other:
+
+   - Handle HAVE_BROKEN_MLOCK for the case of building with ASAN.
+     [T7889]
+
+   - Add stack burning for PQC algorithms.  [rC289c0a596f]
+
+ Release-info: https://dev.gnupg.org/T8232
 
 
 Noteworthy changes in version 1.11.2 (2025-08-04)  [C26/A6/R0]
