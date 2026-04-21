@@ -1,5 +1,18 @@
-Noteworthy changes in version 1.10.4 (unreleased)  [C24/A4/R3]
+Noteworthy changes in version 1.10.4 (2026-04-21)  [C24/A4/R4]
 -------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix possible ECDH buffer overwrite with zeroes.  [T8211]
+
+   - Fix AESWRAP padding length check.  [T7130]
+
+ * Other:
+
+   - Handle HAVE_BROKEN_MLOCK for the case of building with ASAN.
+     [T7889]
+
+ Release-info: https://dev.gnupg.org/T8233
 
 
 Noteworthy changes in version 1.10.3 (2023-11-14)  [C24/A4/R3]
