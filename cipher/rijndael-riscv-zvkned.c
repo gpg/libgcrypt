@@ -115,7 +115,7 @@ unaligned_store_u32m4(void *ptr, vuint32m4_t vec, size_t vl_u32)
   __riscv_vse8_v_u8m4(ptr, cast_u32m4_u8m4(vec), vl_bytes);
 }
 
-static vuint32m1_t
+static ASM_FUNC_ATTR_INLINE vuint32m1_t
 vxor_u8_u32m1(vuint32m1_t a, vuint32m1_t b, size_t vl_u32)
 {
   size_t vl_bytes = vl_u32 * 4;
@@ -124,13 +124,53 @@ vxor_u8_u32m1(vuint32m1_t a, vuint32m1_t b, size_t vl_u32)
 					      cast_u32m1_u8m1(b), vl_bytes));
 }
 
-static vuint32m4_t
+static ASM_FUNC_ATTR_INLINE vuint32m4_t
 vxor_u8_u32m4(vuint32m4_t a, vuint32m4_t b, size_t vl_u32)
 {
   size_t vl_bytes = vl_u32 * 4;
 
   return cast_u8m4_u32m4(__riscv_vxor_vv_u8m4(cast_u32m4_u8m4(a),
 					      cast_u32m4_u8m4(b), vl_bytes));
+}
+
+static ASM_FUNC_ATTR_INLINE vuint32m4_t
+merge_4x_u32m1_to_u32m4(vuint32m1_t v0, vuint32m1_t v1, vuint32m1_t v2,
+			vuint32m1_t v3)
+{
+  vuint32m2_t v01, v23, tmp2;
+  vuint32m4_t out, tmp4;
+  size_t vl = 4;
+
+  v01  = __riscv_vlmul_ext_v_u32m1_u32m2(v0);
+  tmp2 = __riscv_vlmul_ext_v_u32m1_u32m2(v1);
+  v01  = __riscv_vslideup_vx_u32m2(v01, tmp2, vl, vl * 2);
+  v23  = __riscv_vlmul_ext_v_u32m1_u32m2(v2);
+  tmp2 = __riscv_vlmul_ext_v_u32m1_u32m2(v3);
+  v23  = __riscv_vslideup_vx_u32m2(v23, tmp2, vl, vl * 2);
+  out  = __riscv_vlmul_ext_v_u32m2_u32m4(v01);
+  tmp4 = __riscv_vlmul_ext_v_u32m2_u32m4(v23);
+  return __riscv_vslideup_vx_u32m4(out, tmp4, vl * 2, vl * 4);
+}
+
+static ASM_FUNC_ATTR_INLINE vuint32m1x4_t
+split_u32m4_to_4x_u32m1(vuint32m4_t v0123)
+{
+  size_t vl = 4;
+  vuint32m2_t v01 = __riscv_vlmul_trunc_v_u32m4_u32m2(v0123);
+  vuint32m2_t v23 = __riscv_vlmul_trunc_v_u32m4_u32m2(
+			  __riscv_vslidedown_vx_u32m4(v0123, vl * 2, vl * 4));
+  vuint32m1_t v0 = __riscv_vlmul_trunc_v_u32m2_u32m1(v01);
+  vuint32m1_t v1 = __riscv_vlmul_trunc_v_u32m2_u32m1(
+			  __riscv_vslidedown_vx_u32m2(v01, vl, vl * 2));
+  vuint32m1_t v2 = __riscv_vlmul_trunc_v_u32m2_u32m1(v23);
+  vuint32m1_t v3 = __riscv_vlmul_trunc_v_u32m2_u32m1(
+			  __riscv_vslidedown_vx_u32m2(v23, vl, vl * 2));
+  vuint32m1x4_t out = __riscv_vundefined_u32m1x4();
+  out = __riscv_vset_v_u32m1_u32m1x4(out, 0, v0);
+  out = __riscv_vset_v_u32m1_u32m1x4(out, 1, v1);
+  out = __riscv_vset_v_u32m1_u32m1x4(out, 2, v2);
+  out = __riscv_vset_v_u32m1_u32m1x4(out, 3, v3);
+  return out;
 }
 
 
@@ -780,11 +820,8 @@ _gcry_aes_riscv_zvkned_ctr_enc (void *context, unsigned char *ctr_arg,
 	      ctr_u32_3 = bswap128_u32m1(ctr_u32_3, vl);
 	      ctr_u32_4 = bswap128_u32m1(ctr_u32_4, vl);
 
-	      ctr4blks = __riscv_vundefined_u32m4();
-	      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 0, ctr);
-	      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 1, ctr_u32_1);
-	      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 2, ctr_u32_2);
-	      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 3, ctr_u32_3);
+	      ctr4blks = merge_4x_u32m1_to_u32m4(ctr, ctr_u32_1, ctr_u32_2,
+						 ctr_u32_3);
 	      ctr = ctr_u32_4;
 	    }
 	  else
@@ -794,17 +831,14 @@ _gcry_aes_riscv_zvkned_ctr_enc (void *context, unsigned char *ctr_arg,
 	      vuint8m1_t ctr1 = __riscv_vadd_vv_u8m1(ctr_u8, add1, vl_bytes);
 	      vuint8m1_t ctr2 = __riscv_vadd_vv_u8m1(ctr_u8, add2, vl_bytes);
 	      vuint8m1_t ctr3 = __riscv_vadd_vv_u8m1(ctr_u8, add3, vl_bytes);
-	      vuint8m4_t ctr0123_u8 = __riscv_vundefined_u8m4();
 
 	      ctr = cast_u8m1_u32m1(__riscv_vadd_vv_u8m1(ctr_u8, add4,
 							 vl_bytes));
 
-	      ctr0123_u8 = __riscv_vset_v_u8m1_u8m4(ctr0123_u8, 0, ctr_u8);
-	      ctr0123_u8 = __riscv_vset_v_u8m1_u8m4(ctr0123_u8, 1, ctr1);
-	      ctr0123_u8 = __riscv_vset_v_u8m1_u8m4(ctr0123_u8, 2, ctr2);
-	      ctr0123_u8 = __riscv_vset_v_u8m1_u8m4(ctr0123_u8, 3, ctr3);
-
-	      ctr4blks = cast_u8m4_u32m4(ctr0123_u8);
+	      ctr4blks = merge_4x_u32m1_to_u32m4(cast_u8m1_u32m1(ctr_u8),
+						 cast_u8m1_u32m1(ctr1),
+						 cast_u8m1_u32m1(ctr2),
+						 cast_u8m1_u32m1(ctr3));
 	    }
 
 	  data4blks = __riscv_vle8_v_u8m4(inbuf, vl_bytes * 4);
@@ -904,13 +938,10 @@ _gcry_aes_riscv_zvkned_ctr32le_enc (void *context, unsigned char *ctr_arg,
 	  vuint32m1_t ctr1 = __riscv_vadd_vv_u32m1(ctr, add1, vl);
 	  vuint32m1_t ctr2 = __riscv_vadd_vv_u32m1(ctr, add2, vl);
 	  vuint32m1_t ctr3 = __riscv_vadd_vv_u32m1(ctr, add3, vl);
-	  vuint32m4_t ctr4blks = __riscv_vundefined_u32m4();
+	  vuint32m4_t ctr4blks;
 	  vuint8m4_t data4blks;
 
-	  ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 0, ctr);
-	  ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 1, ctr1);
-	  ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 2, ctr2);
-	  ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 3, ctr3);
+	  ctr4blks = merge_4x_u32m1_to_u32m4(ctr, ctr1, ctr2, ctr3);
 	  ctr = __riscv_vadd_vv_u32m1(ctr, add4, vl);
 
 	  data4blks = __riscv_vle8_v_u8m4(inbuf, vl_bytes * 4);
@@ -968,17 +999,12 @@ _gcry_aes_riscv_zvkned_cfb_dec (void *context, unsigned char *iv_arg,
   for (; nblocks >= 4; nblocks -= 4)
     {
       vuint32m4_t data4blks = unaligned_load_u32m4(inbuf, vl * 4);
-      vuint32m1_t iv1 = __riscv_vget_v_u32m4_u32m1(data4blks, 0);
-      vuint32m1_t iv2 = __riscv_vget_v_u32m4_u32m1(data4blks, 1);
-      vuint32m1_t iv3 = __riscv_vget_v_u32m4_u32m1(data4blks, 2);
-      vuint32m1_t iv4 = __riscv_vget_v_u32m4_u32m1(data4blks, 3);
-      vuint32m4_t iv4blks = __riscv_vundefined_u32m4();
+      vuint32m1_t new_iv = __riscv_vlmul_trunc_v_u32m4_u32m1(
+	__riscv_vslidedown_vx_u32m4(data4blks, 12, 16));
+      vuint32m4_t iv_m4 = __riscv_vlmul_ext_v_u32m1_u32m4(iv);
+      vuint32m4_t iv4blks = __riscv_vslideup_vx_u32m4(iv_m4, data4blks, 4, 16);
 
-      iv4blks = __riscv_vset_v_u32m1_u32m4(iv4blks, 0, iv);
-      iv4blks = __riscv_vset_v_u32m1_u32m4(iv4blks, 1, iv1);
-      iv4blks = __riscv_vset_v_u32m1_u32m4(iv4blks, 2, iv2);
-      iv4blks = __riscv_vset_v_u32m1_u32m4(iv4blks, 3, iv3);
-      iv = iv4;
+      iv = new_iv;
 
       AES_CRYPT(e, m4, rounds, iv4blks, vl * 4);
 
@@ -1036,22 +1062,16 @@ _gcry_aes_riscv_zvkned_cbc_dec (void *context, unsigned char *iv_arg,
   for (; nblocks >= 4; nblocks -= 4)
     {
       vuint32m4_t data4blks = unaligned_load_u32m4(inbuf, vl * 4);
-      vuint32m1_t iv1 = __riscv_vget_v_u32m4_u32m1(data4blks, 0);
-      vuint32m1_t iv2 = __riscv_vget_v_u32m4_u32m1(data4blks, 1);
-      vuint32m1_t iv3 = __riscv_vget_v_u32m4_u32m1(data4blks, 2);
-      vuint32m1_t iv4 = __riscv_vget_v_u32m4_u32m1(data4blks, 3);
-      vuint32m4_t iv4blks = __riscv_vundefined_u32m4();
+      vuint32m4_t iv_m4 = __riscv_vlmul_ext_v_u32m1_u32m4(iv);
+      vuint32m4_t iv4blks = __riscv_vslideup_vx_u32m4(iv_m4, data4blks, 4, 16);
 
-      iv4blks = __riscv_vset_v_u32m1_u32m4(iv4blks, 0, iv);
-      iv4blks = __riscv_vset_v_u32m1_u32m4(iv4blks, 1, iv1);
-      iv4blks = __riscv_vset_v_u32m1_u32m4(iv4blks, 2, iv2);
-      iv4blks = __riscv_vset_v_u32m1_u32m4(iv4blks, 3, iv3);
+      iv = __riscv_vlmul_trunc_v_u32m4_u32m1(
+	      __riscv_vslidedown_vx_u32m4(data4blks, 12, 16));
 
       AES_CRYPT(d, m4, rounds, data4blks, vl * 4);
 
       data4blks = vxor_u8_u32m4(iv4blks, data4blks, vl * 4);
       unaligned_store_u32m4(outbuf, data4blks, vl * 4);
-      iv = iv4;
 
       inbuf += 4 * BLOCKSIZE;
       outbuf += 4 * BLOCKSIZE;
@@ -1101,20 +1121,16 @@ aes_riscv_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 
   if (nblocks >= 4)
     {
-      vuint32m4_t ctr4blks = __riscv_vundefined_u32m4();
       vuint32m1_t zero = __riscv_vmv_v_x_u32m1(0, vl);
-
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 0, ctr);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 1, zero);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 2, zero);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 3, zero);
+      vuint32m4_t ctr4blks = merge_4x_u32m1_to_u32m4(ctr, zero, zero, zero);
 
       for (; nblocks >= 4; nblocks -= 4)
 	{
 	  const unsigned char *l;
 	  vuint8m1_t l_ntzi;
 	  vuint32m4_t data4blks = unaligned_load_u32m4(inbuf, vl * 4);
-	  vuint32m4_t offsets = __riscv_vundefined_u32m4();
+	  vuint32m1_t offset0, offset1, offset2, offset3;
+	  vuint32m4_t offsets;
 
 	  /* Checksum_i = Checksum_{i-1} xor P_i  */
 	  ctr4blks = vxor_u8_u32m4(ctr4blks, data4blks, vl * 4);
@@ -1124,22 +1140,24 @@ aes_riscv_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 0, iv);
+	  offset0 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 1, iv);
+	  offset1 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 2, iv);
+	  offset2 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 3, iv);
+	  offset3 = iv;
+
+	  offsets = merge_4x_u32m1_to_u32m4(offset0, offset1, offset2, offset3);
 
 	  data4blks = vxor_u8_u32m4(offsets, data4blks, vl * 4);
 
@@ -1154,10 +1172,13 @@ aes_riscv_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
 	}
 
       /* Checksum_i = Checksum_{i-1} xor P_i  */
-      ctr = vxor_u8_u32m1(__riscv_vget_v_u32m4_u32m1(ctr4blks, 0),
-			  __riscv_vget_v_u32m4_u32m1(ctr4blks, 1), vl);
-      ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m4_u32m1(ctr4blks, 2), vl);
-      ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m4_u32m1(ctr4blks, 3), vl);
+      {
+	vuint32m1x4_t ctr0123 = split_u32m4_to_4x_u32m1(ctr4blks);
+	ctr = vxor_u8_u32m1(__riscv_vget_v_u32m1x4_u32m1(ctr0123, 0),
+			    __riscv_vget_v_u32m1x4_u32m1(ctr0123, 1), vl);
+	ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m1x4_u32m1(ctr0123, 2), vl);
+	ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m1x4_u32m1(ctr0123, 3), vl);
+      }
     }
 
   for (; nblocks; nblocks--)
@@ -1228,42 +1249,40 @@ aes_riscv_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 
   if (nblocks >= 4)
     {
-      vuint32m4_t ctr4blks = __riscv_vundefined_u32m4();
       vuint32m1_t zero = __riscv_vmv_v_x_u32m1(0, vl);
-
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 0, ctr);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 1, zero);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 2, zero);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 3, zero);
+      vuint32m4_t ctr4blks = merge_4x_u32m1_to_u32m4(ctr, zero, zero, zero);
 
       for (; nblocks >= 4; nblocks -= 4)
 	{
 	  const unsigned char *l;
 	  vuint8m1_t l_ntzi;
 	  vuint32m4_t data4blks = unaligned_load_u32m4(inbuf, vl * 4);
-	  vuint32m4_t offsets = __riscv_vundefined_u32m4();
+	  vuint32m1_t offset0, offset1, offset2, offset3;
+	  vuint32m4_t offsets;
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  /* P_i = Offset_i xor ENCIPHER(K, C_i xor Offset_i)  */
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 0, iv);
+	  offset0 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 1, iv);
+	  offset1 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 2, iv);
+	  offset2 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 3, iv);
+	  offset3 = iv;
+
+	  offsets = merge_4x_u32m1_to_u32m4(offset0, offset1, offset2, offset3);
 
 	  data4blks = vxor_u8_u32m4(offsets, data4blks, vl * 4);
 
@@ -1281,10 +1300,13 @@ aes_riscv_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
 	}
 
       /* Checksum_i = Checksum_{i-1} xor P_i  */
-      ctr = vxor_u8_u32m1(__riscv_vget_v_u32m4_u32m1(ctr4blks, 0),
-			  __riscv_vget_v_u32m4_u32m1(ctr4blks, 1), vl);
-      ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m4_u32m1(ctr4blks, 2), vl);
-      ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m4_u32m1(ctr4blks, 3), vl);
+      {
+	vuint32m1x4_t ctr0123 = split_u32m4_to_4x_u32m1(ctr4blks);
+	ctr = vxor_u8_u32m1(__riscv_vget_v_u32m1x4_u32m1(ctr0123, 0),
+			    __riscv_vget_v_u32m1x4_u32m1(ctr0123, 1), vl);
+	ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m1x4_u32m1(ctr0123, 2), vl);
+	ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m1x4_u32m1(ctr0123, 3), vl);
+      }
     }
 
   for (; nblocks; nblocks--)
@@ -1360,42 +1382,40 @@ _gcry_aes_riscv_zvkned_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 
   if (nblocks >= 4)
     {
-      vuint32m4_t ctr4blks = __riscv_vundefined_u32m4();
       vuint32m1_t zero = __riscv_vmv_v_x_u32m1(0, vl);
-
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 0, ctr);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 1, zero);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 2, zero);
-      ctr4blks = __riscv_vset_v_u32m1_u32m4(ctr4blks, 3, zero);
+      vuint32m4_t ctr4blks = merge_4x_u32m1_to_u32m4(ctr, zero, zero, zero);
 
       for (; nblocks >= 4; nblocks -= 4)
 	{
 	  const unsigned char *l;
 	  vuint8m1_t l_ntzi;
 	  vuint32m4_t data4blks = unaligned_load_u32m4(abuf, vl * 4);
-	  vuint32m4_t offsets = __riscv_vundefined_u32m4();
+	  vuint32m1_t offset0, offset1, offset2, offset3;
+	  vuint32m4_t offsets;
 
 	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
 	  /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 0, iv);
+	  offset0 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 1, iv);
+	  offset1 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 2, iv);
+	  offset2 = iv;
 
 	  l = ocb_get_l(c, ++n);
 	  l_ntzi = __riscv_vle8_v_u8m1(l, vl_bytes);
 	  iv = vxor_u8_u32m1(iv, cast_u8m1_u32m1(l_ntzi), vl);
-	  offsets = __riscv_vset_v_u32m1_u32m4(offsets, 3, iv);
+	  offset3 = iv;
+
+	  offsets = merge_4x_u32m1_to_u32m4(offset0, offset1, offset2, offset3);
 
 	  data4blks = vxor_u8_u32m4(offsets, data4blks, vl * 4);
 
@@ -1407,10 +1427,13 @@ _gcry_aes_riscv_zvkned_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	}
 
       /* Checksum_i = Checksum_{i-1} xor P_i  */
-      ctr = vxor_u8_u32m1(__riscv_vget_v_u32m4_u32m1(ctr4blks, 0),
-			  __riscv_vget_v_u32m4_u32m1(ctr4blks, 1), vl);
-      ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m4_u32m1(ctr4blks, 2), vl);
-      ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m4_u32m1(ctr4blks, 3), vl);
+      {
+	vuint32m1x4_t ctr0123 = split_u32m4_to_4x_u32m1(ctr4blks);
+	ctr = vxor_u8_u32m1(__riscv_vget_v_u32m1x4_u32m1(ctr0123, 0),
+			    __riscv_vget_v_u32m1x4_u32m1(ctr0123, 1), vl);
+	ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m1x4_u32m1(ctr0123, 2), vl);
+	ctr = vxor_u8_u32m1(ctr, __riscv_vget_v_u32m1x4_u32m1(ctr0123, 3), vl);
+      }
     }
 
   for (; nblocks; nblocks--)
@@ -1492,16 +1515,19 @@ aes_riscv_xts_enc (void *context, unsigned char *tweak_arg, void *outbuf_arg,
   for (; nblocks >= 4; nblocks -= 4)
     {
       vuint32m4_t data4blks = unaligned_load_u32m4(inbuf, vl * 4);
-      vuint32m4_t tweaks = __riscv_vundefined_u32m4();
+      vuint32m1_t tweak0, tweak1, tweak2, tweak3;
+      vuint32m4_t tweaks;
 
-      tweaks = __riscv_vset_v_u32m1_u32m4(tweaks, 0, tweak);
+      tweak0 = tweak;
       tweak = xts_gfmul_byA(tweak, xts_gfmul, xts_swap64, vl);
-      tweaks = __riscv_vset_v_u32m1_u32m4(tweaks, 1, tweak);
+      tweak1 = tweak;
       tweak = xts_gfmul_byA(tweak, xts_gfmul, xts_swap64, vl);
-      tweaks = __riscv_vset_v_u32m1_u32m4(tweaks, 2, tweak);
+      tweak2 = tweak;
       tweak = xts_gfmul_byA(tweak, xts_gfmul, xts_swap64, vl);
-      tweaks = __riscv_vset_v_u32m1_u32m4(tweaks, 3, tweak);
+      tweak3 = tweak;
       tweak = xts_gfmul_byA(tweak, xts_gfmul, xts_swap64, vl);
+
+      tweaks = merge_4x_u32m1_to_u32m4(tweak0, tweak1, tweak2, tweak3);
 
       data4blks = vxor_u8_u32m4(tweaks, data4blks, vl * 4);
 
@@ -1569,16 +1595,19 @@ aes_riscv_xts_dec (void *context, unsigned char *tweak_arg, void *outbuf_arg,
   for (; nblocks >= 4; nblocks -= 4)
     {
       vuint32m4_t data4blks = unaligned_load_u32m4(inbuf, vl * 4);
-      vuint32m4_t tweaks = __riscv_vundefined_u32m4();
+      vuint32m1_t tweak0, tweak1, tweak2, tweak3;
+      vuint32m4_t tweaks;
 
-      tweaks = __riscv_vset_v_u32m1_u32m4(tweaks, 0, tweak);
+      tweak0 = tweak;
       tweak = xts_gfmul_byA(tweak, xts_gfmul, xts_swap64, vl);
-      tweaks = __riscv_vset_v_u32m1_u32m4(tweaks, 1, tweak);
+      tweak1 = tweak;
       tweak = xts_gfmul_byA(tweak, xts_gfmul, xts_swap64, vl);
-      tweaks = __riscv_vset_v_u32m1_u32m4(tweaks, 2, tweak);
+      tweak2 = tweak;
       tweak = xts_gfmul_byA(tweak, xts_gfmul, xts_swap64, vl);
-      tweaks = __riscv_vset_v_u32m1_u32m4(tweaks, 3, tweak);
+      tweak3 = tweak;
       tweak = xts_gfmul_byA(tweak, xts_gfmul, xts_swap64, vl);
+
+      tweaks = merge_4x_u32m1_to_u32m4(tweak0, tweak1, tweak2, tweak3);
 
       data4blks = vxor_u8_u32m4(tweaks, data4blks, vl * 4);
 
