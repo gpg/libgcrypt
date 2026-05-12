@@ -329,7 +329,7 @@ _gcry_get_sysconfdir (void)
               strcat (appdata, "/GNU/etc/gcrypt/");
             }
           xfree (buf);
-          CloseHandle (handle);
+          FreeLibrary (handle);
         }
       if (!appdata)
         appdata = xstrdup ("c:/ProgramData/GNU/etc/gcrypt/");
