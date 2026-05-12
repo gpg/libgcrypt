@@ -1768,7 +1768,7 @@ AC_CACHE_CHECK([whether compiler supports x86/AVX512 intrinsics],
 	gcry_cv_cc_x86_avx512_intrinsics="n/a"
       else
 	gcry_cv_cc_x86_avx512_intrinsics=no
-	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	AC_LINK_IFELSE([AC_LANG_SOURCE(
 	[[#include <immintrin.h>
 	  __m512i fn(void *in, __m128i y)
 	  {
@@ -1780,6 +1780,12 @@ AC_CACHE_CHECK([whether compiler supports x86/AVX512 intrinsics],
 			  "vpxord %%zmm6, %%zmm6, %%zmm6"
 			  ::"x"(y),"r"(in):"memory","xmm6");
 	    return x;
+	  }
+	  int main(void)
+	  {
+	    __m128i y = _mm_setzero_si128();
+	    __m512i r = fn(&y, y);
+	    return (int)_mm_cvtsi128_si32(_mm512_castsi512_si128(r));
 	  }
 	  ]])],
 	[gcry_cv_cc_x86_avx512_intrinsics=yes])
@@ -2303,6 +2309,12 @@ m4_define([GCRY_AARCH64_NEON_INTRINSICS_TEST],
 	memory_barrier_with_vec(in);
 	return in;
       }
+      int main(void)
+      {
+	__m128i v = {0, 0};
+	v = fn(v);
+	return (int)vgetq_lane_u64(v, 0);
+      }
     ]]
   )]
 )
@@ -2314,7 +2326,7 @@ AC_CACHE_CHECK([whether compiler supports AArch64/NEON/crypto intrinsics],
 	gcry_cv_cc_aarch64_neon_intrinsics="n/a"
       else
 	gcry_cv_cc_aarch64_neon_intrinsics=no
-	AC_COMPILE_IFELSE(
+	AC_LINK_IFELSE(
 	  [GCRY_AARCH64_NEON_INTRINSICS_TEST],
 	  [gcry_cv_cc_aarch64_neon_intrinsics=yes])
       fi])
@@ -2333,7 +2345,7 @@ if test "$gcry_cv_cc_aarch64_neon_intrinsics" = "no" &&
     [gcry_cv_cc_aarch64_neon_intrinsics_cflags],
     [
       gcry_cv_cc_aarch64_neon_intrinsics_cflags=no
-      AC_COMPILE_IFELSE(
+      AC_LINK_IFELSE(
 	[GCRY_AARCH64_NEON_INTRINSICS_TEST],
 	[gcry_cv_cc_aarch64_neon_intrinsics_cflags=yes])
     ])
@@ -2372,6 +2384,12 @@ m4_define([GCRY_POWERPC_VECTOR_INTRINSICS_TEST],
 	y = vec_sld_u32 (y, y, 3);
 	return vec_cipher_be (t, in) ^ (block)y;
       }
+      int main(void)
+      {
+	block b = {0};
+	b = fn(b);
+	return (int)vec_extract((vecu32)b, 0);
+      }
     ]]
   )]
 )
@@ -2383,7 +2401,7 @@ AC_CACHE_CHECK([whether compiler supports PowerPC AltiVec/VSX/crypto intrinsics]
 	gcry_cv_cc_ppc_altivec="n/a"
       else
 	gcry_cv_cc_ppc_altivec=no
-	AC_COMPILE_IFELSE(
+	AC_LINK_IFELSE(
 	  [GCRY_POWERPC_VECTOR_INTRINSICS_TEST],
 	  [gcry_cv_cc_ppc_altivec=yes])
       fi])
@@ -2402,7 +2420,7 @@ if test "$gcry_cv_cc_ppc_altivec" = "no" &&
     [gcry_cv_cc_ppc_altivec_cflags],
     [
       gcry_cv_cc_ppc_altivec_cflags=no
-      AC_COMPILE_IFELSE(
+      AC_LINK_IFELSE(
 	[GCRY_POWERPC_VECTOR_INTRINSICS_TEST],
 	[gcry_cv_cc_ppc_altivec_cflags=yes])
     ])
@@ -2771,6 +2789,12 @@ m4_define([GCRY_RISCV_VECTOR_INTRINSICS_TEST],
 	clear_vec_reg_v0();
 	return in;
       }
+      int main(void)
+      {
+	__m128i v = __riscv_vmv_v_x_u8m1(0, 16);
+	v = fn(v);
+	return (int)__riscv_vmv_x_s_u8m1_u8(v);
+      }
     ]]
   )]
 )
@@ -2782,7 +2806,7 @@ AC_CACHE_CHECK([whether compiler supports RISC-V vector intrinsics],
 	gcry_cv_cc_riscv_vector_intrinsics="n/a"
       else
 	gcry_cv_cc_riscv_vector_intrinsics=no
-	AC_COMPILE_IFELSE(
+	AC_LINK_IFELSE(
 	  [GCRY_RISCV_VECTOR_INTRINSICS_TEST],
 	  [gcry_cv_cc_riscv_vector_intrinsics=yes])
       fi])
@@ -2806,7 +2830,7 @@ if test "$gcry_cv_cc_riscv_vector_intrinsics" = "no" &&
     [gcry_cv_cc_riscv_vector_intrinsics_cflags],
     [
       gcry_cv_cc_riscv_vector_intrinsics_cflags=no
-      AC_COMPILE_IFELSE(
+      AC_LINK_IFELSE(
 	[GCRY_RISCV_VECTOR_INTRINSICS_TEST],
 	[gcry_cv_cc_riscv_vector_intrinsics_cflags=yes])
     ])
@@ -2906,6 +2930,16 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	);
 	__riscv_vse32_v_u32m1(ptr + 0 * vl, a, vl);
       }
+      int main(void)
+      {
+	unsigned int buf[256];
+	test_sha2(buf);
+	test_aes_key(buf);
+	test_aes_crypt(buf);
+	test_ghash(buf);
+	test_inline_vec_asm(buf);
+	return 0;
+      }
     ]]
   )]
 )
@@ -2917,7 +2951,7 @@ AC_CACHE_CHECK([whether compiler supports RISC-V vector cryptography intrinsics]
 	gcry_cv_cc_riscv_vector_crypto_intrinsics="n/a"
       else
 	gcry_cv_cc_riscv_vector_crypto_intrinsics=no
-	AC_COMPILE_IFELSE(
+	AC_LINK_IFELSE(
 	  [GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	  [gcry_cv_cc_riscv_vector_crypto_intrinsics=yes])
       fi])
@@ -2941,7 +2975,7 @@ if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "no" &&
   AC_CACHE_CHECK([whether compiler supports RISC-V vector intrinsics with extra GCC flags],
     [gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags],
     [gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags=no
-    AC_COMPILE_IFELSE(
+    AC_LINK_IFELSE(
       [GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
       [gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags=yes])])
   if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags" = "yes" ; then
