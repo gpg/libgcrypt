@@ -194,7 +194,7 @@ static void poly1305_init (poly1305_context_t *ctx,
 	       "adde %2, %5, %2\n" \
 	       : "+r" (A0), "+r" (A1), "+r" (A2) \
 	       : "r" (B0), "r" (B1), "r" (B2) \
-	       : "cc" )
+	       : "cc", "xer" )
 
 #endif /* __powerpc__ */
 

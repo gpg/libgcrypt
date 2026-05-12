@@ -322,7 +322,7 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "r" ((mpi_limb_t)(C2)), \
 	     "r" ((mpi_limb_t)(C1)), \
 	     "r" ((mpi_limb_t)(C0)) \
-	   : "cc", "r0")
+	   : "cc", "xer", "r0")
 
 #define SUB3_LIMB64(A2, A1, A0, B2, B1, B0, C2, C1, C0) \
   __asm__ ("subfc %2, %8, %5\n" \
@@ -337,7 +337,7 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "r" ((mpi_limb_t)(C2)), \
 	     "r" ((mpi_limb_t)(C1)), \
 	     "r" ((mpi_limb_t)(C0)) \
-	   : "cc", "r0")
+	   : "cc", "xer", "r0")
 
 #define ADD4_LIMB64(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) \
   __asm__ ("addc %3, %11, %7\n" \
@@ -356,7 +356,7 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "r" ((mpi_limb_t)(C2)), \
 	     "r" ((mpi_limb_t)(C1)), \
 	     "r" ((mpi_limb_t)(C0)) \
-	   : "cc")
+	   : "cc", "xer")
 
 #define SUB4_LIMB64(A3, A2, A1, A0, B3, B2, B1, B0, C3, C2, C1, C0) \
   __asm__ ("subfc %3, %11, %7\n" \
@@ -375,7 +375,7 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "r" ((mpi_limb_t)(C2)), \
 	     "r" ((mpi_limb_t)(C1)), \
 	     "r" ((mpi_limb_t)(C0)) \
-	   : "cc")
+	   : "cc", "xer")
 
 #define ADD5_LIMB64(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0, \
 	                    C4, C3, C2, C1, C0) \
@@ -399,7 +399,7 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "r" ((mpi_limb_t)(C2)), \
 	     "r" ((mpi_limb_t)(C1)), \
 	     "r" ((mpi_limb_t)(C0)) \
-	   : "cc")
+	   : "cc", "xer")
 
 #define SUB5_LIMB64(A4, A3, A2, A1, A0, B4, B3, B2, B1, B0, \
 	                    C4, C3, C2, C1, C0) \
@@ -423,7 +423,7 @@ LIMB64_HILO(u32 hi, u32 lo)
 	     "r" ((mpi_limb_t)(C2)), \
 	     "r" ((mpi_limb_t)(C1)), \
 	     "r" ((mpi_limb_t)(C0)) \
-	   : "cc")
+	   : "cc", "xer")
 
 #endif /* __powerpc__ */
 

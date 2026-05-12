@@ -981,6 +981,12 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 /***************************************
  **************  PPC  ******************
  ***************************************/
+#if __GNUC__ >= 2 && (defined (_ARCH_PPC) || defined (_ARCH_PPC64) \
+    || defined (__powerpc__) || defined (__powerpc64__))
+# define __PPC_CLOBBER_CC : "cc", "xer"
+#else
+# define __PPC_CLOBBER_CC
+#endif
 /* Powerpc 32 bit support taken from GCC longlong.h. */
 #if (defined (_ARCH_PPC) || defined (__powerpc__)) && W_TYPE_SIZE == 32
 # define add_ssaaaa(sh, sl, ah, al, bh, bl) \
@@ -988,40 +994,40 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
     if (__builtin_constant_p (bh) && (bh) == 0)				\
       __asm__ ("add%I4c %1,%3,%4\n\taddze %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (ah), "%r" (al), "rI" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else if (__builtin_constant_p (bh) && (bh) == ~(USItype) 0)		\
       __asm__ ("add%I4c %1,%3,%4\n\taddme %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (ah), "%r" (al), "rI" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else								\
       __asm__ ("add%I5c %1,%4,%5\n\tadde %0,%2,%3"			\
               : "=r" (sh), "=&r" (sl)					\
               : "%r" (ah), "r" (bh), "%r" (al), "rI" (bl)		\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
   } while (0)
 # define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   do {									\
     if (__builtin_constant_p (ah) && (ah) == 0)				\
       __asm__ ("subf%I3c %1,%4,%3\n\tsubfze %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (bh), "rI" (al), "r" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else if (__builtin_constant_p (ah) && (ah) == ~(USItype) 0)		\
       __asm__ ("subf%I3c %1,%4,%3\n\tsubfme %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (bh), "rI" (al), "r" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else if (__builtin_constant_p (bh) && (bh) == 0)			\
       __asm__ ("subf%I3c %1,%4,%3\n\taddme %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (ah), "rI" (al), "r" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else if (__builtin_constant_p (bh) && (bh) == ~(USItype) 0)		\
       __asm__ ("subf%I3c %1,%4,%3\n\taddze %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (ah), "rI" (al), "r" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else								\
       __asm__ ("subf%I4c %1,%5,%4\n\tsubfe %0,%3,%2"			\
               : "=r" (sh), "=&r" (sl)					\
               : "r" (ah), "r" (bh), "rI" (al), "r" (bl)			\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
   } while (0)
 # define count_leading_zeros(count, x) \
   __asm__ ("cntlzw %0,%1" : "=r" (count) : "r" (x))
@@ -1052,40 +1058,40 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
     if (__builtin_constant_p (bh) && (bh) == 0)				\
       __asm__ ("add%I4c %1,%3,%4\n\taddze %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (ah), "%r" (al), "rI" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else if (__builtin_constant_p (bh) && (bh) == ~(UDItype) 0)		\
       __asm__ ("add%I4c %1,%3,%4\n\taddme %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (ah), "%r" (al), "rI" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else								\
       __asm__ ("add%I5c %1,%4,%5\n\tadde %0,%2,%3"			\
               : "=r" (sh), "=&r" (sl)					\
               : "%r" (ah), "r" (bh), "%r" (al), "rI" (bl)		\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
   } while (0)
 # define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   do {									\
     if (__builtin_constant_p (ah) && (ah) == 0)				\
       __asm__ ("subf%I3c %1,%4,%3\n\tsubfze %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (bh), "rI" (al), "r" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else if (__builtin_constant_p (ah) && (ah) == ~(UDItype) 0)		\
       __asm__ ("subf%I3c %1,%4,%3\n\tsubfme %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (bh), "rI" (al), "r" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else if (__builtin_constant_p (bh) && (bh) == 0)			\
       __asm__ ("subf%I3c %1,%4,%3\n\taddme %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (ah), "rI" (al), "r" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else if (__builtin_constant_p (bh) && (bh) == ~(UDItype) 0)		\
       __asm__ ("subf%I3c %1,%4,%3\n\taddze %0,%2"			\
               : "=r" (sh), "=&r" (sl) : "r" (ah), "rI" (al), "r" (bl)	\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
     else								\
       __asm__ ("subf%I4c %1,%5,%4\n\tsubfe %0,%3,%2"			\
               : "=r" (sh), "=&r" (sl)					\
               : "r" (ah), "r" (bh), "rI" (al), "r" (bl)			\
-              __CLOBBER_CC);						\
+              __PPC_CLOBBER_CC);					\
   } while (0)
 # define count_leading_zeros(count, x) \
   __asm__ ("cntlzd %0,%1" : "=r" (count) : "r" (x))
