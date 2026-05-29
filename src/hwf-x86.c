@@ -95,8 +95,9 @@ is_cpuid_available(void)
 }
 
 static void
-get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
-          unsigned int *ecx, unsigned int *edx)
+get_cpuid_subleaf(unsigned int in, unsigned int subleaf,
+		  unsigned int *eax, unsigned int *ebx,
+		  unsigned int *ecx, unsigned int *edx)
 {
   unsigned int regs[4];
 
@@ -105,7 +106,7 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
      "cpuid\n\t"
      "xchgl %%ebx, %1\n\t"     /* Restore GOT register. */
      : "=a" (regs[0]), "=D" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
-     : "0" (in), "1" (0), "2" (0), "3" (0)
+     : "0" (in), "1" (0), "2" (subleaf), "3" (0)
      : "cc"
      );
 
@@ -117,6 +118,13 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
     *ecx = regs[2];
   if (edx)
     *edx = regs[3];
+}
+
+static void
+get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
+          unsigned int *ecx, unsigned int *edx)
+{
+  get_cpuid_subleaf(in, 0, eax, ebx, ecx, edx);
 }
 
 #if defined(ENABLE_AVX_SUPPORT) || defined(ENABLE_AVX2_SUPPORT)
@@ -148,15 +156,16 @@ is_cpuid_available(void)
 }
 
 static void
-get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
-          unsigned int *ecx, unsigned int *edx)
+get_cpuid_subleaf(unsigned int in, unsigned int subleaf,
+		  unsigned int *eax, unsigned int *ebx,
+		  unsigned int *ecx, unsigned int *edx)
 {
   unsigned int regs[4];
 
   asm volatile
     ("cpuid\n\t"
      : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
-     : "0" (in), "1" (0), "2" (0), "3" (0)
+     : "0" (in), "1" (0), "2" (subleaf), "3" (0)
      : "cc"
      );
 
@@ -168,6 +177,13 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
     *ecx = regs[2];
   if (edx)
     *edx = regs[3];
+}
+
+static void
+get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
+          unsigned int *ecx, unsigned int *edx)
+{
+  get_cpuid_subleaf(in, 0, eax, ebx, ecx, edx);
 }
 
 #if defined(ENABLE_AVX_SUPPORT) || defined(ENABLE_AVX2_SUPPORT)
@@ -228,33 +244,35 @@ detect_x86_gnuc (
 #ifdef ENABLE_PADLOCK_SUPPORT
   else if (!strcmp (vendor_id.c, "CentaurHauls"))
     {
+      unsigned int via_feat, via_feat2;
+
       /* This is a VIA CPU.  Check what PadLock features we have.  */
 
       /* Check for extended centaur (EAX).  */
-      get_cpuid(0xC0000000, &features, NULL, NULL, NULL);
+      get_cpuid(0xC0000000, &via_feat, NULL, NULL, NULL);
 
       /* Has extended centaur features? */
-      if (features > 0xC0000000)
+      if (via_feat > 0xC0000000)
         {
            /* Ask for the extended feature flags (EDX). */
-           get_cpuid(0xC0000001, NULL, NULL, NULL, &features);
+           get_cpuid(0xC0000001, NULL, NULL, NULL, &via_feat2);
 
            /* Test bits 2 and 3 to see whether the RNG exists and is enabled. */
-           if ((features & 0x0C) == 0x0C)
+           if ((via_feat2 & 0x0C) == 0x0C)
              result |= HWF_PADLOCK_RNG;
 
            /* Test bits 6 and 7 to see whether the ACE exists and is enabled. */
-           if ((features & 0xC0) == 0xC0)
+           if ((via_feat2 & 0xC0) == 0xC0)
              result |= HWF_PADLOCK_AES;
 
            /* Test bits 10 and 11 to see whether the PHE exists and is
               enabled.  */
-           if ((features & 0xC00) == 0xC00)
+           if ((via_feat2 & 0xC00) == 0xC00)
              result |= HWF_PADLOCK_SHA;
 
            /* Test bits 12 and 13 to see whether the MONTMUL exists and is
               enabled.  */
-           if ((features & 0x3000) == 0x3000)
+           if ((via_feat2 & 0x3000) == 0x3000)
              result |= HWF_PADLOCK_MMUL;
         }
     }
@@ -337,28 +355,30 @@ detect_x86_gnuc (
   has_sse3 = !!(features & 0x00000001);
   if (max_cpuid_level >= 7 && has_sse3)
     {
+      unsigned int intel_feat, intel_feat2, intel_feat3;
+
       /* Get CPUID:7 contains further Intel feature flags. */
-      get_cpuid(7, NULL, &features, &features2, NULL);
+      get_cpuid(7, NULL, &intel_feat, &intel_feat2, NULL);
 
       /* Test bit 8 for BMI2.  */
-      if (features & 0x00000100)
+      if (intel_feat & 0x00000100)
           result |= HWF_INTEL_BMI2;
 
 #ifdef ENABLE_AVX2_SUPPORT
       /* Test bit 5 for AVX2.  */
-      if (features & 0x00000020)
+      if (intel_feat & 0x00000020)
         if (os_supports_avx_avx2_registers)
           result |= HWF_INTEL_AVX2;
 #endif /*ENABLE_AVX_SUPPORT*/
 
       /* Test bit 29 for SHA Extensions. */
-      if (features & (1 << 29))
+      if (intel_feat & (1 << 29))
         result |= HWF_INTEL_SHAEXT;
 
 #if defined(ENABLE_AVX2_SUPPORT) && defined(ENABLE_AESNI_SUPPORT) && \
     defined(ENABLE_PCLMUL_SUPPORT)
-      /* Test features2 bit 9 for VAES and features2 bit 10 for VPCLMULDQD */
-      if ((features2 & 0x00000200) && (features2 & 0x00000400))
+      /* Test intel_feat2 bit 9 for VAES and intel_feat2 bit 10 for VPCLMULDQD */
+      if ((intel_feat2 & 0x00000200) && (intel_feat2 & 0x00000400))
         result |= HWF_INTEL_VAES_VPCLMUL;
 #endif
 
@@ -367,44 +387,53 @@ detect_x86_gnuc (
        * supporting CPUs are new enough not to suffer from reduced clock
        * frequencies when AVX512 is used, which was issue on early AVX512
        * capable CPUs.
-       *  - AVX512F (features bit 16)
-       *  - AVX512DQ (features bit 17)
-       *  - AVX512IFMA (features bit 21)
-       *  - AVX512CD (features bit 28)
-       *  - AVX512BW (features bit 30)
-       *  - AVX512VL (features bit 31)
-       *  - AVX512_VBMI (features2 bit 1)
-       *  - AVX512_VBMI2 (features2 bit 6)
-       *  - AVX512_VNNI (features2 bit 11)
-       *  - AVX512_BITALG (features2 bit 12)
-       *  - AVX512_VPOPCNTDQ (features2 bit 14)
+       *  - AVX512F (intel_feat bit 16)
+       *  - AVX512DQ (intel_feat bit 17)
+       *  - AVX512IFMA (intel_feat bit 21)
+       *  - AVX512CD (intel_feat bit 28)
+       *  - AVX512BW (intel_feat bit 30)
+       *  - AVX512VL (intel_feat bit 31)
+       *  - AVX512_VBMI (intel_feat2 bit 1)
+       *  - AVX512_VBMI2 (intel_feat2 bit 6)
+       *  - AVX512_VNNI (intel_feat2 bit 11)
+       *  - AVX512_BITALG (intel_feat2 bit 12)
+       *  - AVX512_VPOPCNTDQ (intel_feat2 bit 14)
        */
       if (os_supports_avx512_registers
-	  && (features & (1 << 16))
-	  && (features & (1 << 17))
-	  && (features & (1 << 21))
-	  && (features & (1 << 28))
-	  && (features & (1 << 30))
-	  && (features & (1U << 31))
-	  && (features2 & (1 << 1))
-	  && (features2 & (1 << 6))
-	  && (features2 & (1 << 11))
-	  && (features2 & (1 << 12))
-	  && (features2 & (1 << 14)))
+	  && (intel_feat & (1 << 16))
+	  && (intel_feat & (1 << 17))
+	  && (intel_feat & (1 << 21))
+	  && (intel_feat & (1 << 28))
+	  && (intel_feat & (1 << 30))
+	  && (intel_feat & (1U << 31))
+	  && (intel_feat2 & (1 << 1))
+	  && (intel_feat2 & (1 << 6))
+	  && (intel_feat2 & (1 << 11))
+	  && (intel_feat2 & (1 << 12))
+	  && (intel_feat2 & (1 << 14)))
 	result |= HWF_INTEL_AVX512;
 #endif
 
       /* Test features2 bit 6 for GFNI (Galois field new instructions).
        * These instructions are available for SSE/AVX/AVX2/AVX512. */
-      if (features2 & (1 << 6))
+      if (intel_feat2 & (1 << 6))
         result |= HWF_INTEL_GFNI;
+
+      /* Get CPUID:7 sub-leaf 1 for further Intel feature flags. */
+      get_cpuid_subleaf(7, 1, &intel_feat3, NULL, NULL, NULL);
+
+      /* Test bit 0 for Intel SHA512 instructions. */
+      if ((intel_feat3 & (1 << 0)) && os_supports_avx_avx2_registers)
+        result |= HWF_INTEL_SHA512;
     }
 
   /* Check additional feature flags. */
   if (max_cpuid_level >= 0x21 && has_sse3)
     {
-      get_cpuid(0x21, &features, NULL, NULL, NULL);
-      if (features & (1 << 23))
+      unsigned int amd_feat;
+
+      get_cpuid(0x21, &amd_feat, NULL, NULL, NULL);
+      if (amd_feat & (1 << 23))
 	{
 	  has_avx512bmm = 1;
 	}

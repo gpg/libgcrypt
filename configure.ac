@@ -1585,6 +1585,34 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports Intel SHA512 instructions.
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports Intel SHA512 instructions],
+       [gcry_cv_gcc_inline_asm_sha512],
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_sha512="n/a"
+        else
+          gcry_cv_gcc_inline_asm_sha512=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void a(void) {
+              __asm__("vsha512msg1 %%xmm1, %%ymm3\n\t":::"cc");
+              __asm__("vsha512msg2 %%ymm1, %%ymm3\n\t":::"cc");
+              __asm__("vsha512rnds2 %%xmm0, %%ymm1, %%ymm3\n\t":::"cc");
+              __asm__("vperm2i128 \$0x21, %%ymm1, %%ymm2, %%ymm3\n\t":::"cc");
+              __asm__("vpalignr \$8, %%ymm1, %%ymm2, %%ymm3\n\t":::"cc");
+              __asm__("vpermq \$0x1b, %%ymm1, %%ymm3\n\t":::"cc");
+              __asm__("vextracti128 \$1, %%ymm0, %%xmm1\n\t":::"cc");
+            }]], [ a(); ] )],
+          [gcry_cv_gcc_inline_asm_sha512=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_sha512" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_SHA512,1,
+     [Defined if inline assembler supports Intel SHA512 instructions])
+fi
+
+
+#
 # Check whether GCC inline assembler supports SSE4.1 instructions.
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports SSE4.1 instructions],
@@ -4041,6 +4069,13 @@ if test "$found" = "1" ; then
          # Build with the RISC-V vector cryptography implementation
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-riscv-zvknhb-zvkb.lo"
       ;;
+   esac
+
+   case "$mpi_cpu_arch" in
+     x86)
+       # Build with the Intel SHA512 implementation
+       GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-intel-shaext.lo"
+     ;;
    esac
 fi
 

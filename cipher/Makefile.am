@@ -149,6 +149,7 @@ EXTRA_libcipher_la_SOURCES = \
 	sha256-intel-shaext.c sha256-ppc.c sha256-riscv-zvknha-zvkb.c \
 	sha512.c sha512-ssse3-amd64.S sha512-avx-amd64.S \
 	sha512-avx2-bmi2-amd64.S sha512-avx512-amd64.S \
+	sha512-intel-shaext.c \
 	sha512-armv7-neon.S sha512-armv8-aarch64-ce.S sha512-arm.S \
 	sha512-ppc.c sha512-riscv-zvknhb-zvkb.c sha512-ssse3-i386.c \
 	sm3.c sm3-avx-bmi2-amd64.S sm3-aarch64.S sm3-armv8-aarch64-ce.S \
@@ -240,6 +241,12 @@ sha256-ssse3-i386.o: $(srcdir)/sha256-ssse3-i386.c Makefile
 	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
 
 sha256-ssse3-i386.lo: $(srcdir)/sha256-ssse3-i386.c Makefile
+	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+
+sha512-intel-shaext.o: $(srcdir)/sha512-intel-shaext.c Makefile
+	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+
+sha512-intel-shaext.lo: $(srcdir)/sha512-intel-shaext.c Makefile
 	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
 
 crc-intel-pclmul.o: $(srcdir)/crc-intel-pclmul.c Makefile

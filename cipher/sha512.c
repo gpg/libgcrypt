@@ -133,6 +133,15 @@
 #endif
 
 
+/* USE_SHA512_INTEL indicates whether to compile with Intel SHA512 code. */
+#undef USE_SHA512_INTEL
+#if defined(HAVE_GCC_INLINE_ASM_SHA512) && \
+    defined(USE_SHA512) && \
+    defined(ENABLE_SHAEXT_SUPPORT)
+# define USE_SHA512_INTEL 1
+#endif
+
+
 /* USE_SSSE3_I386 indicates whether to compile with Intel SSSE3/i386 code. */
 #undef USE_SSSE3_I386
 #if defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4 && \
@@ -345,6 +354,22 @@ do_sha512_transform_amd64_avx512(void *ctx, const unsigned char *data,
 }
 #endif
 
+#ifdef USE_SHA512_INTEL
+/* Does not need ASM_FUNC_ABI */
+unsigned int _gcry_sha512_transform_intel_shaext(u64 state[8],
+                                                 const unsigned char *input_data,
+                                                 size_t num_blks,
+                                                 const u64 k[]);
+
+static unsigned int
+do_sha512_transform_intel_shaext(void *ctx, const unsigned char *data,
+                                 size_t nblks)
+{
+  SHA512_CONTEXT *hd = ctx;
+  return _gcry_sha512_transform_intel_shaext (hd->state.h, data, nblks, k);
+}
+#endif
+
 #ifdef USE_SSSE3_I386
 unsigned int _gcry_sha512_transform_i386_ssse3(u64 state[8],
 					       const unsigned char *input_data,
@@ -507,6 +532,10 @@ sha512_init_common (SHA512_CONTEXT *ctx, unsigned int flags)
 #ifdef USE_SSSE3_I386
   if ((features & HWF_INTEL_SSSE3) != 0)
     ctx->bctx.bwrite = do_sha512_transform_i386_ssse3;
+#endif
+#ifdef USE_SHA512_INTEL
+  if ((features & HWF_INTEL_SHA512) && (features & HWF_INTEL_AVX2))
+    ctx->bctx.bwrite = do_sha512_transform_intel_shaext;
 #endif
 #ifdef USE_RISCV_V_CRYPTO
   if ((features & HWF_RISCV_IMAFDC)

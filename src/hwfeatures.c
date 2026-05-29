@@ -84,6 +84,7 @@ static struct
     { HWF_INTEL_VAES_VPCLMUL,  "intel-vaes-vpclmul" },
     { HWF_INTEL_AVX512,        "intel-avx512" },
     { HWF_INTEL_GFNI,          "intel-gfni" },
+    { HWF_INTEL_SHA512,        "intel-sha512" },
     /* Following removed HW feature strings are kept for API compatibility. */
     { 0,                       "intel-fast-vpgather" },
 #elif defined(HAVE_CPU_ARCH_ARM)
