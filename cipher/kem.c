@@ -95,11 +95,18 @@ _gcry_kem_genkey (int algo,
       if (seckey_len != GCRY_KEM_SNTRUP761_SECKEY_LEN
           || pubkey_len != GCRY_KEM_SNTRUP761_PUBKEY_LEN)
         return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       sntrup761_keypair (pubkey, seckey, NULL, sntrup761_random);
       _gcry_burn_stack (SNTRUP761_KEYPAIR_STACK_BURN);
       return 0;
 
     case GCRY_KEM_CM6688128F:
+      if (seckey_len != GCRY_KEM_CM6688128F_SECKEY_LEN
+          || pubkey_len != GCRY_KEM_CM6688128F_PUBKEY_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       mceliece6688128f_keypair (pubkey, seckey);
       _gcry_burn_stack (MCELIECE6688128F_KEYPAIR_STACK_BURN);
       return 0;
@@ -164,29 +171,57 @@ _gcry_kem_encap (int algo,
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
-      if (optional != NULL || optional_len != 0)
-        return GPG_ERR_INV_VALUE;
       if (pubkey_len != GCRY_KEM_SNTRUP761_PUBKEY_LEN
           || ciphertext_len != GCRY_KEM_SNTRUP761_ENCAPS_LEN
           || shared_len != GCRY_KEM_SNTRUP761_SHARED_LEN)
-        return GPG_ERR_INV_VALUE;
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       sntrup761_enc (ciphertext, shared, pubkey, NULL, sntrup761_random);
       _gcry_burn_stack (SNTRUP761_ENC_STACK_BURN);
       return 0;
 
     case GCRY_KEM_CM6688128F:
-      if (optional != NULL)
-	return GPG_ERR_INV_VALUE;
+      if (pubkey_len != GCRY_KEM_CM6688128F_PUBKEY_LEN
+          || ciphertext_len != GCRY_KEM_CM6688128F_ENCAPS_LEN
+          || shared_len != GCRY_KEM_CM6688128F_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       mceliece6688128f_enc (ciphertext, shared, pubkey);
       _gcry_burn_stack (MCELIECE6688128F_ENC_STACK_BURN);
       return 0;
 
 #if USE_KYBER
     case GCRY_KEM_MLKEM512:
-    case GCRY_KEM_MLKEM768:
-    case GCRY_KEM_MLKEM1024:
+      if (pubkey_len != GCRY_KEM_MLKEM512_PUBKEY_LEN
+          || ciphertext_len != GCRY_KEM_MLKEM512_ENCAPS_LEN
+          || shared_len != GCRY_KEM_MLKEM512_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
       if (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN)
-	return GPG_ERR_INV_VALUE;
+	return GPG_ERR_INV_ARG;
+      kyber_encap (algo, ciphertext, shared, pubkey, optional);
+      _gcry_burn_stack (KYBER_ENCAP_STACK_BURN (algo));
+      return 0;
+
+    case GCRY_KEM_MLKEM768:
+      if (pubkey_len != GCRY_KEM_MLKEM768_PUBKEY_LEN
+          || ciphertext_len != GCRY_KEM_MLKEM768_ENCAPS_LEN
+          || shared_len != GCRY_KEM_MLKEM768_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN)
+	return GPG_ERR_INV_ARG;
+      kyber_encap (algo, ciphertext, shared, pubkey, optional);
+      _gcry_burn_stack (KYBER_ENCAP_STACK_BURN (algo));
+      return 0;
+
+    case GCRY_KEM_MLKEM1024:
+      if (pubkey_len != GCRY_KEM_MLKEM1024_PUBKEY_LEN
+          || ciphertext_len != GCRY_KEM_MLKEM1024_ENCAPS_LEN
+          || shared_len != GCRY_KEM_MLKEM1024_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN)
+	return GPG_ERR_INV_ARG;
       kyber_encap (algo, ciphertext, shared, pubkey, optional);
       _gcry_burn_stack (KYBER_ENCAP_STACK_BURN (algo));
       return 0;
@@ -200,16 +235,28 @@ _gcry_kem_encap (int algo,
     case GCRY_KEM_RAW_P256R1:
     case GCRY_KEM_RAW_P384R1:
     case GCRY_KEM_RAW_P521R1:
-      if (optional != NULL)
-        return GPG_ERR_INV_VALUE;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       return _gcry_ecc_raw_encap (algo, pubkey, pubkey_len,
                                   ciphertext, ciphertext_len,
                                   shared, shared_len);
 
     case GCRY_KEM_DHKEM25519:
+      if (pubkey_len != GCRY_KEM_DHKEM25519_PUBKEY_LEN
+          || ciphertext_len != GCRY_KEM_DHKEM25519_ENCAPS_LEN
+          || shared_len != GCRY_KEM_DHKEM25519_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
+      return _gcry_ecc_dhkem_encap (algo, pubkey, ciphertext, shared);
+
     case GCRY_KEM_DHKEM448:
-      if (optional != NULL)
-        return GPG_ERR_INV_VALUE;
+      if (pubkey_len != GCRY_KEM_DHKEM448_PUBKEY_LEN
+          || ciphertext_len != GCRY_KEM_DHKEM448_ENCAPS_LEN
+          || shared_len != GCRY_KEM_DHKEM448_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       return _gcry_ecc_dhkem_encap (algo, pubkey, ciphertext, shared);
 
     default:
@@ -229,29 +276,57 @@ _gcry_kem_decap (int algo,
   switch (algo)
     {
     case GCRY_KEM_SNTRUP761:
-      if (optional != NULL || optional_len != 0)
-        return GPG_ERR_INV_VALUE;
       if (seckey_len != GCRY_KEM_SNTRUP761_SECKEY_LEN
           || ciphertext_len != GCRY_KEM_SNTRUP761_ENCAPS_LEN
           || shared_len != GCRY_KEM_SNTRUP761_SHARED_LEN)
-        return GPG_ERR_INV_VALUE;
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       sntrup761_dec (shared, ciphertext, seckey);
       _gcry_burn_stack (SNTRUP761_DEC_STACK_BURN);
       return 0;
 
     case GCRY_KEM_CM6688128F:
-      if (optional != NULL)
-	return GPG_ERR_INV_VALUE;
+      if (seckey_len != GCRY_KEM_CM6688128F_SECKEY_LEN
+          || ciphertext_len != GCRY_KEM_CM6688128F_ENCAPS_LEN
+          || shared_len != GCRY_KEM_CM6688128F_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+	return GPG_ERR_INV_ARG;
       mceliece6688128f_dec (shared, ciphertext, seckey);
       _gcry_burn_stack (MCELIECE6688128F_DEC_STACK_BURN);
       return 0;
 
 #if USE_KYBER
     case GCRY_KEM_MLKEM512:
+      if (seckey_len != GCRY_KEM_MLKEM512_SECKEY_LEN
+          || ciphertext_len != GCRY_KEM_MLKEM512_ENCAPS_LEN
+          || shared_len != GCRY_KEM_MLKEM512_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
+      kyber_decap (algo, shared, ciphertext, seckey);
+      _gcry_burn_stack (KYBER_DECAP_STACK_BURN (algo));
+      return 0;
+
     case GCRY_KEM_MLKEM768:
+      if (seckey_len != GCRY_KEM_MLKEM768_SECKEY_LEN
+          || ciphertext_len != GCRY_KEM_MLKEM768_ENCAPS_LEN
+          || shared_len != GCRY_KEM_MLKEM768_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
+      kyber_decap (algo, shared, ciphertext, seckey);
+      _gcry_burn_stack (KYBER_DECAP_STACK_BURN (algo));
+      return 0;
+
     case GCRY_KEM_MLKEM1024:
-      if (optional != NULL)
-        return GPG_ERR_INV_VALUE;
+      if (seckey_len != GCRY_KEM_MLKEM1024_SECKEY_LEN
+          || ciphertext_len != GCRY_KEM_MLKEM1024_ENCAPS_LEN
+          || shared_len != GCRY_KEM_MLKEM1024_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       kyber_decap (algo, shared, ciphertext, seckey);
       _gcry_burn_stack (KYBER_DECAP_STACK_BURN (algo));
       return 0;
@@ -265,14 +340,25 @@ _gcry_kem_decap (int algo,
     case GCRY_KEM_RAW_P256R1:
     case GCRY_KEM_RAW_P384R1:
     case GCRY_KEM_RAW_P521R1:
-      if (optional != NULL)
-        return GPG_ERR_INV_VALUE;
+      if (optional != NULL || optional_len != 0)
+        return GPG_ERR_INV_ARG;
       return _gcry_ecc_raw_decap (algo, seckey, seckey_len,
                                   ciphertext, ciphertext_len,
                                   shared, shared_len);
 
     case GCRY_KEM_DHKEM25519:
+      if (seckey_len != GCRY_KEM_DHKEM25519_SECKEY_LEN
+          || ciphertext_len != GCRY_KEM_DHKEM25519_ENCAPS_LEN
+          || shared_len != GCRY_KEM_DHKEM25519_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      return _gcry_ecc_dhkem_decap (algo, seckey, ciphertext, shared,
+                                    optional);
+
     case GCRY_KEM_DHKEM448:
+      if (seckey_len != GCRY_KEM_DHKEM448_SECKEY_LEN
+          || ciphertext_len != GCRY_KEM_DHKEM448_ENCAPS_LEN
+          || shared_len != GCRY_KEM_DHKEM448_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
       return _gcry_ecc_dhkem_decap (algo, seckey, ciphertext, shared,
                                     optional);
 
