@@ -1189,6 +1189,12 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	  else
 	    {
 	      datalen = p - tokenp;
+              if (datalen > 65535)
+                {
+                  *erroff = p - buffer;
+                  err = GPG_ERR_INV_ARG;
+                  goto leave;
+                }
 	      MAKE_SPACE (datalen);
 	      *c.pos++ = ST_DATA;
 	      STORE_LEN (c.pos, datalen);
@@ -1281,6 +1287,12 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      STORE_LEN (c.pos, 0); /* Will be fixed up later.  */
 	      len = unquote_string (quoted, p - quoted, c.pos);
 	      c.pos += len;
+              if (len > 65535)
+                {
+                  *erroff = p - buffer;
+                  err = GPG_ERR_INV_ARG;
+                  goto leave;
+                }
 	      STORE_LEN (save, len);
 	      quoted = NULL;
 	    }
@@ -1299,6 +1311,12 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		}
 
 	      datalen = hexcount / 2;
+              if (datalen > 65535)
+                {
+                  *erroff = p - buffer;
+                  err = GPG_ERR_INV_ARG;
+                  goto leave;
+                }
 	      MAKE_SPACE (datalen);
 	      *c.pos++ = ST_DATA;
 	      STORE_LEN (c.pos, datalen);
@@ -1368,6 +1386,13 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                   goto leave;
                 }
 
+              if (datalen > 65535)
+                {
+                  *erroff = p - buffer;
+                  err = GPG_ERR_INV_ARG;
+                  goto leave;
+                }
+
               MAKE_SPACE (datalen);
               *c.pos++ = ST_DATA;
               STORE_LEN (c.pos, datalen);
@@ -1390,8 +1415,16 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    ;
 	  else if (*p == ':')
 	    {
-	      datalen = atoi (digptr); /* FIXME: check for overflow.  */
+              char *endptr;
+
+	      datalen = strtoul (digptr, &endptr, 10);
 	      digptr = NULL;
+	      if (endptr != p || datalen > 65535)
+                {
+		  *erroff = p - buffer;
+		  err = GPG_ERR_INV_ARG;
+                  goto leave;
+                }
 	      if (datalen > n - 1)
 		{
 		  *erroff = p - buffer;
@@ -1453,6 +1486,13 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                   nm = (nbits+7)/8;
                   if (mp && nm)
                     {
+                      if (nm > 65535)
+                        {
+                          *erroff = p - buffer;
+                          err = GPG_ERR_INV_ARG;
+                          goto leave;
+                        }
+
                       MAKE_SPACE (nm);
                       if (!_gcry_is_secure (c.sexp->d)
                           && mpi_get_flag (m, GCRYMPI_FLAG_SECURE))
@@ -1493,6 +1533,13 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                   if (err)
                     goto leave;
 
+                  if (nm > 65535)
+                    {
+                      *erroff = p - buffer;
+                      err = GPG_ERR_INV_ARG;
+                      goto leave;
+                    }
+
                   MAKE_SPACE (nm);
                   if (!_gcry_is_secure (c.sexp->d)
                       && mpi_get_flag ( m, GCRYMPI_FLAG_SECURE))
@@ -1532,6 +1579,13 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      ARG_NEXT (astr, const char *);
 	      alen = strlen (astr);
 
+              if (alen > 65535)
+                {
+                  *erroff = p - buffer;
+		  err = GPG_ERR_INV_ARG;
+                  goto leave;
+                }
+
 	      MAKE_SPACE (alen);
 	      *c.pos++ = ST_DATA;
 	      STORE_LEN (c.pos, alen);
@@ -1547,7 +1601,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      ARG_NEXT (alen, int);
 	      ARG_NEXT (astr, const char *);
 
-              if (alen < 0)
+              if (alen < 0 || alen > 65535)
                 {
                   *erroff = p - buffer;
 		  err = GPG_ERR_INV_ARG;
