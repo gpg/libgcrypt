@@ -779,16 +779,14 @@ do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte *buf,
         }
       if (!buflen)
         {
-          if (!do_padding && unused < blocksize)
-	    {
-	      break;
-	    }
+          if (unused < blocksize)
+            {
+              if (!do_padding)
+                break;
 
-	  n = blocksize - unused;
-	  if (n > 0)
-	    {
-	      memset (&c->u_mode.gcm.macbuf[unused], 0, n);
-	      unused = blocksize;
+              n = blocksize - unused;
+              memset (&c->u_mode.gcm.macbuf[unused], 0, n);
+              unused = blocksize;
 	    }
         }
 
