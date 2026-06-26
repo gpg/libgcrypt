@@ -1613,6 +1613,30 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports Intel SM3 instructions.
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports Intel SM3 instructions],
+       [gcry_cv_gcc_inline_asm_sm3],
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_sm3="n/a"
+        else
+          gcry_cv_gcc_inline_asm_sm3=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void a(void) {
+              __asm__("vsm3msg1 %%xmm2, %%xmm1, %%xmm3\n\t":::"cc");
+              __asm__("vsm3msg2 %%xmm2, %%xmm1, %%xmm3\n\t":::"cc");
+              __asm__("vsm3rnds2 \$0, %%xmm2, %%xmm1, %%xmm3\n\t":::"cc");
+            }]], [ a(); ] )],
+          [gcry_cv_gcc_inline_asm_sm3=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_sm3" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_SM3,1,
+     [Defined if inline assembler supports Intel SM3 instructions])
+fi
+
+
+#
 # Check whether GCC inline assembler supports SSE4.1 instructions.
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports SSE4.1 instructions],
@@ -4142,6 +4166,7 @@ if test "$found" = "1" ; then
      x86_64-*-*)
         # Build with the assembly implementation
         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-avx-bmi2-amd64.lo"
+        GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-intel-avx2-amd64.lo"
      ;;
      aarch64-*-*)
         # Build with the assembly implementation

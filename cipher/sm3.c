@@ -56,6 +56,16 @@
 # define USE_AVX_BMI2 1
 #endif
 
+/* USE_INTEL_SM3 indicates whether to compile with Intel SM3 extension code. */
+#undef USE_INTEL_SM3
+#if defined(__x86_64__) && \
+    defined(HAVE_GCC_INLINE_ASM_AVX2) && defined(HAVE_GCC_INLINE_ASM_SM3) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+# define USE_INTEL_SM3 1
+#endif
+
 /* USE_AARCH64_SIMD indicates whether to enable ARMv8 SIMD assembly
  * code. */
 #undef USE_AARCH64_SIMD
@@ -88,7 +98,7 @@ typedef struct {
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
 #undef ASM_EXTRA_STACK
-#if defined(USE_AVX_BMI2)
+#if defined(USE_AVX_BMI2) || defined(USE_INTEL_SM3)
 # ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
 #  define ASM_FUNC_ABI __attribute__((sysv_abi))
 #  define ASM_EXTRA_STACK (10 * 16 + 4 * sizeof(void *))
@@ -114,6 +124,22 @@ do_sm3_transform_amd64_avx_bmi2(void *context, const unsigned char *data,
   return nburn;
 }
 #endif /* USE_AVX_BMI2 */
+
+#ifdef USE_INTEL_SM3
+unsigned int _gcry_sm3_transform_intel_avx2(void *state,
+                                            const void *input_data,
+                                            size_t num_blks) ASM_FUNC_ABI;
+
+static unsigned int
+do_sm3_transform_intel_avx2(void *context, const unsigned char *data,
+                            size_t nblks)
+{
+  SM3_CONTEXT *hd = context;
+  unsigned int nburn = _gcry_sm3_transform_intel_avx2 (hd->h, data, nblks);
+  nburn += nburn ? ASM_EXTRA_STACK : 0;
+  return nburn;
+}
+#endif /* USE_INTEL_SM3 */
 
 #ifdef USE_AARCH64_SIMD
 unsigned int _gcry_sm3_transform_aarch64(void *state, const void *input_data,
@@ -172,6 +198,10 @@ sm3_init (void *context, unsigned int flags)
 #ifdef USE_AVX_BMI2
   if ((features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2))
     hd->bctx.bwrite = do_sm3_transform_amd64_avx_bmi2;
+#endif
+#ifdef USE_INTEL_SM3
+  if ((features & HWF_INTEL_SM3) && (features & HWF_INTEL_AVX2))
+    hd->bctx.bwrite = do_sm3_transform_intel_avx2;
 #endif
 #ifdef USE_AARCH64_SIMD
   if (features & HWF_ARM_NEON)

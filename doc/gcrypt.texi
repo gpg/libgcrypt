@@ -587,6 +587,7 @@ are
 @item intel-avx512
 @item intel-gfni
 @item intel-sha512
+@item intel-sm3
 @item arm-neon
 @item arm-aes
 @item arm-sha1

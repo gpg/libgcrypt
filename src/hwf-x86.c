@@ -425,6 +425,10 @@ detect_x86_gnuc (
       /* Test bit 0 for Intel SHA512 instructions. */
       if ((intel_feat3 & (1 << 0)) && os_supports_avx_avx2_registers)
         result |= HWF_INTEL_SHA512;
+
+      /* Test bit 1 for Intel SM3 instructions. */
+      if ((intel_feat3 & (1 << 1)) && os_supports_avx_avx2_registers)
+        result |= HWF_INTEL_SM3;
     }
 
   /* Check additional feature flags. */

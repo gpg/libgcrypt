@@ -152,7 +152,8 @@ EXTRA_libcipher_la_SOURCES = \
 	sha512-intel-shaext.c \
 	sha512-armv7-neon.S sha512-armv8-aarch64-ce.S sha512-arm.S \
 	sha512-ppc.c sha512-riscv-zvknhb-zvkb.c sha512-ssse3-i386.c \
-	sm3.c sm3-avx-bmi2-amd64.S sm3-aarch64.S sm3-armv8-aarch64-ce.S \
+	sm3.c sm3-avx-bmi2-amd64.S sm3-intel-avx2-amd64.S sm3-aarch64.S \
+	sm3-armv8-aarch64-ce.S \
 	keccak.c keccak_permute_32.h keccak_permute_64.h \
 	keccak-armv7-neon.S keccak-amd64-avx512.S \
 	stribog.c \
