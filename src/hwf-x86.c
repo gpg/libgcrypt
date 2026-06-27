@@ -429,6 +429,11 @@ detect_x86_gnuc (
       /* Test bit 1 for Intel SM3 instructions. */
       if ((intel_feat3 & (1 << 1)) && os_supports_avx_avx2_registers)
         result |= HWF_INTEL_SM3;
+
+      /* Test bit 2 for Intel SM4 instructions.  These instructions are
+       * available for AVX/AVX2/AVX512. */
+      if ((intel_feat3 & (1 << 2)) && os_supports_avx_avx2_registers)
+        result |= HWF_INTEL_SM4;
     }
 
   /* Check additional feature flags. */

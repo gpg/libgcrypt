@@ -241,6 +241,7 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_INTEL_GFNI          (1 << 18)
 #define HWF_INTEL_SHA512        (1 << 19)
 #define HWF_INTEL_SM3           (1 << 20)
+#define HWF_INTEL_SM4           (1 << 21)
 
 #elif defined(HAVE_CPU_ARCH_ARM)
 

@@ -1637,6 +1637,29 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports Intel SM4 instructions.
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports Intel SM4 instructions],
+       [gcry_cv_gcc_inline_asm_sm4],
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_sm4="n/a"
+        else
+          gcry_cv_gcc_inline_asm_sm4=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void a(void) {
+              __asm__("vsm4key4 %%ymm2, %%ymm1, %%ymm3\n\t":::"cc");
+              __asm__("vsm4rnds4 %%ymm2, %%ymm1, %%ymm3\n\t":::"cc");
+            }]], [ a(); ] )],
+          [gcry_cv_gcc_inline_asm_sm4=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_sm4" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_SM4,1,
+     [Defined if inline assembler supports Intel SM4 instructions])
+fi
+
+
+#
 # Check whether GCC inline assembler supports SSE4.1 instructions.
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports SSE4.1 instructions],
@@ -3850,6 +3873,7 @@ if test "$found" = "1" ; then
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-aesni-avx2-amd64.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-gfni-avx2-amd64.lo"
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-gfni-avx512-amd64.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-intel-avx2-amd64.lo"
       ;;
       aarch64-*-*)
          # Build with the assembly implementation
