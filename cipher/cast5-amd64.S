@@ -431,8 +431,8 @@ __cast5_dec_blk4:
 	round_dec_last4(1, F4_2, F4_1);
 
 	outbswap_block4(RLR0, RLR1, RLR2, RLR3);
-	CFI_ENDPROC();
 	ret_spec_stop;
+	CFI_ENDPROC();
 ELF(.size __cast5_dec_blk4,.-__cast5_dec_blk4;)
 
 .align 16

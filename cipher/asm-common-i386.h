@@ -65,10 +65,13 @@
 #define ENDBRANCH /*_*/
 #endif
 
+/* straight-line speculation mitigation */
+#define SPEC_STOP int3
+
 #ifdef HAVE_GCC_ASM_CFI_DIRECTIVES
 /* CFI directives to emit DWARF stack unwinding information. */
 # define CFI_STARTPROC()            .cfi_startproc; ENDBRANCH
-# define CFI_ENDPROC()              .cfi_endproc
+# define CFI_ENDPROC()              SPEC_STOP; .cfi_endproc
 # define CFI_REMEMBER_STATE()       .cfi_remember_state
 # define CFI_RESTORE_STATE()        .cfi_restore_state
 # define CFI_ADJUST_CFA_OFFSET(off) .cfi_adjust_cfa_offset off
@@ -128,7 +131,7 @@
 
 #else
 # define CFI_STARTPROC() ENDBRANCH
-# define CFI_ENDPROC()
+# define CFI_ENDPROC() SPEC_STOP
 # define CFI_REMEMBER_STATE()
 # define CFI_RESTORE_STATE()
 # define CFI_ADJUST_CFA_OFFSET(off)
@@ -148,7 +151,7 @@
 
 /* 'ret' instruction replacement for straight-line speculation mitigation. */
 #define ret_spec_stop \
-	ret; int3;
+	ret; SPEC_STOP;
 
 /* This prevents speculative execution on old AVX512 CPUs, to prevent
  * speculative execution to AVX512 code. The vpopcntb instruction is
