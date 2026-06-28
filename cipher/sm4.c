@@ -635,9 +635,9 @@ extern void _gcry_sm4_aarch64_cfb_dec(const u32 *rk_enc, byte *out,
 				      byte *iv,
 				      size_t nblocks);
 
-extern void _gcry_sm4_aarch64_crypt_blk1_8(u32 *rk, byte *out,
-					   const byte *in,
-					   size_t num_blocks);
+extern unsigned int _gcry_sm4_aarch64_crypt_blk1_8(u32 *rk, byte *out,
+						   const byte *in,
+						   size_t num_blocks);
 
 static inline unsigned int
 sm4_aarch64_crypt_blk1_16(void *rk, byte *out, const byte *in,
@@ -651,8 +651,7 @@ sm4_aarch64_crypt_blk1_16(void *rk, byte *out, const byte *in,
       num_blks -= 8;
     }
 
-  _gcry_sm4_aarch64_crypt_blk1_8(rk, out, in, num_blks);
-  return 0;
+  return _gcry_sm4_aarch64_crypt_blk1_8(rk, out, in, num_blks);
 }
 
 #endif /* USE_AARCH64_SIMD */
@@ -686,9 +685,9 @@ extern void _gcry_sm4_armv8_ce_xts_crypt(const u32 *rk, byte *out,
 					 byte *tweak,
 					 size_t nblocks);
 
-extern void _gcry_sm4_armv8_ce_crypt_blk1_8(u32 *rk, byte *out,
-					    const byte *in,
-					    size_t num_blocks);
+extern unsigned int _gcry_sm4_armv8_ce_crypt_blk1_8(u32 *rk, byte *out,
+						    const byte *in,
+						    size_t num_blocks);
 
 static inline unsigned int
 sm4_armv8_ce_crypt_blk1_16(void *rk, byte *out, const byte *in,
@@ -702,16 +701,15 @@ sm4_armv8_ce_crypt_blk1_16(void *rk, byte *out, const byte *in,
       num_blks -= 8;
     }
 
-  _gcry_sm4_armv8_ce_crypt_blk1_8(rk, out, in, num_blks);
-  return 0;
+  return _gcry_sm4_armv8_ce_crypt_blk1_8(rk, out, in, num_blks);
 }
 
 #endif /* USE_ARM_CE */
 
 #ifdef USE_ARM_SVE_CE
-extern void _gcry_sm4_armv9_sve_ce_crypt(u32 *rk, byte *out,
-					 const byte *in,
-					 size_t nblocks);
+extern unsigned int _gcry_sm4_armv9_sve_ce_crypt(u32 *rk, byte *out,
+						 const byte *in,
+						 size_t nblocks);
 
 extern void _gcry_sm4_armv9_sve_ce_ctr_enc(const u32 *rk_enc, byte *out,
 					   const byte *in,
@@ -732,32 +730,31 @@ static inline unsigned int
 sm4_armv9_sve_ce_crypt_blk1_16(void *rk, byte *out, const byte *in,
 			       size_t num_blks)
 {
-  _gcry_sm4_armv9_sve_ce_crypt(rk, out, in, num_blks);
-  return 0;
+  return _gcry_sm4_armv9_sve_ce_crypt(rk, out, in, num_blks);
 }
 
 extern unsigned int _gcry_sm4_armv9_sve_get_vl(void);
 #endif /* USE_ARM_SVE_CE */
 
 #ifdef USE_PPC_CRYPTO
-extern void _gcry_sm4_ppc8le_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
-					   size_t num_blks);
+extern unsigned int _gcry_sm4_ppc8le_crypt_blk1_16(u32 *rk, byte *out,
+						   const byte *in,
+						   size_t num_blks);
 
-extern void _gcry_sm4_ppc9le_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
-					   size_t num_blks);
+extern unsigned int _gcry_sm4_ppc9le_crypt_blk1_16(u32 *rk, byte *out,
+						   const byte *in,
+						   size_t num_blks);
 
 static inline unsigned int
 sm4_ppc8le_crypt_blk1_16(void *rk, byte *out, const byte *in, size_t num_blks)
 {
-  _gcry_sm4_ppc8le_crypt_blk1_16(rk, out, in, num_blks);
-  return 0;
+  return _gcry_sm4_ppc8le_crypt_blk1_16(rk, out, in, num_blks);
 }
 
 static inline unsigned int
 sm4_ppc9le_crypt_blk1_16(void *rk, byte *out, const byte *in, size_t num_blks)
 {
-  _gcry_sm4_ppc9le_crypt_blk1_16(rk, out, in, num_blks);
-  return 0;
+  return _gcry_sm4_ppc9le_crypt_blk1_16(rk, out, in, num_blks);
 }
 #endif /* USE_PPC_CRYPTO */
 

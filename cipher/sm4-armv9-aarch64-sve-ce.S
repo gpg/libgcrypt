@@ -444,6 +444,7 @@ _gcry_sm4_armv9_sve_ce_crypt:
     cbnz        x3, .Lcrypt_tail;
 
 .Lcrypt_end:
+    mov         x0, #0;
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv9_sve_ce_crypt,.-_gcry_sm4_armv9_sve_ce_crypt;)

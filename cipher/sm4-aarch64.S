@@ -222,6 +222,7 @@ sm4_aarch64_crypt_blk1_4:
 
 .Lblk4_store_output_done:
     VPOP_ABI;
+    mov x0, #0;
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size sm4_aarch64_crypt_blk1_4,.-sm4_aarch64_crypt_blk1_4;)
@@ -396,6 +397,7 @@ _gcry_sm4_aarch64_crypt_blk1_8:
     CFI_ADJUST_CFA_OFFSET(-16);
     CFI_RESTORE(x29);
     CFI_RESTORE(x30);
+    mov x0, #0;
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_aarch64_crypt_blk1_8,.-_gcry_sm4_aarch64_crypt_blk1_8;)

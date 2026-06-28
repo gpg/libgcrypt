@@ -335,6 +335,7 @@ sm4_armv8_ce_crypt_blk1_4:
     st1 {v3.16b}, [x1];
 
 .Lblk4_store_output_done:
+    mov x0, #0;
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size sm4_armv8_ce_crypt_blk1_4,.-sm4_armv8_ce_crypt_blk1_4;)
@@ -385,6 +386,7 @@ _gcry_sm4_armv8_ce_crypt_blk1_8:
 
 .Lblk8_store_output_done:
     CLEAR_ALL_REGS();
+    mov x0, #0;
     ret_spec_stop;
     CFI_ENDPROC();
 ELF(.size _gcry_sm4_armv8_ce_crypt_blk1_8,.-_gcry_sm4_armv8_ce_crypt_blk1_8;)

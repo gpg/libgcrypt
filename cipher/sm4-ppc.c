@@ -293,7 +293,7 @@ sm4_ppc_crypt_blk1_4(u32 *rk, byte *out, const byte *in, size_t nblks)
     vec_xst((vector16x_u8)vec_revb(ra0), 0, out + 3 * 16);
 }
 
-static ASM_FUNC_ATTR_INLINE void
+static ASM_FUNC_ATTR_INLINE unsigned int
 sm4_ppc_crypt_blk1_16(u32 *rk, byte *out, const byte *in, size_t nblks)
 {
   if (nblks >= 16)
@@ -321,25 +321,27 @@ sm4_ppc_crypt_blk1_16(u32 *rk, byte *out, const byte *in, size_t nblks)
     }
 
   clear_vec_regs();
+
+  return 0;
 }
 
-ASM_FUNC_ATTR_NOINLINE FUNC_ATTR_TARGET_P8 void
+ASM_FUNC_ATTR_NOINLINE FUNC_ATTR_TARGET_P8 unsigned int
 _gcry_sm4_ppc8le_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
 			       size_t nblks)
 {
-  sm4_ppc_crypt_blk1_16(rk, out, in, nblks);
+  return sm4_ppc_crypt_blk1_16(rk, out, in, nblks);
 }
 
-ASM_FUNC_ATTR_NOINLINE FUNC_ATTR_TARGET_P9 void
+ASM_FUNC_ATTR_NOINLINE FUNC_ATTR_TARGET_P9 unsigned int
 _gcry_sm4_ppc9le_crypt_blk1_16(u32 *rk, byte *out, const byte *in,
 			       size_t nblks)
 {
 #ifdef HAVE_FUNC_ATTR_TARGET
   /* Inline for POWER9 target optimization. */
-  sm4_ppc_crypt_blk1_16(rk, out, in, nblks);
+  return sm4_ppc_crypt_blk1_16(rk, out, in, nblks);
 #else
   /* Target selecting not working, just call the other noinline function. */
-  _gcry_sm4_ppc8le_crypt_blk1_16(rk, out, in, nblks);
+  return _gcry_sm4_ppc8le_crypt_blk1_16(rk, out, in, nblks);
 #endif
 }
 
