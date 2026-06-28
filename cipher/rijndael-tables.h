@@ -107,7 +107,7 @@ static struct
   volatile u32 counter_head;
   u32 cacheline_align[64 / 4 - 1];
   u32 T[256];
-  byte inv_sbox[256];
+  byte inv_sboxT[256];
   volatile u32 counter_tail;
 } dec_tables ATTR_ALIGNED_64 =
   {
@@ -217,4 +217,4 @@ static struct
   };
 
 #define decT dec_tables.T
-#define inv_sbox dec_tables.inv_sbox
+#define inv_sbox dec_tables.inv_sboxT

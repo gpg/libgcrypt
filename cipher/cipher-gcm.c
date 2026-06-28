@@ -255,12 +255,13 @@ do_prefetch_tables (const void *gcmM, size_t gcmM_size)
    * of look-up table are shared between processes.  Modifying counters also
    * causes checksums for pages to change and hint same-page merging algorithm
    * that these pages are frequently changing.  */
-  gcm_table.counter_head++;
-  gcm_table.counter_tail++;
+  u32 counter = gcm_table.counter_head + 1;
+  gcm_table.counter_head = counter;
+  gcm_table.counter_tail = counter;
 
   /* Prefetch look-up tables to cache.  */
   prefetch_table(gcmM, gcmM_size);
-  prefetch_table(&gcm_table, sizeof(gcm_table));
+  prefetch_table(&gcm_table.R, sizeof(gcm_table.R));
 }
 
 #ifdef GCM_TABLES_USE_U64

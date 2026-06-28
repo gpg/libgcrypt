@@ -597,11 +597,12 @@ static void prefetch_enc(void)
    * of look-up table are shared between processes.  Modifying counters also
    * causes checksums for pages to change and hint same-page merging algorithm
    * that these pages are frequently changing.  */
-  enc_tables.counter_head++;
-  enc_tables.counter_tail++;
+  u32 counter = enc_tables.counter_head + 1;
+  enc_tables.counter_head = counter;
+  enc_tables.counter_tail = counter;
 
   /* Prefetch look-up tables to cache.  */
-  prefetch_table((const void *)&enc_tables, sizeof(enc_tables));
+  prefetch_table((const void *)&enc_tables.T[0], sizeof(enc_tables.T));
 }
 
 static void prefetch_dec(void)
@@ -610,11 +611,13 @@ static void prefetch_dec(void)
    * of look-up table are shared between processes.  Modifying counters also
    * causes checksums for pages to change and hint same-page merging algorithm
    * that these pages are frequently changing.  */
-  dec_tables.counter_head++;
-  dec_tables.counter_tail++;
+  u32 counter = dec_tables.counter_head + 1;
+  dec_tables.counter_head = counter;
+  dec_tables.counter_tail = counter;
 
   /* Prefetch look-up tables to cache.  */
-  prefetch_table((const void *)&dec_tables, sizeof(dec_tables));
+  prefetch_table((const void *)&dec_tables.T[0],
+		 sizeof(dec_tables.T) + sizeof(dec_tables.inv_sboxT));
 }
 
 

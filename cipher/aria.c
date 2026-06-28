@@ -627,11 +627,12 @@ prefetch_sboxes(void)
    * of look-up table are shared between processes.  Modifying counters also
    * causes checksums for pages to change and hint same-page merging algorithm
    * that these pages are frequently changing.  */
-  sboxes.counter_head++;
-  sboxes.counter_tail++;
+  u32 counter = sboxes.counter_head + 1;
+  sboxes.counter_head = counter;
+  sboxes.counter_tail = counter;
 
   /* Prefetch look-up tables to cache.  */
-  prefetch_table((const void *)&sboxes, sizeof(sboxes));
+  prefetch_table((const void *)&sboxes.s1[0], sizeof(sboxes.s1) * 4);
 }
 
 

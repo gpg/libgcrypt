@@ -760,14 +760,15 @@ sm4_ppc9le_crypt_blk1_16(void *rk, byte *out, const byte *in, size_t num_blks)
 
 static inline void prefetch_sbox_table(void)
 {
-  const volatile byte *vtab = (void *)&sbox_table;
+  const volatile byte *vtab = (void *)&sbox_table.S[0];
 
   /* Modify counters to trigger copy-on-write and unsharing if physical pages
    * of look-up table are shared between processes.  Modifying counters also
    * causes checksums for pages to change and hint same-page merging algorithm
    * that these pages are frequently changing.  */
-  sbox_table.counter_head++;
-  sbox_table.counter_tail++;
+  u32 counter = sbox_table.counter_head + 1;
+  sbox_table.counter_head = counter;
+  sbox_table.counter_tail = counter;
 
   /* Prefetch look-up table to cache.  */
   (void)vtab[0 * 32];
