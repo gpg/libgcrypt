@@ -84,12 +84,22 @@
 # endif
 #endif
 
+/* USE_INTEL_SM4_AVX512 indicates whether to compile with Intel SM4
+ * instructions (VSM4RNDS4) based AVX512 code. */
+#undef USE_INTEL_SM4_AVX512
+#if defined(ENABLE_AVX512_SUPPORT) && defined(HAVE_GCC_INLINE_ASM_SM4)
+# if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+#  define USE_INTEL_SM4_AVX512 1
+# endif
+#endif
+
 /* Assembly implementations use SystemV ABI, ABI conversion and additional
  * stack to store XMM6-XMM15 needed on Win64. */
 #undef ASM_FUNC_ABI
 #if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2) || \
     defined(USE_GFNI_AVX2) || defined(USE_GFNI_AVX512) || \
-    defined(USE_INTEL_SM4_AVX2)
+    defined(USE_INTEL_SM4_AVX2) || defined(USE_INTEL_SM4_AVX512)
 # ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
 #  define ASM_FUNC_ABI __attribute__((sysv_abi))
 # else
@@ -181,6 +191,9 @@ typedef struct
 #endif
 #ifdef USE_INTEL_SM4_AVX2
   unsigned int use_intel_sm4_avx2:1;
+#endif
+#ifdef USE_INTEL_SM4_AVX512
+  unsigned int use_intel_sm4_avx512:1;
 #endif
 #ifdef USE_AARCH64_SIMD
   unsigned int use_aarch64_simd:1;
@@ -418,6 +431,38 @@ sm4_intel_avx2_crypt_blk1_16(void *rk, byte *out, const byte *in,
   return _gcry_sm4_intel_avx2_crypt_blk1_16(rk, out, in, num_blks);
 }
 #endif /* USE_INTEL_SM4_AVX2 */
+
+#ifdef USE_INTEL_SM4_AVX512
+extern void _gcry_sm4_intel_avx512_ctr_enc_blk32(const u32 *rk_enc, byte *out,
+						 const byte *in,
+						 byte *ctr) ASM_FUNC_ABI;
+
+extern void _gcry_sm4_intel_avx512_cbc_dec_blk32(const u32 *rk_dec, byte *out,
+						 const byte *in,
+						 byte *iv) ASM_FUNC_ABI;
+
+extern void _gcry_sm4_intel_avx512_cfb_dec_blk32(const u32 *rk_enc, byte *out,
+						 const byte *in,
+						 byte *iv) ASM_FUNC_ABI;
+
+extern void _gcry_sm4_intel_avx512_ocb_enc_blk32(const u32 *rk_enc,
+						 unsigned char *out,
+						 const unsigned char *in,
+						 unsigned char *offset,
+						 unsigned char *checksum,
+						 const u64 Ls[32]) ASM_FUNC_ABI;
+
+extern void _gcry_sm4_intel_avx512_ocb_dec_blk32(const u32 *rk_dec,
+						 unsigned char *out,
+						 const unsigned char *in,
+						 unsigned char *offset,
+						 unsigned char *checksum,
+						 const u64 Ls[32]) ASM_FUNC_ABI;
+
+extern unsigned int
+_gcry_sm4_intel_avx512_crypt_blk32(u32 *rk, byte *out,
+				   const byte *in) ASM_FUNC_ABI;
+#endif /* USE_INTEL_SM4_AVX512 */
 
 #ifdef USE_GFNI_AVX2
 extern void _gcry_sm4_gfni_avx2_expand_key(const byte *key, u32 *rk_enc,
@@ -873,6 +918,9 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
 #ifdef USE_INTEL_SM4_AVX2
   ctx->use_intel_sm4_avx2 = (hwf & HWF_INTEL_SM4) && (hwf & HWF_INTEL_AVX2);
 #endif
+#ifdef USE_INTEL_SM4_AVX512
+  ctx->use_intel_sm4_avx512 = (hwf & HWF_INTEL_SM4) && (hwf & HWF_INTEL_AVX512);
+#endif
 #ifdef USE_AARCH64_SIMD
   ctx->use_aarch64_simd = !!(hwf & HWF_ARM_NEON);
 #endif
@@ -1188,6 +1236,21 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
   const byte *inbuf = inbuf_arg;
   int burn_stack_depth = 0;
 
+#ifdef USE_INTEL_SM4_AVX512
+  if (ctx->use_intel_sm4_avx512)
+    {
+      /* Process data in 32 block chunks. */
+      while (nblocks >= 32)
+        {
+          _gcry_sm4_intel_avx512_ctr_enc_blk32(ctx->rkey_enc, outbuf, inbuf, ctr);
+
+          nblocks -= 32;
+          outbuf += 32 * 16;
+          inbuf += 32 * 16;
+        }
+    }
+#endif
+
 #ifdef USE_INTEL_SM4_AVX2
   if (ctx->use_intel_sm4_avx2)
     {
@@ -1353,6 +1416,21 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
   const unsigned char *inbuf = inbuf_arg;
   int burn_stack_depth = 0;
 
+#ifdef USE_INTEL_SM4_AVX512
+  if (ctx->use_intel_sm4_avx512)
+    {
+      /* Process data in 32 block chunks. */
+      while (nblocks >= 32)
+        {
+          _gcry_sm4_intel_avx512_cbc_dec_blk32(ctx->rkey_dec, outbuf, inbuf, iv);
+
+          nblocks -= 32;
+          outbuf += 32 * 16;
+          inbuf += 32 * 16;
+        }
+    }
+#endif
+
 #ifdef USE_INTEL_SM4_AVX2
   if (ctx->use_intel_sm4_avx2)
     {
@@ -1517,6 +1595,21 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
   const unsigned char *inbuf = inbuf_arg;
   int burn_stack_depth = 0;
 
+#ifdef USE_INTEL_SM4_AVX512
+  if (ctx->use_intel_sm4_avx512)
+    {
+      /* Process data in 32 block chunks. */
+      while (nblocks >= 32)
+        {
+          _gcry_sm4_intel_avx512_cfb_dec_blk32(ctx->rkey_enc, outbuf, inbuf, iv);
+
+          nblocks -= 32;
+          outbuf += 32 * 16;
+          inbuf += 32 * 16;
+        }
+    }
+#endif
+
 #ifdef USE_INTEL_SM4_AVX2
   if (ctx->use_intel_sm4_avx2)
     {
@@ -1679,6 +1772,12 @@ sm4_crypt_blk1_32 (SM4_context *ctx, byte *outbuf, const byte *inbuf,
 
   gcry_assert (num_blks <= 32);
 
+#ifdef USE_INTEL_SM4_AVX512
+  if (num_blks == 32 && ctx->use_intel_sm4_avx512)
+    {
+      return _gcry_sm4_intel_avx512_crypt_blk32 (rk, outbuf, inbuf);
+    }
+#endif
 #ifdef USE_GFNI_AVX512
   if (num_blks == 32 && ctx->use_gfni_avx512)
     {
@@ -1836,6 +1935,39 @@ _gcry_sm4_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   const unsigned char *inbuf = inbuf_arg;
   u64 blkn = c->u_mode.ocb.data_nblocks;
   int burn_stack_depth = 0;
+
+#ifdef USE_INTEL_SM4_AVX512
+  if (ctx->use_intel_sm4_avx512)
+    {
+      u64 Ls[32];
+      u64 *l;
+
+      if (nblocks >= 32)
+	{
+          l = bulk_ocb_prepare_L_pointers_array_blk32 (c, Ls, blkn);
+
+	  /* Process data in 32 block chunks. */
+	  while (nblocks >= 32)
+	    {
+	      blkn += 32;
+	      *l = (uintptr_t)(void *)ocb_get_l (c, blkn - blkn % 32);
+
+	      if (encrypt)
+		_gcry_sm4_intel_avx512_ocb_enc_blk32 (ctx->rkey_enc, outbuf,
+                                                      inbuf, c->u_iv.iv,
+                                                      c->u_ctr.ctr, Ls);
+	      else
+		_gcry_sm4_intel_avx512_ocb_dec_blk32 (ctx->rkey_dec, outbuf,
+                                                      inbuf, c->u_iv.iv,
+                                                      c->u_ctr.ctr, Ls);
+
+	      nblocks -= 32;
+	      outbuf += 32 * 16;
+	      inbuf += 32 * 16;
+	    }
+	}
+    }
+#endif
 
 #ifdef USE_INTEL_SM4_AVX2
   if (ctx->use_intel_sm4_avx2)
