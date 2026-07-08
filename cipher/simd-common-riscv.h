@@ -23,6 +23,19 @@
 
 #include <config.h>
 
+#undef RVV_UNALIGNED_NOT_ALLOWED
+#if defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS_WITH_CFLAGS) || \
+    !(defined(__riscv_zicclsm) && (__riscv_zicclsm >= 1000000)) || \
+    defined(__riscv_misaligned_avoid)
+/* Zicclsm extension means that unaligned vector (and scalar) memory accesses
+ * are allowed. If build configuration is such that RVV intrinsics support had
+ * to be enabled with custom CFLAGS, assume that vector unaligned accesses are
+ * not allowed. This is to workaround broken build setups with RVA22
+ * non-compliant Spacemit K1 (unaligned scalar allowed, unaligned vector
+ * not allowed). */
+#define RVV_UNALIGNED_NOT_ALLOWED 1
+#endif
+
 #define memory_barrier_with_vec(a) __asm__("" : "+vr"(a) :: "memory")
 
 #define clear_vec_regs() __asm__ volatile("vsetvli zero, %0, e8, m1, ta, ma;\n" \

@@ -44,9 +44,12 @@
 static ASM_FUNC_ATTR_INLINE vuint32m1_t
 unaligned_load_u32m1(const void *ptr, size_t vl_u32)
 {
+#ifdef RVV_UNALIGNED_NOT_ALLOWED
   size_t vl_bytes = vl_u32 * 4;
-
   return cast_u8m1_u32m1(__riscv_vle8_v_u8m1(ptr, vl_bytes));
+#else
+  return __riscv_vle32_v_u32m1(ptr, vl_u32);
+#endif
 }
 
 static ASM_FUNC_ATTR_INLINE vuint32m1_t

@@ -76,11 +76,14 @@ working_vsha2cl_vv_u32m1(vuint32m1_t hgcd, vuint32m1_t feba,
 
 
 static ASM_FUNC_ATTR_INLINE vuint32m1_t
-load_and_swap (const byte * p, size_t vl, size_t vl_bytes)
+load_and_swap (const byte * p, size_t vl)
 {
-  vuint8m1_t temp_bytes = __riscv_vle8_v_u8m1(p, vl_bytes);
-  return __riscv_vrev8_v_u32m1(__riscv_vreinterpret_v_u8m1_u32m1(temp_bytes),
-			       vl);
+#ifdef RVV_UNALIGNED_NOT_ALLOWED
+  vuint8m1_t temp = __riscv_vle8_v_u8m1(p, vl * 4);
+  return __riscv_vrev8_v_u32m1(__riscv_vreinterpret_v_u8m1_u32m1(temp), vl);
+#else
+  return __riscv_vrev8_v_u32m1(__riscv_vle32_v_u32m1((const void *)p, vl), vl);
+#endif
 }
 
 
@@ -111,7 +114,6 @@ sha256_transform_zvknha_zvkb (u32 state[8], const uint8_t * data,
   static const int feba_offset = 0;
   static const int hgcd_offset = 8 / sizeof(u32);
   size_t vl;
-  size_t vl_bytes;
   vuint32m1_t idx;
   vuint32m1_t v_feba_work, v_feba;
   vuint32m1_t v_hgcd_work, v_hgcd;
@@ -121,7 +123,6 @@ sha256_transform_zvknha_zvkb (u32 state[8], const uint8_t * data,
   vuint32m1_t v_feba_hgcd_idx;
 
   vl = 4;
-  vl_bytes = vl * 4;
   idx = __riscv_vid_v_u32m1(vl);
   merge_mask = __riscv_vmseq_vx_u32m1_b32(idx, 0, vl);
 
@@ -137,10 +138,10 @@ sha256_transform_zvknha_zvkb (u32 state[8], const uint8_t * data,
       v_feba_work = v_feba;
       v_hgcd_work = v_hgcd;
 
-      w0 = load_and_swap(data + 0, vl, vl_bytes);
-      w1 = load_and_swap(data + 16, vl, vl_bytes);
-      w2 = load_and_swap(data + 32, vl, vl_bytes);
-      w3 = load_and_swap(data + 48, vl, vl_bytes);
+      w0 = load_and_swap(data + 0, vl);
+      w1 = load_and_swap(data + 16, vl);
+      w2 = load_and_swap(data + 32, vl);
+      w3 = load_and_swap(data + 48, vl);
 
       QUAD_ROUND_W_SCHED(w0, w1, w2, w3);
       QUAD_ROUND_W_SCHED(w1, w2, w3, w0);

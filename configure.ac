@@ -2802,28 +2802,26 @@ fi
 
 
 #
-# Check whether compiler supports RISC-V -mstrict-align flag
+# Check whether compiler has RISC-V Zicclsm extension enable
 #
-_gcc_cflags_save=$CFLAGS
-# Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
-CFLAGS="$CFLAGS -mstrict-align"
-
-AC_CACHE_CHECK([whether compiler supports RISC-V -mstrict-align flag],
-      [gcry_cv_cc_riscv_mstrict_align],
+AC_CACHE_CHECK([whether compiler has RISC-V Zicclsm extension enabled],
+      [gcry_cv_cc_riscv_zicclsm_enabled],
       [if test "$mpi_cpu_arch" != "riscv64" ||
 	  test "$try_asm_modules" != "yes" ; then
-	gcry_cv_cc_riscv_mstrict_align="n/a"
+	gcry_cv_cc_riscv_zicclsm_enabled="n/a"
       else
-	gcry_cv_cc_riscv_mstrict_align=no
-	AC_COMPILE_IFELSE(
-	  [AC_LANG_SOURCE([[void testfn(void) { }]])],
-	  [gcry_cv_cc_riscv_mstrict_align=yes])
+	gcry_cv_cc_riscv_zicclsm_enabled=no
+	AC_LINK_IFELSE([AC_LANG_PROGRAM(
+	  [[#if defined(__riscv_zicclsm) && (__riscv_zicclsm >= 1000000)
+	    int testfunc(void) { return 0; }
+	    #endif
+	    ]], [ testfunc(); ])],
+	  [gcry_cv_cc_riscv_zicclsm_enabled=yes])
       fi])
-AM_CONDITIONAL(SUPPORT_CC_RISCV_MSTRICT_ALIGN,
-	       test "$gcry_cv_cc_riscv_mstrict_align" = "yes")
-
-# Restore flags.
-CFLAGS=$_gcc_cflags_save;
+if test "$gcry_cv_cc_riscv_zicclsm_enabled" = "yes" ; then
+    AC_DEFINE(HAVE_COMPATIBLE_CC_RISCV_ZICCLSM_ENABLED,1,
+	    [Defined if underlying compiler has RISC-V Zicclsm extension enabled])
+fi
 
 
 #
@@ -2896,7 +2894,10 @@ _gcc_cflags_save=$CFLAGS
 # better code generation for RISC-V vector implementations.
 MARCH_RVA22U64_WITH_VEC=rv64imafdcv_zba_zbb_zbs
 AC_SUBST([MARCH_RVA22U64_WITH_VEC])
-# Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
+# Note: -mstrict-align needed for SpacemiT K1 RVV bug (K1 does not support
+# unaligned vector memory access). This is enabled only for plain RVV
+# implementations, RVV-crypto extension implementations detect support for
+# unaligned vector memory access based on Zicclsm extension.
 CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA22U64_WITH_VEC -mstrict-align"
 
 if test "$gcry_cv_cc_riscv_vector_intrinsics" = "no" &&
@@ -2992,6 +2993,13 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	vuint32m1_t d = __riscv_vghsh_vv_u32m1(a, b, c, vl);
 	__riscv_vse32_v_u32m1(ptr + 0 * vl, d, vl);
       }
+      void test_rev8(unsigned int *ptr)
+      {
+	int vl = __riscv_vsetvl_e32m1 (4);
+	vuint32m1_t a = __riscv_vle32_v_u32m1(ptr + 0 * vl, vl);
+	vuint32m1_t b = __riscv_vrev8_v_u32m1(a, vl);
+	__riscv_vse32_v_u32m1(ptr + 0 * vl, b, vl);
+      }
       void test_inline_vec_asm(unsigned int *ptr)
       {
 	int vl = __riscv_vsetvl_e32m1 (4);
@@ -3013,6 +3021,7 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	test_aes_key(buf);
 	test_aes_crypt(buf);
 	test_ghash(buf);
+	test_rev8(buf);
 	test_inline_vec_asm(buf);
 	return 0;
       }
@@ -3039,16 +3048,19 @@ fi
 _gcc_cflags_save=$CFLAGS
 # Enable B extension (Zba+Zbb+Zbs) to align with RVA23U64 profile and for
 # better code generation for RISC-V vector implementations.
-MARCH_RVA23U64_BASE=${MARCH_RVA22U64_WITH_VEC}
-MARCH_RVA23U64_WITH_VEC_CRYPTO=${MARCH_RVA23U64_BASE}_zvbc_zvkg_zvkn_zvks
+if test "$gcry_cv_cc_riscv_zicclsm_enabled" = "yes" ; then
+  MARCH_RVA23U64_BASE=${MARCH_RVA22U64_WITH_VEC}_zicclsm
+else
+  MARCH_RVA23U64_BASE=${MARCH_RVA22U64_WITH_VEC}
+fi
+MARCH_RVA23U64_WITH_VEC_CRYPTO=${MARCH_RVA23U64_BASE}_zvbc_zvkb_zvkg_zvkn_zvks
 AC_SUBST([MARCH_RVA23U64_BASE])
-# Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
-CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO -mstrict-align"
+CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO"
 
 if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "no" &&
    test "$mpi_cpu_arch" = "riscv64" &&
    test "$try_asm_modules" = "yes" ; then
-  AC_CACHE_CHECK([whether compiler supports RISC-V vector intrinsics with extra GCC flags],
+  AC_CACHE_CHECK([whether compiler supports RISC-V vector cryptography intrinsics with extra GCC flags],
     [gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags],
     [gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags=no
     AC_LINK_IFELSE(
@@ -3082,7 +3094,7 @@ if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "yes" ||
   # Setup flags for test if needed.
   _gcc_cflags_save=$CFLAGS
   if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags" = "yes"; then
-    CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO -mstrict-align"
+    CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO"
   fi
 
   # Disable LTO optimization for following check to generate
@@ -3131,7 +3143,7 @@ if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "yes" ||
   # Setup flags for test.
   _gcc_cflags_save=$CFLAGS
   if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags" = "yes"; then
-    CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO -mstrict-align"
+    CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO"
   else
     CFLAGS="$CFLAGS -O2"
   fi

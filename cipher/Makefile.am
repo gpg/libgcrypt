@@ -368,15 +368,14 @@ serpent-avx512-x86.o: $(srcdir)/serpent-avx512-x86.c Makefile
 serpent-avx512-x86.lo: $(srcdir)/serpent-avx512-x86.c Makefile
 	`echo $(LTCOMPILE) $(avx512f_cflags) -c $< | $(instrumentation_munging) `
 
-# Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
 if ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS
+# Note: -mstrict-align needed for SpacemiT K1 RVV bug (K1 does not support
+# unaligned vector memory access). This is enabled only for plain RVV
+# implementations, RVV-crypto extension implementations expect CPU with proper
+# support for unaligned vector memory access.
 riscv_vector_cflags = -O2 -march=@MARCH_RVA22U64_WITH_VEC@ -mstrict-align
 else
-if SUPPORT_CC_RISCV_MSTRICT_ALIGN
-riscv_vector_cflags = -O2 -mstrict-align
-else
 riscv_vector_cflags =
-endif
 endif
 
 chacha20-riscv-v.o: $(srcdir)/chacha20-riscv-v.c Makefile
@@ -391,21 +390,14 @@ rijndael-vp-riscv.o: $(srcdir)/rijndael-vp-riscv.c Makefile
 rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
 	`echo $(LTCOMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
 
-# Note: -mstrict-align needed for GCC-14 bug (disable unaligned vector loads)
 if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
-riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned -mstrict-align
-riscv_vector_crypto_sha_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknha_zvknhb_zvkb -mstrict-align
-riscv_vector_crypto_gcm_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkg -mstrict-align
-else
-if SUPPORT_CC_RISCV_MSTRICT_ALIGN
-riscv_vector_crypto_aes_cflags = -O2 -mstrict-align
-riscv_vector_crypto_sha_cflags = -O2 -mstrict-align
-riscv_vector_crypto_gcm_cflags = -O2 -mstrict-align
+riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned_zvkb
+riscv_vector_crypto_sha_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknha_zvknhb_zvkb
+riscv_vector_crypto_gcm_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkg_zvkb
 else
 riscv_vector_crypto_aes_cflags =
 riscv_vector_crypto_sha_cflags =
 riscv_vector_crypto_gcm_cflags =
-endif
 endif
 
 cipher-gcm-riscv-zvkg.o: $(srcdir)/cipher-gcm-riscv-zvkg.c Makefile
