@@ -146,7 +146,7 @@ test_const_and_immutable (void)
   gcry_mpi_release (second_one);
 
 
-  /* Due to the the constant flag the release below should be a NOP
+  /* Due to the constant flag the release below should be a NOP
      and will leak memory.  */
   gcry_mpi_release (one);
   return 1;

@@ -19,7 +19,7 @@
 ## Process this file with automake to produce Makefile.in
 
 # Note: Please keep these tests in sync with those in testdrv.c.
-# We will eventually switch over to the the new driver but as of now
+# We will eventually switch over to the new driver but as of now
 # the driver is only used for cross-compiling.
 tests_bin = \
         version t-secmem mpitests t-sexp t-convert \

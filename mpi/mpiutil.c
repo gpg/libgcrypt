@@ -553,7 +553,7 @@ _gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u)
   if (!w)
     w = _gcry_mpi_alloc (1);
   /* FIXME: If U is 0 we have no need to resize and thus possible
-     allocating the the limbs. */
+     allocating the limbs. */
   if (mpi_is_immutable (w))
     {
       mpi_immutable_failed ();

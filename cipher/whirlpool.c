@@ -74,7 +74,7 @@ typedef struct {
 
 /* Macros. */
 
-/* Convert the the buffer BUFFER into a block BLOCK, using I as
+/* Convert the buffer BUFFER into a block BLOCK, using I as
    counter.  */
 #define buffer_to_block(buffer, block, i) \
   for (i = 0; i < 8; i++) \

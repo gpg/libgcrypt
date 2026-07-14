@@ -664,7 +664,7 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
       burn = nburn > burn ? nburn : burn;
 
       c->u_mode.ocb.data_finalized = 1;
-      /* Note that the the final part of the tag computation is done
+      /* Note that the final part of the tag computation is done
          by _gcry_cipher_ocb_get_tag.  */
     }
 

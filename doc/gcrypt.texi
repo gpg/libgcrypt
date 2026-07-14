@@ -2782,7 +2782,7 @@ are known:
 If supported by the algorithm and curve, the @code{comp} flag requests
 that points are returned in compact (compressed) representation.  The
 @code{nocomp} flag requests that points are returned with full
-coordinates.  The default depends on the the algorithm and curve.  The
+coordinates.  The default depends on the algorithm and curve.  The
 compact representation requires a small overhead before a point can be
 used but halves the size of a public key to be conveyed.  If
 @code{comp} is used with the ``EdDSA'' algorithm, the key generation
@@ -4065,7 +4065,7 @@ message digest from several buffers.  This function does not require a
 context and immediately returns the message digest of the data
 described by @var{iov} and @var{iovcnt}.  @var{digest} must be
 allocated by the caller, large enough to hold the message digest
-yielded by the the specified algorithm @var{algo}.  This required size
+yielded by the specified algorithm @var{algo}.  This required size
 may be obtained by using the function @code{gcry_md_get_algo_dlen}.
 
 @var{iov} is an array of buffer descriptions with @var{iovcnt} items.

@@ -2083,7 +2083,7 @@ selftest_sign_2048 (gcry_sexp_t pkey, gcry_sexp_t skey)
     (rsa
      (a a-value)))
 
-   as returned by gcry_pk_decrypt, return the the A-VALUE.  On error,
+   as returned by gcry_pk_decrypt, return the A-VALUE.  On error,
    return NULL.  */
 static gcry_mpi_t
 extract_a_from_sexp (gcry_sexp_t encr_data)

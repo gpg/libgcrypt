@@ -403,8 +403,7 @@ static ASM_FUNC_ATTR_INLINE void
 do_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 {
   /* The AES-NI decrypt instructions use the Equivalent Inverse
-     Cipher, thus we can't use the the standard decrypt key
-     preparation.  */
+     Cipher, thus we can't use the standard decrypt key preparation.  */
   u128_t *ekey = (u128_t *)ctx->keyschenc;
   u128_t *dkey = (u128_t *)ctx->keyschdec;
   int rr;

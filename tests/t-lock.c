@@ -60,7 +60,7 @@
 #define NONCE_SIZE  11
 
 
-/* This tests works by having a a couple of accountant threads which do
+/* This tests works by having a couple of accountant threads which do
    random transactions between accounts and a revision threads which
    checks that the balance of all accounts is invariant.  The idea for
    this check is due to Bruno Haible.  */
@@ -254,7 +254,7 @@ print_accounts (void)
 
 
 #if defined(HAVE_PTHREAD) || defined(_WIN32)
-/* Get a a random integer value in the range 0 to HIGH.  */
+/* Get a random integer value in the range 0 to HIGH.  */
 static unsigned int
 get_rand (int high)
 {

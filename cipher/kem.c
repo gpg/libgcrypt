@@ -35,7 +35,7 @@
 #include "kem-ecc.h"
 
 
-/* Information about the the KEM algoithms for use by the s-expression
+/* Information about the KEM algoithms for use by the s-expression
  * interface.  */
 static const struct
 {

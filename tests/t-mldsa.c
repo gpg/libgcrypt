@@ -64,7 +64,8 @@ struct mldsa_info
   int seckey_len;      /* Length of the secret key.  */
   int sig_len;         /* Length of the signature.  */
 };
-/* Information about the the ML-DSA algoithms for use by the
+
+/* Information about the ML-DSA algoithms for use by the
  * s-expression interface.  */
 static const struct mldsa_info mldsa_infos[] =
   {

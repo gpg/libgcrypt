@@ -307,7 +307,7 @@ _gcry_ecc_sec_decodepoint (gcry_mpi_t value, mpi_ec_t ec, mpi_point_t result)
 }
 
 
-/* Compute the public key from the the context EC.  Obviously a
+/* Compute the public key from the context EC.  Obviously a
    requirement is that the secret key is available in EC.  On success
    Q is returned; on error NULL.  If Q is NULL a newly allocated point
    is returned.  If G or D are given they override the values taken

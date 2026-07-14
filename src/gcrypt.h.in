@@ -808,7 +808,7 @@ void     gcry_mpi_rshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n);
 void     gcry_mpi_lshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n);
 
 /* Store NBITS of the value P points to in A and mark A as an opaque
-   value.  On success A received the the ownership of the value P.
+   value.  On success A received the ownership of the value P.
    WARNING: Never use an opaque MPI for anything thing else than
    gcry_mpi_release, gcry_mpi_get_opaque. */
 gcry_mpi_t gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits);
@@ -1417,8 +1417,7 @@ int gcry_md_get_algo (gcry_md_hd_t hd);
    ALGO. */
 unsigned int gcry_md_get_algo_dlen (int algo);
 
-/* Return true if the the algorithm ALGO is enabled in the digest
-   object A. */
+/* Return true if the algorithm ALGO is enabled in the digest object A. */
 int gcry_md_is_enabled (gcry_md_hd_t a, int algo);
 
 /* Return true if the digest object A is allocated in "secure" memory. */

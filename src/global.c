@@ -1347,7 +1347,7 @@ _gcry_get_debug_flag (unsigned int mask)
    void cb (void *opaque, const char *what, int printchar,
            int current, int total);
 
-   Where WHAT is a string identifying the the type of the progress
+   Where WHAT is a string identifying the type of the progress
    output, PRINTCHAR the character usually printed, CURRENT the amount
    of progress currently done and TOTAL the expected amount of
    progress.  A value of 0 for TOTAL indicates that there is no
