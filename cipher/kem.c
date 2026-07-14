@@ -35,7 +35,7 @@
 #include "kem-ecc.h"
 
 
-/* Information about the KEM algoithms for use by the s-expression
+/* Information about the KEM algorithms for use by the s-expression
  * interface.  */
 static const struct
 {
@@ -60,7 +60,7 @@ static const struct
   };
 
 /* This is a short version of kem_infos from above.  It is required
- * for the algoithm module interface.  Keep in sync.  */
+ * for the algorithm module interface.  Keep in sync.  */
 static const char *kem_names[] =
   {
     "sntrup761",
