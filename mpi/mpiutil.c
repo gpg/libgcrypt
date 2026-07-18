@@ -796,8 +796,6 @@ _gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 void
 _gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 {
-  (void)a; /* Not yet used. */
-
   switch (flag)
     {
     case GCRYMPI_FLAG_IMMUTABLE:

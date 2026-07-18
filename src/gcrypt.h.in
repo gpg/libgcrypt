@@ -825,13 +825,10 @@ gcry_mpi_t gcry_mpi_set_opaque_copy (gcry_mpi_t a,
    that the function should never be used for an non-opaque MPI. */
 void *gcry_mpi_get_opaque (gcry_mpi_t a, unsigned int *nbits);
 
-/* Set the FLAG for the big integer A.  Currently only the flag
-   GCRYMPI_FLAG_SECURE is allowed to convert A into an big intger
-   stored in "secure" memory. */
+/* Set the FLAG for the big integer A.  */
 void gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 
-/* Clear FLAG for the big integer A.  Note that this function is
-   currently useless as no flags are allowed. */
+/* Clear FLAG for the big integer A.  */
 void gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 
 /* Return true if the FLAG is set for A. */
