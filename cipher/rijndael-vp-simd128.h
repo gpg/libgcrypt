@@ -1732,8 +1732,7 @@ FUNC_CTR_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
     M128I_BYTE(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
   static const __m128i_const bigendian_add =
     M128I_BYTE(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
-  static const __m128i_const carry_add = M128I_U64(1, 1);
-  static const __m128i_const nocarry_add = M128I_U64(1, 0);
+  static const __m128i_const littleendian_add = M128I_U64(1, 0);
   u64 ctrlow = buf_get_be64(ctr + 8);
   struct vp_aes_config_s config;
 
@@ -1758,32 +1757,20 @@ FUNC_CTR_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
 	  /* detect if 8-bit carry handling is needed */
 	  if (UNLIKELY(((ctrlow += 4) & 0xff) <= 3))
 	    {
-	      static const __m128i_const *adders[5][4] =
-	      {
-		{ &nocarry_add, &nocarry_add, &nocarry_add, &carry_add },
-		{ &nocarry_add, &nocarry_add, &carry_add, &nocarry_add },
-		{ &nocarry_add, &carry_add, &nocarry_add, &nocarry_add },
-		{ &carry_add, &nocarry_add, &nocarry_add, &nocarry_add },
-		{ &nocarry_add, &nocarry_add, &nocarry_add, &nocarry_add }
-	      };
-	      unsigned int idx = ctrlow <= 3 ? ctrlow : 4;
-
 	      pshufb128(xmm6, xmm7);
-
-	      paddq128_amemld(adders[idx][0], xmm7);
+	      paddd128_amemld(&littleendian_add, xmm7);
 	      movdqa128(xmm7, xmm2);
 	      pshufb128(xmm6, xmm2);
 	      insert256_hi128(xmm2, ymm0);
-	      paddq128_amemld(adders[idx][1], xmm7);
+	      paddd128_amemld(&littleendian_add, xmm7);
 	      movdqa128(xmm7, xmm2);
 	      pshufb128(xmm6, xmm2);
 	      movdqa128_256(xmm2, ymm1);
-	      paddq128_amemld(adders[idx][2], xmm7);
+	      paddd128_amemld(&littleendian_add, xmm7);
 	      movdqa128(xmm7, xmm2);
 	      pshufb128(xmm6, xmm2);
 	      insert256_hi128(xmm2, ymm1);
-	      paddq128_amemld(adders[idx][3], xmm7);
-
+	      paddd128_amemld(&littleendian_add, xmm7);
 	      pshufb128(xmm6, xmm7);
 	    }
 	  else
@@ -1822,30 +1809,10 @@ FUNC_CTR_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
       if (UNLIKELY(((ctrlow += 2) & 0xff) <= 1))
 	{
 	  pshufb128(xmm6, xmm7);
-
-	  /* detect if 64-bit carry handling is needed */
-	  if (UNLIKELY(ctrlow == 1))
-	    {
-	      paddq128_amemld(&carry_add, xmm7);
-	      movdqa128(xmm7, xmm1);
-	      pshufb128(xmm6, xmm1);
-	      paddq128_amemld(&nocarry_add, xmm7);
-	    }
-	  else if (UNLIKELY(ctrlow == 0))
-	    {
-	      paddq128_amemld(&nocarry_add, xmm7);
-	      movdqa128(xmm7, xmm1);
-	      pshufb128(xmm6, xmm1);
-	      paddq128_amemld(&carry_add, xmm7);
-	    }
-	  else
-	    {
-	      paddq128_amemld(&nocarry_add, xmm7);
-	      movdqa128(xmm7, xmm1);
-	      pshufb128(xmm6, xmm1);
-	      paddq128_amemld(&nocarry_add, xmm7);
-	    }
-
+	  paddd128_amemld(&littleendian_add, xmm7);
+	  movdqa128(xmm7, xmm1);
+	  paddq128_amemld(&littleendian_add, xmm7);
+	  pshufb128(xmm6, xmm1);
 	  pshufb128(xmm6, xmm7);
 	}
       else
@@ -1877,10 +1844,7 @@ FUNC_CTR_ENC (RIJNDAEL_context *ctx, unsigned char *ctr,
       if (UNLIKELY((++ctrlow & 0xff) == 0))
 	{
 	  pshufb128(xmm6, xmm7);
-
-	  /* detect if 64-bit carry handling is needed */
-	  paddq128_amemld(UNLIKELY(ctrlow == 0) ? &carry_add : &nocarry_add, xmm7);
-
+	  paddd128_amemld(&littleendian_add, xmm7);
 	  pshufb128(xmm6, xmm7);
 	}
       else

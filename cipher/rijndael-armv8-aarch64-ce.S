@@ -734,14 +734,11 @@ _gcry_aes_ctr_enc_armv8_ce:
   movi v16.16b, #0
   mov v16.S[3], w6 /* 1 */
 
-  /* load IV */
-  ldp x9, x10, [x3]
+  /* load IV, x9 gets counter low byte at bits 56:63 for carry detection */
+  ldr x9, [x3, #8]
   ld1 {v0.16b}, [x3]
-  rev x9, x9
-  rev x10, x10
 
-  mov x12, #(4 << 56)
-  lsl x11, x10, #56
+  mov x10, #(4 << 56)
 
   aes_preload_keys(x0, w5);
 
@@ -751,25 +748,25 @@ _gcry_aes_ctr_enc_armv8_ce:
 #define CTR_ENC(bits) \
   .Lctr_enc_entry_##bits: \
     cmp x4, #4; \
-    b.lo .Lctr_enc_loop_##bits; \
+    b.lo .Lctr_enc_loop_entry_##bits; \
     \
     st1 {v8.16b-v11.16b}, [sp]; /* store callee saved registers */ \
     \
-    adds x11, x11, x12; \
-    add v9.4s, v16.4s, v16.4s; /* 2 */ \
-    add v10.4s, v16.4s, v9.4s; /* 3 */ \
-    add v11.4s, v9.4s, v9.4s; /* 4 */ \
+    adds x9, x9, x10; \
+    add v9.16b, v16.16b, v16.16b; /* 2 */ \
+    add v10.16b, v16.16b, v9.16b; /* 3 */ \
+    add v11.16b, v9.16b, v9.16b; /* 4 */ \
     mov x7, #1; \
     sub x4, x4, #4; \
     ld1 {v5.16b-v8.16b}, [x2], #64; /* preload ciphertext */ \
     b.cs .Lctr_enc_carry4_##bits; \
     \
+    /* 8-bit addition */ \
     mov v1.16b, v0.16b; \
-    add x10, x10, #4; \
     add v2.16b, v0.16b, v16.16b; \
-    add v3.8h, v0.8h, v9.8h; \
-    add v4.4s, v0.4s, v10.4s; \
-    add v0.2d, v0.2d, v11.2d; \
+    add v3.16b, v0.16b, v9.16b; \
+    add v4.16b, v0.16b, v10.16b; \
+    add v0.16b, v0.16b, v11.16b; \
     \
   .Lctr_enc_entry4_##bits##_carry_done: \
     mov x7, #0; \
@@ -786,16 +783,16 @@ _gcry_aes_ctr_enc_armv8_ce:
     eor v8.16b, v8.16b, vklast.16b; \
     do_aes_4_part2_##bits(e, mc, v12, v13, v14, v15, v1, v2, v3, v4, v5, v6, v7, v8); \
     ld1 {v5.16b-v8.16b}, [x2], #64; /* preload ciphertext */ \
-    adds x11, x11, x12; \
+    adds x9, x9, x10; \
     sub x4, x4, #4; \
     b.cs .Lctr_enc_carry4_##bits; \
     \
+    /* 8-bit addition */ \
     mov v1.16b, v0.16b; \
-    add x10, x10, #4; \
     add v2.16b, v0.16b, v16.16b; \
-    add v3.8h, v0.8h, v9.8h; \
-    add v4.4s, v0.4s, v10.4s; \
-    add v0.2d, v0.2d, v11.2d; \
+    add v3.16b, v0.16b, v9.16b; \
+    add v4.16b, v0.16b, v10.16b; \
+    add v0.16b, v0.16b, v11.16b; \
     \
   .Lctr_enc_loop4_##bits##_carry_done: \
     cmp x4, #4; \
@@ -815,7 +812,6 @@ _gcry_aes_ctr_enc_armv8_ce:
     \
     st1 {v5.16b-v8.16b}, [x1], #64; /* store plaintext */ \
     \
-    CLEAR_REG(v3); \
     CLEAR_REG(v4); \
     ld1 {v8.16b-v11.16b}, [sp]; /* restore callee saved registers */ \
     CLEAR_REG(v5); \
@@ -823,16 +819,17 @@ _gcry_aes_ctr_enc_armv8_ce:
     CLEAR_REG(v7); \
     cbz x4, .Lctr_enc_done; \
     \
+  .Lctr_enc_loop_entry_##bits: \
+    rev16 v3.16b, v16.16b; \
+    \
   .Lctr_enc_loop_##bits: \
     \
-    adds x10, x10, #1; \
     mov v1.16b, v0.16b; \
-    adc x9, x9, xzr; \
-    dup v0.2d, x10; \
+    rev16 v0.16b, v0.16b; /* be->le */ \
+    add v0.8h, v0.8h, v3.8h; \
     sub x4, x4, #1; \
-    ins v0.D[0], x9; \
     ld1 {v2.16b}, [x2], #16; /* load ciphertext */ \
-    rev64 v0.16b, v0.16b; \
+    rev16 v0.16b, v0.16b; \
     \
     do_aes_one_part1(e, mc, v1, vk0); \
     eor v2.16b, v2.16b, vklast.16b; \
@@ -846,27 +843,19 @@ _gcry_aes_ctr_enc_armv8_ce:
     \
   .Lctr_enc_carry4_##bits: \
     \
-    adds x13, x10, #1; \
+    /* 16-bit addition */ \
+    rev16 v4.16b, v0.16b; /* be->le */ \
+    rev16 v3.16b, v16.16b; \
     mov v1.16b, v0.16b; \
-    adc x14, x9, xzr; \
-    dup v2.2d, x13; \
-      adds x13, x10, #2; \
-    ins v2.D[0], x14; \
-      adc x14, x9, xzr; \
-    rev64 v2.16b, v2.16b; \
-      dup v3.2d, x13; \
-	adds x13, x10, #3; \
-      ins v3.D[0], x14; \
-	adc x14, x9, xzr; \
-      rev64 v3.16b, v3.16b; \
-	dup v4.2d, x13; \
-	  adds x10, x10, #4; \
-	ins v4.D[0], x14; \
-	  adc x9, x9, xzr; \
-	rev64 v4.16b, v4.16b; \
-	  dup v0.2d, x10; \
-	  ins v0.D[0], x9; \
-	  rev64 v0.16b, v0.16b; \
+    rev16 v0.16b, v9.16b; \
+    add v2.8h, v4.8h, v3.8h; /* ctr+1 */ \
+    add v3.8h, v4.8h, v0.8h; /* ctr+2 */ \
+    add v4.8h, v0.8h, v2.8h; /* ctr+1+2 */ \
+    add v0.8h, v0.8h, v3.8h; /* ctr+2+2 */ \
+    rev16 v2.16b, v2.16b; /* le->be */ \
+    rev16 v3.16b, v3.16b; /* le->be */ \
+    rev16 v4.16b, v4.16b; /* le->be */ \
+    rev16 v0.16b, v0.16b; /* le->be */ \
     \
     cbz x7, .Lctr_enc_loop4_##bits##_carry_done; \
     b .Lctr_enc_entry4_##bits##_carry_done;
@@ -885,6 +874,7 @@ _gcry_aes_ctr_enc_armv8_ce:
   CLEAR_REG(v0)
   CLEAR_REG(v1)
   CLEAR_REG(v2)
+  CLEAR_REG(v3)
   CLEAR_REG(v16)
 
   add sp, sp, #128;

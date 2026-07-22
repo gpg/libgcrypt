@@ -556,15 +556,15 @@ SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386):
 	movl %esp, %ebp;
 	CFI_DEF_CFA_REGISTER(%ebp);
 
-	subl $(3 * 32 + 3 * 4), %esp;
+	subl $(1 * 32 + 3 * 4), %esp;
 	andl $-32, %esp;
 
-	movl %edi, (3 * 32 + 0 * 4)(%esp);
-	CFI_REG_ON_STACK(edi, 3 * 32 + 0 * 4);
-	movl %esi, (3 * 32 + 1 * 4)(%esp);
-	CFI_REG_ON_STACK(esi, 3 * 32 + 1 * 4);
-	movl %ebx, (3 * 32 + 2 * 4)(%esp);
-	CFI_REG_ON_STACK(ebx, 3 * 32 + 2 * 4);
+	movl %edi, (1 * 32 + 0 * 4)(%esp);
+	CFI_REG_ON_STACK(edi, 1 * 32 + 0 * 4);
+	movl %esi, (1 * 32 + 1 * 4)(%esp);
+	CFI_REG_ON_STACK(esi, 1 * 32 + 1 * 4);
+	movl %ebx, (1 * 32 + 2 * 4)(%esp);
+	CFI_REG_ON_STACK(ebx, 1 * 32 + 2 * 4);
 
 	movl %eax, %ebx;
 	movl 4+4(%ebp), %edi;
@@ -574,50 +574,8 @@ SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386):
 
 #define prepare_ctr_const(minus_one, minus_two) \
 	vpcmpeqd minus_one, minus_one, minus_one; \
-	vpsrldq $8, minus_one, minus_one;       /* 0:-1 */ \
-	vpaddq minus_one, minus_one, minus_two; /* 0:-2 */
-
-#define inc_le128(x, minus_one, tmp) \
-	vpcmpeqq minus_one, x, tmp; \
-	vpsubq minus_one, x, x; \
-	vpslldq $8, tmp, tmp; \
-	vpsubq tmp, x, x;
-
-#define add2_le128(x, minus_one, minus_two, tmp1, tmp2) \
-	vpcmpeqq minus_one, x, tmp1; \
-	vpcmpeqq minus_two, x, tmp2; \
-	vpor tmp1, tmp2, tmp2; \
-	vpsubq minus_two, x, x; \
-	vpslldq $8, tmp2, tmp2; \
-	vpsubq tmp2, x, x;
-
-#define handle_ctr_128bit_add(nblks) \
-	movl 12(%esi), %eax; \
-	bswapl %eax; \
-	addl $nblks, %eax; \
-	bswapl %eax; \
-	movl %eax, 12(%esi); \
-	jnc 1f; \
-	\
-	movl 8(%esi), %eax; \
-	bswapl %eax; \
-	adcl $0, %eax; \
-	bswapl %eax; \
-	movl %eax, 8(%esi); \
-	\
-	movl 4(%esi), %eax; \
-	bswapl %eax; \
-	adcl $0, %eax; \
-	bswapl %eax; \
-	movl %eax, 4(%esi); \
-	\
-	movl 0(%esi), %eax; \
-	bswapl %eax; \
-	adcl $0, %eax; \
-	bswapl %eax; \
-	movl %eax, 0(%esi); \
-	.align 8; \
-	1:;
+	vpsrldq $14, minus_one, minus_one;      /* 0:-1 */ \
+	vpaddw minus_one, minus_one, minus_two; /* 0:-2 */
 
 	cmpl $12, 4+20(%ebp);
 	jae .Lctr_enc_blk12_loop;
@@ -631,10 +589,8 @@ SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386):
 	vbroadcasti128 (%esi), %ymm6;
 
 	/* detect if carry handling is needed */
-	movl 12(%esi), %eax;
-	addl $(12 << 24), %eax;
+	addb $12, 15(%esi);
 	jc .Lctr_enc_blk12_handle_carry;
-	movl %eax, 12(%esi);
 
   .Lctr_enc_blk12_byte_bige_add:
 	/* Increment counters. */
@@ -708,38 +664,31 @@ SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386):
 	jmp .Lctr_enc_blk4;
 
   .align 8
-  .Lctr_enc_blk12_handle_only_ctr_carry:
-	handle_ctr_128bit_add(12);
-	jmp .Lctr_enc_blk12_byte_bige_add;
-
-  .align 8
   .Lctr_enc_blk12_handle_carry:
-	jz .Lctr_enc_blk12_handle_only_ctr_carry;
-	/* Increment counters (handle carry). */
-	prepare_ctr_const(%ymm4, %ymm7);
-	vmovdqa CADDR(.Lbswap128_mask, %ebx), %ymm2;
-	vpshufb %xmm2, %xmm6, %xmm1; /* be => le */
-	vmovdqa %xmm1, %xmm0;
-	inc_le128(%xmm1, %xmm4, %xmm5);
-	vinserti128 $1, %xmm1, %ymm0, %ymm6; /* ctr: +1:+0 */
-	handle_ctr_128bit_add(12);
-	vpshufb %ymm2, %ymm6, %ymm0;
+	movzbl 14(%esi), %eax;
+	leal 1(%eax), %eax;
+	movb %al, 14(%esi);
+	jz .Lctr_enc_blk12_byte_bige_add;
+
+	/* Increment counters (handle 16-bit carry). */
+	prepare_ctr_const(%ymm2, %ymm7);
+	vmovdqa CADDR(.Lbswap128_mask, %ebx), %ymm4;
+	vpshufb %xmm4, %xmm6, %xmm1; /* be => le */
+	vpsubw %xmm2, %xmm1, %xmm0;
+	vinserti128 $1, %xmm0, %ymm1, %ymm6; /* ctr: +1:+0 */
+	vpshufb %ymm4, %ymm6, %ymm0;
 	vmovdqa %ymm0, (0 * 32)(%esp);
-	add2_le128(%ymm6, %ymm4, %ymm7, %ymm5, %ymm1); /* ctr: +3:+2 */
-	vpshufb %ymm2, %ymm6, %ymm0;
-	vmovdqa %ymm0, (1 * 32)(%esp);
-	add2_le128(%ymm6, %ymm4, %ymm7, %ymm5, %ymm1); /* ctr: +5:+4 */
-	vpshufb %ymm2, %ymm6, %ymm0;
-	vmovdqa %ymm0, (2 * 32)(%esp);
-	add2_le128(%ymm6, %ymm4, %ymm7, %ymm5, %ymm1); /* ctr: +7:+6 */
-	vpshufb %ymm2, %ymm6, %ymm3;
-	add2_le128(%ymm6, %ymm4, %ymm7, %ymm5, %ymm1); /* ctr: +9:+8 */
-	vpshufb %ymm2, %ymm6, %ymm5;
-	add2_le128(%ymm6, %ymm4, %ymm7, %ymm2, %ymm1); /* ctr: +11:+10 */
+	vpsubw %ymm7, %ymm6, %ymm6; /* ctr: +3:+2 */
+	vpshufb %ymm4, %ymm6, %ymm1;
+	vpsubw %ymm7, %ymm6, %ymm6; /* ctr: +5:+4 */
+	vpshufb %ymm4, %ymm6, %ymm2;
+	vpsubw %ymm7, %ymm6, %ymm6; /* ctr: +7:+6 */
+	vpshufb %ymm4, %ymm6, %ymm3;
+	vpsubw %ymm7, %ymm6, %ymm6; /* ctr: +9:+8 */
+	vpshufb %ymm4, %ymm6, %ymm5;
+	vpsubw %ymm7, %ymm6, %ymm6; /* ctr: +11:+10 */
 	vmovdqa (0 * 32)(%esp), %ymm0;
-	vmovdqa (1 * 32)(%esp), %ymm1;
-	vmovdqa (2 * 32)(%esp), %ymm2;
-	vpshufb CADDR(.Lbswap128_mask, %ebx), %ymm6, %ymm6;
+	vpshufb %ymm4, %ymm6, %ymm6;
 
 	jmp .Lctr_enc_blk12_rounds;
 
@@ -754,10 +703,8 @@ SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386):
 	vbroadcasti128 (%esi), %ymm3;
 
 	/* detect if carry handling is needed */
-	movl 12(%esi), %eax;
-	addl $(4 << 24), %eax;
+	addb $4, 15(%esi);
 	jc .Lctr_enc_blk4_handle_carry;
-	movl %eax, 12(%esi);
 
   .Lctr_enc_blk4_byte_bige_add:
 	/* Increment counters. */
@@ -813,23 +760,21 @@ SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386):
 	jmp .Lctr_enc_blk1;
 
   .align 8
-  .Lctr_enc_blk4_handle_only_ctr_carry:
-	handle_ctr_128bit_add(4);
-	jmp .Lctr_enc_blk4_byte_bige_add;
-
-  .align 8
   .Lctr_enc_blk4_handle_carry:
-	jz .Lctr_enc_blk4_handle_only_ctr_carry;
-	/* Increment counters (handle carry). */
+	movzbl 14(%esi), %eax;
+	leal 1(%eax), %eax;
+	movb %al, 14(%esi);
+	jz .Lctr_enc_blk4_byte_bige_add;
+
+	/* Increment counters (handle 16-bit carry). */
 	prepare_ctr_const(%ymm4, %ymm7);
-	vpshufb CADDR(.Lbswap128_mask, %ebx), %xmm3, %xmm1; /* be => le */
-	vmovdqa %xmm1, %xmm0;
-	inc_le128(%xmm1, %xmm4, %xmm5);
-	vinserti128 $1, %xmm1, %ymm0, %ymm3; /* ctr: +1:+0 */
-	vpshufb CADDR(.Lbswap128_mask, %ebx), %ymm3, %ymm0;
-	handle_ctr_128bit_add(4);
-	add2_le128(%ymm3, %ymm4, %ymm7, %ymm5, %ymm6); /* ctr: +3:+2 */
-	vpshufb CADDR(.Lbswap128_mask, %ebx), %ymm3, %ymm1;
+	vmovdqa CADDR(.Lbswap128_mask, %ebx), %ymm2;
+	vpshufb %xmm2, %xmm3, %xmm1; /* be => le */
+	vpsubw %xmm4, %xmm1, %xmm0;
+	vinserti128 $1, %xmm0, %ymm1, %ymm3; /* ctr: +1:+0 */
+	vpshufb %ymm2, %ymm3, %ymm0;
+	vpsubw %ymm7, %ymm3, %ymm3; /* ctr: +3:+2 */
+	vpshufb %ymm2, %ymm3, %ymm1;
 
 	jmp .Lctr_enc_blk4_rounds;
 
@@ -841,15 +786,16 @@ SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386):
 
 	subl $1, 4+20(%ebp);
 
-	/* Load and increament counter. */
+	/* Load counter. */
 	vmovdqu (%esi), %xmm0;
-	handle_ctr_128bit_add(1);
 
 	/* AES rounds. */
 	vpxor (0 * 16)(%edi), %xmm0, %xmm0;
 	vaesenc (1 * 16)(%edi), %xmm0, %xmm0;
 	vaesenc (2 * 16)(%edi), %xmm0, %xmm0;
 	vaesenc (3 * 16)(%edi), %xmm0, %xmm0;
+	addb $1, 15(%esi); /* Increament counter. */
+	adcb $0, 14(%esi);
 	vaesenc (4 * 16)(%edi), %xmm0, %xmm0;
 	vaesenc (5 * 16)(%edi), %xmm0, %xmm0;
 	vaesenc (6 * 16)(%edi), %xmm0, %xmm0;
@@ -880,18 +826,17 @@ SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386):
 .align 8
 .Ldone_ctr_enc:
 	vpxor %ymm0, %ymm0, %ymm0;
-	movl (3 * 32 + 0 * 4)(%esp), %edi;
+	movl (1 * 32 + 0 * 4)(%esp), %edi;
 	CFI_RESTORE(edi);
-	movl (3 * 32 + 1 * 4)(%esp), %esi;
+	movl (1 * 32 + 1 * 4)(%esp), %esi;
 	CFI_RESTORE(esi);
-	movl (3 * 32 + 2 * 4)(%esp), %ebx;
+	movl (1 * 32 + 2 * 4)(%esp), %ebx;
 	CFI_RESTORE(ebx);
 	vmovdqa %ymm0, (0 * 32)(%esp);
-	vmovdqa %ymm0, (1 * 32)(%esp);
-	vmovdqa %ymm0, (2 * 32)(%esp);
 	leave;
 	CFI_LEAVE();
 	vzeroall;
+	xorl %eax, %eax;
 	ret_spec_stop
 	CFI_ENDPROC();
 ELF(.size SYM_NAME(_gcry_vaes_avx2_ctr_enc_i386),

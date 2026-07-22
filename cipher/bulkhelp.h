@@ -155,9 +155,9 @@ bulk_ctr_enc_128 (void *priv, bulk_crypt_fn_t crypt_fn, byte *outbuf,
       for (i = 1; i < curr_blks; i++)
         {
           cipher_block_cpy (&tmpbuf[i * 16], ctr, 16);
-          cipher_block_add (&tmpbuf[i * 16], i, 16);
+          cipher_block_add_be16 (&tmpbuf[i * 16], i, 16);
         }
-      cipher_block_add (ctr, curr_blks, 16);
+      cipher_block_add_be16 (ctr, curr_blks, 16);
 
       nburn = crypt_fn (priv, tmpbuf, tmpbuf, curr_blks);
       burn_depth = nburn > burn_depth ? nburn : burn_depth;

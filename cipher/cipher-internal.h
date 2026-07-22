@@ -196,8 +196,8 @@ typedef struct cipher_bulk_ops
 		  const void *inbuf_arg, size_t nblocks);
   void (*ofb_enc)(void *context, unsigned char *iv, void *outbuf_arg,
 		  const void *inbuf_arg, size_t nblocks);
-  void (*ctr_enc)(void *context, unsigned char *iv, void *outbuf_arg,
-		  const void *inbuf_arg, size_t nblocks);
+  void (*ctr16be_enc)(void *context, unsigned char *iv, void *outbuf_arg,
+		      const void *inbuf_arg, size_t nblocks);
   void (*ctr32le_enc)(void *context, unsigned char *iv, void *outbuf_arg,
 		      const void *inbuf_arg, size_t nblocks);
   size_t (*ocb_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
@@ -208,6 +208,11 @@ typedef struct cipher_bulk_ops
   size_t (*gcm_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
 		      const void *inbuf_arg, size_t nblocks, int encrypt);
 } cipher_bulk_ops_t;
+
+/* Temporary alias for transition period from full 128-bit big-endian
+ * counter addition in bulk processing function to 16-bit big-endian
+ * addition.  */
+#define ctr_enc ctr16be_enc
 
 
 /* A VIA processor with the Padlock engine as well as the Intel AES_NI
@@ -820,9 +825,9 @@ cipher_bytecounter_add (u32 ctr[2], size_t add)
 }
 
 
-/* Optimized function for adding value to cipher block. */
+/* Optimized function for block-size big-endian addition. */
 static inline void
-cipher_block_add(void *_dstsrc, unsigned int add, size_t blocksize)
+cipher_block_add(void *_dstsrc, u64 add, size_t blocksize)
 {
   byte *dstsrc = _dstsrc;
   u64 s[2];
@@ -840,6 +845,19 @@ cipher_block_add(void *_dstsrc, unsigned int add, size_t blocksize)
       buf_put_be64(dstsrc + 8, s[0]);
       buf_put_be64(dstsrc + 0, s[1]);
     }
+}
+
+
+/* Optimized function for 16-bit big-endian addition to cipher block. */
+static inline void
+cipher_block_add_be16(void *_dstsrc, unsigned int add, size_t blocksize)
+{
+  byte *dstsrc = _dstsrc;
+
+  add += dstsrc[blocksize - 1];
+  add += dstsrc[blocksize - 2] << 8;
+  dstsrc[blocksize - 1] = add;
+  dstsrc[blocksize - 2] = add >> 8;
 }
 
 

@@ -888,25 +888,24 @@ CTR_ENC_FUNC (void *context, unsigned char *ctr_arg, void *outbuf_arg,
     {
       block in0, in1, in2, in3, in4, in5, in6, in7;
       block b0, b1, b2, b3, b4, b5, b6, b7;
-      block two, three, four;
+      block two, four;
       block rkey;
 
-      two   = asm_add_uint128 (one, one);
-      three = asm_add_uint128 (two, one);
-      four  = asm_add_uint128 (two, two);
+      two   = asm_add_uint16 (one, one);
+      four  = asm_add_uint16 (two, two);
 
       for (; nblocks >= 8; nblocks -= 8)
 	{
-	  b1 = asm_add_uint128 (ctr, one);
-	  b2 = asm_add_uint128 (ctr, two);
-	  b3 = asm_add_uint128 (ctr, three);
-	  b4 = asm_add_uint128 (ctr, four);
-	  b5 = asm_add_uint128 (b1, four);
-	  b6 = asm_add_uint128 (b2, four);
-	  b7 = asm_add_uint128 (b3, four);
+	  b1 = asm_add_uint16 (ctr, one);
+	  b2 = asm_add_uint16 (ctr, two);
+	  b3 = asm_add_uint16 (b1, two);
+	  b4 = asm_add_uint16 (b2, two);
+	  b5 = asm_add_uint16 (b1, four);
+	  b6 = asm_add_uint16 (b2, four);
+	  b7 = asm_add_uint16 (b3, four);
 	  b0 = asm_xor (rkey0, ctr);
 	  rkey = ALIGNED_LOAD (rk, 1);
-	  ctr = asm_add_uint128 (b4, four);
+	  ctr = asm_add_uint16 (b4, four);
 	  b1 = asm_xor (rkey0, b1);
 	  b2 = asm_xor (rkey0, b2);
 	  b3 = asm_xor (rkey0, b3);
@@ -1012,11 +1011,11 @@ CTR_ENC_FUNC (void *context, unsigned char *ctr_arg, void *outbuf_arg,
 
       if (nblocks >= 4)
 	{
-	  b1 = asm_add_uint128 (ctr, one);
-	  b2 = asm_add_uint128 (ctr, two);
-	  b3 = asm_add_uint128 (ctr, three);
+	  b1 = asm_add_uint16 (ctr, one);
+	  b2 = asm_add_uint16 (ctr, two);
+	  b3 = asm_add_uint16 (b1, two);
 	  b0 = asm_xor (rkey0, ctr);
-	  ctr = asm_add_uint128 (ctr, four);
+	  ctr = asm_add_uint16 (b2, two);
 	  b1 = asm_xor (rkey0, b1);
 	  b2 = asm_xor (rkey0, b2);
 	  b3 = asm_xor (rkey0, b3);
@@ -1080,7 +1079,7 @@ CTR_ENC_FUNC (void *context, unsigned char *ctr_arg, void *outbuf_arg,
   for (; nblocks; nblocks--)
     {
       b = ctr;
-      ctr = asm_add_uint128 (ctr, one);
+      ctr = asm_add_uint16 (ctr, one);
       rkeylast = rkeylast_orig ^ VEC_LOAD_BE (in, 0, bige_const);
 
       AES_ENCRYPT (b, rounds);

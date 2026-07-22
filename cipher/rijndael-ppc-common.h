@@ -233,6 +233,16 @@ asm_add_uint64(block a, block b)
 }
 
 static ASM_FUNC_ATTR_INLINE block
+asm_add_uint16(block a, block b)
+{
+  block res;
+  __asm__ volatile ("vadduhm %0,%1,%2\n\t"
+		    : "=v" (res)
+		    : "v" (a), "v" (b));
+  return res;
+}
+
+static ASM_FUNC_ATTR_INLINE block
 asm_sra_int64(block a, block b)
 {
   block res;

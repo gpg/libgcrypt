@@ -1073,26 +1073,10 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
 #define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
 
-  asm volatile ("movdqa %%xmm5, %%xmm0\n\t"     /* xmm0 := CTR (xmm5)  */
-                "pcmpeqd %%xmm1, %%xmm1\n\t"
-                "psrldq $8, %%xmm1\n\t"         /* xmm1 = -1 */
+  asm volatile ("movdqa (%[ctr]), %%xmm0\n\t"   /* xmm0 := CTR (mem)  */
 
-                "pshufb %%xmm6, %%xmm5\n\t"
-                "psubq  %%xmm1, %%xmm5\n\t"     /* xmm5++ (big endian) */
-
-                /* detect if 64-bit carry handling is needed */
-                "cmpl   $0xffffffff, 8(%[ctr])\n\t"
-                "jne    .Lno_carry%=\n\t"
-                "cmpl   $0xffffffff, 12(%[ctr])\n\t"
-                "jne    .Lno_carry%=\n\t"
-
-                "pslldq $8, %%xmm1\n\t"         /* move lower 64-bit to high */
-                "psubq   %%xmm1, %%xmm5\n\t"    /* add carry to upper 64bits */
-
-                ".Lno_carry%=:\n\t"
-
-                "pshufb %%xmm6, %%xmm5\n\t"
-                "movdqa %%xmm5, (%[ctr])\n\t"   /* Update CTR (mem).       */
+                "addb   $1, 15(%[ctr])\n\t"     /* Update CTR (mem).  */
+                "adcb   $0, 14(%[ctr])\n\t"
 
                 "pxor (%[key]), %%xmm0\n\t"     /* xmm1 ^= key[0]    */
                 "movdqa 0x10(%[key]), %%xmm1\n\t"
@@ -1149,12 +1133,11 @@ static ASM_FUNC_ATTR_INLINE void
 do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 unsigned char *ctr, unsigned char *b, const unsigned char *a)
 {
-  static const byte bige_addb_const[4][16] __attribute__ ((aligned (16))) =
+  static const byte bige_addb_const[3][16] __attribute__ ((aligned (16))) =
     {
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2 },
-      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3 },
-      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4 }
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3 }
     };
   const void *bige_addb = bige_addb_const;
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
@@ -1173,81 +1156,55 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
       xmm2  CTR-1
       xmm3  CTR-2
       xmm4  CTR-3
-      xmm5  copy of *ctr
+      xmm5  temp
       xmm6  endian swapping mask
    */
 
-  asm volatile (/* detect if 8-bit carry handling is needed */
-                "addb   $4, 15(%[ctr])\n\t"
-                "jc     .Ladd32bit%=\n\t"
+  asm volatile ("movdqa (%[ctr]), %%xmm0\n\t"   /* xmm0 := CTR (mem)  */
 
-                "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0 := CTR (xmm5) */
+                /* detect if 16-bit carry handling is needed */
+                "addb   $4, 15(%[ctr])\n\t"
+                "jc     .Ladd16bit%=\n\t"
+
+                ".Lcarry_skip%=:\n\t"
                 "movdqa 0*16(%[addb]), %%xmm2\n\t"  /* xmm2 := be(1) */
                 "movdqa 1*16(%[addb]), %%xmm3\n\t"  /* xmm3 := be(2) */
                 "movdqa 2*16(%[addb]), %%xmm4\n\t"  /* xmm4 := be(3) */
-                "movdqa 3*16(%[addb]), %%xmm5\n\t"  /* xmm5 := be(4) */
                 "paddb  %%xmm0, %%xmm2\n\t"     /* xmm2 := be(1) + CTR (xmm0) */
                 "paddb  %%xmm0, %%xmm3\n\t"     /* xmm3 := be(2) + CTR (xmm0) */
                 "paddb  %%xmm0, %%xmm4\n\t"     /* xmm4 := be(3) + CTR (xmm0) */
-                "paddb  %%xmm0, %%xmm5\n\t"     /* xmm5 := be(4) + CTR (xmm0) */
                 "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
                 "jmp    .Ldone_ctr%=\n\t"
 
-                ".Ladd32bit%=:\n\t"
-                "movdqa %%xmm5, (%[ctr])\n\t"   /* Restore CTR.  */
-                "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0, xmm2 := CTR (xmm5) */
+                ".Ladd16bit%=:\n\t"
+                "movzbl 14(%[ctr]), %%eax;\n\t" /* Update CTR. */
+                "leal   1(%%eax), %%eax;\n\t"
+                "movb   %%al, 14(%[ctr]);\n\t"
+                "jz     .Lcarry_skip%=\n\t"
+
                 "movdqa %%xmm0, %%xmm2\n\t"
                 "pcmpeqd %%xmm1, %%xmm1\n\t"
-                "psrldq $8, %%xmm1\n\t"         /* xmm1 = -1 */
+                "psrldq $14, %%xmm1\n\t"        /* xmm1 = -1 */
 
                 "pshufb %%xmm6, %%xmm2\n\t"     /* xmm2 := le(xmm2) */
-                "psubq  %%xmm1, %%xmm2\n\t"     /* xmm2++           */
+                "psubw  %%xmm1, %%xmm2\n\t"     /* xmm2++           */
                 "movdqa %%xmm2, %%xmm3\n\t"     /* xmm3 := xmm2     */
-                "psubq  %%xmm1, %%xmm3\n\t"     /* xmm3++           */
+                "psubw  %%xmm1, %%xmm3\n\t"     /* xmm3++           */
                 "movdqa %%xmm3, %%xmm4\n\t"     /* xmm4 := xmm3     */
-                "psubq  %%xmm1, %%xmm4\n\t"     /* xmm4++           */
-                "movdqa %%xmm4, %%xmm5\n\t"     /* xmm5 := xmm4     */
-                "psubq  %%xmm1, %%xmm5\n\t"     /* xmm5++           */
+                "psubw  %%xmm1, %%xmm4\n\t"     /* xmm4++           */
 
-                /* detect if 64-bit carry handling is needed */
-                "cmpl   $0xffffffff, 8(%[ctr])\n\t"
-                "jne    .Lno_carry%=\n\t"
-                "movl   12(%[ctr]), %%esi\n\t"
-                "bswapl %%esi\n\t"
-                "cmpl   $0xfffffffc, %%esi\n\t"
-                "jb     .Lno_carry%=\n\t"       /* no carry */
-
-                "pslldq $8, %%xmm1\n\t"         /* move lower 64-bit to high */
-                "je     .Lcarry_xmm5%=\n\t"     /* esi == 0xfffffffc */
-                "cmpl   $0xfffffffe, %%esi\n\t"
-                "jb     .Lcarry_xmm4%=\n\t"     /* esi == 0xfffffffd */
-                "je     .Lcarry_xmm3%=\n\t"     /* esi == 0xfffffffe */
-                /* esi == 0xffffffff */
-
-                "psubq   %%xmm1, %%xmm2\n\t"
-                ".Lcarry_xmm3%=:\n\t"
-                "psubq   %%xmm1, %%xmm3\n\t"
-                ".Lcarry_xmm4%=:\n\t"
-                "psubq   %%xmm1, %%xmm4\n\t"
-                ".Lcarry_xmm5%=:\n\t"
-                "psubq   %%xmm1, %%xmm5\n\t"
-
-                ".Lno_carry%=:\n\t"
                 "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0]    */
 
                 "pshufb %%xmm6, %%xmm2\n\t"     /* xmm2 := be(xmm2) */
                 "pshufb %%xmm6, %%xmm3\n\t"     /* xmm3 := be(xmm3) */
                 "pshufb %%xmm6, %%xmm4\n\t"     /* xmm4 := be(xmm4) */
-                "pshufb %%xmm6, %%xmm5\n\t"     /* xmm5 := be(xmm5) */
-
-                "movdqa %%xmm5, (%[ctr])\n\t"   /* Update CTR (mem).  */
 
                 ".Ldone_ctr%=:\n\t"
                 :
                 : [ctr] "r" (ctr),
                   [key] "r" (ctx->keyschenc),
                   [addb] "r" (bige_addb)
-                : "%esi", "cc", "memory");
+                : "eax", "cc", "memory");
 
   asm volatile ("pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
@@ -1371,7 +1328,7 @@ static ASM_FUNC_ATTR_INLINE void
 do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 unsigned char *ctr, unsigned char *b, const unsigned char *a)
 {
-  static const byte bige_addb_const[8][16] __attribute__ ((aligned (16))) =
+  static const byte bige_addb_const[7][16] __attribute__ ((aligned (16))) =
     {
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2 },
@@ -1379,8 +1336,7 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4 },
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5 },
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6 },
-      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7 },
-      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8 }
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7 }
     };
   const void *bige_addb = bige_addb_const;
 
@@ -1391,7 +1347,7 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
       xmm2  CTR-1
       xmm3  CTR-2
       xmm4  CTR-3
-      xmm5  copy of *ctr
+      xmm5  temp
       xmm6  endian swapping mask
       xmm8  CTR-4
       xmm9  CTR-5
@@ -1403,20 +1359,26 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
       xmm15 temp
    */
 
-  asm volatile (/* detect if 8-bit carry handling is needed */
-                "addb   $8, 15(%[ctr])\n\t"
-                "jc     .Ladd32bit%=\n\t"
+  asm volatile ("movdqa (%[ctr]), %%xmm0\n\t"   /* xmm0 := CTR (mem)  */
 
+                /* detect if 16-bit carry handling is needed */
+                "addb   $8, 15(%[ctr])\n\t"
+                "jc     .Ladd16bit%=\n\t"
+
+                ".Lcarry_skip%=:\n\t"
                 "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
                 "movdqa 16(%[key]), %%xmm7\n\t" /* xmm7 := key[1] */
 
-                "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0 := CTR (xmm5) */
-                "movdqa %%xmm5, %%xmm2\n\t"     /* xmm2 := CTR (xmm5) */
-                "movdqa %%xmm5, %%xmm3\n\t"     /* xmm3 := CTR (xmm5) */
-                "movdqa %%xmm5, %%xmm4\n\t"     /* xmm4 := CTR (xmm5) */
+                "movdqa %%xmm0, %%xmm2\n\t"     /* xmm2 := CTR (xmm0) */
+                "movdqa %%xmm0, %%xmm3\n\t"     /* xmm3 := CTR (xmm0) */
+                "movdqa %%xmm0, %%xmm4\n\t"     /* xmm4 := CTR (xmm0) */
                 "paddb  0*16(%[addb]), %%xmm2\n\t" /* xmm2 := be(1) + CTR */
                 "paddb  1*16(%[addb]), %%xmm3\n\t" /* xmm3 := be(2) + CTR */
                 "paddb  2*16(%[addb]), %%xmm4\n\t" /* xmm4 := be(3) + CTR */
+                "movdqa %%xmm0, %%xmm8\n\t"     /* xmm8 := CTR (xmm0) */
+                "movdqa %%xmm0, %%xmm9\n\t"     /* xmm9 := CTR (xmm0) */
+                "movdqa %%xmm0, %%xmm10\n\t"    /* xmm10 := CTR (xmm0) */
+                "movdqa %%xmm0, %%xmm11\n\t"    /* xmm11 := CTR (xmm0) */
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm3\n\t"     /* xmm3 ^= key[0]    */
@@ -1425,10 +1387,6 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 "aesenc %%xmm7, %%xmm2\n\t"
                 "aesenc %%xmm7, %%xmm3\n\t"
                 "aesenc %%xmm7, %%xmm4\n\t"
-                "movdqa %%xmm5, %%xmm8\n\t"     /* xmm8 := CTR (xmm5) */
-                "movdqa %%xmm5, %%xmm9\n\t"     /* xmm9 := CTR (xmm5) */
-                "movdqa %%xmm5, %%xmm10\n\t"    /* xmm10 := CTR (xmm5) */
-                "movdqa %%xmm5, %%xmm11\n\t"    /* xmm11 := CTR (xmm5) */
                 "paddb  3*16(%[addb]), %%xmm8\n\t"  /* xmm8 := be(4) + CTR */
                 "paddb  4*16(%[addb]), %%xmm9\n\t"  /* xmm9 := be(5) + CTR */
                 "paddb  5*16(%[addb]), %%xmm10\n\t" /* xmm10 := be(6) + CTR */
@@ -1442,72 +1400,33 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 "aesenc %%xmm7, %%xmm10\n\t"
                 "aesenc %%xmm7, %%xmm11\n\t"
 
-                "paddb  7*16(%[addb]), %%xmm5\n\t" /* xmm5 := be(8) + CTR */
-
                 "jmp    .Ldone_ctr%=\n\t"
 
-                ".Ladd32bit%=:\n\t"
-                "movdqa %%xmm5, (%[ctr])\n\t"   /* Restore CTR. */
-                "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0, xmm2 := CTR (xmm5) */
+                ".Ladd16bit%=:\n\t"
+                "movzbl 14(%[ctr]), %%eax;\n\t" /* Update CTR. */
+                "leal   1(%%eax), %%eax;\n\t"
+                "movb   %%al, 14(%[ctr]);\n\t"
+                "jz     .Lcarry_skip%=\n\t"
+
                 "movdqa %%xmm0, %%xmm2\n\t"
                 "pcmpeqd %%xmm1, %%xmm1\n\t"
-                "psrldq $8, %%xmm1\n\t"         /* xmm1 = -1 */
+                "psrldq $14, %%xmm1\n\t"        /* xmm1 = -1 */
 
                 "pshufb %%xmm6, %%xmm2\n\t"     /* xmm2 := le(xmm2) */
-                "psubq  %%xmm1, %%xmm2\n\t"     /* xmm2++           */
+                "psubw  %%xmm1, %%xmm2\n\t"     /* xmm2++           */
                 "movdqa %%xmm2, %%xmm3\n\t"     /* xmm3 := xmm2     */
-                "psubq  %%xmm1, %%xmm3\n\t"     /* xmm3++           */
+                "psubw  %%xmm1, %%xmm3\n\t"     /* xmm3++           */
                 "movdqa %%xmm3, %%xmm4\n\t"     /* xmm4 := xmm3     */
-                "psubq  %%xmm1, %%xmm4\n\t"     /* xmm4++           */
+                "psubw  %%xmm1, %%xmm4\n\t"     /* xmm4++           */
                 "movdqa %%xmm4, %%xmm8\n\t"     /* xmm8 := xmm4     */
-                "psubq  %%xmm1, %%xmm8\n\t"     /* xmm8++           */
+                "psubw  %%xmm1, %%xmm8\n\t"     /* xmm8++           */
                 "movdqa %%xmm8, %%xmm9\n\t"     /* xmm9 := xmm8     */
-                "psubq  %%xmm1, %%xmm9\n\t"     /* xmm9++           */
+                "psubw  %%xmm1, %%xmm9\n\t"     /* xmm9++           */
                 "movdqa %%xmm9, %%xmm10\n\t"    /* xmm10 := xmm9    */
-                "psubq  %%xmm1, %%xmm10\n\t"    /* xmm10++          */
+                "psubw  %%xmm1, %%xmm10\n\t"    /* xmm10++          */
                 "movdqa %%xmm10, %%xmm11\n\t"   /* xmm11 := xmm10   */
-                "psubq  %%xmm1, %%xmm11\n\t"    /* xmm11++          */
-                "movdqa %%xmm11, %%xmm5\n\t"    /* xmm5 := xmm11    */
-                "psubq  %%xmm1, %%xmm5\n\t"     /* xmm5++           */
+                "psubw  %%xmm1, %%xmm11\n\t"    /* xmm11++          */
 
-                /* detect if 64-bit carry handling is needed */
-                "cmpl   $0xffffffff, 8(%[ctr])\n\t"
-                "jne    .Lno_carry%=\n\t"
-                "movl   12(%[ctr]), %%esi\n\t"
-                "bswapl %%esi\n\t"
-                "cmpl   $0xfffffff8, %%esi\n\t"
-                "jb     .Lno_carry%=\n\t"       /* no carry */
-
-                "pslldq $8, %%xmm1\n\t"         /* move lower 64-bit to high */
-                "je     .Lcarry_xmm5%=\n\t"     /* esi == 0xfffffff8 */
-                "cmpl   $0xfffffffa, %%esi\n\t"
-                "jb     .Lcarry_xmm11%=\n\t"     /* esi == 0xfffffff9 */
-                "je     .Lcarry_xmm10%=\n\t"     /* esi == 0xfffffffa */
-                "cmpl   $0xfffffffc, %%esi\n\t"
-                "jb     .Lcarry_xmm9%=\n\t"     /* esi == 0xfffffffb */
-                "je     .Lcarry_xmm8%=\n\t"     /* esi == 0xfffffffc */
-                "cmpl   $0xfffffffe, %%esi\n\t"
-                "jb     .Lcarry_xmm4%=\n\t"     /* esi == 0xfffffffd */
-                "je     .Lcarry_xmm3%=\n\t"     /* esi == 0xfffffffe */
-                /* esi == 0xffffffff */
-
-                "psubq   %%xmm1, %%xmm2\n\t"
-                ".Lcarry_xmm3%=:\n\t"
-                "psubq   %%xmm1, %%xmm3\n\t"
-                ".Lcarry_xmm4%=:\n\t"
-                "psubq   %%xmm1, %%xmm4\n\t"
-                ".Lcarry_xmm8%=:\n\t"
-                "psubq   %%xmm1, %%xmm8\n\t"
-                ".Lcarry_xmm9%=:\n\t"
-                "psubq   %%xmm1, %%xmm9\n\t"
-                ".Lcarry_xmm10%=:\n\t"
-                "psubq   %%xmm1, %%xmm10\n\t"
-                ".Lcarry_xmm11%=:\n\t"
-                "psubq   %%xmm1, %%xmm11\n\t"
-                ".Lcarry_xmm5%=:\n\t"
-                "psubq   %%xmm1, %%xmm5\n\t"
-
-                ".Lno_carry%=:\n\t"
                 "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
                 "movdqa 16(%[key]), %%xmm7\n\t" /* xmm7 := key[1] */
 
@@ -1535,16 +1454,13 @@ do_aesni_ctr_8 (const RIJNDAEL_context *ctx,
                 "aesenc %%xmm7, %%xmm10\n\t"
                 "aesenc %%xmm7, %%xmm11\n\t"
 
-                "pshufb %%xmm6, %%xmm5\n\t"     /* xmm5 := be(xmm5) */
-                "movdqa %%xmm5, (%[ctr])\n\t"   /* Update CTR (mem).  */
-
                 ".align 16\n\t"
                 ".Ldone_ctr%=:\n\t"
                 :
                 : [ctr] "r" (ctr),
                   [key] "r" (ctx->keyschenc),
                   [addb] "r" (bige_addb)
-                : "%esi", "cc", "memory");
+                : "eax", "cc", "memory");
 
   asm volatile ("movdqa 0x20(%[key]), %%xmm1\n\t"
                 "movdqu 0*16(%[src]), %%xmm12\n\t" /* Get block 1.      */
@@ -2103,12 +2019,11 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
   aesni_prepare ();
   aesni_prepare_2_7();
 
-  asm volatile ("movdqa %[mask], %%xmm6\n\t" /* Preload mask */
-                "movdqa %[ctr], %%xmm5\n\t"  /* Preload CTR */
-                : /* No output */
-                : [mask] "m" (*be_mask),
-                  [ctr] "m" (*ctr)
-                : "memory");
+  if (nblocks >= 4)
+    asm volatile ("movdqa %[mask], %%xmm6\n\t" /* Preload mask */
+                  : /* No output */
+                  : [mask] "m" (*be_mask)
+                  : "memory");
 
 #ifdef __x86_64__
   if (nblocks >= 8)

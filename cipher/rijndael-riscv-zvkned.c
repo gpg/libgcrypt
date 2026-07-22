@@ -738,8 +738,7 @@ _gcry_aes_riscv_zvkned_ctr_enc (void *context, unsigned char *ctr_arg,
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4 }
   };
-  static const u64 carry_add[2] = { 1, 1 };
-  static const u64 nocarry_add[2] = { 1, 0 };
+  static const u32 le_add[4] = { 1, 0, 0, 0 };
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
@@ -749,12 +748,12 @@ _gcry_aes_riscv_zvkned_ctr_enc (void *context, unsigned char *ctr_arg,
   size_t vl_bytes = vl * 4;
   u64 ctrlow;
   vuint32m1_t ctr;
-  vuint8m1_t add1;
+  vuint32m1_t add1;
   ROUND_KEY_VARIABLES;
 
   PRELOAD_ROUND_KEYS (rk, rounds, vl);
 
-  add1 = __riscv_vle8_v_u8m1(add_u8_array[0], vl_bytes);
+  add1 = cast_u8m1_u32m1(__riscv_vle8_v_u8m1(add_u8_array[0], vl_bytes));
   ctr = unaligned_load_u32m1(ctr_arg, vl);
   ctrlow = __riscv_vmv_x_s_u64m1_u64(cast_u32m1_u64m1(bswap128_u32m1(ctr, vl)));
 
@@ -762,9 +761,12 @@ _gcry_aes_riscv_zvkned_ctr_enc (void *context, unsigned char *ctr_arg,
 
   if (nblocks >= 4)
     {
-      vuint8m1_t add2 = __riscv_vle8_v_u8m1(add_u8_array[1], vl_bytes);
-      vuint8m1_t add3 = __riscv_vle8_v_u8m1(add_u8_array[2], vl_bytes);
-      vuint8m1_t add4 = __riscv_vle8_v_u8m1(add_u8_array[3], vl_bytes);
+      vuint32m1_t add2 = cast_u8m1_u32m1(__riscv_vle8_v_u8m1(add_u8_array[1],
+							     vl_bytes));
+      vuint32m1_t add3 = cast_u8m1_u32m1(__riscv_vle8_v_u8m1(add_u8_array[2],
+							     vl_bytes));
+      vuint32m1_t add4 = cast_u8m1_u32m1(__riscv_vle8_v_u8m1(add_u8_array[3],
+							     vl_bytes));
 
       memory_barrier_with_vec(add2);
       memory_barrier_with_vec(add3);
@@ -778,67 +780,43 @@ _gcry_aes_riscv_zvkned_ctr_enc (void *context, unsigned char *ctr_arg,
 	  /* detect if 8-bit carry handling is needed */
 	  if (UNLIKELY(((ctrlow += 4) & 0xff) <= 3))
 	    {
-	      static const u64 *adders[5][4] =
-	      {
-		{ nocarry_add, nocarry_add, nocarry_add, carry_add },
-		{ nocarry_add, nocarry_add, carry_add, nocarry_add },
-		{ nocarry_add, carry_add, nocarry_add, nocarry_add },
-		{ carry_add, nocarry_add, nocarry_add, nocarry_add },
-		{ nocarry_add, nocarry_add, nocarry_add, nocarry_add }
-	      };
-	      unsigned int idx = ctrlow <= 3 ? ctrlow : 4;
-	      vuint64m1_t ctr_u64;
-	      vuint32m1_t ctr_u32_1;
-	      vuint32m1_t ctr_u32_2;
-	      vuint32m1_t ctr_u32_3;
-	      vuint32m1_t ctr_u32_4;
-	      vuint64m1_t add_u64;
+	      vuint32m1_t add_1 = __riscv_vle32_v_u32m1(le_add, vl);
+	      vuint32m1_t add_2 = __riscv_vadd_vv_u32m1(add_1, add_1, vl);
+	      vuint32m1_t ctr_le;
+	      vuint32m1_t ctr_1;
+	      vuint32m1_t ctr_2;
+	      vuint32m1_t ctr_3;
+	      vuint32m1_t ctr_4;
 
 	      /* Byte swap counter */
-	      ctr_u64 = cast_u32m1_u64m1(bswap128_u32m1(ctr, vl));
+	      ctr_le = bswap128_u32m1(ctr, vl);
 
 	      /* Addition with carry handling */
-	      add_u64 = __riscv_vle64_v_u64m1(adders[idx][0], vl / 2);
-	      ctr_u64 = __riscv_vadd_vv_u64m1(ctr_u64, add_u64, vl / 2);
-	      ctr_u32_1 = cast_u64m1_u32m1(ctr_u64);
-
-	      add_u64 = __riscv_vle64_v_u64m1(adders[idx][1], vl / 2);
-	      ctr_u64 = __riscv_vadd_vv_u64m1(ctr_u64, add_u64, vl / 2);
-	      ctr_u32_2 = cast_u64m1_u32m1(ctr_u64);
-
-	      add_u64 = __riscv_vle64_v_u64m1(adders[idx][2], vl / 2);
-	      ctr_u64 = __riscv_vadd_vv_u64m1(ctr_u64, add_u64, vl / 2);
-	      ctr_u32_3 = cast_u64m1_u32m1(ctr_u64);
-
-	      add_u64 = __riscv_vle64_v_u64m1(adders[idx][3], vl / 2);
-	      ctr_u64 = __riscv_vadd_vv_u64m1(ctr_u64, add_u64, vl / 2);
-	      ctr_u32_4 = cast_u64m1_u32m1(ctr_u64);
+	      ctr_1 = __riscv_vadd_vv_u32m1(ctr_le, add_1, vl);
+	      ctr_2 = __riscv_vadd_vv_u32m1(ctr_le, add_2, vl);
+	      ctr_3 = __riscv_vadd_vv_u32m1(ctr_1, add_2, vl);
+	      ctr_4 = __riscv_vadd_vv_u32m1(ctr_2, add_2, vl);
 
 	      /* Byte swap counters */
-	      ctr_u32_1 = bswap128_u32m1(ctr_u32_1, vl);
-	      ctr_u32_2 = bswap128_u32m1(ctr_u32_2, vl);
-	      ctr_u32_3 = bswap128_u32m1(ctr_u32_3, vl);
-	      ctr_u32_4 = bswap128_u32m1(ctr_u32_4, vl);
+	      ctr_1 = bswap128_u32m1(ctr_1, vl);
+	      ctr_2 = bswap128_u32m1(ctr_2, vl);
+	      ctr_3 = bswap128_u32m1(ctr_3, vl);
+	      ctr_4 = bswap128_u32m1(ctr_4, vl);
 
-	      ctr4blks = merge_4x_u32m1_to_u32m4(ctr, ctr_u32_1, ctr_u32_2,
-						 ctr_u32_3);
-	      ctr = ctr_u32_4;
+	      ctr4blks = merge_4x_u32m1_to_u32m4(ctr, ctr_1, ctr_2, ctr_3);
+	      ctr = ctr_4;
 	    }
 	  else
 	    {
 	      /* Fast path addition without carry handling */
-	      vuint8m1_t ctr_u8 = cast_u32m1_u8m1(ctr);
-	      vuint8m1_t ctr1 = __riscv_vadd_vv_u8m1(ctr_u8, add1, vl_bytes);
-	      vuint8m1_t ctr2 = __riscv_vadd_vv_u8m1(ctr_u8, add2, vl_bytes);
-	      vuint8m1_t ctr3 = __riscv_vadd_vv_u8m1(ctr_u8, add3, vl_bytes);
+	      vuint32m1_t ctr0 = ctr;
+	      vuint32m1_t ctr1 = __riscv_vadd_vv_u32m1(ctr, add1, vl);
+	      vuint32m1_t ctr2 = __riscv_vadd_vv_u32m1(ctr, add2, vl);
+	      vuint32m1_t ctr3 = __riscv_vadd_vv_u32m1(ctr, add3, vl);
 
-	      ctr = cast_u8m1_u32m1(__riscv_vadd_vv_u8m1(ctr_u8, add4,
-							 vl_bytes));
+	      ctr = __riscv_vadd_vv_u32m1(ctr, add4, vl);
 
-	      ctr4blks = merge_4x_u32m1_to_u32m4(cast_u8m1_u32m1(ctr_u8),
-						 cast_u8m1_u32m1(ctr1),
-						 cast_u8m1_u32m1(ctr2),
-						 cast_u8m1_u32m1(ctr3));
+	      ctr4blks = merge_4x_u32m1_to_u32m4(ctr0, ctr1, ctr2, ctr3);
 	    }
 
 	  data4blks = __riscv_vle8_v_u8m4(inbuf, vl_bytes * 4);
@@ -862,15 +840,13 @@ _gcry_aes_riscv_zvkned_ctr_enc (void *context, unsigned char *ctr_arg,
       /* detect if 8-bit carry handling is needed */
       if (UNLIKELY((++ctrlow & 0xff) == 0))
 	{
-	  const u64 *add_arr = UNLIKELY(ctrlow == 0) ? carry_add : nocarry_add;
-	  vuint64m1_t add_val = __riscv_vle64_v_u64m1(add_arr, vl / 2);
+	  vuint32m1_t add_val = __riscv_vle32_v_u32m1(le_add, vl);
 
 	  /* Byte swap counter */
 	  ctr = bswap128_u32m1(ctr, vl);
 
 	  /* Addition with carry handling */
-	  ctr = cast_u64m1_u32m1(__riscv_vadd_vv_u64m1(cast_u32m1_u64m1(ctr),
-						       add_val, vl / 2));
+	  ctr = __riscv_vadd_vv_u32m1(ctr, add_val, vl);
 
 	  /* Byte swap counter */
 	  ctr = bswap128_u32m1(ctr, vl);
@@ -878,8 +854,7 @@ _gcry_aes_riscv_zvkned_ctr_enc (void *context, unsigned char *ctr_arg,
       else
 	{
 	  /* Fast path addition without carry handling */
-	  ctr = cast_u8m1_u32m1(__riscv_vadd_vv_u8m1(cast_u32m1_u8m1(ctr),
-						     add1, vl_bytes));
+	  ctr = __riscv_vadd_vv_u32m1(ctr, add1, vl);
 	}
 
       AES_CRYPT(e, m1, rounds, block, vl);

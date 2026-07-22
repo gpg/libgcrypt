@@ -354,44 +354,18 @@ _gcry_aes_ssse3_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
                          unsigned char *outbuf, const unsigned char *inbuf,
                          size_t nblocks)
 {
-  static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
-    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
   unsigned int nrounds = ctx->rounds;
   byte ssse3_state[SSSE3_STATE_SIZE];
-  u64 ctrlow;
 
   vpaes_ssse3_prepare_enc ();
 
-  asm volatile ("movdqa %[mask], %%xmm6\n\t" /* Preload mask */
-                "movdqa (%[ctr]), %%xmm7\n\t"  /* Preload CTR */
-                "movq 8(%[ctr]), %q[ctrlow]\n\t"
-                "bswapq %q[ctrlow]\n\t"
-                : [ctrlow] "=r" (ctrlow)
-                : [mask] "m" (*be_mask),
-                  [ctr] "r" (ctr)
-                : "memory", "cc");
-
   for ( ;nblocks; nblocks-- )
     {
-      asm volatile ("movdqa %%xmm7, %%xmm0\n\t"     /* xmm0 := CTR (xmm7)  */
-                    "pcmpeqd %%xmm1, %%xmm1\n\t"
-                    "psrldq $8, %%xmm1\n\t"         /* xmm1 = -1 */
-
-                    "pshufb %%xmm6, %%xmm7\n\t"
-                    "psubq  %%xmm1, %%xmm7\n\t"     /* xmm7++ (big endian) */
-
-                    /* detect if 64-bit carry handling is needed */
-                    "incq   %q[ctrlow]\n\t"
-                    "jnz    .Lno_carry%=\n\t"
-
-                    "pslldq $8, %%xmm1\n\t"         /* move lower 64-bit to high */
-                    "psubq   %%xmm1, %%xmm7\n\t"    /* add carry to upper 64bits */
-
-                    ".Lno_carry%=:\n\t"
-
-                    "pshufb %%xmm6, %%xmm7\n\t"
-                    : [ctrlow] "+r" (ctrlow)
+      asm volatile ("movdqa (%[ctr]), %%xmm0\n\t"   /* xmm0 := CTR (mem) */
+                    "addb   $1, 15(%[ctr])\n\t"     /* Update CTR (mem). */
+                    "adcb   $0, 14(%[ctr])\n\t"
                     :
+                    : [ctr] "r" (ctr)
                     : "cc", "memory");
 
       do_vpaes_ssse3_enc (ctx, nrounds);
@@ -406,11 +380,6 @@ _gcry_aes_ssse3_ctr_enc (RIJNDAEL_context *ctx, unsigned char *ctr,
       outbuf += BLOCKSIZE;
       inbuf  += BLOCKSIZE;
     }
-
-  asm volatile ("movdqu %%xmm7, %[ctr]\n\t"   /* Update CTR (mem).       */
-                : [ctr] "=m" (*ctr)
-                :
-                : "memory" );
 
   vpaes_ssse3_cleanup ();
 }

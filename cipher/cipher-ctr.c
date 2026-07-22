@@ -64,12 +64,52 @@ _gcry_cipher_ctr_encrypt_ctx (gcry_cipher_hd_t c,
 
   /* Use a bulk method if available.  */
   nblocks = inbuflen >> blocksize_shift;
-  if (nblocks && c->bulk.ctr_enc)
+  if (nblocks && c->bulk.ctr16be_enc)
     {
-      c->bulk.ctr_enc (algo_context, c->u_ctr.ctr, outbuf, inbuf, nblocks);
-      inbuf  += nblocks << blocksize_shift;
-      outbuf += nblocks << blocksize_shift;
-      inbuflen -= nblocks << blocksize_shift;
+      byte ctr_copy[MAX_BLOCKSIZE];
+
+      do
+	{
+	  /* Bulk CTR function only handles 16-bit big-endian addition of
+	   * counter as optimization. Let bulk function to process only up to
+	   * next 16-bit overflow. */
+	  u32 ctr_low32 = buf_get_be32(&c->u_ctr.ctr[blocksize - sizeof(u32)]);
+	  unsigned int ctr_low16 = ctr_low32 & 0xffffU;
+	  size_t blks_to_overflow = (size_t)0x10000U - ctr_low16;
+	  size_t curr_blks = nblocks;
+	  int ctr_overflows = 0;
+
+	  if (nblocks >= blks_to_overflow)
+	    {
+	      curr_blks = blks_to_overflow;
+
+	      ctr_overflows = 1;
+	      cipher_block_cpy(ctr_copy, c->u_ctr.ctr, blocksize);
+	    }
+
+	  c->bulk.ctr16be_enc (algo_context, c->u_ctr.ctr, outbuf, inbuf,
+			       curr_blks);
+
+	  if (ctr_overflows)
+	    {
+	      /* Lower 16-bits of CTR should now be zero. */
+	      ctr_low32 = buf_get_be32(&c->u_ctr.ctr[blocksize - sizeof(u32)]);
+	      ctr_low16 = ctr_low32 & 0xffffU;
+	      gcry_assert(ctr_low16 == 0);
+
+	      /* Handle full blocksize addition. */
+	      cipher_block_cpy(c->u_ctr.ctr, ctr_copy, blocksize);
+	      cipher_block_add(c->u_ctr.ctr, curr_blks, blocksize);
+
+	      wipememory(ctr_copy, sizeof(ctr_copy));
+	    }
+
+	  inbuf  += curr_blks << blocksize_shift;
+	  outbuf += curr_blks << blocksize_shift;
+	  inbuflen -= curr_blks << blocksize_shift;
+	  nblocks -= curr_blks;
+	}
+      while (nblocks);
     }
 
   /* If we don't have a bulk method use the standard method.  We also
