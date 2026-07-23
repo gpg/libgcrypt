@@ -804,7 +804,7 @@ static inline unsigned int _gcry_blocksize_shift(gcry_cipher_hd_t c)
 {
   /* Only blocksizes 8 and 16 are used. Return value in such way
    * that compiler can optimize calling functions based on this.  */
-  return c->spec->blocksize == 8 ? 3 : 4;
+  return UNLIKELY(c->spec->blocksize == 8) ? 3 : 4;
 }
 
 
@@ -815,7 +815,7 @@ cipher_block_add(void *_dstsrc, unsigned int add, size_t blocksize)
   byte *dstsrc = _dstsrc;
   u64 s[2];
 
-  if (blocksize == 8)
+  if (UNLIKELY(blocksize == 8))
     {
       buf_put_be64(dstsrc + 0, buf_get_be64(dstsrc + 0) + add);
     }
@@ -839,7 +839,7 @@ cipher_block_cpy(void *_dst, const void *_src, size_t blocksize)
   const byte *src = _src;
   u64 s[2];
 
-  if (blocksize == 8)
+  if (UNLIKELY(blocksize == 8))
     {
       buf_put_he64(dst + 0, buf_get_he64(src + 0));
     }
@@ -864,7 +864,7 @@ cipher_block_xor(void *_dst, const void *_src1, const void *_src2,
   u64 s1[2];
   u64 s2[2];
 
-  if (blocksize == 8)
+  if (UNLIKELY(blocksize == 8))
     {
       buf_put_he64(dst + 0, buf_get_he64(src1 + 0) ^ buf_get_he64(src2 + 0));
     }
@@ -900,7 +900,7 @@ cipher_block_xor_2dst(void *_dst1, void *_dst2, const void *_src,
   u64 d2[2];
   u64 s[2];
 
-  if (blocksize == 8)
+  if (UNLIKELY(blocksize == 8))
     {
       d2[0] = buf_get_he64(dst2 + 0) ^ buf_get_he64(src + 0);
       buf_put_he64(dst2 + 0, d2[0]);
@@ -937,7 +937,7 @@ cipher_block_xor_n_copy_2(void *_dst_xor, const void *_src_xor,
   u64 sx[2];
   u64 sdc[2];
 
-  if (blocksize == 8)
+  if (UNLIKELY(blocksize == 8))
     {
       sc[0] = buf_get_he64(src_cpy + 0);
       buf_put_he64(dst_xor + 0,
@@ -971,7 +971,7 @@ cipher_block_bswap (void *_dst_bswap, const void *_src_bswap,
   const byte *src_bswap = _src_bswap;
   u64 t[2];
 
-  if (blocksize == 8)
+  if (UNLIKELY(blocksize == 8))
     {
       buf_put_le64(dst_bswap, buf_get_be64(src_bswap));
     }
