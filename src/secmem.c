@@ -296,7 +296,12 @@ lock_pool_pages (void *p, size_t n)
   uid = getuid ();
 
 #ifdef HAVE_BROKEN_MLOCK
-#if defined(__has_feature) && __has_feature(address_sanitizer)
+#if defined __has_feature
+#  if __has_feature (address_sanitizer)
+#    define GCRY_ASAN_NO_MLOCK 1
+#  endif
+#endif
+#ifdef GCRY_ASAN_NO_MLOCK
   /* Address sanitizer and mlock is incompatible.  We can't use mlock
    * with address sanitizer enabled.  Proceed with NO_MLOCK=1.  */
   (void)p;
