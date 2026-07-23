@@ -98,8 +98,10 @@ extern "C" {
 #define _GCRY_GCC_ATTR_SENTINEL(a) __attribute__ ((sentinel(a)))
 #endif
 
-#if _GCRY_GCC_VERSION >= 80000
-#define _GCRY_GCC_ATTR_NONSTRING __attribute__((__nonstring__))
+#if defined __has_attribute
+#  if __has_attribute (__nonstring__)
+#    define _GCRY_GCC_ATTR_NONSTRING __attribute__((__nonstring__))
+#  endif
 #endif
 
 #endif /*__GNUC__*/
