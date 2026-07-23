@@ -42,7 +42,7 @@ _gcry_cmac_write (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
   size_t blocksize = 1 << blocksize_shift;
   byte outbuf[MAX_BLOCKSIZE];
   unsigned int burn = 0;
-  unsigned int nblocks;
+  size_t nblocks;
   size_t n;
 
   if (ctx->tag)
