@@ -815,6 +815,11 @@ gcm_ctr_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
 {
   gcry_err_code_t err = 0;
 
+  /* Input is capped to 32KiB by gcm_crypt_inner() for better cache
+   * locality.  As side-effect, CTR overflow checks below do not
+   * overflow. */
+  gcry_assert(inbuflen <= 32 * 1024);
+
   while (inbuflen)
     {
       u32 nblocks_to_overflow;
