@@ -16159,6 +16159,68 @@ out:
   gcry_mac_close (hd);
 }
 
+#if USE_GOST28147
+static void
+check_mac_gost_imit_verify_len (void)
+{
+  static const char key[32] _GCRY_GCC_ATTR_NONSTRING =
+    "\x9d\x05\xb7\x9e\x90\xca\xd0\x0a\x2c\xda\xd2\x2e\xf4\xe8\x6f\x5c"
+    "\xf5\xdc\x37\x68\x19\x85\xb3\xbf\xaa\x18\xc1\xc3\x05\x0a\x91\xa2";
+  static const char data[16] _GCRY_GCC_ATTR_NONSTRING =
+    "\xb5\xa1\xf0\xe3\xce\x2f\x02\x1d\x67\x61\x94\x34\x5c\x41\xe3\x6e";
+  static const size_t bad_lens[] = { 9, 16, 64, 4096 };
+  unsigned char tag[8];
+  unsigned char big[4096];
+  size_t taglen = sizeof (tag);
+  gcry_mac_hd_t hd;
+  gcry_error_t err;
+  unsigned int i;
+
+  if (gcry_mac_test_algo (GCRY_MAC_GOST28147_IMIT))
+    return;
+
+  if (verbose)
+    fprintf (stderr, "  checking GOST28147 IMIT verify length handling\n");
+
+  err = gcry_mac_open (&hd, GCRY_MAC_GOST28147_IMIT, 0, NULL);
+  if (err)
+    {
+      fail ("gost imit verify: gcry_mac_open failed: %s\n", gpg_strerror (err));
+      return;
+    }
+
+  if (!(err = gcry_mac_setkey (hd, key, sizeof (key))))
+    err = gcry_mac_write (hd, data, sizeof (data));
+  if (!err)
+    err = gcry_mac_read (hd, tag, &taglen);
+  if (err || taglen != sizeof (tag))
+    {
+      fail ("gost imit verify: setup failed: %s\n", gpg_strerror (err));
+      goto out;
+    }
+
+  err = gcry_mac_verify (hd, tag, sizeof (tag));
+  if (err)
+    fail ("gost imit verify: 8-byte tag rejected: %s\n", gpg_strerror (err));
+  err = gcry_mac_verify (hd, tag, 4);
+  if (err)
+    fail ("gost imit verify: 4-byte tag rejected: %s\n", gpg_strerror (err));
+
+  memset (big, 0, sizeof (big));
+  memcpy (big, tag, sizeof (tag));
+  for (i = 0; i < DIM (bad_lens); i++)
+    {
+      err = gcry_mac_verify (hd, big, bad_lens[i]);
+      if (gcry_err_code (err) != GPG_ERR_INV_LENGTH)
+        fail ("gost imit verify: oversized len %d not rejected: %s\n",
+              (int)bad_lens[i], gpg_strerror (err));
+    }
+
+out:
+  gcry_mac_close (hd);
+}
+#endif /* USE_GOST28147 */
+
 static void
 check_mac (void)
 {
@@ -17109,6 +17171,10 @@ check_mac (void)
 		     algos[i].iv, algos[i].iv ? strlen(algos[i].iv) : 0,
 		     algos[i].expect, 1);
     }
+
+#if USE_GOST28147
+  check_mac_gost_imit_verify_len ();
+#endif
 
   if (verbose)
     fprintf (stderr, "Completed MAC checks.\n");

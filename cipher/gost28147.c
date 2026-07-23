@@ -485,6 +485,9 @@ gost_imit_verify (gcry_mac_hd_t h, const unsigned char *buf, size_t buflen)
 {
   unsigned char tbuf[8];
 
+  if (buflen > sizeof(tbuf))
+    return GPG_ERR_INV_LENGTH;
+
   gost_imit_finish (h);
 
   buf_put_le32 (tbuf+0, h->u.imit.n1);
