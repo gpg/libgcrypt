@@ -281,7 +281,7 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
           if ((c->u_mode.ocb.aad_nblocks % table_maxblks) == 0)
             {
               /* Table overflow, L needs to be generated. */
-              ocb_get_L_big(c, c->u_mode.ocb.aad_nblocks + 1, l_tmp);
+              ocb_get_L_big(c, c->u_mode.ocb.aad_nblocks, l_tmp);
             }
           else
             {

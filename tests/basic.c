@@ -9475,6 +9475,65 @@ check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
 
 
 static void
+ocb_aad_tag (const unsigned char key[16], const unsigned char nonce[12],
+             const unsigned char *aad, size_t len0, size_t len1,
+             unsigned char tag[16])
+{
+  gcry_cipher_hd_t hd;
+  gcry_error_t err;
+  unsigned char out[16];
+
+  err = gcry_cipher_open (&hd, GCRY_CIPHER_AES, GCRY_CIPHER_MODE_OCB, 0);
+  if (!err)
+    err = gcry_cipher_setkey (hd, key, 16);
+  if (!err)
+    err = gcry_cipher_setiv (hd, nonce, 12);
+  if (!err)
+    err = gcry_cipher_authenticate (hd, aad, len0);
+  if (!err && len1)
+    err = gcry_cipher_authenticate (hd, aad + len0, len1);
+  if (!err)
+    err = gcry_cipher_final (hd);
+  if (!err)
+    err = gcry_cipher_encrypt (hd, out, sizeof out, aad, sizeof out);
+  if (!err)
+    err = gcry_cipher_gettag (hd, tag, 16);
+  gcry_cipher_close (hd);
+  if (err)
+    fail ("ocb aad tablewrap: %s\n", gpg_strerror (err));
+}
+
+
+static void
+check_ocb_cipher_aad_tablewrap (void)
+{
+  static const unsigned char key[16] _GCRY_GCC_ATTR_NONSTRING =
+    "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f";
+  static const unsigned char nonce[12] _GCRY_GCC_ATTR_NONSTRING =
+    "\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x0d";
+  const size_t aadlen = (size_t)65536 * 16;   /* fills one OCB L-table wrap */
+  unsigned char tag_ref[16], tag_split[16];
+  unsigned char *aad;
+  size_t i;
+
+  if (verbose)
+    fprintf (stderr, "  checking OCB AAD split across L-table boundary\n");
+
+  aad = xmalloc (aadlen);
+  for (i = 0; i < aadlen; i++)
+    aad[i] = (unsigned char)i;
+
+  ocb_aad_tag (key, nonce, aad, aadlen, 0, tag_ref);
+  ocb_aad_tag (key, nonce, aad, aadlen - 15, 15, tag_split);
+
+  if (memcmp (tag_ref, tag_split, 16))
+    fail ("ocb aad tablewrap: split tag mismatch\n");
+
+  xfree (aad);
+}
+
+
+static void
 check_ocb_cipher_splitaad (void)
 {
   const char t_nonce[] = ("BBAA9988776655443322110D");
@@ -9766,6 +9825,7 @@ check_ocb_cipher (void)
 
   /* Check that the AAD data is correctly buffered.  */
   check_ocb_cipher_splitaad ();
+  check_ocb_cipher_aad_tablewrap ();
 }
 
 
