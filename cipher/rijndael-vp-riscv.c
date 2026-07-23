@@ -230,7 +230,7 @@ typedef vuint8m1_t __m256i;
 
 #define movdqa256(a, o)         (o = (a))
 
-#define movdqa128_256(a, o)     (o = (a))
+#define movdqa128_256(a, o)     (o = __riscv_vslideup_vx_u8m1((a), __riscv_vmv_v_x_u8m1(0, 16), 16, 32))
 #define movdqa256_128(a, o)     (o = (a))
 
 #define movdqa256_memld(a, o)   (o = __riscv_vle8_v_u8m1((const void *)(a), 32))
