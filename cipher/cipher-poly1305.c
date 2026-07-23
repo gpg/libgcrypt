@@ -33,22 +33,7 @@
 static inline int
 poly1305_bytecounter_add (u32 ctr[2], size_t add)
 {
-  int overflow = 0;
-
-  if (sizeof(add) > sizeof(u32))
-    {
-      u32 high_add = ((add >> 31) >> 1) & 0xffffffff;
-      ctr[1] += high_add;
-      if (ctr[1] < high_add)
-        overflow = 1;
-    }
-
-  ctr[0] += add;
-  if (ctr[0] >= add)
-    return overflow;
-
-  ctr[1] += 1;
-  return (ctr[1] < 1) || overflow;
+  return cipher_bytecounter_add (ctr, add);
 }
 
 

@@ -808,6 +808,30 @@ static inline unsigned int _gcry_blocksize_shift(gcry_cipher_hd_t c)
 }
 
 
+/* Add 32-bit or 64-bit size_t to 2x32-bit byte counter. */
+static inline int
+cipher_bytecounter_add (u32 ctr[2], size_t add)
+{
+  int overflow = 0;
+  u32 low_add = add;
+
+  if (sizeof(add) > sizeof(u32))
+    {
+      u32 high_add = ((add >> 31) >> 1) & 0xffffffff;
+      ctr[1] += high_add;
+      if (ctr[1] < high_add)
+        overflow = 1;
+    }
+
+  ctr[0] += low_add;
+  if (ctr[0] >= low_add)
+    return overflow;
+
+  ctr[1] += 1;
+  return (ctr[1] < 1) || overflow;
+}
+
+
 /* Optimized function for adding value to cipher block. */
 static inline void
 cipher_block_add(void *_dstsrc, unsigned int add, size_t blocksize)
