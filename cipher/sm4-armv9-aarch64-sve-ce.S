@@ -70,7 +70,8 @@ _gcry_sm4_armv9_svesm4_consts:
     .byte 0xfc, 0xfd, 0xfe, 0xff, 0xf8, 0xf9, 0xfa, 0xfb
     .byte 0xf4, 0xf5, 0xf6, 0xf7, 0xf0, 0xf1, 0xf2, 0xf3
 
-.Lle128_inc:
+.Lbe16_inc:
+    .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     .byte 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -102,18 +103,15 @@ _gcry_sm4_armv9_svesm4_consts:
     .byte 0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     .byte 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 ELF(.size _gcry_sm4_armv9_svesm4_consts,.-_gcry_sm4_armv9_svesm4_consts)
 
 /* Register macros */
 
-#define RCTR        z16
-#define RCTRv       v16
 #define RIV         z16
 #define RIVv        v16
 #define RSWAP128    z17
-#define RZERO       z18
-#define RLE128_INC  z19
+#define RBE16_INC   z18
+#define RADDv       v19
 
 #define RTMP0       z20
 #define RTMP1       z21
@@ -814,38 +812,35 @@ _gcry_sm4_armv9_sve_ce_ctr_enc:
 
     PREPARE();
 
-    dup         RZERO.d, #0;
-    GET_DATA_POINTER(x6, .Lle128_inc);
-    ld1b        {RLE128_INC.b}, p0/z, [x6];
+    GET_DATA_POINTER(x6, .Lbe16_inc);
+    ld1b        {RBE16_INC.b}, p0/z, [x6];
 
-    ldp         x7, x8, [x3];
-    rev         x7, x7;
-    rev         x8, x8;
+    ld1         {RIVv.16b}, [x3];
+    rev64       RIVv.16b, RIVv.16b;
 
-#define inc_le128(zctr)                             \
-        mov         RCTRv.d[1], x8;                 \
-        mov         RCTRv.d[0], x7;                 \
-        mov         zctr.d, RLE128_INC.d;           \
-        dup         RCTR.q, RCTR.q[0];              \
-        adds        x8, x8, x5, LSR #4;             \
-        adc         x7, x7, xzr;                    \
-        adclt       zctr.d, RCTR.d, RZERO.d;        \
-        adclt       RCTR.d, zctr.d, RZERO.d;        \
-        trn1        zctr.d, RCTR.d, zctr.d;         \
+    lsr         x6, x5, #4;
+    movi        RADDv.16b, #0;
+    mov         RADDv.d[1], x6;
+    mov         x6, #1;
+
+#define inc_be16(zctr)                              \
+        dup         zctr.q, RIV.q[0];               \
+        add         RIVv.8h, RIVv.8h, RADDv.8h;     \
+        add         zctr.h, zctr.h, RBE16_INC.h;    \
         revb        zctr.d, p0/m, zctr.d;
 
 .Lctr_loop_blks:
     sub         x4, x4, x5, LSR #1;         /* x4 - (8 * VL) */
     tbnz        x4, #63, .Lctr_tail8;
 
-    inc_le128(z0);
-    inc_le128(z1);
-    inc_le128(z2);
-    inc_le128(z3);
-    inc_le128(z4);
-    inc_le128(z5);
-    inc_le128(z6);
-    inc_le128(z7);
+    inc_be16(z0);
+    inc_be16(z1);
+    inc_be16(z2);
+    inc_be16(z3);
+    inc_be16(z4);
+    inc_be16(z5);
+    inc_be16(z6);
+    inc_be16(z7);
 
     SM4_SVE_CE_CRYPT_BLK8(z0, z1, z2, z3, z4, z5, z6, z7);
 
@@ -887,10 +882,10 @@ _gcry_sm4_armv9_sve_ce_ctr_enc:
 
     sub         x4, x4, x5, LSR #2;         /* x4 - (4 * VL) */
 
-    inc_le128(z0);
-    inc_le128(z1);
-    inc_le128(z2);
-    inc_le128(z3);
+    inc_be16(z0);
+    inc_be16(z1);
+    inc_be16(z2);
+    inc_be16(z3);
 
     SM4_SVE_CE_CRYPT_BLK4(z0, z1, z2, z3);
 
@@ -917,7 +912,7 @@ _gcry_sm4_armv9_sve_ce_ctr_enc:
 
     sub         x4, x4, x5, LSR #4;         /* x4 - VL */
 
-    inc_le128(z0);
+    inc_be16(z0);
     SM4_SVE_CE_CRYPT_BLK(z0);
     ld1b        {RTMP0.b}, p0/z, [x2];
     eor         z0.d, z0.d, RTMP0.d;
@@ -929,27 +924,26 @@ _gcry_sm4_armv9_sve_ce_ctr_enc:
     b           .Lctr_tail4;
 
 .Lctr_tail:
+    mov         RADDv.d[1], x6;
+
+.Lctr_tail_loop:
     sub         x4, x4, #1;
 
-    /* inc_le128 for CE */
-    mov         v0.d[1], x8;
-    mov         v0.d[0], x7;
-    adds        x8, x8, #1;
-    adc         x7, x7, xzr;
-    rev64       v0.16b, v0.16b;
+    /* increment counter for CE */
+    rev64       v0.16b, RIVv.16b;
+    add         RIVv.8h, RIVv.8h, RADDv.8h;
 
     SM4_CE_CRYPT_BLK(v0);
     ld1         {RTMP0v.16b}, [x2], #16;
     eor         v0.16b, v0.16b, RTMP0v.16b;
     st1         {v0.16b}, [x1], #16;
 
-    cbnz        x4, .Lctr_tail;
+    cbnz        x4, .Lctr_tail_loop;
 
 .Lctr_end:
     /* store new CTR */
-    rev x7, x7;
-    rev x8, x8;
-    stp x7, x8, [x3];
+    rev64       RIVv.16b, RIVv.16b;
+    st1         {RIVv.16b}, [x3];
 
     CLEAR_ALL_REGS();
     ret_spec_stop;

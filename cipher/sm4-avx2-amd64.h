@@ -56,12 +56,6 @@ FUNC_NAME(cipher_mode_consts):
 
 .text
 
-#define inc_le128(x, minus_one, tmp) \
-	vpcmpeqq minus_one, x, tmp; \
-	vpsubq minus_one, x, x; \
-	vpslldq $8, tmp, tmp; \
-	vpsubq tmp, x, x;
-
 .align 16
 .globl FUNC_NAME(ctr_enc)
 ELF(.type   FUNC_NAME(ctr_enc),@function;)
@@ -82,74 +76,39 @@ FUNC_NAME(ctr_enc):
 
 	vbroadcasti128 .Lbswap128_mask rRIP, RTMP3;
 	vpcmpeqd RNOT, RNOT, RNOT;
-	vpsrldq $8, RNOT, RNOT;   /* ab: -1:0 ; cd: -1:0 */
-	vpaddq RNOT, RNOT, RTMP2; /* ab: -2:0 ; cd: -2:0 */
+	vpsrldq $14, RNOT, RNOT;   /* ab: -1:0 ; cd: -1:0 */
+	vpaddw RNOT, RNOT, RTMP2; /* ab: -2:0 ; cd: -2:0 */
 
 	/* load IV and byteswap */
 	vmovdqu (%rcx), RTMP4x;
 	vpshufb RTMP3x, RTMP4x, RTMP4x;
 	vmovdqa RTMP4x, RTMP0x;
-	inc_le128(RTMP4x, RNOTx, RTMP1x);
+	vpsubw RNOTx, RTMP4x, RTMP4x;
 	vinserti128 $1, RTMP4x, RTMP0, RTMP0;
 	vpshufb RTMP3, RTMP0, RA0; /* +1 ; +0 */
 
-	/* check need for handling 64-bit overflow and carry */
-	cmpq $(0xffffffffffffffff - 16), %rax;
-	ja .Lhandle_ctr_carry;
-
 	/* construct IVs */
-	vpsubq RTMP2, RTMP0, RTMP0; /* +3 ; +2 */
+	vpsubw RTMP2, RTMP0, RTMP0; /* +3 ; +2 */
 	vpshufb RTMP3, RTMP0, RA1;
-	vpsubq RTMP2, RTMP0, RTMP0; /* +5 ; +4 */
+	vpsubw RTMP2, RTMP0, RTMP0; /* +5 ; +4 */
 	vpshufb RTMP3, RTMP0, RA2;
-	vpsubq RTMP2, RTMP0, RTMP0; /* +7 ; +6 */
+	vpsubw RTMP2, RTMP0, RTMP0; /* +7 ; +6 */
 	vpshufb RTMP3, RTMP0, RA3;
-	vpsubq RTMP2, RTMP0, RTMP0; /* +9 ; +8 */
+	vpsubw RTMP2, RTMP0, RTMP0; /* +9 ; +8 */
 	vpshufb RTMP3, RTMP0, RB0;
-	vpsubq RTMP2, RTMP0, RTMP0; /* +11 ; +10 */
+	vpsubw RTMP2, RTMP0, RTMP0; /* +11 ; +10 */
 	vpshufb RTMP3, RTMP0, RB1;
-	vpsubq RTMP2, RTMP0, RTMP0; /* +13 ; +12 */
+	vpsubw RTMP2, RTMP0, RTMP0; /* +13 ; +12 */
 	vpshufb RTMP3, RTMP0, RB2;
-	vpsubq RTMP2, RTMP0, RTMP0; /* +15 ; +14 */
+	vpsubw RTMP2, RTMP0, RTMP0; /* +15 ; +14 */
 	vpshufb RTMP3, RTMP0, RB3;
-	vpsubq RTMP2, RTMP0, RTMP0; /* +16 */
-	vpshufb RTMP3x, RTMP0x, RTMP0x;
-
-	jmp .Lctr_carry_done;
-
-.Lhandle_ctr_carry:
-	/* construct IVs */
-	inc_le128(RTMP0, RNOT, RTMP1);
-	inc_le128(RTMP0, RNOT, RTMP1);
-	vpshufb RTMP3, RTMP0, RA1; /* +3 ; +2 */
-	inc_le128(RTMP0, RNOT, RTMP1);
-	inc_le128(RTMP0, RNOT, RTMP1);
-	vpshufb RTMP3, RTMP0, RA2; /* +5 ; +4 */
-	inc_le128(RTMP0, RNOT, RTMP1);
-	inc_le128(RTMP0, RNOT, RTMP1);
-	vpshufb RTMP3, RTMP0, RA3; /* +7 ; +6 */
-	inc_le128(RTMP0, RNOT, RTMP1);
-	inc_le128(RTMP0, RNOT, RTMP1);
-	vpshufb RTMP3, RTMP0, RB0; /* +9 ; +8 */
-	inc_le128(RTMP0, RNOT, RTMP1);
-	inc_le128(RTMP0, RNOT, RTMP1);
-	vpshufb RTMP3, RTMP0, RB1; /* +11 ; +10 */
-	inc_le128(RTMP0, RNOT, RTMP1);
-	inc_le128(RTMP0, RNOT, RTMP1);
-	vpshufb RTMP3, RTMP0, RB2; /* +13 ; +12 */
-	inc_le128(RTMP0, RNOT, RTMP1);
-	inc_le128(RTMP0, RNOT, RTMP1);
-	vpshufb RTMP3, RTMP0, RB3; /* +15 ; +14 */
-	inc_le128(RTMP0, RNOT, RTMP1);
-	vextracti128 $1, RTMP0, RTMP0x;
-	vpshufb RTMP3x, RTMP0x, RTMP0x; /* +16 */
-
-.Lctr_carry_done:
-	/* store new IV */
-	vmovdqu RTMP0x, (%rcx);
 
 .align 8
 .Lload_ctr_done:
+	/* Update counter */
+	addb $16, 15(%rcx);
+	adcb $0, 14(%rcx);
+
 	call SM4_CRYPT_BLK16;
 
 	vpxor (0 * 32)(%rdx), RA0, RA0;
@@ -175,24 +134,8 @@ FUNC_NAME(ctr_enc):
 	ret_spec_stop;
 
 .align 8
-.Lctr_byteadd_full_ctr_carry:
-	movq 8(%rcx), %r11;
-	movq (%rcx), %r10;
-	bswapq %r11;
-	bswapq %r10;
-	addq $16, %r11;
-	adcq $0, %r10;
-	bswapq %r11;
-	bswapq %r10;
-	movq %r11, 8(%rcx);
-	movq %r10, (%rcx);
-	jmp .Lctr_byteadd_ymm;
-.align 8
 .Lctr_byteadd:
 	vbroadcasti128 (%rcx), RB3;
-	je .Lctr_byteadd_full_ctr_carry;
-	addb $16, 15(%rcx);
-.Lctr_byteadd_ymm:
 	vpaddb .Lbige_addb_0_1 rRIP, RB3, RA0;
 	vpaddb .Lbige_addb_2_3 rRIP, RB3, RA1;
 	vpaddb .Lbige_addb_4_5 rRIP, RB3, RA2;

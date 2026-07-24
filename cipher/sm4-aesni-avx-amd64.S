@@ -571,37 +571,30 @@ _gcry_sm4_aesni_avx_ctr_enc:
 	vpshufb RBSWAP, RA0, RTMP0; /* be => le */
 
 	vpcmpeqd RNOT, RNOT, RNOT;
-	vpsrldq $8, RNOT, RNOT; /* low: -1, high: 0 */
-
-#define inc_le128(x, minus_one, tmp) \
-	vpcmpeqq minus_one, x, tmp; \
-	vpsubq minus_one, x, x; \
-	vpslldq $8, tmp, tmp; \
-	vpsubq tmp, x, x;
+	vpsrldq $14, RNOT, RNOT; /* low: -1, high: 0 */
 
 	/* construct IVs */
-	inc_le128(RTMP0, RNOT, RTMP2); /* +1 */
+	vpsubw RNOT, RTMP0, RTMP0; /* +1 */
 	vpshufb RBSWAP, RTMP0, RA1;
-	inc_le128(RTMP0, RNOT, RTMP2); /* +2 */
+	vpsubw RNOT, RTMP0, RTMP0; /* +2 */
 	vpshufb RBSWAP, RTMP0, RA2;
-	inc_le128(RTMP0, RNOT, RTMP2); /* +3 */
+	vpsubw RNOT, RTMP0, RTMP0; /* +3 */
 	vpshufb RBSWAP, RTMP0, RA3;
-	inc_le128(RTMP0, RNOT, RTMP2); /* +4 */
+	vpsubw RNOT, RTMP0, RTMP0; /* +4 */
 	vpshufb RBSWAP, RTMP0, RB0;
-	inc_le128(RTMP0, RNOT, RTMP2); /* +5 */
+	vpsubw RNOT, RTMP0, RTMP0; /* +5 */
 	vpshufb RBSWAP, RTMP0, RB1;
-	inc_le128(RTMP0, RNOT, RTMP2); /* +6 */
+	vpsubw RNOT, RTMP0, RTMP0; /* +6 */
 	vpshufb RBSWAP, RTMP0, RB2;
-	inc_le128(RTMP0, RNOT, RTMP2); /* +7 */
+	vpsubw RNOT, RTMP0, RTMP0; /* +7 */
 	vpshufb RBSWAP, RTMP0, RB3;
-	inc_le128(RTMP0, RNOT, RTMP2); /* +8 */
-	vpshufb RBSWAP, RTMP0, RTMP1;
-
-	/* store new IV */
-	vmovdqu RTMP1, (%rcx);
 
 .align 8
 .Lload_ctr_done:
+	/* Update counter */
+	addb $8, 15(%rcx);
+	adcb $0, 14(%rcx);
+
 	call __sm4_crypt_blk8;
 
 	vpxor (0 * 16)(%rdx), RA0, RA0;
@@ -625,26 +618,10 @@ _gcry_sm4_aesni_avx_ctr_enc:
 	vzeroall;
 
 	ret_spec_stop;
-	.align 8
 
-.Lctr_byteadd_full_ctr_carry:
-	movq 8(%rcx), %r11;
-	movq (%rcx), %r10;
-	bswapq %r11;
-	bswapq %r10;
-	addq $8, %r11;
-	adcq $0, %r10;
-	bswapq %r11;
-	bswapq %r10;
-	movq %r11, 8(%rcx);
-	movq %r10, (%rcx);
-	jmp .Lctr_byteadd_xmm;
 .align 8
 .Lctr_byteadd:
 	vmovdqu (%rcx), RA0;
-	je .Lctr_byteadd_full_ctr_carry;
-	addb $8, 15(%rcx);
-.Lctr_byteadd_xmm:
 	vpaddb .Lbige_addb_1 rRIP, RA0, RA1;
 	vpaddb .Lbige_addb_2 rRIP, RA0, RA2;
 	vpaddb .Lbige_addb_3 rRIP, RA0, RA3;

@@ -70,8 +70,6 @@ FUNC_NAME(cipher_mode_consts):
 	.quad 8, 0
 .Lcounter16161616_lo:
 	.quad 16, 0
-.Lcounter1111_hi:
-	.quad 0, 1
 
 .text
 
@@ -138,57 +136,19 @@ FUNC_NAME(ctr_enc_blk32):
 	vbroadcasti64x2 .Lcounter16161616_lo rRIP, RTMP4z;
 
 	/* load IV and byteswap */
-	movq 8(%rcx), %r11;
-	bswapq %r11;
 	vbroadcasti64x2 (%rcx), RB3z;
 	vpshufb RTMP0z, RB3z, RB3z;
 
-	/* check need for handling 64-bit overflow and carry */
-	cmpq $(0xffffffffffffffff - 32), %r11;
-	ja .Lhandle_ctr_carry_blk32;
-
 	/* construct IVs */
-	vpaddq RTMP1z, RB3z, RA0z; /* +0:+1:+2:+3 */
-	vpaddq RTMP2z, RA0z, RA1z; /* +4:+5:+6:+7 */
-	vpaddq RTMP3z, RA0z, RA2z; /* +8:+9:+10:+11 */
-	vpaddq RTMP3z, RA1z, RA3z; /* +12:+13:+14:+15 */
-	vpaddq RTMP4z, RA0z, RB0z; /* +16... */
-	vpaddq RTMP4z, RA1z, RB1z; /* +20... */
-	vpaddq RTMP4z, RA2z, RB2z; /* +24... */
-	vpaddq RTMP4z, RA3z, RB3z; /* +28... */
+	vpaddw RTMP1z, RB3z, RA0z; /* +0:+1:+2:+3 */
+	vpaddw RTMP2z, RA0z, RA1z; /* +4:+5:+6:+7 */
+	vpaddw RTMP3z, RA0z, RA2z; /* +8:+9:+10:+11 */
+	vpaddw RTMP3z, RA1z, RA3z; /* +12:+13:+14:+15 */
+	vpaddw RTMP4z, RA0z, RB0z; /* +16... */
+	vpaddw RTMP4z, RA1z, RB1z; /* +20... */
+	vpaddw RTMP4z, RA2z, RB2z; /* +24... */
+	vpaddw RTMP4z, RA3z, RB3z; /* +28... */
 
-	/* Update counter */
-	leaq 32(%r11), %r11;
-	bswapq %r11;
-	movq %r11, 8(%rcx);
-
-	jmp .Lctr_carry_done_blk32;
-
-.Lhandle_ctr_carry_blk32:
-	vbroadcasti64x2 .Lcounter1111_hi rRIP, RNOTz;
-
-	/* construct IVs */
-	add_le128(RA0z, RB3z, RTMP1z, RNOTz); /* +0:+1:+2:+3 */
-	add_le128(RA1z, RA0z, RTMP2z, RNOTz); /* +4:+5:+6:+7 */
-	add_le128(RA2z, RA0z, RTMP3z, RNOTz); /* +8:+9:+10:+11 */
-	add_le128(RA3z, RA1z, RTMP3z, RNOTz); /* +12:+13:+14:+15 */
-	add_le128(RB0z, RA0z, RTMP4z, RNOTz); /* +16... */
-	add_le128(RB1z, RA1z, RTMP4z, RNOTz); /* +20... */
-	add_le128(RB2z, RA2z, RTMP4z, RNOTz); /* +24... */
-	add_le128(RB3z, RA3z, RTMP4z, RNOTz); /* +28... */
-
-	/* Update counter */
-	addq $32, %r11;
-	movq (%rcx), %r10;
-	bswapq %r10;
-	adcq $0, %r10;
-	bswapq %r11;
-	bswapq %r10;
-	movq %r11, 8(%rcx);
-	movq %r10, (%rcx);
-
-.align 16
-.Lctr_carry_done_blk32:
 	/* Byte-swap IVs. */
 	vpshufb RTMP0z, RA0z, RA0z;
 	vpshufb RTMP0z, RA1z, RA1z;
@@ -201,6 +161,10 @@ FUNC_NAME(ctr_enc_blk32):
 
 .align 16
 .Lload_ctr_done32:
+	/* Update counter */
+	addb $32, 15(%rcx);
+	adcb $0, 14(%rcx);
+
 	call SM4_CRYPT_BLK32;
 
 	vpxord (0 * 64)(%rdx), RA0z, RA0z;
@@ -222,29 +186,12 @@ FUNC_NAME(ctr_enc_blk32):
 	vmovdqu32 RB3z, (7 * 64)(%rsi);
 
 	vzeroall;
-	kxorq %k1, %k1, %k1;
 
 	ret_spec_stop;
 
 .align 16
-.Lctr_byteadd_full_ctr_carry32:
-	movq 8(%rcx), %r11;
-	movq (%rcx), %r10;
-	bswapq %r11;
-	bswapq %r10;
-	addq $32, %r11;
-	adcq $0, %r10;
-	bswapq %r11;
-	bswapq %r10;
-	movq %r11, 8(%rcx);
-	movq %r10, (%rcx);
-	jmp .Lctr_byteadd_zmm32;
-.align 16
 .Lctr_byteadd32:
 	vbroadcasti64x2 (%rcx), RA3z;
-	je .Lctr_byteadd_full_ctr_carry32;
-	addb $32, 15(%rcx);
-.Lctr_byteadd_zmm32:
 	vbroadcasti64x2 .Lbige_addb_16 rRIP, RB3z;
 	vpaddb RB3z, RA3z, RB3z;
 	vpaddb .Lbige_addb_0_1 rRIP, RA3z, RA0z;

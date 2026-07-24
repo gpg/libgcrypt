@@ -160,12 +160,6 @@ __sm4_intel_crypt_blk32:
 	CFI_ENDPROC();
 ELF(.size __sm4_intel_crypt_blk32,.-__sm4_intel_crypt_blk32;)
 
-#define add_le128(out, in, lo_counter, hi_counter1) \
-	vpaddq lo_counter, in, out; \
-	vpcmpuq $1, lo_counter, out, %k1; \
-	kaddb %k1, %k1, %k1; \
-	vpaddq hi_counter1, out, out{%k1};
-
 #define FUNC_NAME(func) _gcry_sm4_intel_avx512_ ## func
 #define SM4_CRYPT_BLK32 __sm4_intel_crypt_blk32
 #include "sm4-avx512-amd64.h"

@@ -995,7 +995,7 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
   memset (bulk_ops, 0, sizeof(*bulk_ops));
   bulk_ops->cbc_dec = _gcry_sm4_cbc_dec;
   bulk_ops->cfb_dec = _gcry_sm4_cfb_dec;
-  bulk_ops->ctr_enc = _gcry_sm4_ctr_enc;
+  bulk_ops->ctr16be_enc = _gcry_sm4_ctr_enc;
   bulk_ops->xts_crypt = _gcry_sm4_xts_crypt;
   bulk_ops->ecb_crypt = _gcry_sm4_ecb_crypt;
   bulk_ops->ctr32le_enc = _gcry_sm4_ctr32le_enc;
