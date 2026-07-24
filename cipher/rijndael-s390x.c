@@ -1138,7 +1138,7 @@ int _gcry_aes_s390x_setup_acceleration(RIJNDAEL_context *ctx,
 
   if (ctx->kma_func)
     {
-      bulk_ops->ctr_enc = aes_s390x_ctr128_enc;
+      bulk_ops->ctr16be_enc = aes_s390x_ctr128_enc;
 
       if (kimd_query () & km_function_to_mask (KMID_FUNCTION_GHASH))
 	{

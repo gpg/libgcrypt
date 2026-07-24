@@ -209,11 +209,6 @@ typedef struct cipher_bulk_ops
 		      const void *inbuf_arg, size_t nblocks, int encrypt);
 } cipher_bulk_ops_t;
 
-/* Temporary alias for transition period from full 128-bit big-endian
- * counter addition in bulk processing function to 16-bit big-endian
- * addition.  */
-#define ctr_enc ctr16be_enc
-
 
 /* A VIA processor with the Padlock engine as well as the Intel AES_NI
    instructions require an alignment of most data on a 16 byte
