@@ -774,7 +774,7 @@ twofish_setkey (void *context, const byte *key, unsigned int keylen,
   memset (bulk_ops, 0, sizeof(*bulk_ops));
   bulk_ops->cbc_dec = _gcry_twofish_cbc_dec;
   bulk_ops->cfb_dec = _gcry_twofish_cfb_dec;
-  bulk_ops->ctr_enc = _gcry_twofish_ctr_enc;
+  bulk_ops->ctr16be_enc = _gcry_twofish_ctr_enc;
   bulk_ops->ocb_crypt = _gcry_twofish_ocb_crypt;
   bulk_ops->ocb_auth = _gcry_twofish_ocb_auth;
   bulk_ops->xts_crypt = _gcry_twofish_xts_crypt;
@@ -1197,7 +1197,7 @@ _gcry_twofish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       outbuf += TWOFISH_BLOCKSIZE;
       inbuf  += TWOFISH_BLOCKSIZE;
       /* Increment the counter.  */
-      cipher_block_add(ctr, 1, TWOFISH_BLOCKSIZE);
+      cipher_block_add_be16(ctr, 1, TWOFISH_BLOCKSIZE);
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));

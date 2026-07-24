@@ -359,6 +359,9 @@ ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;
 #define RT0d %edx
 #define RT1d %esi
 
+#define RT0bl %dl
+#define RT1bl %sil
+
 #define do16bit_ror(rot, op1, op2, T0, T1, tmp1, tmp2, ab, dst) \
 	movzbl ab ## bl,		tmp2 ## d; \
 	movzbl ab ## bh,		tmp1 ## d; \
@@ -650,35 +653,27 @@ _gcry_twofish_amd64_ctr_enc:
 	movq %rdx, (7 * 8)(%rsp);
 	movq %rcx, RX0;
 
-	/* load IV and byteswap */
-	movq 8(RX0), RT0;
-	movq 0(RX0), RT1;
-	movq RT0, RCD0;
-	movq RT1, RAB0;
-	bswapq RT0;
-	bswapq RT1;
-
-	/* construct IVs */
-	movq RT0, RCD1;
-	movq RT1, RAB1;
-	movq RT0, RCD2;
-	movq RT1, RAB2;
-	addq $1, RCD1;
-	adcq $0, RAB1;
-	bswapq RCD1;
-	bswapq RAB1;
-	addq $2, RCD2;
-	adcq $0, RAB2;
-	bswapq RCD2;
-	bswapq RAB2;
-	addq $3, RT0;
-	adcq $0, RT1;
-	bswapq RT0;
-	bswapq RT1;
-
-	/* store new IV */
-	movq RT0, 8(RX0);
-	movq RT1, 0(RX0);
+	/* Construct and update IV */
+	movzbl 15(RX0), RT0d;
+	movzbl 14(RX0), RT1d;
+	movq 8(RX0), RCD0;
+	movq 0(RX0), RAB0;
+	movq RAB0, RAB1;
+	movq RAB0, RAB2;
+	addb $1, RT0bl;
+	adcb $0, RT1bl;
+	movb RT0bl, 15(RX0);
+	movb RT1bl, 14(RX0);
+	movq 8(RX0), RCD1;
+	addb $1, RT0bl;
+	adcb $0, RT1bl;
+	movb RT0bl, 15(RX0);
+	movb RT1bl, 14(RX0);
+	movq 8(RX0), RCD2;
+	addb $1, RT0bl;
+	adcb $0, RT1bl;
+	movb RT0bl, 15(RX0);
+	movb RT1bl, 14(RX0);
 
 	call __twofish_enc_blk3;
 
