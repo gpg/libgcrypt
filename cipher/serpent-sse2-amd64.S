@@ -688,68 +688,27 @@ _gcry_serpent_sse2_ctr_enc:
 	pbswap(RTMP0, RTMP1); /* be => le */
 
 	pcmpeqd RNOT, RNOT;
-	psrldq $8, RNOT; /* low: -1, high: 0 */
+	psrldq $14, RNOT; /* low: -1, high: 0 */
 	movdqa RNOT, RTMP2;
-	paddq RTMP2, RTMP2; /* low: -2, high: 0 */
+	paddw RTMP2, RTMP2; /* low: -2, high: 0 */
 
 	/* construct IVs */
 	movdqa RTMP0, RTMP1;
-	psubq RNOT, RTMP0; /* +1 */
+	psubw RNOT, RTMP0; /* +1 */
 	movdqa RTMP0, RA1;
-	psubq RTMP2, RTMP1; /* +2 */
+	psubw RTMP2, RTMP1; /* +2 */
 	movdqa RTMP1, RA2;
-	psubq RTMP2, RTMP0; /* +3 */
+	psubw RTMP2, RTMP0; /* +3 */
 	movdqa RTMP0, RA3;
-	psubq RTMP2, RTMP1; /* +4 */
+	psubw RTMP2, RTMP1; /* +4 */
 	movdqa RTMP1, RB0;
-	psubq RTMP2, RTMP0; /* +5 */
+	psubw RTMP2, RTMP0; /* +5 */
 	movdqa RTMP0, RB1;
-	psubq RTMP2, RTMP1; /* +6 */
+	psubw RTMP2, RTMP1; /* +6 */
 	movdqa RTMP1, RB2;
-	psubq RTMP2, RTMP0; /* +7 */
+	psubw RTMP2, RTMP0; /* +7 */
 	movdqa RTMP0, RB3;
-	psubq RTMP2, RTMP1; /* +8 */
 
-	/* check need for handling 64-bit overflow and carry */
-	cmpl $0xffffffff, 8(%rcx);
-	jne .Lno_ctr_carry;
-
-	movl 12(%rcx), %eax;
-	bswapl %eax;
-	cmpl $-8, %eax;
-	jb .Lno_ctr_carry;
-	pslldq $8, RNOT; /* low: 0, high: -1 */
-	je .Lcarry_RTMP0;
-
-	cmpl $-6, %eax;
-	jb .Lcarry_RB3;
-	je .Lcarry_RB2;
-
-	cmpl $-4, %eax;
-	jb .Lcarry_RB1;
-	je .Lcarry_RB0;
-
-	cmpl $-2, %eax;
-	jb .Lcarry_RA3;
-	je .Lcarry_RA2;
-
-	psubq RNOT, RA1;
-.Lcarry_RA2:
-	psubq RNOT, RA2;
-.Lcarry_RA3:
-	psubq RNOT, RA3;
-.Lcarry_RB0:
-	psubq RNOT, RB0;
-.Lcarry_RB1:
-	psubq RNOT, RB1;
-.Lcarry_RB2:
-	psubq RNOT, RB2;
-.Lcarry_RB3:
-	psubq RNOT, RB3;
-.Lcarry_RTMP0:
-	psubq RNOT, RTMP1;
-
-.Lno_ctr_carry:
 	/* le => be */
 	pbswap(RA1, RTMP0);
 	pbswap(RA2, RTMP0);
@@ -759,8 +718,10 @@ _gcry_serpent_sse2_ctr_enc:
 	pbswap(RB2, RTMP0);
 	pbswap(RB3, RTMP0);
 	pbswap(RTMP1, RTMP0);
-	/* store new IV */
-	movdqu RTMP1, (%rcx);
+
+	/* Update IV */
+	addb $8, 15(%rcx);
+	adcb $0, 14(%rcx);
 
 	call __serpent_enc_blk8;
 

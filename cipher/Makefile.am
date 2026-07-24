@@ -357,7 +357,7 @@ rijndael-vp-aarch64.lo: $(srcdir)/rijndael-vp-aarch64.c Makefile
 	`echo $(LTCOMPILE) $(aarch64_simd_cflags) -c $< | $(instrumentation_munging) `
 
 if ENABLE_X86_AVX512_INTRINSICS_EXTRA_CFLAGS
-avx512f_cflags = -mavx512f
+avx512f_cflags = -mavx512f -mavx512bw
 else
 avx512f_cflags =
 endif

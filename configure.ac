@@ -1834,7 +1834,7 @@ fi
 # Check whether compiler supports x86/AVX512 intrinsics
 #
 _gcc_cflags_save=$CFLAGS
-CFLAGS="$CFLAGS -mavx512f"
+CFLAGS="$CFLAGS -mavx512f -mavx512bw"
 
 AC_CACHE_CHECK([whether compiler supports x86/AVX512 intrinsics],
       [gcry_cv_cc_x86_avx512_intrinsics],
@@ -1851,6 +1851,7 @@ AC_CACHE_CHECK([whether compiler supports x86/AVX512 intrinsics],
             x = _mm512_loadu_epi32 (in); /* check the GCC bug 90980. */
 	    x = _mm512_maskz_loadu_epi32(_cvtu32_mask16(0xfff0), in)
 		  ^ _mm512_castsi128_si512(y);
+	    x = _mm512_shuffle_epi8(x, x);
 	    asm volatile ("vinserti32x4 \$3, %0, %%zmm6, %%zmm6;\n\t"
 			  "vpxord %%zmm6, %%zmm6, %%zmm6"
 			  ::"x"(y),"r"(in):"memory","xmm6");

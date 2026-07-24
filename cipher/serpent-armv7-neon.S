@@ -702,10 +702,6 @@ _gcry_serpent_neon_ctr_enc:
 	vmov RB3d0, RT0d0;
 	vmov RT2d0, RT0d0;
 
-	/* check need for handling 64-bit overflow and carry */
-	beq .Ldo_ctr_carry;
-
-.Lctr_carry_done:
 	/* le => be */
 	vrev64.u8 RA1, RA1;
 	vrev64.u8 RA2, RA2;
@@ -757,41 +753,6 @@ _gcry_serpent_neon_ctr_enc:
 	veor RB3, RB3;
 
 	pop {r4,pc};
-
-.Ldo_ctr_carry:
-	cmp r4, #-8;
-	blo .Lctr_carry_done;
-	beq .Lcarry_RT2;
-
-	cmp r4, #-6;
-	blo .Lcarry_RB3;
-	beq .Lcarry_RB2;
-
-	cmp r4, #-4;
-	blo .Lcarry_RB1;
-	beq .Lcarry_RB0;
-
-	cmp r4, #-2;
-	blo .Lcarry_RA3;
-	beq .Lcarry_RA2;
-
-	vsub.u64 RA1d0, RT1d0;
-.Lcarry_RA2:
-	vsub.u64 RA2d0, RT1d0;
-.Lcarry_RA3:
-	vsub.u64 RA3d0, RT1d0;
-.Lcarry_RB0:
-	vsub.u64 RB0d0, RT1d0;
-.Lcarry_RB1:
-	vsub.u64 RB1d0, RT1d0;
-.Lcarry_RB2:
-	vsub.u64 RB2d0, RT1d0;
-.Lcarry_RB3:
-	vsub.u64 RB3d0, RT1d0;
-.Lcarry_RT2:
-	vsub.u64 RT2d0, RT1d0;
-
-	b .Lctr_carry_done;
 .size _gcry_serpent_neon_ctr_enc,.-_gcry_serpent_neon_ctr_enc;
 
 .align 3

@@ -854,7 +854,7 @@ serpent_setkey (void *ctx,
   memset (bulk_ops, 0, sizeof(*bulk_ops));
   bulk_ops->cbc_dec = _gcry_serpent_cbc_dec;
   bulk_ops->cfb_dec = _gcry_serpent_cfb_dec;
-  bulk_ops->ctr_enc = _gcry_serpent_ctr_enc;
+  bulk_ops->ctr16be_enc = _gcry_serpent_ctr_enc;
   bulk_ops->ocb_crypt = _gcry_serpent_ocb_crypt;
   bulk_ops->ocb_auth = _gcry_serpent_ocb_auth;
   bulk_ops->xts_crypt = _gcry_serpent_xts_crypt;
@@ -1126,7 +1126,7 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
       outbuf += sizeof(serpent_block_t);
       inbuf  += sizeof(serpent_block_t);
       /* Increment the counter.  */
-      cipher_block_add(ctr, 1, sizeof(serpent_block_t));
+      cipher_block_add_be16(ctr, 1, sizeof(serpent_block_t));
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));

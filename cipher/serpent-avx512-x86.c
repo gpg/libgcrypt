@@ -618,74 +618,62 @@ ctr_generate(unsigned char *ctr, __m512i vin[8])
 					       4LL << 56, 0,
 					       4LL << 56, 0,
 					       4LL << 56, 0);
-      const __m512i add4567 = _mm512_add_epi32(add0123, add4444);
-      const __m512i add8888 = _mm512_add_epi32(add4444, add4444);
+      const __m512i add4567 = _mm512_add_epi8(add0123, add4444);
+      const __m512i add8888 = _mm512_add_epi8(add4444, add4444);
 
       // Fast path without carry handling.
       __m512i vctr =
 	_mm512_broadcast_i32x4(_mm_loadu_si128((const void *)ctr));
 
-      cipher_block_add(ctr, 32, blocksize);
-      vin[0] = _mm512_add_epi32(vctr, add0123);
-      vin[1] = _mm512_add_epi32(vctr, add4567);
-      vin[2] = _mm512_add_epi32(vin[0], add8888);
-      vin[3] = _mm512_add_epi32(vin[1], add8888);
-      vin[4] = _mm512_add_epi32(vin[2], add8888);
-      vin[5] = _mm512_add_epi32(vin[3], add8888);
-      vin[6] = _mm512_add_epi32(vin[4], add8888);
-      vin[7] = _mm512_add_epi32(vin[5], add8888);
+      cipher_block_add_be16(ctr, 32, blocksize);
+      vin[0] = _mm512_add_epi8(vctr, add0123);
+      vin[1] = _mm512_add_epi8(vctr, add4567);
+      vin[2] = _mm512_add_epi8(vin[0], add8888);
+      vin[3] = _mm512_add_epi8(vin[1], add8888);
+      vin[4] = _mm512_add_epi8(vin[2], add8888);
+      vin[5] = _mm512_add_epi8(vin[3], add8888);
+      vin[6] = _mm512_add_epi8(vin[4], add8888);
+      vin[7] = _mm512_add_epi8(vin[5], add8888);
     }
   else
     {
-      // Slow path.
-      u32 blocks[4][blocksize / sizeof(u32)];
+      const __m512i add0123 = _mm512_set_epi64(0, 3,
+					       0, 2,
+					       0, 1,
+					       0, 0);
+      const __m512i add4444 = _mm512_set_epi64(0, 4,
+					       0, 4,
+					       0, 4,
+					       0, 4);
+      const __m512i add4567 = _mm512_add_epi16(add0123, add4444);
+      const __m512i add8888 = _mm512_add_epi16(add4444, add4444);
+      static const unsigned char bswap_mask[16] __attribute__ ((aligned (16))) =
+	{ 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+      const __m512i vbswap =
+	_mm512_broadcast_i32x4(_mm_loadu_si128((const void *)bswap_mask));
 
-      cipher_block_cpy(blocks[0], ctr, blocksize);
-      cipher_block_cpy(blocks[1], ctr, blocksize);
-      cipher_block_cpy(blocks[2], ctr, blocksize);
-      cipher_block_cpy(blocks[3], ctr, blocksize);
-      cipher_block_add(ctr, 32, blocksize);
-      cipher_block_add(blocks[1], 1, blocksize);
-      cipher_block_add(blocks[2], 2, blocksize);
-      cipher_block_add(blocks[3], 3, blocksize);
-      vin[0] = _mm512_loadu_epi32 (blocks);
-      cipher_block_add(blocks[0], 4, blocksize);
-      cipher_block_add(blocks[1], 4, blocksize);
-      cipher_block_add(blocks[2], 4, blocksize);
-      cipher_block_add(blocks[3], 4, blocksize);
-      vin[1] = _mm512_loadu_epi32 (blocks);
-      cipher_block_add(blocks[0], 4, blocksize);
-      cipher_block_add(blocks[1], 4, blocksize);
-      cipher_block_add(blocks[2], 4, blocksize);
-      cipher_block_add(blocks[3], 4, blocksize);
-      vin[2] = _mm512_loadu_epi32 (blocks);
-      cipher_block_add(blocks[0], 4, blocksize);
-      cipher_block_add(blocks[1], 4, blocksize);
-      cipher_block_add(blocks[2], 4, blocksize);
-      cipher_block_add(blocks[3], 4, blocksize);
-      vin[3] = _mm512_loadu_epi32 (blocks);
-      cipher_block_add(blocks[0], 4, blocksize);
-      cipher_block_add(blocks[1], 4, blocksize);
-      cipher_block_add(blocks[2], 4, blocksize);
-      cipher_block_add(blocks[3], 4, blocksize);
-      vin[4] = _mm512_loadu_epi32 (blocks);
-      cipher_block_add(blocks[0], 4, blocksize);
-      cipher_block_add(blocks[1], 4, blocksize);
-      cipher_block_add(blocks[2], 4, blocksize);
-      cipher_block_add(blocks[3], 4, blocksize);
-      vin[5] = _mm512_loadu_epi32 (blocks);
-      cipher_block_add(blocks[0], 4, blocksize);
-      cipher_block_add(blocks[1], 4, blocksize);
-      cipher_block_add(blocks[2], 4, blocksize);
-      cipher_block_add(blocks[3], 4, blocksize);
-      vin[6] = _mm512_loadu_epi32 (blocks);
-      cipher_block_add(blocks[0], 4, blocksize);
-      cipher_block_add(blocks[1], 4, blocksize);
-      cipher_block_add(blocks[2], 4, blocksize);
-      cipher_block_add(blocks[3], 4, blocksize);
-      vin[7] = _mm512_loadu_epi32 (blocks);
+      // Slow path with 16-bit carry.
+      __m512i vctr =
+	_mm512_broadcast_i32x4(_mm_loadu_si128((const void *)ctr));
 
-      wipememory(blocks, sizeof(blocks));
+      cipher_block_add_be16(ctr, 32, blocksize);
+      vctr = _mm512_shuffle_epi8(vctr, vbswap);
+      vin[0] = _mm512_add_epi16(vctr, add0123);
+      vin[1] = _mm512_add_epi16(vctr, add4567);
+      vin[2] = _mm512_add_epi16(vin[0], add8888);
+      vin[3] = _mm512_add_epi16(vin[1], add8888);
+      vin[4] = _mm512_add_epi16(vin[2], add8888);
+      vin[5] = _mm512_add_epi16(vin[3], add8888);
+      vin[6] = _mm512_add_epi16(vin[4], add8888);
+      vin[7] = _mm512_add_epi16(vin[5], add8888);
+      vin[0] = _mm512_shuffle_epi8(vin[0], vbswap);
+      vin[1] = _mm512_shuffle_epi8(vin[1], vbswap);
+      vin[2] = _mm512_shuffle_epi8(vin[2], vbswap);
+      vin[3] = _mm512_shuffle_epi8(vin[3], vbswap);
+      vin[4] = _mm512_shuffle_epi8(vin[4], vbswap);
+      vin[5] = _mm512_shuffle_epi8(vin[5], vbswap);
+      vin[6] = _mm512_shuffle_epi8(vin[6], vbswap);
+      vin[7] = _mm512_shuffle_epi8(vin[7], vbswap);
     }
 }
 
