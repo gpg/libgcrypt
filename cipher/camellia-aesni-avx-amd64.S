@@ -878,12 +878,6 @@ __camellia_dec_blk16:
 	CFI_ENDPROC();
 ELF(.size __camellia_dec_blk16,.-__camellia_dec_blk16;)
 
-#define inc_le128(x, minus_one, tmp) \
-	vpcmpeqq minus_one, x, tmp; \
-	vpsubq minus_one, x, x; \
-	vpslldq $8, tmp, tmp; \
-	vpsubq tmp, x, x;
-
 .align 16
 .globl _gcry_camellia_aesni_avx_ctr_enc
 ELF(.type   _gcry_camellia_aesni_avx_ctr_enc,@function;)
@@ -924,48 +918,48 @@ _gcry_camellia_aesni_avx_ctr_enc:
 	vpshufb %xmm14, %xmm15, %xmm0; /* be => le */
 
 	vpcmpeqd %xmm15, %xmm15, %xmm15;
-	vpsrldq $8, %xmm15, %xmm15; /* low: -1, high: 0 */
+	vpsrldq $14, %xmm15, %xmm15; /* low: -1, high: 0 */
 
 	/* construct IVs */
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm13;
 	vmovdqu %xmm13, 14 * 16(%rax);
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm13;
 	vmovdqu %xmm13, 13 * 16(%rax);
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm12;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm11;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm10;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm9;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm8;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm7;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm6;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm5;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm4;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm3;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm2;
-	inc_le128(%xmm0, %xmm15, %xmm13);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm1;
-	inc_le128(%xmm0, %xmm15, %xmm13);
-	vmovdqa %xmm0, %xmm13;
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vpshufb %xmm14, %xmm0, %xmm0;
-	inc_le128(%xmm13, %xmm15, %xmm14);
-	vpshufb .Lbswap128_mask rRIP, %xmm13, %xmm13; /* le => be */
-	vmovdqu %xmm13, (%rcx);
 
 .align 8
 .Lload_ctr_done:
+	/* Update IV */
+	addb $16, 15(%rcx);
+	adcb $0, 14(%rcx);
+
 	/* inpack16_pre: */
 	vmovq (key_table)(CTX), %xmm15;
 	vpshufb .Lpack_bswap rRIP, %xmm15, %xmm15;
@@ -1016,24 +1010,8 @@ _gcry_camellia_aesni_avx_ctr_enc:
 	ret_spec_stop;
 
 .align 8
-.Lctr_byteadd_full_ctr_carry:
-	movq 8(%rcx), %r11;
-	movq (%rcx), %r10;
-	bswapq %r11;
-	bswapq %r10;
-	addq $16, %r11;
-	adcq $0, %r10;
-	bswapq %r11;
-	bswapq %r10;
-	movq %r11, 8(%rcx);
-	movq %r10, (%rcx);
-	jmp .Lctr_byteadd_xmm;
-.align 8
 .Lctr_byteadd:
 	vmovdqu (%rcx), %xmm15;
-	je .Lctr_byteadd_full_ctr_carry;
-	addb $16, 15(%rcx);
-.Lctr_byteadd_xmm:
 	vmovdqa %xmm15, %xmm0;
 	vpaddb .Lbige_addb_1 rRIP, %xmm15, %xmm14;
 	vmovdqu %xmm15, 15 * 16(%rax);

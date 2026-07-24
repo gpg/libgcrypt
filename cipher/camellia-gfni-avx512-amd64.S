@@ -578,8 +578,6 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 	.quad 8, 0
 .Lcounter16161616_lo:
 	.quad 16, 0
-.Lcounter1111_hi:
-	.quad 0, 1
 
 .Lshufb_16x16b:
 	.byte SHUFB_BYTES(0), SHUFB_BYTES(1), SHUFB_BYTES(2), SHUFB_BYTES(3)
@@ -834,12 +832,6 @@ __camellia_gfni_avx512_dec_blk64:
 	CFI_ENDPROC();
 ELF(.size __camellia_gfni_avx512_dec_blk64,.-__camellia_gfni_avx512_dec_blk64;)
 
-#define add_le128(out, in, lo_counter, hi_counter1) \
-	vpaddq lo_counter, in, out; \
-	vpcmpuq $1, lo_counter, out, %k1; \
-	kaddb %k1, %k1, %k1; \
-	vpaddq hi_counter1, out, out{%k1};
-
 .align 16
 .globl _gcry_camellia_gfni_avx512_ctr_enc
 ELF(.type   _gcry_camellia_gfni_avx512_ctr_enc,@function;)
@@ -867,69 +859,34 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	vbroadcasti64x2 .Lcounter4444_lo rRIP, %zmm22;
 	vbroadcasti64x2 .Lcounter8888_lo rRIP, %zmm23;
 	vbroadcasti64x2 .Lcounter16161616_lo rRIP, %zmm24;
-	vbroadcasti64x2 .Lcounter1111_hi rRIP, %zmm25;
 
 	/* load IV and byteswap */
-	movq 8(%rcx), %r11;
-	movq (%rcx), %r10;
-	bswapq %r11;
-	bswapq %r10;
 	vbroadcasti64x2 (%rcx), %zmm0;
 	vpshufb %zmm19, %zmm0, %zmm0;
 
-	/* check need for handling 64-bit overflow and carry */
-	cmpq $(0xffffffffffffffff - 64), %r11;
-	ja .Lload_ctr_carry;
-
 	/* construct IVs */
-	vpaddq %zmm21, %zmm0, %zmm15;  /* +0:+1:+2:+3 */
-	vpaddq %zmm22, %zmm15, %zmm14; /* +4:+5:+6:+7 */
-	vpaddq %zmm23, %zmm15, %zmm13; /* +8:+9:+10:+11 */
-	vpaddq %zmm23, %zmm14, %zmm12; /* +12:+13:+14:+15 */
-	vpaddq %zmm24, %zmm15, %zmm11; /* +16... */
-	vpaddq %zmm24, %zmm14, %zmm10; /* +20... */
-	vpaddq %zmm24, %zmm13, %zmm9; /* +24... */
-	vpaddq %zmm24, %zmm12, %zmm8; /* +28... */
-	vpaddq %zmm24, %zmm11, %zmm7; /* +32... */
-	vpaddq %zmm24, %zmm10, %zmm6; /* +36... */
-	vpaddq %zmm24, %zmm9, %zmm5; /* +40... */
-	vpaddq %zmm24, %zmm8, %zmm4; /* +44... */
-	vpaddq %zmm24, %zmm7, %zmm3; /* +48... */
-	vpaddq %zmm24, %zmm6, %zmm2; /* +52... */
-	vpaddq %zmm24, %zmm5, %zmm1; /* +56... */
-	vpaddq %zmm24, %zmm4, %zmm0; /* +60... */
-	jmp .Lload_ctr_done;
+	vpaddw %zmm21, %zmm0, %zmm15;  /* +0:+1:+2:+3 */
+	vpaddw %zmm22, %zmm15, %zmm14; /* +4:+5:+6:+7 */
+	vpaddw %zmm23, %zmm15, %zmm13; /* +8:+9:+10:+11 */
+	vpaddw %zmm23, %zmm14, %zmm12; /* +12:+13:+14:+15 */
+	vpaddw %zmm24, %zmm15, %zmm11; /* +16... */
+	vpaddw %zmm24, %zmm14, %zmm10; /* +20... */
+	vpaddw %zmm24, %zmm13, %zmm9; /* +24... */
+	vpaddw %zmm24, %zmm12, %zmm8; /* +28... */
+	vpaddw %zmm24, %zmm11, %zmm7; /* +32... */
+	vpaddw %zmm24, %zmm10, %zmm6; /* +36... */
+	vpaddw %zmm24, %zmm9, %zmm5; /* +40... */
+	vpaddw %zmm24, %zmm8, %zmm4; /* +44... */
+	vpaddw %zmm24, %zmm7, %zmm3; /* +48... */
+	vpaddw %zmm24, %zmm6, %zmm2; /* +52... */
+	vpaddw %zmm24, %zmm5, %zmm1; /* +56... */
+	vpaddw %zmm24, %zmm4, %zmm0; /* +60... */
 
-.align 4
-.Lload_ctr_carry:
-	/* construct IVs */
-	add_le128(%zmm15, %zmm0, %zmm21, %zmm25);  /* +0:+1:+2:+3 */
-	add_le128(%zmm14, %zmm15, %zmm22, %zmm25); /* +4:+5:+6:+7 */
-	add_le128(%zmm13, %zmm15, %zmm23, %zmm25); /* +8:+9:+10:+11 */
-	add_le128(%zmm12, %zmm14, %zmm23, %zmm25); /* +12:+13:+14:+15 */
-	add_le128(%zmm11, %zmm15, %zmm24, %zmm25); /* +16... */
-	add_le128(%zmm10, %zmm14, %zmm24, %zmm25); /* +20... */
-	add_le128(%zmm9, %zmm13, %zmm24, %zmm25); /* +24... */
-	add_le128(%zmm8, %zmm12, %zmm24, %zmm25); /* +28... */
-	add_le128(%zmm7, %zmm11, %zmm24, %zmm25); /* +32... */
-	add_le128(%zmm6, %zmm10, %zmm24, %zmm25); /* +36... */
-	add_le128(%zmm5, %zmm9, %zmm24, %zmm25); /* +40... */
-	add_le128(%zmm4, %zmm8, %zmm24, %zmm25); /* +44... */
-	add_le128(%zmm3, %zmm7, %zmm24, %zmm25); /* +48... */
-	add_le128(%zmm2, %zmm6, %zmm24, %zmm25); /* +52... */
-	add_le128(%zmm1, %zmm5, %zmm24, %zmm25); /* +56... */
-	add_le128(%zmm0, %zmm4, %zmm24, %zmm25); /* +60... */
-	kxorq %k1, %k1, %k1;
-
-.align 4
-.Lload_ctr_done:
 	vbroadcasti64x2 .Lpack_bswap rRIP, %zmm17;
 	vpbroadcastq (key_table)(CTX), %zmm16;
 	vpshufb %zmm17, %zmm16, %zmm16;
 
 	/* Byte-swap IVs and update counter. */
-	addq $64, %r11;
-	adcq $0, %r10;
 	vpshufb %zmm19, %zmm15, %zmm15;
 	vpshufb %zmm19, %zmm14, %zmm14;
 	vpshufb %zmm19, %zmm13, %zmm13;
@@ -938,8 +895,6 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	vpshufb %zmm19, %zmm10, %zmm10;
 	vpshufb %zmm19, %zmm9, %zmm9;
 	vpshufb %zmm19, %zmm8, %zmm8;
-	bswapq %r11;
-	bswapq %r10;
 	vpshufb %zmm19, %zmm7, %zmm7;
 	vpshufb %zmm19, %zmm6, %zmm6;
 	vpshufb %zmm19, %zmm5, %zmm5;
@@ -948,11 +903,13 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	vpshufb %zmm19, %zmm2, %zmm2;
 	vpshufb %zmm19, %zmm1, %zmm1;
 	vpshufb %zmm19, %zmm0, %zmm0;
-	movq %r11, 8(%rcx);
-	movq %r10, (%rcx);
 
 .align 16
 .Lctr_inpack64_pre:
+	/* Update IV */
+	addb $64, 15(%rcx);
+	adcb $0, 14(%rcx);
+
 	/* inpack64_pre: */
 	vpxorq %zmm0, %zmm16, %zmm0;
 	vpxorq %zmm1, %zmm16, %zmm1;
@@ -999,24 +956,8 @@ _gcry_camellia_gfni_avx512_ctr_enc:
 	ret_spec_stop;
 
 .align 16
-.Lctr_byteadd_full_ctr_carry:
-	movq 8(%rcx), %r11;
-	movq (%rcx), %r10;
-	bswapq %r11;
-	bswapq %r10;
-	addq $64, %r11;
-	adcq $0, %r10;
-	bswapq %r11;
-	bswapq %r10;
-	movq %r11, 8(%rcx);
-	movq %r10, (%rcx);
-	jmp .Lctr_byteadd_zmm;
-.align 16
 .Lctr_byteadd:
 	vbroadcasti64x2 (%rcx), %zmm12;
-	je .Lctr_byteadd_full_ctr_carry;
-	addb $64, 15(%rcx);
-.Lctr_byteadd_zmm:
 	vbroadcasti64x2 .Lbige_addb_16 rRIP, %zmm16;
 	vmovdqa64 .Lbige_addb_0_1 rRIP, %zmm17;
 	vmovdqa64 .Lbige_addb_4_5 rRIP, %zmm18;

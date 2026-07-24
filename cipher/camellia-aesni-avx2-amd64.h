@@ -1164,12 +1164,6 @@ FUNC_NAME(dec_blk32):
 	CFI_ENDPROC();
 ELF(.size FUNC_NAME(dec_blk32),.-FUNC_NAME(dec_blk32);)
 
-#define inc_le128(x, minus_one, tmp) \
-	vpcmpeqq minus_one, x, tmp; \
-	vpsubq minus_one, x, x; \
-	vpslldq $8, tmp, tmp; \
-	vpsubq tmp, x, x;
-
 .align 16
 .globl FUNC_NAME(ctr_enc)
 ELF(.type   FUNC_NAME(ctr_enc),@function;)
@@ -1200,123 +1194,60 @@ FUNC_NAME(ctr_enc):
 	cmpb $(0x100 - 32), 15(%rcx);
 	jbe .Lctr_byteadd;
 
-	movq 8(%rcx), %r11;
-	bswapq %r11;
-
 	vpcmpeqd %ymm15, %ymm15, %ymm15;
-	vpsrldq $8, %ymm15, %ymm15; /* ab: -1:0 ; cd: -1:0 */
+	vpsrldq $14, %ymm15, %ymm15; /* ab: -1:0 ; cd: -1:0 */
 
 	/* load IV and byteswap */
 	vmovdqu (%rcx), %xmm0;
 	vpshufb .Lbswap128_mask rRIP, %xmm0, %xmm0;
 	vmovdqa %xmm0, %xmm1;
-	inc_le128(%xmm0, %xmm15, %xmm14);
+	vpsubw %xmm15, %xmm0, %xmm0;
 	vbroadcasti128 .Lbswap128_mask rRIP, %ymm14;
 	vinserti128 $1, %xmm0, %ymm1, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm13;
 	vmovdqu %ymm13, 15 * 32(%rax);
 
-	/* check need for handling 64-bit overflow and carry */
-	cmpq $(0xffffffffffffffff - 32), %r11;
-	ja .Lload_ctr_carry;
-
 	/* construct IVs */
-	vpaddq %ymm15, %ymm15, %ymm15; /* ab: -2:0 ; cd: -2:0 */
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpaddw %ymm15, %ymm15, %ymm15; /* ab: -2:0 ; cd: -2:0 */
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm13;
 	vmovdqu %ymm13, 14 * 32(%rax);
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm13;
 	vmovdqu %ymm13, 13 * 32(%rax);
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm12;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm11;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm10;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm9;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm8;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm7;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm6;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm5;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm4;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm3;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm2;
-	vpsubq %ymm15, %ymm0, %ymm0;
+	vpsubw %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm1;
-	vpsubq %ymm15, %ymm0, %ymm0;  /* +30 ; +31 */
-	vpsubq %xmm15, %xmm0, %xmm13; /* +32 */
+	vpsubw %ymm15, %ymm0, %ymm0;  /* +30 ; +31 */
 	vpshufb %ymm14, %ymm0, %ymm0;
-	vpshufb %xmm14, %xmm13, %xmm13;
-	vmovdqu %xmm13, (%rcx);
-
-	jmp .Lload_ctr_done;
-
-.align 4
-.Lload_ctr_carry:
-	/* construct IVs */
-	inc_le128(%ymm0, %ymm15, %ymm13); /* ab: le1 ; cd: le2 */
-	inc_le128(%ymm0, %ymm15, %ymm13); /* ab: le2 ; cd: le3 */
-	vpshufb %ymm14, %ymm0, %ymm13;
-	vmovdqu %ymm13, 14 * 32(%rax);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm13;
-	vmovdqu %ymm13, 13 * 32(%rax);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm12;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm11;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm10;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm9;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm8;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm7;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm6;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm5;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm4;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm3;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm2;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vpshufb %ymm14, %ymm0, %ymm1;
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	inc_le128(%ymm0, %ymm15, %ymm13);
-	vextracti128 $1, %ymm0, %xmm13;
-	vpshufb %ymm14, %ymm0, %ymm0;
-	inc_le128(%xmm13, %xmm15, %xmm14);
-	vpshufb .Lbswap128_mask rRIP, %xmm13, %xmm13;
-	vmovdqu %xmm13, (%rcx);
 
 .align 8
 .Lload_ctr_done:
+	/* Update IV */
+	addb $32, 15(%rcx);
+	adcb $0, 14(%rcx);
+
 	/* inpack32_pre: */
 	vpbroadcastq (key_table)(CTX), %ymm15;
 	vpshufb .Lpack_bswap rRIP, %ymm15, %ymm15;
@@ -1367,24 +1298,8 @@ FUNC_NAME(ctr_enc):
 	ret_spec_stop;
 
 .align 8
-.Lctr_byteadd_full_ctr_carry:
-	movq 8(%rcx), %r11;
-	movq (%rcx), %r10;
-	bswapq %r11;
-	bswapq %r10;
-	addq $32, %r11;
-	adcq $0, %r10;
-	bswapq %r11;
-	bswapq %r10;
-	movq %r11, 8(%rcx);
-	movq %r10, (%rcx);
-	jmp .Lctr_byteadd_ymm;
-.align 8
 .Lctr_byteadd:
 	vbroadcasti128 (%rcx), %ymm8;
-	je .Lctr_byteadd_full_ctr_carry;
-	addb $32, 15(%rcx);
-.Lctr_byteadd_ymm:
 	vpaddb .Lbige_addb_16_16 rRIP, %ymm8, %ymm0;
 	vpaddb .Lbige_addb_0_1 rRIP, %ymm8, %ymm15;
 	vpaddb .Lbige_addb_2_3 rRIP, %ymm8, %ymm14;

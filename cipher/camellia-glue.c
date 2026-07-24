@@ -611,7 +611,7 @@ camellia_setkey(void *c, const byte *key, unsigned keylen,
   memset (bulk_ops, 0, sizeof(*bulk_ops));
   bulk_ops->cbc_dec = _gcry_camellia_cbc_dec;
   bulk_ops->cfb_dec = _gcry_camellia_cfb_dec;
-  bulk_ops->ctr_enc = _gcry_camellia_ctr_enc;
+  bulk_ops->ctr16be_enc = _gcry_camellia_ctr_enc;
   bulk_ops->ocb_crypt = _gcry_camellia_ocb_crypt;
   bulk_ops->ocb_auth  = _gcry_camellia_ocb_auth;
   bulk_ops->xts_crypt = _gcry_camellia_xts_crypt;
