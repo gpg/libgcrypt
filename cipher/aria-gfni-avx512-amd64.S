@@ -75,15 +75,8 @@
 	clear_vec4(%ymm19, %ymm23, %ymm27, %ymm31)
 
 #define clear_regs() \
-	kxorq %k1, %k1, %k1; \
 	vzeroall; \
 	clear_zmm16_zmm31()
-
-#define add_le128(out, in, lo_counter, hi_counter1)	\
-	vpaddq lo_counter, in, out;			\
-	vpcmpuq $1, lo_counter, out, %k1;		\
-	kaddb %k1, %k1, %k1;				\
-	vpaddq hi_counter1, out, out{%k1};
 
 #define filter_8bit(x, lo_t, hi_t, mask4bit, tmp0)	\
 	vpandq x, mask4bit, tmp0;			\
@@ -583,8 +576,6 @@ SECTION_RODATA
 	.quad 8, 0
 .Lcounter16161616_lo:
 	.quad 16, 0
-.Lcounter1111_hi:
-	.quad 0, 1
 
 /* For CTR-mode IV byteswap */
 .Lbswap128_mask:
@@ -815,62 +806,30 @@ __aria_gfni_avx512_ctr_gen_keystream_64way:
 	vbroadcasti64x2 .Lcounter4444_lo rRIP, %zmm22;
 	vbroadcasti64x2 .Lcounter8888_lo rRIP, %zmm23;
 	vbroadcasti64x2 .Lcounter16161616_lo rRIP, %zmm24;
-	vbroadcasti64x2 .Lcounter1111_hi rRIP, %zmm25;
 
-	/* load IV and byteswap */
-	movq 8(%r8), %r11;
-	movq (%r8), %r10;
-	bswapq %r11;
-	bswapq %r10;
+	/* load IV and byteswap. */
 	vbroadcasti64x2 (%r8), %zmm20;
 	vpshufb %zmm19, %zmm20, %zmm20;
 
-	/* check need for handling 64-bit overflow and carry */
-	cmpq $(0xffffffffffffffff - 64), %r11;
-	ja .Lload_ctr_carry;
-
 	/* construct IVs */
-	vpaddq %zmm21, %zmm20, %zmm0; /* +0:+1:+2:+3 */
-	vpaddq %zmm22, %zmm0, %zmm1; /* +4:+5:+6:+7 */
-	vpaddq %zmm23, %zmm0, %zmm2; /* +8:+9:+10:+11 */
-	vpaddq %zmm23, %zmm1, %zmm3; /* +12:+13:+14:+15 */
-	vpaddq %zmm24, %zmm0, %zmm4; /* +16... */
-	vpaddq %zmm24, %zmm1, %zmm5; /* +20... */
-	vpaddq %zmm24, %zmm2, %zmm6; /* +24... */
-	vpaddq %zmm24, %zmm3, %zmm7; /* +28... */
-	vpaddq %zmm24, %zmm4, %zmm8; /* +32... */
-	vpaddq %zmm24, %zmm5, %zmm9; /* +36... */
-	vpaddq %zmm24, %zmm6, %zmm10; /* +40... */
-	vpaddq %zmm24, %zmm7, %zmm11; /* +44... */
-	vpaddq %zmm24, %zmm8, %zmm12; /* +48... */
-	vpaddq %zmm24, %zmm9, %zmm13; /* +52... */
-	vpaddq %zmm24, %zmm10, %zmm14; /* +56... */
-	vpaddq %zmm24, %zmm11, %zmm15; /* +60... */
-	jmp .Lload_ctr_done;
+	vpaddw %zmm21, %zmm20, %zmm0; /* +0:+1:+2:+3 */
+	vpaddw %zmm22, %zmm0, %zmm1; /* +4:+5:+6:+7 */
+	vpaddw %zmm23, %zmm0, %zmm2; /* +8:+9:+10:+11 */
+	vpaddw %zmm23, %zmm1, %zmm3; /* +12:+13:+14:+15 */
+	vpaddw %zmm24, %zmm0, %zmm4; /* +16... */
+	vpaddw %zmm24, %zmm1, %zmm5; /* +20... */
+	vpaddw %zmm24, %zmm2, %zmm6; /* +24... */
+	vpaddw %zmm24, %zmm3, %zmm7; /* +28... */
+	vpaddw %zmm24, %zmm4, %zmm8; /* +32... */
+	vpaddw %zmm24, %zmm5, %zmm9; /* +36... */
+	vpaddw %zmm24, %zmm6, %zmm10; /* +40... */
+	vpaddw %zmm24, %zmm7, %zmm11; /* +44... */
+	vpaddw %zmm24, %zmm8, %zmm12; /* +48... */
+	vpaddw %zmm24, %zmm9, %zmm13; /* +52... */
+	vpaddw %zmm24, %zmm10, %zmm14; /* +56... */
+	vpaddw %zmm24, %zmm11, %zmm15; /* +60... */
 
-.Lload_ctr_carry:
-	/* construct IVs */
-	add_le128(%zmm0, %zmm20, %zmm21, %zmm25); /* +0:+1:+2:+3 */
-	add_le128(%zmm1, %zmm0, %zmm22, %zmm25); /* +4:+5:+6:+7 */
-	add_le128(%zmm2, %zmm0, %zmm23, %zmm25); /* +8:+9:+10:+11 */
-	add_le128(%zmm3, %zmm1, %zmm23, %zmm25); /* +12:+13:+14:+15 */
-	add_le128(%zmm4, %zmm0, %zmm24, %zmm25); /* +16... */
-	add_le128(%zmm5, %zmm1, %zmm24, %zmm25); /* +20... */
-	add_le128(%zmm6, %zmm2, %zmm24, %zmm25); /* +24... */
-	add_le128(%zmm7, %zmm3, %zmm24, %zmm25); /* +28... */
-	add_le128(%zmm8, %zmm4, %zmm24, %zmm25); /* +32... */
-	add_le128(%zmm9, %zmm5, %zmm24, %zmm25); /* +36... */
-	add_le128(%zmm10, %zmm6, %zmm24, %zmm25); /* +40... */
-	add_le128(%zmm11, %zmm7, %zmm24, %zmm25); /* +44... */
-	add_le128(%zmm12, %zmm8, %zmm24, %zmm25); /* +48... */
-	add_le128(%zmm13, %zmm9, %zmm24, %zmm25); /* +52... */
-	add_le128(%zmm14, %zmm10, %zmm24, %zmm25); /* +56... */
-	add_le128(%zmm15, %zmm11, %zmm24, %zmm25); /* +60... */
-
-.Lload_ctr_done:
-	/* Byte-swap IVs and update counter. */
-	addq $64, %r11;
-	adcq $0, %r10;
+	/* Byte-swap IVs. */
 	vpshufb %zmm19, %zmm15, %zmm15;
 	vpshufb %zmm19, %zmm14, %zmm14;
 	vpshufb %zmm19, %zmm13, %zmm13;
@@ -879,8 +838,6 @@ __aria_gfni_avx512_ctr_gen_keystream_64way:
 	vpshufb %zmm19, %zmm10, %zmm10;
 	vpshufb %zmm19, %zmm9, %zmm9;
 	vpshufb %zmm19, %zmm8, %zmm8;
-	bswapq %r11;
-	bswapq %r10;
 	vpshufb %zmm19, %zmm7, %zmm7;
 	vpshufb %zmm19, %zmm6, %zmm6;
 	vpshufb %zmm19, %zmm5, %zmm5;
@@ -889,30 +846,12 @@ __aria_gfni_avx512_ctr_gen_keystream_64way:
 	vpshufb %zmm19, %zmm2, %zmm2;
 	vpshufb %zmm19, %zmm1, %zmm1;
 	vpshufb %zmm19, %zmm0, %zmm0;
-	movq %r11, 8(%r8);
-	movq %r10, (%r8);
 
-	ret_spec_stop;
+	jmp .Lctr_gen_keystream_done;
 
-.align 16
-.Lctr_byteadd_full_ctr_carry:
-	movq 8(%r8), %r11;
-	movq (%r8), %r10;
-	bswapq %r11;
-	bswapq %r10;
-	addq $64, %r11;
-	adcq $0, %r10;
-	bswapq %r11;
-	bswapq %r10;
-	movq %r11, 8(%r8);
-	movq %r10, (%r8);
-	jmp .Lctr_byteadd_zmm;
 .align 16
 .Lctr_byteadd:
 	vbroadcasti64x2 (%r8), %zmm3;
-	je .Lctr_byteadd_full_ctr_carry;
-	addb $64, 15(%r8);
-.Lctr_byteadd_zmm:
 	vbroadcasti64x2 .Lbige_addb_16 rRIP, %zmm16;
 	vmovdqa64 .Lbige_addb_0_1 rRIP, %zmm17;
 	vmovdqa64 .Lbige_addb_4_5 rRIP, %zmm18;
@@ -937,6 +876,12 @@ __aria_gfni_avx512_ctr_gen_keystream_64way:
 	vpaddb %zmm18, %zmm15, %zmm13;
 	vpaddb %zmm19, %zmm15, %zmm14;
 	vpaddb %zmm20, %zmm15, %zmm15;
+
+.align 16
+.Lctr_gen_keystream_done:
+	/* Update IV */
+	addb $64, 15(%r8);
+	adcb $0, 14(%r8);
 
 	ret_spec_stop;
 	CFI_ENDPROC();

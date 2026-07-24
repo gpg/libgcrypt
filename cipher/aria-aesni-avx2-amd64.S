@@ -86,12 +86,6 @@
 	  ((l0) << (7 * 8)) )
 
 /* asm macros */
-#define inc_le128(x, minus_one, tmp)			\
-	vpcmpeqq minus_one, x, tmp;			\
-	vpsubq minus_one, x, x;				\
-	vpslldq $8, tmp, tmp;				\
-	vpsubq tmp, x, x;
-
 #define filter_8bit(x, lo_t, hi_t, mask4bit, tmp0)	\
 	vpand x, mask4bit, tmp0;			\
 	vpandn x, mask4bit, x;				\
@@ -1246,171 +1240,63 @@ __aria_aesni_avx2_ctr_gen_keystream_32way:
 	cmpb $(0x100 - 32), 15(%r8);
 	jbe .Lctr_byteadd;
 
-	movq 8(%r8), %r11;
-	bswapq %r11;
-
 	vbroadcasti128 .Lbswap128_mask rRIP, %ymm6;
 	vpcmpeqd %ymm0, %ymm0, %ymm0;
-	vpsrldq $8, %ymm0, %ymm0;   /* ab: -1:0 ; cd: -1:0 */
-	vpaddq %ymm0, %ymm0, %ymm5; /* ab: -2:0 ; cd: -2:0 */
+	vpsrldq $14, %ymm0, %ymm0;   /* ab: -1:0 ; cd: -1:0 */
+	vpaddw %ymm0, %ymm0, %ymm5; /* ab: -2:0 ; cd: -2:0 */
 
-	/* load IV and byteswap */
+	/* load IV and byteswap. */
 	vmovdqu (%r8), %xmm7;
 	vpshufb %xmm6, %xmm7, %xmm7;
 	vmovdqa %xmm7, %xmm3;
-	inc_le128(%xmm7, %xmm0, %xmm4);
+	vpsubw %xmm0, %xmm7, %xmm7;
 	vinserti128 $1, %xmm7, %ymm3, %ymm3;
-	vpshufb %ymm6, %ymm3, %ymm8; /* +1 ; +0 */
-
-	/* check need for handling 64-bit overflow and carry */
-	cmpq $(0xffffffffffffffff - 32), %r11;
-	ja .Lhandle_ctr_carry;
+	vpshufb %ymm6, %ymm3, %ymm0; /* +1 ; +0 */
 
 	/* construct IVs */
-	vpsubq %ymm5, %ymm3, %ymm3; /* +3 ; +2 */
-	vpshufb %ymm6, %ymm3, %ymm9;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +5 ; +4 */
-	vpshufb %ymm6, %ymm3, %ymm10;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +7 ; +6 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +3 ; +2 */
+	vpshufb %ymm6, %ymm3, %ymm1;
+	vpsubw %ymm5, %ymm3, %ymm3; /* +5 ; +4 */
+	vpshufb %ymm6, %ymm3, %ymm2;
+	vpsubw %ymm5, %ymm3, %ymm3; /* +7 ; +6 */
 	vpshufb %ymm6, %ymm3, %ymm11;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +9 ; +8 */
-	vpshufb %ymm6, %ymm3, %ymm12;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +11 ; +10 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +9 ; +8 */
+	vpshufb %ymm6, %ymm3, %ymm4;
+	vpsubw %ymm5, %ymm3, %ymm3; /* +11 ; +10 */
 	vpshufb %ymm6, %ymm3, %ymm13;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +13 ; +12 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +13 ; +12 */
 	vpshufb %ymm6, %ymm3, %ymm14;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +15 ; +14 */
-	vpshufb %ymm6, %ymm3, %ymm15;
-	vmovdqu %ymm8, (0 * 32)(%rcx);
-	vmovdqu %ymm9, (1 * 32)(%rcx);
-	vmovdqu %ymm10, (2 * 32)(%rcx);
+	vpsubw %ymm5, %ymm3, %ymm3; /* +15 ; +14 */
+	vpshufb %ymm6, %ymm3, %ymm7;
 	vmovdqu %ymm11, (3 * 32)(%rcx);
-	vmovdqu %ymm12, (4 * 32)(%rcx);
 	vmovdqu %ymm13, (5 * 32)(%rcx);
 	vmovdqu %ymm14, (6 * 32)(%rcx);
-	vmovdqu %ymm15, (7 * 32)(%rcx);
 
-	vpsubq %ymm5, %ymm3, %ymm3; /* +17 ; +16 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +17 ; +16 */
 	vpshufb %ymm6, %ymm3, %ymm8;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +19 ; +18 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +19 ; +18 */
 	vpshufb %ymm6, %ymm3, %ymm9;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +21 ; +20 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +21 ; +20 */
 	vpshufb %ymm6, %ymm3, %ymm10;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +23 ; +22 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +23 ; +22 */
 	vpshufb %ymm6, %ymm3, %ymm11;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +25 ; +24 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +25 ; +24 */
 	vpshufb %ymm6, %ymm3, %ymm12;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +27 ; +26 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +27 ; +26 */
 	vpshufb %ymm6, %ymm3, %ymm13;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +29 ; +28 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +29 ; +28 */
 	vpshufb %ymm6, %ymm3, %ymm14;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +31 ; +30 */
+	vpsubw %ymm5, %ymm3, %ymm3; /* +31 ; +30 */
 	vpshufb %ymm6, %ymm3, %ymm15;
-	vpsubq %ymm5, %ymm3, %ymm3; /* +32 */
-	vpshufb %xmm6, %xmm3, %xmm3;
-	vmovdqu %xmm3, (%r8);
-	vmovdqu (0 * 32)(%rcx), %ymm0;
-	vmovdqu (1 * 32)(%rcx), %ymm1;
-	vmovdqu (2 * 32)(%rcx), %ymm2;
 	vmovdqu (3 * 32)(%rcx), %ymm3;
-	vmovdqu (4 * 32)(%rcx), %ymm4;
 	vmovdqu (5 * 32)(%rcx), %ymm5;
 	vmovdqu (6 * 32)(%rcx), %ymm6;
-	vmovdqu (7 * 32)(%rcx), %ymm7;
-	jmp .Lctr_carry_done;
 
-	.Lhandle_ctr_carry:
-	/* construct IVs */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm9; /* +3 ; +2 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm10; /* +5 ; +4 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm11; /* +7 ; +6 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm12; /* +9 ; +8 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm13; /* +11 ; +10 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm14; /* +13 ; +12 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm15; /* +15 ; +14 */
-	vmovdqu %ymm8, (0 * 32)(%rcx);
-	vmovdqu %ymm9, (1 * 32)(%rcx);
-	vmovdqu %ymm10, (2 * 32)(%rcx);
-	vmovdqu %ymm11, (3 * 32)(%rcx);
-	vmovdqu %ymm12, (4 * 32)(%rcx);
-	vmovdqu %ymm13, (5 * 32)(%rcx);
-	vmovdqu %ymm14, (6 * 32)(%rcx);
-	vmovdqu %ymm15, (7 * 32)(%rcx);
+	jmp .Lctr_gen_keystream_done;
 
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm8; /* +17 ; +16 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm9; /* +19 ; +18 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm10; /* +21 ; +20 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm11; /* +23 ; +22 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm12; /* +25 ; +24 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm13; /* +27 ; +26 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm14; /* +29 ; +28 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vpshufb %ymm6, %ymm3, %ymm15; /* +31 ; +30 */
-	inc_le128(%ymm3, %ymm0, %ymm4);
-	vextracti128 $1, %ymm3, %xmm3;
-	vpshufb %xmm6, %xmm3, %xmm3; /* +32 */
-	vmovdqu %xmm3, (%r8);
-	vmovdqu (0 * 32)(%rcx), %ymm0;
-	vmovdqu (1 * 32)(%rcx), %ymm1;
-	vmovdqu (2 * 32)(%rcx), %ymm2;
-	vmovdqu (3 * 32)(%rcx), %ymm3;
-	vmovdqu (4 * 32)(%rcx), %ymm4;
-	vmovdqu (5 * 32)(%rcx), %ymm5;
-	vmovdqu (6 * 32)(%rcx), %ymm6;
-	vmovdqu (7 * 32)(%rcx), %ymm7;
-
-.Lctr_carry_done:
-	ret_spec_stop;
-
-.align 8
-.Lctr_byteadd_full_ctr_carry:
-	addb $32, 15(%r8);
-	pushq %rcx;
-	CFI_ADJUST_CFA_OFFSET(8);
-	movl $14, %ecx;
-	1:
-	  adcb $0, (%r8, %rcx);
-	  jnc 2f;
-	  loop 1b;
-	2:
-	popq %rcx;
-	CFI_ADJUST_CFA_OFFSET(-8);
-	jmp .Lctr_byteadd_ymm;
 .align 8
 .Lctr_byteadd:
 	vbroadcasti128 (%r8), %ymm8;
-	je .Lctr_byteadd_full_ctr_carry;
-	addb $32, 15(%r8);
-.Lctr_byteadd_ymm:
 	vpaddb .Lbige_addb_16_16 rRIP, %ymm8, %ymm15;
 	vpaddb .Lbige_addb_0_1 rRIP, %ymm8, %ymm0;
 	vpaddb .Lbige_addb_2_3 rRIP, %ymm8, %ymm1;
@@ -1428,6 +1314,12 @@ __aria_aesni_avx2_ctr_gen_keystream_32way:
 	vpaddb .Lbige_addb_10_11 rRIP, %ymm15, %ymm13;
 	vpaddb .Lbige_addb_12_13 rRIP, %ymm15, %ymm14;
 	vpaddb .Lbige_addb_14_15 rRIP, %ymm15, %ymm15;
+
+.align 16
+.Lctr_gen_keystream_done:
+	/* Update IV */
+	addb $32, 15(%r8);
+	adcb $0, 14(%r8);
 
 	ret_spec_stop;
 	CFI_ENDPROC();

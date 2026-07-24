@@ -66,12 +66,6 @@
 	  ((l0) << (7 * 8)) )
 
 /* asm macros */
-#define inc_le128(x, minus_one, tmp)			\
-	vpcmpeqq minus_one, x, tmp;			\
-	vpsubq minus_one, x, x;				\
-	vpslldq $8, tmp, tmp;				\
-	vpsubq tmp, x, x;
-
 #define filter_8bit(x, lo_t, hi_t, mask4bit, tmp0)	\
 	vpand x, mask4bit, tmp0;			\
 	vpandn x, mask4bit, x;				\
@@ -1097,82 +1091,52 @@ __aria_aesni_avx_ctr_gen_keystream_16way:
 	vpshufb %xmm1, %xmm8, %xmm3; /* be => le */
 
 	vpcmpeqd %xmm0, %xmm0, %xmm0;
-	vpsrldq $8, %xmm0, %xmm0; /* low: -1, high: 0 */
+	vpsrldq $14, %xmm0, %xmm0; /* low: -1, high: 0 */
 
 	/* construct IVs */
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm9;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
-	vpshufb %xmm1, %xmm3, %xmm10;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
+	vpshufb %xmm1, %xmm3, %xmm2;
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm11;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
-	vpshufb %xmm1, %xmm3, %xmm12;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
-	vpshufb %xmm1, %xmm3, %xmm13;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
-	vpshufb %xmm1, %xmm3, %xmm14;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
-	vpshufb %xmm1, %xmm3, %xmm15;
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
+	vpshufb %xmm1, %xmm3, %xmm4;
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
+	vpshufb %xmm1, %xmm3, %xmm5;
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
+	vpshufb %xmm1, %xmm3, %xmm6;
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
+	vpshufb %xmm1, %xmm3, %xmm7;
 	vmovdqu %xmm8, (0 * 16)(%rcx);
 	vmovdqu %xmm9, (1 * 16)(%rcx);
-	vmovdqu %xmm10, (2 * 16)(%rcx);
 	vmovdqu %xmm11, (3 * 16)(%rcx);
-	vmovdqu %xmm12, (4 * 16)(%rcx);
-	vmovdqu %xmm13, (5 * 16)(%rcx);
-	vmovdqu %xmm14, (6 * 16)(%rcx);
-	vmovdqu %xmm15, (7 * 16)(%rcx);
 
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm8;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm9;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm10;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm11;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm12;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm13;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm14;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
+	vpsubw %xmm0, %xmm3, %xmm3; /* +1 */
 	vpshufb %xmm1, %xmm3, %xmm15;
-	inc_le128(%xmm3, %xmm0, %xmm5); /* +1 */
-	vpshufb %xmm1, %xmm3, %xmm4;
-	vmovdqu %xmm4, (%r8);
 
 	vmovdqu (0 * 16)(%rcx), %xmm0;
 	vmovdqu (1 * 16)(%rcx), %xmm1;
-	vmovdqu (2 * 16)(%rcx), %xmm2;
 	vmovdqu (3 * 16)(%rcx), %xmm3;
-	vmovdqu (4 * 16)(%rcx), %xmm4;
-	vmovdqu (5 * 16)(%rcx), %xmm5;
-	vmovdqu (6 * 16)(%rcx), %xmm6;
-	vmovdqu (7 * 16)(%rcx), %xmm7;
 
-	ret_spec_stop;
+	jmp .Lctr_gen_keystream_done;
 
-.align 8
-.Lctr_byteadd_full_ctr_carry:
-	addb $16, 15(%r8);
-	pushq %rcx;
-	CFI_ADJUST_CFA_OFFSET(8);
-	movl $14, %ecx;
-	1:
-	  adcb $0, (%r8, %rcx);
-	  jnc 2f;
-	  loop 1b;
-	2:
-	popq %rcx;
-	CFI_ADJUST_CFA_OFFSET(-8);
-	jmp .Lctr_byteadd_xmm;
 .align 8
 .Lctr_byteadd:
-	je .Lctr_byteadd_full_ctr_carry;
-	addb $16, 15(%r8);
-.Lctr_byteadd_xmm:
 	vmovdqa %xmm8, %xmm0;
 	vpaddb .Lbige_addb_1 rRIP, %xmm8, %xmm1;
 	vpaddb .Lbige_addb_2 rRIP, %xmm8, %xmm2;
@@ -1189,6 +1153,12 @@ __aria_aesni_avx_ctr_gen_keystream_16way:
 	vpaddb .Lbige_addb_13 rRIP, %xmm0, %xmm13;
 	vpaddb .Lbige_addb_14 rRIP, %xmm0, %xmm14;
 	vpaddb .Lbige_addb_15 rRIP, %xmm0, %xmm15;
+
+.align 16
+.Lctr_gen_keystream_done:
+	/* Update IV */
+	addb $16, 15(%r8);
+	adcb $0, 14(%r8);
 
 	ret_spec_stop;
 	CFI_ENDPROC();
