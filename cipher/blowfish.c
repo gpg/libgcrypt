@@ -678,9 +678,9 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       cipher_block_cpy (tmpbuf + 0, ctr, BLOWFISH_BLOCKSIZE);
       cipher_block_cpy (tmpbuf + 8, ctr, BLOWFISH_BLOCKSIZE);
       cipher_block_cpy (tmpbuf + 16, ctr, BLOWFISH_BLOCKSIZE);
-      cipher_block_add (tmpbuf + 8, 1, BLOWFISH_BLOCKSIZE);
-      cipher_block_add (tmpbuf + 16, 2, BLOWFISH_BLOCKSIZE);
-      cipher_block_add (ctr, 3, BLOWFISH_BLOCKSIZE);
+      cipher_block_add_be16 (tmpbuf + 8, 1, BLOWFISH_BLOCKSIZE);
+      cipher_block_add_be16 (tmpbuf + 16, 2, BLOWFISH_BLOCKSIZE);
+      cipher_block_add_be16 (ctr, 3, BLOWFISH_BLOCKSIZE);
       /* Encrypt the counter. */
       do_encrypt_3(ctx, tmpbuf, tmpbuf);
       /* XOR the input with the encrypted counter and store in output.  */
@@ -699,7 +699,7 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       outbuf += BLOWFISH_BLOCKSIZE;
       inbuf  += BLOWFISH_BLOCKSIZE;
       /* Increment the counter.  */
-      cipher_block_add (ctr, 1, BLOWFISH_BLOCKSIZE);
+      cipher_block_add_be16 (ctr, 1, BLOWFISH_BLOCKSIZE);
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));
@@ -1074,7 +1074,7 @@ bf_setkey (void *context, const byte *key, unsigned keylen,
   memset (bulk_ops, 0, sizeof(*bulk_ops));
   bulk_ops->cfb_dec = _gcry_blowfish_cfb_dec;
   bulk_ops->cbc_dec = _gcry_blowfish_cbc_dec;
-  bulk_ops->ctr_enc = _gcry_blowfish_ctr_enc;
+  bulk_ops->ctr16be_enc = _gcry_blowfish_ctr_enc;
 
   return rc;
 }

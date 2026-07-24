@@ -629,17 +629,17 @@ _gcry_blowfish_arm_ctr_enc:
 
 	mov lr, r3;
 
-	/* Load IV (big => host endian) */
-	read_block_aligned(lr, 0, RL0, RR0, be_to_host, RT0);
+	/* Load IV */
+	read_block_aligned(lr, 0, RL0, RR0, host_to_be, RT0);
 
 	/* Construct IVs */
-	adds RR1, RR0, #1; /* +1 */
-	adc RL1, RL0, #0;
-	adds r6, RR1, #1; /* +2 */
-	adc r5, RL1, #0;
+	mov RL1, RL0;
+	add RR1, RR0, #1; /* +1 */
+	add r6, RR0, #2; /* +2 */
 
-	/* Store new IV (host => big-endian) */
-	write_block_aligned(lr, 0, r5, r6, host_to_be, RT0);
+	/* Store new IV */
+	be_to_host(r6, RT0);
+	str r6, [lr, #4];
 
 	bl _gcry_blowfish_arm_enc_blk2;
 	/* result in RR0:RL0, RR1:RL1 = r4:r3, r10:r9 */
