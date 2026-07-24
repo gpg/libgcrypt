@@ -814,9 +814,9 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       cipher_block_cpy (tmpbuf + 0, ctr, CAST5_BLOCKSIZE);
       cipher_block_cpy (tmpbuf + 8, ctr, CAST5_BLOCKSIZE);
       cipher_block_cpy (tmpbuf + 16, ctr, CAST5_BLOCKSIZE);
-      cipher_block_add (tmpbuf + 8, 1, CAST5_BLOCKSIZE);
-      cipher_block_add (tmpbuf + 16, 2, CAST5_BLOCKSIZE);
-      cipher_block_add (ctr, 3, CAST5_BLOCKSIZE);
+      cipher_block_add_be16 (tmpbuf + 8, 1, CAST5_BLOCKSIZE);
+      cipher_block_add_be16 (tmpbuf + 16, 2, CAST5_BLOCKSIZE);
+      cipher_block_add_be16 (ctr, 3, CAST5_BLOCKSIZE);
       /* Encrypt the counter. */
       do_encrypt_block_3(ctx, tmpbuf, tmpbuf);
       /* XOR the input with the encrypted counter and store in output.  */
@@ -835,7 +835,7 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
       outbuf += CAST5_BLOCKSIZE;
       inbuf  += CAST5_BLOCKSIZE;
       /* Increment the counter.  */
-      cipher_block_add (ctr, 1, CAST5_BLOCKSIZE);
+      cipher_block_add_be16 (ctr, 1, CAST5_BLOCKSIZE);
     }
 
   wipememory(tmpbuf, sizeof(tmpbuf));
@@ -1171,7 +1171,7 @@ cast_setkey (void *context, const byte *key, unsigned keylen,
   memset (bulk_ops, 0, sizeof(*bulk_ops));
   bulk_ops->cfb_dec = _gcry_cast5_cfb_dec;
   bulk_ops->cbc_dec = _gcry_cast5_cbc_dec;
-  bulk_ops->ctr_enc = _gcry_cast5_ctr_enc;
+  bulk_ops->ctr16be_enc = _gcry_cast5_ctr_enc;
 
   return rc;
 }
