@@ -812,23 +812,11 @@ static inline unsigned int _gcry_blocksize_shift(gcry_cipher_hd_t c)
 static inline int
 cipher_bytecounter_add (u32 ctr[2], size_t add)
 {
-  int overflow = 0;
-  u32 low_add = add;
-
-  if (sizeof(add) > sizeof(u32))
-    {
-      u32 high_add = ((add >> 31) >> 1) & 0xffffffff;
-      ctr[1] += high_add;
-      if (ctr[1] < high_add)
-        overflow = 1;
-    }
-
-  ctr[0] += low_add;
-  if (ctr[0] >= low_add)
-    return overflow;
-
-  ctr[1] += 1;
-  return (ctr[1] < 1) || overflow;
+  u64 bytecounter = ((u64)ctr[1] << 32) + ctr[0];
+  bytecounter += add;
+  ctr[0] = bytecounter;
+  ctr[1] = bytecounter >> 32;
+  return bytecounter < add;
 }
 
 
