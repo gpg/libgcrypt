@@ -541,6 +541,7 @@ _gcry_aes_cbc_enc_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lcbc_enc_skip:
   pop {r4-r6,pc}
@@ -647,6 +648,7 @@ _gcry_aes_cbc_dec_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lcbc_dec_skip:
   pop {r4-r6,pc}
@@ -732,6 +734,7 @@ _gcry_aes_ecb_enc_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lecb_enc_skip:
   pop {r4-r6,pc}
@@ -790,6 +793,7 @@ _gcry_aes_ecb_dec_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lecb_dec_skip:
   pop {r4-r6,pc}
@@ -866,6 +870,7 @@ _gcry_aes_cfb_enc_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lcfb_enc_skip:
   pop {r4-r6,pc}
@@ -974,6 +979,7 @@ _gcry_aes_cfb_dec_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lcfb_dec_skip:
   pop {r4-r6,pc}
@@ -1139,6 +1145,7 @@ _gcry_aes_ctr_enc_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lctr_enc_skip:
   pop {r4-r12,lr}
@@ -1272,6 +1279,7 @@ _gcry_aes_ctr32le_enc_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lctr32le_enc_skip:
   pop {r4-r12,lr}
@@ -1447,6 +1455,7 @@ _gcry_aes_ocb_enc_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
   mov r0, #0
   pop {r4-r12,lr}
@@ -1622,6 +1631,7 @@ _gcry_aes_ocb_dec_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
   mov r0, #0
   pop {r4-r12,lr}
@@ -1776,6 +1786,7 @@ _gcry_aes_ocb_auth_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
   mov r0, #0
   pop {r4-r12,lr}
@@ -1932,6 +1943,7 @@ _gcry_aes_xts_enc_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lxts_enc_skip:
   pop {r4-r12,lr}
@@ -2087,6 +2099,7 @@ _gcry_aes_xts_dec_armv8_ce:
   CLEAR_REG(q12)
   CLEAR_REG(q13)
   CLEAR_REG(q14)
+  CLEAR_REG(q15)
 
 .Lxts_dec_skip:
   pop {r4-r12,lr}
