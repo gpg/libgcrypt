@@ -843,6 +843,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
     else if ((hwfeatures & HWF_RISCV_IMAFDC)
 	     && (hwfeatures & HWF_RISCV_B)      /* Mandatory in RVA23U64 */
 	     && (hwfeatures & HWF_RISCV_V)      /* Mandatory in RVA23U64 */
+	     && (hwfeatures & HWF_RISCV_ZVKB)   /* Mandatory in RVA23U64 (Zvbb) */
 	     && (hwfeatures & HWF_RISCV_ZVKNED) /* Optional in RVA23U64 */
 	     && _gcry_aes_riscv_zvkned_setup_acceleration(ctx))
     {
