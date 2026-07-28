@@ -43,14 +43,12 @@ load_aligned_u64x2(const void *ptr)
 {
   u64x2 vec;
 
-  asm ("ld %0, 0(%1)"
+  asm ("ld %0, %1"
        : "=r" (vec.val[0])
-       : "r" (ptr)
-       : "memory");
-  asm ("ld %0, 8(%1)"
+       : "m" (((const bufhelp_u64_t *)ptr)[0]));
+  asm ("ld %0, %1"
        : "=r" (vec.val[1])
-       : "r" (ptr)
-       : "memory");
+       : "m" (((const bufhelp_u64_t *)ptr)[1]));
 
   return vec;
 }
@@ -58,12 +56,8 @@ load_aligned_u64x2(const void *ptr)
 static ASM_FUNC_ATTR_INLINE u64x2
 load_unaligned_u64x2(const void *ptr)
 {
-  if (((uintptr_t)ptr & 7) == 0)
-    {
-      /* aligned load */
-      return load_aligned_u64x2(ptr);
-    }
-  else
+#if !(defined(__riscv_zicclsm) && (__riscv_zicclsm >= 1000000))
+  if (UNLIKELY(((uintptr_t)ptr & 7) != 0))
     {
       /* unaligned load */
       const bufhelp_u64_t *ptr_u64 = ptr;
@@ -72,19 +66,21 @@ load_unaligned_u64x2(const void *ptr)
       vec.val[1] = ptr_u64[1].a;
       return vec;
     }
+#endif
+
+  /* aligned load */
+  return load_aligned_u64x2(ptr);
 }
 
 static ASM_FUNC_ATTR_INLINE void
 store_aligned_u64x2(void *ptr, u64x2 vec)
 {
-  asm ("sd %0, 0(%1)"
-       :
-       : "r" (vec.val[0]), "r" (ptr)
-       : "memory");
-  asm ("sd %0, 8(%1)"
-       :
-       : "r" (vec.val[1]), "r" (ptr)
-       : "memory");
+  asm ("sd %1, %0"
+       : "=m" (((bufhelp_u64_t *)ptr)[0])
+       : "r" (vec.val[0]));
+  asm ("sd %1, %0"
+       : "=m" (((bufhelp_u64_t *)ptr)[1])
+       : "r" (vec.val[1]));
 }
 
 static ASM_FUNC_ATTR_INLINE u64

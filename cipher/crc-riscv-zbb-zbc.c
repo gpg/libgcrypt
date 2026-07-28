@@ -152,10 +152,9 @@ static ASM_FUNC_ATTR_INLINE u64
 load_aligned_u32(const void *ptr)
 {
   u64 out;
-  asm ("lw %0, 0(%1)"
+  asm ("lw %0, %1"
        : "=r" (out)
-       : "r" (ptr)
-       : "memory");
+       : "m" (((const bufhelp_u32_t *)ptr)[0]));
   return out;
 }
 
@@ -164,14 +163,12 @@ load_aligned_u64x2(const void *ptr)
 {
   u64x2 vec;
 
-  asm ("ld %0, 0(%1)"
+  asm ("ld %0, %1"
        : "=r" (vec.lo)
-       : "r" (ptr)
-       : "memory");
-  asm ("ld %0, 8(%1)"
+       : "m" (((const bufhelp_u64_t *)ptr)[0]));
+  asm ("ld %0, %1"
        : "=r" (vec.hi)
-       : "r" (ptr)
-       : "memory");
+       : "m" (((const bufhelp_u64_t *)ptr)[1]));
 
   return vec;
 }
