@@ -145,95 +145,106 @@ typedef struct bufhelp_u64_aligned_s
     (defined(__riscv_zicclsm) && (__riscv_zicclsm >= 1000000)) && \
     defined(HAVE_GCC_INLINE_ASM_RISCV)
 
-static inline u32 buf_load32(const void *_buf)
+/* Functions for loading and storing potentially unaligned u64/u32 values on
+   RISC-V with Zicclsm extension.  */
+static inline u32 buf_load32_maybe_unaligned(const void *buf)
 {
-  if (CONSTANT_P(((uintptr_t)_buf & 3) == 0) && ((uintptr_t)_buf & 3) == 0)
-    {
-      /* Compiler could determinate that this pointer is always aligned. */
-      return ((const bufhelp_u32_aligned_t *)_buf)->a;
-    }
-  else
-    {
-      u64 val;
-      asm ("lw %0, %1"
-	   : "=r" (val)
-	   : "m" (*((const bufhelp_u32_t *)_buf)));
-      return val;
-    }
+  u64 val;
+  asm ("lw %0, %1"
+       : "=r" (val)
+       : "m" (*((const bufhelp_u32_t *)buf)));
+  return val;
 }
 
-static inline void buf_store32(void *_buf, u32 val)
+static inline void buf_store32_maybe_unaligned(void *buf, u32 val)
 {
-  if (CONSTANT_P(((uintptr_t)_buf & 3) == 0) && ((uintptr_t)_buf & 3) == 0)
-    {
-      /* Compiler could determinate that this pointer is always aligned. */
-      ((bufhelp_u32_aligned_t *)_buf)->a = val;
-    }
-  else
-    {
-      asm ("sw %1, %0"
-	   : "=m" (*((bufhelp_u32_t *)_buf))
-	   : "r" (val));
-    }
+  asm ("sw %1, %0"
+       : "=m" (*((bufhelp_u32_t *)buf))
+       : "r" (val));
 }
 
-static inline u64 buf_load64(const void *_buf)
+static inline u64 buf_load64_maybe_unaligned(const void *buf)
 {
-  if (CONSTANT_P(((uintptr_t)_buf & 7) == 0) && ((uintptr_t)_buf & 7) == 0)
-    {
-      /* Compiler could determinate that this pointer is always aligned. */
-      return ((const bufhelp_u64_aligned_t *)_buf)->a;
-    }
-  else
-    {
-      u64 val;
-      asm ("ld %0, %1"
-	   : "=r" (val)
-	   : "m" (*((const bufhelp_u64_t *)_buf)));
-      return val;
-    }
+  u64 val;
+  asm ("ld %0, %1"
+       : "=r" (val)
+       : "m" (*((const bufhelp_u64_t *)buf)));
+  return val;
 }
 
-static inline void buf_store64(void *_buf, u64 val)
+static inline void buf_store64_maybe_unaligned(void *buf, u64 val)
 {
-  if (CONSTANT_P(((uintptr_t)_buf & 7) == 0) && ((uintptr_t)_buf & 7) == 0)
-    {
-      /* Compiler could determinate that this pointer is always aligned. */
-      ((bufhelp_u64_aligned_t *)_buf)->a = val;
-    }
-  else
-    {
-      asm ("sd %1, %0"
-	  : "=m" (*((bufhelp_u64_t *)_buf))
-	  : "r" (val));
-    }
+  asm ("sd %1, %0"
+       : "=m" (*((bufhelp_u64_t *)buf))
+       : "r" (val));
 }
 
 #else
 
-static inline u32 buf_load32(const void *_buf)
+/* Functions for loading and storing potentially unaligned u64/u32 values.  */
+static inline u32 buf_load32_maybe_unaligned(const void *buf)
 {
-  return ((const bufhelp_u32_t *)_buf)->a;
+  return ((const bufhelp_u32_t *)buf)->a;
 }
 
-static inline void buf_store32(void *_buf, u32 val)
+static inline void buf_store32_maybe_unaligned(void *buf, u32 val)
 {
-  bufhelp_u32_t *out = _buf;
+  bufhelp_u32_t *out = buf;
   out->a = val;
 }
 
-static inline u64 buf_load64(const void *_buf)
+static inline u64 buf_load64_maybe_unaligned(const void *buf)
 {
-  return ((const bufhelp_u64_t *)_buf)->a;
+  return ((const bufhelp_u64_t *)buf)->a;
 }
 
-static inline void buf_store64(void *_buf, u64 val)
+static inline void buf_store64_maybe_unaligned(void *buf, u64 val)
 {
-  bufhelp_u64_t *out = _buf;
+  bufhelp_u64_t *out = buf;
   out->a = val;
 }
 
 #endif
+
+
+/* Functions for loading and storing u64/u32 values, with aligned path
+   when pointer alignment can be detected at compile time.  */
+static inline u32 buf_load32(const void *buf)
+{
+  /* Check if pointer alignment is known at compile time. */
+  if (CONSTANT_P(((uintptr_t)buf & 3) == 0) && ((uintptr_t)buf & 3) == 0)
+    return ((const bufhelp_u32_aligned_t *)buf)->a;
+  else
+    return buf_load32_maybe_unaligned(buf);
+}
+
+static inline void buf_store32(void *buf, u32 val)
+{
+  /* Check if pointer alignment is known at compile time. */
+  if (CONSTANT_P(((uintptr_t)buf & 3) == 0) && ((uintptr_t)buf & 3) == 0)
+    ((bufhelp_u32_aligned_t *)buf)->a = val;
+  else
+    buf_store32_maybe_unaligned(buf, val);
+}
+
+static inline u64 buf_load64(const void *buf)
+{
+  /* Check if pointer alignment is known at compile time. */
+  if (CONSTANT_P(((uintptr_t)buf & 7) == 0) && ((uintptr_t)buf & 7) == 0)
+    return ((const bufhelp_u64_aligned_t *)buf)->a;
+  else
+    return buf_load64_maybe_unaligned(buf);
+}
+
+static inline void buf_store64(void *buf, u64 val)
+{
+  /* Check if pointer alignment is known at compile time. */
+  if (CONSTANT_P(((uintptr_t)buf & 7) == 0) && ((uintptr_t)buf & 7) == 0)
+    ((bufhelp_u64_aligned_t *)buf)->a = val;
+  else
+    buf_store64_maybe_unaligned(buf, val);
+}
+
 
 /* Functions for loading and storing unaligned u32 values of different
    endianness.  */
