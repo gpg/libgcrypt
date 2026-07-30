@@ -1030,6 +1030,18 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
         fips_service_indicator_mark_non_compliant ();
     }
 
+  /* Check length of EM.  Because we internally use MPI functions we
+     can't do this properly; EMLEN is always the length of the key
+     because octet_string_from_mpi needs to left pad the result with
+     zero to cope with the fact that our MPIs suppress all leading
+     zeroes.  Thus what we test here are merely the digest and salt
+     lengths to the key.  */
+  if (emlen < hlen + saltlen + 2)
+    {
+      rc = GPG_ERR_TOO_SHORT; /* For the hash and saltlen.  */
+      goto leave;
+    }
+
   /* Allocate a help buffer and setup some pointers.
      This buffer is used for two purposes:
         +------------------------------+-------+
@@ -1077,18 +1089,6 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
   rc = octet_string_from_mpi (&em, NULL, encoded, emlen);
   if (rc)
     goto leave;
-
-  /* Step 3: Check length of EM.  Because we internally use MPI
-     functions we can't do this properly; EMLEN is always the length
-     of the key because octet_string_from_mpi needs to left pad the
-     result with zero to cope with the fact that our MPIs suppress all
-     leading zeroes.  Thus what we test here are merely the digest and
-     salt lengths to the key.  */
-  if (emlen < hlen + saltlen + 2)
-    {
-      rc = GPG_ERR_TOO_SHORT; /* For the hash and saltlen.  */
-      goto leave;
-    }
 
   /* Step 4: Check last octet.  */
   if (em[emlen - 1] != 0xbc)
