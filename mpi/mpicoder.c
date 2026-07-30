@@ -551,10 +551,7 @@ _gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
       return GPG_ERR_INV_OBJ;
     }
 
-  if (format == GCRYMPI_FMT_SSH)
-    len = 0;
-  else
-    len = buflen;
+  len = buflen;
 
   if (format == GCRYMPI_FMT_STD)
     {
@@ -626,18 +623,13 @@ _gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
       const unsigned char *s = buffer;
       size_t n;
 
-      /* This test is not strictly necessary and an assert (!len)
-         would be sufficient.  We keep this test in case we later
-         allow the BUFLEN argument to act as a sanitiy check.  Same
-         below. */
-      if (len && len < 4)
+      if (len < 4)
         return GPG_ERR_TOO_SHORT;
 
       n = buf_get_be32 (s);
       s += 4;
-      if (len)
-        len -= 4;
-      if (len && n > len)
+      len -= 4;
+      if (n > len)
         return GPG_ERR_TOO_LARGE;
 
       a = secure? mpi_alloc_secure ((n+BYTES_PER_MPI_LIMB-1)
