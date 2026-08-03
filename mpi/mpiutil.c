@@ -76,7 +76,7 @@ _gcry_mpi_init (void)
         default: log_bug ("invalid mpi_const selector %d\n", idx);
         }
       constants[idx] = mpi_alloc_set_ui (value);
-      constants[idx]->flags = (16|32);
+      constants[idx]->flags = (GCRYMPI_FLAG_CONST|GCRYMPI_FLAG_IMMUTABLE);
     }
 
   return 0;
@@ -113,7 +113,7 @@ _gcry_mpi_alloc_secure( unsigned nlimbs )
     a = xmalloc( sizeof *a );
     a->d = nlimbs? mpi_alloc_limb_space( nlimbs, 1 ) : NULL;
     a->alloced = nlimbs;
-    a->flags = 1;
+    a->flags = GCRYMPI_FLAG_SECURE;
     a->nlimbs = 0;
     a->sign = 0;
     return a;
@@ -200,7 +200,7 @@ _gcry_mpi_resize (gcry_mpi_t a, unsigned nlimbs)
     }
   else
     {
-      if (a->flags & 1)
+      if (a->flags & GCRYMPI_FLAG_SECURE)
 	/* Secure memory is wanted.  */
 	a->d = xcalloc_secure (nlimbs , sizeof (mpi_limb_t));
       else
@@ -228,20 +228,22 @@ _gcry_mpi_free( gcry_mpi_t a )
 {
   if (!a )
     return;
-  if ((a->flags & 32))
+  if ((a->flags & GCRYMPI_FLAG_CONST))
   {
     gpgrt_annotate_leaked_object(a);
     return; /* Never release a constant. */
   }
-  if ((a->flags & 4))
+  if ((a->flags & GCRYMPI_FLAG_OPAQUE))
     xfree( a->d );
   else
     {
       _gcry_mpi_free_limb_space(a->d, a->alloced);
     }
-  /* Check that the flags makes sense.  We better allow for bit 1
-     (value 2) for backward ABI compatibility.  */
-  if ((a->flags & ~(1|2|4|16
+  /* Check that the flags makes sense.  */
+  if ((a->flags & ~(GCRYMPI_FLAG_SECURE
+                    |GCRYMPI_FLAG_OPAQUE
+                    |GCRYMPI_FLAG_IMMUTABLE
+                    |GCRYMPI_FLAG_CONST
                     |GCRYMPI_FLAG_USER1
                     |GCRYMPI_FLAG_USER2
                     |GCRYMPI_FLAG_USER3
@@ -263,9 +265,9 @@ mpi_set_secure( gcry_mpi_t a )
 {
   mpi_ptr_t ap, bp;
 
-  if ( (a->flags & 1) )
+  if ( (a->flags & GCRYMPI_FLAG_SECURE) )
     return;
-  a->flags |= 1;
+  a->flags |= GCRYMPI_FLAG_SECURE;
   ap = a->d;
   if (!a->nlimbs)
     {
@@ -291,7 +293,7 @@ _gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits)
       return a;
     }
 
-  if( a->flags & 4 )
+  if ((a->flags & GCRYMPI_FLAG_OPAQUE))
     xfree (a->d);
   else
     _gcry_mpi_free_limb_space (a->d, a->alloced);
@@ -300,10 +302,12 @@ _gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits)
   a->alloced = 0;
   a->nlimbs = 0;
   a->sign  = nbits;
-  a->flags = 4 | (a->flags & (GCRYMPI_FLAG_USER1|GCRYMPI_FLAG_USER2
-                              |GCRYMPI_FLAG_USER3|GCRYMPI_FLAG_USER4));
+  /* Set the opaque flag and keep the user flags.  */
+  a->flags = (GCRYMPI_FLAG_OPAQUE
+              | (a->flags & (GCRYMPI_FLAG_USER1|GCRYMPI_FLAG_USER2
+                             |GCRYMPI_FLAG_USER3|GCRYMPI_FLAG_USER4)));
   if (_gcry_is_secure (a->d))
-    a->flags |= 1;
+    a->flags |= GCRYMPI_FLAG_SECURE;
   return a;
 }
 
@@ -326,7 +330,7 @@ _gcry_mpi_set_opaque_copy (gcry_mpi_t a, const void *p, unsigned int nbits)
 void *
 _gcry_mpi_get_opaque (gcry_mpi_t a, unsigned int *nbits)
 {
-    if( !(a->flags & 4) )
+    if( !(a->flags & GCRYMPI_FLAG_OPAQUE) )
 	log_bug("mpi_get_opaque on normal mpi\n");
     if( nbits )
 	*nbits = a->sign;
@@ -361,7 +365,7 @@ _gcry_mpi_copy (gcry_mpi_t a)
     int i;
     gcry_mpi_t b;
 
-    if( a && (a->flags & 4) ) {
+    if( a && (a->flags & GCRYMPI_FLAG_OPAQUE) ) {
         void *p = NULL;
         if (a->sign) {
             p = _gcry_is_secure(a->d)? xmalloc_secure ((a->sign+7)/8)
@@ -371,7 +375,7 @@ _gcry_mpi_copy (gcry_mpi_t a)
         }
         b = mpi_set_opaque( NULL, p, a->sign );
         b->flags = a->flags;
-        b->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
+        b->flags &= ~(GCRYMPI_FLAG_IMMUTABLE|GCRYMPI_FLAG_CONST);
     }
     else if( a ) {
 	b = mpi_is_secure(a)? mpi_alloc_secure( a->nlimbs )
@@ -379,7 +383,7 @@ _gcry_mpi_copy (gcry_mpi_t a)
 	b->nlimbs = a->nlimbs;
 	b->sign = a->sign;
 	b->flags  = a->flags;
-        b->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
+        b->flags &= ~(GCRYMPI_FLAG_IMMUTABLE|GCRYMPI_FLAG_CONST);
 	for(i=0; i < b->nlimbs; i++ )
 	    b->d[i] = a->d[i];
     }
@@ -440,7 +444,7 @@ _gcry_mpi_alloc_like( gcry_mpi_t a )
 {
     gcry_mpi_t b;
 
-    if( a && (a->flags & 4) ) {
+    if( a && (a->flags & GCRYMPI_FLAG_OPAQUE) ) {
 	int n = (a->sign+7)/8;
 	void *p = _gcry_is_secure(a->d)? xtrymalloc_secure (n)
                                        : xtrymalloc (n);
@@ -503,7 +507,7 @@ _gcry_mpi_set (gcry_mpi_t w, gcry_mpi_t u)
   MPN_COPY( wp, up, usize );
   w->nlimbs = usize;
   w->flags = u->flags;
-  w->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
+  w->flags &= ~(GCRYMPI_FLAG_IMMUTABLE|GCRYMPI_FLAG_CONST);
   w->sign = usign;
   return w;
 }
@@ -780,8 +784,9 @@ _gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
   switch (flag)
     {
     case GCRYMPI_FLAG_SECURE:     mpi_set_secure(a); break;
-    case GCRYMPI_FLAG_CONST:      a->flags |= (16|32); break;
-    case GCRYMPI_FLAG_IMMUTABLE:  a->flags |= 16; break;
+    case GCRYMPI_FLAG_CONST:      a->flags |= (GCRYMPI_FLAG_CONST
+                                               |GCRYMPI_FLAG_IMMUTABLE); break;
+    case GCRYMPI_FLAG_IMMUTABLE:  a->flags |= GCRYMPI_FLAG_IMMUTABLE;    break;
 
     case GCRYMPI_FLAG_USER1:
     case GCRYMPI_FLAG_USER2:
@@ -799,8 +804,9 @@ _gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
   switch (flag)
     {
     case GCRYMPI_FLAG_IMMUTABLE:
-      if (!(a->flags & 32))
-        a->flags &= ~16;
+      /* If not const clear immutable.  */
+      if (!(a->flags & GCRYMPI_FLAG_CONST))
+        a->flags &= ~GCRYMPI_FLAG_IMMUTABLE;
       break;
 
     case GCRYMPI_FLAG_USER1:
@@ -822,10 +828,10 @@ _gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 {
   switch (flag)
     {
-    case GCRYMPI_FLAG_SECURE:    return !!(a->flags & 1);
-    case GCRYMPI_FLAG_OPAQUE:    return !!(a->flags & 4);
-    case GCRYMPI_FLAG_IMMUTABLE: return !!(a->flags & 16);
-    case GCRYMPI_FLAG_CONST:     return !!(a->flags & 32);
+    case GCRYMPI_FLAG_SECURE:    return !!(a->flags & GCRYMPI_FLAG_SECURE);
+    case GCRYMPI_FLAG_OPAQUE:    return !!(a->flags & GCRYMPI_FLAG_OPAQUE);
+    case GCRYMPI_FLAG_IMMUTABLE: return !!(a->flags & GCRYMPI_FLAG_IMMUTABLE);
+    case GCRYMPI_FLAG_CONST:     return !!(a->flags & GCRYMPI_FLAG_CONST);
     case GCRYMPI_FLAG_USER1:
     case GCRYMPI_FLAG_USER2:
     case GCRYMPI_FLAG_USER3:

@@ -1495,7 +1495,7 @@ struct gcry_cshake_customization
 struct gcry_mac_handle;
 typedef struct gcry_mac_handle *gcry_mac_hd_t;
 
-/* Algorithm IDs for the hash functions we know about. Not all of them
+/* Algorithm IDs for the MAC functions we know about. Not all of them
    are implemented. */
 enum gcry_mac_algos
   {

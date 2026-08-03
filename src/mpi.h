@@ -114,8 +114,8 @@ void _gcry_mpi_immutable_failed (void);
 
 #define mpi_is_const(a)       ((a)->flags&32)
 #define mpi_is_immutable(a)   ((a)->flags&16)
-#define mpi_is_opaque(a)      ((a) && ((a)->flags&4))
-#define mpi_is_secure(a)      ((a) && ((a)->flags&1))
+#define mpi_is_opaque(a)      ((a) && ((a)->flags&GCRYMPI_FLAG_OPAQUE))
+#define mpi_is_secure(a)      ((a) && ((a)->flags&GCRYMPI_FLAG_SECURE))
 #define mpi_clear(a)          _gcry_mpi_clear ((a))
 #define mpi_alloc_like(a)     _gcry_mpi_alloc_like((a))
 
