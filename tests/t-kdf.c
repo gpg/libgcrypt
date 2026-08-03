@@ -1360,6 +1360,12 @@ my_kdf_derive (int parallel,
 
   (void)parallel;
 
+  /* gpgrt_log_debug ("kdf: kdf_algo=%d hashalgo=%d kdfparam[0]=%lu\n", */
+  /*                  algo, subalgo, params[0]); */
+  /* gpgrt_log_printhex (pass, passlen, "kdf: input"); */
+  /* gpgrt_log_printhex (salt, saltlen, "kdf:  salt"); */
+  /* gpgrt_log_printhex (key, keylen,   "kdf:   key"); */
+  /* gpgrt_log_printhex (ad, adlen,     "kdf:    ad"); */
   err = gcry_kdf_open (&hd, algo, subalgo, params, paramslen,
                        pass, passlen, salt, saltlen, key, keylen,
                        ad, adlen);
@@ -1772,17 +1778,18 @@ check_hkdf (void)
 {
   gcry_error_t err;
   static struct {
-    unsigned long param[1];
-    size_t inputlen;
+    unsigned long param[1];  /* L   */
+    size_t inputlen;         /* IKM */
     const char *input;
-    size_t saltlen;
+    size_t saltlen;          /* salt */
     const char *salt;
     size_t infolen;
-    const char *info;
+    const char *info;        /* info */
     size_t dklen;
-    const char *dk;
+    const char *dk;          /* OKM (result)  */
   } tv[] = {
     {
+      /* Test Case 1 from RFC-5869 */
       { 42 },
       22,
       "\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b"
@@ -1836,6 +1843,21 @@ check_hkdf (void)
       "\xb8\xa1\x1f\x5c\x5e\xe1\x87\x9e\xc3\x45\x4e\x5f\x3c\x73\x8d\x2d"
       "\x9d\x20\x13\x95\xfa\xa4\xb6\x1a\x96\xc8"
     },
+    /* Test Case 1 from RFC-9580, A.8.2 */
+    {
+      { 16 },
+      96,
+      "\x87\xcf\x18\xd5\xf1\xb5\x3f\x81\x7c\xce\x5a\x00\x4c\xf3\x93\xcc"
+      "\x89\x58\xbd\xdc\x06\x5f\x25\xf8\x4a\xf5\x09\xb1\x7d\xd3\x67\x64"
+      "\x86\x93\x24\x83\x67\xf9\xe5\x01\x5d\xb9\x22\xf8\xf4\x80\x95\xdd"
+      "\xa7\x84\x98\x7f\x2d\x59\x85\xb1\x2f\xba\xd1\x6c\xaf\x5e\x44\x35"
+      "\x67\xe3\x0e\x69\xcd\xc7\xba\xb2\xa2\x68\x0d\x78\xac\xa4\x6a\x2f"
+      "\x8b\x6e\x2a\xe4\x4d\x39\x8b\xdc\x6f\x92\xc5\xad\x4a\x49\x25\x14",
+      0, NULL,
+      14, "OpenPGP X25519",
+      16,
+      "\xf6\x6d\xad\xcf\xf6\x45\x92\x23\x9b\x25\x45\x39\xb6\x4f\xf6\x07"
+    }
   };
   unsigned char out[82];
   int i;
@@ -1852,6 +1874,7 @@ check_hkdf (void)
                            tv[count].salt, tv[count].saltlen,
                            tv[count].info, tv[count].infolen,
                            tv[count].dklen, out);
+      /* gpgrt_log_printhex (out, tv[count].dklen, "kdf: param"); */
       if (err)
         fail ("HKDF test %d failed: %s\n", count, gpg_strerror (err));
       else if (memcmp (out, tv[count].dk, tv[count].dklen))
