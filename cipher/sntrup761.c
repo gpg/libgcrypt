@@ -208,36 +208,6 @@ uint32_mod_uint14 (uint32_t x, uint16_t m)
   return r;
 }
 
-/* from supercop-20201130/crypto_kem/sntrup761/ref/int32.c */
-
-static void
-int32_divmod_uint14 (int32_t * q, uint16_t * r, int32_t x, uint16_t m)
-{
-  uint32_t uq, uq2;
-  uint16_t ur, ur2;
-  uint32_t mask;
-
-  uint32_divmod_uint14 (&uq, &ur, 0x80000000 + (uint32_t) x, m);
-  uint32_divmod_uint14 (&uq2, &ur2, 0x80000000, m);
-  ur -= ur2;
-  uq -= uq2;
-  mask = ct_ulong_gen_mask(ur >> 15);
-  ur += mask & m;
-  uq += mask;
-  *r = ur;
-  *q = uq;
-}
-
-
-static uint16_t
-int32_mod_uint14 (int32_t x, uint16_t m)
-{
-  int32_t q;
-  uint16_t r;
-  int32_divmod_uint14 (&q, &r, x, m);
-  return r;
-}
-
 /* from supercop-20201130/crypto_kem/sntrup761/ref/paramsmenu.h */
 #define p 761
 #define q 4591
@@ -402,7 +372,16 @@ typedef int8_t small;
 static small
 F3_freeze (int16_t x)
 {
-  return int32_mod_uint14 (x + 1, 3) - 1;
+  /* Bias by multiple of three so that reduction is done on non-negative
+     value.  Multiply-shift quotient is exact for values below 2^17. */
+  static const u32 max_s16 = 0x7fff;
+  static const u32 max_s16_round_up_3 = (max_s16 + (3 - 1)) / 3 * 3;
+  static const u32 mod3_shift = 17;
+  static const u32 mod3_mul = (1U << mod3_shift) / 3 + 1;
+  u32 biased = x + 1 + max_s16_round_up_3;
+  u32 quot = (biased * mod3_mul) >> mod3_shift;
+
+  return (small)(biased - quot * 3) - 1;
 }
 
 /* ----- arithmetic mod q */
@@ -416,7 +395,17 @@ typedef int16_t Fq;
 static Fq
 Fq_freeze (int32_t x)
 {
-  return int32_mod_uint14 (x + q12, q) - q12;
+  /* Bias by multiple of q so that reduction is done on non-negative value.
+     Callers stay within +-2*q12*q12, where multiply-shift quotient is
+     exact. */
+  static const u32 max_fq = 2 * q12 * q12;
+  static const u32 max_fq_round_up_q = (max_fq + (q - 1)) / q * q;
+  static const u32 modq_shift = 36;
+  static const u32 modq_mul = (u32)(((u64)1 << modq_shift) / q + 1);
+  u32 biased = x + q12 + max_fq_round_up_q;
+  u32 quot = (u32)(((u64)biased * modq_mul) >> modq_shift);
+
+  return (Fq)(biased - quot * q) - q12;
 }
 
 static Fq
