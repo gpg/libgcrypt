@@ -48,6 +48,7 @@
 
 static int verbose;
 static int csv_mode;
+static int include_slow;
 static int unaligned_mode;
 static int num_measurement_repetitions;
 
@@ -875,6 +876,16 @@ bench_print_result_nsec_per_iteration (double nsecs_per_iteration)
       else
         printf ("%14s %13s\n", nsecpiter_buf, cpiter_buf);
     }
+}
+
+
+static void
+bench_print_result_skipped (void)
+{
+  if (auto_ghz)
+    printf ("%14s %13s %9s\n", "<<skipped>>", "-", "-");
+  else
+    printf ("%14s %13s\n", "<<skipped>>", "-");
 }
 
 static void
@@ -2951,6 +2962,595 @@ ecc_bench (char **argv, int argc)
 #endif
 }
 
+/************************************************************ PQC benchmarks. */
+
+enum bench_pq_algo
+{
+#if USE_KYBER
+  PQ_ALGO_MLKEM512 = 0,
+  PQ_ALGO_MLKEM768,
+  PQ_ALGO_MLKEM1024,
+#endif
+  PQ_ALGO_SNTRUP761,
+  PQ_ALGO_CM6688128F,
+#if USE_DILITHIUM
+  PQ_ALGO_MLDSA44,
+  PQ_ALGO_MLDSA65,
+  PQ_ALGO_MLDSA87,
+#endif
+  __MAX_PQ_ALGO
+};
+
+enum bench_pq_operation
+{
+  PQ_OPER_KEYGEN = 0,
+  PQ_OPER_ENCAP,
+  PQ_OPER_DECAP,
+  PQ_OPER_SIGN,
+  PQ_OPER_VERIFY,
+  __MAX_PQ_OPER
+};
+
+struct bench_pq_oper
+{
+  enum bench_pq_operation oper;
+  const char *name;
+  struct bench_ops *ops;
+
+  enum bench_pq_algo algo;
+};
+
+struct bench_pq_kem_hd
+{
+  int algo;
+  size_t pubkey_len;
+  size_t seckey_len;
+  size_t ciph_len;
+  size_t shared_len;
+  unsigned char *pubkey;
+  unsigned char *seckey;
+  unsigned char *ciph;
+  unsigned char *shared;
+};
+
+struct bench_pq_sig_hd
+{
+  gcry_sexp_t key_spec;
+  gcry_sexp_t data;
+  gcry_sexp_t pub_key;
+  gcry_sexp_t sec_key;
+  gcry_sexp_t sig;
+};
+
+/* KEM algorithms use 'kem_algo', signature algorithms use 'sig_name'. */
+static const struct
+{
+  const char *name;
+  int kem_algo;
+  const char *sig_name;
+  size_t pubkey_len;
+  size_t seckey_len;
+  size_t ciph_len;
+  size_t shared_len;
+  int keygen_cost;             /* Scales down key generation repetitions. */
+  int oper_cost;               /* Scales down other operation repetitions. */
+  int keygen_on_demand;        /* Run key generation only when named. */
+} pq_algos[] = {
+#if USE_KYBER
+  { "ML-KEM-512", GCRY_KEM_MLKEM512, NULL,
+    GCRY_KEM_MLKEM512_PUBKEY_LEN, GCRY_KEM_MLKEM512_SECKEY_LEN,
+    GCRY_KEM_MLKEM512_ENCAPS_LEN, GCRY_KEM_MLKEM512_SHARED_LEN, 1, 1, 0 },
+  { "ML-KEM-768", GCRY_KEM_MLKEM768, NULL,
+    GCRY_KEM_MLKEM768_PUBKEY_LEN, GCRY_KEM_MLKEM768_SECKEY_LEN,
+    GCRY_KEM_MLKEM768_ENCAPS_LEN, GCRY_KEM_MLKEM768_SHARED_LEN, 1, 1, 0 },
+  { "ML-KEM-1024", GCRY_KEM_MLKEM1024, NULL,
+    GCRY_KEM_MLKEM1024_PUBKEY_LEN, GCRY_KEM_MLKEM1024_SECKEY_LEN,
+    GCRY_KEM_MLKEM1024_ENCAPS_LEN, GCRY_KEM_MLKEM1024_SHARED_LEN, 1, 1, 0 },
+#endif
+  { "sntrup761", GCRY_KEM_SNTRUP761, NULL,
+    GCRY_KEM_SNTRUP761_PUBKEY_LEN, GCRY_KEM_SNTRUP761_SECKEY_LEN,
+    GCRY_KEM_SNTRUP761_ENCAPS_LEN, GCRY_KEM_SNTRUP761_SHARED_LEN, 16, 4, 0 },
+  { "cm6688128f", GCRY_KEM_CM6688128F, NULL,
+    GCRY_KEM_CM6688128F_PUBKEY_LEN, GCRY_KEM_CM6688128F_SECKEY_LEN,
+    GCRY_KEM_CM6688128F_ENCAPS_LEN, GCRY_KEM_CM6688128F_SHARED_LEN, 16, 1, 1 },
+#if USE_DILITHIUM
+  { "ML-DSA-44", -1, "dilithium2", 0, 0, 0, 0, 1, 1, 0 },
+  { "ML-DSA-65", -1, "dilithium3", 0, 0, 0, 0, 1, 1, 0 },
+  { "ML-DSA-87", -1, "dilithium5", 0, 0, 0, 0, 1, 1, 0 },
+#endif
+  { NULL, -1, NULL, 0, 0, 0, 0, 1, 1, 0 }
+};
+
+#define PQ_SIG_SEED_LEN 32
+#define PQ_SIG_MSG_LEN 32
+
+
+static const char *
+pq_algo_name (int algo)
+{
+  if (algo < 0 || algo >= __MAX_PQ_ALGO)
+    return NULL;
+
+  return pq_algos[algo].name;
+}
+
+static int
+pq_algo_is_kem (int algo)
+{
+  return pq_algos[algo].kem_algo >= 0;
+}
+
+static int
+pq_map_name (const char *name)
+{
+  int i;
+
+  for (i = 0; i < __MAX_PQ_ALGO; i++)
+    {
+      if (strcmp (pq_algo_name (i), name) == 0)
+	return i;
+    }
+
+  return -1;
+}
+
+static void
+pq_setup_obj (struct bench_obj *obj)
+{
+  struct bench_pq_oper *oper = obj->priv;
+  int cost;
+
+  if (oper->oper == PQ_OPER_KEYGEN)
+    cost = pq_algos[oper->algo].keygen_cost;
+  else
+    cost = pq_algos[oper->algo].oper_cost;
+
+  obj->min_bufsize = 1;
+  obj->max_bufsize = 4;
+  obj->step_size = 1;
+  obj->num_measure_repetitions =
+    num_measurement_repetitions / obj->max_bufsize / cost;
+
+  while (obj->num_measure_repetitions == 0)
+    {
+      if (obj->max_bufsize == 2)
+	{
+	  obj->num_measure_repetitions = 1;
+	}
+      else
+	{
+	  obj->max_bufsize--;
+	  obj->num_measure_repetitions =
+	    num_measurement_repetitions / obj->max_bufsize / cost;
+	}
+    }
+}
+
+
+static void
+bench_pq_kem_keypair (struct bench_pq_kem_hd *hd)
+{
+  gpg_error_t err;
+
+  err = gcry_kem_keypair (hd->algo, hd->pubkey, hd->pubkey_len,
+			  hd->seckey, hd->seckey_len);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_kem_keypair failed: %s\n",
+	       gpg_strerror (err));
+      exit (1);
+    }
+}
+
+static int
+bench_pq_kem_init (struct bench_obj *obj)
+{
+  struct bench_pq_oper *oper = obj->priv;
+  struct bench_pq_kem_hd *hd;
+
+  pq_setup_obj (obj);
+
+  hd = calloc (1, sizeof(*hd));
+  if (!hd)
+    return -1;
+
+  hd->algo = pq_algos[oper->algo].kem_algo;
+  hd->pubkey_len = pq_algos[oper->algo].pubkey_len;
+  hd->seckey_len = pq_algos[oper->algo].seckey_len;
+  hd->ciph_len = pq_algos[oper->algo].ciph_len;
+  hd->shared_len = pq_algos[oper->algo].shared_len;
+
+  hd->pubkey = calloc (1, hd->pubkey_len);
+  hd->seckey = calloc (1, hd->seckey_len);
+  hd->ciph = calloc (1, hd->ciph_len);
+  hd->shared = calloc (1, hd->shared_len);
+  if (!hd->pubkey || !hd->seckey || !hd->ciph || !hd->shared)
+    {
+      free (hd->shared);
+      free (hd->ciph);
+      free (hd->seckey);
+      free (hd->pubkey);
+      free (hd);
+      return -1;
+    }
+
+  obj->hd = hd;
+  bench_pq_kem_keypair (hd);
+  return 0;
+}
+
+static void
+bench_pq_kem_free (struct bench_obj *obj)
+{
+  struct bench_pq_kem_hd *hd = obj->hd;
+
+  free (hd->shared);
+  free (hd->ciph);
+  free (hd->seckey);
+  free (hd->pubkey);
+  free (hd);
+  obj->hd = NULL;
+}
+
+static void
+bench_pq_kem_encapsulate (struct bench_pq_kem_hd *hd)
+{
+  gpg_error_t err;
+
+  err = gcry_kem_encap (hd->algo, hd->pubkey, hd->pubkey_len,
+			hd->ciph, hd->ciph_len, hd->shared, hd->shared_len,
+			NULL, 0);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_kem_encap failed: %s\n",
+	       gpg_strerror (err));
+      exit (1);
+    }
+}
+
+static void
+bench_pq_kem_keygen_do_bench (struct bench_obj *obj, void *buf,
+			      size_t num_iter)
+{
+  struct bench_pq_kem_hd *hd = obj->hd;
+  size_t i;
+
+  (void)buf;
+
+  for (i = 0; i < num_iter; i++)
+    bench_pq_kem_keypair (hd);
+}
+
+static void
+bench_pq_kem_encap_do_bench (struct bench_obj *obj, void *buf, size_t num_iter)
+{
+  struct bench_pq_kem_hd *hd = obj->hd;
+  size_t i;
+
+  (void)buf;
+
+  for (i = 0; i < num_iter; i++)
+    bench_pq_kem_encapsulate (hd);
+}
+
+static void
+bench_pq_kem_decap_do_bench (struct bench_obj *obj, void *buf, size_t num_iter)
+{
+  struct bench_pq_kem_hd *hd = obj->hd;
+  gpg_error_t err;
+  size_t i;
+
+  (void)buf;
+
+  bench_pq_kem_encapsulate (hd);
+
+  for (i = 0; i < num_iter; i++)
+    {
+      err = gcry_kem_decap (hd->algo, hd->seckey, hd->seckey_len,
+			    hd->ciph, hd->ciph_len, hd->shared, hd->shared_len,
+			    NULL, 0);
+      if (err)
+	{
+	  fprintf (stderr, PGM ": gcry_kem_decap failed: %s\n",
+		   gpg_strerror (err));
+	  exit (1);
+	}
+    }
+}
+
+
+static int
+bench_pq_sig_init (struct bench_obj *obj)
+{
+  struct bench_pq_oper *oper = obj->priv;
+  struct bench_pq_sig_hd *hd;
+  unsigned char seed[PQ_SIG_SEED_LEN];
+  unsigned char msg[PQ_SIG_MSG_LEN];
+  gpg_error_t err;
+
+  pq_setup_obj (obj);
+
+  hd = calloc (1, sizeof(*hd));
+  if (!hd)
+    return -1;
+
+  gcry_randomize (seed, sizeof(seed), GCRY_WEAK_RANDOM);
+  gcry_randomize (msg, sizeof(msg), GCRY_WEAK_RANDOM);
+
+  err = gcry_sexp_build (&hd->key_spec, NULL, "(genkey(%s(S%b)))",
+			 pq_algos[oper->algo].sig_name,
+			 (int)sizeof(seed), seed, NULL);
+  if (!err)
+    err = gcry_sexp_build (&hd->data, NULL,
+			   "(data(raw)(flags no-prefix)(value%b))",
+			   (int)sizeof(msg), msg, NULL);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_sexp_build failed: %s\n",
+	       gpg_strerror (err));
+      exit (1);
+    }
+
+  obj->hd = hd;
+  return 0;
+}
+
+static void
+bench_pq_sig_free (struct bench_obj *obj)
+{
+  struct bench_pq_sig_hd *hd = obj->hd;
+
+  gcry_sexp_release (hd->sig);
+  gcry_sexp_release (hd->pub_key);
+  gcry_sexp_release (hd->sec_key);
+  gcry_sexp_release (hd->data);
+  gcry_sexp_release (hd->key_spec);
+  free (hd);
+  obj->hd = NULL;
+}
+
+static void
+bench_pq_sig_keygen (struct bench_pq_sig_hd *hd)
+{
+  gcry_sexp_t key_pair;
+  gpg_error_t err;
+
+  err = gcry_pk_genkey (&key_pair, hd->key_spec);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_pk_genkey failed: %s\n",
+	       gpg_strerror (err));
+      exit (1);
+    }
+
+  hd->pub_key = gcry_sexp_find_token (key_pair, "public-key", 0);
+  if (!hd->pub_key)
+    {
+      fprintf (stderr, PGM ": public part missing in key\n");
+      exit (1);
+    }
+  hd->sec_key = gcry_sexp_find_token (key_pair, "private-key", 0);
+  if (!hd->sec_key)
+    {
+      fprintf (stderr, PGM ": private part missing in key\n");
+      exit (1);
+    }
+
+  gcry_sexp_release (key_pair);
+}
+
+static void
+bench_pq_sig_keygen_do_bench (struct bench_obj *obj, void *buf,
+			      size_t num_iter)
+{
+  struct bench_pq_sig_hd *hd = obj->hd;
+  size_t i;
+
+  (void)buf;
+
+  for (i = 0; i < num_iter; i++)
+    {
+      bench_pq_sig_keygen (hd);
+      gcry_sexp_release (hd->pub_key);
+      gcry_sexp_release (hd->sec_key);
+    }
+
+  hd->pub_key = NULL;
+  hd->sec_key = NULL;
+}
+
+static void
+bench_pq_sig_sign_do_bench (struct bench_obj *obj, void *buf, size_t num_iter)
+{
+  struct bench_pq_sig_hd *hd = obj->hd;
+  gpg_error_t err;
+  size_t i;
+
+  (void)buf;
+
+  bench_pq_sig_keygen (hd);
+
+  for (i = 0; i < num_iter; i++)
+    {
+      err = gcry_pk_sign (&hd->sig, hd->data, hd->sec_key);
+      if (err)
+	{
+	  fprintf (stderr, PGM ": gcry_pk_sign failed: %s\n",
+		   gpg_strerror (err));
+	  exit (1);
+	}
+      gcry_sexp_release (hd->sig);
+    }
+
+  gcry_sexp_release (hd->pub_key);
+  gcry_sexp_release (hd->sec_key);
+  hd->sig = NULL;
+  hd->pub_key = NULL;
+  hd->sec_key = NULL;
+}
+
+static void
+bench_pq_sig_verify_do_bench (struct bench_obj *obj, void *buf,
+			      size_t num_iter)
+{
+  struct bench_pq_sig_hd *hd = obj->hd;
+  gpg_error_t err;
+  size_t i;
+
+  (void)buf;
+
+  bench_pq_sig_keygen (hd);
+  err = gcry_pk_sign (&hd->sig, hd->data, hd->sec_key);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_pk_sign failed: %s\n",
+	       gpg_strerror (err));
+      exit (1);
+    }
+
+  for (i = 0; i < num_iter; i++)
+    {
+      err = gcry_pk_verify (hd->sig, hd->data, hd->pub_key);
+      if (err)
+	{
+	  fprintf (stderr, PGM ": gcry_pk_verify failed: %s\n",
+		   gpg_strerror (err));
+	  exit (1);
+	}
+    }
+
+  gcry_sexp_release (hd->sig);
+  gcry_sexp_release (hd->pub_key);
+  gcry_sexp_release (hd->sec_key);
+  hd->sig = NULL;
+  hd->pub_key = NULL;
+  hd->sec_key = NULL;
+}
+
+
+static struct bench_ops pq_kem_keygen_ops = {
+  &bench_pq_kem_init,
+  &bench_pq_kem_free,
+  &bench_pq_kem_keygen_do_bench
+};
+
+static struct bench_ops pq_kem_encap_ops = {
+  &bench_pq_kem_init,
+  &bench_pq_kem_free,
+  &bench_pq_kem_encap_do_bench
+};
+
+static struct bench_ops pq_kem_decap_ops = {
+  &bench_pq_kem_init,
+  &bench_pq_kem_free,
+  &bench_pq_kem_decap_do_bench
+};
+
+static struct bench_ops pq_sig_keygen_ops = {
+  &bench_pq_sig_init,
+  &bench_pq_sig_free,
+  &bench_pq_sig_keygen_do_bench
+};
+
+static struct bench_ops pq_sig_sign_ops = {
+  &bench_pq_sig_init,
+  &bench_pq_sig_free,
+  &bench_pq_sig_sign_do_bench
+};
+
+static struct bench_ops pq_sig_verify_ops = {
+  &bench_pq_sig_init,
+  &bench_pq_sig_free,
+  &bench_pq_sig_verify_do_bench
+};
+
+
+static struct bench_pq_oper pq_kem_operations[] = {
+  { PQ_OPER_KEYGEN, "keygen", &pq_kem_keygen_ops },
+  { PQ_OPER_ENCAP,  "encap",  &pq_kem_encap_ops },
+  { PQ_OPER_DECAP,  "decap",  &pq_kem_decap_ops },
+  { 0, NULL, NULL }
+};
+
+static struct bench_pq_oper pq_sig_operations[] = {
+  { PQ_OPER_KEYGEN, "keygen", &pq_sig_keygen_ops },
+  { PQ_OPER_SIGN,   "sign",   &pq_sig_sign_ops },
+  { PQ_OPER_VERIFY, "verify", &pq_sig_verify_ops },
+  { 0, NULL, NULL }
+};
+
+
+static void
+cipher_pq_one (enum bench_pq_algo algo, struct bench_pq_oper *poper)
+{
+  struct bench_pq_oper oper = *poper;
+  struct bench_obj obj = { 0 };
+  double result;
+
+  oper.algo = algo;
+
+  bench_print_mode (14, oper.name);
+
+  obj.ops = oper.ops;
+  obj.priv = &oper;
+
+  result = do_slope_benchmark (&obj);
+  bench_print_result_nsec_per_iteration (result);
+}
+
+
+static void
+_pq_bench (int algo, int named)
+{
+  struct bench_pq_oper *operations;
+  int i;
+
+  bench_print_header_nsec_per_iteration (14, pq_algo_name (algo));
+
+  operations = pq_algo_is_kem (algo) ? pq_kem_operations : pq_sig_operations;
+
+  for (i = 0; operations[i].name; i++)
+    {
+      if (!named && !include_slow && operations[i].oper == PQ_OPER_KEYGEN
+	  && pq_algos[algo].keygen_on_demand)
+	{
+	  if (!csv_mode)
+	    {
+	      bench_print_mode (14, operations[i].name);
+	      bench_print_result_skipped ();
+	    }
+	  continue;
+	}
+      cipher_pq_one (algo, &operations[i]);
+    }
+
+  bench_print_footer (14);
+}
+
+
+void
+pq_bench (char **argv, int argc)
+{
+  int i, algo;
+
+  bench_print_section ("pq", "Post-quantum");
+
+  if (argv && argc)
+    {
+      for (i = 0; i < argc; i++)
+	{
+	  algo = pq_map_name (argv[i]);
+	  if (algo >= 0)
+	    _pq_bench (algo, 1);
+	}
+    }
+  else
+    {
+      for (i = 0; i < __MAX_PQ_ALGO; i++)
+	_pq_bench (i, 0);
+    }
+}
+
 /************************************************************ MPI benchmarks. */
 
 #define MPI_START_SIZE 64
@@ -3254,7 +3854,7 @@ void
 print_help (void)
 {
   static const char *help_lines[] = {
-    "usage: bench-slope [options] [hash|mac|cipher|kdf|ecc|mpi [algonames]]",
+    "usage: bench-slope [options] [hash|mac|cipher|kdf|ecc|pq|mpi [algonames]]",
     "",
     " options:",
     "   --cpu-mhz <mhz>           Set CPU speed for calculating cycles",
@@ -3266,7 +3866,12 @@ print_help (void)
                                      STR2(NUM_MEASUREMENT_REPETITIONS) ")",
     "   --unaligned               Use unaligned input buffers.",
     "   --no-quick-rng            Use default random number generation",
+    "   --include-slow            Include slow benchmarks in default run",
     "   --csv                     Use CSV output format",
+    "",
+    " notes:",
+    "   Slow post-quantum key generation is benchmarked only when algorithm",
+    "   is given by name or with '--include-slow'.",
     NULL
   };
   const char **line;
@@ -3357,6 +3962,12 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--no-quick-rng"))
 	{
 	  no_quick_rng = 1;
+	  argc--;
+	  argv++;
+	}
+      else if (!strcmp (*argv, "--include-slow"))
+	{
+	  include_slow = 1;
 	  argc--;
 	  argv++;
 	}
@@ -3457,6 +4068,7 @@ main (int argc, char **argv)
       cipher_bench (NULL, 0);
       kdf_bench (NULL, 0);
       ecc_bench (NULL, 0);
+      pq_bench (NULL, 0);
       mpi_bench (NULL, 0);
     }
   else if (!strcmp (*argv, "hash"))
@@ -3498,6 +4110,14 @@ main (int argc, char **argv)
 
       warm_up_cpu ();
       ecc_bench ((argc == 0) ? NULL : argv, argc);
+    }
+  else if (!strcmp (*argv, "pq"))
+    {
+      argc--;
+      argv++;
+
+      warm_up_cpu ();
+      pq_bench ((argc == 0) ? NULL : argv, argc);
     }
   else if (!strcmp (*argv, "mpi"))
     {
