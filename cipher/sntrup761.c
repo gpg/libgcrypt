@@ -34,6 +34,7 @@
 #endif
 
 #include "sntrup761.h"
+#include "bithelp.h"
 #include "const-time.h"
 
 /* from supercop-20201130/crypto_sort/int32/portable4/int32_minmax.inc */
@@ -698,38 +699,27 @@ Hash_prefix (unsigned char *out, int b, const unsigned char *in, int inlen)
 
 /* ----- higher-level randomness */
 
-static uint32_t
-urandom32 (void *random_ctx, sntrup761_random_func * random)
-{
-  unsigned char c[4];
-  uint32_t out[4];
-
-  random (random_ctx, 4, c);
-  out[0] = (uint32_t) c[0];
-  out[1] = ((uint32_t) c[1]) << 8;
-  out[2] = ((uint32_t) c[2]) << 16;
-  out[3] = ((uint32_t) c[3]) << 24;
-  return out[0] + out[1] + out[2] + out[3];
-}
-
 static void
 Short_random (small * out, void *random_ctx, sntrup761_random_func * random)
 {
   uint32_t L[p];
   int i;
 
+  random (random_ctx, sizeof (L), (uint8_t *)L);
   for (i = 0; i < p; ++i)
-    L[i] = urandom32 (random_ctx, random);
+    L[i] = le_bswap32 (L[i]);
   Short_fromlist (out, L);
 }
 
 static void
 Small_random (small * out, void *random_ctx, sntrup761_random_func * random)
 {
+  uint32_t L[p];
   int i;
 
+  random (random_ctx, sizeof (L), (uint8_t *)L);
   for (i = 0; i < p; ++i)
-    out[i] = (((urandom32 (random_ctx, random) & 0x3fffffff) * 3) >> 30) - 1;
+    out[i] = (((le_bswap32 (L[i]) & 0x3fffffff) * 3) >> 30) - 1;
 }
 
 /* ----- Streamlined NTRU Prime Core */
