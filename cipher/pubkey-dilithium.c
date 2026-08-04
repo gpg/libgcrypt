@@ -121,9 +121,10 @@ mldsa_compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
 
 
 static void
-randombytes (unsigned char *out, size_t outlen)
+randombytes (unsigned char *out, size_t outlen,
+             enum gcry_random_level level)
 {
-  _gcry_randomize (out, outlen, GCRY_VERY_STRONG_RANDOM);
+  _gcry_randomize (out, outlen, level);
 }
 
 static gcry_err_code_t
@@ -151,7 +152,8 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   rc = sexp_extract_param (genparms, NULL, "/S", &seed_mpi, NULL);
   if (rc == GPG_ERR_NOT_FOUND)
     {
-      randombytes (seed, SEEDBYTES);
+      /* Long term key material. */
+      randombytes (seed, SEEDBYTES, GCRY_VERY_STRONG_RANDOM);
       rc = 0;
     }
   else if (rc)
@@ -255,7 +257,10 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       memcpy (rnd, ctx.rnd, RNDBYTES);
     }
   else
-    randombytes (rnd, RNDBYTES);
+    {
+      /* Per signature value, same level as ECDSA nonce. */
+      randombytes (rnd, RNDBYTES, GCRY_STRONG_RANDOM);
+    }
   if (ctx.flags & PUBKEY_FLAG_NO_PREFIX)
     rc = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
                          NULL, -1, sk, rnd);
