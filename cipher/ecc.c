@@ -792,6 +792,13 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
           if (_gcry_mpi_ec_get_affine (Qx, Qy, ec->Q, ec))
             log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
         }
+      if (!Qy)
+        {
+          /* We may reach this condition when using
+           *   (genkey(ecc(curve Curve25519)(flags nocomp))) */
+          rc = GPG_ERR_INV_PARAMETER;
+          goto leave;
+        }
       public = _gcry_ecc_ec2os (Qx, Qy, ec->p);
     }
   if (ec->name)
