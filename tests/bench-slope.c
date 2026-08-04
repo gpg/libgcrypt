@@ -3265,6 +3265,7 @@ print_help (void)
     "   --repetitions <n>         Use N repetitions (default "
                                      STR2(NUM_MEASUREMENT_REPETITIONS) ")",
     "   --unaligned               Use unaligned input buffers.",
+    "   --no-quick-rng            Use default random number generation",
     "   --csv                     Use CSV output format",
     NULL
   };
@@ -3297,6 +3298,8 @@ int
 main (int argc, char **argv)
 {
   int last_argc = -1;
+  int no_quick_rng = 0;
+  char tmp[4];
 
   if (argc)
     {
@@ -3348,6 +3351,12 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--csv"))
 	{
 	  csv_mode = 1;
+	  argc--;
+	  argv++;
+	}
+      else if (!strcmp (*argv, "--no-quick-rng"))
+	{
+	  no_quick_rng = 1;
 	  argc--;
 	  argv++;
 	}
@@ -3427,7 +3436,12 @@ main (int argc, char **argv)
 
   xgcry_control ((GCRYCTL_DISABLE_SECMEM, 0));
   xgcry_control ((GCRYCTL_INITIALIZATION_FINISHED, 0));
-  xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
+
+  if (!no_quick_rng)
+    xgcry_control ((GCRYCTL_ENABLE_QUICK_RANDOM, 0));
+
+  /* Fill random pool so that first measurement is not different. */
+  gcry_randomize (tmp, sizeof(tmp), GCRY_STRONG_RANDOM);
 
   if (gcry_fips_mode_active ())
     in_fips_mode = 1;
