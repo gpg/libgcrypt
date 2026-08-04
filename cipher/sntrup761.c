@@ -451,22 +451,24 @@ static void
 R3_mult (small * h, const small * f, const small * g)
 {
   small fg[p + p - 1];
-  small result;
+  int32_t result;
   int i, j;
 
+  /* Terms are in {-1,0,1} and there are at most p of them, so the
+     accumulator cannot overflow and needs reduction only once. */
   for (i = 0; i < p; ++i)
     {
       result = 0;
       for (j = 0; j <= i; ++j)
-	result = F3_freeze (result + f[j] * g[i - j]);
-      fg[i] = result;
+	result += f[j] * g[i - j];
+      fg[i] = F3_freeze (result);
     }
   for (i = p; i < p + p - 1; ++i)
     {
       result = 0;
       for (j = i - p + 1; j < p; ++j)
-	result = F3_freeze (result + f[j] * g[i - j]);
-      fg[i] = result;
+	result += f[j] * g[i - j];
+      fg[i] = F3_freeze (result);
     }
 
   for (i = p + p - 2; i >= p; --i)
@@ -547,22 +549,24 @@ static void
 Rq_mult_small (Fq * h, const Fq * f, const small * g)
 {
   Fq fg[p + p - 1];
-  Fq result;
+  int32_t result;
   int i, j;
 
+  /* Products are bounded by q12 and there are at most p terms, so the
+     accumulator cannot overflow and needs reduction only once. */
   for (i = 0; i < p; ++i)
     {
       result = 0;
       for (j = 0; j <= i; ++j)
-	result = Fq_freeze (result + f[j] * (int32_t) g[i - j]);
-      fg[i] = result;
+	result += f[j] * (int32_t) g[i - j];
+      fg[i] = Fq_freeze (result);
     }
   for (i = p; i < p + p - 1; ++i)
     {
       result = 0;
       for (j = i - p + 1; j < p; ++j)
-	result = Fq_freeze (result + f[j] * (int32_t) g[i - j]);
-      fg[i] = result;
+	result += f[j] * (int32_t) g[i - j];
+      fg[i] = Fq_freeze (result);
     }
 
   for (i = p + p - 2; i >= p; --i)
