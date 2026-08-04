@@ -26,7 +26,7 @@ tests_bin = \
 	t-mpi-bit t-mpi-point t-lock \
 	prime basic keygen pubkey hmac hashtest t-kdf keygrip \
 	aeswrap random t-kem t-thread-local t-fips-service-ind \
-	t-cipher-internal
+	t-cipher-internal t-sntrup761
 
 if USE_RSA
 tests_bin += pkcs1v2 t-rsa-pss t-rsa-15 t-rsa-testparm
@@ -106,6 +106,7 @@ t_thread_local_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS) @LDADD_FOR_TESTS_K
 t_thread_local_CFLAGS = $(GPG_ERROR_MT_CFLAGS)
 testdrv_LDADD = $(LDADD_FOR_TESTS_KLUDGE)
 t_cipher_internal_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/cipher
+t_sntrup761_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/cipher
 
 # Build a version of the test driver for the build platform.
 testdrv-build: testdrv.c
