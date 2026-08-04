@@ -115,7 +115,7 @@ hmac_open (gcry_mac_hd_t h)
   flags = GCRY_MD_FLAG_HMAC;
   flags |= (secure ? GCRY_MD_FLAG_SECURE : 0);
 
-  err = _gcry_md_open (&hd, md_algo, flags);
+  err = _gcry_md_open_internal (&hd, md_algo, flags, 1);
   if (err)
     return err;
 
@@ -255,7 +255,7 @@ check_one (int algo,
       if (_gcry_md_get_algo_dlen (algo) != expectlen)
         return "invalid tests data";
     }
-  if (_gcry_md_open (&hd, algo, GCRY_MD_FLAG_HMAC))
+  if (_gcry_md_open_internal (&hd, algo, GCRY_MD_FLAG_HMAC, 1))
     return "gcry_md_open failed";
   if (_gcry_md_setkey (hd, key, keylen))
     {

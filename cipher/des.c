@@ -1217,7 +1217,7 @@ selftest (void)
     unsigned char *p;
     gcry_md_hd_t h;
 
-    if (_gcry_md_open (&h, GCRY_MD_SHA1, 0))
+    if (_gcry_md_open_internal (&h, GCRY_MD_SHA1, 0, 0))
       return "SHA1 not available";
 
     for (i = 0; i < 64; ++i)

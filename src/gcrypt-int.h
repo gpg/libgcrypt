@@ -49,6 +49,10 @@ typedef struct mpi_ec_ctx_s *mpi_ec_t;
 
 gpg_err_code_t _gcry_cipher_open (gcry_cipher_hd_t *handle,
                                   int algo, int mode, unsigned int flags);
+gcry_err_code_t _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
+                                            int algo, int mode,
+                                            unsigned int flags,
+                                            int fast_rnd_poll);
 void _gcry_cipher_close (gcry_cipher_hd_t h);
 gpg_err_code_t _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer,
                              size_t buflen);
@@ -145,6 +149,8 @@ gpg_err_code_t _gcry_pk_get_single_data (gcry_ctx_t *r_ctx,
                                          size_t *r_len);
 
 gpg_err_code_t _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags);
+gcry_err_code_t _gcry_md_open_internal (gcry_md_hd_t *h, int algo,
+                                        unsigned int flags, int fast_rnd_poll);
 void _gcry_md_close (gcry_md_hd_t hd);
 gpg_err_code_t _gcry_md_enable (gcry_md_hd_t hd, int algo);
 gpg_err_code_t _gcry_md_copy (gcry_md_hd_t *bhd, gcry_md_hd_t ahd);

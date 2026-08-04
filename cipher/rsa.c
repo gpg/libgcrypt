@@ -192,7 +192,7 @@ test_keys_fips (gcry_sexp_t skey)
   _gcry_randomize (plaintext, sizeof plaintext, GCRY_WEAK_RANDOM);
 
   /* Open MD context and feed the random data in */
-  ec = _gcry_md_open (&hd, GCRY_MD_SHA256, 0);
+  ec = _gcry_md_open_internal (&hd, GCRY_MD_SHA256, 0, 0);
   if (ec)
     goto leave;
   _gcry_md_write (hd, plaintext, sizeof(plaintext));
@@ -1924,7 +1924,7 @@ selftest_hash_sign_2048 (gcry_sexp_t pkey, gcry_sexp_t skey)
   gcry_mpi_t ref_mpi = NULL;
   gcry_mpi_t sig_mpi = NULL;
 
-  err = _gcry_md_open (&hd, md_algo, 0);
+  err = _gcry_md_open_internal (&hd, md_algo, 0, 0);
   if (err)
     {
       errtxt = "gcry_md_open failed";

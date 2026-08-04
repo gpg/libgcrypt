@@ -144,15 +144,17 @@ randombytes (uint8_t *out, size_t outlen)
 static void crypto_xof_shake256(unsigned char *h,long long hlen,
 				const unsigned char *m,long long mlen)
 {
-  gcry_md_hd_t mdh;
+  gcry_buffer_t iov =
+  {
+    .data = (void *)m,
+    .off = 0,
+    .len = mlen
+  };
   gcry_err_code_t ec;
 
-  ec = _gcry_md_open (&mdh, GCRY_MD_SHAKE256, 0);
+  ec = _gcry_md_hash_buffers_extract (GCRY_MD_SHAKE256, 0, h, hlen, &iov, 1);
   if (ec)
-    log_fatal ("internal md_open failed: %d\n", ec);
-  _gcry_md_write (mdh, m, mlen);
-  _gcry_md_extract (mdh, GCRY_MD_SHAKE256, h, hlen);
-  _gcry_md_close (mdh);
+    log_fatal ("internal shake256 failed: %d\n", ec);
 }
 /* from libmceliece-20230612/include-build/crypto_declassify.h */
 #ifndef crypto_declassify_h

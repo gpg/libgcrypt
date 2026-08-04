@@ -427,7 +427,7 @@ test_keys_fips (gcry_sexp_t skey)
   _gcry_randomize (plaintext, sizeof plaintext, GCRY_WEAK_RANDOM);
 
   /* Open MD context and feed the random data in */
-  rc = _gcry_md_open (&hd, GCRY_MD_SHA256, 0);
+  rc = _gcry_md_open_internal (&hd, GCRY_MD_SHA256, 0, 0);
   if (rc)
     {
       log_error ("ECDSA operation: failed to initialize MD context: %s\n", gpg_strerror (rc));
@@ -2076,7 +2076,7 @@ selftest_hash_sign (gcry_sexp_t pkey, gcry_sexp_t skey, const char *tmpl,
   gcry_mpi_t calculated_s = NULL;
   int cmp;
 
-  err = _gcry_md_open (&hd, md_algo, 0);
+  err = _gcry_md_open_internal (&hd, md_algo, 0, 0);
   if (err)
     {
       errtxt = "gcry_md_open failed";

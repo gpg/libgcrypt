@@ -1034,7 +1034,7 @@ _gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   if (!elems)
     goto fail; /* No grip parameter.  */
 
-  if (_gcry_md_open (&md, GCRY_MD_SHA1, 0))
+  if (_gcry_md_open_internal (&md, GCRY_MD_SHA1, 0, 0))
     goto fail;
 
   if (spec->comp_keygrip)

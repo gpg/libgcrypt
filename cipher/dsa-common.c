@@ -245,7 +245,8 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
     goto leave;
 
   /* Create a handle to compute the HMACs.  */
-  rc = _gcry_md_open (&hd, halgo, (GCRY_MD_FLAG_SECURE | GCRY_MD_FLAG_HMAC));
+  rc = _gcry_md_open_internal (&hd, halgo,
+			       (GCRY_MD_FLAG_SECURE | GCRY_MD_FLAG_HMAC), 0);
   if (rc)
     goto leave;
 

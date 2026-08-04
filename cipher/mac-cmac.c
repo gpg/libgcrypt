@@ -79,7 +79,7 @@ cmac_open (gcry_mac_hd_t h)
   flags = (secure ? GCRY_CIPHER_SECURE : 0);
 
   err = _gcry_cipher_open_internal (&hd, cipher_algo, GCRY_CIPHER_MODE_CMAC,
-                                    flags);
+                                    flags, 1);
   if (err)
     return err;
 

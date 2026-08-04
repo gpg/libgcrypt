@@ -54,7 +54,8 @@ openpgp_s2k (const void *passphrase, size_t passphraselen,
 
   secmode = _gcry_is_secure (passphrase) || _gcry_is_secure (keybuffer);
 
-  ec = _gcry_md_open (&md, hashalgo, secmode? GCRY_MD_FLAG_SECURE : 0);
+  ec = _gcry_md_open_internal (&md, hashalgo,
+                              secmode? GCRY_MD_FLAG_SECURE : 0, 1);
   if (ec)
     return ec;
 
@@ -173,8 +174,9 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
   tbuf = sbuf + saltlen + 4;
   ubuf = tbuf + hlen;
 
-  ec = _gcry_md_open (&md, hashalgo, (GCRY_MD_FLAG_HMAC
-                                      | (secmode?GCRY_MD_FLAG_SECURE:0)));
+  ec = _gcry_md_open_internal (&md, hashalgo,
+                               (GCRY_MD_FLAG_HMAC
+                                | (secmode?GCRY_MD_FLAG_SECURE:0)), 1);
   if (ec)
     {
       xfree (sbuf);
@@ -991,7 +993,8 @@ prng_aes_ctr_init (gcry_cipher_hd_t *hd_p, balloon_ctx_t b,
   blklen = _gcry_cipher_get_algo_blklen (cipher_algo);
 
   b->md_spec->hash_buffers (key, b->blklen, iov, iov_count);
-  ec = _gcry_cipher_open (&hd, cipher_algo, GCRY_CIPHER_MODE_CTR, 0);
+  ec = _gcry_cipher_open_internal (&hd, cipher_algo, GCRY_CIPHER_MODE_CTR,
+                                   0, 1);
   if (ec)
     return ec;
 
@@ -1465,7 +1468,7 @@ onestep_kdf_open (gcry_kdf_hd_t *hd, int hashalgo,
       xfree (o);
       return GPG_ERR_DIGEST_ALGO;
     }
-  ec = _gcry_md_open (&o->md, hashalgo, 0);
+  ec = _gcry_md_open_internal (&o->md, hashalgo, 0, 1);
   if (ec)
     {
       xfree (o);
@@ -1925,7 +1928,7 @@ x963_kdf_open (gcry_kdf_hd_t *hd, int hashalgo,
       xfree (o);
       return GPG_ERR_DIGEST_ALGO;
     }
-  ec = _gcry_md_open (&o->md, hashalgo, 0);
+  ec = _gcry_md_open_internal (&o->md, hashalgo, 0, 1);
   if (ec)
     {
       xfree (o);

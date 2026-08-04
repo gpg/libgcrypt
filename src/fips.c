@@ -930,7 +930,7 @@ hmac256_check (const char *filename, const char *key)
       return err;
     }
 
-  err = _gcry_md_open (&hd, GCRY_MD_SHA256, GCRY_MD_FLAG_HMAC);
+  err = _gcry_md_open_internal (&hd, GCRY_MD_SHA256, GCRY_MD_FLAG_HMAC, 0);
   if (err)
     {
       fclose (fp);

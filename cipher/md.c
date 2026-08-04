@@ -481,7 +481,7 @@ check_digest_algo (int algo)
  * may be 0.
  */
 static gcry_err_code_t
-md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
+md_open (gcry_md_hd_t *h, int algo, unsigned int flags, int fast_rnd_poll)
 {
   gcry_err_code_t err = 0;
   int secure = !!(flags & GCRY_MD_FLAG_SECURE);
@@ -539,7 +539,8 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
   if (! err)
     {
       /* Hmmm, should we really do that? - yes [-wk] */
-      _gcry_fast_random_poll ();
+      if (fast_rnd_poll)
+	_gcry_fast_random_poll ();
 
       if (algo)
 	{
@@ -555,13 +556,10 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
   return err;
 }
 
-/* Create a message digest object for algorithm ALGO.  FLAGS may be
-   given as an bitwise OR of the gcry_md_flags values.  ALGO may be
-   given as 0 if the algorithms to be used are later set using
-   gcry_md_enable. H is guaranteed to be a valid handle or NULL on
-   error.  */
+
 gcry_err_code_t
-_gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
+_gcry_md_open_internal (gcry_md_hd_t *h, int algo, unsigned int flags,
+                        int fast_rnd_poll)
 {
   gcry_err_code_t rc;
   gcry_md_hd_t hd;
@@ -571,7 +569,7 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
                  | GCRY_MD_FLAG_BUGEMU1)))
     rc = GPG_ERR_INV_ARG;
   else
-    rc = md_open (&hd, algo, flags);
+    rc = md_open (&hd, algo, flags, fast_rnd_poll);
 
   if (!rc && fips_mode ())
     {
@@ -610,6 +608,18 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
   *h = rc? NULL : hd;
   return rc;
+}
+
+
+/* Create a message digest object for algorithm ALGO.  FLAGS may be
+   given as an bitwise OR of the gcry_md_flags values.  ALGO may be
+   given as 0 if the algorithms to be used are later set using
+   gcry_md_enable. H is guaranteed to be a valid handle or NULL on
+   error.  */
+gcry_err_code_t
+_gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
+{
+  return _gcry_md_open_internal(h, algo, flags, 1);
 }
 
 
@@ -1406,7 +1416,7 @@ _gcry_md_hash_buffer (int algo, void *digest,
       gcry_md_hd_t h;
       gpg_err_code_t err;
 
-      err = md_open (&h, algo, 0);
+      err = md_open (&h, algo, 0, 0);
       if (err)
         log_bug ("gcry_md_open failed for algo %d: %s",
                 algo, gpg_strerror (gcry_error(err)));
@@ -1487,7 +1497,7 @@ _gcry_md_hash_buffers_extract (int algo, unsigned int flags, void *digest,
       gcry_md_hd_t h;
       gpg_err_code_t rc;
 
-      rc = md_open (&h, algo, (hmac? GCRY_MD_FLAG_HMAC:0));
+      rc = md_open (&h, algo, (hmac? GCRY_MD_FLAG_HMAC:0), 0);
       if (rc)
         return rc;
 

@@ -108,11 +108,6 @@ enum gcry_cipher_internal_modes
   };
 
 
-/*-- cipher.c --*/
-gcry_err_code_t _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
-					    int algo, int mode,
-					    unsigned int flags);
-
 /*-- cipher-cmac.c --*/
 gcry_err_code_t _gcry_cipher_cmac_authenticate
 /*           */ (gcry_cipher_hd_t c, const unsigned char *abuf, size_t abuflen);

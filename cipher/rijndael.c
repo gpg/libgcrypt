@@ -2049,10 +2049,12 @@ selftest_fips_128_38a (int requested_mode)
   if (tvi == DIM (tv))
     Fail ("no test data for this mode");
 
-  err = _gcry_cipher_open (&hdenc, GCRY_CIPHER_AES, tv[tvi].mode, 0);
+  err = _gcry_cipher_open_internal (&hdenc, GCRY_CIPHER_AES, tv[tvi].mode, 0,
+				    0);
   if (err)
     Fail ("open");
-  err = _gcry_cipher_open (&hddec, GCRY_CIPHER_AES, tv[tvi].mode, 0);
+  err = _gcry_cipher_open_internal (&hddec, GCRY_CIPHER_AES, tv[tvi].mode, 0,
+				    0);
   if (err)
     Fail ("open");
   err = _gcry_cipher_setkey (hdenc, tv[tvi].key,  sizeof tv[tvi].key);

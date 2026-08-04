@@ -56,7 +56,7 @@ _gcry_hash_selftest_check_one (int algo,
   if (_gcry_md_get_algo_dlen (algo) != expectlen)
     expect_xof = 1;
 
-  err = _gcry_md_open (&hd, algo, 0);
+  err = _gcry_md_open_internal (&hd, algo, 0, 0);
   if (err)
     return "gcry_md_open failed";
 

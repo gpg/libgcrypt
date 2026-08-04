@@ -276,7 +276,7 @@ shake128_init (keccak_state *state)
 {
   gcry_err_code_t ec;
 
-  ec = _gcry_md_open (&state->h, GCRY_MD_SHAKE128, 0);
+  ec = _gcry_md_open_internal (&state->h, GCRY_MD_SHAKE128, 0, 0);
   if (ec)
     log_fatal ("internal md_open failed: %d\n", ec);
 }
@@ -310,7 +310,7 @@ shake256_init (keccak_state *state)
 {
   gcry_err_code_t ec;
 
-  ec = _gcry_md_open (&state->h, GCRY_MD_SHAKE256, 0);
+  ec = _gcry_md_open_internal (&state->h, GCRY_MD_SHAKE256, 0, 0);
   if (ec)
     log_fatal ("internal md_open failed: %d\n", ec);
 }

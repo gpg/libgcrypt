@@ -92,7 +92,7 @@ poly1305mac_open (gcry_mac_hd_t h)
     }
 
   err = _gcry_cipher_open_internal (&mac_ctx->hd, cipher_algo,
-				    GCRY_CIPHER_MODE_ECB, flags);
+				    GCRY_CIPHER_MODE_ECB, flags, 1);
   if (err)
     goto err_free;
 

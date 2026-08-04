@@ -497,7 +497,7 @@ _gcry_cipher_open (gcry_cipher_hd_t *handle,
   if (mode >= GCRY_CIPHER_MODE_INTERNAL)
     rc = GPG_ERR_INV_CIPHER_MODE;
   else
-    rc = _gcry_cipher_open_internal (&h, algo, mode, flags);
+    rc = _gcry_cipher_open_internal (&h, algo, mode, flags, 1);
 
   *handle = rc ? NULL : h;
 
@@ -567,7 +567,8 @@ _gcry_cipher_mode_fips_compliance (int mode)
 
 gcry_err_code_t
 _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
-			    int algo, int mode, unsigned int flags)
+			    int algo, int mode, unsigned int flags,
+			    int fast_rnd_poll)
 {
   int secure = !!(flags & GCRY_CIPHER_SECURE);
   gcry_cipher_spec_t *spec;
@@ -576,7 +577,8 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 
   /* If the application missed to call the random poll function, we do
      it here to ensure that it is used once in a while. */
-  _gcry_fast_random_poll ();
+  if (fast_rnd_poll)
+    _gcry_fast_random_poll ();
 
   spec = spec_from_algo (algo);
   if (!spec)

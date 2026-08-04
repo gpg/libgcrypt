@@ -435,7 +435,7 @@ mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
   gcry_md_hd_t hd;
   gcry_err_code_t err;
 
-  err = _gcry_md_open (&hd, algo, 0);
+  err = _gcry_md_open_internal (&hd, algo, 0, 0);
   if (err)
     return err;
 
@@ -834,7 +834,7 @@ _gcry_rsa_pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   /* This code is implemented as described by rfc-3447 9.1.1.  */
 
-  rc = _gcry_md_open (&hd, algo, 0);
+  rc = _gcry_md_open_internal (&hd, algo, 0, 0);
   if (rc)
     return rc;
 
@@ -1005,7 +1005,7 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
 
   /* This code is implemented as described by rfc-3447 9.1.2.  */
 
-  rc = _gcry_md_open (&hd, algo, 0);
+  rc = _gcry_md_open_internal (&hd, algo, 0, 0);
   if (rc)
     return rc;
 

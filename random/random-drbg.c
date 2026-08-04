@@ -2529,7 +2529,7 @@ drbg_hash_init (drbg_state_t drbg)
   gcry_md_hd_t hd;
   gpg_error_t err;
 
-  err = _gcry_md_open (&hd, drbg->core->backend_cipher, 0);
+  err = _gcry_md_open_internal (&hd, drbg->core->backend_cipher, 0, 0);
   if (err)
     return err;
 
@@ -2544,7 +2544,8 @@ drbg_hmac_init (drbg_state_t drbg)
   gcry_md_hd_t hd;
   gpg_error_t err;
 
-  err = _gcry_md_open (&hd, drbg->core->backend_cipher, GCRY_MD_FLAG_HMAC);
+  err = _gcry_md_open_internal (&hd, drbg->core->backend_cipher,
+				GCRY_MD_FLAG_HMAC, 0);
   if (err)
     return err;
 
@@ -2598,8 +2599,8 @@ drbg_sym_init (drbg_state_t drbg)
   gcry_cipher_hd_t hd;
   gpg_error_t err;
 
-  err = _gcry_cipher_open (&hd, drbg->core->backend_cipher,
-			   GCRY_CIPHER_MODE_ECB, 0);
+  err = _gcry_cipher_open_internal (&hd, drbg->core->backend_cipher,
+				    GCRY_CIPHER_MODE_ECB, 0, 0);
   if (err)
     {
       drbg_sym_fini (drbg);
@@ -2607,8 +2608,9 @@ drbg_sym_init (drbg_state_t drbg)
     }
   drbg->priv_data = hd;
 
-  err = _gcry_cipher_open (&drbg->ctr_handle, drbg->core->backend_cipher,
-			   GCRY_CIPHER_MODE_CTR, 0);
+  err = _gcry_cipher_open_internal (&drbg->ctr_handle,
+				    drbg->core->backend_cipher,
+				    GCRY_CIPHER_MODE_CTR, 0, 0);
   if (err)
     {
       drbg_sym_fini (drbg);
