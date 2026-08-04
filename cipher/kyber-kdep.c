@@ -416,28 +416,6 @@ int crypto_kem_keypair_derand(uint8_t *pk,
 }
 
 /*************************************************
-* Name:        crypto_kem_keypair
-*
-* Description: Generates public and private key
-*              for CCA-secure Kyber key encapsulation mechanism
-*
-* Arguments:   - uint8_t *pk: pointer to output public key
-*                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
-*              - uint8_t *sk: pointer to output private key
-*                (an already allocated array of KYBER_SECRETKEYBYTES bytes)
-*
-* Returns 0 (success)
-**************************************************/
-int crypto_kem_keypair(uint8_t *pk,
-                       uint8_t *sk)
-{
-  uint8_t coins[2*KYBER_SYMBYTES];
-  randombytes(coins, 2*KYBER_SYMBYTES);
-  crypto_kem_keypair_derand(pk, sk, coins);
-  return 0;
-}
-
-/*************************************************
 * Name:        crypto_kem_enc_derand
 *
 * Description: Generates cipher text and shared
@@ -473,31 +451,6 @@ int crypto_kem_enc_derand(uint8_t *ct,
   indcpa_enc(ct, buf, pk, kr+KYBER_SYMBYTES);
 
   memcpy(ss,kr,KYBER_SYMBYTES);
-  return 0;
-}
-
-/*************************************************
-* Name:        crypto_kem_enc
-*
-* Description: Generates cipher text and shared
-*              secret for given public key
-*
-* Arguments:   - uint8_t *ct: pointer to output cipher text
-*                (an already allocated array of KYBER_CIPHERTEXTBYTES bytes)
-*              - uint8_t *ss: pointer to output shared secret
-*                (an already allocated array of KYBER_SSBYTES bytes)
-*              - const uint8_t *pk: pointer to input public key
-*                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
-*
-* Returns 0 (success)
-**************************************************/
-int crypto_kem_enc(uint8_t *ct,
-                   uint8_t *ss,
-                   const uint8_t *pk)
-{
-  uint8_t coins[KYBER_SYMBYTES];
-  randombytes(coins, KYBER_SYMBYTES);
-  crypto_kem_enc_derand(ct, ss, pk, coins);
   return 0;
 }
 
@@ -803,8 +756,6 @@ void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
 #undef poly_getnoise_eta1
 #undef crypto_kem_keypair_derand
 #undef crypto_kem_enc_derand
-#undef crypto_kem_keypair
-#undef crypto_kem_enc
 #undef crypto_kem_dec
 #undef polyvec
 #undef polyvec_compress
