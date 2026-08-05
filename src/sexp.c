@@ -1246,7 +1246,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 		case '\r':
 		  /* ignore CR[,LF] */
-		  if (n && (p[1] == '\n'))
+		  if (n>1 && (p[1] == '\n'))
 		    {
 		      p++;
 		      n--;
@@ -1256,7 +1256,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 		case '\n':
 		  /* ignore LF[,CR] */
-		  if (n && (p[1] == '\r'))
+		  if (n>1 && (p[1] == '\r'))
 		    {
 		      p++;
 		      n--;
