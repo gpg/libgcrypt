@@ -1056,6 +1056,9 @@ ballon_context_size (unsigned int parallelism)
   return n;
 }
 
+#define BALLOON_TIMECOST_MAX (16777216-1)
+#define BALLOON_PARALLELISM_MAX (16777216-1)
+
 static gpg_err_code_t
 balloon_open (gcry_kdf_hd_t *hd, int subalgo,
               const unsigned long *param, unsigned int paramlen,
@@ -1130,6 +1133,12 @@ balloon_open (gcry_kdf_hd_t *hd, int subalgo,
   if (s_cost < 1)
     return GPG_ERR_INV_VALUE;
 
+  if (t_cost < 1 || t_cost > BALLOON_TIMECOST_MAX)
+    return GPG_ERR_INV_VALUE;
+
+  if (parallelism < 1  || parallelism > BALLOON_PARALLELISM_MAX)
+    return GPG_ERR_INV_VALUE;
+
   n = ballon_context_size (parallelism);
   b = xtrymalloc (n);
   if (!b)
@@ -1147,7 +1156,7 @@ balloon_open (gcry_kdf_hd_t *hd, int subalgo,
   b->t_cost = t_cost;
   b->parallelism = parallelism;
 
-  b->n_blocks = (s_cost * 1024) / b->blklen;
+  b->n_blocks = (s_cost * U64_C(1024)) / b->blklen;
 
   block = xtrycalloc (parallelism * b->n_blocks, b->blklen);
   if (!block)
