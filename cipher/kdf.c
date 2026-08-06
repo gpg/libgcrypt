@@ -491,6 +491,9 @@ argon2_fill_first_blocks (argon2_ctx_t a)
   return 0;
 }
 
+
+#define ARGON2_PARALLELISM_MAX (16777216-1) /* Section 3.1 of RFC9106 */
+
 static gpg_err_code_t
 argon2_init (argon2_ctx_t a, unsigned int parallelism,
              unsigned int m_cost, unsigned int t_cost)
@@ -501,6 +504,9 @@ argon2_init (argon2_ctx_t a, unsigned int parallelism,
   unsigned int segment_length;
   void *block;
   struct argon2_thread_data *thread_data;
+
+  if (parallelism > ARGON2_PARALLELISM_MAX)
+    return GPG_ERR_INV_VALUE;
 
   memory_blocks = m_cost;
   if (memory_blocks < 8 * parallelism)
