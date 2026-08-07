@@ -2740,22 +2740,23 @@ static const struct
   const char *pub_key;
   unsigned int value_bits;   /* Size of value to be signed. */
   int sign_cost;             /* Scales down signing repetitions. */
+  int fips_allowed;
 } pk_algos[] = {
 #if USE_RSA
   { "RSA-2048", sample_private_rsa_key_2048, sample_public_rsa_key_2048,
-    2040, 4 },
+    2040, 4, 1 },
   { "RSA-3072", sample_private_rsa_key_3072, sample_public_rsa_key_3072,
-    3064, 8 },
+    3064, 8, 1 },
   { "RSA-4096", sample_private_rsa_key_4096, sample_public_rsa_key_4096,
-    4088, 16 },
+    4088, 16, 1 },
 #endif
 #if USE_DSA
   { "DSA-2048", sample_private_dsa_key_2048, sample_public_dsa_key_2048,
-    224, 1 },
+    224, 1, 0 },
   { "DSA-3072", sample_private_dsa_key_3072, sample_public_dsa_key_3072,
-    256, 2 },
+    256, 2, 0 },
 #endif
-  { NULL, NULL, NULL, 0, 1 }
+  { NULL, NULL, NULL, 0, 1, 0 }
 };
 
 
@@ -2943,6 +2944,9 @@ static void
 _pk_bench (int algo)
 {
   int i;
+
+  if (in_fips_mode && !pk_algos[algo].fips_allowed)
+    return;
 
   bench_print_header_nsec_per_iteration (14, pk_algo_name (algo));
 
