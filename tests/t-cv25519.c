@@ -241,6 +241,117 @@ test_cv_hl (int testno, const char *k_str, const char *u_str,
   xfree (buffer);
 }
 
+static void
+test_cv_hl25 (int testno, const char *k_str, const char *u_str,
+              const char *result_str)
+{
+  gpg_error_t err;
+  void *buffer = NULL;
+  size_t buflen;
+  gcry_sexp_t s_pk = NULL;
+  gcry_mpi_t mpi_k = NULL;
+  gcry_sexp_t s_data = NULL;
+  gcry_sexp_t s_result = NULL;
+  gcry_sexp_t s_tmp = NULL;
+  unsigned char *res = NULL;
+  size_t res_len;
+
+  if (verbose > 1)
+    info ("Running test %d\n", testno);
+
+  if (!(buffer = hex2buffer (k_str, &buflen)) || buflen != 32)
+    {
+      fail ("error building s-exp for test %d, %s: %s",
+            testno, "k", "invalid hex string");
+      goto leave;
+    }
+
+  mpi_k = gcry_mpi_set_opaque (NULL, buffer, buflen*8);
+  if ((err = gcry_sexp_build (&s_data, NULL, "%m", mpi_k)))
+    {
+      fail ("error building s-exp for test %d, %s: %s",
+            testno, "data", gpg_strerror (err));
+      goto leave;
+    }
+
+  if (!(buffer = hex2buffer (u_str, &buflen)) || buflen != 32)
+    {
+      fail ("error building s-exp for test %d, %s: %s",
+            testno, "u", "invalid hex string");
+      goto leave;
+    }
+
+  /*
+   * The procedure of decodeUCoordinate will be done internally
+   * by _gcry_ecc_mont_decodepoint.  So, we just put the little-endian
+   * binary to build S-exp.
+   */
+  if ((err = gcry_sexp_build (&s_pk, NULL,
+                              "(public-key"
+                              " (ecc"
+                              "  (curve \"ietf25\")"
+                              "  (q%b)))", (int)buflen, buffer)))
+    {
+      fail ("error building s-exp for test %d, %s: %s",
+            testno, "pk", gpg_strerror (err));
+      goto leave;
+    }
+
+  xfree (buffer);
+  buffer = NULL;
+
+  err = gcry_pk_encrypt (&s_result, s_data, s_pk);
+  if (in_fips_mode)
+    {
+      if (!err)
+        fail ("gcry_pk_encrypt is not expected to work in FIPS mode for test %d",
+              testno);
+      if (verbose > 1)
+        info ("not executed in FIPS mode\n");
+      goto leave;
+    }
+  if (err)
+    fail ("gcry_pk_encrypt failed for test %d: %s", testno,
+          gpg_strerror (err));
+
+  s_tmp = gcry_sexp_find_token (s_result, "s", 0);
+  if (!s_tmp || !(res = gcry_sexp_nth_buffer (s_tmp, 1, &res_len)))
+    fail ("gcry_pk_encrypt failed for test %d: %s", testno, "missing value");
+  else
+    {
+      char *r, *r0;
+      int i;
+
+      r0 = r = xmalloc (2*(res_len)+1);
+      if (!r0)
+        {
+          fail ("memory allocation for test %d", testno);
+          goto leave;
+        }
+
+      for (i=0; i < res_len; i++, r += 2)
+        snprintf (r, 3, "%02x", res[i]);
+      if (strcmp (result_str, r0))
+        {
+          fail ("gcry_pk_encrypt failed for test %d: %s",
+                testno, "wrong value returned");
+          info ("  expected: '%s'", result_str);
+          info ("       got: '%s'", r0);
+        }
+      xfree (r0);
+    }
+
+ leave:
+  xfree (res);
+  gcry_mpi_release (mpi_k);
+  gcry_sexp_release (s_tmp);
+  gcry_sexp_release (s_result);
+  gcry_sexp_release (s_data);
+  gcry_sexp_release (s_pk);
+  xfree (buffer);
+}
+
+
 /*
  * Test X25519 functionality through the API for X25519.
  *
@@ -327,6 +438,7 @@ test_cv (int testno, const char *k_str, const char *u_str,
          const char *result_str)
 {
   test_cv_hl (testno, k_str, u_str, result_str);
+  test_cv_hl25 (testno, k_str, u_str, result_str);
   test_cv_x25519 (testno, k_str, u_str, result_str);
 }
 

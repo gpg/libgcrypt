@@ -51,6 +51,7 @@ static const struct
     { "Curve25519", "1.3.6.1.4.1.3029.1.5.1" }, /* OpenPGP */
     { "Curve25519", "1.3.101.110" },         /* rfc8410 */
     { "Curve25519", "X25519" },              /* rfc8410 */
+    { "ietf25",     "1.3.6.1.4.1.11591.15.25" },/* rfc9580 */
 
     { "Ed448",      "1.3.101.113" },         /* rfc8410 */
     { "X448",       "1.3.101.111" },         /* rfc8410 */
@@ -176,6 +177,18 @@ static const ecc_domain_parms_t domain_parms[] =
        * but that breaks the keygrip.  The new value is recovered in
        * the function _gcry_ecc_fill_in_curve.  See bug #4712.
        */
+    },
+    {
+      /* (y^2 = x^3 + 486662*x^2 + x) */
+      "ietf25", 255, 0,
+      MPI_EC_MONTGOMERY, ECC_DIALECT_SAFECURVE,
+      "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
+      "0x01DB41",
+      "0x01",
+      "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
+      "0x0000000000000000000000000000000000000000000000000000000000000009",
+      "0x5F51E65E475F794B1FE122D388B72EB36DC2B28192839E4DD6163A5D81312C14",
+      8
     },
     {
       /* (x^2 + y^2 = 1 + dx^2y^2) */

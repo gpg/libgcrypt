@@ -33,7 +33,7 @@
 #include "t-common.h"
 
 /* Number of curves defined in ../cipher/ecc-curves.c */
-#define N_CURVES 27
+#define N_CURVES 28
 
 /* A real world sample public key.  */
 static char const sample_key_1[] =
