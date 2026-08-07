@@ -73,7 +73,8 @@
      (algo) == GCRY_KEM_MLKEM768 ? (25 * 1024) : \
      /* MLKEM1024 */ (35 * 1024))
 
-void kyber_keypair (int algo, uint8_t *pk, uint8_t *sk, const uint8_t *coins);
+void kyber_keypair (int algo, uint8_t *pk, uint8_t *sk, const uint8_t *coins,
+                    struct kem_genkey_extra_data_s *extra);
 void kyber_encap (int algo, uint8_t *ct, uint8_t *ss, const uint8_t *pk,
                   const uint8_t *coins);
 void kyber_decap (int algo, uint8_t *ss, const uint8_t *ct, const uint8_t *sk);

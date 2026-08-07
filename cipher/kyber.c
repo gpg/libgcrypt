@@ -120,9 +120,10 @@ static int crypto_kem_dec_3(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 static int crypto_kem_dec_4(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
 void
-kyber_keypair (int algo, uint8_t *pk, uint8_t *sk, const uint8_t *coins)
+kyber_keypair (int algo, uint8_t *pk, uint8_t *sk, const uint8_t *coins,
+               struct kem_genkey_extra_data_s *extra)
 {
-  uint8_t rnd[GCRY_KEM_MLKEM_RANDOM_LEN * 2];
+  uint8_t rnd[GCRY_KEM_MLKEM_RANDOM_LEN * 2];  /* For d || z */
 
   if (!coins)
     {
@@ -143,6 +144,13 @@ kyber_keypair (int algo, uint8_t *pk, uint8_t *sk, const uint8_t *coins)
     case GCRY_KEM_MLKEM1024:
       crypto_kem_keypair_derand_4 (pk, sk, coins);
       break;
+    }
+
+  if (extra && extra->request.seed)
+    {
+      gcry_assert (extra->seed && extra->seedlen >= sizeof (rnd));
+      memcpy (extra->seed, coins, sizeof rnd);
+      extra->seedlen = sizeof rnd;  /* Adjust to the used size.  */
     }
 
   if (coins == rnd)

@@ -1855,6 +1855,8 @@ gcry_error_t gcry_kem_genkey (int algo,
                               void *seckey, size_t seckey_len,
                               const void *optional, size_t optional_len);
 
+/* This is function is the same as calling gcry_kem_genkey passing
+ * (NULL,0) for (OPTIONAL,OPTIONAL_LEN).  */
 gcry_error_t gcry_kem_keypair (int algo,
                                void *pubkey, size_t pubkey_len,
                                void *seckey, size_t seckey_len);

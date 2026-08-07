@@ -774,7 +774,7 @@ progress_cb (void *cb_data, const char *what, int printchar,
 static void
 usage (int mode)
 {
-  fputs ("usage: " PGM " [options] [{rsa|elg|dsa|ecc|nonce}]\n"
+  fputs ("usage: " PGM " [options] [{rsa|elg|dsa|ecc|kem|nonce}]\n"
          "Options:\n"
          "  --verbose       be verbose\n"
          "  --debug         flyswatter\n"

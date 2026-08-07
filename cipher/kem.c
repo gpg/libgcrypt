@@ -46,16 +46,21 @@ static const struct
   unsigned int fips:1;        /* True if this is a FIPS140-3 approved KEM. */
   int pubkey_len;             /* Length of the public key.  */
   int seckey_len;             /* Length of the secret key.  */
+  int seed_len;               /* Length of the seed or 0 if not supported.  */
 } kem_infos[] =
   {
     { "sntrup761", 9, GCRY_KEM_SNTRUP761,  761, 0,
-      GCRY_KEM_SNTRUP761_PUBKEY_LEN, GCRY_KEM_SNTRUP761_SECKEY_LEN },
+      GCRY_KEM_SNTRUP761_PUBKEY_LEN, GCRY_KEM_SNTRUP761_SECKEY_LEN,
+      0 },
     { "kyber512",  8, GCRY_KEM_MLKEM512,   512, 0,
-      GCRY_KEM_MLKEM512_PUBKEY_LEN,  GCRY_KEM_MLKEM512_SECKEY_LEN },
+      GCRY_KEM_MLKEM512_PUBKEY_LEN,  GCRY_KEM_MLKEM512_SECKEY_LEN,
+      GCRY_KEM_MLKEM_RANDOM_LEN * 2 },
     { "kyber768",  8, GCRY_KEM_MLKEM768,   768, 1,
-      GCRY_KEM_MLKEM768_PUBKEY_LEN,  GCRY_KEM_MLKEM768_SECKEY_LEN },
+      GCRY_KEM_MLKEM768_PUBKEY_LEN,  GCRY_KEM_MLKEM768_SECKEY_LEN,
+      GCRY_KEM_MLKEM_RANDOM_LEN * 2 },
     { "kyber1024", 9, GCRY_KEM_MLKEM1024, 1024, 1,
-      GCRY_KEM_MLKEM1024_PUBKEY_LEN, GCRY_KEM_MLKEM1024_SECKEY_LEN },
+      GCRY_KEM_MLKEM1024_PUBKEY_LEN, GCRY_KEM_MLKEM1024_SECKEY_LEN,
+      GCRY_KEM_MLKEM_RANDOM_LEN * 2 },
     { NULL }
   };
 
@@ -83,11 +88,21 @@ sntrup761_random (void *ctx, size_t length, uint8_t *dst)
 }
 
 
+/* Note: If EXTRA is not NULL it shall be a structure with the
+ * request.foo flags set to indicate the requested data.  As of now
+ * extra->request.seed is defined for MLKEM to store the seed (d||z)
+ * at extra->seed.  For this the caller needs to provde a sufficent
+ * large enough buffer at extra->seed with its length stored at
+ * extra->seedlen.  On return the seed is stored there and
+ * extra->seedlen is adjusted to the actual used size (which is 64 for
+ * MLKEM.  If the extra->seedlen is too short an internal assertion
+ * check will fail.  */
 gcry_err_code_t
 _gcry_kem_genkey (int algo,
-                   void *pubkey, size_t pubkey_len,
-                   void *seckey, size_t seckey_len,
-                   const void *optional, size_t optional_len)
+                  void *pubkey, size_t pubkey_len,
+                  void *seckey, size_t seckey_len,
+                  const void *optional, size_t optional_len,
+                  struct kem_genkey_extra_data_s *extra)
 {
   switch (algo)
     {
@@ -117,7 +132,7 @@ _gcry_kem_genkey (int algo,
           || pubkey_len != GCRY_KEM_MLKEM512_PUBKEY_LEN
           || (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN*2))
         return GPG_ERR_INV_ARG;
-      kyber_keypair (algo, pubkey, seckey, optional);
+      kyber_keypair (algo, pubkey, seckey, optional, extra);
       _gcry_burn_stack (KYBER_KEYPAIR_STACK_BURN (algo));
       return 0;
 
@@ -126,7 +141,7 @@ _gcry_kem_genkey (int algo,
           || pubkey_len != GCRY_KEM_MLKEM768_PUBKEY_LEN
           || (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN*2))
         return GPG_ERR_INV_ARG;
-      kyber_keypair (algo, pubkey, seckey, optional);
+      kyber_keypair (algo, pubkey, seckey, optional, extra);
       _gcry_burn_stack (KYBER_KEYPAIR_STACK_BURN (algo));
       return 0;
 
@@ -135,7 +150,7 @@ _gcry_kem_genkey (int algo,
           || pubkey_len != GCRY_KEM_MLKEM1024_PUBKEY_LEN
           || (optional && optional_len != GCRY_KEM_MLKEM_RANDOM_LEN*2))
         return GPG_ERR_INV_ARG;
-      kyber_keypair (algo, pubkey, seckey, optional);
+      kyber_keypair (algo, pubkey, seckey, optional, extra);
       _gcry_burn_stack (KYBER_KEYPAIR_STACK_BURN (algo));
       return 0;
 #endif
@@ -371,9 +386,15 @@ _gcry_kem_decap (int algo,
 
 
 /* Generate a KEM keypair using the s-expression interface.  The
- * GENPARAMS is prety simple in this case because it has only the
+ * GENPARAMS is pretty simple in this case because it has only the
  * algorithm name.  For example:
  *   (kyber768)
+ * or
+ *   (kyber768(derive-parms(seed #<64_octets>#)))
+ * to expand a seed to a public and private key.  The return value is
+ * the usual s-expression. For Kyber the parameter are for the public
+ * key part is "p", the parameters for the private-key part are "p",
+ * "s", and "seed".
  */
 static gcry_err_code_t
 kem_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
@@ -387,6 +408,13 @@ kem_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   void *pubkey = NULL;
   void *seckey = NULL;
   size_t pubkey_len, seckey_len;
+  gcry_sexp_t deriveparms = NULL;
+  struct {
+    gcry_sexp_t sexp;
+    const void *seed;
+    size_t seedlen;
+  } seedparm = { NULL, NULL, 0 };
+  struct kem_genkey_extra_data_s extra = { { 0 }, NULL, 0 };
 
   algo = sexp_nth_data (genparms, 0, &algolen);
   if (!algo || !algolen)
@@ -399,7 +427,27 @@ kem_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   algoid = kem_infos[i].algo;
   pubkey_len = kem_infos[i].pubkey_len;
   seckey_len = kem_infos[i].seckey_len;
+  extra.seedlen = kem_infos[i].seed_len;
   /* (from here on we can jump to leave for cleanup)  */
+
+  deriveparms = sexp_find_token (genparms, "derive-parms", 0);
+  if (deriveparms)
+    {
+      seedparm.sexp = sexp_find_token (deriveparms, "seed", 0);
+      if (seedparm.sexp)
+        seedparm.seed = sexp_nth_data (seedparm.sexp, 1, &seedparm.seedlen);
+    }
+
+  if (extra.seedlen)
+    {
+      extra.request.seed = 1;
+      extra.seed = xtrycalloc_secure (1, extra.seedlen);
+      if (!extra.seed)
+        {
+          ec = gpg_err_code_from_syserror ();
+          goto leave;
+        }
+    }
 
   /* Allocate buffers for the created key.  */
   seckey = xtrycalloc_secure (1, seckey_len);
@@ -417,32 +465,53 @@ kem_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 
   /* Generate key.  */
   ec = _gcry_kem_genkey (algoid, pubkey, pubkey_len, seckey, seckey_len,
-                         NULL, 0);
+                         seedparm.seed, seedparm.seedlen, &extra);
   if (ec)
     goto leave;
 
   /* Put the key into an s-expression.  */
-  ec = sexp_build (r_skey, NULL,
-                   "(key-data"
-                   " (public-key"
-                   "  (%s(p%b)))"
-                   " (private-key"
-                   "  (%s(p%b)(s%b))))",
-                   name,
-                   (int)pubkey_len, pubkey,
-                   name,
-                   (int)pubkey_len, pubkey,
-                   (int)seckey_len, seckey);
+  if (extra.seed && extra.seedlen)
+    ec = sexp_build (r_skey, NULL,
+                     "(key-data"
+                     " (public-key"
+                     "  (%s(p%b)))"
+                     " (private-key"
+                     "  (%s(p%b)(s%b)(seed%b))))",
+                     name,
+                     (int)pubkey_len, pubkey,
+                     name,
+                     (int)pubkey_len, pubkey,
+                     (int)seckey_len, seckey,
+                     (int)extra.seedlen, extra.seed);
+  else
+    ec = sexp_build (r_skey, NULL,
+                     "(key-data"
+                     " (public-key"
+                     "  (%s(p%b)))"
+                     " (private-key"
+                     "  (%s(p%b)(s%b))))",
+                     name,
+                     (int)pubkey_len, pubkey,
+                     name,
+                     (int)pubkey_len, pubkey,
+                     (int)seckey_len, seckey);
 
 
   /* FIXME: Add FIPS selftest.  */
 
  leave:
+  if (extra.seed && extra.seedlen)
+    {
+      wipememory (extra.seed, extra.seedlen);
+      xfree (extra.seed);
+    }
   if (seckey)
     {
       wipememory (seckey, seckey_len);
       xfree (seckey);
     }
+  sexp_release (seedparm.sexp);
+  sexp_release (deriveparms);
   xfree (pubkey);
   return ec;
 }

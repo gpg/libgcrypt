@@ -1483,7 +1483,7 @@ gcry_kem_genkey (int algo,
   return gpg_error (_gcry_kem_genkey (algo,
                                       pubkey, pubkey_len,
                                       seckey, seckey_len,
-                                      optional, optional_len));
+                                      optional, optional_len, NULL));
 }
 
 gcry_error_t
@@ -1494,7 +1494,7 @@ gcry_kem_keypair (int algo,
   return gpg_error (_gcry_kem_genkey (algo,
                                       pubkey, pubkey_len,
                                       seckey, seckey_len,
-                                      NULL, 0));
+                                      NULL, 0, NULL));
 }
 
 gcry_error_t

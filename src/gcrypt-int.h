@@ -36,6 +36,18 @@
 struct mpi_ec_ctx_s;
 typedef struct mpi_ec_ctx_s *mpi_ec_t;
 
+/* Object used to request and return additional data from
+ * _gcry_kem_genkey.  This is pretty simple for now but may eventually
+ * be used to request other data.  */
+struct kem_genkey_extra_data_s
+{
+  struct {
+    unsigned int seed:1;  /* If set SEED will be returned.  */
+  } request;
+  void *seed;      /* Will receive the used seed - caller must free.  */
+  size_t seedlen;  /* And the length.  */
+};
+
 
 
 /* Underscore prefixed internal versions of the public functions.
@@ -243,11 +255,14 @@ gcry_err_code_t _gcry_kdf_compute (gcry_kdf_hd_t h,
 gpg_err_code_t _gcry_kdf_final (gcry_kdf_hd_t h, size_t resultlen, void *result);
 void _gcry_kdf_close (gcry_kdf_hd_t h);
 
+
 
+/* The internal KEM interface.  */
 gcry_err_code_t _gcry_kem_genkey (int algo,
                                   void *pubkey, size_t pubkey_len,
                                   void *seckey, size_t seckey_len,
-                                  const void *optional, size_t optional_len);
+                                  const void *optional, size_t optional_len,
+                                  struct kem_genkey_extra_data_s *extra);
 gcry_err_code_t _gcry_kem_encap (int algo,
                                  const void *pubkey, size_t pubkey_len,
                                  void *ciphertext, size_t ciphertext_len,
