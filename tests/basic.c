@@ -261,6 +261,10 @@ progress_handler (void *cb_data, const char *what, int printchar,
       defined(__ARM_NEON)
 # define CLUTTER_VECTOR_REGISTER_NEON 1
 # define CLUTTER_VECTOR_REGISTER_COUNT 16
+#elif defined(HAVE_GCC_INLINE_ASM_RISCV_V) && \
+      defined(__riscv)
+# define CLUTTER_VECTOR_REGISTER_RISCV 1
+# undef CLUTTER_VECTOR_REGISTER_COUNT
 #endif
 
 
@@ -297,6 +301,7 @@ clutter_vector_registers(void)
 #ifdef CLUTTER_VECTOR_REGISTER_COUNT
   static unsigned char data[CLUTTER_VECTOR_REGISTER_COUNT][16];
   static int data_init;
+#endif
 #if defined(CLUTTER_VECTOR_REGISTER_AARCH64) || \
     defined(CLUTTER_VECTOR_REGISTER_NEON)
   static int init;
@@ -347,13 +352,34 @@ clutter_vector_registers(void)
 
   if (!have_sse2)
     return;
+#elif defined(CLUTTER_VECTOR_REGISTER_RISCV)
+  static int init;
+  static int have_rvv;
+
+  if (!init)
+    {
+      char *string;
+
+      string = gcry_get_config (0, "hwflist");
+      if (string)
+	{
+	  have_rvv = (strstr(string, "riscv-v:") != NULL);
+	  xfree(string);
+	}
+      init = 1;
+    }
+
+  if (!have_rvv)
+    return;
 #endif
 
+#ifdef CLUTTER_VECTOR_REGISTER_COUNT
   if (!data_init)
     {
       prepare_vector_data(data);
       data_init = 1;
     }
+#endif
 
 #if defined(CLUTTER_VECTOR_REGISTER_AMD64)
   if (0)
@@ -565,9 +591,44 @@ clutter_vector_registers(void)
 	       : "r0", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7",
 	         "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15",
 	         "memory");
+#elif defined(CLUTTER_VECTOR_REGISTER_RISCV)
+  asm volatile(".option push;\n"
+	       ".option arch, +v;\n"
+	       "vsetvli t0, %0, e8, m4, ta, ma;\n"
+	       "vid.v v0;\n"
+	       "vid.v v4;\n"
+	       "vid.v v8;\n"
+	       "vid.v v12;\n"
+	       "vid.v v16;\n"
+	       "vid.v v20;\n"
+	       "vid.v v24;\n"
+	       "vid.v v28;\n"
+	       "vadd.vx v4, v4, t0;\n"
+	       "add t1, t0, t0;\n"
+	       "vadd.vx v8, v8, t1;\n"
+	       "add t1, t1, t0;\n"
+	       "vadd.vx v12, v12, t1;\n"
+	       "add t1, t1, t0;\n"
+	       "vadd.vx v16, v16, t1;\n"
+	       "add t1, t1, t0;\n"
+	       "vadd.vx v20, v20, t1;\n"
+	       "add t1, t1, t0;\n"
+	       "add t0, t1, t0;\n"
+	       "vadd.vx v24, v24, t1;\n"
+	       "vadd.vx v28, v28, t0;\n"
+	       ".option pop;\n"
+	       :
+	       : "r" (~0)
+	       : "memory", "vl", "vtype", "t0", "t1",
+		 "v0", "v1", "v2", "v3",
+		 "v4", "v5", "v6", "v7",
+		 "v8", "v9", "v10", "v11",
+		 "v12", "v13", "v14", "v15",
+		 "v16", "v17", "v18", "v19",
+		 "v20", "v21", "v22", "v23",
+		 "v24", "v25", "v26", "v27",
+		 "v28", "v29", "v30", "v31");
 #endif
-
-#endif /* CLUTTER_VECTOR_REGISTER_COUNT */
 }
 
 
