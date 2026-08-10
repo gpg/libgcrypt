@@ -265,6 +265,11 @@ progress_handler (void *cb_data, const char *what, int printchar,
       defined(__riscv)
 # define CLUTTER_VECTOR_REGISTER_RISCV 1
 # undef CLUTTER_VECTOR_REGISTER_COUNT
+#elif defined(HAVE_COMPATIBLE_CC_PPC_ALTIVEC) && \
+      defined(HAVE_GCC_INLINE_ASM_PPC_ALTIVEC) && \
+      defined(__POWER8_VECTOR__)
+# define CLUTTER_VECTOR_REGISTER_PPC 1
+# define CLUTTER_VECTOR_REGISTER_COUNT 64
 #endif
 
 
@@ -370,6 +375,25 @@ clutter_vector_registers(void)
     }
 
   if (!have_rvv)
+    return;
+#elif defined(CLUTTER_VECTOR_REGISTER_PPC)
+  static int init;
+  static int have_ppc_vec;
+
+  if (!init)
+    {
+      char *string;
+
+      string = gcry_get_config (0, "hwflist");
+      if (string)
+	{
+	  have_ppc_vec = (strstr(string, "ppc-arch_2_07:") != NULL);
+	  xfree(string);
+	}
+      init = 1;
+    }
+
+  if (!have_ppc_vec)
     return;
 #endif
 
@@ -628,6 +652,46 @@ clutter_vector_registers(void)
 		 "v20", "v21", "v22", "v23",
 		 "v24", "v25", "v26", "v27",
 		 "v28", "v29", "v30", "v31");
+#elif defined(CLUTTER_VECTOR_REGISTER_PPC)
+  #define FILL_VECS_10(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9) \
+	asm volatile("lxvd2x "#v0", %y0\n" \
+		     "lxvd2x "#v1", %y1\n" \
+		     "lxvd2x "#v2", %y2\n" \
+		     "lxvd2x "#v3", %y3\n" \
+		     "lxvd2x "#v4", %y4\n" \
+		     "lxvd2x "#v5", %y5\n" \
+		     "lxvd2x "#v6", %y6\n" \
+		     "lxvd2x "#v7", %y7\n" \
+		     "lxvd2x "#v8", %y8\n" \
+		     "lxvd2x "#v9", %y9\n" \
+		     : \
+		     : "Z" (data[v0][0]), "Z" (data[v1][0]), \
+		       "Z" (data[v2][0]), "Z" (data[v3][0]), \
+		       "Z" (data[v4][0]), "Z" (data[v5][0]), \
+		       "Z" (data[v6][0]), "Z" (data[v7][0]), \
+		       "Z" (data[v8][0]), "Z" (data[v9][0]) \
+		     : "vs" #v0, "vs" #v1, "vs" #v2, "vs" #v3, \
+		       "vs" #v4, "vs" #v5, "vs" #v6, "vs" #v7, \
+		       "vs" #v8, "vs" #v9, "memory");
+  #define FILL_VECS_4(v0, v1, v2, v3) \
+	asm volatile("lxvd2x "#v0", %y0\n" \
+		     "lxvd2x "#v1", %y1\n" \
+		     "lxvd2x "#v2", %y2\n" \
+		     "lxvd2x "#v3", %y3\n" \
+		     : \
+		     : "Z" (data[v0][0]), "Z" (data[v1][0]), \
+		       "Z" (data[v2][0]), "Z" (data[v3][0]) \
+		     : "vs" #v0, "vs" #v1, "vs" #v2, "vs" #v3, \
+		       "memory");
+  FILL_VECS_10(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  FILL_VECS_10(10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
+  FILL_VECS_10(20, 21, 22, 23, 24, 25, 26, 27, 28, 29);
+  FILL_VECS_10(30, 31, 32, 33, 34, 35, 36, 37, 38, 39);
+  FILL_VECS_10(40, 41, 42, 43, 44, 45, 46, 47, 48, 49);
+  FILL_VECS_10(50, 51, 52, 53, 54, 55, 56, 57, 58, 59);
+  FILL_VECS_4(60, 61, 62, 63);
+  #undef FILL_VECS_10
+  #undef FILL_VECS_4
 #endif
 }
 
