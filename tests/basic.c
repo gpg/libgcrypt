@@ -246,7 +246,7 @@ progress_handler (void *cb_data, const char *what, int printchar,
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(__SSE2__)
 # define CLUTTER_VECTOR_REGISTER_AMD64 1
-# define CLUTTER_VECTOR_REGISTER_COUNT 16
+# define CLUTTER_VECTOR_REGISTER_COUNT 32
 #elif defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4 && \
       defined(HAVE_GCC_INLINE_ASM_SSSE3) && defined(__SSE2__)
 # define CLUTTER_VECTOR_REGISTER_I386 1
@@ -295,7 +295,8 @@ static inline ALWAYS_INLINE void
 clutter_vector_registers(void)
 {
 #ifdef CLUTTER_VECTOR_REGISTER_COUNT
-  unsigned char data[CLUTTER_VECTOR_REGISTER_COUNT][16];
+  static unsigned char data[CLUTTER_VECTOR_REGISTER_COUNT][16];
+  static int data_init;
 #if defined(CLUTTER_VECTOR_REGISTER_AARCH64) || \
     defined(CLUTTER_VECTOR_REGISTER_NEON)
   static int init;
@@ -316,9 +317,12 @@ clutter_vector_registers(void)
 
   if (!have_neon)
     return;
-#elif defined(CLUTTER_VECTOR_REGISTER_I386)
+#elif defined(CLUTTER_VECTOR_REGISTER_AMD64) || \
+      defined(CLUTTER_VECTOR_REGISTER_I386)
   static int init;
-  static int have_ssse3;
+  static int have_sse2;
+  static int have_avx;
+  static int have_avx512;
 
   if (!init)
     {
@@ -327,55 +331,176 @@ clutter_vector_registers(void)
       string = gcry_get_config (0, "hwflist");
       if (string)
 	{
-	  have_ssse3 = (strstr(string, "intel-ssse3:") != NULL);
+	  int have_ssse3 = (strstr(string, "intel-ssse3:") != NULL);
+	  have_sse2 = have_ssse3; /* XMM registers supported */
+	  have_avx = (strstr(string, "intel-avx:") != NULL); /* YMM */
+	  have_avx512 = (strstr(string, "intel-avx512:") != NULL); /* ZMM */
 	  xfree(string);
 	}
+
+#ifdef CLUTTER_VECTOR_REGISTER_AMD64
+      have_sse2 = 1;
+#endif
+
       init = 1;
     }
 
-  if (!have_ssse3)
+  if (!have_sse2)
     return;
 #endif
 
-  prepare_vector_data(data);
+  if (!data_init)
+    {
+      prepare_vector_data(data);
+      data_init = 1;
+    }
 
 #if defined(CLUTTER_VECTOR_REGISTER_AMD64)
-  asm volatile("movdqu (0 * 16)(%[data]), %%xmm0\n"
-	       "movdqu (1 * 16)(%[data]), %%xmm1\n"
-	       "movdqu (2 * 16)(%[data]), %%xmm2\n"
-	       "movdqu (3 * 16)(%[data]), %%xmm3\n"
-	       "movdqu (4 * 16)(%[data]), %%xmm4\n"
-	       "movdqu (5 * 16)(%[data]), %%xmm5\n"
-	       "movdqu (6 * 16)(%[data]), %%xmm6\n"
-	       "movdqu (7 * 16)(%[data]), %%xmm7\n"
-	       "movdqu (8 * 16)(%[data]), %%xmm8\n"
-	       "movdqu (9 * 16)(%[data]), %%xmm9\n"
-	       "movdqu (10 * 16)(%[data]), %%xmm10\n"
-	       "movdqu (11 * 16)(%[data]), %%xmm11\n"
-	       "movdqu (12 * 16)(%[data]), %%xmm12\n"
-	       "movdqu (13 * 16)(%[data]), %%xmm13\n"
-	       "movdqu (14 * 16)(%[data]), %%xmm14\n"
-	       "movdqu (15 * 16)(%[data]), %%xmm15\n"
-	      :
-	      : [data] "r" (&data[0])
-	      : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
-	        "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12",
-	        "xmm13", "xmm14", "xmm15"
-	      );
+  if (0)
+    { }
+# ifdef HAVE_GCC_INLINE_ASM_AVX512
+  else if (have_avx512)
+    asm volatile("vbroadcasti32x4 (0 * 16)(%[data]), %%zmm0\n"
+		 "vbroadcasti32x4 (1 * 16)(%[data]), %%zmm1\n"
+		 "vbroadcasti32x4 (2 * 16)(%[data]), %%zmm2\n"
+		 "vbroadcasti32x4 (3 * 16)(%[data]), %%zmm3\n"
+		 "vbroadcasti32x4 (4 * 16)(%[data]), %%zmm4\n"
+		 "vbroadcasti32x4 (5 * 16)(%[data]), %%zmm5\n"
+		 "vbroadcasti32x4 (6 * 16)(%[data]), %%zmm6\n"
+		 "vbroadcasti32x4 (7 * 16)(%[data]), %%zmm7\n"
+		 "vbroadcasti32x4 (8 * 16)(%[data]), %%zmm8\n"
+		 "vbroadcasti32x4 (9 * 16)(%[data]), %%zmm9\n"
+		 "vbroadcasti32x4 (10 * 16)(%[data]), %%zmm10\n"
+		 "vbroadcasti32x4 (11 * 16)(%[data]), %%zmm11\n"
+		 "vbroadcasti32x4 (12 * 16)(%[data]), %%zmm12\n"
+		 "vbroadcasti32x4 (13 * 16)(%[data]), %%zmm13\n"
+		 "vbroadcasti32x4 (14 * 16)(%[data]), %%zmm14\n"
+		 "vbroadcasti32x4 (15 * 16)(%[data]), %%zmm15\n"
+		 "vbroadcasti32x4 (16 * 16)(%[data]), %%zmm16\n"
+		 "vbroadcasti32x4 (17 * 16)(%[data]), %%zmm17\n"
+		 "vbroadcasti32x4 (18 * 16)(%[data]), %%zmm18\n"
+		 "vbroadcasti32x4 (19 * 16)(%[data]), %%zmm19\n"
+		 "vbroadcasti32x4 (20 * 16)(%[data]), %%zmm20\n"
+		 "vbroadcasti32x4 (21 * 16)(%[data]), %%zmm21\n"
+		 "vbroadcasti32x4 (22 * 16)(%[data]), %%zmm22\n"
+		 "vbroadcasti32x4 (23 * 16)(%[data]), %%zmm23\n"
+		 "vbroadcasti32x4 (24 * 16)(%[data]), %%zmm24\n"
+		 "vbroadcasti32x4 (25 * 16)(%[data]), %%zmm25\n"
+		 "vbroadcasti32x4 (26 * 16)(%[data]), %%zmm26\n"
+		 "vbroadcasti32x4 (27 * 16)(%[data]), %%zmm27\n"
+		 "vbroadcasti32x4 (28 * 16)(%[data]), %%zmm28\n"
+		 "vbroadcasti32x4 (29 * 16)(%[data]), %%zmm29\n"
+		 "vbroadcasti32x4 (30 * 16)(%[data]), %%zmm30\n"
+		 "vbroadcasti32x4 (31 * 16)(%[data]), %%zmm31\n"
+		 :
+		 : [data] "r" (&data[0])
+		 : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+		   "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12",
+		   "xmm13", "xmm14", "xmm15"
+#  ifdef __AVX512F__
+		   , "xmm16", "xmm17", "xmm18", "xmm19", "xmm20", "xmm21",
+		   "xmm22", "xmm23", "xmm24", "xmm25", "xmm26", "xmm27",
+		   "xmm28", "xmm29", "xmm30", "xmm31"
+#  endif
+		 );
+# endif
+# ifdef HAVE_GCC_INLINE_ASM_AVX
+  else if (have_avx)
+    asm volatile("vbroadcastf128 (0 * 16)(%[data]), %%ymm0\n"
+		 "vbroadcastf128 (1 * 16)(%[data]), %%ymm1\n"
+		 "vbroadcastf128 (2 * 16)(%[data]), %%ymm2\n"
+		 "vbroadcastf128 (3 * 16)(%[data]), %%ymm3\n"
+		 "vbroadcastf128 (4 * 16)(%[data]), %%ymm4\n"
+		 "vbroadcastf128 (5 * 16)(%[data]), %%ymm5\n"
+		 "vbroadcastf128 (6 * 16)(%[data]), %%ymm6\n"
+		 "vbroadcastf128 (7 * 16)(%[data]), %%ymm7\n"
+		 "vbroadcastf128 (8 * 16)(%[data]), %%ymm8\n"
+		 "vbroadcastf128 (9 * 16)(%[data]), %%ymm9\n"
+		 "vbroadcastf128 (10 * 16)(%[data]), %%ymm10\n"
+		 "vbroadcastf128 (11 * 16)(%[data]), %%ymm11\n"
+		 "vbroadcastf128 (12 * 16)(%[data]), %%ymm12\n"
+		 "vbroadcastf128 (13 * 16)(%[data]), %%ymm13\n"
+		 "vbroadcastf128 (14 * 16)(%[data]), %%ymm14\n"
+		 "vbroadcastf128 (15 * 16)(%[data]), %%ymm15\n"
+		 :
+		 : [data] "r" (&data[0])
+		 : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+		   "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12",
+		   "xmm13", "xmm14", "xmm15"
+		 );
+# endif
+  else
+    asm volatile("movdqu (0 * 16)(%[data]), %%xmm0\n"
+		 "movdqu (1 * 16)(%[data]), %%xmm1\n"
+		 "movdqu (2 * 16)(%[data]), %%xmm2\n"
+		 "movdqu (3 * 16)(%[data]), %%xmm3\n"
+		 "movdqu (4 * 16)(%[data]), %%xmm4\n"
+		 "movdqu (5 * 16)(%[data]), %%xmm5\n"
+		 "movdqu (6 * 16)(%[data]), %%xmm6\n"
+		 "movdqu (7 * 16)(%[data]), %%xmm7\n"
+		 "movdqu (8 * 16)(%[data]), %%xmm8\n"
+		 "movdqu (9 * 16)(%[data]), %%xmm9\n"
+		 "movdqu (10 * 16)(%[data]), %%xmm10\n"
+		 "movdqu (11 * 16)(%[data]), %%xmm11\n"
+		 "movdqu (12 * 16)(%[data]), %%xmm12\n"
+		 "movdqu (13 * 16)(%[data]), %%xmm13\n"
+		 "movdqu (14 * 16)(%[data]), %%xmm14\n"
+		 "movdqu (15 * 16)(%[data]), %%xmm15\n"
+		 :
+		 : [data] "r" (&data[0])
+		 : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+		   "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12",
+		   "xmm13", "xmm14", "xmm15"
+		 );
 #elif defined(CLUTTER_VECTOR_REGISTER_I386)
-  asm volatile("movdqu (0 * 16)(%[data]), %%xmm0\n"
-	       "movdqu (1 * 16)(%[data]), %%xmm1\n"
-	       "movdqu (2 * 16)(%[data]), %%xmm2\n"
-	       "movdqu (3 * 16)(%[data]), %%xmm3\n"
-	       "movdqu (4 * 16)(%[data]), %%xmm4\n"
-	       "movdqu (5 * 16)(%[data]), %%xmm5\n"
-	       "movdqu (6 * 16)(%[data]), %%xmm6\n"
-	       "movdqu (7 * 16)(%[data]), %%xmm7\n"
-	      :
-	      : [data] "r" (&data[0])
-	      : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
-	        "xmm6", "xmm7"
-	      );
+  if (0)
+    { }
+# ifdef HAVE_GCC_INLINE_ASM_AVX512
+  else if (have_avx512)
+    asm volatile("vbroadcasti32x4 (0 * 16)(%[data]), %%zmm0\n"
+		 "vbroadcasti32x4 (1 * 16)(%[data]), %%zmm1\n"
+		 "vbroadcasti32x4 (2 * 16)(%[data]), %%zmm2\n"
+		 "vbroadcasti32x4 (3 * 16)(%[data]), %%zmm3\n"
+		 "vbroadcasti32x4 (4 * 16)(%[data]), %%zmm4\n"
+		 "vbroadcasti32x4 (5 * 16)(%[data]), %%zmm5\n"
+		 "vbroadcasti32x4 (6 * 16)(%[data]), %%zmm6\n"
+		 "vbroadcasti32x4 (7 * 16)(%[data]), %%zmm7\n"
+		 :
+		 : [data] "r" (&data[0])
+		 : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+		   "xmm6", "xmm7"
+		);
+# endif
+# ifdef HAVE_GCC_INLINE_ASM_AVX
+  else if (have_avx)
+    asm volatile("vbroadcastf128 (0 * 16)(%[data]), %%ymm0\n"
+		 "vbroadcastf128 (1 * 16)(%[data]), %%ymm1\n"
+		 "vbroadcastf128 (2 * 16)(%[data]), %%ymm2\n"
+		 "vbroadcastf128 (3 * 16)(%[data]), %%ymm3\n"
+		 "vbroadcastf128 (4 * 16)(%[data]), %%ymm4\n"
+		 "vbroadcastf128 (5 * 16)(%[data]), %%ymm5\n"
+		 "vbroadcastf128 (6 * 16)(%[data]), %%ymm6\n"
+		 "vbroadcastf128 (7 * 16)(%[data]), %%ymm7\n"
+		 :
+		 : [data] "r" (&data[0])
+		 : "memory", "ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5",
+		   "ymm6", "ymm7"
+		);
+# endif
+  else
+    asm volatile("movdqu (0 * 16)(%[data]), %%xmm0\n"
+		 "movdqu (1 * 16)(%[data]), %%xmm1\n"
+		 "movdqu (2 * 16)(%[data]), %%xmm2\n"
+		 "movdqu (3 * 16)(%[data]), %%xmm3\n"
+		 "movdqu (4 * 16)(%[data]), %%xmm4\n"
+		 "movdqu (5 * 16)(%[data]), %%xmm5\n"
+		 "movdqu (6 * 16)(%[data]), %%xmm6\n"
+		 "movdqu (7 * 16)(%[data]), %%xmm7\n"
+		 :
+		 : [data] "r" (&data[0])
+		 : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+		   "xmm6", "xmm7"
+		);
 #elif defined(CLUTTER_VECTOR_REGISTER_AARCH64)
   asm volatile("mov x0, %[ptr]\n"
 	       "ld1 {v0.16b}, [x0], #16\n"
