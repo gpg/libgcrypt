@@ -276,7 +276,13 @@ _gcry_get_sysconfdir (void)
       void *handle;
       char *buf;
 
-      handle = LoadLibraryEx ("shell32.dll", NULL, 0);
+      /* See comment in random/rndw32.c */
+      if (GetProcAddress (GetModuleHandle ("kernel32.dll"),
+                          "SetDefaultDllDirectories"))
+        handle = LoadLibraryEx ("shell32.dll", NULL,
+                                LOAD_LIBRARY_SEARCH_SYSTEM32);
+      else
+        handle = LoadLibraryEx ("shell32.dll", NULL, 0);
       if (handle)
         {
           buf = xmalloc (MAX_PATH+17+1); /* Space for "/GNU/etc/gcrypt/" */
