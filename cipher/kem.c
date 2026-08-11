@@ -366,6 +366,10 @@ _gcry_kem_decap (int algo,
           || ciphertext_len != GCRY_KEM_DHKEM25519_ENCAPS_LEN
           || shared_len != GCRY_KEM_DHKEM25519_SHARED_LEN)
         return GPG_ERR_INV_ARG;
+      if (optional != NULL && optional_len != GCRY_KEM_DHKEM25519_PUBKEY_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional == NULL && optional_len != 0)
+        return GPG_ERR_INV_ARG;
       return _gcry_ecc_dhkem_decap (algo, seckey, ciphertext, shared,
                                     optional);
 
@@ -373,6 +377,10 @@ _gcry_kem_decap (int algo,
       if (seckey_len != GCRY_KEM_DHKEM448_SECKEY_LEN
           || ciphertext_len != GCRY_KEM_DHKEM448_ENCAPS_LEN
           || shared_len != GCRY_KEM_DHKEM448_SHARED_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional != NULL && optional_len != GCRY_KEM_DHKEM448_PUBKEY_LEN)
+        return GPG_ERR_INV_ARG;
+      if (optional == NULL && optional_len != 0)
         return GPG_ERR_INV_ARG;
       return _gcry_ecc_dhkem_decap (algo, seckey, ciphertext, shared,
                                     optional);
