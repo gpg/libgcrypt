@@ -1263,9 +1263,17 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
 	if (!mpi_cmp_ui (point->z, 1))
 	  {
 	    if (x)
-	      mpi_set (x, point->x);
+              {
+                mpi_set (x, point->x);
+                mpi_resize (x, ctx->p->nlimbs);
+                x->nlimbs = ctx->p->nlimbs;
+              }
 	    if (y)
-	      mpi_set (y, point->y);
+              {
+                mpi_set (y, point->y);
+                mpi_resize (y, ctx->p->nlimbs);
+                y->nlimbs = ctx->p->nlimbs;
+              }
 	    return 0;
 	  }
 
