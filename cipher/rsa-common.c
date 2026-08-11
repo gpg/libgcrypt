@@ -529,6 +529,10 @@ _gcry_rsa_oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   hlen = _gcry_md_get_algo_dlen (algo);
 
+  /* Public key check against hash algo (it's implicit in rfc-3447/8017).  */
+  if (nframe < 2 * hlen + 2)
+    return GPG_ERR_DIGEST_ALGO;
+
   /* We skip step 1a which would be to check that LABELLEN is not
      greater than 2^61-1.  See rfc-3447 7.1.1. */
 
