@@ -530,8 +530,18 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
          only add them once */
       /* readPnPData ();  - we have not implemented that.  */
 
-      /* Initialize the NetAPI32 function pointers if necessary */
-      hNetAPI32 = LoadLibrary ("NETAPI32.DLL");
+
+      /* Initialize the NetAPI32 function pointers.  We first need to
+       * decide whether the SEARCH_SYSTEM32 flag is supported; this is
+       * can be done by checking for the availibility of a newer
+       * system call.  For example Windows 7, Vista, and Server 2008
+       * require the installation of a security update for this.  */
+      if (GetProcAddress (GetModuleHandle ("kernel32.dll"),
+                          "SetDefaultDllDirectories"))
+        hNetAPI32 = LoadLibraryEx ("NETAPI32.DLL", NULL,
+                                   LOAD_LIBRARY_SEARCH_SYSTEM32);
+      else
+        hNetAPI32 = LoadLibrary ("NETAPI32.DLL");
       if (hNetAPI32)
         {
           if (debug_me)
