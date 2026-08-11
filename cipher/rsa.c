@@ -1769,6 +1769,11 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     goto leave;
   if (DBG_CIPHER)
     log_printmpi ("rsa_verify  sig", sig);
+  if (sig->sign)
+    {
+      rc = GPG_ERR_BAD_SIGNATURE;
+      goto leave;
+    }
 
   /* Extract the key.  */
   rc = sexp_extract_param (keyparms, NULL, "ne", &pk.n, &pk.e, NULL);
@@ -1778,6 +1783,11 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     {
       log_printmpi ("rsa_verify    n", pk.n);
       log_printmpi ("rsa_verify    e", pk.e);
+    }
+  if (mpi_cmp (sig, pk.n) >= 0)
+    {
+      rc = GPG_ERR_BAD_SIGNATURE;
+      goto leave;
     }
 
   /* Check if use of the hash is compliant.  */
