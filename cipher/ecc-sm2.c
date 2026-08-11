@@ -31,6 +31,7 @@
 #include "ec-context.h"
 #include "pubkey-internal.h"
 #include "ecc-common.h"
+#include "const-time.h"
 
 #define MPI_NBYTES(m)   ((mpi_get_nbits(m) + 7) / 8)
 
@@ -326,15 +327,15 @@ _gcry_ecc_sm2_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t data_list, mpi_ec_t ec)
     dgst = _gcry_md_read (md, algo);
     if (dgst == NULL)
       {
-        memset (plain, 0, inlen);
+        wipememory (plain, inlen);
         rc = GPG_ERR_DIGEST_ALGO;
         goto leave_main;
       }
     c3 = mpi_get_opaque (data_c3, &c3_len);
     c3_len = (c3_len + 7) / 8;
-    if (c3_len != mdlen || memcmp (dgst, c3, c3_len) != 0)
+    if (c3_len != mdlen || ct_not_memequal (dgst, c3, c3_len))
       {
-        memset (plain, 0, inlen);
+        wipememory (plain, inlen);
         rc = GPG_ERR_INV_DATA;
         goto leave_main;
       }
