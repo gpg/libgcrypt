@@ -3,6 +3,80 @@ Noteworthy changes in version 1.12.3 (unreleased)  [C27/A7/R_]
 
  * Bug fixes:
 
+   - Avoid theoretical drive-by loading of netapi32.dll and
+     shell32.dll.  [T8375]
+
+   - Validate hash algorithm for use with RSA modulus.  [T8376]
+
+   - Validate parameters of Balloon KDF.  [T8374,T8383]
+
+   - Validate parallelism of Argon2 KDF.  [T8373,T8382]
+
+   - Fix parsing quoted parts and CRLF/LFCR in s-expression.  [T8371]
+
+   - Support BUFLEN check for GCRYMPI_FMT_SSH.  [T8371]
+
+   - Fix RSA PSS verify message length checking.  [rC0d64fc228f]
+
+   - Avoid a NULL ptr deref due to a unsupported genkey flag for
+     ECC.  [rC3b259530bc]
+
+   - Assert 32 KiB input cap in gcm_ctr_encrypt.  [T8387]
+
+   - Fix assertion failure in OCB when a buffered block becomes block
+     65536.  [TT8389]
+
+   - Fix OOB read in IMIT MAC verify of GOST28147.  [T8388]
+
+   - Fix CMAC block-count truncation for 64 GiB writes.  [T8384]
+
+   - Fix AEAD spurious byte-counter carry for 4 GiB adds.  [T8381]
+
+   - Validate all KEM input lengths.  [T8259]
+
+   - Add length check of DATALEN when parsing s-expression.  [T8267]
+
+ * Performance:
+
+   - Use just strong random for the Dilithium signature nonce and the
+     Kyber encapsulation coins.  [rC70ecc4e943,rCd7a3acc130]
+
+   - Allow internal users to skip fast random poll for ciphers and
+     hashes.  [rC75ff7a959b]
+
+   - Speedup sntrup761 by defer reduction in polynomial multiplication,
+     reading random with a single call, and reducing freeze helpers
+     w/o division.  [rCbaa3a6376b,rC3f2f39bf75,rC317c661b16]
+
+   - Avoid byte-wise load/store on RISC-V with Zicclsm.
+     [rCe18a5eb650]
+
+   - Use unaligned vector memory access on RSIV-V when supported.
+     [rCecaa3572e1]
+
+   - Add Intel SM4 instructions accelerated AVX512 and AVX2
+     implementation.  [rC14d1a882aa,rCdf44b486ba]
+
+   - Add Intel SM3 extension implementation.  [rC3f94b92e05]
+
+   - Add Intel SHA512 extension implementation.  [rC0f8a34038d]
+
+ * Other:
+
+   - kyber: Accept and return a seed using the gcry_pk_genkey API.
+     [rCe099ccfea9]
+
+   - Add curve "ietf25" as alternative to "Curve25519" with exact
+     RFC-8410 semantics.  The name "X25519" was already used as an
+     alias, thus this new name.
+
+   - Add straight-line speculation hardening for function ends.
+     [rC9b684f4a44]
+
+   - Add post-quantum algorithm benchmarking to bench-slope.
+
+   - Due to the minor API updates and but with no newer branch
+     released the SO name has been updated.
 
  Release-info: https://dev.gnupg.org/T8223
 
