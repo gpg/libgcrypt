@@ -338,6 +338,10 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
       hd->bufpos = 0;
 
       /* Initialize the private data. */
+      /* gcc may emit a wrong warning here:
+       *    warning: 'memset' offset [0, 11] is out of
+       *             the bounds [0, 0] [-Warray-bounds]
+       * see also T5556.  */
       memset (hd->ctx, 0, sizeof *hd->ctx);
       ctx->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
       ctx->actual_handle_size = n + sizeof (struct gcry_md_context);

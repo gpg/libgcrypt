@@ -786,6 +786,10 @@ lock_seed_file (int fd, const char *fname, int for_write)
       if (backoff < 10)
         backoff++ ;
     }
+#else  /*!LOCK_SEED_FILE*/
+  (void)fd;
+  (void)fname;
+  (void)for_write;
 #endif /*!LOCK_SEED_FILE*/
   return 0;
 }
