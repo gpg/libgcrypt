@@ -1048,6 +1048,11 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, mpi_ec_t ec,
         rc = GPG_ERR_INV_LENGTH;
         goto leave;
       }
+    if (mpi_cmp (s, ec->n) >= 0)
+      {
+        rc = GPG_ERR_BAD_SIGNATURE;
+        goto leave;
+      }
   }
 
   _gcry_mpi_ec_mul_point (&Ia, s, ec->G, ec);
