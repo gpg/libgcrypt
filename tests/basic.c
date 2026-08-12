@@ -16405,6 +16405,7 @@ check_one_mac (int algo, const char *data, int datalen,
 	       const char *key, int keylen, const char *iv, int ivlen,
 	       const char *expect, int test_buffering)
 {
+  unsigned char big_bad_tag[64 * 2];
   gcry_mac_hd_t hd;
   unsigned char *p;
   unsigned int maclen;
@@ -16557,6 +16558,14 @@ check_one_mac (int algo, const char *data, int datalen,
   err = gcry_mac_verify (hd, expect, maclen);
   if (err)
     fail("algo %d, mac gcry_mac_verify failed: %s\n", algo, gpg_strerror (err));
+
+  clutter_vector_registers();
+  err = gcry_mac_verify (hd, big_bad_tag, sizeof(big_bad_tag));
+  if (gcry_err_code (err) != GPG_ERR_INV_LENGTH)
+    fail ("algo %d, gcry_mac_verify: oversized len %d not rejected: %s\n", algo,
+	  (int)sizeof(big_bad_tag), gpg_strerror (err));
+  if (err)
+    goto out;
 
   macoutlen = maclen;
   clutter_vector_registers();

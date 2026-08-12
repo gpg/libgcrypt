@@ -1283,8 +1283,9 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
     {
       /* OUTBUFLEN gives the length of the user supplied tag in OUTBUF
        * and thus we need to compare its length first.  */
-      if (!is_tag_length_valid (outbuflen)
-          || !buf_eq_const (outbuf, c->u_mode.gcm.u_tag.tag, outbuflen))
+      if (!is_tag_length_valid (outbuflen))
+	return GPG_ERR_INV_LENGTH;
+      if (!buf_eq_const (outbuf, c->u_mode.gcm.u_tag.tag, outbuflen))
         return GPG_ERR_CHECKSUM;
     }
 

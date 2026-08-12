@@ -216,8 +216,10 @@ cmac_tag (gcry_cipher_hd_t c, gcry_cmac_context_t *ctx,
 {
   gcry_err_code_t ret;
 
-  if (!tag || taglen == 0 || taglen > c->spec->blocksize)
+  if (!tag)
     return GPG_ERR_INV_ARG;
+  if (taglen == 0 || taglen > c->spec->blocksize)
+    return GPG_ERR_INV_LENGTH;
 
   if (!ctx->tag)
     {
