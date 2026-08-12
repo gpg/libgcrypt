@@ -307,95 +307,58 @@ clutter_vector_registers(void)
   static unsigned char data[CLUTTER_VECTOR_REGISTER_COUNT][16];
   static int data_init;
 #endif
+#if defined(CLUTTER_VECTOR_REGISTER_AMD64) || \
+    defined(CLUTTER_VECTOR_REGISTER_I386)
+  static int have_ymm;
+  static int have_zmm;
+#endif
+  static int have_vectors;
+  static struct
+  {
+    const char *match;
+    int *out_have;
+    int required;
+    int have;
+  } hwfeatures[] =
+    {
 #if defined(CLUTTER_VECTOR_REGISTER_AARCH64) || \
     defined(CLUTTER_VECTOR_REGISTER_NEON)
-  static int init;
-  static int have_neon;
-
-  if (!init)
-    {
-      char *string;
-
-      string = gcry_get_config (0, "hwflist");
-      if (string)
-	{
-	  have_neon = (strstr(string, "arm-neon:") != NULL);
-	  xfree(string);
-	}
-      init = 1;
-    }
-
-  if (!have_neon)
-    return;
+      { "arm-neon:",      &have_vectors, 1, 0 },
 #elif defined(CLUTTER_VECTOR_REGISTER_AMD64) || \
       defined(CLUTTER_VECTOR_REGISTER_I386)
-  static int init;
-  static int have_sse2;
-  static int have_avx;
-  static int have_avx512;
-
-  if (!init)
-    {
-      char *string;
-
-      string = gcry_get_config (0, "hwflist");
-      if (string)
-	{
-	  int have_ssse3 = (strstr(string, "intel-ssse3:") != NULL);
-	  have_sse2 = have_ssse3; /* XMM registers supported */
-	  have_avx = (strstr(string, "intel-avx:") != NULL); /* YMM */
-	  have_avx512 = (strstr(string, "intel-avx512:") != NULL); /* ZMM */
-	  xfree(string);
-	}
-
-#ifdef CLUTTER_VECTOR_REGISTER_AMD64
-      have_sse2 = 1;
-#endif
-
-      init = 1;
-    }
-
-  if (!have_sse2)
-    return;
+      { "intel-ssse3:",   &have_vectors, 1, 0 },
+      { "intel-avx:",     &have_ymm, 0, 0 },
+      { "intel-avx512:",  &have_zmm, 0, 0 },
 #elif defined(CLUTTER_VECTOR_REGISTER_RISCV)
-  static int init;
-  static int have_rvv;
-
-  if (!init)
-    {
-      char *string;
-
-      string = gcry_get_config (0, "hwflist");
-      if (string)
-	{
-	  have_rvv = (strstr(string, "riscv-v:") != NULL);
-	  xfree(string);
-	}
-      init = 1;
-    }
-
-  if (!have_rvv)
-    return;
+      { "riscv-v:",       &have_vectors, 1, 0 },
 #elif defined(CLUTTER_VECTOR_REGISTER_PPC)
-  static int init;
-  static int have_ppc_vec;
+      { "ppc-arch_2_07:", &have_vectors, 1, 0 },
+#endif
+    };
+  static int hwf_init = ((int)DIM(hwfeatures) == 0);
 
-  if (!init)
+  if (!hwf_init)
     {
-      char *string;
-
-      string = gcry_get_config (0, "hwflist");
-      if (string)
+      char *hwflist = gcry_get_config (0, "hwflist");
+      if (hwflist)
 	{
-	  have_ppc_vec = (strstr(string, "ppc-arch_2_07:") != NULL);
-	  xfree(string);
+	  int i;
+
+	  for (i = 0; i < (int)DIM(hwfeatures); i++)
+	    {
+	      int have = (strstr(hwflist, hwfeatures[i].match) != NULL);
+	      hwfeatures[i].have = have;
+	      *hwfeatures[i].out_have |= have;
+	    }
+
+	  xfree(hwflist);
 	}
-      init = 1;
+
+      hwf_init = 1;
     }
 
-  if (!have_ppc_vec)
+  if (!have_vectors)
     return;
-#endif
 
 #ifdef CLUTTER_VECTOR_REGISTER_COUNT
   if (!data_init)
@@ -409,7 +372,7 @@ clutter_vector_registers(void)
   if (0)
     { }
 # ifdef HAVE_GCC_INLINE_ASM_AVX512
-  else if (have_avx512)
+  else if (have_zmm)
     asm volatile("vbroadcasti32x4 (0 * 16)(%[data]), %%zmm0\n"
 		 "vbroadcasti32x4 (1 * 16)(%[data]), %%zmm1\n"
 		 "vbroadcasti32x4 (2 * 16)(%[data]), %%zmm2\n"
@@ -455,7 +418,7 @@ clutter_vector_registers(void)
 		 );
 # endif
 # ifdef HAVE_GCC_INLINE_ASM_AVX
-  else if (have_avx)
+  else if (have_ymm)
     asm volatile("vbroadcastf128 (0 * 16)(%[data]), %%ymm0\n"
 		 "vbroadcastf128 (1 * 16)(%[data]), %%ymm1\n"
 		 "vbroadcastf128 (2 * 16)(%[data]), %%ymm2\n"
@@ -506,7 +469,7 @@ clutter_vector_registers(void)
   if (0)
     { }
 # ifdef HAVE_GCC_INLINE_ASM_AVX512
-  else if (have_avx512)
+  else if (have_zmm)
     asm volatile("vbroadcasti32x4 (0 * 16)(%[data]), %%zmm0\n"
 		 "vbroadcasti32x4 (1 * 16)(%[data]), %%zmm1\n"
 		 "vbroadcasti32x4 (2 * 16)(%[data]), %%zmm2\n"
@@ -522,7 +485,7 @@ clutter_vector_registers(void)
 		);
 # endif
 # ifdef HAVE_GCC_INLINE_ASM_AVX
-  else if (have_avx)
+  else if (have_ymm)
     asm volatile("vbroadcastf128 (0 * 16)(%[data]), %%ymm0\n"
 		 "vbroadcastf128 (1 * 16)(%[data]), %%ymm1\n"
 		 "vbroadcastf128 (2 * 16)(%[data]), %%ymm2\n"
