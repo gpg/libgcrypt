@@ -222,8 +222,6 @@ _gcry_sha1_transform_amd64_avx:
   cmpq $0, %rdx;
   jz .Lret;
 
-  vzeroupper;
-
   movq %rdx, RNBLKS;
   movq %rdi, RSTATE;
   movq %rsi, RDATA;

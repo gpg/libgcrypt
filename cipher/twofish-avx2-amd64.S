@@ -519,8 +519,6 @@ _gcry_twofish_avx2_blk16:
 	 */
 	CFI_STARTPROC();
 
-	vzeroupper;
-
 	vmovdqu (0 * 32)(%rdx), RA0;
 	vmovdqu (1 * 32)(%rdx), RB0;
 	vmovdqu (2 * 32)(%rdx), RC0;
@@ -564,8 +562,6 @@ _gcry_twofish_avx2_ctr_enc:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	vbroadcasti128 .Lbswap128_mask rRIP, RTMP3;
 	vpcmpeqd RNOT, RNOT, RNOT;
@@ -638,8 +634,6 @@ _gcry_twofish_avx2_cbc_dec:
 	 */
 	CFI_STARTPROC();
 
-	vzeroupper;
-
 	vmovdqu (0 * 32)(%rdx), RA0;
 	vmovdqu (1 * 32)(%rdx), RB0;
 	vmovdqu (2 * 32)(%rdx), RC0;
@@ -690,8 +684,6 @@ _gcry_twofish_avx2_cfb_dec:
 	 *	%rcx: iv
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	/* Load input */
 	vmovdqu (%rcx), RNOTx;
@@ -748,8 +740,6 @@ _gcry_twofish_avx2_ocb_enc:
 	 *	%r9 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);
@@ -862,8 +852,6 @@ _gcry_twofish_avx2_ocb_dec:
 	 *	%r9 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);
@@ -986,8 +974,6 @@ _gcry_twofish_avx2_ocb_auth:
 	 *	%r8 : L pointers (void *L[16])
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	subq $(4 * 8), %rsp;
 	CFI_ADJUST_CFA_OFFSET(4 * 8);

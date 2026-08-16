@@ -184,8 +184,6 @@ _gcry_chacha20_amd64_avx2_blocks8:
 	 */
 	CFI_STARTPROC();
 
-	vzeroupper;
-
 	pushq %rbp;
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
@@ -355,8 +353,6 @@ _gcry_chacha20_poly1305_amd64_avx2_blocks8:
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	subq $(9 * 8) + STACK_MAX + 32, %rsp;
 	andq $~31, %rsp;

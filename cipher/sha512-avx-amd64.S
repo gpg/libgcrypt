@@ -254,8 +254,6 @@ _gcry_sha512_transform_amd64_avx:
 	cmp	msglen, 0
 	je	.Lnowork
 
-	vzeroupper
-
 	/* Allocate Stack Space */
 	sub	rsp, frame_size
 	CFI_ADJUST_CFA_OFFSET(frame_size);

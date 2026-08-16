@@ -354,8 +354,6 @@ _gcry_sm3_transform_amd64_avx_bmi2:
    */
   CFI_STARTPROC();
 
-  vzeroupper;
-
   pushq %rbp;
   CFI_PUSH(%rbp);
   movq %rsp, %rbp;

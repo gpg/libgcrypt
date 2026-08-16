@@ -210,8 +210,6 @@ _gcry_blake2b_transform_amd64_avx2:
          */
         CFI_STARTPROC();
 
-        vzeroupper;
-
         addq $128, (STATE_T + 0)(RSTATE);
         adcq $0, (STATE_T + 8)(RSTATE);
 

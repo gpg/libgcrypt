@@ -268,8 +268,6 @@ _gcry_sha256_transform_amd64_avx2:
 	push	r15
 	CFI_PUSH(r15)
 
-	vzeroupper
-
 	vmovdqa	BYTE_FLIP_MASK, [.LPSHUFFLE_BYTE_FLIP_MASK ADD_RIP]
 	vmovdqa	SHUF_00BA, [.L_SHUF_00BA ADD_RIP]
 	vmovdqa	SHUF_DC00, [.L_SHUF_DC00 ADD_RIP]

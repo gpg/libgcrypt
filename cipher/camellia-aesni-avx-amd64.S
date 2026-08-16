@@ -896,8 +896,6 @@ _gcry_camellia_aesni_avx_ctr_enc:
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
 
-	vzeroupper;
-
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
 	movl $24, %eax;
@@ -1053,8 +1051,6 @@ _gcry_camellia_aesni_avx_ecb_enc:
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
 
-	vzeroupper;
-
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
 	movl $24, %eax;
@@ -1098,8 +1094,6 @@ _gcry_camellia_aesni_avx_ecb_dec:
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
@@ -1145,8 +1139,6 @@ _gcry_camellia_aesni_avx_cbc_dec:
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	movq %rcx, %r9;
 
@@ -1218,8 +1210,6 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
@@ -1302,8 +1292,6 @@ _gcry_camellia_aesni_avx_ocb_enc:
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	subq $(16 * 16 + 4 * 8), %rsp;
 	andq $~31, %rsp;
@@ -1454,8 +1442,6 @@ _gcry_camellia_aesni_avx_ocb_dec:
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	subq $(16 * 16 + 4 * 8), %rsp;
 	andq $~31, %rsp;
@@ -1624,8 +1610,6 @@ _gcry_camellia_aesni_avx_ocb_auth:
 	CFI_PUSH(%rbp);
 	movq %rsp, %rbp;
 	CFI_DEF_CFA_REGISTER(%rbp);
-
-	vzeroupper;
 
 	subq $(16 * 16 + 4 * 8), %rsp;
 	andq $~31, %rsp;
@@ -2719,8 +2703,6 @@ _gcry_camellia_aesni_avx_keygen:
 	 *	%rdx: keylen
 	 */
 	CFI_STARTPROC();
-
-	vzeroupper;
 
 	vmovdqu (%rsi), %xmm0;
 	cmpl $24, %edx;

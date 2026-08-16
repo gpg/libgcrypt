@@ -345,7 +345,6 @@ ELF(.type  _gcry_sha256_transform_amd64_avx,@function;)
 .align 16
 _gcry_sha256_transform_amd64_avx:
 	CFI_STARTPROC()
-	vzeroupper
 
 	push	rbx
 	CFI_PUSH(rbx)

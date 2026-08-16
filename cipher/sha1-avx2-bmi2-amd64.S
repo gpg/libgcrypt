@@ -224,8 +224,6 @@ _gcry_sha1_transform_amd64_avx2_bmi2:
    */
   CFI_STARTPROC();
 
-  vzeroupper;
-
   movq %rdx, RNBLKS;
   movq %rdi, RSTATE;
   movq %rsi, RDATA;

@@ -196,8 +196,6 @@ _gcry_blake2s_transform_amd64_avx:
          */
         CFI_STARTPROC();
 
-        vzeroupper;
-
         addq $64, (STATE_T + 0)(RSTATE);
 
         vmovdqa .Lshuf_ror16 rRIP, R16;

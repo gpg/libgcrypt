@@ -625,7 +625,6 @@ _gcry_chacha20_amd64_avx512_blocks:
 .Lskip4v:
 	/* clear AVX512 registers */
 	kxorq %k2, %k2, %k2;
-	vzeroupper;
 	clear_zmm16_zmm31();
 
 .align 16

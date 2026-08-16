@@ -282,8 +282,6 @@ _gcry_sha512_transform_amd64_avx2:
 	cmp rdx, 0
 	je .Lnowork
 
-	vzeroupper
-
 	/* Allocate Stack Space */
 	mov	rax, rsp
 	CFI_DEF_CFA_REGISTER(rax);
