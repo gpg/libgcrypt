@@ -36,6 +36,16 @@ Noteworthy changes in version 1.12.3 (unreleased)  [C27/A7/R_]
 
    - Add length check of DATALEN when parsing s-expression.  [T8267]
 
+   - Only accept canonical value for S with EdDSA.  [T8386]
+
+   - Only accept canonical signatures for RSA.  [T8392]
+
+   - Fix an assertion failure for invalid small-order Ed25519 public
+     keys.  [T8380]
+
+   - Validate length of supplied receiver public-key length in DHKEM
+     decapsulation.  [T8385]
+
  * Performance:
 
    - Use just strong random for the Dilithium signature nonce and the
@@ -72,6 +82,8 @@ Noteworthy changes in version 1.12.3 (unreleased)  [C27/A7/R_]
 
    - Add straight-line speculation hardening for function ends.
      [rC9b684f4a44]
+
+   - Fix constant time memequal check for SM2.  [T8395]
 
    - Add post-quantum algorithm benchmarking to bench-slope.
 
