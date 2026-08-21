@@ -259,6 +259,12 @@ _gcry_rsa_pkcs1_decode_for_enc (unsigned char **r_result, size_t *r_resultlen,
     log_printhex ("value extracted from PKCS#1 block type 2 encoded data",
                   *r_result, *r_resultlen);
 
+  /* Check the length of PS is at least 8.  */
+  n0 -= ct_is_zero (frame[0]);  /* First 0x00 */
+  n0 -= 1;                      /* 0x02 */
+  n0 -= ct_is_zero (not_found); /* Second 0x00 */
+  failed |= ((n0 - 8) >> (sizeof (size_t)*8 - 1));
+
   return (0U - failed) & GPG_ERR_ENCODING_PROBLEM;
 }
 
