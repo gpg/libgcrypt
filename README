@@ -82,7 +82,9 @@
     that.  (%ALLUSERSPROFILE% is commonly c:\ProgramData).  A Windows
     installer script should take care of this.  It is also possible
     and suggested to set these restricted permissions direct for the
-    parent directory %ALLUSERSPROFILE%\GNU\etc.
+    parent directory %ALLUSERSPROFILE%\GNU\etc for example using:
+
+      icacls "%ALLUSERSPROFILE%\GNU\etc" /setintegritylevel h
 
 
     Mailing List
