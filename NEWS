@@ -1,8 +1,12 @@
-Noteworthy changes in version 1.8.14 (unreleased)  [C22/A2/R__]
+Noteworthy changes in version 1.8.14 (2026-08-25)  [C22/A2/R15]
 -------------------------------------------------
 
  * Bug fixes:
 
+   - Use FreeLibrary instead of CloseHandle after loading a Windows
+     library.   [rC0ecec0dff3]
+
+   - Avoid theoretical drive-by loading of netapi32.dll.  [T8375]
 
  Release-info: https://dev.gnupg.org/T8225
 

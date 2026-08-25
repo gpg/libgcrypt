@@ -263,7 +263,7 @@ _gcry_detect_hw_features (void)
 /* This is a helper function to return the system configuration
  * directory on Windows.  On Windows the respective function is used
  * and if that fails a standard name is used.  On Unix "/etc/gcrypt/"
- * is returned.  There is always a traling slash.  */
+ * is returned.  There is always a trailing slash.  */
 const char *
 _gcry_get_sysconfdir (void)
 {
