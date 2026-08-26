@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.12.3 (unreleased)  [C27/A7/R_]
+Noteworthy changes in version 1.12.3 (2026-08-26)  [C28/A8/R0]
 -------------------------------------------------
 
  * Bug fixes:
@@ -45,6 +45,10 @@ Noteworthy changes in version 1.12.3 (unreleased)  [C27/A7/R_]
 
    - Validate length of supplied receiver public-key length in DHKEM
      decapsulation.  [T8385]
+
+   - Use a more strict value for the PKCS#1 minimal frame length.
+     [T8393,T8394]
+
 
  * Performance:
 
