@@ -80,7 +80,7 @@ _gcry_rsa_pkcs1_encode_for_enc (gcry_mpi_t *r_result, unsigned int nbits,
   size_t n;
   unsigned char *p;
 
-  if (valuelen + 7 > nframe || !nframe)
+  if (nframe <= 11 || valuelen > nframe - 11)
     {
       /* Can't encode a VALUELEN value in a NFRAME bytes frame.  */
       return GPG_ERR_TOO_SHORT; /* The key is too short.  */
