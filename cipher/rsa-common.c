@@ -755,6 +755,7 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
     {
       not_found &= ct_not_equal_byte (db[n], 0x01);
       n1 += not_found;
+      failed |= (not_found & ct_not_equal_byte (db[n], 0x00));
     }
   failed |= not_found;
   failed |= ct_not_equal_byte (frame[0], 0x00);
