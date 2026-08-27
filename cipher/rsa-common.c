@@ -1094,7 +1094,15 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, int hashed_already,
       _gcry_md_reset (hd);
     }
   else
-    memcpy (mhash, p, hlen);
+    {
+      if ((input_nbits+7)/8 != hlen)
+        {
+          rc = GPG_ERR_INV_ARG;
+          goto leave;
+        }
+
+      memcpy (mhash, p, hlen);
+    }
 
   /* Convert the signature into an octet string.  */
   rc = octet_string_from_mpi (&em, NULL, encoded, emlen);
