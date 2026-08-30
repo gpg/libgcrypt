@@ -1660,6 +1660,30 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports EVEX encoded Intel SM4
+# instructions.
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AVX512 Intel SM4 instructions],
+       [gcry_cv_gcc_inline_asm_sm4_avx512],
+       [if test "$mpi_cpu_arch" != "x86" ||
+           test "$try_asm_modules" != "yes" ; then
+          gcry_cv_gcc_inline_asm_sm4_avx512="n/a"
+        else
+          gcry_cv_gcc_inline_asm_sm4_avx512=no
+          AC_LINK_IFELSE([AC_LANG_PROGRAM(
+          [[void a(void) {
+              __asm__("vsm4key4 %%zmm2, %%zmm1, %%zmm3\n\t":::"cc");
+              __asm__("vsm4rnds4 %%zmm2, %%zmm1, %%zmm3\n\t":::"cc");
+            }]], [ a(); ] )],
+          [gcry_cv_gcc_inline_asm_sm4_avx512=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_sm4_avx512" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_SM4_AVX512,1,
+     [Defined if inline assembler supports AVX512 Intel SM4 instructions])
+fi
+
+
+#
 # Check whether GCC inline assembler supports SSE4.1 instructions.
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports SSE4.1 instructions],
