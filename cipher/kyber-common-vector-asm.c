@@ -1,4 +1,4 @@
-// consts.h
+/*************** kyber/avx2/consts.h */
 asm (""
 ".equ _16XQ,            0\n"
 ".equ _16XQINV,        16\n"
@@ -14,7 +14,7 @@ asm (""
 ".equ	_16XSHIFT,     624\n"
 );
 
-// shuffle.inc
+/*************** kyber/avx2/shuffle.inc */
 asm (""
 ".macro shuffle8 r0,r1,r2,r3\n"
 "vperm2i128	$0x20,%ymm\\r1,%ymm\\r0,%ymm\\r2\n"
@@ -43,7 +43,7 @@ asm (""
 ".endm\n"
 );
 
-// ntt.S
+/*************** kyber/avx2/ntt.S */
 asm (""
 ".macro mul rh0,rh1,rh2,rh3,zl0=15,zl1=15,zh0=2,zh1=2\n"
 "vpmullw		%ymm\\zl0,%ymm\\rh0,%ymm12\n"
@@ -232,7 +232,7 @@ asm (""
 "ret\n"
 );
 
-// fq.inc
+/*************** kyber/avx2/fq.inc */
 asm (""
 ".macro red16 r,rs=0,x=12\n"
 "vpmulhw         %ymm1,%ymm\\r,%ymm\\x\n"
@@ -266,7 +266,7 @@ asm (""
 ".endm\n"
 );
 
-// fq.S
+/*************** kyber/avx2/fq.S */
 asm (""
 ".text\n"
 "reduce128_avx:\n"
@@ -353,7 +353,7 @@ asm (""
 "ret\n"
 );
 
-// invntt.S
+/*************** kyber/avx2/invntt.S */
 asm (""
 ".macro butterfly rl0,rl1,rl2,rl3,rh0,rh1,rh2,rh3,zl0=2,zl1=2,zh0=3,zh1=3\n"
 "vpsubw		%ymm\\rl0,%ymm\\rh0,%ymm12\n"
@@ -545,7 +545,7 @@ asm (""
 "ret\n"
 );
 
-// shuffle.S
+/*************** kyber/avx2/shuffle.S */
 asm (""
 ".text\n"
 "nttunpack128_avx:\n"
@@ -752,7 +752,7 @@ asm (""
 "ret\n"
 );
 
-// basemul.S
+/*************** kyber/avx2/basemul.S */
 asm (""
 ".macro schoolbook off\n"
 "vmovdqa		_16XQINV*2(%rcx),%ymm0\n"
