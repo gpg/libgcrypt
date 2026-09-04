@@ -1,14 +1,70 @@
+/* kyber-common-vector.c - the Kyber key encapsulation mechanism
+ *                         (common vector part)
+ * Copyright (C) 2026 g10 Code GmbH
+ *
+ * This file was modified for use by Libgcrypt.
+ *
+ * This file is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ *
+ * You can also use this file under the same licence of original code.
+ * SPDX-License-Identifier: CC0 OR Apache-2.0
+ *
+ */
+/*
+  Original code from:
+
+  Repository: https://github.com/pq-crystals/kyber.git
+  Branch: standard
+  Commit: d5b791c0c601b543233daccbae2845c6197a9e77
+
+  Licence:
+  Public Domain (https://creativecommons.org/share-your-work/public-domain/cc0/);
+  or Apache 2.0 License (https://www.apache.org/licenses/LICENSE-2.0.html).
+
+  Authors:
+        Joppe Bos
+        Léo Ducas
+        Eike Kiltz
+        Tancrède Lepoint
+        Vadim Lyubashevsky
+        John Schanck
+        Peter Schwabe
+        Gregor Seiler
+        Damien Stehlé
+
+  Kyber Home: https://www.pq-crystals.org/kyber/
+ */
+/*
+ * From original code, following modification was made.
+ *
+ * - C++ style comments are changed to C-style.
+ *
+ * - Assembler implementation (*.S files) are converted to asm statements.
+ */
 #include <stdint.h>
 #include <immintrin.h>
 
+/*************** kyber/avx2/consts.c */
 #define Q KYBER_Q
-#define MONT -1044 // 2^16 mod q
-#define QINV -3327 // q^-1 mod 2^16
-#define V 20159 // floor(2^26/q + 0.5)
-#define FHI 1441 // mont^2/128
-#define FLO -10079 // qinv*FHI
-#define MONTSQHI 1353 // mont^2
-#define MONTSQLO 20553 // qinv*MONTSQHI
+#define MONT -1044 /* 2^16 mod q */
+#define QINV -3327 /* q^-1 mod 2^16 */
+#define V 20159 /* floor(2^26/q + 0.5) */
+#define FHI 1441 /* mont^2/128 */
+#define FLO -10079 /* qinv*FHI */
+#define MONTSQHI 1353 /* mont^2 */
+#define MONTSQLO 20553 /* qinv*MONTSQHI */
 #define MASK 4095
 #define SHIFT 32
 
@@ -118,14 +174,32 @@ static const qdata_t qdata = {{
   SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT,
   SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT
 }};
-
+
+/*************** kyber/avx2/fips202x4.h */
 typedef struct {
   __m256i s[25];
 } keccakx4_state;
 
+/*************** kyber/avx2/keccak4x/KeccakP-SIMD256-config.h */
 #define KeccakP1600times4_implementation_config "AVX2, all rounds unrolled"
 #define KeccakP1600times4_fullUnrolling
 #define KeccakP1600times4_useAVX2
+
+/*************** kyber/avx2/keccak4x/KeccakP-1600-times4-SIMD256.c */
+/*
+Implementation by the Keccak, Keyak and Ketje Teams, namely, Guido Bertoni,
+Joan Daemen, Michaël Peeters, Gilles Van Assche and Ronny Van Keer, hereby
+denoted as "the implementer".
+
+For more information, feedback or questions, please refer to our websites:
+http://keccak.noekeon.org/
+http://keyak.noekeon.org/
+http://ketje.noekeon.org/
+
+To the extent possible under law, the implementer has waived all copyright
+and related or neighboring rights to the source code in this file.
+http://creativecommons.org/publicdomain/zero/1.0/
+*/
 
 typedef unsigned long long int UINT64;
 typedef __m256i V256;
@@ -493,21 +567,7 @@ static __attribute__ ((aligned(32))) const UINT64 KeccakF1600RoundConstants[24] 
     E##su = XOR256(Bsu, ANDnu256(Bsa, Bse)); \
 \
 
-/*
-Implementation by the Keccak, Keyak and Ketje Teams, namely, Guido Bertoni,
-Joan Daemen, Michaël Peeters, Gilles Van Assche and Ronny Van Keer, hereby
-denoted as "the implementer".
-
-For more information, feedback or questions, please refer to our websites:
-http://keccak.noekeon.org/
-http://keyak.noekeon.org/
-http://ketje.noekeon.org/
-
-To the extent possible under law, the implementer has waived all copyright
-and related or neighboring rights to the source code in this file.
-http://creativecommons.org/publicdomain/zero/1.0/
-*/
-
+/*************** kyber/avx2/keccak4x/KeccakP-1600-unrolling.macros */
 #define rounds24 \
     prepareTheta \
     thetaRhoPiChiIotaPrepareTheta( 0, A, E) \
@@ -550,6 +610,7 @@ static void KeccakF1600_StatePermute4x(__m256i *states)
     copyToState(statesAsLanes, A)
 }
 
+/*************** kyber/avx2/fips202x4.c */
 static void keccakx4_absorb_once(__m256i s[25],
                                  unsigned int r,
                                  const uint8_t *in0,
@@ -669,7 +730,8 @@ void shake256x4_squeezeblocks(uint8_t *out0,
 {
   keccakx4_squeezeblocks(out0, out1, out2, out3, nblocks, SHAKE256_RATE, state->s);
 }
-
+
+/*************** kyber/avx2/cbd.c */
 /*************************************************
 * Name:        cbd2
 *
@@ -788,13 +850,15 @@ static void cbd3(poly * restrict r, const uint8_t buf[3*KYBER_N/4+8])
   }
 }
 #endif
-
-/*************** kyber/ref/poly.c */
 
+/*************** kyber/avx2/poly.c */
 /*************************************************
 * Name:        poly_compress
 *
-* Description: Compression and subsequent serialization of a polynomial
+* Description: Compression and subsequent serialization of a polynomial.
+*              The coefficients of the input polynomial are assumed to
+*              lie in the invertal [0,q], i.e. the polynomial must be reduced
+*              by poly_reduce().
 *
 * Arguments:   - uint8_t *r: pointer to output byte array
 *                            (of length KYBER_POLYCOMPRESSEDBYTES)
@@ -877,16 +941,6 @@ void poly_compress_160(uint8_t r[160], const poly * restrict a)
 }
 #endif
 
-/*************************************************
-* Name:        poly_decompress
-*
-* Description: De-serialization and subsequent decompression of a polynomial;
-*              approximate inverse of poly_compress
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const uint8_t *a: pointer to input byte array
-*                                  (of length KYBER_POLYCOMPRESSEDBYTES bytes)
-**************************************************/
 #if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
 void poly_decompress_128(poly * restrict r, const uint8_t a[128])
 {
@@ -1078,7 +1132,7 @@ void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly * restrict a)
 #if !defined(KYBER_K) || KYBER_K == 2
 void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 {
-  ALIGNED_UINT8(KYBER_ETA1_2*KYBER_N/4+32) buf; // +32 bytes as required by poly_cbd_eta1
+  ALIGNED_UINT8(KYBER_ETA1_2*KYBER_N/4+32) buf; /* +32 bytes as required by poly_cbd_eta1 */
   prf(buf.coeffs, KYBER_ETA1_2*KYBER_N/4, seed, nonce);
   cbd3(r, (const uint8_t *)buf.vec);
 }
@@ -1086,7 +1140,7 @@ void poly_getnoise_eta1_2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t n
 #if !defined(KYBER_K) || KYBER_K == 3 || KYBER_K == 4
 void poly_getnoise_eta1_3_4(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 {
-  ALIGNED_UINT8(KYBER_ETA1_3_4*KYBER_N/4+32) buf; // +32 bytes as required by poly_cbd_eta1
+  ALIGNED_UINT8(KYBER_ETA1_3_4*KYBER_N/4+32) buf; /* +32 bytes as required by poly_cbd_eta1 */
   prf(buf.coeffs, KYBER_ETA1_3_4*KYBER_N/4, seed, nonce);
   cbd2(r, buf.vec);
 }
@@ -1352,7 +1406,8 @@ void poly_sub(poly *r, const poly *a, const poly *b)
     _mm256_store_si256(&r->vec[i], f0);
   }
 }
-
+
+/*************** kyber/avx2/polyvec.c */
 #if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
 static void poly_compress10(uint8_t r[320], const poly * restrict a)
 {
@@ -1564,7 +1619,8 @@ void polyvec_decompress_4(polyvec_4 *r, const uint8_t a[4*352+12])
     poly_decompress11(&r->vec[i],&a[352*i]);
 }
 #endif
-
+
+/*************** kyber/avx2/rejsample.c */
 #define REJ_UNIFORM_AVX_NBLOCKS ((12*KYBER_N/8*(1 << 12)/KYBER_Q + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
 #define REJ_UNIFORM_AVX_BUFLEN (REJ_UNIFORM_AVX_NBLOCKS*XOF_BLOCKBYTES)
 
@@ -1956,6 +2012,19 @@ unsigned int rej_uniform_avx(int16_t * restrict r, const uint8_t *buf)
   return ctr;
 }
 
+/*************** kyber/avx2/indcpa.c */
+/*************************************************
+* Name:        gen_matrix
+*
+* Description: Deterministically generate matrix A (or the transpose of A)
+*              from a seed. Entries of the matrix are polynomials that look
+*              uniformly random. Performs rejection sampling on output of
+*              a XOF
+*
+* Arguments:   - polyvec *a: pointer to ouptput matrix A
+*              - const uint8_t *seed: pointer to input seed
+*              - int transposed: boolean deciding whether A or A^T is generated
+**************************************************/
 #if !defined(KYBER_K) || KYBER_K == 2
 static
 void gen_matrix_2(polyvec_2 *a, const uint8_t seed[32], int transposed)
@@ -2202,4 +2271,862 @@ void gen_matrix_4(polyvec_4 *a, const uint8_t seed[32], int transposed)
 }
 #endif
 
-#include "kyber-common-vector-asm.c"
+/*************** kyber/avx2/consts.h */
+asm (""
+".equ _16XQ,            0\n"
+".equ _16XQINV,        16\n"
+".equ _16XV,           32\n"
+".equ _16XFLO,         48\n"
+".equ _16XFHI,         64\n"
+".equ _16XMONTSQLO,    80\n"
+".equ _16XMONTSQHI,    96\n"
+".equ _16XMASK,       112\n"
+".equ _REVIDXB,       128\n"
+".equ _REVIDXD,       144\n"
+".equ _ZETAS_EXP,     160\n"
+".equ	_16XSHIFT,     624\n"
+);
+
+/*************** kyber/avx2/shuffle.inc */
+asm (""
+".macro shuffle8 r0,r1,r2,r3\n"
+"vperm2i128	$0x20,%ymm\\r1,%ymm\\r0,%ymm\\r2\n"
+"vperm2i128	$0x31,%ymm\\r1,%ymm\\r0,%ymm\\r3\n"
+".endm\n"
+"\n"
+".macro shuffle4 r0,r1,r2,r3\n"
+"vpunpcklqdq	%ymm\\r1,%ymm\\r0,%ymm\\r2\n"
+"vpunpckhqdq	%ymm\\r1,%ymm\\r0,%ymm\\r3\n"
+".endm\n"
+"\n"
+".macro shuffle2 r0,r1,r2,r3\n"
+"#vpsllq		$32,%ymm\\r1,%ymm\\r2\n"
+"vmovsldup	%ymm\\r1,%ymm\\r2\n"
+"vpblendd	$0xAA,%ymm\\r2,%ymm\\r0,%ymm\\r2\n"
+"vpsrlq		$32,%ymm\\r0,%ymm\\r0\n"
+"#vmovshdup	%ymm\\r0,%ymm\\r0\n"
+"vpblendd	$0xAA,%ymm\\r1,%ymm\\r0,%ymm\\r3\n"
+".endm\n"
+"\n"
+".macro shuffle1 r0,r1,r2,r3\n"
+"vpslld		$16,%ymm\\r1,%ymm\\r2\n"
+"vpblendw	$0xAA,%ymm\\r2,%ymm\\r0,%ymm\\r2\n"
+"vpsrld		$16,%ymm\\r0,%ymm\\r0\n"
+"vpblendw	$0xAA,%ymm\\r1,%ymm\\r0,%ymm\\r3\n"
+".endm\n"
+);
+
+/*************** kyber/avx2/ntt.S */
+asm (""
+".macro mul rh0,rh1,rh2,rh3,zl0=15,zl1=15,zh0=2,zh1=2\n"
+"vpmullw		%ymm\\zl0,%ymm\\rh0,%ymm12\n"
+"vpmullw		%ymm\\zl0,%ymm\\rh1,%ymm13\n"
+"\n"
+"vpmullw		%ymm\\zl1,%ymm\\rh2,%ymm14\n"
+"vpmullw		%ymm\\zl1,%ymm\\rh3,%ymm15\n"
+"\n"
+"vpmulhw		%ymm\\zh0,%ymm\\rh0,%ymm\\rh0\n"
+"vpmulhw		%ymm\\zh0,%ymm\\rh1,%ymm\\rh1\n"
+"\n"
+"vpmulhw		%ymm\\zh1,%ymm\\rh2,%ymm\\rh2\n"
+"vpmulhw		%ymm\\zh1,%ymm\\rh3,%ymm\\rh3\n"
+".endm\n"
+"\n"
+".macro reduce\n"
+"vpmulhw		%ymm0,%ymm12,%ymm12\n"
+"vpmulhw		%ymm0,%ymm13,%ymm13\n"
+"\n"
+"vpmulhw		%ymm0,%ymm14,%ymm14\n"
+"vpmulhw		%ymm0,%ymm15,%ymm15\n"
+".endm\n"
+"\n"
+".macro update rln,rl0,rl1,rl2,rl3,rh0,rh1,rh2,rh3\n"
+"vpaddw		%ymm\\rh0,%ymm\\rl0,%ymm\\rln\n"
+"vpsubw		%ymm\\rh0,%ymm\\rl0,%ymm\\rh0\n"
+"vpaddw		%ymm\\rh1,%ymm\\rl1,%ymm\\rl0\n"
+"\n"
+"vpsubw		%ymm\\rh1,%ymm\\rl1,%ymm\\rh1\n"
+"vpaddw		%ymm\\rh2,%ymm\\rl2,%ymm\\rl1\n"
+"vpsubw		%ymm\\rh2,%ymm\\rl2,%ymm\\rh2\n"
+"\n"
+"vpaddw		%ymm\\rh3,%ymm\\rl3,%ymm\\rl2\n"
+"vpsubw		%ymm\\rh3,%ymm\\rl3,%ymm\\rh3\n"
+"\n"
+"vpsubw		%ymm12,%ymm\\rln,%ymm\\rln\n"
+"vpaddw		%ymm12,%ymm\\rh0,%ymm\\rh0\n"
+"vpsubw		%ymm13,%ymm\\rl0,%ymm\\rl0\n"
+"\n"
+"vpaddw		%ymm13,%ymm\\rh1,%ymm\\rh1\n"
+"vpsubw		%ymm14,%ymm\\rl1,%ymm\\rl1\n"
+"vpaddw		%ymm14,%ymm\\rh2,%ymm\\rh2\n"
+"\n"
+"vpsubw		%ymm15,%ymm\\rl2,%ymm\\rl2\n"
+"vpaddw		%ymm15,%ymm\\rh3,%ymm\\rh3\n"
+".endm\n"
+"\n"
+".macro level0 off\n"
+"vpbroadcastq	(_ZETAS_EXP+0)*2(%rsi),%ymm15\n"
+"vmovdqa		(64*\\off+128)*2(%rdi),%ymm8\n"
+"vmovdqa		(64*\\off+144)*2(%rdi),%ymm9\n"
+"vmovdqa		(64*\\off+160)*2(%rdi),%ymm10\n"
+"vmovdqa		(64*\\off+176)*2(%rdi),%ymm11\n"
+"vpbroadcastq	(_ZETAS_EXP+4)*2(%rsi),%ymm2\n"
+"\n"
+"mul		8,9,10,11\n"
+"\n"
+"vmovdqa		(64*\\off+  0)*2(%rdi),%ymm4\n"
+"vmovdqa		(64*\\off+ 16)*2(%rdi),%ymm5\n"
+"vmovdqa		(64*\\off+ 32)*2(%rdi),%ymm6\n"
+"vmovdqa		(64*\\off+ 48)*2(%rdi),%ymm7\n"
+"\n"
+"reduce\n"
+"update		3,4,5,6,7,8,9,10,11\n"
+"\n"
+"vmovdqa		%ymm3,(64*\\off+  0)*2(%rdi)\n"
+"vmovdqa		%ymm4,(64*\\off+ 16)*2(%rdi)\n"
+"vmovdqa		%ymm5,(64*\\off+ 32)*2(%rdi)\n"
+"vmovdqa		%ymm6,(64*\\off+ 48)*2(%rdi)\n"
+"vmovdqa		%ymm8,(64*\\off+128)*2(%rdi)\n"
+"vmovdqa		%ymm9,(64*\\off+144)*2(%rdi)\n"
+"vmovdqa		%ymm10,(64*\\off+160)*2(%rdi)\n"
+"vmovdqa		%ymm11,(64*\\off+176)*2(%rdi)\n"
+".endm\n"
+"\n"
+".macro levels1t6 off\n"
+/* level 1 */
+"vmovdqa		(_ZETAS_EXP+224*\\off+16)*2(%rsi),%ymm15\n"
+"vmovdqa		(128*\\off+ 64)*2(%rdi),%ymm8\n"
+"vmovdqa		(128*\\off+ 80)*2(%rdi),%ymm9\n"
+"vmovdqa		(128*\\off+ 96)*2(%rdi),%ymm10\n"
+"vmovdqa		(128*\\off+112)*2(%rdi),%ymm11\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+32)*2(%rsi),%ymm2\n"
+"\n"
+"mul		8,9,10,11\n"
+"\n"
+"vmovdqa		(128*\\off+  0)*2(%rdi),%ymm4\n"
+"vmovdqa	 	(128*\\off+ 16)*2(%rdi),%ymm5\n"
+"vmovdqa		(128*\\off+ 32)*2(%rdi),%ymm6\n"
+"vmovdqa		(128*\\off+ 48)*2(%rdi),%ymm7\n"
+"\n"
+"reduce\n"
+"update		3,4,5,6,7,8,9,10,11\n"
+"\n"
+/* level 2 */
+"shuffle8	5,10,7,10\n"
+"shuffle8	6,11,5,11\n"
+"\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+48)*2(%rsi),%ymm15\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+64)*2(%rsi),%ymm2\n"
+"\n"
+"mul		7,10,5,11\n"
+"\n"
+"shuffle8	3,8,6,8\n"
+"shuffle8	4,9,3,9\n"
+"\n"
+"reduce\n"
+"update		4,6,8,3,9,7,10,5,11\n"
+"\n"
+/* level 3 */
+"shuffle4	8,5,9,5\n"
+"shuffle4	3,11,8,11\n"
+"\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+80)*2(%rsi),%ymm15\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+96)*2(%rsi),%ymm2\n"
+"\n"
+"mul		9,5,8,11\n"
+"\n"
+"shuffle4	4,7,3,7\n"
+"shuffle4	6,10,4,10\n"
+"\n"
+"reduce\n"
+"update		6,3,7,4,10,9,5,8,11\n"
+"\n"
+/* level 4 */
+"shuffle2	7,8,10,8\n"
+"shuffle2	4,11,7,11\n"
+"\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+112)*2(%rsi),%ymm15\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+128)*2(%rsi),%ymm2\n"
+"\n"
+"mul		10,8,7,11\n"
+"\n"
+"shuffle2	6,9,4,9\n"
+"shuffle2	3,5,6,5\n"
+"\n"
+"reduce\n"
+"update		3,4,9,6,5,10,8,7,11\n"
+"\n"
+/* level 5 */
+"shuffle1	9,7,5,7\n"
+"shuffle1	6,11,9,11\n"
+"\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+144)*2(%rsi),%ymm15\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+160)*2(%rsi),%ymm2\n"
+"\n"
+"mul		5,7,9,11\n"
+"\n"
+"shuffle1	3,10,6,10\n"
+"shuffle1	4,8,3,8\n"
+"\n"
+"reduce\n"
+"update		4,6,10,3,8,5,7,9,11\n"
+"\n"
+/* level 6 */
+"vmovdqa		(_ZETAS_EXP+224*\\off+176)*2(%rsi),%ymm14\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+208)*2(%rsi),%ymm15\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+192)*2(%rsi),%ymm8\n"
+"vmovdqa		(_ZETAS_EXP+224*\\off+224)*2(%rsi),%ymm2\n"
+"\n"
+"mul		10,3,9,11,14,15,8,2\n"
+"\n"
+"reduce\n"
+"update		8,4,6,5,7,10,3,9,11\n"
+"\n"
+"vmovdqa		%ymm8,(128*\\off+  0)*2(%rdi)\n"
+"vmovdqa		%ymm4,(128*\\off+ 16)*2(%rdi)\n"
+"vmovdqa		%ymm10,(128*\\off+ 32)*2(%rdi)\n"
+"vmovdqa		%ymm3,(128*\\off+ 48)*2(%rdi)\n"
+"vmovdqa		%ymm6,(128*\\off+ 64)*2(%rdi)\n"
+"vmovdqa		%ymm5,(128*\\off+ 80)*2(%rdi)\n"
+"vmovdqa		%ymm9,(128*\\off+ 96)*2(%rdi)\n"
+"vmovdqa		%ymm11,(128*\\off+112)*2(%rdi)\n"
+".endm\n"
+"\n"
+".text\n"
+"ntt_avx:\n"
+"vmovdqa		_16XQ*2(%rsi),%ymm0\n"
+"\n"
+"level0		0\n"
+"level0		1\n"
+"\n"
+"levels1t6	0\n"
+"levels1t6	1\n"
+"\n"
+"ret\n"
+);
+
+/*************** kyber/avx2/fq.inc */
+asm (""
+".macro red16 r,rs=0,x=12\n"
+"vpmulhw         %ymm1,%ymm\\r,%ymm\\x\n"
+".if \\rs\n"
+"vpmulhrsw	%ymm\\rs,%ymm\\x,%ymm\\x\n"
+".else\n"
+"vpsraw          $10,%ymm\\x,%ymm\\x\n"
+".endif\n"
+"vpmullw         %ymm0,%ymm\\x,%ymm\\x\n"
+"vpsubw          %ymm\\x,%ymm\\r,%ymm\\r\n"
+".endm\n"
+"\n"
+".macro csubq r,x=12\n"
+"vpsubw		%ymm0,%ymm\\r,%ymm\\r\n"
+"vpsraw		$15,%ymm\\r,%ymm\\x\n"
+"vpand		%ymm0,%ymm\\x,%ymm\\x\n"
+"vpaddw		%ymm\\x,%ymm\\r,%ymm\\r\n"
+".endm\n"
+"\n"
+".macro caddq r,x=12\n"
+"vpsraw		$15,%ymm\\r,%ymm\\x\n"
+"vpand		%ymm0,%ymm\\x,%ymm\\x\n"
+"vpaddw		%ymm\\x,%ymm\\r,%ymm\\r\n"
+".endm\n"
+"\n"
+".macro fqmulprecomp al,ah,b,x=12\n"
+"vpmullw		%ymm\\al,%ymm\\b,%ymm\\x\n"
+"vpmulhw		%ymm\\ah,%ymm\\b,%ymm\\b\n"
+"vpmulhw		%ymm0,%ymm\\x,%ymm\\x\n"
+"vpsubw		%ymm\\x,%ymm\\b,%ymm\\b\n"
+".endm\n"
+);
+
+/*************** kyber/avx2/fq.S */
+asm (""
+".text\n"
+"reduce128_avx:\n"
+"#load\n"
+"vmovdqa		(%rdi),%ymm2\n"
+"vmovdqa		32(%rdi),%ymm3\n"
+"vmovdqa		64(%rdi),%ymm4\n"
+"vmovdqa		96(%rdi),%ymm5\n"
+"vmovdqa		128(%rdi),%ymm6\n"
+"vmovdqa		160(%rdi),%ymm7\n"
+"vmovdqa		192(%rdi),%ymm8\n"
+"vmovdqa		224(%rdi),%ymm9\n"
+"\n"
+"red16		2\n"
+"red16		3\n"
+"red16		4\n"
+"red16		5\n"
+"red16		6\n"
+"red16		7\n"
+"red16		8\n"
+"red16		9\n"
+"\n"
+"#store\n"
+"vmovdqa		%ymm2,(%rdi)\n"
+"vmovdqa		%ymm3,32(%rdi)\n"
+"vmovdqa		%ymm4,64(%rdi)\n"
+"vmovdqa		%ymm5,96(%rdi)\n"
+"vmovdqa		%ymm6,128(%rdi)\n"
+"vmovdqa		%ymm7,160(%rdi)\n"
+"vmovdqa		%ymm8,192(%rdi)\n"
+"vmovdqa		%ymm9,224(%rdi)\n"
+"\n"
+"ret\n"
+"\n"
+"reduce_avx:\n"
+"#consts\n"
+"vmovdqa		_16XQ*2(%rsi),%ymm0\n"
+"vmovdqa		_16XV*2(%rsi),%ymm1\n"
+"call		reduce128_avx\n"
+"add		$256,%rdi\n"
+"call		reduce128_avx\n"
+"ret\n"
+"\n"
+"tomont128_avx:\n"
+"#load\n"
+"vmovdqa		(%rdi),%ymm3\n"
+"vmovdqa		32(%rdi),%ymm4\n"
+"vmovdqa		64(%rdi),%ymm5\n"
+"vmovdqa		96(%rdi),%ymm6\n"
+"vmovdqa		128(%rdi),%ymm7\n"
+"vmovdqa		160(%rdi),%ymm8\n"
+"vmovdqa		192(%rdi),%ymm9\n"
+"vmovdqa		224(%rdi),%ymm10\n"
+"\n"
+"fqmulprecomp	1,2,3,11\n"
+"fqmulprecomp	1,2,4,12\n"
+"fqmulprecomp	1,2,5,13\n"
+"fqmulprecomp	1,2,6,14\n"
+"fqmulprecomp	1,2,7,15\n"
+"fqmulprecomp	1,2,8,11\n"
+"fqmulprecomp	1,2,9,12\n"
+"fqmulprecomp	1,2,10,13\n"
+"\n"
+"#store\n"
+"vmovdqa		%ymm3,(%rdi)\n"
+"vmovdqa		%ymm4,32(%rdi)\n"
+"vmovdqa		%ymm5,64(%rdi)\n"
+"vmovdqa		%ymm6,96(%rdi)\n"
+"vmovdqa		%ymm7,128(%rdi)\n"
+"vmovdqa		%ymm8,160(%rdi)\n"
+"vmovdqa		%ymm9,192(%rdi)\n"
+"vmovdqa		%ymm10,224(%rdi)\n"
+"\n"
+"ret\n"
+"\n"
+"tomont_avx:\n"
+"#consts\n"
+"vmovdqa		_16XQ*2(%rsi),%ymm0\n"
+"vmovdqa		_16XMONTSQLO*2(%rsi),%ymm1\n"
+"vmovdqa		_16XMONTSQHI*2(%rsi),%ymm2\n"
+"call		tomont128_avx\n"
+"add		$256,%rdi\n"
+"call		tomont128_avx\n"
+"ret\n"
+);
+
+/*************** kyber/avx2/invntt.S */
+asm (""
+".macro butterfly rl0,rl1,rl2,rl3,rh0,rh1,rh2,rh3,zl0=2,zl1=2,zh0=3,zh1=3\n"
+"vpsubw		%ymm\\rl0,%ymm\\rh0,%ymm12\n"
+"vpaddw		%ymm\\rh0,%ymm\\rl0,%ymm\\rl0\n"
+"vpsubw		%ymm\\rl1,%ymm\\rh1,%ymm13\n"
+"\n"
+"vpmullw		%ymm\\zl0,%ymm12,%ymm\\rh0\n"
+"vpaddw		%ymm\\rh1,%ymm\\rl1,%ymm\\rl1\n"
+"vpsubw		%ymm\\rl2,%ymm\\rh2,%ymm14\n"
+"\n"
+"vpmullw		%ymm\\zl0,%ymm13,%ymm\\rh1\n"
+"vpaddw		%ymm\\rh2,%ymm\\rl2,%ymm\\rl2\n"
+"vpsubw		%ymm\\rl3,%ymm\\rh3,%ymm15\n"
+"\n"
+"vpmullw		%ymm\\zl1,%ymm14,%ymm\\rh2\n"
+"vpaddw		%ymm\\rh3,%ymm\\rl3,%ymm\\rl3\n"
+"vpmullw		%ymm\\zl1,%ymm15,%ymm\\rh3\n"
+"\n"
+"vpmulhw		%ymm\\zh0,%ymm12,%ymm12\n"
+"vpmulhw		%ymm\\zh0,%ymm13,%ymm13\n"
+"\n"
+"vpmulhw		%ymm\\zh1,%ymm14,%ymm14\n"
+"vpmulhw		%ymm\\zh1,%ymm15,%ymm15\n"
+"\n"
+"vpmulhw		%ymm0,%ymm\\rh0,%ymm\\rh0\n"
+"\n"
+"vpmulhw		%ymm0,%ymm\\rh1,%ymm\\rh1\n"
+"\n"
+"vpmulhw		%ymm0,%ymm\\rh2,%ymm\\rh2\n"
+"vpmulhw		%ymm0,%ymm\\rh3,%ymm\\rh3\n"
+"\n"
+"#\n"
+"\n"
+"#\n"
+"\n"
+"vpsubw		%ymm\\rh0,%ymm12,%ymm\\rh0\n"
+"\n"
+"vpsubw		%ymm\\rh1,%ymm13,%ymm\\rh1\n"
+"\n"
+"vpsubw		%ymm\\rh2,%ymm14,%ymm\\rh2\n"
+"vpsubw		%ymm\\rh3,%ymm15,%ymm\\rh3\n"
+".endm\n"
+"\n"
+".macro intt_levels0t5 off\n"
+/* level 0 */
+"vmovdqa		_16XFLO*2(%rsi),%ymm2\n"
+"vmovdqa		_16XFHI*2(%rsi),%ymm3\n"
+"\n"
+"vmovdqa         (128*\\off+  0)*2(%rdi),%ymm4\n"
+"vmovdqa         (128*\\off+ 32)*2(%rdi),%ymm6\n"
+"vmovdqa         (128*\\off+ 16)*2(%rdi),%ymm5\n"
+"vmovdqa         (128*\\off+ 48)*2(%rdi),%ymm7\n"
+"\n"
+"fqmulprecomp	2,3,4\n"
+"fqmulprecomp	2,3,6\n"
+"fqmulprecomp	2,3,5\n"
+"fqmulprecomp	2,3,7\n"
+"\n"
+"vmovdqa         (128*\\off+ 64)*2(%rdi),%ymm8\n"
+"vmovdqa         (128*\\off+ 96)*2(%rdi),%ymm10\n"
+"vmovdqa         (128*\\off+ 80)*2(%rdi),%ymm9\n"
+"vmovdqa         (128*\\off+112)*2(%rdi),%ymm11\n"
+"\n"
+"fqmulprecomp	2,3,8\n"
+"fqmulprecomp	2,3,10\n"
+"fqmulprecomp	2,3,9\n"
+"fqmulprecomp	2,3,11\n"
+"\n"
+"vpermq		$0x4E,(_ZETAS_EXP+(1-\\off)*224+208)*2(%rsi),%ymm15\n"
+"vpermq		$0x4E,(_ZETAS_EXP+(1-\\off)*224+176)*2(%rsi),%ymm1\n"
+"vpermq		$0x4E,(_ZETAS_EXP+(1-\\off)*224+224)*2(%rsi),%ymm2\n"
+"vpermq		$0x4E,(_ZETAS_EXP+(1-\\off)*224+192)*2(%rsi),%ymm3\n"
+"vmovdqa		_REVIDXB*2(%rsi),%ymm12\n"
+"vpshufb		%ymm12,%ymm15,%ymm15\n"
+"vpshufb		%ymm12,%ymm1,%ymm1\n"
+"vpshufb		%ymm12,%ymm2,%ymm2\n"
+"vpshufb		%ymm12,%ymm3,%ymm3\n"
+"\n"
+"butterfly	4,5,8,9,6,7,10,11,15,1,2,3\n"
+"\n"
+/* level 1 */
+"vpermq		$0x4E,(_ZETAS_EXP+(1-\\off)*224+144)*2(%rsi),%ymm2\n"
+"vpermq		$0x4E,(_ZETAS_EXP+(1-\\off)*224+160)*2(%rsi),%ymm3\n"
+"vmovdqa		_REVIDXB*2(%rsi),%ymm1\n"
+"vpshufb		%ymm1,%ymm2,%ymm2\n"
+"vpshufb		%ymm1,%ymm3,%ymm3\n"
+"\n"
+"butterfly	4,5,6,7,8,9,10,11,2,2,3,3\n"
+"\n"
+"shuffle1	4,5,3,5\n"
+"shuffle1	6,7,4,7\n"
+"shuffle1	8,9,6,9\n"
+"shuffle1	10,11,8,11\n"
+"\n"
+/* level 2 */
+"vmovdqa		_REVIDXD*2(%rsi),%ymm12\n"
+"vpermd		(_ZETAS_EXP+(1-\\off)*224+112)*2(%rsi),%ymm12,%ymm2\n"
+"vpermd		(_ZETAS_EXP+(1-\\off)*224+128)*2(%rsi),%ymm12,%ymm10\n"
+"\n"
+"butterfly	3,4,6,8,5,7,9,11,2,2,10,10\n"
+"\n"
+"vmovdqa		_16XV*2(%rsi),%ymm1\n"
+"red16		3\n"
+"\n"
+"shuffle2	3,4,10,4\n"
+"shuffle2	6,8,3,8\n"
+"shuffle2	5,7,6,7\n"
+"shuffle2	9,11,5,11\n"
+"\n"
+/* level 3 */
+"vpermq		$0x1B,(_ZETAS_EXP+(1-\\off)*224+80)*2(%rsi),%ymm2\n"
+"vpermq		$0x1B,(_ZETAS_EXP+(1-\\off)*224+96)*2(%rsi),%ymm9\n"
+"\n"
+"butterfly	10,3,6,5,4,8,7,11,2,2,9,9\n"
+"\n"
+"shuffle4	10,3,9,3\n"
+"shuffle4	6,5,10,5\n"
+"shuffle4	4,8,6,8\n"
+"shuffle4	7,11,4,11\n"
+"\n"
+/* level 4 */
+"vpermq		$0x4E,(_ZETAS_EXP+(1-\\off)*224+48)*2(%rsi),%ymm2\n"
+"vpermq		$0x4E,(_ZETAS_EXP+(1-\\off)*224+64)*2(%rsi),%ymm7\n"
+"\n"
+"butterfly	9,10,6,4,3,5,8,11,2,2,7,7\n"
+"\n"
+"red16		9\n"
+"\n"
+"shuffle8	9,10,7,10\n"
+"shuffle8	6,4,9,4\n"
+"shuffle8	3,5,6,5\n"
+"shuffle8	8,11,3,11\n"
+"\n"
+/* level 5 */
+"vmovdqa		(_ZETAS_EXP+(1-\\off)*224+16)*2(%rsi),%ymm2\n"
+"vmovdqa		(_ZETAS_EXP+(1-\\off)*224+32)*2(%rsi),%ymm8\n"
+"\n"
+"butterfly	7,9,6,3,10,4,5,11,2,2,8,8\n"
+"\n"
+"vmovdqa         %ymm7,(128*\\off+  0)*2(%rdi)\n"
+"vmovdqa         %ymm9,(128*\\off+ 16)*2(%rdi)\n"
+"vmovdqa         %ymm6,(128*\\off+ 32)*2(%rdi)\n"
+"vmovdqa         %ymm3,(128*\\off+ 48)*2(%rdi)\n"
+"vmovdqa         %ymm10,(128*\\off+ 64)*2(%rdi)\n"
+"vmovdqa         %ymm4,(128*\\off+ 80)*2(%rdi)\n"
+"vmovdqa         %ymm5,(128*\\off+ 96)*2(%rdi)\n"
+"vmovdqa         %ymm11,(128*\\off+112)*2(%rdi)\n"
+".endm\n"
+"\n"
+".macro intt_level6 off\n"
+/* level 6 */
+"vmovdqa         (64*\\off+  0)*2(%rdi),%ymm4\n"
+"vmovdqa         (64*\\off+128)*2(%rdi),%ymm8\n"
+"vmovdqa         (64*\\off+ 16)*2(%rdi),%ymm5\n"
+"vmovdqa         (64*\\off+144)*2(%rdi),%ymm9\n"
+"vpbroadcastq	(_ZETAS_EXP+0)*2(%rsi),%ymm2\n"
+"\n"
+"vmovdqa         (64*\\off+ 32)*2(%rdi),%ymm6\n"
+"vmovdqa         (64*\\off+160)*2(%rdi),%ymm10\n"
+"vmovdqa         (64*\\off+ 48)*2(%rdi),%ymm7\n"
+"vmovdqa         (64*\\off+176)*2(%rdi),%ymm11\n"
+"vpbroadcastq	(_ZETAS_EXP+4)*2(%rsi),%ymm3\n"
+"\n"
+"butterfly	4,5,6,7,8,9,10,11\n"
+"\n"
+".if \\off == 0\n"
+"red16		4\n"
+".endif\n"
+"\n"
+"vmovdqa		%ymm4,(64*\\off+  0)*2(%rdi)\n"
+"vmovdqa		%ymm5,(64*\\off+ 16)*2(%rdi)\n"
+"vmovdqa		%ymm6,(64*\\off+ 32)*2(%rdi)\n"
+"vmovdqa		%ymm7,(64*\\off+ 48)*2(%rdi)\n"
+"vmovdqa		%ymm8,(64*\\off+128)*2(%rdi)\n"
+"vmovdqa		%ymm9,(64*\\off+144)*2(%rdi)\n"
+"vmovdqa		%ymm10,(64*\\off+160)*2(%rdi)\n"
+"vmovdqa		%ymm11,(64*\\off+176)*2(%rdi)\n"
+".endm\n"
+"\n"
+".text\n"
+"invntt_avx:\n"
+"vmovdqa         _16XQ*2(%rsi),%ymm0\n"
+"\n"
+"intt_levels0t5	0\n"
+"intt_levels0t5	1\n"
+"\n"
+"intt_level6	0\n"
+"intt_level6	1\n"
+"ret\n"
+);
+
+/*************** kyber/avx2/shuffle.S */
+asm (""
+".text\n"
+"nttunpack128_avx:\n"
+"#load\n"
+"vmovdqa		(%rdi),%ymm4\n"
+"vmovdqa		32(%rdi),%ymm5\n"
+"vmovdqa		64(%rdi),%ymm6\n"
+"vmovdqa		96(%rdi),%ymm7\n"
+"vmovdqa		128(%rdi),%ymm8\n"
+"vmovdqa		160(%rdi),%ymm9\n"
+"vmovdqa		192(%rdi),%ymm10\n"
+"vmovdqa		224(%rdi),%ymm11\n"
+"\n"
+"shuffle8	4,8,3,8\n"
+"shuffle8	5,9,4,9\n"
+"shuffle8	6,10,5,10\n"
+"shuffle8	7,11,6,11\n"
+"\n"
+"shuffle4	3,5,7,5\n"
+"shuffle4	8,10,3,10\n"
+"shuffle4	4,6,8,6\n"
+"shuffle4	9,11,4,11\n"
+"\n"
+"shuffle2	7,8,9,8\n"
+"shuffle2	5,6,7,6\n"
+"shuffle2	3,4,5,4\n"
+"shuffle2	10,11,3,11\n"
+"\n"
+"shuffle1	9,5,10,5\n"
+"shuffle1	8,4,9,4\n"
+"shuffle1	7,3,8,3\n"
+"shuffle1	6,11,7,11\n"
+"\n"
+"#store\n"
+"vmovdqa		%ymm10,(%rdi)\n"
+"vmovdqa		%ymm5,32(%rdi)\n"
+"vmovdqa		%ymm9,64(%rdi)\n"
+"vmovdqa		%ymm4,96(%rdi)\n"
+"vmovdqa		%ymm8,128(%rdi)\n"
+"vmovdqa		%ymm3,160(%rdi)\n"
+"vmovdqa		%ymm7,192(%rdi)\n"
+"vmovdqa		%ymm11,224(%rdi)\n"
+"\n"
+"ret\n"
+"\n"
+"nttunpack_avx:\n"
+"call		nttunpack128_avx\n"
+"add		$256,%rdi\n"
+"call		nttunpack128_avx\n"
+"ret\n"
+"\n"
+"ntttobytes128_avx:\n"
+"#load\n"
+"vmovdqa		(%rsi),%ymm5\n"
+"vmovdqa		32(%rsi),%ymm6\n"
+"vmovdqa		64(%rsi),%ymm7\n"
+"vmovdqa		96(%rsi),%ymm8\n"
+"vmovdqa		128(%rsi),%ymm9\n"
+"vmovdqa		160(%rsi),%ymm10\n"
+"vmovdqa		192(%rsi),%ymm11\n"
+"vmovdqa		224(%rsi),%ymm12\n"
+"\n"
+"#csubq\n"
+"csubq		5,13\n"
+"csubq		6,13\n"
+"csubq		7,13\n"
+"csubq		8,13\n"
+"csubq		9,13\n"
+"csubq		10,13\n"
+"csubq		11,13\n"
+"csubq		12,13\n"
+"\n"
+"#bitpack\n"
+"vpsllw		$12,%ymm6,%ymm4\n"
+"vpor		%ymm4,%ymm5,%ymm4\n"
+"\n"
+"vpsrlw		$4,%ymm6,%ymm5\n"
+"vpsllw		$8,%ymm7,%ymm6\n"
+"vpor		%ymm5,%ymm6,%ymm5\n"
+"\n"
+"vpsrlw		$8,%ymm7,%ymm6\n"
+"vpsllw		$4,%ymm8,%ymm7\n"
+"vpor		%ymm6,%ymm7,%ymm6\n"
+"\n"
+"vpsllw		$12,%ymm10,%ymm7\n"
+"vpor		%ymm7,%ymm9,%ymm7\n"
+"\n"
+"vpsrlw		$4,%ymm10,%ymm8\n"
+"vpsllw		$8,%ymm11,%ymm9\n"
+"vpor		%ymm8,%ymm9,%ymm8\n"
+"\n"
+"vpsrlw		$8,%ymm11,%ymm9\n"
+"vpsllw		$4,%ymm12,%ymm10\n"
+"vpor		%ymm9,%ymm10,%ymm9\n"
+"\n"
+"shuffle1	4,5,3,5\n"
+"shuffle1	6,7,4,7\n"
+"shuffle1	8,9,6,9\n"
+"\n"
+"shuffle2	3,4,8,4\n"
+"shuffle2	6,5,3,5\n"
+"shuffle2	7,9,6,9\n"
+"\n"
+"shuffle4	8,3,7,3\n"
+"shuffle4	6,4,8,4\n"
+"shuffle4	5,9,6,9\n"
+"\n"
+"shuffle8	7,8,5,8\n"
+"shuffle8	6,3,7,3\n"
+"shuffle8	4,9,6,9\n"
+"\n"
+"#store\n"
+"vmovdqu		%ymm5,(%rdi)\n"
+"vmovdqu		%ymm7,32(%rdi)\n"
+"vmovdqu		%ymm6,64(%rdi)\n"
+"vmovdqu		%ymm8,96(%rdi)\n"
+"vmovdqu		%ymm3,128(%rdi)\n"
+"vmovdqu		%ymm9,160(%rdi)\n"
+"\n"
+"ret\n"
+"\n"
+"ntttobytes_avx:\n"
+"#consts\n"
+"vmovdqa		_16XQ*2(%rdx),%ymm0\n"
+"call		ntttobytes128_avx\n"
+"add		$256,%rsi\n"
+"add		$192,%rdi\n"
+"call		ntttobytes128_avx\n"
+"ret\n"
+"\n"
+"nttfrombytes128_avx:\n"
+"#load\n"
+"vmovdqu		(%rsi),%ymm4\n"
+"vmovdqu		32(%rsi),%ymm5\n"
+"vmovdqu		64(%rsi),%ymm6\n"
+"vmovdqu		96(%rsi),%ymm7\n"
+"vmovdqu		128(%rsi),%ymm8\n"
+"vmovdqu		160(%rsi),%ymm9\n"
+"\n"
+"shuffle8	4,7,3,7\n"
+"shuffle8	5,8,4,8\n"
+"shuffle8	6,9,5,9\n"
+"\n"
+"shuffle4	3,8,6,8\n"
+"shuffle4	7,5,3,5\n"
+"shuffle4	4,9,7,9\n"
+"\n"
+"shuffle2	6,5,4,5\n"
+"shuffle2	8,7,6,7\n"
+"shuffle2	3,9,8,9\n"
+"\n"
+"shuffle1	4,7,10,7\n"
+"shuffle1	5,8,4,8\n"
+"shuffle1	6,9,5,9\n"
+"\n"
+"#bitunpack\n"
+"vpsrlw		$12,%ymm10,%ymm11\n"
+"vpsllw		$4,%ymm7,%ymm12\n"
+"vpor		%ymm11,%ymm12,%ymm11\n"
+"vpand		%ymm0,%ymm10,%ymm10\n"
+"vpand		%ymm0,%ymm11,%ymm11\n"
+"\n"
+"vpsrlw		$8,%ymm7,%ymm12\n"
+"vpsllw		$8,%ymm4,%ymm13\n"
+"vpor		%ymm12,%ymm13,%ymm12\n"
+"vpand		%ymm0,%ymm12,%ymm12\n"
+"\n"
+"vpsrlw		$4,%ymm4,%ymm13\n"
+"vpand		%ymm0,%ymm13,%ymm13\n"
+"\n"
+"vpsrlw		$12,%ymm8,%ymm14\n"
+"vpsllw		$4,%ymm5,%ymm15\n"
+"vpor		%ymm14,%ymm15,%ymm14\n"
+"vpand		%ymm0,%ymm8,%ymm8\n"
+"vpand		%ymm0,%ymm14,%ymm14\n"
+"\n"
+"vpsrlw		$8,%ymm5,%ymm15\n"
+"vpsllw		$8,%ymm9,%ymm1\n"
+"vpor		%ymm15,%ymm1,%ymm15\n"
+"vpand		%ymm0,%ymm15,%ymm15\n"
+"\n"
+"vpsrlw		$4,%ymm9,%ymm1\n"
+"vpand		%ymm0,%ymm1,%ymm1\n"
+"\n"
+"#store\n"
+"vmovdqa		%ymm10,(%rdi)\n"
+"vmovdqa		%ymm11,32(%rdi)\n"
+"vmovdqa		%ymm12,64(%rdi)\n"
+"vmovdqa		%ymm13,96(%rdi)\n"
+"vmovdqa		%ymm8,128(%rdi)\n"
+"vmovdqa		%ymm14,160(%rdi)\n"
+"vmovdqa		%ymm15,192(%rdi)\n"
+"vmovdqa		%ymm1,224(%rdi)\n"
+"\n"
+"ret\n"
+"\n"
+"nttfrombytes_avx:\n"
+"#consts\n"
+"vmovdqa		_16XMASK*2(%rdx),%ymm0\n"
+"call		nttfrombytes128_avx\n"
+"add		$256,%rdi\n"
+"add		$192,%rsi\n"
+"call		nttfrombytes128_avx\n"
+"ret\n"
+);
+
+/*************** kyber/avx2/basemul.S */
+asm (""
+".macro schoolbook off\n"
+"vmovdqa		_16XQINV*2(%rcx),%ymm0\n"
+"vmovdqa		(64*\\off+ 0)*2(%rsi),%ymm1		# a0\n"
+"vmovdqa		(64*\\off+16)*2(%rsi),%ymm2		# b0\n"
+"vmovdqa		(64*\\off+32)*2(%rsi),%ymm3		# a1\n"
+"vmovdqa		(64*\\off+48)*2(%rsi),%ymm4		# b1\n"
+"\n"
+"vpmullw		%ymm0,%ymm1,%ymm9			# a0.lo\n"
+"vpmullw		%ymm0,%ymm2,%ymm10			# b0.lo\n"
+"vpmullw		%ymm0,%ymm3,%ymm11			# a1.lo\n"
+"vpmullw		%ymm0,%ymm4,%ymm12			# b1.lo\n"
+"\n"
+"vmovdqa		(64*\\off+ 0)*2(%rdx),%ymm5		# c0\n"
+"vmovdqa		(64*\\off+16)*2(%rdx),%ymm6		# d0\n"
+"\n"
+"vpmulhw		%ymm5,%ymm1,%ymm13			# a0c0.hi\n"
+"vpmulhw		%ymm6,%ymm1,%ymm1			# a0d0.hi\n"
+"vpmulhw		%ymm5,%ymm2,%ymm14			# b0c0.hi\n"
+"vpmulhw		%ymm6,%ymm2,%ymm2			# b0d0.hi\n"
+"\n"
+"vmovdqa		(64*\\off+32)*2(%rdx),%ymm7		# c1\n"
+"vmovdqa		(64*\\off+48)*2(%rdx),%ymm8		# d1\n"
+"\n"
+"vpmulhw		%ymm7,%ymm3,%ymm15			# a1c1.hi\n"
+"vpmulhw		%ymm8,%ymm3,%ymm3			# a1d1.hi\n"
+"vpmulhw		%ymm7,%ymm4,%ymm0			# b1c1.hi\n"
+"vpmulhw		%ymm8,%ymm4,%ymm4			# b1d1.hi\n"
+"\n"
+"vmovdqa		%ymm13,(%rsp)\n"
+"\n"
+"vpmullw		%ymm5,%ymm9,%ymm13			# a0c0.lo\n"
+"vpmullw		%ymm6,%ymm9,%ymm9			# a0d0.lo\n"
+"vpmullw		%ymm5,%ymm10,%ymm5			# b0c0.lo\n"
+"vpmullw		%ymm6,%ymm10,%ymm10			# b0d0.lo\n"
+"\n"
+"vpmullw		%ymm7,%ymm11,%ymm6			# a1c1.lo\n"
+"vpmullw		%ymm8,%ymm11,%ymm11			# a1d1.lo\n"
+"vpmullw		%ymm7,%ymm12,%ymm7			# b1c1.lo\n"
+"vpmullw		%ymm8,%ymm12,%ymm12			# b1d1.lo\n"
+"\n"
+"vmovdqa		_16XQ*2(%rcx),%ymm8\n"
+"vpmulhw		%ymm8,%ymm13,%ymm13\n"
+"vpmulhw		%ymm8,%ymm9,%ymm9\n"
+"vpmulhw		%ymm8,%ymm5,%ymm5\n"
+"vpmulhw		%ymm8,%ymm10,%ymm10\n"
+"vpmulhw		%ymm8,%ymm6,%ymm6\n"
+"vpmulhw		%ymm8,%ymm11,%ymm11\n"
+"vpmulhw		%ymm8,%ymm7,%ymm7\n"
+"vpmulhw		%ymm8,%ymm12,%ymm12\n"
+"\n"
+"vpsubw		(%rsp),%ymm13,%ymm13			# -a0c0\n"
+"vpsubw		%ymm9,%ymm1,%ymm9			# a0d0\n"
+"vpsubw		%ymm5,%ymm14,%ymm5			# b0c0\n"
+"vpsubw		%ymm10,%ymm2,%ymm10			# b0d0\n"
+"\n"
+"vpsubw		%ymm6,%ymm15,%ymm6			# a1c1\n"
+"vpsubw		%ymm11,%ymm3,%ymm11			# a1d1\n"
+"vpsubw		%ymm7,%ymm0,%ymm7			# b1c1\n"
+"vpsubw		%ymm12,%ymm4,%ymm12			# b1d1\n"
+"\n"
+"vmovdqa		(%r9),%ymm0\n"
+"vmovdqa		32(%r9),%ymm1\n"
+"vpmullw		%ymm0,%ymm10,%ymm2\n"
+"vpmullw		%ymm0,%ymm12,%ymm3\n"
+"vpmulhw		%ymm1,%ymm10,%ymm10\n"
+"vpmulhw		%ymm1,%ymm12,%ymm12\n"
+"vpmulhw		%ymm8,%ymm2,%ymm2\n"
+"vpmulhw		%ymm8,%ymm3,%ymm3\n"
+"vpsubw		%ymm2,%ymm10,%ymm10			# rb0d0\n"
+"vpsubw		%ymm3,%ymm12,%ymm12			# rb1d1\n"
+"\n"
+"vpaddw		%ymm5,%ymm9,%ymm9\n"
+"vpaddw		%ymm7,%ymm11,%ymm11\n"
+"vpsubw		%ymm13,%ymm10,%ymm13\n"
+"vpsubw		%ymm12,%ymm6,%ymm6\n"
+"\n"
+"vmovdqa		%ymm13,(64*\\off+ 0)*2(%rdi)\n"
+"vmovdqa		%ymm9,(64*\\off+16)*2(%rdi)\n"
+"vmovdqa		%ymm6,(64*\\off+32)*2(%rdi)\n"
+"vmovdqa		%ymm11,(64*\\off+48)*2(%rdi)\n"
+".endm\n"
+"\n"
+".text\n"
+"basemul_avx:\n"
+"mov		%rsp,%r8\n"
+"and		$-32,%rsp\n"
+"sub		$32,%rsp\n"
+"\n"
+"lea		(_ZETAS_EXP+176)*2(%rcx),%r9\n"
+"schoolbook	0\n"
+"\n"
+"add		$32*2,%r9\n"
+"schoolbook	1\n"
+"\n"
+"add		$192*2,%r9\n"
+"schoolbook	2\n"
+"\n"
+"add		$32*2,%r9\n"
+"schoolbook	3\n"
+"\n"
+"mov		%r8,%rsp\n"
+"ret\n"
+);

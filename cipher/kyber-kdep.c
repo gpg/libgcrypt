@@ -26,7 +26,7 @@
 
   Repository: https://github.com/pq-crystals/kyber.git
   Branch: standard
-  Commit: 11d00ff1f20cfca1f72d819e5a45165c1e0a2816
+  Commit: d5b791c0c601b543233daccbae2845c6197a9e77
 
   Licence:
   Public Domain (https://creativecommons.org/share-your-work/public-domain/cc0/);
