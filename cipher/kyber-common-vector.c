@@ -52,6 +52,8 @@
  * - C++ style comments are changed to C-style.
  *
  * - Assembler implementation (*.S files) are converted to asm statements.
+ *
+ * - poly_ntt calls reduce_avx (so that we can share indcpa_keypair_derand).
  */
 #include <stdint.h>
 #include <immintrin.h>
@@ -1284,8 +1286,7 @@ void poly_getnoise_eta1122_4x(poly *r0,
 *              Input coefficients assumed to be in normal order,
 *              output coefficients are in special order that is natural
 *              for the vectorization. Input coefficients are assumed to be
-*              bounded by q in absolute value, output coefficients are bounded
-*              by 16118 in absolute value.
+*              bounded by q in absolute value.
 *
 * Arguments:   - poly *r: pointer to in/output polynomial
 **************************************************/
