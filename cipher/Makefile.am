@@ -29,7 +29,7 @@ AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 EXTRA_DIST = gost-s-box.c kyber-common.c kyber-kdep.c \
              dilithium-common.c dilithium-dep.c
 
-CLEANFILES = gost-s-box$(EXEEXT_FOR_BUILD)
+CLEANFILES = gost-s-box$(EXEEXT_FOR_BUILD) *-darwin.s
 DISTCLEANFILES = gost-sb.h
 
 noinst_LTLIBRARIES = libcipher.la

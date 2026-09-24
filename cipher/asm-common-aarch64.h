@@ -31,14 +31,16 @@
 
 #ifdef _WIN32
 # define SECTION_RODATA .section .rdata
+#elif defined(__APPLE__)
+# define SECTION_RODATA .section __TEXT,__const
 #else
 # define SECTION_RODATA .section .rodata
 #endif
 
 #ifdef __APPLE__
 #define GET_DATA_POINTER(reg, name) \
-	adrp    reg, name@GOTPAGE ; \
-	add     reg, reg, name@GOTPAGEOFF ;
+	adrp    reg, name@PAGE ; \
+	add     reg, reg, name@PAGEOFF ;
 #else
 #define GET_DATA_POINTER(reg, name) \
 	adrp    reg, name ; \

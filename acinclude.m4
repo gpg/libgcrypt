@@ -73,6 +73,9 @@ case "${host}" in
     i386-emx-os2 | i[3456]86-pc-os2*emx | i386-pc-msdosdjgpp)
         ac_cv_sys_symbol_underscore=yes
         ;;
+    aarch64-apple-darwin*)
+        ac_cv_sys_symbol_underscore=yes
+        ;;
     *)
       if test "$cross_compiling" != yes; then
          tmp_do_check="yes"

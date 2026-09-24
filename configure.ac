@@ -297,6 +297,11 @@ case "${host}" in
         AC_DEFINE(USE_POSIX_SPAWN_FOR_TESTS, 1,
                   [defined if we use posix_spawn in test program])
         AC_CHECK_HEADERS(spawn.h)
+
+        if test "$host_cpu" = aarch64; then
+            CCAS="\$(SHELL) \$(top_srcdir)/build-aux/darwin-aarch64-as.sh $CCAS"
+        fi
+
         ;;
 
     *-openedition*)
@@ -874,6 +879,20 @@ AC_TYPE_PID_T
 
 AC_CHECK_TYPES([byte, ushort, u16, u32, u64])
 
+
+#
+# Check whether underscores in symbols are required.  This needs to be
+# done before setting up the assembler stuff.
+#
+GNUPG_SYS_SYMBOL_UNDERSCORE()
+
+if test "$ac_cv_sys_symbol_underscore" = "yes" ; then
+  symbol_prefix=_
+else
+  symbol_prefix=
+fi
+
+
 #
 # Check for __builtin_bswap32 intrinsic.
 #
@@ -1247,7 +1266,7 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARMv8/Aarch64 assembly i
           AC_LINK_IFELSE([AC_LANG_PROGRAM(
             [[__asm__(
                 ".text\n\t"
-                "asmfunc:\n\t"
+                "$symbol_prefix" "asmfunc:\n\t"
                 "eor x0, x0, x30, ror #12;\n\t"
                 "add x0, x0, x30, asr #12;\n\t"
                 "eor v0.16b, v0.16b, v31.16b;\n\t"
@@ -1308,13 +1327,6 @@ if test "$gcry_cv_gcc_asm_elf_directives" = "yes" ; then
    AC_DEFINE(HAVE_GCC_ASM_ELF_DIRECTIVES,1,
              [Defined if underlying assembler supports for ELF directives])
 fi
-
-
-#
-# Check whether underscores in symbols are required.  This needs to be
-# done before setting up the assembler stuff.
-#
-GNUPG_SYS_SYMBOL_UNDERSCORE()
 
 
 #################################
@@ -2200,7 +2212,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 NEON instructions]
           [[__asm__(
                 ".cpu generic+simd\n\t"
                 ".text\n\t"
-                "testfn:\n\t"
+                "$symbol_prefix" "testfn:\n\t"
                 "mov w0, \#42;\n\t"
                 "dup v0.8b, w0;\n\t"
                 "ld4 {v0.8b,v1.8b,v2.8b,v3.8b},[x0],\#32;\n\t"
@@ -2229,7 +2241,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 Crypto Extension i
           [[__asm__(
                 ".cpu generic+simd+crypto\n\t"
                 ".text\n\t"
-                "testfn:\n\t"
+                "$symbol_prefix" "testfn:\n\t"
                 "mov w0, \#42;\n\t"
                 "dup v0.8b, w0;\n\t"
                 "ld4 {v0.8b,v1.8b,v2.8b,v3.8b},[x0],\#32;\n\t"
@@ -2278,7 +2290,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SVE instructions],
           [[__asm__(
                 ".cpu generic+simd+sve\n\t"
                 ".text\n\t"
-                "testfn:\n\t"
+                "$symbol_prefix" "testfn:\n\t"
                 "mov x0, \#60;\n\t"
                 "whilelo p0.s, xzr, x0;\n\t"
                 "mov z0.s, p0/z, \#55;\n\t"
@@ -2308,7 +2320,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SVE2 instructions]
           [[__asm__(
                 ".cpu generic+simd+sve2\n\t"
                 ".text\n\t"
-                "testfn:\n\t"
+                "$symbol_prefix" "testfn:\n\t"
                 ";\n\t"
                 "eor3 z0.d, z0.d, z1.d, z2.d;\n\t"
                 "ext z8.b, {z20.b, z21.b}, \#3;\n\t"
@@ -2342,7 +2354,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 SHA3/SHA512/SM3/SM
           [[__asm__(
                 ".arch armv8.2-a+sha3+sm4\n\t"
                 ".text\n\t"
-                "testfn:\n\t"
+                "$symbol_prefix" "testfn:\n\t"
 
                 /* Test for SHA512 instructions */
                 "sha512h q0, q0, v0.2d;\n\t"
