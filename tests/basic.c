@@ -12531,6 +12531,8 @@ check_one_cipher_ctr_reset (gcry_cipher_hd_t hd, int algo, int mode,
   else
     ivlen = 16;
 
+  assert (ivlen <= sizeof (iv));
+
   /* Little-endian fill. */
   for (i = 0; i < 4; i++)
     iv[i + 0] = (ctr_low_bits >> (i * 8)) & 0xff;
