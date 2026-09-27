@@ -191,6 +191,7 @@ detect_riscv_at_hwcap(void)
 #define HWF_RISCV_HWPROBE_EXT_ZBB           (1U << 4)
 #define HWF_RISCV_HWPROBE_EXT_ZBS           (1U << 5)
 #define HWF_RISCV_HWPROBE_EXT_ZBC           (1U << 7)
+#define HWF_RISCV_HWPROBE_EXT_ZVBB          (1U << 17)
 #define HWF_RISCV_HWPROBE_EXT_ZVKB          (1U << 19)
 #define HWF_RISCV_HWPROBE_EXT_ZVKG          (1U << 20)
 #define HWF_RISCV_HWPROBE_EXT_ZVKNED        (1U << 21)
@@ -221,6 +222,7 @@ static const struct hwprobe_feature_map_s hwprobe_features[] =
       | HWF_RISCV_HWPROBE_EXT_ZBB
       | HWF_RISCV_HWPROBE_EXT_ZBS,   HWF_RISCV_B },
     { HWF_RISCV_HWPROBE_EXT_ZVKB,    HWF_RISCV_ZVKB },
+    { HWF_RISCV_HWPROBE_EXT_ZVBB,    HWF_RISCV_ZVKB }, /* Zvkb is subset of Zvbb */
     { HWF_RISCV_HWPROBE_EXT_ZVKG,    HWF_RISCV_ZVKG },
     { HWF_RISCV_HWPROBE_EXT_ZVKNED,  HWF_RISCV_ZVKNED },
     { HWF_RISCV_HWPROBE_EXT_ZVKNHA,  HWF_RISCV_ZVKNHA },
