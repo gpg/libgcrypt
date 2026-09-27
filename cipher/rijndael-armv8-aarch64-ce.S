@@ -237,8 +237,6 @@
 
 /* Other functional macros */
 
-#define CLEAR_REG(reg) movi reg.16b, #0;
-
 #define aes_clear_keys(nrounds) \
 	CLEAR_REG(vk0); \
 	CLEAR_REG(vk1); \

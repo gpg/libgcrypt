@@ -125,9 +125,6 @@ ELF(.size _gcry_sm3_aarch64_consts,.-_gcry_sm3_aarch64_consts)
 
 #define _(...) /*_*/
 
-#define clear_vec(x) \
-        movi x.8h, #0;
-
 #define rolw(o, a, n) \
         ror o, a, #(32 - n);
 
@@ -596,31 +593,31 @@ _gcry_sm3_transform_aarch64:
 
   /* Update the chaining variables. */
   eor ra, ra, s0;
-  clear_vec(W0);
+  CLEAR_REG(W0);
   eor rb, rb, s1;
-  clear_vec(W1);
+  CLEAR_REG(W1);
   ldp s0, s1, [RSTATE, #16];
-  clear_vec(W2);
+  CLEAR_REG(W2);
   eor rc, rc, s2;
-  clear_vec(W3);
+  CLEAR_REG(W3);
   ldp k_even, k_odd, [RSTATE, #24];
-  clear_vec(W4);
+  CLEAR_REG(W4);
   eor rd, rd, s3;
-  clear_vec(W5);
+  CLEAR_REG(W5);
   eor re, re, s0;
-  clear_vec(XTMP0);
+  CLEAR_REG(XTMP0);
   stp ra, rb, [RSTATE, #0];
-  clear_vec(XTMP1);
+  CLEAR_REG(XTMP1);
   eor rf, rf, s1;
-  clear_vec(XTMP2);
+  CLEAR_REG(XTMP2);
   stp rc, rd, [RSTATE, #8];
-  clear_vec(XTMP3);
+  CLEAR_REG(XTMP3);
   eor rg, rg, k_even;
-  clear_vec(XTMP4);
+  CLEAR_REG(XTMP4);
   stp re, rf, [RSTATE, #16];
-  clear_vec(XTMP5);
+  CLEAR_REG(XTMP5);
   eor rh, rh, k_odd;
-  clear_vec(XTMP6);
+  CLEAR_REG(XTMP6);
   stp rg, rh, [RSTATE, #24];
 
   /* Clear message expansion area */

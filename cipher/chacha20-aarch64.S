@@ -107,9 +107,6 @@
 	vpunpckhqdq(x2, t2, x3); \
 	vpunpcklqdq(x2, t2, x2);
 
-#define clear(x) \
-	movi x.16b, #0;
-
 /**********************************************************************
   4-way chacha20
  **********************************************************************/
@@ -334,28 +331,28 @@ _gcry_chacha20_aarch64_blocks4:
 	b.ne .Loop4;
 
 	/* clear the used vector registers and stack */
-	clear(VTMP0);
-	clear(VTMP1);
-	clear(VTMP2);
-	clear(VTMP3);
-	clear(X12_TMP);
-	clear(X13_TMP);
-	clear(X0);
-	clear(X1);
-	clear(X2);
-	clear(X3);
-	clear(X4);
-	clear(X5);
-	clear(X6);
-	clear(X7);
-	clear(X8);
-	clear(X9);
-	clear(X10);
-	clear(X11);
-	clear(X12);
-	clear(X13);
-	clear(X14);
-	clear(X15);
+	CLEAR_REG(VTMP0);
+	CLEAR_REG(VTMP1);
+	CLEAR_REG(VTMP2);
+	CLEAR_REG(VTMP3);
+	CLEAR_REG(X12_TMP);
+	CLEAR_REG(X13_TMP);
+	CLEAR_REG(X0);
+	CLEAR_REG(X1);
+	CLEAR_REG(X2);
+	CLEAR_REG(X3);
+	CLEAR_REG(X4);
+	CLEAR_REG(X5);
+	CLEAR_REG(X6);
+	CLEAR_REG(X7);
+	CLEAR_REG(X8);
+	CLEAR_REG(X9);
+	CLEAR_REG(X10);
+	CLEAR_REG(X11);
+	CLEAR_REG(X12);
+	CLEAR_REG(X13);
+	CLEAR_REG(X14);
+	CLEAR_REG(X15);
 
 	eor x0, x0, x0
 	ret_spec_stop
@@ -618,28 +615,28 @@ _gcry_chacha20_poly1305_aarch64_blocks4:
 	POLY1305_STORE_STATE()
 
 	/* clear the used vector registers and stack */
-	clear(VTMP0);
-	clear(VTMP1);
-	clear(VTMP2);
-	clear(VTMP3);
-	clear(X12_TMP);
-	clear(X13_TMP);
-	clear(X0);
-	clear(X1);
-	clear(X2);
-	clear(X3);
-	clear(X4);
-	clear(X5);
-	clear(X6);
-	clear(X7);
-	clear(X8);
-	clear(X9);
-	clear(X10);
-	clear(X11);
-	clear(X12);
-	clear(X13);
-	clear(X14);
-	clear(X15);
+	CLEAR_REG(VTMP0);
+	CLEAR_REG(VTMP1);
+	CLEAR_REG(VTMP2);
+	CLEAR_REG(VTMP3);
+	CLEAR_REG(X12_TMP);
+	CLEAR_REG(X13_TMP);
+	CLEAR_REG(X0);
+	CLEAR_REG(X1);
+	CLEAR_REG(X2);
+	CLEAR_REG(X3);
+	CLEAR_REG(X4);
+	CLEAR_REG(X5);
+	CLEAR_REG(X6);
+	CLEAR_REG(X7);
+	CLEAR_REG(X8);
+	CLEAR_REG(X9);
+	CLEAR_REG(X10);
+	CLEAR_REG(X11);
+	CLEAR_REG(X12);
+	CLEAR_REG(X13);
+	CLEAR_REG(X14);
+	CLEAR_REG(X15);
 
 	eor x0, x0, x0
 	POLY1305_POP_REGS()

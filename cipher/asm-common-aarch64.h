@@ -128,7 +128,7 @@
 #define ret_spec_stop \
 	ret; SPEC_STOP;
 
-#define CLEAR_REG(reg) movi reg.16b, #0;
+#define CLEAR_REG(reg, ...) movi reg.16b, #0;
 
 #define CLEAR_ALL_REGS() \
 	CLEAR_REG(v0); CLEAR_REG(v1); CLEAR_REG(v2); CLEAR_REG(v3); \

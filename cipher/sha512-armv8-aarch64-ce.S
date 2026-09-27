@@ -124,12 +124,6 @@
         sha512h2 Q##gh, Q##cd, ab.2d; \
 
 
-/* Other functional macros */
-
-#undef CLEAR_REG
-#define CLEAR_REG(reg, ...) movi reg.16b, #0;
-
-
 /*
  * unsigned int
  * _gcry_sha512_transform_armv8_ce (u64 state[8], const void *input_data,

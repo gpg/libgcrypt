@@ -97,11 +97,6 @@ gcry_sha256_aarch64_ce_K:
         su1_fn(     v##w0, v##w2, v##w3   );
 
 
-/* Other functional macros */
-
-#define CLEAR_REG(reg) movi reg.16b, #0;
-
-
 .text
 
 /*
