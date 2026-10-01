@@ -3990,9 +3990,18 @@ fi
 LIST_MEMBER(dilithium, $enabled_pubkey_ciphers)
 AM_CONDITIONAL(USE_DILITHIUM, [test "$found" = "1"])
 if test "$found" = "1" ; then
-   GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS \
-                          dilithium.lo pubkey-dilithium.lo"
    AC_DEFINE(USE_DILITHIUM, 1, [Defined if this module should be included])
+
+   if test x"$avx2support" = xyes ; then
+      # Build with the AVX2 implementation
+      AC_DEFINE(DILITHIUM_VECTOR_AVX2_IMPLEMENTATION, 1, [Defined with vector implementation with AVX2 instructions])
+      AM_CONDITIONAL(ENABLE_DILITHIUM_AVX2_EXTRA_CFLAGS, test "$avx2support" = "yes")
+      GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS pubkey-dilithium.lo \
+                             dilithium.lo dilithium-vector-avx2.lo"
+   else
+      GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS pubkey-dilithium.lo \
+                             dilithium.lo"
+   fi
 fi
 
 LIST_MEMBER(crc, $enabled_digests)

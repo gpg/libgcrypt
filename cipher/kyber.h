@@ -58,6 +58,10 @@
 #define kyber_keypair   _gcry_mlkem_keypair
 #define kyber_encap     _gcry_mlkem_encap
 #define kyber_decap     _gcry_mlkem_decap
+
+#define kyber_keypair_avx2 _gcry_mlkem_keypair_avx2
+#define kyber_encap_avx2   _gcry_mlkem_encap_avx2
+#define kyber_decap_avx2   _gcry_mlkem_decap_avx2
 /**** End of the glue code ****/
 
 #define KYBER_KEYPAIR_STACK_BURN(algo) \

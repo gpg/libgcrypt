@@ -172,7 +172,15 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       memcpy (seed, seed_supplied, SEEDBYTES);
     }
 
-  rc = dilithium_keypair (info->algo, pk, sk, seed);
+  {
+#ifdef DILITHIUM_VECTOR_AVX2_IMPLEMENTATION
+    unsigned int hwf = _gcry_get_hw_features ();
+    if ((hwf & HWF_INTEL_AVX2))
+      rc = dilithium_keypair_avx2 (info->algo, pk,sk, seed);
+    else
+#endif
+      rc = dilithium_keypair (info->algo, pk, sk, seed);
+  }
   _gcry_burn_stack (DILITHIUM_KEYPAIR_STACK_BURN);
 
   if (!rc)
@@ -208,6 +216,11 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   size_t data_len;
   const unsigned char *sk;
   const struct mldsa_info *info = mldsa_get_info (keyparms);
+  unsigned char *label;
+  size_t labellen;
+#ifdef DILITHIUM_VECTOR_AVX2_IMPLEMENTATION
+  unsigned int hwf = _gcry_get_hw_features ();
+#endif
 
   if (!info)
     return GPG_ERR_PUBKEY_ALGO;
@@ -261,12 +274,26 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       /* Per signature value, same level as ECDSA nonce. */
       randombytes (rnd, RNDBYTES, GCRY_STRONG_RANDOM);
     }
+
   if (ctx.flags & PUBKEY_FLAG_NO_PREFIX)
-    rc = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
-                         NULL, -1, sk, rnd);
+    {
+      label = NULL;
+      labellen = -1;
+    }
   else
+    {
+      label = ctx.label;
+      labellen = ctx.labellen;
+    }
+
+#ifdef DILITHIUM_VECTOR_AVX2_IMPLEMENTATION
+  if ((hwf & HWF_INTEL_AVX2))
+    rc = dilithium_sign_avx2 (info->algo, sig, info->sig_len, data, data_len,
+                              label, labellen, sk, rnd);
+  else
+#endif
     rc = dilithium_sign (info->algo, sig, info->sig_len, data, data_len,
-                         ctx.label, ctx.labellen, sk, rnd);
+                         label, labellen, sk, rnd);
   _gcry_burn_stack (DILITHIUM_SIGN_STACK_BURN);
   if (rc)
     goto leave;
@@ -301,6 +328,11 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   size_t data_len;
   const unsigned char *pk;
   const struct mldsa_info *info = mldsa_get_info (keyparms);
+  unsigned char *label;
+  size_t labellen;
+#ifdef DILITHIUM_VECTOR_AVX2_IMPLEMENTATION
+  unsigned int hwf = _gcry_get_hw_features ();
+#endif
 
   if (!info)
     return GPG_ERR_PUBKEY_ALGO;
@@ -350,11 +382,24 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   if (ctx.flags & PUBKEY_FLAG_NO_PREFIX)
-    rc = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
-                           NULL, -1, pk);
+    {
+      label = NULL;
+      labellen = -1;
+    }
   else
+    {
+      label = ctx.label;
+      labellen = ctx.labellen;
+    }
+
+#ifdef DILITHIUM_VECTOR_AVX2_IMPLEMENTATION
+  if ((hwf & HWF_INTEL_AVX2))
+    rc = dilithium_verify_avx2 (info->algo, sig, info->sig_len, data, data_len,
+                                label, labellen, pk);
+  else
+#endif
     rc = dilithium_verify (info->algo, sig, info->sig_len, data, data_len,
-                           ctx.label, ctx.labellen, pk);
+                           label, labellen, pk);
   _gcry_burn_stack (DILITHIUM_VERIFY_STACK_BURN);
   if (rc)
     goto leave;

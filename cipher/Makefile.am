@@ -28,7 +28,8 @@ AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
 EXTRA_DIST = gost-s-box.c kyber-common.c kyber-kdep.c \
              kyber-vector-avx2-common.c \
-             dilithium-common.c dilithium-dep.c
+             dilithium-common.c dilithium-dep.c \
+             dilithium-vector-avx2-common.c
 
 CLEANFILES = gost-s-box$(EXEEXT_FOR_BUILD)
 DISTCLEANFILES = gost-sb.h
@@ -101,6 +102,7 @@ EXTRA_libcipher_la_SOURCES = \
 	crc-riscv-zbb-zbc.c \
 	des.c des-amd64.S \
 	dilithium.c dilithium.h pubkey-dilithium.c \
+	dilithium-vector-avx2.c \
 	dsa.c \
 	elgamal.c \
 	ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
@@ -434,4 +436,14 @@ kyber-vector-avx2.o: $(srcdir)/kyber-vector-avx2.c Makefile
 
 kyber-vector-avx2.lo: $(srcdir)/kyber-vector-avx2.c Makefile
 	`echo $(LTCOMPILE) $(kyber_vector_avx2_cflags) -c $< | $(instrumentation_munging) `
+endif
+
+if ENABLE_DILITHIUM_AVX2_EXTRA_CFLAGS
+dilithium_vector_avx2_cflags = -O2 -mavx2 -mpopcnt
+
+dilithium-vector-avx2.o: $(srcdir)/dilithium-vector-avx2.c Makefile
+	`echo $(COMPILE) $(dilithium_vector_avx2_cflags) -c $< | $(instrumentation_munging) `
+
+dilithium-vector-avx2.lo: $(srcdir)/dilithium-vector-avx2.c Makefile
+	`echo $(LTCOMPILE) $(dilithium_vector_avx2_cflags) -c $< | $(instrumentation_munging) `
 endif

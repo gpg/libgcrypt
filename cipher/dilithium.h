@@ -58,6 +58,10 @@
 #define dilithium_keypair   _gcry_mldsa_keypair
 #define dilithium_sign      _gcry_mldsa_sign
 #define dilithium_verify    _gcry_mldsa_verify
+
+#define dilithium_keypair_avx2 _gcry_mldsa_keypair_avx2
+#define dilithium_sign_avx2    _gcry_mldsa_sign_avx2
+#define dilithium_verify_avx2  _gcry_mldsa_verify_avx2
 /**** End of the glue code ****/
 
 #define DILITHIUM_KEYPAIR_STACK_BURN (128 * 1024)
@@ -74,6 +78,18 @@ gpg_err_code_t dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
                                  const uint8_t *m, size_t mlen,
                                  const uint8_t *ctx, size_t ctxlen,
                                  const uint8_t *pk);
+#ifdef DILITHIUM_VECTOR_AVX2_IMPLEMENTATION
+gpg_err_code_t dilithium_keypair_avx2 (int algo, uint8_t *pk, uint8_t *sk,
+                                       const uint8_t seed[SEEDBYTES]);
+gpg_err_code_t dilithium_sign_avx2 (int algo, uint8_t *sig, size_t siglen,
+                                    const uint8_t *m, size_t mlen,
+                                    const uint8_t *ctx, size_t ctxlen,
+                                    const uint8_t *sk, const uint8_t rnd[RNDBYTES]);
+gpg_err_code_t dilithium_verify_avx2 (int algo, const uint8_t *sig, size_t siglen,
+                                      const uint8_t *m, size_t mlen,
+                                      const uint8_t *ctx, size_t ctxlen,
+                                      const uint8_t *pk);
+#endif
 #endif
 
 #if defined(DILITHIUM_MODE)
