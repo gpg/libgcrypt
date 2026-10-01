@@ -291,6 +291,14 @@ sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen)
 #else
 #include "kyber.h"
 
+/* Return 1 when success, 0 otherwise.  */
+unsigned int verify1 (const uint8_t *a, const uint8_t *b, size_t len);
+/* Conditional move.  */
+void cmov (uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
+/* Select V0 when OP_ENABLE == 1, V1 otherwise.  */
+int16_t ct_int16_select (int16_t v0, int16_t v1, unsigned long op_enable);
+
+/*************** kyber/ref/fips202.h */
 typedef struct {
   uint64_t s[25];
   unsigned int pos;
@@ -305,17 +313,11 @@ void shake128_close (keccak_state *state);
 void shake256v (uint8_t *out, size_t outlen, ...);
 void sha3_256 (uint8_t h[32], const uint8_t *in, size_t inlen);
 void sha3_512 (uint8_t h[64], const uint8_t *in, size_t inlen);
-
-/* Return 1 when success, 0 otherwise.  */
-unsigned int verify1 (const uint8_t *a, const uint8_t *b, size_t len);
-/* Conditional move.  */
-void cmov (uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
-/* Select V0 when OP_ENABLE == 1, V1 otherwise.  */
-int16_t ct_int16_select (int16_t v0, int16_t v1, unsigned long op_enable);
 #endif
 
 /*************** kyber/ref/fips202.h */
 #define SHAKE128_RATE 168
+#define SHAKE256_RATE 136
 
 /*************** kyber/ref/params.h */
 #define KYBER_N 256
@@ -337,14 +339,9 @@ int16_t ct_int16_select (int16_t v0, int16_t v1, unsigned long op_enable);
 #define KYBER_POLYCOMPRESSEDBYTES_2_3 128
 #define KYBER_POLYCOMPRESSEDBYTES_4   160
 
-/*************** kyber/ref/poly.h */
-/*
- * Elements of R_q = Z_q[X]/(X^n + 1). Represents polynomial
- * coeffs[0] + X*coeffs[1] + X^2*coeffs[2] + ... + X^{n-1}*coeffs[n-1]
- */
-
-/* Glue code for vector AVX2 implementation */
+/*************** kyber/avx2/align.h */
 #include <immintrin.h>
+
 #define ALIGNED_UINT8(N)        \
     union {                     \
         uint8_t coeffs[N];      \
@@ -357,9 +354,10 @@ int16_t ct_int16_select (int16_t v0, int16_t v1, unsigned long op_enable);
         __m256i vec[(N+15)/16]; \
     }
 
-typedef ALIGNED_INT16(KYBER_N) poly;
+/*************** kyber/avx2/consts.h */
 typedef ALIGNED_INT16(640) qdata_t;
 
+/*************** kyber/avx2/ntt.h */
 /* Those are assembler implementations in kyber-vector-avx2.c.  */
 extern void ntttobytes_avx(uint8_t *r, const __m256i *a, const __m256i *qdata);
 extern void nttfrombytes_avx(__m256i *r, const uint8_t *a, const __m256i *qdata);
@@ -373,7 +371,8 @@ extern void basemul_avx(__m256i *r,
 extern void tomont_avx(__m256i *r, const __m256i *qdata);
 extern void reduce_avx(__m256i *r, const __m256i *qdata);
 
-#define SHAKE256_RATE 136
+/*************** kyber/avx2/poly.h */
+typedef ALIGNED_INT16(KYBER_N) poly;
 
 #if !defined(KYBER_K) || KYBER_K == 2 || KYBER_K == 3
 static void poly_compress_128(uint8_t r[KYBER_POLYCOMPRESSEDBYTES_2_3], const poly *a);
