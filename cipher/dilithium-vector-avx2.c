@@ -1,5 +1,5 @@
-/* dilithium.c - the Dilithium (main part)
- * Copyright (C) 2025 g10 Code GmbH
+/* dilithium.c - the Dilithium (main part, with AVX2 optimization)
+ * Copyright (C) 2025, 2026 g10 Code GmbH
  *
  * This file was modified for use by Libgcrypt.
  *
@@ -410,10 +410,32 @@ void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 #define POLYETA_PACKEDBYTES_2  96
 #define POLYETA_PACKEDBYTES_4 128
 
-/*************** dilithium/ref/poly.h */
-typedef struct {
-  int32_t coeffs[N];
-} poly;
+/*************** dilithium/avx2/align.h */
+#define ALIGNED_UINT8(N)        \
+    union {                     \
+        uint8_t coeffs[N];      \
+        __m256i vec[(N+31)/32]; \
+    }
+
+#define ALIGNED_INT32(N)        \
+    union {                     \
+        int32_t coeffs[N];      \
+        __m256i vec[(N+7)/8];   \
+    }
+
+/*************** dilithium/avx2/consts.h */
+typedef ALIGNED_INT32(624) qdata_t;
+
+/*************** dilithium/avx2/ntt.h */
+void ntt_avx(__m256i *a, const __m256i *qdata);
+void invntt_avx(__m256i *a, const __m256i *qdata);
+void nttunpack_avx(__m256i *a);
+void pointwise_avx(__m256i *c, const __m256i *a, const __m256i *b, const __m256i *qdata);
+#define pointwise_acc_avx DILITHIUM_NAMESPACE(pointwise_acc_avx)
+void pointwise_acc_avx(__m256i *c, const __m256i *a, const __m256i *b, const __m256i *qdata);
+
+/*************** dilithium/avx2/poly.h */
+typedef ALIGNED_INT32(N) poly;
 
 static void poly_reduce(poly *a);
 static void poly_caddq(poly *a);
@@ -424,14 +446,40 @@ static void poly_shiftl(poly *a);
 
 static void poly_ntt(poly *a);
 static void poly_invntt_tomont(poly *a);
+static void poly_nttunpack(poly *a);
 static void poly_pointwise_montgomery(poly *c, const poly *a, const poly *b);
 
 static void poly_power2round(poly *a1, poly *a0, const poly *a);
 
 static int poly_chknorm(const poly *a, int32_t B);
-static void poly_uniform(poly *a,
-                         const uint8_t seed[SEEDBYTES],
-                         uint16_t nonce);
+
+static void poly_uniform_4x(poly *a0,
+                            poly *a1,
+                            poly *a2,
+                            poly *a3,
+                            const uint8_t seed[SEEDBYTES],
+                            uint16_t nonce0,
+                            uint16_t nonce1,
+                            uint16_t nonce2,
+                            uint16_t nonce3);
+static void poly_uniform_eta_4x(poly *a0,
+                                poly *a1,
+                                poly *a2,
+                                poly *a3,
+                                const uint8_t seed[CRHBYTES],
+                                uint16_t nonce0,
+                                uint16_t nonce1,
+                                uint16_t nonce2,
+                                uint16_t nonce3);
+static void poly_uniform_gamma1_4x(poly *a0,
+                                   poly *a1,
+                                   poly *a2,
+                                   poly *a3,
+                                   const uint8_t seed[CRHBYTES],
+                                   uint16_t nonce0,
+                                   uint16_t nonce1,
+                                   uint16_t nonce2,
+                                   uint16_t nonce3);
 
 static void polyt1_pack(uint8_t *r, const poly *a);
 static void polyt1_unpack(poly *r, const uint8_t *a);
@@ -439,18 +487,27 @@ static void polyt1_unpack(poly *r, const uint8_t *a);
 static void polyt0_pack(uint8_t *r, const poly *a);
 static void polyt0_unpack(poly *r, const uint8_t *a);
 
-/*************** dilithium/ref/reduce.h */
-#define MONT -4186625 /* 2^32 % Q */
-#define QINV 58728449 /* q^(-1) mod 2^32 */
+static void polyw1_pack_88(uint8_t *r, const poly *a);
+static void polyw1_pack_32(uint8_t *r, const poly *a);
 
-static int32_t montgomery_reduce(int64_t a);
+/*************** dilithium/avx2/rejsample.h */
+#define REJ_UNIFORM_NBLOCKS ((768+STREAM128_BLOCKBYTES-1)/STREAM128_BLOCKBYTES)
+#define REJ_UNIFORM_BUFLEN (REJ_UNIFORM_NBLOCKS*STREAM128_BLOCKBYTES)
 
-static int32_t reduce32(int32_t a);
+#define REJ_UNIFORM_ETA_NBLOCKS_2 ((136+STREAM256_BLOCKBYTES-1)/STREAM256_BLOCKBYTES)
+#define REJ_UNIFORM_ETA_NBLOCKS_4 ((227+STREAM256_BLOCKBYTES-1)/STREAM256_BLOCKBYTES)
 
-static int32_t caddq(int32_t a);
+#define REJ_UNIFORM_ETA_BUFLEN_2 (REJ_UNIFORM_ETA_NBLOCKS_2*STREAM256_BLOCKBYTES)
+#define REJ_UNIFORM_ETA_BUFLEN_4 (REJ_UNIFORM_ETA_NBLOCKS_2*STREAM256_BLOCKBYTES)
 
-/*************** dilithium/ref/rounding.h */
-static int32_t power2round(int32_t *a0, int32_t a);
+/*************** dilithium/avx2/rounding.h */
+static void power2round_avx(__m256i *a1, __m256i *a0, const __m256i *a);
+static void decompose_avx_88(__m256i *a1, __m256i *a0, const __m256i *a);
+static void decompose_avx_32(__m256i *a1, __m256i *a0, const __m256i *a);
+static unsigned int make_hint_avx_88(uint8_t hint[N], const __m256i *a0, const __m256i *a1);
+static unsigned int make_hint_avx_32(uint8_t hint[N], const __m256i *a0, const __m256i *a1);
+static void use_hint_avx_88(__m256i *b, const __m256i *a, const __m256i *hint);
+static void use_hint_avx_32(__m256i *b, const __m256i *a, const __m256i *hint);
 
 /*************** dilithium/ref/symmetric.h */
 typedef keccak_state stream128_state;
@@ -514,7 +571,7 @@ static void shake256_close (keccak_state *state) { (void)state; }
 static void shake128_close (keccak_state *state) { (void)state; }
 #endif
 
-#include "dilithium-common.c"
+#include "dilithium-vector-avx2-common.c"
 
 #ifdef DILITHIUM_MODE
 
