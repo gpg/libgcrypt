@@ -403,6 +403,12 @@ void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 #define GAMMA1_19 (1 << 19)
 #define GAMMA2_32 ((Q-1)/32)
 #define GAMMA2_88 ((Q-1)/88)
+#define TAU39 39
+#define TAU49 49
+#define TAU60 60
+#define CTILDEBYTES32 32
+#define CTILDEBYTES48 48
+#define CTILDEBYTES64 64
 #define POLYZ_PACKEDBYTES_17   576
 #define POLYZ_PACKEDBYTES_19   640
 #define POLYW1_PACKEDBYTES_88  192
@@ -411,6 +417,8 @@ void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
 #define POLYETA_PACKEDBYTES_4 128
 
 /*************** dilithium/avx2/align.h */
+#include <immintrin.h>
+
 #define ALIGNED_UINT8(N)        \
     union {                     \
         uint8_t coeffs[N];      \
@@ -431,7 +439,6 @@ void ntt_avx(__m256i *a, const __m256i *qdata);
 void invntt_avx(__m256i *a, const __m256i *qdata);
 void nttunpack_avx(__m256i *a);
 void pointwise_avx(__m256i *c, const __m256i *a, const __m256i *b, const __m256i *qdata);
-#define pointwise_acc_avx DILITHIUM_NAMESPACE(pointwise_acc_avx)
 void pointwise_acc_avx(__m256i *c, const __m256i *a, const __m256i *b, const __m256i *qdata);
 
 /*************** dilithium/avx2/poly.h */
@@ -462,7 +469,7 @@ static void poly_uniform_4x(poly *a0,
                             uint16_t nonce1,
                             uint16_t nonce2,
                             uint16_t nonce3);
-static void poly_uniform_eta_4x(poly *a0,
+static void poly_uniform_eta_4x_2(poly *a0,
                                 poly *a1,
                                 poly *a2,
                                 poly *a3,
@@ -471,7 +478,16 @@ static void poly_uniform_eta_4x(poly *a0,
                                 uint16_t nonce1,
                                 uint16_t nonce2,
                                 uint16_t nonce3);
-static void poly_uniform_gamma1_4x(poly *a0,
+static void poly_uniform_eta_4x_4(poly *a0,
+                                poly *a1,
+                                poly *a2,
+                                poly *a3,
+                                const uint8_t seed[CRHBYTES],
+                                uint16_t nonce0,
+                                uint16_t nonce1,
+                                uint16_t nonce2,
+                                uint16_t nonce3);
+static void poly_uniform_gamma1_4x_17(poly *a0,
                                    poly *a1,
                                    poly *a2,
                                    poly *a3,
@@ -480,12 +496,15 @@ static void poly_uniform_gamma1_4x(poly *a0,
                                    uint16_t nonce1,
                                    uint16_t nonce2,
                                    uint16_t nonce3);
-
-static void polyt1_pack(uint8_t *r, const poly *a);
-static void polyt1_unpack(poly *r, const uint8_t *a);
-
-static void polyt0_pack(uint8_t *r, const poly *a);
-static void polyt0_unpack(poly *r, const uint8_t *a);
+static void poly_uniform_gamma1_4x_19(poly *a0,
+                                   poly *a1,
+                                   poly *a2,
+                                   poly *a3,
+                                   const uint8_t seed[CRHBYTES],
+                                   uint16_t nonce0,
+                                   uint16_t nonce1,
+                                   uint16_t nonce2,
+                                   uint16_t nonce3);
 
 static void polyw1_pack_88(uint8_t *r, const poly *a);
 static void polyw1_pack_32(uint8_t *r, const poly *a);

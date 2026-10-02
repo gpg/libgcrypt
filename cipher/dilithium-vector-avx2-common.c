@@ -44,250 +44,106 @@
 
   Dilithium Home: https://github.com/pq-crystals/dilithium.git
  */
-/*************** dilithium/avx2/rounding.c */
+/*
+ * - Fixed rej_uniform_avx for ISO C90
+ */
+/*************** dilithium/avx2/consts.c */
+#define QINV 58728449 // q^(-1) mod 2^32
+#define MONT -4186625 // 2^32 mod q
+#define DIV 41978 // mont^2/256
+#define DIV_QINV -8395782
 
-#define _mm256_blendv_epi32(a,b,mask) \
-  _mm256_castps_si256(_mm256_blendv_ps(_mm256_castsi256_ps(a), \
-                                       _mm256_castsi256_ps(b), \
-                                       _mm256_castsi256_ps(mask)))
+const qdata_t qdata = {{
+#define _8XQ 0
+  Q, Q, Q, Q, Q, Q, Q, Q,
 
-/*************************************************
-* Name:        power2round
-*
-* Description: For finite field elements a, compute a0, a1 such that
-*              a mod^+ Q = a1*2^D + a0 with -2^{D-1} < a0 <= 2^{D-1}.
-*              Assumes a to be positive standard representative.
-*
-* Arguments:   - __m256i *a1: output array of length N/8 with high bits
-*              - __m256i *a0: output array of length N/8 with low bits a0
-*              - const __m256i *a: input array of length N/8
-*
-**************************************************/
-void power2round_avx(__m256i *a1, __m256i *a0, const __m256i *a)
-{
-  unsigned int i;
-  __m256i f,f0,f1;
-  const __m256i mask = _mm256_set1_epi32(-(1 << D));
-  const __m256i half = _mm256_set1_epi32((1 << (D-1)) - 1);
+#define _8XQINV 8
+  QINV, QINV, QINV, QINV, QINV, QINV, QINV, QINV,
 
-  for(i = 0; i < N/8; ++i) {
-    f = _mm256_load_si256(&a[i]);
-    f1 = _mm256_add_epi32(f,half);
-    f0 = _mm256_and_si256(f1,mask);
-    f1 = _mm256_srli_epi32(f1,D);
-    f0 = _mm256_sub_epi32(f,f0);
-    _mm256_store_si256(&a1[i],f1);
-    _mm256_store_si256(&a0[i],f0);
-  }
-}
+#define _8XDIV_QINV 16
+  DIV_QINV, DIV_QINV, DIV_QINV, DIV_QINV, DIV_QINV, DIV_QINV, DIV_QINV, DIV_QINV,
 
-/*************************************************
-* Name:        decompose
-*
-* Description: For finite field element a, compute high and low parts a0, a1 such
-*              that a mod^+ Q = a1*ALPHA + a0 with -ALPHA/2 < a0 <= ALPHA/2 except
-*              if a1 = (Q-1)/ALPHA where we set a1 = 0 and
-*              -ALPHA/2 <= a0 = a mod Q - Q < 0. Assumes a to be positive standard
-*              representative.
-*
-* Arguments:   - __m256i *a1: output array of length N/8 with high parts
-*              - __m256i *a0: output array of length N/8 with low parts a0
-*              - const __m256i *a: input array of length N/8
-*
-**************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-void decompose_avx_88(__m256i *a1, __m256i *a0, const __m256i *a)
-{
-  unsigned int i;
-  __m256i f,f0,f1,t;
-  const __m256i q = _mm256_load_si256(&qdata.vec[_8XQ/8]);
-  const __m256i hq = _mm256_srli_epi32(q,1);
-  const __m256i v = _mm256_set1_epi32(11275);
-  const __m256i alpha = _mm256_set1_epi32(2*GAMMA2_88);
-  const __m256i off = _mm256_set1_epi32(127);
-  const __m256i shift = _mm256_set1_epi32(128);
-  const __m256i max = _mm256_set1_epi32(43);
-  const __m256i zero = _mm256_setzero_si256();
+#define _8XDIV 24
+  DIV, DIV, DIV, DIV, DIV, DIV, DIV, DIV,
 
-  for(i=0;i<N/8;i++) {
-    f = _mm256_load_si256(&a[i]);
-    f1 = _mm256_add_epi32(f,off);
-    f1 = _mm256_srli_epi32(f1,7);
-    f1 = _mm256_mulhi_epu16(f1,v);
-    f1 = _mm256_mulhrs_epi16(f1,shift);
-    t = _mm256_sub_epi32(max,f1);
-    f1 = _mm256_blendv_epi32(f1,zero,t);
-    f0 = _mm256_mullo_epi32(f1,alpha);
-    f0 = _mm256_sub_epi32(f,f0);
-    f = _mm256_cmpgt_epi32(f0,hq);
-    f = _mm256_and_si256(f,q);
-    f0 = _mm256_sub_epi32(f0,f);
-    _mm256_store_si256(&a1[i],f1);
-    _mm256_store_si256(&a0[i],f0);
-  }
-}
-#endif
+#define _ZETAS_QINV 32
+   -151046689,  1830765815, -1929875198, -1927777021,  1640767044,  1477910808,  1612161320,  1640734244,
+    308362795,   308362795,   308362795,   308362795, -1815525077, -1815525077, -1815525077, -1815525077,
+  -1374673747, -1374673747, -1374673747, -1374673747, -1091570561, -1091570561, -1091570561, -1091570561,
+  -1929495947, -1929495947, -1929495947, -1929495947,   515185417,   515185417,   515185417,   515185417,
+   -285697463,  -285697463,  -285697463,  -285697463,   625853735,   625853735,   625853735,   625853735,
+   1727305304,  1727305304,  2082316400,  2082316400, -1364982364, -1364982364,   858240904,   858240904,
+   1806278032,  1806278032,   222489248,   222489248,  -346752664,  -346752664,   684667771,   684667771,
+   1654287830,  1654287830,  -878576921,  -878576921, -1257667337, -1257667337,  -748618600,  -748618600,
+    329347125,   329347125,  1837364258,  1837364258, -1443016191, -1443016191, -1170414139, -1170414139,
+  -1846138265, -1631226336, -1404529459,  1838055109,  1594295555, -1076973524, -1898723372,  -594436433,
+   -202001019,  -475984260,  -561427818,  1797021249, -1061813248,  2059733581, -1661512036, -1104976547,
+  -1750224323,  -901666090,   418987550,  1831915353, -1925356481,   992097815,   879957084,  2024403852,
+   1484874664, -1636082790,  -285388938, -1983539117, -1495136972,  -950076368, -1714807468,  -952438995,
+  -1574918427,  1350681039, -2143979939,  1599739335, -1285853323,  -993005454, -1440787840,   568627424,
+   -783134478,  -588790216,   289871779, -1262003603,  2135294594, -1018755525,  -889861155,  1665705315,
+   1321868265,  1225434135, -1784632064,   666258756,   675310538, -1555941048, -1999506068, -1499481951,
+   -695180180, -1375177022,  1777179795,   334803717,  -178766299,  -518252220,  1957047970,  1146323031,
+   -654783359, -1974159335,  1651689966,   140455867, -1039411342,  1955560694,  1529189038, -2131021878,
+   -247357819,  1518161567,   -86965173,  1708872713,  1787797779,  1638590967,  -120646188, -1669960606,
+   -916321552,  1155548552,  2143745726,  1210558298, -1261461890,  -318346816,   628664287, -1729304568,
+   1422575624,  1424130038, -1185330464,   235321234,   168022240,  1206536194,   985155484,  -894060583,
+      -898413, -1363460238,  -605900043,  2027833504,    14253662,  1014493059,   863641633,  1819892093,
+   2124962073, -1223601433, -1920467227, -1637785316, -1536588520,   694382729,   235104446, -1045062172,
+    831969619,  -300448763,   756955444,  -260312805,  1554794072,  1339088280, -2040058690,  -853476187,
+  -2047270596, -1723816713, -1591599803,  -440824168,  1119856484,  1544891539,   155290192,  -973777462,
+    991903578,   912367099,   -44694137,  1176904444,  -421552614,  -818371958,  1747917558,  -325927722,
+    908452108,  1851023419, -1176751719, -1354528380,   -72690498,  -314284737,   985022747,   963438279,
+  -1078959975,   604552167, -1021949428,   608791570,   173440395, -2126092136, -1316619236, -1039370342,
+      6087993,  -110126092,   565464272, -1758099917, -1600929361,   879867909, -1809756372,   400711272,
+   1363007700,    30313375,  -326425360,  1683520342,  -517299994,  2027935492, -1372618620,   128353682,
+  -1123881663,   137583815,  -635454918,  -642772911,    45766801,   671509323, -2070602178,   419615363,
+   1216882040,  -270590488, -1276805128,   371462360, -1357098057,  -384158533,   827959816,  -596344473,
+    702390549,  -279505433,  -260424530,   -71875110, -1208667171, -1499603926,  2036925262,  -540420426,
+    746144248, -1420958686,  2032221021,  1904936414,  1257750362,  1926727420,  1931587462,  1258381762,
+    885133339,  1629985060,  1967222129,     6363718, -1287922800,  1136965286,  1779436847,  1116720494,
+   1042326957,  1405999311,   713994583,   940195359, -1542497137,  2061661095,  -883155599,  1726753853,
+  -1547952704,   394851342,   283780712,   776003547,  1123958025,   201262505,  1934038751,   374860238,
 
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-void decompose_avx_32(__m256i *a1, __m256i *a0, const __m256i *a)
-{
-  unsigned int i;
-  __m256i f,f0,f1;
-  const __m256i q = _mm256_load_si256(&qdata.vec[_8XQ/8]);
-  const __m256i hq = _mm256_srli_epi32(q,1);
-  const __m256i v = _mm256_set1_epi32(1025);
-  const __m256i alpha = _mm256_set1_epi32(2*GAMMA2_32);
-  const __m256i off = _mm256_set1_epi32(127);
-  const __m256i shift = _mm256_set1_epi32(512);
-  const __m256i mask = _mm256_set1_epi32(15);
-
-  for(i=0;i<N/8;i++) {
-    f = _mm256_load_si256(&a[i]);
-    f1 = _mm256_add_epi32(f,off);
-    f1 = _mm256_srli_epi32(f1,7);
-    f1 = _mm256_mulhi_epu16(f1,v);
-    f1 = _mm256_mulhrs_epi16(f1,shift);
-    f1 = _mm256_and_si256(f1,mask);
-    f0 = _mm256_mullo_epi32(f1,alpha);
-    f0 = _mm256_sub_epi32(f,f0);
-    f = _mm256_cmpgt_epi32(f0,hq);
-    f = _mm256_and_si256(f,q);
-    f0 = _mm256_sub_epi32(f0,f);
-    _mm256_store_si256(&a1[i],f1);
-    _mm256_store_si256(&a0[i],f0);
-  }
-}
-#endif
-
-/*************************************************
-* Name:        make_hint
-*
-* Description: Compute indices of polynomial coefficients whose low bits
-*              overflow into the high bits.
-*
-* Arguments:   - uint8_t *hint: hint array
-*              - const __m256i *a0: low bits of input elements
-*              - const __m256i *a1: high bits of input elements
-*
-* Returns number of overflowing low bits
-**************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-unsigned int make_hint_avx_88(uint8_t hint[N], const __m256i * restrict a0, const __m256i * restrict a1)
-{
-  unsigned int i, n = 0;
-  __m256i f0, f1, g0, g1;
-  uint32_t bad;
-  uint64_t idx;
-  const __m256i low = _mm256_set1_epi32(-GAMMA2_88);
-  const __m256i high = _mm256_set1_epi32(GAMMA2_88);
-
-  for(i = 0; i < N/8; ++i) {
-    f0 = _mm256_load_si256(&a0[i]);
-    f1 = _mm256_load_si256(&a1[i]);
-    g0 = _mm256_abs_epi32(f0);
-    g0 = _mm256_cmpgt_epi32(g0,high);
-    g1 = _mm256_cmpeq_epi32(f0,low);
-    g1 = _mm256_sign_epi32(g1,f1);
-    g0 = _mm256_or_si256(g0,g1);
-
-    bad = _mm256_movemask_ps((__m256)g0);
-    memcpy(&idx,idxlut[bad],8);
-    idx += (uint64_t)0x0808080808080808*i;
-    memcpy(&hint[n],&idx,8);
-    n += _mm_popcnt_u32(bad);
-  }
-
-  return n;
-}
-#endif
-
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-unsigned int make_hint_avx_32(uint8_t hint[N], const __m256i * restrict a0, const __m256i * restrict a1)
-{
-  unsigned int i, n = 0;
-  __m256i f0, f1, g0, g1;
-  uint32_t bad;
-  uint64_t idx;
-  const __m256i low = _mm256_set1_epi32(-GAMMA2_32);
-  const __m256i high = _mm256_set1_epi32(GAMMA2_32);
-
-  for(i = 0; i < N/8; ++i) {
-    f0 = _mm256_load_si256(&a0[i]);
-    f1 = _mm256_load_si256(&a1[i]);
-    g0 = _mm256_abs_epi32(f0);
-    g0 = _mm256_cmpgt_epi32(g0,high);
-    g1 = _mm256_cmpeq_epi32(f0,low);
-    g1 = _mm256_sign_epi32(g1,f1);
-    g0 = _mm256_or_si256(g0,g1);
-
-    bad = _mm256_movemask_ps((__m256)g0);
-    memcpy(&idx,idxlut[bad],8);
-    idx += (uint64_t)0x0808080808080808*i;
-    memcpy(&hint[n],&idx,8);
-    n += _mm_popcnt_u32(bad);
-  }
-
-  return n;
-}
-#endif
-
-/*************************************************
-* Name:        use_hint
-*
-* Description: Correct high parts according to hint.
-*
-* Arguments:   - __m256i *b: output array of length N/8 with corrected high parts
-*              - const __m256i *a: input array of length N/8
-*              - const __m256i *a: input array of length N/8 with hint bits
-*
-**************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-void use_hint_avx_88(__m256i *b, const __m256i *a, const __m256i * restrict hint) {
-  unsigned int i;
-  __m256i a0[N/8];
-  __m256i f,g,h,t;
-  const __m256i zero = _mm256_setzero_si256();
-  const __m256i max = _mm256_set1_epi32(43);
-
-  decompose_avx_88(b, a0, a);
-  for(i=0;i<N/8;i++) {
-    f = _mm256_load_si256(&a0[i]);
-    g = _mm256_load_si256(&b[i]);
-    h = _mm256_load_si256(&hint[i]);
-    t = _mm256_blendv_epi32(zero,h,f);
-    t = _mm256_slli_epi32(t,1);
-    h = _mm256_sub_epi32(h,t);
-    g = _mm256_add_epi32(g,h);
-    g = _mm256_blendv_epi32(g,max,g);
-    f = _mm256_cmpgt_epi32(g,max);
-    g = _mm256_blendv_epi32(g,zero,f);
-    _mm256_store_si256(&b[i],g);
-  }
-}
-#endif
-
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
-void use_hint_avx_32(__m256i *b, const __m256i *a, const __m256i * restrict hint) {
-  unsigned int i;
-  __m256i a0[N/8];
-  __m256i f,g,h,t;
-  const __m256i zero = _mm256_setzero_si256();
-  const __m256i mask = _mm256_set1_epi32(15);
-
-  decompose_avx_32(b, a0, a);
-  for(i=0;i<N/8;i++) {
-    f = _mm256_load_si256(&a0[i]);
-    g = _mm256_load_si256(&b[i]);
-    h = _mm256_load_si256(&hint[i]);
-    t = _mm256_blendv_epi32(zero,h,f);
-    t = _mm256_slli_epi32(t,1);
-    h = _mm256_sub_epi32(h,t);
-    g = _mm256_add_epi32(g,h);
-    g = _mm256_and_si256(g,mask);
-    _mm256_store_si256(&b[i],g);
-  }
-}
-#endif
+#define _ZETAS 328
+  -3975713,    25847, -2608894,  -518909,   237124,  -777960,  -876248,   466468,
+   1826347,  1826347,  1826347,  1826347,  2353451,  2353451,  2353451,  2353451,
+   -359251,  -359251,  -359251,  -359251, -2091905, -2091905, -2091905, -2091905,
+   3119733,  3119733,  3119733,  3119733, -2884855, -2884855, -2884855, -2884855,
+   3111497,  3111497,  3111497,  3111497,  2680103,  2680103,  2680103,  2680103,
+   2725464,  2725464,  1024112,  1024112, -1079900, -1079900,  3585928,  3585928,
+   -549488,  -549488, -1119584, -1119584,  2619752,  2619752, -2108549, -2108549,
+  -2118186, -2118186, -3859737, -3859737, -1399561, -1399561, -3277672, -3277672,
+   1757237,  1757237,   -19422,   -19422,  4010497,  4010497,   280005,   280005,
+   2706023,    95776,  3077325,  3530437, -1661693, -3592148, -2537516,  3915439,
+  -3861115, -3043716,  3574422, -2867647,  3539968,  -300467,  2348700,  -539299,
+  -1699267, -1643818,  3505694, -3821735,  3507263, -2140649, -1600420,  3699596,
+    811944,   531354,   954230,  3881043,  3900724, -2556880,  2071892, -2797779,
+  -3930395, -3677745, -1452451,  2176455, -1257611, -4083598, -3190144, -3632928,
+   3412210,  2147896, -2967645,  -411027,  -671102,   -22981,  -381987,  1852771,
+  -3343383,   508951,    44288,   904516, -3724342,  1653064,  2389356,   759969,
+    189548,  3159746, -2409325,  1315589,  1285669,  -812732, -3019102, -3628969,
+  -1528703, -3041255,  3475950, -1585221,  1939314, -1000202, -3157330,   126922,
+   -983419,  2715295, -3693493, -2477047, -1228525, -1308169,  1349076, -1430430,
+    264944,  3097992, -1100098,  3958618,    -8578, -3249728,  -210977, -1316856,
+  -3553272, -1851402,  -177440,  1341330, -1584928, -1439742, -3881060,  3839961,
+   2091667, -3342478,   266997, -3520352,   900702,   495491,  -655327, -3556995,
+    342297,  3437287,  2842341,  4055324, -3767016, -2994039, -1333058,  -451100,
+  -1279661,  1500165,  -542412, -2584293, -2013608,  1957272, -3183426,   810149,
+  -3038916,  2213111,  -426683, -1667432, -2939036,   183443,  -554416,  3937738,
+   3407706,  2244091,  2434439, -3759364,  1859098, -1613174, -3122442,  -525098,
+    286988, -3342277,  2691481,  1247620,  1250494,  1869119,  1237275,  1312455,
+   1917081,   777191, -2831860, -3724270,  2432395,  3369112,   162844,  1652634,
+   3523897,  -975884,  1723600, -1104333, -2235985,  -976891,  3919660,  1400424,
+   2316500, -2446433, -1235728, -1197226,   909542,   -43260,  2031748,  -768622,
+  -2437823,  1735879, -2590150,  2486353,  2635921,  1903435, -3318210,  3306115,
+  -2546312,  2235880, -1671176,   594136,  2454455,   185531,  1616392, -3694233,
+   3866901,  1717735, -1803090,  -260646,  -420899,  1612842,   -48306,  -846154,
+   3817976, -3562462,  3513181, -3193378,   819034,  -522500,  3207046, -3595838,
+   4108315,   203044,  1265009,  1595974, -3548272, -1050970, -1430225, -1962642,
+  -1374803,  3406031, -1846953, -3776993,  -164721, -1207385,  3014001, -1799107,
+    269760,   472078,  1910376, -3833893, -2286327, -3545687, -1362209,  1976782,
+}};
 
 /*************** dilithium/avx2/rejsample.c */
 static
@@ -553,6 +409,7 @@ const uint8_t idxlut[256][8] = {
 static
 unsigned int rej_uniform_avx(int32_t * restrict r, const uint8_t buf[REJ_UNIFORM_BUFLEN+8])
 {
+  uint32_t t;
   unsigned int ctr, pos;
   uint32_t good;
   __m256i d, tmp;
@@ -582,7 +439,6 @@ unsigned int rej_uniform_avx(int32_t * restrict r, const uint8_t buf[REJ_UNIFORM
     if(ctr > N - 8) break;
   }
 
-  uint32_t t;
   while(ctr < N && pos <= REJ_UNIFORM_BUFLEN - 3) {
     t  = buf[pos++];
     t |= (uint32_t)buf[pos++] << 8;
@@ -597,19 +453,20 @@ unsigned int rej_uniform_avx(int32_t * restrict r, const uint8_t buf[REJ_UNIFORM
 }
 
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
-static unsigned int rej_eta_avx_2(int32_t * restrict r, const uint8_t buf[REJ_UNIFORM_ETA_BUFLEN]) {
+static unsigned int rej_eta_avx_2(int32_t * restrict r, const uint8_t buf[REJ_UNIFORM_ETA_BUFLEN_2]) {
+  uint32_t t0, t1;
   unsigned int ctr, pos;
   uint32_t good;
   __m256i f0, f1, f2;
   __m128i g0, g1;
   const __m256i mask = _mm256_set1_epi8(15);
-  const __m256i eta = _mm256_set1_epi8(ETA);
+  const __m256i eta = _mm256_set1_epi8(ETA2);
   const __m256i bound = mask;
   const __m256i v = _mm256_set1_epi32(-6560);
   const __m256i p = _mm256_set1_epi32(5);
 
   ctr = pos = 0;
-  while(ctr <= N - 8 && pos <= REJ_UNIFORM_ETA_BUFLEN - 16) {
+  while(ctr <= N - 8 && pos <= REJ_UNIFORM_ETA_BUFLEN_2 - 16) {
     f0 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i *)&buf[pos]));
     f1 = _mm256_slli_epi16(f0,4);
     f0 = _mm256_or_si256(f0,f1);
@@ -670,8 +527,7 @@ static unsigned int rej_eta_avx_2(int32_t * restrict r, const uint8_t buf[REJ_UN
     pos += 4;
   }
 
-  uint32_t t0, t1;
-  while(ctr < N && pos < REJ_UNIFORM_ETA_BUFLEN) {
+  while(ctr < N && pos < REJ_UNIFORM_ETA_BUFLEN_2) {
     t0 = buf[pos] & 0x0F;
     t1 = buf[pos++] >> 4;
 
@@ -689,7 +545,8 @@ static unsigned int rej_eta_avx_2(int32_t * restrict r, const uint8_t buf[REJ_UN
 }
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
-static unsigned int rej_eta_avx_4(int32_t * restrict r, const uint8_t buf[REJ_UNIFORM_ETA_BUFLEN]) {
+static unsigned int rej_eta_avx_4(int32_t * restrict r, const uint8_t buf[REJ_UNIFORM_ETA_BUFLEN_4]) {
+  uint32_t t0, t1;
   unsigned int ctr, pos;
   uint32_t good;
   __m256i f0, f1;
@@ -699,7 +556,7 @@ static unsigned int rej_eta_avx_4(int32_t * restrict r, const uint8_t buf[REJ_UN
   const __m256i bound = _mm256_set1_epi8(9);
 
   ctr = pos = 0;
-  while(ctr <= N - 8 && pos <= REJ_UNIFORM_ETA_BUFLEN - 16) {
+  while(ctr <= N - 8 && pos <= REJ_UNIFORM_ETA_BUFLEN_4 - 16) {
     f0 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i *)&buf[pos]));
     f1 = _mm256_slli_epi16(f0,4);
     f0 = _mm256_or_si256(f0,f1);
@@ -748,8 +605,7 @@ static unsigned int rej_eta_avx_4(int32_t * restrict r, const uint8_t buf[REJ_UN
     pos += 4;
   }
 
-  uint32_t t0, t1;
-  while(ctr < N && pos < REJ_UNIFORM_ETA_BUFLEN) {
+  while(ctr < N && pos < REJ_UNIFORM_ETA_BUFLEN_4) {
     t0 = buf[pos] & 0x0F;
     t1 = buf[pos++] >> 4;
 
@@ -762,6 +618,253 @@ static unsigned int rej_eta_avx_4(int32_t * restrict r, const uint8_t buf[REJ_UN
   return ctr;
 }
 #endif
+
+/*************** dilithium/avx2/rounding.c */
+
+#define _mm256_blendv_epi32(a,b,mask) \
+  _mm256_castps_si256(_mm256_blendv_ps(_mm256_castsi256_ps(a), \
+                                       _mm256_castsi256_ps(b), \
+                                       _mm256_castsi256_ps(mask)))
+
+/*************************************************
+* Name:        power2round
+*
+* Description: For finite field elements a, compute a0, a1 such that
+*              a mod^+ Q = a1*2^D + a0 with -2^{D-1} < a0 <= 2^{D-1}.
+*              Assumes a to be positive standard representative.
+*
+* Arguments:   - __m256i *a1: output array of length N/8 with high bits
+*              - __m256i *a0: output array of length N/8 with low bits a0
+*              - const __m256i *a: input array of length N/8
+*
+**************************************************/
+void power2round_avx(__m256i *a1, __m256i *a0, const __m256i *a)
+{
+  unsigned int i;
+  __m256i f,f0,f1;
+  const __m256i mask = _mm256_set1_epi32(-(1 << D));
+  const __m256i half = _mm256_set1_epi32((1 << (D-1)) - 1);
+
+  for(i = 0; i < N/8; ++i) {
+    f = _mm256_load_si256(&a[i]);
+    f1 = _mm256_add_epi32(f,half);
+    f0 = _mm256_and_si256(f1,mask);
+    f1 = _mm256_srli_epi32(f1,D);
+    f0 = _mm256_sub_epi32(f,f0);
+    _mm256_store_si256(&a1[i],f1);
+    _mm256_store_si256(&a0[i],f0);
+  }
+}
+
+/*************************************************
+* Name:        decompose
+*
+* Description: For finite field element a, compute high and low parts a0, a1 such
+*              that a mod^+ Q = a1*ALPHA + a0 with -ALPHA/2 < a0 <= ALPHA/2 except
+*              if a1 = (Q-1)/ALPHA where we set a1 = 0 and
+*              -ALPHA/2 <= a0 = a mod Q - Q < 0. Assumes a to be positive standard
+*              representative.
+*
+* Arguments:   - __m256i *a1: output array of length N/8 with high parts
+*              - __m256i *a0: output array of length N/8 with low parts a0
+*              - const __m256i *a: input array of length N/8
+*
+**************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+void decompose_avx_88(__m256i *a1, __m256i *a0, const __m256i *a)
+{
+  unsigned int i;
+  __m256i f,f0,f1,t;
+  const __m256i q = _mm256_load_si256(&qdata.vec[_8XQ/8]);
+  const __m256i hq = _mm256_srli_epi32(q,1);
+  const __m256i v = _mm256_set1_epi32(11275);
+  const __m256i alpha = _mm256_set1_epi32(2*GAMMA2_88);
+  const __m256i off = _mm256_set1_epi32(127);
+  const __m256i shift = _mm256_set1_epi32(128);
+  const __m256i max = _mm256_set1_epi32(43);
+  const __m256i zero = _mm256_setzero_si256();
+
+  for(i=0;i<N/8;i++) {
+    f = _mm256_load_si256(&a[i]);
+    f1 = _mm256_add_epi32(f,off);
+    f1 = _mm256_srli_epi32(f1,7);
+    f1 = _mm256_mulhi_epu16(f1,v);
+    f1 = _mm256_mulhrs_epi16(f1,shift);
+    t = _mm256_sub_epi32(max,f1);
+    f1 = _mm256_blendv_epi32(f1,zero,t);
+    f0 = _mm256_mullo_epi32(f1,alpha);
+    f0 = _mm256_sub_epi32(f,f0);
+    f = _mm256_cmpgt_epi32(f0,hq);
+    f = _mm256_and_si256(f,q);
+    f0 = _mm256_sub_epi32(f0,f);
+    _mm256_store_si256(&a1[i],f1);
+    _mm256_store_si256(&a0[i],f0);
+  }
+}
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+void decompose_avx_32(__m256i *a1, __m256i *a0, const __m256i *a)
+{
+  unsigned int i;
+  __m256i f,f0,f1;
+  const __m256i q = _mm256_load_si256(&qdata.vec[_8XQ/8]);
+  const __m256i hq = _mm256_srli_epi32(q,1);
+  const __m256i v = _mm256_set1_epi32(1025);
+  const __m256i alpha = _mm256_set1_epi32(2*GAMMA2_32);
+  const __m256i off = _mm256_set1_epi32(127);
+  const __m256i shift = _mm256_set1_epi32(512);
+  const __m256i mask = _mm256_set1_epi32(15);
+
+  for(i=0;i<N/8;i++) {
+    f = _mm256_load_si256(&a[i]);
+    f1 = _mm256_add_epi32(f,off);
+    f1 = _mm256_srli_epi32(f1,7);
+    f1 = _mm256_mulhi_epu16(f1,v);
+    f1 = _mm256_mulhrs_epi16(f1,shift);
+    f1 = _mm256_and_si256(f1,mask);
+    f0 = _mm256_mullo_epi32(f1,alpha);
+    f0 = _mm256_sub_epi32(f,f0);
+    f = _mm256_cmpgt_epi32(f0,hq);
+    f = _mm256_and_si256(f,q);
+    f0 = _mm256_sub_epi32(f0,f);
+    _mm256_store_si256(&a1[i],f1);
+    _mm256_store_si256(&a0[i],f0);
+  }
+}
+#endif
+
+/*************************************************
+* Name:        make_hint
+*
+* Description: Compute indices of polynomial coefficients whose low bits
+*              overflow into the high bits.
+*
+* Arguments:   - uint8_t *hint: hint array
+*              - const __m256i *a0: low bits of input elements
+*              - const __m256i *a1: high bits of input elements
+*
+* Returns number of overflowing low bits
+**************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+unsigned int make_hint_avx_88(uint8_t hint[N], const __m256i * restrict a0, const __m256i * restrict a1)
+{
+  unsigned int i, n = 0;
+  __m256i f0, f1, g0, g1;
+  uint32_t bad;
+  uint64_t idx;
+  const __m256i low = _mm256_set1_epi32(-GAMMA2_88);
+  const __m256i high = _mm256_set1_epi32(GAMMA2_88);
+
+  for(i = 0; i < N/8; ++i) {
+    f0 = _mm256_load_si256(&a0[i]);
+    f1 = _mm256_load_si256(&a1[i]);
+    g0 = _mm256_abs_epi32(f0);
+    g0 = _mm256_cmpgt_epi32(g0,high);
+    g1 = _mm256_cmpeq_epi32(f0,low);
+    g1 = _mm256_sign_epi32(g1,f1);
+    g0 = _mm256_or_si256(g0,g1);
+
+    bad = _mm256_movemask_ps((__m256)g0);
+    memcpy(&idx,idxlut[bad],8);
+    idx += (uint64_t)0x0808080808080808*i;
+    memcpy(&hint[n],&idx,8);
+    n += _mm_popcnt_u32(bad);
+  }
+
+  return n;
+}
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+unsigned int make_hint_avx_32(uint8_t hint[N], const __m256i * restrict a0, const __m256i * restrict a1)
+{
+  unsigned int i, n = 0;
+  __m256i f0, f1, g0, g1;
+  uint32_t bad;
+  uint64_t idx;
+  const __m256i low = _mm256_set1_epi32(-GAMMA2_32);
+  const __m256i high = _mm256_set1_epi32(GAMMA2_32);
+
+  for(i = 0; i < N/8; ++i) {
+    f0 = _mm256_load_si256(&a0[i]);
+    f1 = _mm256_load_si256(&a1[i]);
+    g0 = _mm256_abs_epi32(f0);
+    g0 = _mm256_cmpgt_epi32(g0,high);
+    g1 = _mm256_cmpeq_epi32(f0,low);
+    g1 = _mm256_sign_epi32(g1,f1);
+    g0 = _mm256_or_si256(g0,g1);
+
+    bad = _mm256_movemask_ps((__m256)g0);
+    memcpy(&idx,idxlut[bad],8);
+    idx += (uint64_t)0x0808080808080808*i;
+    memcpy(&hint[n],&idx,8);
+    n += _mm_popcnt_u32(bad);
+  }
+
+  return n;
+}
+#endif
+
+/*************************************************
+* Name:        use_hint
+*
+* Description: Correct high parts according to hint.
+*
+* Arguments:   - __m256i *b: output array of length N/8 with corrected high parts
+*              - const __m256i *a: input array of length N/8
+*              - const __m256i *a: input array of length N/8 with hint bits
+*
+**************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+void use_hint_avx_88(__m256i *b, const __m256i *a, const __m256i * restrict hint) {
+  unsigned int i;
+  __m256i a0[N/8];
+  __m256i f,g,h,t;
+  const __m256i zero = _mm256_setzero_si256();
+  const __m256i max = _mm256_set1_epi32(43);
+
+  decompose_avx_88(b, a0, a);
+  for(i=0;i<N/8;i++) {
+    f = _mm256_load_si256(&a0[i]);
+    g = _mm256_load_si256(&b[i]);
+    h = _mm256_load_si256(&hint[i]);
+    t = _mm256_blendv_epi32(zero,h,f);
+    t = _mm256_slli_epi32(t,1);
+    h = _mm256_sub_epi32(h,t);
+    g = _mm256_add_epi32(g,h);
+    g = _mm256_blendv_epi32(g,max,g);
+    f = _mm256_cmpgt_epi32(g,max);
+    g = _mm256_blendv_epi32(g,zero,f);
+    _mm256_store_si256(&b[i],g);
+  }
+}
+#endif
+
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+void use_hint_avx_32(__m256i *b, const __m256i *a, const __m256i * restrict hint) {
+  unsigned int i;
+  __m256i a0[N/8];
+  __m256i f,g,h,t;
+  const __m256i zero = _mm256_setzero_si256();
+  const __m256i mask = _mm256_set1_epi32(15);
+
+  decompose_avx_32(b, a0, a);
+  for(i=0;i<N/8;i++) {
+    f = _mm256_load_si256(&a0[i]);
+    g = _mm256_load_si256(&b[i]);
+    h = _mm256_load_si256(&hint[i]);
+    t = _mm256_blendv_epi32(zero,h,f);
+    t = _mm256_slli_epi32(t,1);
+    h = _mm256_sub_epi32(h,t);
+    g = _mm256_add_epi32(g,h);
+    g = _mm256_and_si256(g,mask);
+    _mm256_store_si256(&b[i],g);
+  }
+}
+#endif
+
+#include "keccakx4.c"
 
 /*************** dilithium/avx2/poly.c */
 
@@ -1216,6 +1319,75 @@ void poly_uniform_4x(poly *a0,
 }
 
 /*************************************************
+* Name:        rej_eta
+*
+* Description: Sample uniformly random coefficients in [-ETA, ETA] by
+*              performing rejection sampling on array of random bytes.
+*
+* Arguments:   - int32_t *a: pointer to output array (allocated)
+*              - unsigned int len: number of coefficients to be sampled
+*              - const uint8_t *buf: array of random bytes
+*              - unsigned int buflen: length of array of random bytes
+*
+* Returns number of sampled coefficients. Can be smaller than len if not enough
+* random bytes were given.
+**************************************************/
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
+static unsigned int rej_eta_2(int32_t *a,
+                              unsigned int len,
+                              const uint8_t *buf,
+                              unsigned int buflen)
+{
+  unsigned int ctr, pos;
+  uint32_t t0, t1;
+  DBENCH_START();
+
+  ctr = pos = 0;
+  while(ctr < len && pos < buflen) {
+    t0 = buf[pos] & 0x0F;
+    t1 = buf[pos++] >> 4;
+
+    if(t0 < 15) {
+      t0 = t0 - (205*t0 >> 10)*5;
+      a[ctr++] = 2 - t0;
+    }
+    if(t1 < 15 && ctr < len) {
+      t1 = t1 - (205*t1 >> 10)*5;
+      a[ctr++] = 2 - t1;
+    }
+  }
+
+  DBENCH_STOP(*tsample);
+  return ctr;
+}
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
+static unsigned int rej_eta_4(int32_t *a,
+                              unsigned int len,
+                              const uint8_t *buf,
+                              unsigned int buflen)
+{
+  unsigned int ctr, pos;
+  uint32_t t0, t1;
+  DBENCH_START();
+
+  ctr = pos = 0;
+  while(ctr < len && pos < buflen) {
+    t0 = buf[pos] & 0x0F;
+    t1 = buf[pos++] >> 4;
+
+    if(t0 < 9)
+      a[ctr++] = 4 - t0;
+    if(t1 < 9 && ctr < len)
+      a[ctr++] = 4 - t1;
+  }
+
+  DBENCH_STOP(*tsample);
+  return ctr;
+}
+#endif
+
+/*************************************************
 * Name:        poly_uniform_eta
 *
 * Description: Sample polynomial with uniformly random coefficients
@@ -1238,7 +1410,7 @@ void poly_uniform_eta_4x_2(poly *a0,
                          uint16_t nonce3)
 {
   unsigned int ctr0, ctr1, ctr2, ctr3;
-  ALIGNED_UINT8(REJ_UNIFORM_ETA_BUFLEN) buf[4];
+  ALIGNED_UINT8(REJ_UNIFORM_ETA_BUFLEN_2) buf[4];
 
   __m256i f;
   keccakx4_state state;
@@ -1264,7 +1436,7 @@ void poly_uniform_eta_4x_2(poly *a0,
   buf[3].coeffs[65] = nonce3 >> 8;
 
   shake256x4_absorb_once(&state, buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, 66);
-  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, REJ_UNIFORM_ETA_NBLOCKS, &state);
+  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, REJ_UNIFORM_ETA_NBLOCKS_2, &state);
 
   ctr0 = rej_eta_avx_2(a0->coeffs, buf[0].coeffs);
   ctr1 = rej_eta_avx_2(a1->coeffs, buf[1].coeffs);
@@ -1293,7 +1465,7 @@ void poly_uniform_eta_4x_4(poly *a0,
                          uint16_t nonce3)
 {
   unsigned int ctr0, ctr1, ctr2, ctr3;
-  ALIGNED_UINT8(REJ_UNIFORM_ETA_BUFLEN) buf[4];
+  ALIGNED_UINT8(REJ_UNIFORM_ETA_BUFLEN_4) buf[4];
 
   __m256i f;
   keccakx4_state state;
@@ -1319,7 +1491,7 @@ void poly_uniform_eta_4x_4(poly *a0,
   buf[3].coeffs[65] = nonce3 >> 8;
 
   shake256x4_absorb_once(&state, buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, 66);
-  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, REJ_UNIFORM_ETA_NBLOCKS, &state);
+  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, REJ_UNIFORM_ETA_NBLOCKS_4, &state);
 
   ctr0 = rej_eta_avx_4(a0->coeffs, buf[0].coeffs);
   ctr1 = rej_eta_avx_4(a1->coeffs, buf[1].coeffs);
@@ -1349,8 +1521,7 @@ void poly_uniform_eta_4x_4(poly *a0,
 *              - uint16_t nonce: 16-bit nonce
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-#define POLY_UNIFORM_GAMMA1_NBLOCKS_17 ((POLYZ_PACKEDBYTES_17 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOC
-KBYTES)
+#define POLY_UNIFORM_GAMMA1_NBLOCKS_17 ((POLYZ_PACKEDBYTES_17 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 static void polyz_unpack_17(poly *r, const uint8_t *a);/* Forward declarations */
 static
 void poly_uniform_gamma1_4x_17(poly *a0,
@@ -1363,7 +1534,7 @@ void poly_uniform_gamma1_4x_17(poly *a0,
                             uint16_t nonce2,
                             uint16_t nonce3)
 {
-  ALIGNED_UINT8(POLY_UNIFORM_GAMMA1_NBLOCKS*STREAM256_BLOCKBYTES+14) buf[4];
+  ALIGNED_UINT8(POLY_UNIFORM_GAMMA1_NBLOCKS_17*STREAM256_BLOCKBYTES+14) buf[4];
   keccakx4_state state;
   __m256i f;
 
@@ -1388,7 +1559,7 @@ void poly_uniform_gamma1_4x_17(poly *a0,
   buf[3].coeffs[65] = nonce3 >> 8;
 
   shake256x4_absorb_once(&state, buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, 66);
-  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, POLY_UNIFORM_GAMMA1_NBLOCKS, &state);
+  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, POLY_UNIFORM_GAMMA1_NBLOCKS_17, &state);
 
   polyz_unpack_17(a0, buf[0].coeffs);
   polyz_unpack_17(a1, buf[1].coeffs);
@@ -1408,7 +1579,7 @@ void poly_uniform_gamma1_4x_19(poly *a0,
                             uint16_t nonce2,
                             uint16_t nonce3)
 {
-  ALIGNED_UINT8(POLY_UNIFORM_GAMMA1_NBLOCKS*STREAM256_BLOCKBYTES+14) buf[4];
+  ALIGNED_UINT8(POLY_UNIFORM_GAMMA1_NBLOCKS_19*STREAM256_BLOCKBYTES+14) buf[4];
   keccakx4_state state;
   __m256i f;
 
@@ -1433,7 +1604,7 @@ void poly_uniform_gamma1_4x_19(poly *a0,
   buf[3].coeffs[65] = nonce3 >> 8;
 
   shake256x4_absorb_once(&state, buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, 66);
-  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, POLY_UNIFORM_GAMMA1_NBLOCKS, &state);
+  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, POLY_UNIFORM_GAMMA1_NBLOCKS_19, &state);
 
   polyz_unpack_19(a0, buf[0].coeffs);
   polyz_unpack_19(a1, buf[1].coeffs);
@@ -1452,14 +1623,15 @@ void poly_uniform_gamma1_4x_19(poly *a0,
 * Arguments:   - poly *c: pointer to output polynomial
 *              - const uint8_t mu[]: byte array containing seed of length CTILDEBYTES
 **************************************************/
-void poly_challenge(poly * restrict c, const uint8_t seed[CTILDEBYTES]) {
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+void poly_challenge_39(poly * restrict c, const uint8_t seed[CTILDEBYTES32]) {
   unsigned int i, b, pos;
   uint64_t signs;
   ALIGNED_UINT8(SHAKE256_RATE) buf;
   keccak_state state;
 
   shake256_init(&state);
-  shake256_absorb(&state, seed, CTILDEBYTES);
+  shake256_absorb(&state, seed, CTILDEBYTES32);
   shake256_finalize(&state);
   shake256_squeezeblocks(buf.coeffs, 1, &state);
 
@@ -1467,7 +1639,7 @@ void poly_challenge(poly * restrict c, const uint8_t seed[CTILDEBYTES]) {
   pos = 8;
 
   memset(c->vec, 0, sizeof(poly));
-  for(i = N-TAU; i < N; ++i) {
+  for(i = N-TAU39; i < N; ++i) {
     do {
       if(pos >= SHAKE256_RATE) {
         shake256_squeezeblocks(buf.coeffs, 1, &state);
@@ -1482,6 +1654,71 @@ void poly_challenge(poly * restrict c, const uint8_t seed[CTILDEBYTES]) {
     signs >>= 1;
   }
 }
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
+void poly_challenge_49(poly * restrict c, const uint8_t seed[CTILDEBYTES48]) {
+  unsigned int i, b, pos;
+  uint64_t signs;
+  ALIGNED_UINT8(SHAKE256_RATE) buf;
+  keccak_state state;
+
+  shake256_init(&state);
+  shake256_absorb(&state, seed, CTILDEBYTES48);
+  shake256_finalize(&state);
+  shake256_squeezeblocks(buf.coeffs, 1, &state);
+
+  memcpy(&signs, buf.coeffs, 8);
+  pos = 8;
+
+  memset(c->vec, 0, sizeof(poly));
+  for(i = N-TAU49; i < N; ++i) {
+    do {
+      if(pos >= SHAKE256_RATE) {
+        shake256_squeezeblocks(buf.coeffs, 1, &state);
+        pos = 0;
+      }
+
+      b = buf.coeffs[pos++];
+    } while(b > i);
+
+    c->coeffs[i] = c->coeffs[b];
+    c->coeffs[b] = 1 - 2*(signs & 1);
+    signs >>= 1;
+  }
+}
+#endif
+#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 5
+void poly_challenge60(poly * restrict c, const uint8_t seed[CTILDEBYTES64]) {
+  unsigned int i, b, pos;
+  uint64_t signs;
+  ALIGNED_UINT8(SHAKE256_RATE) buf;
+  keccak_state state;
+
+  shake256_init(&state);
+  shake256_absorb(&state, seed, CTILDEBYTES64);
+  shake256_finalize(&state);
+  shake256_squeezeblocks(buf.coeffs, 1, &state);
+
+  memcpy(&signs, buf.coeffs, 8);
+  pos = 8;
+
+  memset(c->vec, 0, sizeof(poly));
+  for(i = N-TAU60; i < N; ++i) {
+    do {
+      if(pos >= SHAKE256_RATE) {
+        shake256_squeezeblocks(buf.coeffs, 1, &state);
+        pos = 0;
+      }
+
+      b = buf.coeffs[pos++];
+    } while(b > i);
+
+    c->coeffs[i] = c->coeffs[b];
+    c->coeffs[b] = 1 - 2*(signs & 1);
+    signs >>= 1;
+  }
+}
+#endif
 
 /*************************************************
 * Name:        polyeta_pack
@@ -1494,7 +1731,7 @@ void poly_challenge(poly * restrict c, const uint8_t seed[CTILDEBYTES]) {
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
 static
-void polyeta_pack_2(uint8_t r[POLYETA2_PACKEDBYTES], const poly * restrict a) {
+void polyeta_pack_2(uint8_t r[POLYETA_PACKEDBYTES_2], const poly * restrict a) {
   unsigned int i;
   uint8_t t[8];
   DBENCH_START();
@@ -1519,7 +1756,7 @@ void polyeta_pack_2(uint8_t r[POLYETA2_PACKEDBYTES], const poly * restrict a) {
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
 static
-void polyeta_pack_4(uint8_t r[POLYETA4_PACKEDBYTES], const poly * restrict a) {
+void polyeta_pack_4(uint8_t r[POLYETA_PACKEDBYTES_4], const poly * restrict a) {
   unsigned int i;
   uint8_t t[8];
   DBENCH_START();
@@ -1544,7 +1781,7 @@ void polyeta_pack_4(uint8_t r[POLYETA4_PACKEDBYTES], const poly * restrict a) {
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
 static
-void polyeta_unpack_2(poly * restrict r, const uint8_t a[POLYETA2_PACKEDBYTES]) {
+void polyeta_unpack_2(poly * restrict r, const uint8_t a[POLYETA_PACKEDBYTES_2]) {
   unsigned int i;
   DBENCH_START();
 
@@ -1573,7 +1810,7 @@ void polyeta_unpack_2(poly * restrict r, const uint8_t a[POLYETA2_PACKEDBYTES]) 
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
 static
-void polyeta_unpack_4(poly * restrict r, const uint8_t a[POLYETA4_PACKEDBYTES]) {
+void polyeta_unpack_4(poly * restrict r, const uint8_t a[POLYETA_PACKEDBYTES_4]) {
   unsigned int i;
   DBENCH_START();
 
@@ -1598,6 +1835,7 @@ void polyeta_unpack_4(poly * restrict r, const uint8_t a[POLYETA4_PACKEDBYTES]) 
 *                            POLYT1_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
+static
 void polyt1_pack(uint8_t r[POLYT1_PACKEDBYTES], const poly * restrict a) {
   unsigned int i;
   DBENCH_START();
@@ -1622,6 +1860,7 @@ void polyt1_pack(uint8_t r[POLYT1_PACKEDBYTES], const poly * restrict a) {
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
+static
 void polyt1_unpack(poly * restrict r, const uint8_t a[POLYT1_PACKEDBYTES]) {
   unsigned int i;
   DBENCH_START();
@@ -1645,6 +1884,7 @@ void polyt1_unpack(poly * restrict r, const uint8_t a[POLYT1_PACKEDBYTES]) {
 *                            POLYT0_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
+static
 void polyt0_pack(uint8_t r[POLYT0_PACKEDBYTES], const poly * restrict a) {
   unsigned int i;
   uint32_t t[8];
@@ -1693,6 +1933,7 @@ void polyt0_pack(uint8_t r[POLYT0_PACKEDBYTES], const poly * restrict a) {
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
+static
 void polyt0_unpack(poly * restrict r, const uint8_t a[POLYT0_PACKEDBYTES]) {
   unsigned int i;
   DBENCH_START();
@@ -1828,7 +2069,7 @@ void polyz_unpack_17(poly * restrict r, const uint8_t *a) {
                                            -1, 8, 7, 6,-1, 6, 5, 4,-1, 4, 3, 2,-1, 2, 1, 0);
   const __m256i srlvdidx = _mm256_set_epi32(6,4,2,0,6,4,2,0);
   const __m256i mask = _mm256_set1_epi32(0x3FFFF);
-  const __m256i gamma1 = _mm256_set1_epi32(GAMMA1);
+  const __m256i gamma1 = _mm256_set1_epi32(GAMMA1_17);
   DBENCH_START();
 
   for(i = 0; i < N/8; i++) {
@@ -1853,7 +2094,7 @@ void polyz_unpack_19(poly * restrict r, const uint8_t *a) {
                                            -1, 9, 8, 7,-1, 7, 6, 5,-1, 4, 3, 2,-1, 2, 1, 0);
   const __m256i srlvdidx = _mm256_set1_epi64x((uint64_t)4 << 32);
   const __m256i mask = _mm256_set1_epi32(0xFFFFF);
-  const __m256i gamma1 = _mm256_set1_epi32(GAMMA1);
+  const __m256i gamma1 = _mm256_set1_epi32(GAMMA1_19);
   DBENCH_START();
 
   for(i = 0; i < N/8; i++) {
