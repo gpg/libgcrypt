@@ -87,10 +87,12 @@ static int in_fips_mode;
 
 /* From ~0 to ~4kbytes give comparable results with results from academia
  * (SUPERCOP). */
-#define BUF_END_SIZE			(BUF_START_SIZE + 4096)
+#define BUF_RANGE_SIZE			4096
 
 /* With 128 byte steps, we get (4096)/64 = 64 data points. */
 #define BUF_STEP_SIZE			64
+
+static unsigned int buf_start_size = BUF_START_SIZE;
 
 /* Number of repeated measurements at each data point. The median of these
  * measurements is selected as data point further analysis. */
@@ -1037,8 +1039,8 @@ bench_encrypt_init (struct bench_obj *obj)
   gcry_cipher_hd_t hd;
   int err, keylen;
 
-  obj->min_bufsize = BUF_START_SIZE;
-  obj->max_bufsize = BUF_END_SIZE;
+  obj->min_bufsize = buf_start_size;
+  obj->max_bufsize = buf_start_size + BUF_RANGE_SIZE;
   obj->step_size = BUF_STEP_SIZE;
   obj->num_measure_repetitions = num_measurement_repetitions;
 
@@ -1137,8 +1139,8 @@ bench_xts_encrypt_init (struct bench_obj *obj)
   gcry_cipher_hd_t hd;
   int err, keylen;
 
-  obj->min_bufsize = BUF_START_SIZE;
-  obj->max_bufsize = BUF_END_SIZE;
+  obj->min_bufsize = buf_start_size;
+  obj->max_bufsize = buf_start_size + BUF_RANGE_SIZE;
   obj->step_size = BUF_STEP_SIZE;
   obj->num_measure_repetitions = num_measurement_repetitions;
 
@@ -1911,8 +1913,8 @@ bench_hash_init (struct bench_obj *obj)
   gcry_md_hd_t hd;
   int err;
 
-  obj->min_bufsize = BUF_START_SIZE;
-  obj->max_bufsize = BUF_END_SIZE;
+  obj->min_bufsize = buf_start_size;
+  obj->max_bufsize = buf_start_size + BUF_RANGE_SIZE;
   obj->step_size = BUF_STEP_SIZE;
   obj->num_measure_repetitions = num_measurement_repetitions;
 
@@ -2041,8 +2043,8 @@ bench_mac_init (struct bench_obj *obj)
   unsigned int keylen;
   void *key;
 
-  obj->min_bufsize = BUF_START_SIZE;
-  obj->max_bufsize = BUF_END_SIZE;
+  obj->min_bufsize = buf_start_size;
+  obj->max_bufsize = buf_start_size + BUF_RANGE_SIZE;
   obj->step_size = BUF_STEP_SIZE;
   obj->num_measure_repetitions = num_measurement_repetitions;
 
@@ -4512,6 +4514,9 @@ print_help (void)
     "   --repetitions <n>         Use N repetitions (default "
                                      STR2(NUM_MEASUREMENT_REPETITIONS) ")",
     "   --unaligned               Use unaligned input buffers.",
+    "   --buf-start <bytes>       Start buffer size for measurements",
+    "                             (multiple of 16, default "
+				     STR2(BUF_START_SIZE) ")",
     "   --no-quick-rng            Use default random number generation",
     "   --include-slow            Include slow benchmarks in default run",
     "   --csv                     Use CSV output format",
@@ -4623,6 +4628,27 @@ main (int argc, char **argv)
 	  unaligned_mode = 1;
 	  argc--;
 	  argv++;
+	}
+      else if (!strcmp (*argv, "--buf-start"))
+	{
+	  argc--;
+	  argv++;
+	  if (argc)
+	    {
+	      int val = atoi (*argv);
+
+	      buf_start_size = val;
+	      if (val < 16 || val > 1024 * 1024 || (val % 16) != 0)
+		{
+		  fprintf (stderr,
+			   PGM
+			   ": invalid value for --buf-start - using %d\n",
+			   BUF_START_SIZE);
+		  buf_start_size = BUF_START_SIZE;
+		}
+	      argc--;
+	      argv++;
+	    }
 	}
       else if (!strcmp (*argv, "--disable-hwf"))
 	{
