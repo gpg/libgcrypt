@@ -116,6 +116,17 @@ gcry_poly1305_p10le_4blocks(unsigned char *key, const byte *m, size_t len);
 #endif /* POLY1305_USE_PPC_VEC */
 
 
+#ifdef POLY1305_USE_RISCV_V
+
+extern unsigned int
+_gcry_poly1305_riscv_v_blocks (poly1305_context_t *ctx, const byte *buf,
+			       size_t *nblks);
+
+extern unsigned int _gcry_poly1305_riscv_v_check_hw (void);
+
+#endif /* POLY1305_USE_RISCV_V */
+
+
 static void poly1305_init (poly1305_context_t *ctx,
 			   const byte key[POLY1305_KEYLEN])
 {
@@ -133,6 +144,14 @@ static void poly1305_init (poly1305_context_t *ctx,
    * Actual implementation works with HWF_PPC_ARCH_3_00 also. */
   ctx->use_p10 |= (features & HWF_PPC_ARCH_3_00) != 0;
 # endif
+#endif
+
+#ifdef POLY1305_USE_RISCV_V
+  ctx->use_riscv_v = (features & HWF_RISCV_IMAFDC)
+		     && (features & HWF_RISCV_B) /* Mandatory in RVA22U64 */
+		     && (features & HWF_RISCV_V) /* Optional in RVA22U64 */
+		     && _gcry_poly1305_riscv_v_check_hw();
+  ctx->riscv_v_npowers = 0;
 #endif
 
   (void)features;
@@ -296,6 +315,23 @@ poly1305_blocks (poly1305_context_t *ctx, const byte *buf, size_t len,
 #ifdef POLY1305_USE_AVX512
   if ((high_pad & ctx->use_avx512) != 0)
     return poly1305_amd64_avx512_blocks(ctx, buf, len);
+#endif
+
+#ifdef POLY1305_USE_RISCV_V
+  if ((high_pad & ctx->use_riscv_v) != 0 && len >= 64 * POLY1305_BLOCKSIZE)
+    {
+      size_t nblks = len / POLY1305_BLOCKSIZE;
+      unsigned int burn, nburn;
+
+      burn = _gcry_poly1305_riscv_v_blocks(ctx, buf, &nblks);
+      if (nblks == 0)
+	return burn;
+
+      buf += len - nblks * POLY1305_BLOCKSIZE;
+      len = nblks * POLY1305_BLOCKSIZE;
+      nburn = poly1305_blocks_generic(ctx, buf, len, high_pad);
+      return nburn > burn ? nburn : burn;
+    }
 #endif
 
   return poly1305_blocks_generic(ctx, buf, len, high_pad);

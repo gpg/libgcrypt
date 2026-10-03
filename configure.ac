@@ -4323,6 +4323,9 @@ case "${host}" in
   x86_64-*-*)
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS poly1305-amd64-avx512.lo"
   ;;
+  riscv64-*-*)
+    GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS poly1305-riscv-v.lo"
+  ;;
   powerpc64le-*-*)
     # Build with the assembly implementation
     if test "$gcry_cv_gcc_inline_asm_ppc_altivec" = "yes" &&

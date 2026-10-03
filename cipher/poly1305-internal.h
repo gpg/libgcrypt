@@ -55,6 +55,13 @@
 # endif
 #endif
 
+/* POLY1305_USE_RISCV_V indicates whether to enable RISC-V vector code. */
+#undef POLY1305_USE_RISCV_V
+#if defined (__riscv) && defined(__riscv_xlen) && __riscv_xlen == 64 && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS)
+# define POLY1305_USE_RISCV_V 1
+#endif
+
 
 typedef struct
 {
@@ -73,6 +80,11 @@ typedef struct poly1305_context_s
 #endif
 #ifdef POLY1305_USE_PPC_VEC
   unsigned int use_p10:1;
+#endif
+#ifdef POLY1305_USE_RISCV_V
+  unsigned int use_riscv_v:1;
+  unsigned int riscv_v_npowers;
+  u32 riscv_v_powers[5][6];
 #endif
 } poly1305_context_t;
 

@@ -112,7 +112,7 @@ EXTRA_libcipher_la_SOURCES = \
 	md4.c \
 	md5.c \
 	poly1305-s390x.S poly1305-amd64-avx512.S \
-	poly1305-p10le.s \
+	poly1305-p10le.s poly1305-riscv-v.c \
 	rijndael.c rijndael-internal.h rijndael-tables.h   \
 	rijndael-aesni.c rijndael-padlock.c                \
 	rijndael-amd64.S rijndael-arm.S                    \
@@ -444,6 +444,14 @@ chacha20-riscv-v.o: $(srcdir)/chacha20-riscv-v.c Makefile
 	$(custom_depfile_o)
 
 chacha20-riscv-v.lo: $(srcdir)/chacha20-riscv-v.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+poly1305-riscv-v.o: $(srcdir)/poly1305-riscv-v.c Makefile
+	`echo $(COMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+poly1305-riscv-v.lo: $(srcdir)/poly1305-riscv-v.c Makefile
 	`echo $(LTCOMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_lo)
 
