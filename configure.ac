@@ -2983,6 +2983,7 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	vuint32m1_t m;
 	vuint32m1_t idx = __riscv_vid_v_u32m1 (vl);
 	vbool32_t merge_mask = __riscv_vmseq_vx_u32m1_b32 (idx, 0, vl);
+	vuint64m1_t c, d, w4;
 	a = __riscv_vsha2cl_vv_u32m1(a, b, w0, vl);
 	b = __riscv_vsha2ch_vv_u32m1(a, b, w0, vl);
 	m = __riscv_vmerge_vvm_u32m1(w2, w1, merge_mask, vl);
@@ -2993,6 +2994,14 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	__riscv_vse32_v_u32m1(ptr + 3 * vl, w1, vl);
 	__riscv_vse32_v_u32m1(ptr + 4 * vl, w2, vl);
 	__riscv_vse32_v_u32m1(ptr + 5 * vl, w3, vl);
+	vl = __riscv_vsetvl_e64m1 (4);
+	c = __riscv_vle64_v_u64m1((void *)(ptr + 0 * vl), vl);
+	d = __riscv_vle64_v_u64m1((void *)(ptr + 2 * vl), vl);
+	w4 = __riscv_vle64_v_u64m1((void *)(ptr + 4 * vl), vl);
+	c = __riscv_vsha2cl_vv_u64m1(c, d, w4, vl);
+	d = __riscv_vsha2ch_vv_u64m1(c, d, w4, vl);
+	__riscv_vse64_v_u64m1((void *)(ptr + 0 * vl), c, vl);
+	__riscv_vse64_v_u64m1((void *)(ptr + 2 * vl), d, vl);
       }
       void test_aes_key(unsigned int *ptr)
       {
@@ -3100,7 +3109,7 @@ if test "$gcry_cv_cc_riscv_zicclsm_enabled" = "yes" ; then
 else
   MARCH_RVA23U64_BASE=${MARCH_RVA22U64_WITH_VEC}
 fi
-MARCH_RVA23U64_WITH_VEC_CRYPTO=${MARCH_RVA23U64_BASE}_zvbc_zvkb_zvkg_zvkn_zvks
+MARCH_RVA23U64_WITH_VEC_CRYPTO=${MARCH_RVA23U64_BASE}_zvbc_zvkb_zvkg_zvkn_zvks_zvl256b
 AC_SUBST([MARCH_RVA23U64_BASE])
 CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO"
 
@@ -4178,6 +4187,7 @@ if test "$found" = "1" ; then
       riscv64-*-*)
          # Build with the RISC-V vector cryptography implementation
          GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-riscv-zvknhb-zvkb.lo"
+         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha512-riscv-zvknhb-zvkb-m1.lo"
       ;;
    esac
 

@@ -154,7 +154,9 @@ EXTRA_libcipher_la_SOURCES = \
 	sha512-avx2-bmi2-amd64.S sha512-avx512-amd64.S \
 	sha512-intel-shaext.c \
 	sha512-armv7-neon.S sha512-armv8-aarch64-ce.S sha512-arm.S \
-	sha512-ppc.c sha512-riscv-zvknhb-zvkb.c sha512-ssse3-i386.c \
+	sha512-ppc.c sha512-riscv-zvknhb-zvkb.c sha512-riscv-zvknhb-zvkb.h \
+	sha512-riscv-zvknhb-zvkb-m1.c \
+	sha512-ssse3-i386.c \
 	sm3.c sm3-avx-bmi2-amd64.S sm3-intel-avx2-amd64.S sm3-aarch64.S \
 	sm3-armv8-aarch64-ce.S \
 	keccak.c keccak_permute_32.h keccak_permute_64.h \
@@ -466,12 +468,16 @@ rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
 if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
 riscv_vector_crypto_zvkb_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkb
 riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned_zvkb
-riscv_vector_crypto_sha_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknha_zvknhb_zvkb
+riscv_vector_crypto_sha256_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknha_zvkb
+riscv_vector_crypto_sha512_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknhb_zvkb
+riscv_vector_crypto_sha512_m1_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknhb_zvkb_zvl256b
 riscv_vector_crypto_gcm_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkg_zvkb
 else
 riscv_vector_crypto_zvkb_cflags =
 riscv_vector_crypto_aes_cflags =
-riscv_vector_crypto_sha_cflags =
+riscv_vector_crypto_sha256_cflags =
+riscv_vector_crypto_sha512_cflags =
+riscv_vector_crypto_sha512_m1_cflags =
 riscv_vector_crypto_gcm_cflags =
 endif
 
@@ -500,17 +506,25 @@ rijndael-riscv-zvkned.lo: $(srcdir)/rijndael-riscv-zvkned.c Makefile
 	$(custom_depfile_lo)
 
 sha256-riscv-zvknha-zvkb.o: $(srcdir)/sha256-riscv-zvknha-zvkb.c Makefile
-	`echo $(COMPILE) $(riscv_vector_crypto_sha_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_crypto_sha256_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_o)
 
 sha256-riscv-zvknha-zvkb.lo: $(srcdir)/sha256-riscv-zvknha-zvkb.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha256_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_lo)
 
 sha512-riscv-zvknhb-zvkb.o: $(srcdir)/sha512-riscv-zvknhb-zvkb.c Makefile
-	`echo $(COMPILE) $(riscv_vector_crypto_sha_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_crypto_sha512_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_o)
 
 sha512-riscv-zvknhb-zvkb.lo: $(srcdir)/sha512-riscv-zvknhb-zvkb.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha512_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+sha512-riscv-zvknhb-zvkb-m1.o: $(srcdir)/sha512-riscv-zvknhb-zvkb-m1.c Makefile
+	`echo $(COMPILE) $(riscv_vector_crypto_sha512_m1_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+sha512-riscv-zvknhb-zvkb-m1.lo: $(srcdir)/sha512-riscv-zvknhb-zvkb-m1.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha512_m1_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_lo)
