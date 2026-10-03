@@ -108,10 +108,10 @@
 			  __riscv_vreinterpret_v_u32m1_u64m1(a), \
 			  __riscv_vreinterpret_v_u32m1_u64m1(b), vl / 2))
 
-#define vxor_v_u32m1_u32m1x8(data, idx, vs, vl) \
-      __riscv_vset_v_u32m1_u32m1x8((data), (idx), \
+#define vxor_v_u32m1_u32m1x4(data, idx, vs, vl) \
+      __riscv_vset_v_u32m1_u32m1x4((data), (idx), \
 	  __riscv_vxor_vv_u32m1( \
-	      __riscv_vget_v_u32m1x8_u32m1((data), (idx)), (vs), (vl)))
+	      __riscv_vget_v_u32m1x4_u32m1((data), (idx)), (vs), (vl)))
 
 #ifdef LOAD_GATHER_ROTATE_CONSTANTS
 
@@ -167,16 +167,16 @@ unaligned_store_u32m1(void *dst, vuint32m1_t vec, size_t vl)
 #endif
 }
 
-static ASM_FUNC_ATTR_INLINE vuint32m1x8_t
-unaligned_vlsseg8e32_v_u32m1x8(const void *src, size_t vl)
+static ASM_FUNC_ATTR_INLINE vuint32m1x4_t
+unaligned_vlsseg4e32_v_u32m1x4(const void *src, size_t vl)
 {
 #ifdef RVV_UNALIGNED_NOT_ALLOWED
   if (UNLIKELY(((uintptr_t)src & 3) != 0))
     {
       const byte *bsrc = src;
       vuint16m2_t indexes;
-      vuint8m1_t b0, b1, b2, b3, b4, b5, b6, b7;
-      vuint32m1x8_t data;
+      vuint8m1_t b0, b1, b2, b3;
+      vuint32m1x4_t data;
 
       indexes = gen_indexes(4 * vl, 64);
 
@@ -184,28 +184,16 @@ unaligned_vlsseg8e32_v_u32m1x8(const void *src, size_t vl)
       b1 = __riscv_vluxei16_v_u8m1(bsrc + 1 * 4, indexes, vl * 4);
       b2 = __riscv_vluxei16_v_u8m1(bsrc + 2 * 4, indexes, vl * 4);
       b3 = __riscv_vluxei16_v_u8m1(bsrc + 3 * 4, indexes, vl * 4);
-      b4 = __riscv_vluxei16_v_u8m1(bsrc + 4 * 4, indexes, vl * 4);
-      b5 = __riscv_vluxei16_v_u8m1(bsrc + 5 * 4, indexes, vl * 4);
-      b6 = __riscv_vluxei16_v_u8m1(bsrc + 6 * 4, indexes, vl * 4);
-      b7 = __riscv_vluxei16_v_u8m1(bsrc + 7 * 4, indexes, vl * 4);
 
-      data = __riscv_vundefined_u32m1x8();
-      data = __riscv_vset_v_u32m1_u32m1x8(
+      data = __riscv_vundefined_u32m1x4();
+      data = __riscv_vset_v_u32m1_u32m1x4(
 		data, 0, __riscv_vreinterpret_v_u8m1_u32m1(b0));
-      data = __riscv_vset_v_u32m1_u32m1x8(
+      data = __riscv_vset_v_u32m1_u32m1x4(
 		data, 1, __riscv_vreinterpret_v_u8m1_u32m1(b1));
-      data = __riscv_vset_v_u32m1_u32m1x8(
+      data = __riscv_vset_v_u32m1_u32m1x4(
 		data, 2, __riscv_vreinterpret_v_u8m1_u32m1(b2));
-      data = __riscv_vset_v_u32m1_u32m1x8(
+      data = __riscv_vset_v_u32m1_u32m1x4(
 		data, 3, __riscv_vreinterpret_v_u8m1_u32m1(b3));
-      data = __riscv_vset_v_u32m1_u32m1x8(
-		data, 4, __riscv_vreinterpret_v_u8m1_u32m1(b4));
-      data = __riscv_vset_v_u32m1_u32m1x8(
-		data, 5, __riscv_vreinterpret_v_u8m1_u32m1(b5));
-      data = __riscv_vset_v_u32m1_u32m1x8(
-		data, 6, __riscv_vreinterpret_v_u8m1_u32m1(b6));
-      data = __riscv_vset_v_u32m1_u32m1x8(
-		data, 7, __riscv_vreinterpret_v_u8m1_u32m1(b7));
 
       return data;
     }
@@ -213,45 +201,37 @@ unaligned_vlsseg8e32_v_u32m1x8(const void *src, size_t vl)
 #endif
     {
       /* Fast path for 32-bit aligned loads. */
-      return __riscv_vlsseg8e32_v_u32m1x8(src, 64, vl);
+      return __riscv_vlsseg4e32_v_u32m1x4(src, 64, vl);
     }
 }
 
 static ASM_FUNC_ATTR_INLINE void
-unaligned_vssseg8e32_v_u32m1x8(void *dst, vuint32m1x8_t data, size_t vl)
+unaligned_vssseg4e32_v_u32m1x4(void *dst, vuint32m1x4_t data, size_t vl)
 {
 #ifdef RVV_UNALIGNED_NOT_ALLOWED
   if (UNLIKELY(((uintptr_t)dst & 3) != 0))
     {
       byte *bdst = dst;
       vuint16m2_t indexes;
-      vuint8m1_t b0, b1, b2, b3, b4, b5, b6, b7;
+      vuint8m1_t b0, b1, b2, b3;
 
       indexes = gen_indexes(4 * vl, 64);
 
-      b0 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x8_u32m1(data, 0));
-      b1 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x8_u32m1(data, 1));
-      b2 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x8_u32m1(data, 2));
-      b3 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x8_u32m1(data, 3));
-      b4 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x8_u32m1(data, 4));
-      b5 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x8_u32m1(data, 5));
-      b6 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x8_u32m1(data, 6));
-      b7 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x8_u32m1(data, 7));
+      b0 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x4_u32m1(data, 0));
+      b1 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x4_u32m1(data, 1));
+      b2 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x4_u32m1(data, 2));
+      b3 = __riscv_vreinterpret_v_u32m1_u8m1(__riscv_vget_v_u32m1x4_u32m1(data, 3));
 
       __riscv_vsuxei16_v_u8m1(bdst + 0 * 4, indexes, b0, vl * 4);
       __riscv_vsuxei16_v_u8m1(bdst + 1 * 4, indexes, b1, vl * 4);
       __riscv_vsuxei16_v_u8m1(bdst + 2 * 4, indexes, b2, vl * 4);
       __riscv_vsuxei16_v_u8m1(bdst + 3 * 4, indexes, b3, vl * 4);
-      __riscv_vsuxei16_v_u8m1(bdst + 4 * 4, indexes, b4, vl * 4);
-      __riscv_vsuxei16_v_u8m1(bdst + 5 * 4, indexes, b5, vl * 4);
-      __riscv_vsuxei16_v_u8m1(bdst + 6 * 4, indexes, b6, vl * 4);
-      __riscv_vsuxei16_v_u8m1(bdst + 7 * 4, indexes, b7, vl * 4);
     }
   else
 #endif
     {
       /* Fast path for 32-bit aligned stores. */
-      __riscv_vssseg8e32_v_u32m1x8(dst, 64, data, vl);
+      __riscv_vssseg4e32_v_u32m1x4(dst, 64, data, vl);
       return;
     }
 }
@@ -299,7 +279,7 @@ chacha20_rvv_blocks(u32 *input, byte *dst, const byte *src, size_t nblks)
 	{
 	  vuint32m1_t ctr;
 	  vbool32_t carry;
-	  vuint32m1x8_t data;
+	  vuint32m1x4_t data;
 
 	  if (vl < 4)
 	    break;
@@ -358,31 +338,41 @@ chacha20_rvv_blocks(u32 *input, byte *dst, const byte *src, size_t nblks)
 	  s12 += vl;
 	  s13 += s12 < vl;
 
-	  data = unaligned_vlsseg8e32_v_u32m1x8((const void *)src, vl);
+	  data = unaligned_vlsseg4e32_v_u32m1x4((const void *)src, vl);
 
-	  data = vxor_v_u32m1_u32m1x8(data, 0, x0, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 1, x1, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 2, x2, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 3, x3, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 4, x4, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 5, x5, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 6, x6, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 7, x7, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 0, x0, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 1, x1, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 2, x2, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 3, x3, vl);
 
-	  unaligned_vssseg8e32_v_u32m1x8((void *)dst, data, vl);
+	  unaligned_vssseg4e32_v_u32m1x4((void *)dst, data, vl);
 
-	  data = unaligned_vlsseg8e32_v_u32m1x8((const void *)(src + 32), vl);
+	  data = unaligned_vlsseg4e32_v_u32m1x4((const void *)(src + 16), vl);
 
-	  data = vxor_v_u32m1_u32m1x8(data, 0, x8, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 1, x9, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 2, x10, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 3, x11, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 4, x12, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 5, x13, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 6, x14, vl);
-	  data = vxor_v_u32m1_u32m1x8(data, 7, x15, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 0, x4, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 1, x5, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 2, x6, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 3, x7, vl);
 
-	  unaligned_vssseg8e32_v_u32m1x8((void *)(dst + 32), data, vl);
+	  unaligned_vssseg4e32_v_u32m1x4((void *)(dst + 16), data, vl);
+
+	  data = unaligned_vlsseg4e32_v_u32m1x4((const void *)(src + 32), vl);
+
+	  data = vxor_v_u32m1_u32m1x4(data, 0, x8, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 1, x9, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 2, x10, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 3, x11, vl);
+
+	  unaligned_vssseg4e32_v_u32m1x4((void *)(dst + 32), data, vl);
+
+	  data = unaligned_vlsseg4e32_v_u32m1x4((const void *)(src + 48), vl);
+
+	  data = vxor_v_u32m1_u32m1x4(data, 0, x12, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 1, x13, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 2, x14, vl);
+	  data = vxor_v_u32m1_u32m1x4(data, 3, x15, vl);
+
+	  unaligned_vssseg4e32_v_u32m1x4((void *)(dst + 48), data, vl);
 
 	  src += vl * 64;
 	  dst += vl * 64;
