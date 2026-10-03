@@ -3787,6 +3787,9 @@ if test "$found" = "1" ; then
       riscv64-*-*)
          # Build with the vector permute SIMD128 implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vp-riscv.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vp-riscv-mf2.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vp-riscv-mf4.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-vp-riscv-mf8.lo"
 
          # Build with the RISC-V vector cryptography implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS rijndael-riscv-zvkned.lo"

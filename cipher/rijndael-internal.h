@@ -181,6 +181,8 @@ typedef unsigned int (*rijndael_cryptfn_t)(const struct RIJNDAEL_context_s *ctx,
                                            const unsigned char *ax);
 typedef void (*rijndael_prefetchfn_t)(void);
 typedef void (*rijndael_prepare_decfn_t)(struct RIJNDAEL_context_s *ctx);
+typedef void (*rijndael_setkeyfn_t)(struct RIJNDAEL_context_s *ctx,
+                                    const byte *key);
 
 /* Our context object.  */
 typedef struct RIJNDAEL_context_s

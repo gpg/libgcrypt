@@ -128,6 +128,8 @@ EXTRA_libcipher_la_SOURCES = \
 	rijndael-riscv-zvkned.c                            \
 	rijndael-s390x.c                                   \
 	rijndael-vp-aarch64.c rijndael-vp-riscv.c          \
+	rijndael-vp-riscv.h rijndael-vp-riscv-mf2.c        \
+	rijndael-vp-riscv-mf4.c rijndael-vp-riscv-mf8.c    \
 	rijndael-vp-simd128.h                              \
 	rmd160.c \
 	rsa.c \
@@ -463,6 +465,30 @@ rijndael-vp-riscv.o: $(srcdir)/rijndael-vp-riscv.c Makefile
 	$(custom_depfile_o)
 
 rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+rijndael-vp-riscv-mf2.o: $(srcdir)/rijndael-vp-riscv-mf2.c Makefile
+	`echo $(COMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+rijndael-vp-riscv-mf2.lo: $(srcdir)/rijndael-vp-riscv-mf2.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+rijndael-vp-riscv-mf4.o: $(srcdir)/rijndael-vp-riscv-mf4.c Makefile
+	`echo $(COMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+rijndael-vp-riscv-mf4.lo: $(srcdir)/rijndael-vp-riscv-mf4.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+rijndael-vp-riscv-mf8.o: $(srcdir)/rijndael-vp-riscv-mf8.c Makefile
+	`echo $(COMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+rijndael-vp-riscv-mf8.lo: $(srcdir)/rijndael-vp-riscv-mf8.c Makefile
 	`echo $(LTCOMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_lo)
 
