@@ -3054,6 +3054,15 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	e = __riscv_vsm3c_vi_u32m1(e, g, 31, vl);
 	__riscv_vse32_v_u32m1(ptr + 0 * vl, e, vl);
       }
+      void test_sm4(unsigned int *ptr)
+      {
+	int vl = __riscv_vsetvl_e32m4 (16);
+	vuint32m1_t a = __riscv_vle32_v_u32m1(ptr + 0 * vl, 4);
+	vuint32m4_t b = __riscv_vle32_v_u32m4(ptr + 1 * vl, vl);
+	vuint32m1_t c = __riscv_vsm4k_vi_u32m1(a, 7, 4);
+	vuint32m4_t d = __riscv_vsm4r_vs_u32m1_u32m4(b, c, vl);
+	__riscv_vse32_v_u32m4(ptr + 0 * vl, d, vl);
+      }
       void test_rev8(unsigned int *ptr)
       {
 	int vl = __riscv_vsetvl_e32m1 (4);
@@ -3093,6 +3102,7 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	test_aes_crypt(buf);
 	test_ghash(buf);
 	test_sm3(buf);
+	test_sm4(buf);
 	test_rev8(buf);
 	test_rotate(buf);
 	test_inline_vec_asm(buf);
@@ -3248,6 +3258,56 @@ EOF
   if test "$gcry_cv_riscv_vaes_vs_intrinsics_work" = "no"; then
     AC_DEFINE([HAVE_BROKEN_VAES_VS_INTRINSIC], [1],
 	      [Define to 1 if __riscv_vaes*_vs intrinsics are broken])
+  fi
+
+  # Restore flags.
+  CFLAGS=$_gcc_cflags_save;
+fi
+
+#
+# Check whether compiler has working RISC-V vector __riscv_vsm4r_vs intrinsics
+#
+# Same GCC issue as with __riscv_vaes*_vs intrinsics above, 'vsetvli' is
+# generated with 'm1' LMUL instead of 'mX' for __riscv_vsm4r_vs_u32m1_u32mX.
+#
+if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics" = "yes" ||
+   test "$gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags" = "yes"; then
+
+  # Setup flags for test.
+  _gcc_cflags_save=$CFLAGS
+  if test "$gcry_cv_cc_riscv_vector_crypto_intrinsics_cflags" = "yes"; then
+    CFLAGS="$CFLAGS -O2 -march=$MARCH_RVA23U64_WITH_VEC_CRYPTO"
+  else
+    CFLAGS="$CFLAGS -O2"
+  fi
+
+  # Disable LTO optimization for following check to generate
+  # RISC-V instructions in compiler output
+  CFLAGS="$CFLAGS -fno-lto"
+
+  AC_CACHE_CHECK([whether compiler has working RISC-V __riscv_vsm4r_vs intrinsics],
+    [gcry_cv_riscv_vsm4r_vs_intrinsics_work],
+    [gcry_cv_riscv_vsm4r_vs_intrinsics_work=no
+     cat > conftest.c <<EOF
+#include <riscv_vector.h>
+vuint32m4_t test_fn(vuint32m4_t a, vuint32m1_t b, int vl)
+{
+  /* This intrinsic should result in a 'vsetvli' with m4 */
+  return __riscv_vsm4r_vs_u32m1_u32m4(a, b, vl);
+}
+EOF
+
+    if $CC $CFLAGS -S conftest.c -o conftest.s >&5 2>&5; then
+      if grep -E 'vsetvli.*,[[[:space:]]]*m4[[[:space:]]]*,' conftest.s >/dev/null 2>&1; then
+	gcry_cv_riscv_vsm4r_vs_intrinsics_work=yes
+      fi
+    fi
+    rm -f conftest.*
+  ])
+
+  if test "$gcry_cv_riscv_vsm4r_vs_intrinsics_work" = "no"; then
+    AC_DEFINE([HAVE_BROKEN_VSM4R_VS_INTRINSIC], [1],
+	      [Define to 1 if __riscv_vsm4r_vs intrinsics are broken])
   fi
 
   # Restore flags.
@@ -3972,6 +4032,10 @@ if test "$found" = "1" ; then
       powerpc64le-*-*)
          # Build with the ppc64le vector implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-ppc.lo"
+      ;;
+      riscv64-*-*)
+         # Build with the RISC-V vector cryptography implementation
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS sm4-riscv-zvksed-zvkb.lo"
       ;;
    esac
 fi

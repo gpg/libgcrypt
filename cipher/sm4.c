@@ -142,6 +142,15 @@
 # define USE_PPC_CRYPTO 1
 #endif
 
+/* USE_RISCV_V_CRYPTO indicates whether to enable RISC-V vector cryptography
+ * extension code. */
+#undef USE_RISCV_V_CRYPTO
+#if defined (__riscv) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_CRYPTO_INTRINSICS)
+# define USE_RISCV_V_CRYPTO 1
+#endif
+
 static const char *sm4_selftest (void);
 
 static void _gcry_sm4_ctr_enc (void *context, unsigned char *ctr,
@@ -215,6 +224,9 @@ typedef struct
 #ifdef USE_PPC_CRYPTO
   unsigned int use_ppc8le:1;
   unsigned int use_ppc9le:1;
+#endif
+#ifdef USE_RISCV_V_CRYPTO
+  unsigned int use_riscv_zvksed:1;
 #endif
 #ifdef ASM_FUNC_ABI
   unsigned int ocb_crypt_blk_init:1;
@@ -756,6 +768,36 @@ sm4_ppc9le_crypt_blk1_16(void *rk, byte *out, const byte *in, size_t num_blks)
 }
 #endif /* USE_PPC_CRYPTO */
 
+#ifdef USE_RISCV_V_CRYPTO
+extern unsigned int _gcry_sm4_riscv_v_check_hw(void);
+
+extern void _gcry_sm4_riscv_zvksed_expand_key(const byte *key, u32 *rk_enc,
+					      u32 *rk_dec, const u32 *fk);
+
+extern unsigned int _gcry_sm4_riscv_zvksed_crypt(const u32 *rk, byte *out,
+						 const byte *in,
+						 size_t num_blks);
+
+extern void _gcry_sm4_riscv_zvksed_ctr_enc(const u32 *rk_enc, byte *out,
+					   const byte *in, byte *ctr,
+					   size_t nblocks);
+
+extern void _gcry_sm4_riscv_zvksed_cbc_dec(const u32 *rk_dec, byte *out,
+					   const byte *in, byte *iv,
+					   size_t nblocks);
+
+extern void _gcry_sm4_riscv_zvksed_cfb_dec(const u32 *rk_enc, byte *out,
+					   const byte *in, byte *iv,
+					   size_t nblocks);
+
+static inline unsigned int
+sm4_riscv_zvksed_crypt_blk1_16(void *rk, byte *out, const byte *in,
+			       size_t num_blks)
+{
+  return _gcry_sm4_riscv_zvksed_crypt(rk, out, in, num_blks);
+}
+#endif /* USE_RISCV_V_CRYPTO */
+
 static inline void prefetch_sbox_table(void)
 {
   const volatile byte *vtab = (void *)&sbox_table.S[0];
@@ -870,6 +912,15 @@ sm4_expand_key (SM4_context *ctx, const byte *key)
     }
 #endif
 
+#ifdef USE_RISCV_V_CRYPTO
+  if (ctx->use_riscv_zvksed)
+    {
+      _gcry_sm4_riscv_zvksed_expand_key (key, ctx->rkey_enc, ctx->rkey_dec,
+					 fk);
+      return;
+    }
+#endif
+
   prefetch_sbox_table ();
 
   rk[0] = buf_get_be32(key + 4 * 0) ^ fk[0];
@@ -952,6 +1003,14 @@ sm4_setkey (void *context, const byte *key, const unsigned keylen,
 #ifdef USE_PPC_CRYPTO
   ctx->use_ppc8le = (hwf & HWF_PPC_VCRYPTO) != 0;
   ctx->use_ppc9le = (hwf & HWF_PPC_VCRYPTO) && (hwf & HWF_PPC_ARCH_3_00);
+#endif
+#ifdef USE_RISCV_V_CRYPTO
+  ctx->use_riscv_zvksed = (hwf & HWF_RISCV_IMAFDC)
+			  && (hwf & HWF_RISCV_B)      /* Mandatory in RVA23U64 */
+			  && (hwf & HWF_RISCV_V)      /* Mandatory in RVA23U64 */
+			  && (hwf & HWF_RISCV_ZVKB)   /* Mandatory in RVA23U64 (Zvbb) */
+			  && (hwf & HWF_RISCV_ZVKSED) /* Optional in RVA23U64 (Zvks) */
+			  && _gcry_sm4_riscv_v_check_hw();
 #endif
 
 #ifdef USE_GFNI_AVX2
@@ -1056,6 +1115,11 @@ sm4_encrypt (void *context, byte *outbuf, const byte *inbuf)
     return sm4_armv8_ce_crypt_blk1_16(ctx->rkey_enc, outbuf, inbuf, 1);
 #endif
 
+#ifdef USE_RISCV_V_CRYPTO
+  if (ctx->use_riscv_zvksed)
+    return sm4_riscv_zvksed_crypt_blk1_16(ctx->rkey_enc, outbuf, inbuf, 1);
+#endif
+
   prefetch_sbox_table ();
 
   return sm4_do_crypt (ctx->rkey_enc, outbuf, inbuf);
@@ -1084,6 +1148,11 @@ sm4_decrypt (void *context, byte *outbuf, const byte *inbuf)
 #ifdef USE_ARM_CE
   if (ctx->use_arm_ce)
     return sm4_armv8_ce_crypt_blk1_16(ctx->rkey_dec, outbuf, inbuf, 1);
+#endif
+
+#ifdef USE_RISCV_V_CRYPTO
+  if (ctx->use_riscv_zvksed)
+    return sm4_riscv_zvksed_crypt_blk1_16(ctx->rkey_dec, outbuf, inbuf, 1);
 #endif
 
   prefetch_sbox_table ();
@@ -1233,6 +1302,12 @@ sm4_get_crypt_blk1_16_fn(SM4_context *ctx)
       return &sm4_ppc8le_crypt_blk1_16;
     }
 #endif
+#ifdef USE_RISCV_V_CRYPTO
+  else if (ctx->use_riscv_zvksed)
+    {
+      return &sm4_riscv_zvksed_crypt_blk1_16;
+    }
+#endif
   else
     {
       (void)ctx;
@@ -1360,6 +1435,15 @@ _gcry_sm4_ctr_enc(void *context, unsigned char *ctr,
       /* Process all blocks at a time. */
       _gcry_sm4_armv9_sve_ce_ctr_enc(ctx->rkey_enc, outbuf, inbuf,
 				     ctr, nblocks);
+      nblocks = 0;
+    }
+#endif
+
+#ifdef USE_RISCV_V_CRYPTO
+  if (ctx->use_riscv_zvksed)
+    {
+      /* Process all blocks at a time. */
+      _gcry_sm4_riscv_zvksed_ctr_enc(ctx->rkey_enc, outbuf, inbuf, ctr, nblocks);
       nblocks = 0;
     }
 #endif
@@ -1543,6 +1627,15 @@ _gcry_sm4_cbc_dec(void *context, unsigned char *iv,
     }
 #endif
 
+#ifdef USE_RISCV_V_CRYPTO
+  if (ctx->use_riscv_zvksed)
+    {
+      /* Process all blocks at a time. */
+      _gcry_sm4_riscv_zvksed_cbc_dec(ctx->rkey_dec, outbuf, inbuf, iv, nblocks);
+      nblocks = 0;
+    }
+#endif
+
 #ifdef USE_ARM_CE
   if (ctx->use_arm_ce)
     {
@@ -1722,6 +1815,15 @@ _gcry_sm4_cfb_dec(void *context, unsigned char *iv,
     }
 #endif
 
+#ifdef USE_RISCV_V_CRYPTO
+  if (ctx->use_riscv_zvksed)
+    {
+      /* Process all blocks at a time. */
+      _gcry_sm4_riscv_zvksed_cfb_dec(ctx->rkey_enc, outbuf, inbuf, iv, nblocks);
+      nblocks = 0;
+    }
+#endif
+
 #ifdef USE_ARM_CE
   if (ctx->use_arm_ce)
     {
@@ -1804,6 +1906,12 @@ sm4_crypt_blk1_32 (SM4_context *ctx, byte *outbuf, const byte *inbuf,
     {
       _gcry_sm4_armv9_sve_ce_crypt (rk, outbuf, inbuf, num_blks);
       return 0;
+    }
+#endif
+#ifdef USE_RISCV_V_CRYPTO
+  if (ctx->use_riscv_zvksed)
+    {
+      return _gcry_sm4_riscv_zvksed_crypt (rk, outbuf, inbuf, num_blks);
     }
 #endif
 

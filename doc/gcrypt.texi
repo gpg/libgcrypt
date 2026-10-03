@@ -623,6 +623,7 @@ are
 @item riscv-zvkned
 @item riscv-zvknha
 @item riscv-zvknhb
+@item riscv-zvksed
 @item riscv-zvksh
 @end table
 

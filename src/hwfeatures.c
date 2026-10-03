@@ -127,6 +127,7 @@ static struct
     { HWF_RISCV_ZVKNED,        "riscv-zvkned" },
     { HWF_RISCV_ZVKNHA,        "riscv-zvknha" },
     { HWF_RISCV_ZVKNHB,        "riscv-zvknhb" },
+    { HWF_RISCV_ZVKSED,        "riscv-zvksed" },
     { HWF_RISCV_ZVKSH,         "riscv-zvksh" },
 #endif
   };

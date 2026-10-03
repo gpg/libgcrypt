@@ -142,7 +142,7 @@ EXTRA_libcipher_la_SOURCES = \
 	sm4-intel-avx2-amd64.S sm4-intel-avx512-amd64.S \
 	sm4-gfni-avx2-amd64.S sm4-gfni-avx512-amd64.S \
 	sm4-aarch64.S sm4-armv8-aarch64-ce.S sm4-armv9-aarch64-sve-ce.S \
-	sm4-ppc.c \
+	sm4-ppc.c sm4-riscv-zvksed-zvkb.c sm4-riscv-zvksed-zvkb.h \
 	sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
 	sha1-avx2-bmi2-amd64.S sha1-armv7-neon.S sha1-armv8-aarch32-ce.S \
 	sha1-armv8-aarch64-ce.S sha1-intel-shaext.c \
@@ -474,6 +474,7 @@ riscv_vector_crypto_sha512_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknhb_zvkb
 riscv_vector_crypto_sha512_m1_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknhb_zvkb_zvl256b
 riscv_vector_crypto_sm3_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvksh_zvkb
 riscv_vector_crypto_sm3_m1_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvksh_zvkb_zvl256b
+riscv_vector_crypto_sm4_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvksed_zvkb
 riscv_vector_crypto_gcm_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkg_zvkb
 else
 riscv_vector_crypto_zvkb_cflags =
@@ -483,6 +484,7 @@ riscv_vector_crypto_sha512_cflags =
 riscv_vector_crypto_sha512_m1_cflags =
 riscv_vector_crypto_sm3_cflags =
 riscv_vector_crypto_sm3_m1_cflags =
+riscv_vector_crypto_sm4_cflags =
 riscv_vector_crypto_gcm_cflags =
 endif
 
@@ -548,4 +550,12 @@ sm3-riscv-zvksh-zvkb-m1.o: $(srcdir)/sm3-riscv-zvksh-zvkb-m1.c Makefile
 
 sm3-riscv-zvksh-zvkb-m1.lo: $(srcdir)/sm3-riscv-zvksh-zvkb-m1.c Makefile
 	`echo $(LTCOMPILE) $(riscv_vector_crypto_sm3_m1_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+sm4-riscv-zvksed-zvkb.o: $(srcdir)/sm4-riscv-zvksed-zvkb.c Makefile
+	`echo $(COMPILE) $(riscv_vector_crypto_sm4_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+sm4-riscv-zvksed-zvkb.lo: $(srcdir)/sm4-riscv-zvksed-zvkb.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sm4_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_lo)
