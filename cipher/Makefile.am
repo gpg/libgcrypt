@@ -90,6 +90,7 @@ EXTRA_libcipher_la_SOURCES = \
 	chacha20-amd64-avx512.S chacha20-armv7-neon.S chacha20-aarch64.S \
 	chacha20-ppc.c chacha20-s390x.S chacha20-p10le-8x.s \
 	chacha20-riscv-v.c \
+	chacha20-riscv-zvkb.c chacha20-riscv-rvv.h \
 	cipher-gcm-ppc.c cipher-gcm-intel-pclmul.c \
 	cipher-gcm-aarch64-simd.c cipher-gcm-armv7-neon.S \
 	cipher-gcm-armv8-aarch32-ce.S cipher-gcm-armv8-aarch64-ce.S \
@@ -455,14 +456,24 @@ rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
 	$(custom_depfile_lo)
 
 if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
+riscv_vector_crypto_zvkb_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkb
 riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned_zvkb
 riscv_vector_crypto_sha_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknha_zvknhb_zvkb
 riscv_vector_crypto_gcm_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkg_zvkb
 else
+riscv_vector_crypto_zvkb_cflags =
 riscv_vector_crypto_aes_cflags =
 riscv_vector_crypto_sha_cflags =
 riscv_vector_crypto_gcm_cflags =
 endif
+
+chacha20-riscv-zvkb.o: $(srcdir)/chacha20-riscv-zvkb.c Makefile
+	`echo $(COMPILE) $(riscv_vector_crypto_zvkb_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+chacha20-riscv-zvkb.lo: $(srcdir)/chacha20-riscv-zvkb.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_zvkb_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 cipher-gcm-riscv-zvkg.o: $(srcdir)/cipher-gcm-riscv-zvkg.c Makefile
 	`echo $(COMPILE) $(riscv_vector_crypto_gcm_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `

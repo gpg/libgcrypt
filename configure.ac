@@ -3036,6 +3036,16 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	vuint32m1_t b = __riscv_vrev8_v_u32m1(a, vl);
 	__riscv_vse32_v_u32m1(ptr + 0 * vl, b, vl);
       }
+      void test_rotate(unsigned int *ptr)
+      {
+	int vl = __riscv_vsetvl_e32m1 (4);
+	vuint32m1_t a = __riscv_vle32_v_u32m1(ptr + 0 * vl, vl);
+	vuint32m1_t b = __riscv_vror_vx_u32m1(a, 3, vl);
+	b = __riscv_vror_vv_u32m1(b, a, vl);
+	b = __riscv_vrol_vx_u32m1(b, 3, vl);
+	b = __riscv_vrol_vv_u32m1(b, a, vl);
+	__riscv_vse32_v_u32m1(ptr + 0 * vl, b, vl);
+      }
       void test_inline_vec_asm(unsigned int *ptr)
       {
 	int vl = __riscv_vsetvl_e32m1 (4);
@@ -3058,6 +3068,7 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	test_aes_crypt(buf);
 	test_ghash(buf);
 	test_rev8(buf);
+	test_rotate(buf);
 	test_inline_vec_asm(buf);
 	return 0;
       }
@@ -3906,6 +3917,7 @@ if test "$found" = "1" ; then
       riscv64-*-*)
          # Build with the RISC-V vector implementation
          GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-riscv-v.lo"
+         GCRYPT_ASM_CIPHERS="$GCRYPT_ASM_CIPHERS chacha20-riscv-zvkb.lo"
       ;;
    esac
 fi
