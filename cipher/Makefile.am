@@ -158,7 +158,8 @@ EXTRA_libcipher_la_SOURCES = \
 	sha512-riscv-zvknhb-zvkb-m1.c \
 	sha512-ssse3-i386.c \
 	sm3.c sm3-avx-bmi2-amd64.S sm3-intel-avx2-amd64.S sm3-aarch64.S \
-	sm3-armv8-aarch64-ce.S \
+	sm3-armv8-aarch64-ce.S sm3-riscv-zvksh-zvkb.c sm3-riscv-zvksh-zvkb.h \
+	sm3-riscv-zvksh-zvkb-m1.c \
 	keccak.c keccak_permute_32.h keccak_permute_64.h \
 	keccak-armv7-neon.S keccak-amd64-avx512.S \
 	stribog.c \
@@ -471,6 +472,8 @@ riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned_zvkb
 riscv_vector_crypto_sha256_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknha_zvkb
 riscv_vector_crypto_sha512_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknhb_zvkb
 riscv_vector_crypto_sha512_m1_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknhb_zvkb_zvl256b
+riscv_vector_crypto_sm3_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvksh_zvkb
+riscv_vector_crypto_sm3_m1_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvksh_zvkb_zvl256b
 riscv_vector_crypto_gcm_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkg_zvkb
 else
 riscv_vector_crypto_zvkb_cflags =
@@ -478,6 +481,8 @@ riscv_vector_crypto_aes_cflags =
 riscv_vector_crypto_sha256_cflags =
 riscv_vector_crypto_sha512_cflags =
 riscv_vector_crypto_sha512_m1_cflags =
+riscv_vector_crypto_sm3_cflags =
+riscv_vector_crypto_sm3_m1_cflags =
 riscv_vector_crypto_gcm_cflags =
 endif
 
@@ -527,4 +532,20 @@ sha512-riscv-zvknhb-zvkb-m1.o: $(srcdir)/sha512-riscv-zvknhb-zvkb-m1.c Makefile
 
 sha512-riscv-zvknhb-zvkb-m1.lo: $(srcdir)/sha512-riscv-zvknhb-zvkb-m1.c Makefile
 	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha512_m1_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+sm3-riscv-zvksh-zvkb.o: $(srcdir)/sm3-riscv-zvksh-zvkb.c Makefile
+	`echo $(COMPILE) $(riscv_vector_crypto_sm3_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+sm3-riscv-zvksh-zvkb.lo: $(srcdir)/sm3-riscv-zvksh-zvkb.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sm3_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+sm3-riscv-zvksh-zvkb-m1.o: $(srcdir)/sm3-riscv-zvksh-zvkb-m1.c Makefile
+	`echo $(COMPILE) $(riscv_vector_crypto_sm3_m1_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+sm3-riscv-zvksh-zvkb-m1.lo: $(srcdir)/sm3-riscv-zvksh-zvkb-m1.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sm3_m1_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_lo)

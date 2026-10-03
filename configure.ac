@@ -3038,6 +3038,22 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	vuint32m1_t d = __riscv_vghsh_vv_u32m1(a, b, c, vl);
 	__riscv_vse32_v_u32m1(ptr + 0 * vl, d, vl);
       }
+      void test_sm3(unsigned int *ptr)
+      {
+	int vl = __riscv_vsetvl_e32m2 (8);
+	vuint32m2_t a = __riscv_vle32_v_u32m2(ptr + 0 * vl, vl);
+	vuint32m2_t b = __riscv_vle32_v_u32m2(ptr + 1 * vl, vl);
+	vuint32m2_t c = __riscv_vsm3me_vv_u32m2(a, b, vl);
+	vuint32m2_t d = __riscv_vsm3c_vi_u32m2(a, c, 31, vl);
+	vuint32m1_t e, f, g;
+	__riscv_vse32_v_u32m2(ptr + 0 * vl, d, vl);
+	vl = __riscv_vsetvl_e32m1 (8);
+	e = __riscv_vle32_v_u32m1(ptr + 0 * vl, vl);
+	f = __riscv_vle32_v_u32m1(ptr + 1 * vl, vl);
+	g = __riscv_vsm3me_vv_u32m1(e, f, vl);
+	e = __riscv_vsm3c_vi_u32m1(e, g, 31, vl);
+	__riscv_vse32_v_u32m1(ptr + 0 * vl, e, vl);
+      }
       void test_rev8(unsigned int *ptr)
       {
 	int vl = __riscv_vsetvl_e32m1 (4);
@@ -3076,6 +3092,7 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	test_aes_key(buf);
 	test_aes_crypt(buf);
 	test_ghash(buf);
+	test_sm3(buf);
 	test_rev8(buf);
 	test_rotate(buf);
 	test_inline_vec_asm(buf);
@@ -4268,6 +4285,11 @@ if test "$found" = "1" ; then
         # Build with the assembly implementation
         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-aarch64.lo"
         GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-armv8-aarch64-ce.lo"
+     ;;
+     riscv64-*-*)
+        # Build with the RISC-V vector cryptography implementation
+        GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-riscv-zvksh-zvkb.lo"
+        GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sm3-riscv-zvksh-zvkb-m1.lo"
      ;;
    esac
 fi

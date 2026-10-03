@@ -623,6 +623,7 @@ are
 @item riscv-zvkned
 @item riscv-zvknha
 @item riscv-zvknhb
+@item riscv-zvksh
 @end table
 
 To disable a feature for all processes using Libgcrypt 1.6 or newer,

@@ -87,6 +87,15 @@
 # endif
 #endif
 
+/* USE_RISCV_V_CRYPTO indicates whether to enable RISC-V vector cryptography
+ * extension code. */
+#undef USE_RISCV_V_CRYPTO
+#if defined (__riscv) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_CRYPTO_INTRINSICS)
+# define USE_RISCV_V_CRYPTO 1
+#endif
+
 
 typedef struct {
   gcry_md_block_ctx_t bctx;
@@ -167,6 +176,23 @@ do_sm3_transform_armv8_ce(void *context, const unsigned char *data,
 }
 #endif /* USE_ARM_CE */
 
+#ifdef USE_RISCV_V_CRYPTO
+unsigned int _gcry_sm3_riscv_v_check_hw(void);
+
+unsigned int
+_gcry_sm3_transform_riscv_zvksh_zvkb(u32 state[8],
+				     const unsigned char *input_data,
+				     size_t num_blks);
+
+static unsigned int
+do_sm3_transform_riscv_zvksh(void *ctx, const unsigned char *data,
+			     size_t nblks)
+{
+  SM3_CONTEXT *hd = ctx;
+  return _gcry_sm3_transform_riscv_zvksh_zvkb (hd->h, data, nblks);
+}
+#endif /* USE_RISCV_V_CRYPTO */
+
 
 static unsigned int
 transform (void *c, const unsigned char *data, size_t nblks);
@@ -210,6 +236,15 @@ sm3_init (void *context, unsigned int flags)
 #ifdef USE_ARM_CE
   if (features & HWF_ARM_SM3)
     hd->bctx.bwrite = do_sm3_transform_armv8_ce;
+#endif
+#ifdef USE_RISCV_V_CRYPTO
+  if ((features & HWF_RISCV_IMAFDC)
+      && (features & HWF_RISCV_B)      /* Mandatory in RVA23U64 */
+      && (features & HWF_RISCV_V)      /* Mandatory in RVA23U64 */
+      && (features & HWF_RISCV_ZVKB)   /* Mandatory in RVA23U64 (Zvbb) */
+      && (features & HWF_RISCV_ZVKSH)  /* Optional in RVA23U64 (Zvks) */
+      && _gcry_sm3_riscv_v_check_hw())
+    hd->bctx.bwrite = do_sm3_transform_riscv_zvksh;
 #endif
 
   (void)features;
