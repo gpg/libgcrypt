@@ -33,7 +33,7 @@
 #include "chacha20-riscv-rvv.h"
 
 
-unsigned int ASM_FUNC_ATTR FUNC_ATTR_OPT_O2
+size_t ASM_FUNC_ATTR FUNC_ATTR_OPT_O2
 _gcry_chacha20_riscv_zvkb_blocks(u32 *state, byte *dst, const byte *src,
 				 size_t nblks)
 {

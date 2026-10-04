@@ -46,7 +46,6 @@
 
 #define XOR(v, w)	__riscv_vxor_vv_u32m1((v), (w), vl)
 #define PLUS(v, w)	__riscv_vadd_vv_u32m1((v), (w), vl)
-#define WORD_ROL(v, c)	__riscv_vrgather_vv_u32m1((v), (rol##c), vl)
 
 #define QUARTERROUND_4(a0, b0, c0, d0, a1, b1, c1, d1, \
 		       a2, b2, c2, d2, a3, b3, c3, d3) \
@@ -74,39 +73,6 @@
     b2 = XOR(b2, c2); b3 = XOR(b3, c3); \
       b0 = ROTATE(b0, 7); b1 = ROTATE(b1, 7); \
       b2 = ROTATE(b2, 7); b3 = ROTATE(b3, 7);
-
-#define QUARTERROUND4_2(x0, x1, x2, x3, y0, y1, y2, y3, rol_x1, rol_x2, rol_x3) \
-  x0 = PLUS(x0, x1); y0 = PLUS(y0, y1); \
-    x3 = XOR(x3, x0); y3 = XOR(y3, y0); \
-      x3 = ROTATE16(x3); y3 = ROTATE16(y3); \
-  x2 = PLUS(x2, x3); y2 = PLUS(y2, y3); \
-    x1 = XOR(x1, x2); y1 = XOR(y1, y2); \
-      x1 = ROTATE(x1, 12); y1 = ROTATE(y1, 12); \
-  x0 = PLUS(x0, x1); y0 = PLUS(y0, y1); \
-    x3 = XOR(x3, x0); y3 = XOR(y3, y0); \
-      x3 = ROTATE8(x3); y3 = ROTATE8(y3); \
-  x2 = PLUS(x2, x3); y2 = PLUS(y2, y3); \
-    x3 = WORD_ROL(x3, rol_x3); y3 = WORD_ROL(y3, rol_x3);\
-      x1 = XOR(x1, x2); y1 = XOR(y1, y2); \
-	x2 = WORD_ROL(x2, rol_x2); y2 = WORD_ROL(y2, rol_x2); \
-	  x1 = ROTATE(x1, 7); y1 = ROTATE(y1, 7); \
-	    x1 = WORD_ROL(x1, rol_x1); y1 = WORD_ROL(y1, rol_x1);
-
-#define QUARTERROUND4(x0, x1, x2, x3, rol_x1, rol_x2, rol_x3) \
-  x0 = PLUS(x0, x1); x3 = XOR(x3, x0); x3 = ROTATE16(x3); \
-  x2 = PLUS(x2, x3); x1 = XOR(x1, x2); x1 = ROTATE(x1, 12); \
-  x0 = PLUS(x0, x1); x3 = XOR(x3, x0); x3 = ROTATE8(x3); \
-  x2 = PLUS(x2, x3); \
-    x3 = WORD_ROL(x3, rol_x3); \
-		     x1 = XOR(x1, x2); \
-    x2 = WORD_ROL(x2, rol_x2); \
-				       x1= ROTATE(x1, 7); \
-    x1 = WORD_ROL(x1, rol_x1);
-
-#define ADD_U64(a, b) __riscv_vreinterpret_v_u64m1_u32m1( \
-			__riscv_vadd_vv_u64m1( \
-			  __riscv_vreinterpret_v_u32m1_u64m1(a), \
-			  __riscv_vreinterpret_v_u32m1_u64m1(b), vl / 2))
 
 #define vxor_v_u32m1_u32m1x4(data, idx, vs, vl) \
       __riscv_vset_v_u32m1_u32m1x4((data), (idx), \
@@ -145,26 +111,6 @@ gen_indexes(size_t vl, size_t stride)
   vuint16m2_t idx_hi = __riscv_vsrl_vx_u16m2(idx, 2, vl * 4);
   idx_hi = __riscv_vmul_vx_u16m2(idx_hi, stride, vl * 4);
   return __riscv_vadd_vv_u16m2(idx_hi, idx_lo, vl * 4);
-}
-
-static ASM_FUNC_ATTR_INLINE vuint32m1_t
-unaligned_load_u32m1(const void *src, size_t vl)
-{
-#ifdef RVV_UNALIGNED_NOT_ALLOWED
-  return __riscv_vreinterpret_v_u8m1_u32m1(__riscv_vle8_v_u8m1(src, vl * 4));
-#else
-  return __riscv_vle32_v_u32m1(src, vl);
-#endif
-}
-
-static ASM_FUNC_ATTR_INLINE void
-unaligned_store_u32m1(void *dst, vuint32m1_t vec, size_t vl)
-{
-#ifdef RVV_UNALIGNED_NOT_ALLOWED
-  __riscv_vse8_v_u8m1(dst, __riscv_vreinterpret_v_u32m1_u8m1(vec), vl * 4);
-#else
-  __riscv_vse32_v_u32m1(dst, vec, vl);
-#endif
 }
 
 static ASM_FUNC_ATTR_INLINE vuint32m1x4_t
@@ -236,15 +182,14 @@ unaligned_vssseg4e32_v_u32m1x4(void *dst, vuint32m1x4_t data, size_t vl)
     }
 }
 
-static ASM_FUNC_ATTR_INLINE unsigned int
+/* Processes blocks while 4 or more remain. Returns number of blocks
+ * processed, remaining 0 to 3 blocks are left for the caller. */
+static ASM_FUNC_ATTR_INLINE size_t
 chacha20_rvv_blocks(u32 *input, byte *dst, const byte *src, size_t nblks)
 {
+  size_t nblks_orig = nblks;
   unsigned int i;
 
-  if (nblks == 0)
-    return 0;
-
-  /* Try use vector implementation when there is 4 or more blocks. */
   if (nblks >= 4)
     {
       size_t vl = __riscv_vsetvl_e32m1(nblks) < 4
@@ -385,154 +330,9 @@ chacha20_rvv_blocks(u32 *input, byte *dst, const byte *src, size_t nblks)
       input[13] = s13;
     }
 
-  /* Use SIMD implementation for remaining blocks. */
-  if (nblks > 0)
-    {
-      static const u32 rol_const[3][4] =
-	{
-	  { 1, 2, 3, 0 },
-	  { 2, 3, 0, 1 },
-	  { 3, 0, 1, 2 }
-	};
-      static const u32 one_u64_const[4] = { 1, 0, 0, 0 };
-      size_t vl = 4;
-      vuint32m1_t rol1, rol2, rol3;
-      vuint32m1_t one_u64;
-      vuint32m1_t v0, v1, v2, v3;
-      vuint32m1_t v4, v5, v6, v7;
-      vuint32m1_t state0, state1, state2, state3;
-      vuint32m1_t i0, i1, i2, i3;
-      vuint32m1_t i4, i5, i6, i7;
-#ifdef LOAD_GATHER_ROTATE_CONSTANTS
-      vuint16m1_t rot16 = gen_rot16(vl);
-      vuint8m1_t rot8 = gen_rot8(vl);
-#endif
-
-      rol1 = __riscv_vle32_v_u32m1(rol_const[0], vl);
-      rol2 = __riscv_vle32_v_u32m1(rol_const[1], vl);
-      rol3 = __riscv_vle32_v_u32m1(rol_const[2], vl);
-      one_u64 = __riscv_vle32_v_u32m1(one_u64_const, vl);
-
-      state0 = __riscv_vle32_v_u32m1(&input[0], vl);
-      state1 = __riscv_vle32_v_u32m1(&input[4], vl);
-      state2 = __riscv_vle32_v_u32m1(&input[8], vl);
-      state3 = __riscv_vle32_v_u32m1(&input[12], vl);
-
-      input[12] += nblks;
-      input[13] += input[12] < nblks;
-
-      /* SIMD 2x block implementation */
-      while (nblks >= 2)
-	{
-	  v0 = state0;
-	  v1 = state1;
-	  v2 = state2;
-	  v3 = state3;
-
-	  v4 = state0;
-	  v5 = state1;
-	  v6 = state2;
-	  v7 = state3;
-	  v7 = ADD_U64(v7, one_u64);
-
-	  i0 = unaligned_load_u32m1(src + 0 * 16, vl);
-	  i1 = unaligned_load_u32m1(src + 1 * 16, vl);
-	  i2 = unaligned_load_u32m1(src + 2 * 16, vl);
-	  i3 = unaligned_load_u32m1(src + 3 * 16, vl);
-
-	  for (i = 20; i > 0; i -= 2)
-	    {
-	      QUARTERROUND4_2(v0, v1, v2, v3, v4, v5, v6, v7, 1, 2, 3);
-	      QUARTERROUND4_2(v0, v1, v2, v3, v4, v5, v6, v7, 3, 2, 1);
-	    }
-
-	  v0 = __riscv_vadd_vv_u32m1(v0, state0, vl);
-	  v1 = __riscv_vadd_vv_u32m1(v1, state1, vl);
-	  v2 = __riscv_vadd_vv_u32m1(v2, state2, vl);
-	  v3 = __riscv_vadd_vv_u32m1(v3, state3, vl);
-	  state3 = ADD_U64(state3, one_u64);
-
-	  v0 = __riscv_vxor_vv_u32m1(i0, v0, vl);
-	  v1 = __riscv_vxor_vv_u32m1(i1, v1, vl);
-	  v2 = __riscv_vxor_vv_u32m1(i2, v2, vl);
-	  v3 = __riscv_vxor_vv_u32m1(i3, v3, vl);
-
-	  v4 = __riscv_vadd_vv_u32m1(v4, state0, vl);
-	  v5 = __riscv_vadd_vv_u32m1(v5, state1, vl);
-	  v6 = __riscv_vadd_vv_u32m1(v6, state2, vl);
-	  v7 = __riscv_vadd_vv_u32m1(v7, state3, vl);
-	  state3 = ADD_U64(state3, one_u64);
-
-	  i4 = unaligned_load_u32m1(src + 4 * 16, vl);
-	  i5 = unaligned_load_u32m1(src + 5 * 16, vl);
-	  i6 = unaligned_load_u32m1(src + 6 * 16, vl);
-	  i7 = unaligned_load_u32m1(src + 7 * 16, vl);
-
-	  unaligned_store_u32m1(dst + 0 * 16, v0, vl);
-	  unaligned_store_u32m1(dst + 1 * 16, v1, vl);
-	  unaligned_store_u32m1(dst + 2 * 16, v2, vl);
-	  unaligned_store_u32m1(dst + 3 * 16, v3, vl);
-
-	  v4 = __riscv_vxor_vv_u32m1(i4, v4, vl);
-	  v5 = __riscv_vxor_vv_u32m1(i5, v5, vl);
-	  v6 = __riscv_vxor_vv_u32m1(i6, v6, vl);
-	  v7 = __riscv_vxor_vv_u32m1(i7, v7, vl);
-
-	  unaligned_store_u32m1(dst + 4 * 16, v4, vl);
-	  unaligned_store_u32m1(dst + 5 * 16, v5, vl);
-	  unaligned_store_u32m1(dst + 6 * 16, v6, vl);
-	  unaligned_store_u32m1(dst + 7 * 16, v7, vl);
-
-	  src += 2 * 64;
-	  dst += 2 * 64;
-
-	  nblks -= 2;
-	}
-
-      /* 1x block implementation */
-      while (nblks)
-	{
-	  v0 = state0;
-	  v1 = state1;
-	  v2 = state2;
-	  v3 = state3;
-
-	  i0 = unaligned_load_u32m1(src + 0 * 16, vl);
-	  i1 = unaligned_load_u32m1(src + 1 * 16, vl);
-	  i2 = unaligned_load_u32m1(src + 2 * 16, vl);
-	  i3 = unaligned_load_u32m1(src + 3 * 16, vl);
-
-	  for (i = 20; i > 0; i -= 2)
-	    {
-	      QUARTERROUND4(v0, v1, v2, v3, 1, 2, 3);
-	      QUARTERROUND4(v0, v1, v2, v3, 3, 2, 1);
-	    }
-
-	  v0 = __riscv_vadd_vv_u32m1(v0, state0, vl);
-	  v1 = __riscv_vadd_vv_u32m1(v1, state1, vl);
-	  v2 = __riscv_vadd_vv_u32m1(v2, state2, vl);
-	  v3 = __riscv_vadd_vv_u32m1(v3, state3, vl);
-
-	  state3 = ADD_U64(state3, one_u64);
-
-	  v0 = __riscv_vxor_vv_u32m1(i0, v0, vl);
-	  v1 = __riscv_vxor_vv_u32m1(i1, v1, vl);
-	  v2 = __riscv_vxor_vv_u32m1(i2, v2, vl);
-	  v3 = __riscv_vxor_vv_u32m1(i3, v3, vl);
-	  unaligned_store_u32m1(dst + 0 * 16, v0, vl);
-	  unaligned_store_u32m1(dst + 1 * 16, v1, vl);
-	  unaligned_store_u32m1(dst + 2 * 16, v2, vl);
-	  unaligned_store_u32m1(dst + 3 * 16, v3, vl);
-	  src += 64;
-	  dst += 64;
-
-	  nblks--;
-	}
-    }
-
   clear_vec_regs();
 
-  return 0;
+  return nblks_orig - nblks;
 }
 
 #endif /* GCRY_CHACHA20_RISCV_RVV_H */

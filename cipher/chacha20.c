@@ -280,9 +280,9 @@ unsigned int _gcry_chacha20_poly1305_aarch64_blocks4(
 
 #ifdef USE_RISCV_V
 
-unsigned int _gcry_chacha20_riscv_v_blocks(u32 *state, byte *dst,
-					   const byte *src,
-					   size_t nblks);
+size_t _gcry_chacha20_riscv_v_blocks(u32 *state, byte *dst,
+				     const byte *src,
+				     size_t nblks);
 
 unsigned int _gcry_chacha20_riscv_v_check_hw(void);
 
@@ -290,9 +290,9 @@ unsigned int _gcry_chacha20_riscv_v_check_hw(void);
 
 #ifdef USE_RISCV_ZVKB
 
-unsigned int _gcry_chacha20_riscv_zvkb_blocks(u32 *state, byte *dst,
-					      const byte *src,
-					      size_t nblks);
+size_t _gcry_chacha20_riscv_zvkb_blocks(u32 *state, byte *dst,
+					const byte *src,
+					size_t nblks);
 
 #endif /* USE_RISCV_ZVKB */
 
@@ -463,16 +463,28 @@ chacha20_blocks (CHACHA20_context_t *ctx, byte *dst, const byte *src,
 #endif
 
 #ifdef USE_RISCV_ZVKB
-  if (ctx->use_riscv_zvkb)
+  if (ctx->use_riscv_zvkb && nblks >= 4)
     {
-      return _gcry_chacha20_riscv_zvkb_blocks(ctx->input, dst, src, nblks);
+      size_t done = _gcry_chacha20_riscv_zvkb_blocks(ctx->input, dst, src,
+						     nblks);
+      dst += CHACHA20_BLOCK_SIZE * done;
+      src += CHACHA20_BLOCK_SIZE * done;
+      nblks -= done;
+      if (nblks == 0)
+	return burn;
     }
 #endif
 
 #ifdef USE_RISCV_V
-  if (ctx->use_riscv_v)
+  if (ctx->use_riscv_v && nblks >= 4)
     {
-      return _gcry_chacha20_riscv_v_blocks(ctx->input, dst, src, nblks);
+      size_t done = _gcry_chacha20_riscv_v_blocks(ctx->input, dst, src,
+						  nblks);
+      dst += CHACHA20_BLOCK_SIZE * done;
+      src += CHACHA20_BLOCK_SIZE * done;
+      nblks -= done;
+      if (nblks == 0)
+	return burn;
     }
 #endif
 
