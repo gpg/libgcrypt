@@ -38,7 +38,9 @@
 
 
 #define cast_u8m1_u32m1(a) __riscv_vreinterpret_v_u8m1_u32m1(a)
-#define cast_u32m1_u8m1(a) __riscv_vreinterpret_v_u32m1_u8m1(a)
+#define cast_u8mf2_u32m1(a) cast_u8m1_u32m1(__riscv_vlmul_ext_v_u8mf2_u8m1(a))
+#define cast_u8mf4_u32m1(a) cast_u8m1_u32m1(__riscv_vlmul_ext_v_u8mf4_u8m1(a))
+#define cast_u8mf8_u32m1(a) cast_u8m1_u32m1(__riscv_vlmul_ext_v_u8mf8_u8m1(a))
 
 
 static ASM_FUNC_ATTR_INLINE vuint32m1_t
@@ -51,19 +53,6 @@ unaligned_load_u32m1(const void *ptr, size_t vl_u32)
   return __riscv_vle32_v_u32m1(ptr, vl_u32);
 #endif
 }
-
-static ASM_FUNC_ATTR_INLINE vuint32m1_t
-bswap128_u32m1(vuint32m1_t vec, size_t vl_u32)
-{
-  static const byte bswap128_arr[16] =
-    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-  size_t vl_bytes = vl_u32 * 4;
-  vuint8m1_t bswap128 = __riscv_vle8_v_u8m1(bswap128_arr, vl_bytes);
-
-  return cast_u8m1_u32m1(
-	    __riscv_vrgather_vv_u8m1(cast_u32m1_u8m1(vec), bswap128, vl_bytes));
-}
-
 
 ASM_FUNC_ATTR_NOINLINE int
 _gcry_ghash_setup_riscv_zvkg(gcry_cipher_hd_t c)
@@ -104,24 +93,46 @@ _gcry_ghash_riscv_zvkg(gcry_cipher_hd_t c, byte *result, const byte *buf,
   return 0;
 }
 
+static const byte bswap128_arr[16] =
+  { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+
+#define POLYVAL_LOOP(lmul) \
+  do \
+    { \
+      vuint8##lmul##_t bswap128 = __riscv_vle8_v_u8##lmul(bswap128_arr, 16); \
+      \
+      while (nblocks) \
+	{ \
+	  vuint8##lmul##_t data = __riscv_vle8_v_u8##lmul(buf, 16); \
+	  buf += 16; \
+	  nblocks--; \
+	  \
+	  data = __riscv_vrgather_vv_u8##lmul(data, bswap128, 16); \
+	  rhash = __riscv_vghsh_vv_u32m1(rhash, rh1, \
+					 cast_u8##lmul##_u32m1(data), vl); \
+	} \
+    } \
+  while (0)
+
 ASM_FUNC_ATTR_NOINLINE unsigned int
 _gcry_polyval_riscv_zvkg(gcry_cipher_hd_t c, byte *result, const byte *buf,
-		       size_t nblocks)
+			 size_t nblocks)
 {
   u32 *result_u32 = (void *)result;
   const u32 *key_u32 = (void *)c->u_mode.gcm.u_ghash_key.key;
   size_t vl = 4;
+  size_t vlenb = __riscv_vsetvlmax_e8m1();
   vuint32m1_t rhash = __riscv_vle32_v_u32m1(result_u32, vl);
   vuint32m1_t rh1 = __riscv_vle32_v_u32m1(key_u32, vl);
 
-  while (nblocks)
-    {
-      vuint32m1_t data = bswap128_u32m1(unaligned_load_u32m1(buf, vl), vl);
-      buf += 16;
-      nblocks--;
-
-      rhash = __riscv_vghsh_vv_u32m1(rhash, rh1, data, vl);
-    }
+  if (vlenb >= 128)
+    POLYVAL_LOOP(mf8);
+  else if (vlenb >= 64)
+    POLYVAL_LOOP(mf4);
+  else if (vlenb >= 32)
+    POLYVAL_LOOP(mf2);
+  else
+    POLYVAL_LOOP(m1);
 
   __riscv_vse32_v_u32m1(result_u32, rhash, vl);
 
