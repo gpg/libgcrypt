@@ -1270,26 +1270,6 @@ static unsigned int rej_uniform(int32_t *a,
 *              - const uint8_t seed[]: byte array with seed of length SEEDBYTES
 *              - uint16_t nonce: 2-byte nonce
 **************************************************/
-static
-void poly_uniform(poly *a, const uint8_t seed[SEEDBYTES], uint16_t nonce)
-{
-  unsigned int ctr;
-  /* rej_uniform_avx reads up to 8 additional bytes */
-  ALIGNED_UINT8(REJ_UNIFORM_BUFLEN+8) buf;
-  stream128_state state;
-  stream128_init(&state, seed, nonce);
-
-  stream128_squeezeblocks(buf.coeffs, REJ_UNIFORM_NBLOCKS, &state);
-  ctr = rej_uniform_avx(a->coeffs, buf.coeffs);
-
-  while(ctr < N) {
-    /* length of buf is always divisible by 3; hence, no bytes left */
-    stream128_squeezeblocks(buf.coeffs, 1, &state);
-    ctr += rej_uniform(a->coeffs + ctr, N - ctr, buf.coeffs, STREAM128_BLOCKBYTES);
-  }
-  stream128_close(&state);
-}
-
 void poly_uniform_4x(poly *a0,
                      poly *a1,
                      poly *a2,
@@ -1420,45 +1400,6 @@ static unsigned int rej_eta_4(int32_t *a,
 **************************************************/
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
 static
-void poly_uniform_eta_2(poly *a, const uint8_t seed[CRHBYTES], uint16_t nonce)
-{
-  unsigned int ctr;
-  ALIGNED_UINT8(REJ_UNIFORM_ETA_BUFLEN_2) buf;
-  stream256_state state;
-
-  stream256_init(&state, seed, nonce);
-  stream256_squeezeblocks(buf.coeffs, REJ_UNIFORM_ETA_NBLOCKS_2, &state);
-  ctr = rej_eta_avx_2(a->coeffs, buf.coeffs);
-
-  while(ctr < N) {
-    stream256_squeezeblocks(buf.coeffs, 1, &state);
-    ctr += rej_eta_2(a->coeffs + ctr, N - ctr, buf.coeffs, STREAM256_BLOCKBYTES);
-  }
-  stream256_close(&state);
-}
-#endif
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
-static
-void poly_uniform_eta_4(poly *a, const uint8_t seed[CRHBYTES], uint16_t nonce)
-{
-  unsigned int ctr;
-  ALIGNED_UINT8(REJ_UNIFORM_ETA_BUFLEN_4) buf;
-  stream256_state state;
-
-  stream256_init(&state, seed, nonce);
-  stream256_squeezeblocks(buf.coeffs, REJ_UNIFORM_ETA_NBLOCKS_4, &state);
-  ctr = rej_eta_avx_4(a->coeffs, buf.coeffs);
-
-  while(ctr < N) {
-    stream256_squeezeblocks(buf.coeffs, 1, &state);
-    ctr += rej_eta_4(a->coeffs + ctr, N - ctr, buf.coeffs, STREAM256_BLOCKBYTES);
-  }
-  stream256_close(&state);
-}
-#endif
-
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2 || DILITHIUM_MODE == 5
-static
 void poly_uniform_eta_4x_2(poly *a0,
                          poly *a1,
                          poly *a2,
@@ -1580,9 +1521,7 @@ void poly_uniform_eta_4x_4(poly *a0,
 *              - const uint8_t seed[]: byte array with seed of length CRHBYTES
 *              - uint16_t nonce: 16-bit nonce
 **************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-#define POLY_UNIFORM_GAMMA1_NBLOCKS_17 ((POLYZ_PACKEDBYTES_17 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
-static void polyz_unpack_17(poly *r, const uint8_t *a);/* Forward declarations */
+#if 0 // !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
 static
 void poly_uniform_gamma1_17(poly *a,
                             const uint8_t seed[CRHBYTES],
@@ -1617,6 +1556,8 @@ void poly_uniform_gamma1_19(poly *a,
 }
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
+#define POLY_UNIFORM_GAMMA1_NBLOCKS_17 ((POLYZ_PACKEDBYTES_17 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
+static void polyz_unpack_17(poly *r, const uint8_t *a);/* Forward declarations */
 void poly_uniform_gamma1_4x_17(poly *a0,
                             poly *a1,
                             poly *a2,
@@ -1702,113 +1643,6 @@ void poly_uniform_gamma1_4x_19(poly *a0,
   polyz_unpack_19(a1, buf[1].coeffs);
   polyz_unpack_19(a2, buf[2].coeffs);
   polyz_unpack_19(a3, buf[3].coeffs);
-}
-#endif
-
-/*************************************************
-* Name:        challenge
-*
-* Description: Implementation of H. Samples polynomial with TAU nonzero
-*              coefficients in {-1,1} using the output stream of
-*              SHAKE256(seed).
-*
-* Arguments:   - poly *c: pointer to output polynomial
-*              - const uint8_t mu[]: byte array containing seed of length CTILDEBYTES
-**************************************************/
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
-void poly_challenge_39(poly * restrict c, const uint8_t seed[CTILDEBYTES32]) {
-  unsigned int i, b, pos;
-  uint64_t signs;
-  ALIGNED_UINT8(SHAKE256_RATE) buf;
-  keccak_state state;
-
-  shake256_init(&state);
-  shake256_absorb(&state, seed, CTILDEBYTES32);
-  shake256_finalize(&state);
-  shake256_squeezeblocks(buf.coeffs, 1, &state);
-
-  memcpy(&signs, buf.coeffs, 8);
-  pos = 8;
-
-  memset(c->vec, 0, sizeof(poly));
-  for(i = N-TAU39; i < N; ++i) {
-    do {
-      if(pos >= SHAKE256_RATE) {
-        shake256_squeezeblocks(buf.coeffs, 1, &state);
-        pos = 0;
-      }
-
-      b = buf.coeffs[pos++];
-    } while(b > i);
-
-    c->coeffs[i] = c->coeffs[b];
-    c->coeffs[b] = 1 - 2*(signs & 1);
-    signs >>= 1;
-  }
-}
-#endif
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
-void poly_challenge_49(poly * restrict c, const uint8_t seed[CTILDEBYTES48]) {
-  unsigned int i, b, pos;
-  uint64_t signs;
-  ALIGNED_UINT8(SHAKE256_RATE) buf;
-  keccak_state state;
-
-  shake256_init(&state);
-  shake256_absorb(&state, seed, CTILDEBYTES48);
-  shake256_finalize(&state);
-  shake256_squeezeblocks(buf.coeffs, 1, &state);
-
-  memcpy(&signs, buf.coeffs, 8);
-  pos = 8;
-
-  memset(c->vec, 0, sizeof(poly));
-  for(i = N-TAU49; i < N; ++i) {
-    do {
-      if(pos >= SHAKE256_RATE) {
-        shake256_squeezeblocks(buf.coeffs, 1, &state);
-        pos = 0;
-      }
-
-      b = buf.coeffs[pos++];
-    } while(b > i);
-
-    c->coeffs[i] = c->coeffs[b];
-    c->coeffs[b] = 1 - 2*(signs & 1);
-    signs >>= 1;
-  }
-}
-#endif
-#if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 5
-void poly_challenge60(poly * restrict c, const uint8_t seed[CTILDEBYTES64]) {
-  unsigned int i, b, pos;
-  uint64_t signs;
-  ALIGNED_UINT8(SHAKE256_RATE) buf;
-  keccak_state state;
-
-  shake256_init(&state);
-  shake256_absorb(&state, seed, CTILDEBYTES64);
-  shake256_finalize(&state);
-  shake256_squeezeblocks(buf.coeffs, 1, &state);
-
-  memcpy(&signs, buf.coeffs, 8);
-  pos = 8;
-
-  memset(c->vec, 0, sizeof(poly));
-  for(i = N-TAU60; i < N; ++i) {
-    do {
-      if(pos >= SHAKE256_RATE) {
-        shake256_squeezeblocks(buf.coeffs, 1, &state);
-        pos = 0;
-      }
-
-      b = buf.coeffs[pos++];
-    } while(b > i);
-
-    c->coeffs[i] = c->coeffs[b];
-    c->coeffs[b] = 1 - 2*(signs & 1);
-    signs >>= 1;
-  }
 }
 #endif
 
@@ -2280,14 +2114,15 @@ void polyw1_pack_32(uint8_t *r, const poly * restrict a) {
 }
 #endif
 
+
 /*************** dilithium/avx2/consts.h */
 asm (""
-".equ _8XQ          0\n"
-".equ _8XQINV       8\n"
-".equ _8XDIV_QINV  16\n"
-".equ _8XDIV       24\n"
-".equ _ZETAS_QINV  32\n"
-".equ _ZETAS      328\n"
+".equ _8XQ,          0\n"
+".equ _8XQINV,       8\n"
+".equ _8XDIV_QINV,  16\n"
+".equ _8XDIV,       24\n"
+".equ _ZETAS_QINV,  32\n"
+".equ _ZETAS,      328\n"
 );
 
 /*************** dilithium/avx2/shuffle.inc */

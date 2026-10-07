@@ -44,11 +44,14 @@
   Dilithium Home: https://github.com/pq-crystals/dilithium.git
  */
 /*************** dilithium/ref/polyvec.h */
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 /* Vectors of polynomials of length L */
 typedef struct {
   poly vec[L];
 } polyvecl;
+#endif
 
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 static void polyvecl_uniform_eta(polyvecl *v, const uint8_t seed[CRHBYTES], uint16_t nonce);
 
 static void polyvecl_uniform_gamma1(polyvecl *v, const uint8_t seed[CRHBYTES], uint16_t nonce);
@@ -57,54 +60,60 @@ static void polyvecl_reduce(polyvecl *v);
 
 static void polyvecl_add(polyvecl *w, const polyvecl *u, const polyvecl *v);
 
-static void polyvecl_ntt(polyvecl *v);
 static void polyvecl_invntt_tomont(polyvecl *v);
 static void polyvecl_pointwise_poly_montgomery(polyvecl *r, const poly *a, const polyvecl *v);
+
+static int polyvecl_chknorm(const polyvecl *v, int32_t B);
+#endif
+
+static void polyvecl_ntt(polyvecl *v);
 static void polyvecl_pointwise_acc_montgomery(poly *w,
                                               const polyvecl *u,
                                               const polyvecl *v);
 
 
-static int polyvecl_chknorm(const polyvecl *v, int32_t B);
 
 
 
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 /* Vectors of polynomials of length K */
 typedef struct {
   poly vec[K];
 } polyveck;
+#endif
 
+static void polyveck_ntt(polyveck *v);
+static void polyveck_invntt_tomont(polyveck *v);
+
+static void polyveck_decompose(polyveck *v1, polyveck *v0, const polyveck *v);
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 static void polyveck_uniform_eta(polyveck *v, const uint8_t seed[CRHBYTES], uint16_t nonce);
-
 static void polyveck_reduce(polyveck *v);
 static void polyveck_caddq(polyveck *v);
 
 static void polyveck_add(polyveck *w, const polyveck *u, const polyveck *v);
 static void polyveck_sub(polyveck *w, const polyveck *u, const polyveck *v);
 static void polyveck_shiftl(polyveck *v);
-
-static void polyveck_ntt(polyveck *v);
-static void polyveck_invntt_tomont(polyveck *v);
 static void polyveck_pointwise_poly_montgomery(polyveck *r, const poly *a, const polyveck *v);
-
 static int polyveck_chknorm(const polyveck *v, int32_t B);
-
 static void polyveck_power2round(polyveck *v1, polyveck *v0, const polyveck *v);
-static void polyveck_decompose(polyveck *v1, polyveck *v0, const polyveck *v);
 static unsigned int polyveck_make_hint(polyveck *h,
                                        const polyveck *v0,
                                        const polyveck *v1);
 static void polyveck_use_hint(polyveck *w, const polyveck *v, const polyveck *h);
+#endif
 
 static void polyveck_pack_w1(uint8_t r[K*POLYW1_PACKEDBYTES], const polyveck *w1);
 
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 static void polyvec_matrix_expand(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+#endif
 
 static void polyvec_matrix_pointwise_montgomery(polyveck *t, const polyvecl mat[K], const polyvecl *v);
 
 /*************** dilithium/ref/packing.h */
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 static void pack_pk(uint8_t pk[CRYPTO_PUBLICKEYBYTES], const uint8_t rho[SEEDBYTES], const polyveck *t1);
-
 static void pack_sk(uint8_t sk[CRYPTO_SECRETKEYBYTES],
                     const uint8_t rho[SEEDBYTES],
                     const uint8_t tr[TRBYTES],
@@ -114,8 +123,9 @@ static void pack_sk(uint8_t sk[CRYPTO_SECRETKEYBYTES],
                     const polyveck *s2);
 
 static void pack_sig(uint8_t sig[CRYPTO_BYTES], const uint8_t c[CTILDEBYTES], const polyvecl *z, const polyveck *h);
-
 static void unpack_pk(uint8_t rho[SEEDBYTES], polyveck *t1, const uint8_t pk[CRYPTO_PUBLICKEYBYTES]);
+
+#endif
 
 static void unpack_sk(uint8_t rho[SEEDBYTES],
                       uint8_t tr[TRBYTES],
@@ -125,7 +135,9 @@ static void unpack_sk(uint8_t rho[SEEDBYTES],
                       polyveck *s2,
                       const uint8_t sk[CRYPTO_SECRETKEYBYTES]);
 
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 static int unpack_sig(uint8_t c[CTILDEBYTES], polyvecl *z, polyveck *h, const uint8_t sig[CRYPTO_BYTES]);
+#endif
 
 /*************** dilithium/ref/packing.c */
 
@@ -138,6 +150,7 @@ static int unpack_sig(uint8_t c[CTILDEBYTES], polyvecl *z, polyveck *h, const ui
 *              - const uint8_t rho[]: byte array containing rho
 *              - const polyveck *t1: pointer to vector t1
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void pack_pk(uint8_t pk[CRYPTO_PUBLICKEYBYTES],
              const uint8_t rho[SEEDBYTES],
              const polyveck *t1)
@@ -174,6 +187,7 @@ void unpack_pk(uint8_t rho[SEEDBYTES],
   for(i = 0; i < K; ++i)
     polyt1_unpack(&t1->vec[i], pk + i*POLYT1_PACKEDBYTES);
 }
+#endif
 
 /*************************************************
 * Name:        pack_sk
@@ -188,6 +202,7 @@ void unpack_pk(uint8_t rho[SEEDBYTES],
 *              - const polyvecl *s1: pointer to vector s1
 *              - const polyveck *s2: pointer to vector s2
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void pack_sk(uint8_t sk[CRYPTO_SECRETKEYBYTES],
              const uint8_t rho[SEEDBYTES],
              const uint8_t tr[TRBYTES],
@@ -221,6 +236,7 @@ void pack_sk(uint8_t sk[CRYPTO_SECRETKEYBYTES],
   for(i = 0; i < K; ++i)
     polyt0_pack(sk + i*POLYT0_PACKEDBYTES, &t0->vec[i]);
 }
+#endif
 
 /*************************************************
 * Name:        unpack_sk
@@ -279,6 +295,7 @@ void unpack_sk(uint8_t rho[SEEDBYTES],
 *              - const polyvecl *z: pointer to vector z
 *              - const polyveck *h: pointer to hint vector h
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void pack_sig(uint8_t sig[CRYPTO_BYTES],
               const uint8_t c[CTILDEBYTES],
               const polyvecl *z,
@@ -307,6 +324,7 @@ void pack_sig(uint8_t sig[CRYPTO_BYTES],
     sig[OMEGA + i] = k;
   }
 }
+#endif
 
 /*************************************************
 * Name:        unpack_sig
@@ -321,6 +339,7 @@ void pack_sig(uint8_t sig[CRYPTO_BYTES],
 *
 * Returns 1 in case of malformed signature; otherwise 0.
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 int unpack_sig(uint8_t c[CTILDEBYTES],
                polyvecl *z,
                polyveck *h,
@@ -361,6 +380,8 @@ int unpack_sig(uint8_t c[CTILDEBYTES],
 
   return 0;
 }
+#endif
+
 /*************** dilithium/ref/poly.c */
 /*************************************************
 * Name:        challenge
@@ -372,6 +393,7 @@ int unpack_sig(uint8_t c[CTILDEBYTES],
 * Arguments:   - poly *c: pointer to output polynomial
 *              - const uint8_t mu[]: byte array containing seed of length CTILDEBYTES
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 static
 void poly_challenge(poly *c, const uint8_t seed[CTILDEBYTES]) {
   unsigned int i, b, pos;
@@ -407,6 +429,8 @@ void poly_challenge(poly *c, const uint8_t seed[CTILDEBYTES]) {
   }
   shake256_close(&state);
 }
+#endif
+
 /*************** dilithium/ref/polyvec.c */
 
 /*************************************************
@@ -419,6 +443,7 @@ void poly_challenge(poly *c, const uint8_t seed[CTILDEBYTES]) {
 * Arguments:   - polyvecl mat[K]: output matrix
 *              - const uint8_t rho[]: byte array containing seed rho
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyvec_matrix_expand(polyvecl mat[K], const uint8_t rho[SEEDBYTES]) {
   unsigned int i, j;
 
@@ -426,6 +451,7 @@ void polyvec_matrix_expand(polyvecl mat[K], const uint8_t rho[SEEDBYTES]) {
     for(j = 0; j < L; ++j)
       poly_uniform(&mat[i].vec[j], rho, (i << 8) + j);
 }
+#endif
 
 void polyvec_matrix_pointwise_montgomery(polyveck *t, const polyvecl mat[K], const polyvecl *v) {
   unsigned int i;
@@ -437,7 +463,7 @@ void polyvec_matrix_pointwise_montgomery(polyveck *t, const polyvecl mat[K], con
 /**************************************************************/
 /************ Vectors of polynomials of length L **************/
 /**************************************************************/
-
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyvecl_uniform_eta(polyvecl *v, const uint8_t seed[CRHBYTES], uint16_t nonce) {
   unsigned int i;
 
@@ -475,6 +501,7 @@ void polyvecl_add(polyvecl *w, const polyvecl *u, const polyvecl *v) {
   for(i = 0; i < L; ++i)
     poly_add(&w->vec[i], &u->vec[i], &v->vec[i]);
 }
+#endif
 
 /*************************************************
 * Name:        polyvecl_ntt
@@ -491,6 +518,7 @@ void polyvecl_ntt(polyvecl *v) {
     poly_ntt(&v->vec[i]);
 }
 
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyvecl_invntt_tomont(polyvecl *v) {
   unsigned int i;
 
@@ -504,6 +532,7 @@ void polyvecl_pointwise_poly_montgomery(polyvecl *r, const poly *a, const polyve
   for(i = 0; i < L; ++i)
     poly_pointwise_montgomery(&r->vec[i], a, &v->vec[i]);
 }
+#endif
 
 /*************************************************
 * Name:        polyvecl_pointwise_acc_montgomery
@@ -516,6 +545,7 @@ void polyvecl_pointwise_poly_montgomery(polyvecl *r, const poly *a, const polyve
 *              - const polyvecl *u: pointer to first input vector
 *              - const polyvecl *v: pointer to second input vector
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyvecl_pointwise_acc_montgomery(poly *w,
                                        const polyvecl *u,
                                        const polyvecl *v)
@@ -529,6 +559,7 @@ void polyvecl_pointwise_acc_montgomery(poly *w,
     poly_add(w, w, &t);
   }
 }
+#endif
 
 /*************************************************
 * Name:        polyvecl_chknorm
@@ -542,6 +573,7 @@ void polyvecl_pointwise_acc_montgomery(poly *w,
 * Returns 0 if norm of all polynomials is strictly smaller than B <= (Q-1)/8
 * and 1 otherwise.
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 int polyvecl_chknorm(const polyvecl *v, int32_t bound)  {
   unsigned int i;
 
@@ -551,17 +583,19 @@ int polyvecl_chknorm(const polyvecl *v, int32_t bound)  {
 
   return 0;
 }
+#endif
 
 /**************************************************************/
 /************ Vectors of polynomials of length K **************/
 /**************************************************************/
-
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyveck_uniform_eta(polyveck *v, const uint8_t seed[CRHBYTES], uint16_t nonce) {
   unsigned int i;
 
   for(i = 0; i < K; ++i)
     poly_uniform_eta(&v->vec[i], seed, nonce++);
 }
+#endif
 
 /*************************************************
 * Name:        polyveck_reduce
@@ -571,12 +605,14 @@ void polyveck_uniform_eta(polyveck *v, const uint8_t seed[CRHBYTES], uint16_t no
 *
 * Arguments:   - polyveck *v: pointer to input/output vector
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyveck_reduce(polyveck *v) {
   unsigned int i;
 
   for(i = 0; i < K; ++i)
     poly_reduce(&v->vec[i]);
 }
+#endif
 
 /*************************************************
 * Name:        polyveck_caddq
@@ -603,12 +639,14 @@ void polyveck_caddq(polyveck *v) {
 *              - const polyveck *u: pointer to first summand
 *              - const polyveck *v: pointer to second summand
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyveck_add(polyveck *w, const polyveck *u, const polyveck *v) {
   unsigned int i;
 
   for(i = 0; i < K; ++i)
     poly_add(&w->vec[i], &u->vec[i], &v->vec[i]);
 }
+#endif
 
 /*************************************************
 * Name:        polyveck_sub
@@ -621,12 +659,14 @@ void polyveck_add(polyveck *w, const polyveck *u, const polyveck *v) {
 *              - const polyveck *v: pointer to second input vector to be
 *                                   subtracted from first input vector
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyveck_sub(polyveck *w, const polyveck *u, const polyveck *v) {
   unsigned int i;
 
   for(i = 0; i < K; ++i)
     poly_sub(&w->vec[i], &u->vec[i], &v->vec[i]);
 }
+#endif
 
 /*************************************************
 * Name:        polyveck_shiftl
@@ -636,12 +676,14 @@ void polyveck_sub(polyveck *w, const polyveck *u, const polyveck *v) {
 *
 * Arguments:   - polyveck *v: pointer to input/output vector
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyveck_shiftl(polyveck *v) {
   unsigned int i;
 
   for(i = 0; i < K; ++i)
     poly_shiftl(&v->vec[i]);
 }
+#endif
 
 /*************************************************
 * Name:        polyveck_ntt
@@ -674,13 +716,14 @@ void polyveck_invntt_tomont(polyveck *v) {
     poly_invntt_tomont(&v->vec[i]);
 }
 
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyveck_pointwise_poly_montgomery(polyveck *r, const poly *a, const polyveck *v) {
   unsigned int i;
 
   for(i = 0; i < K; ++i)
     poly_pointwise_montgomery(&r->vec[i], a, &v->vec[i]);
 }
-
+#endif
 
 /*************************************************
 * Name:        polyveck_chknorm
@@ -694,6 +737,7 @@ void polyveck_pointwise_poly_montgomery(polyveck *r, const poly *a, const polyve
 * Returns 0 if norm of all polynomials are strictly smaller than B <= (Q-1)/8
 * and 1 otherwise.
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 int polyveck_chknorm(const polyveck *v, int32_t bound) {
   unsigned int i;
 
@@ -703,6 +747,7 @@ int polyveck_chknorm(const polyveck *v, int32_t bound) {
 
   return 0;
 }
+#endif
 
 /*************************************************
 * Name:        polyveck_power2round
@@ -718,12 +763,14 @@ int polyveck_chknorm(const polyveck *v, int32_t bound) {
 *                              coefficients a0
 *              - const polyveck *v: pointer to input vector
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyveck_power2round(polyveck *v1, polyveck *v0, const polyveck *v) {
   unsigned int i;
 
   for(i = 0; i < K; ++i)
     poly_power2round(&v1->vec[i], &v0->vec[i], &v->vec[i]);
 }
+#endif
 
 /*************************************************
 * Name:        polyveck_decompose
@@ -758,6 +805,7 @@ void polyveck_decompose(polyveck *v1, polyveck *v0, const polyveck *v) {
 *
 * Returns number of 1 bits.
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 unsigned int polyveck_make_hint(polyveck *h,
                                 const polyveck *v0,
                                 const polyveck *v1)
@@ -769,6 +817,7 @@ unsigned int polyveck_make_hint(polyveck *h,
 
   return s;
 }
+#endif
 
 /*************************************************
 * Name:        polyveck_use_hint
@@ -780,12 +829,14 @@ unsigned int polyveck_make_hint(polyveck *h,
 *              - const polyveck *u: pointer to input vector
 *              - const polyveck *h: pointer to input hint vector
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyveck_use_hint(polyveck *w, const polyveck *u, const polyveck *h) {
   unsigned int i;
 
   for(i = 0; i < K; ++i)
     poly_use_hint(&w->vec[i], &u->vec[i], &h->vec[i]);
 }
+#endif
 
 void polyveck_pack_w1(uint8_t r[K*POLYW1_PACKEDBYTES], const polyveck *w1) {
   unsigned int i;
@@ -853,7 +904,7 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
 
   return 0;
 }
-#else
+#elif !defined(DILITHIUM_HAVE_CRYPTO_SIGN)
 int crypto_sign_keypair_internal(uint8_t *pk, uint8_t *sk,
                                  const uint8_t seed[SEEDBYTES])
 {
@@ -921,6 +972,7 @@ int crypto_sign_keypair_internal(uint8_t *pk, uint8_t *sk,
 *
 * Returns 0 (success)
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 int crypto_sign_signature_internal(uint8_t *sig,
                                    size_t *siglen,
                                    const uint8_t *m,
@@ -1029,6 +1081,7 @@ rej:
   *siglen = CRYPTO_BYTES;
   return 0;
 }
+#endif
 
 /*************************************************
 * Name:        crypto_sign_signature
@@ -1132,6 +1185,7 @@ int crypto_sign(uint8_t *sm,
 *
 * Returns 0 if signature could be verified correctly and -1 otherwise
 **************************************************/
+#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 int crypto_sign_verify_internal(const uint8_t *sig,
                                 size_t siglen,
                                 const uint8_t *m,
@@ -1204,6 +1258,7 @@ int crypto_sign_verify_internal(const uint8_t *sig,
 
   return 0;
 }
+#endif
 
 /*************************************************
 * Name:        crypto_sign_verify
