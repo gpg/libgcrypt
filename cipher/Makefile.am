@@ -183,6 +183,18 @@ gost-s-box$(EXEEXT_FOR_BUILD): gost-s-box.c
 	    $(CPPFLAGS_FOR_BUILD) -o $@ $(srcdir)/gost-s-box.c
 
 
+# Dependency tracking for the custom compile rules below, same as automake
+# uses for its own rules.
+if am__fastdepCC
+custom_depflags = -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo
+custom_depfile_o = $(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+custom_depfile_lo = $(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+else
+custom_depflags =
+custom_depfile_o = @:
+custom_depfile_lo = @:
+endif
+
 if ENABLE_O_FLAG_MUNGING
 o_flag_munging = sed -e 's/[[:blank:]]-O\([2-9sgz][2-9sgz]*\)/ -O1 /g' -e 's/[[:blank:]]-Ofast/ -O1 /g'
 else
@@ -192,10 +204,12 @@ endif
 
 # We need to lower the optimization for this module.
 tiger.o: $(srcdir)/tiger.c Makefile
-	`echo $(COMPILE) -c $< | $(o_flag_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(o_flag_munging) `
+	$(custom_depfile_o)
 
 tiger.lo: $(srcdir)/tiger.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(o_flag_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(o_flag_munging) `
+	$(custom_depfile_lo)
 
 
 # We need to disable instrumentation for these modules as they use cc as
@@ -211,52 +225,68 @@ instrumentation_munging = cat
 endif
 
 rijndael-aesni.o: $(srcdir)/rijndael-aesni.c Makefile
-	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 rijndael-aesni.lo: $(srcdir)/rijndael-aesni.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 rijndael-ssse3-amd64.o: $(srcdir)/rijndael-ssse3-amd64.c Makefile
-	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 rijndael-ssse3-amd64.lo: $(srcdir)/rijndael-ssse3-amd64.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 cipher-gcm-intel-pclmul.o: $(srcdir)/cipher-gcm-intel-pclmul.c Makefile
-	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 cipher-gcm-intel-pclmul.lo: $(srcdir)/cipher-gcm-intel-pclmul.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sha1-intel-shaext.o: $(srcdir)/sha1-intel-shaext.c Makefile
-	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sha1-intel-shaext.lo: $(srcdir)/sha1-intel-shaext.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sha256-intel-shaext.o: $(srcdir)/sha256-intel-shaext.c Makefile
-	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sha256-intel-shaext.lo: $(srcdir)/sha256-intel-shaext.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sha256-ssse3-i386.o: $(srcdir)/sha256-ssse3-i386.c Makefile
-	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sha256-ssse3-i386.lo: $(srcdir)/sha256-ssse3-i386.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sha512-intel-shaext.o: $(srcdir)/sha512-intel-shaext.c Makefile
-	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sha512-intel-shaext.lo: $(srcdir)/sha512-intel-shaext.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 crc-intel-pclmul.o: $(srcdir)/crc-intel-pclmul.c Makefile
-	`echo $(COMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 crc-intel-pclmul.lo: $(srcdir)/crc-intel-pclmul.c Makefile
-	`echo $(LTCOMPILE) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 if ENABLE_PPC_VCRYPTO_EXTRA_CFLAGS
 ppc_vcrypto_cflags = -O2 -maltivec -mvsx -mcrypto
@@ -265,70 +295,92 @@ ppc_vcrypto_cflags =
 endif
 
 rijndael-ppc.o: $(srcdir)/rijndael-ppc.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 rijndael-ppc.lo: $(srcdir)/rijndael-ppc.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 rijndael-ppc9le.o: $(srcdir)/rijndael-ppc9le.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 rijndael-ppc9le.lo: $(srcdir)/rijndael-ppc9le.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 rijndael-p10le.o: $(srcdir)/rijndael-p10le.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 rijndael-p10le.lo: $(srcdir)/rijndael-p10le.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sha256-ppc.o: $(srcdir)/sha256-ppc.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sha256-ppc.lo: $(srcdir)/sha256-ppc.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sha512-ppc.o: $(srcdir)/sha512-ppc.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sha512-ppc.lo: $(srcdir)/sha512-ppc.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 chacha20-ppc.o: $(srcdir)/chacha20-ppc.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 chacha20-ppc.lo: $(srcdir)/chacha20-ppc.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 crc-ppc.o: $(srcdir)/crc-ppc.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 crc-ppc.lo: $(srcdir)/crc-ppc.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 cipher-gcm-ppc.o: $(srcdir)/cipher-gcm-ppc.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 cipher-gcm-ppc.lo: $(srcdir)/cipher-gcm-ppc.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 camellia-ppc8le.o: $(srcdir)/camellia-ppc8le.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 camellia-ppc8le.lo: $(srcdir)/camellia-ppc8le.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 camellia-ppc9le.o: $(srcdir)/camellia-ppc9le.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 camellia-ppc9le.lo: $(srcdir)/camellia-ppc9le.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sm4-ppc.o: $(srcdir)/sm4-ppc.c Makefile
-	`echo $(COMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sm4-ppc.lo: $(srcdir)/sm4-ppc.c Makefile
-	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(ppc_vcrypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 if ENABLE_AARCH64_NEON_INTRINSICS_EXTRA_CFLAGS
 aarch64_crypto_cflags = -O2 -march=armv8-a+simd+crypto
@@ -339,22 +391,28 @@ aarch64_simd_cflags =
 endif
 
 camellia-aarch64-ce.o: $(srcdir)/camellia-aarch64-ce.c Makefile
-	`echo $(COMPILE) $(aarch64_crypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(aarch64_crypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 camellia-aarch64-ce.lo: $(srcdir)/camellia-aarch64-ce.c Makefile
-	`echo $(LTCOMPILE) $(aarch64_crypto_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(aarch64_crypto_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 cipher-gcm-aarch64-simd.o: $(srcdir)/cipher-gcm-aarch64-simd.c Makefile
-	`echo $(COMPILE) $(aarch64_simd_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(aarch64_simd_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 cipher-gcm-aarch64-simd.lo: $(srcdir)/cipher-gcm-aarch64-simd.c Makefile
-	`echo $(LTCOMPILE) $(aarch64_simd_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(aarch64_simd_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 rijndael-vp-aarch64.o: $(srcdir)/rijndael-vp-aarch64.c Makefile
-	`echo $(COMPILE) $(aarch64_simd_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(aarch64_simd_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 rijndael-vp-aarch64.lo: $(srcdir)/rijndael-vp-aarch64.c Makefile
-	`echo $(LTCOMPILE) $(aarch64_simd_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(aarch64_simd_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 if ENABLE_X86_AVX512_INTRINSICS_EXTRA_CFLAGS
 avx512f_cflags = -mavx512f -mavx512bw
@@ -363,10 +421,12 @@ avx512f_cflags =
 endif
 
 serpent-avx512-x86.o: $(srcdir)/serpent-avx512-x86.c Makefile
-	`echo $(COMPILE) $(avx512f_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(avx512f_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 serpent-avx512-x86.lo: $(srcdir)/serpent-avx512-x86.c Makefile
-	`echo $(LTCOMPILE) $(avx512f_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(avx512f_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 if ENABLE_RISCV_VECTOR_INTRINSICS_EXTRA_CFLAGS
 # Note: -mstrict-align needed for SpacemiT K1 RVV bug (K1 does not support
@@ -379,16 +439,20 @@ riscv_vector_cflags =
 endif
 
 chacha20-riscv-v.o: $(srcdir)/chacha20-riscv-v.c Makefile
-	`echo $(COMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 chacha20-riscv-v.lo: $(srcdir)/chacha20-riscv-v.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 rijndael-vp-riscv.o: $(srcdir)/rijndael-vp-riscv.c Makefile
-	`echo $(COMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 rijndael-vp-riscv.lo: $(srcdir)/rijndael-vp-riscv.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
 riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned_zvkb
@@ -401,25 +465,33 @@ riscv_vector_crypto_gcm_cflags =
 endif
 
 cipher-gcm-riscv-zvkg.o: $(srcdir)/cipher-gcm-riscv-zvkg.c Makefile
-	`echo $(COMPILE) $(riscv_vector_crypto_gcm_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_crypto_gcm_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 cipher-gcm-riscv-zvkg.lo: $(srcdir)/cipher-gcm-riscv-zvkg.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_crypto_gcm_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_gcm_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 rijndael-riscv-zvkned.o: $(srcdir)/rijndael-riscv-zvkned.c Makefile
-	`echo $(COMPILE) $(riscv_vector_crypto_aes_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_crypto_aes_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 rijndael-riscv-zvkned.lo: $(srcdir)/rijndael-riscv-zvkned.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_crypto_aes_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_aes_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sha256-riscv-zvknha-zvkb.o: $(srcdir)/sha256-riscv-zvknha-zvkb.c Makefile
-	`echo $(COMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_crypto_sha_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sha256-riscv-zvknha-zvkb.lo: $(srcdir)/sha256-riscv-zvknha-zvkb.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
 
 sha512-riscv-zvknhb-zvkb.o: $(srcdir)/sha512-riscv-zvknhb-zvkb.c Makefile
-	`echo $(COMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(COMPILE) $(riscv_vector_crypto_sha_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
 
 sha512-riscv-zvknhb-zvkb.lo: $(srcdir)/sha512-riscv-zvknhb-zvkb.c Makefile
-	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) -c $< | $(instrumentation_munging) `
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_sha_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
