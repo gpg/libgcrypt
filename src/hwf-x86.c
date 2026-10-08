@@ -223,7 +223,6 @@ detect_x86_gnuc (
   unsigned int fms, family, model;
   unsigned int result = 0;
   unsigned int is_amd_cpu = 0;
-  unsigned int has_avx512bmm = 0;
   unsigned int has_sse3 = 0;
 
   (void)os_supports_avx_avx2_registers;
@@ -286,7 +285,6 @@ detect_x86_gnuc (
     {
       /* This is an AMD CPU.  */
       is_amd_cpu = 1;
-      (void)is_amd_cpu;
     }
 
   /* Detect Intel features, that might also be supported by other
@@ -436,18 +434,6 @@ detect_x86_gnuc (
         result |= HWF_INTEL_SM4;
     }
 
-  /* Check additional feature flags. */
-  if (max_cpuid_level >= 0x21 && has_sse3)
-    {
-      unsigned int amd_feat;
-
-      get_cpuid(0x21, &amd_feat, NULL, NULL, NULL);
-      if (amd_feat & (1 << 23))
-	{
-	  has_avx512bmm = 1;
-	}
-    }
-
   if ((result & HWF_INTEL_CPU) && family == 6)
     {
       /* These Intel Core processor models have SHLD/SHRD instruction that
@@ -476,7 +462,11 @@ detect_x86_gnuc (
 	}
     }
 
-  if (is_amd_cpu && (family == 0x1a) && !has_avx512bmm)
+  if (is_amd_cpu && family == 0x1a
+      && (model <= 0x2f
+	  || (model >= 0x40 && model <= 0x4f)
+	  || (model >= 0x60 && model <= 0x7f)
+	  || (model >= 0xd0 && model <= 0xd7)))
     {
       /* Zen5 has integer vector instruction latency of 2 and powerful
        * GPR integer performance. */
