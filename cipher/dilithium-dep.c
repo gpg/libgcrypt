@@ -324,7 +324,6 @@ void pack_sig(uint8_t sig[CRYPTO_BYTES],
     sig[OMEGA + i] = k;
   }
 }
-#endif
 
 /*************************************************
 * Name:        unpack_sig
@@ -339,7 +338,6 @@ void pack_sig(uint8_t sig[CRYPTO_BYTES],
 *
 * Returns 1 in case of malformed signature; otherwise 0.
 **************************************************/
-#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 int unpack_sig(uint8_t c[CTILDEBYTES],
                polyvecl *z,
                polyveck *h,
@@ -532,7 +530,6 @@ void polyvecl_pointwise_poly_montgomery(polyvecl *r, const poly *a, const polyve
   for(i = 0; i < L; ++i)
     poly_pointwise_montgomery(&r->vec[i], a, &v->vec[i]);
 }
-#endif
 
 /*************************************************
 * Name:        polyvecl_pointwise_acc_montgomery
@@ -545,7 +542,6 @@ void polyvecl_pointwise_poly_montgomery(polyvecl *r, const poly *a, const polyve
 *              - const polyvecl *u: pointer to first input vector
 *              - const polyvecl *v: pointer to second input vector
 **************************************************/
-#ifndef DILITHIUM_HAVE_CRYPTO_SIGN
 void polyvecl_pointwise_acc_montgomery(poly *w,
                                        const polyvecl *u,
                                        const polyvecl *v)

@@ -1455,6 +1455,7 @@ void poly_uniform_eta_4x_2(poly *a0,
 }
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3
+static
 void poly_uniform_eta_4x_4(poly *a0,
                          poly *a1,
                          poly *a2,
@@ -1558,6 +1559,7 @@ void poly_uniform_gamma1_19(poly *a,
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 2
 #define POLY_UNIFORM_GAMMA1_NBLOCKS_17 ((POLYZ_PACKEDBYTES_17 + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 static void polyz_unpack_17(poly *r, const uint8_t *a);/* Forward declarations */
+static
 void poly_uniform_gamma1_4x_17(poly *a0,
                             poly *a1,
                             poly *a2,
@@ -1602,6 +1604,7 @@ void poly_uniform_gamma1_4x_17(poly *a0,
 }
 #endif
 #if !defined(DILITHIUM_MODE) || DILITHIUM_MODE == 3 || DILITHIUM_MODE == 5
+static
 void poly_uniform_gamma1_4x_19(poly *a0,
                             poly *a1,
                             poly *a2,

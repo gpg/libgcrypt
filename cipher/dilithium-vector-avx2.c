@@ -431,42 +431,6 @@ static void poly_uniform_4x(poly *a0,
                             uint16_t nonce1,
                             uint16_t nonce2,
                             uint16_t nonce3);
-static void poly_uniform_eta_4x_2(poly *a0,
-                                poly *a1,
-                                poly *a2,
-                                poly *a3,
-                                const uint8_t seed[CRHBYTES],
-                                uint16_t nonce0,
-                                uint16_t nonce1,
-                                uint16_t nonce2,
-                                uint16_t nonce3);
-static void poly_uniform_eta_4x_4(poly *a0,
-                                poly *a1,
-                                poly *a2,
-                                poly *a3,
-                                const uint8_t seed[CRHBYTES],
-                                uint16_t nonce0,
-                                uint16_t nonce1,
-                                uint16_t nonce2,
-                                uint16_t nonce3);
-static void poly_uniform_gamma1_4x_17(poly *a0,
-                                   poly *a1,
-                                   poly *a2,
-                                   poly *a3,
-                                   const uint8_t seed[CRHBYTES],
-                                   uint16_t nonce0,
-                                   uint16_t nonce1,
-                                   uint16_t nonce2,
-                                   uint16_t nonce3);
-static void poly_uniform_gamma1_4x_19(poly *a0,
-                                   poly *a1,
-                                   poly *a2,
-                                   poly *a3,
-                                   const uint8_t seed[CRHBYTES],
-                                   uint16_t nonce0,
-                                   uint16_t nonce1,
-                                   uint16_t nonce2,
-                                   uint16_t nonce3);
 
 static void polyw1_pack_88(uint8_t *r, const poly *a);
 static void polyw1_pack_32(uint8_t *r, const poly *a);

@@ -176,7 +176,7 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 #ifdef DILITHIUM_VECTOR_AVX2_IMPLEMENTATION
     unsigned int hwf = _gcry_get_hw_features ();
     if ((hwf & HWF_INTEL_AVX2))
-      rc = dilithium_keypair_avx2 (info->algo, pk,sk, seed);
+      rc = dilithium_keypair_avx2 (info->algo, pk, sk, seed);
     else
 #endif
       rc = dilithium_keypair (info->algo, pk, sk, seed);
