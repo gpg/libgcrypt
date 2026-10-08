@@ -443,7 +443,7 @@ static void polyw1_pack_32(uint8_t *r, const poly *a);
 #define REJ_UNIFORM_ETA_NBLOCKS_4 ((227+STREAM256_BLOCKBYTES-1)/STREAM256_BLOCKBYTES)
 
 #define REJ_UNIFORM_ETA_BUFLEN_2 (REJ_UNIFORM_ETA_NBLOCKS_2*STREAM256_BLOCKBYTES)
-#define REJ_UNIFORM_ETA_BUFLEN_4 (REJ_UNIFORM_ETA_NBLOCKS_2*STREAM256_BLOCKBYTES)
+#define REJ_UNIFORM_ETA_BUFLEN_4 (REJ_UNIFORM_ETA_NBLOCKS_4*STREAM256_BLOCKBYTES)
 
 /*************** dilithium/avx2/rounding.h */
 static void power2round_avx(__m256i *a1, __m256i *a0, const __m256i *a);
