@@ -1,3 +1,6 @@
+/*************** dilithium/avx2/ntt.h */
+void pointwise_acc_avx(__m256i *c, const __m256i *a, const __m256i *b, const __m256i *qdata);
+
 /*************** dilithium/ref/polyvec.h */
 /* Vectors of polynomials of length L */
 typedef struct {
@@ -879,3 +882,4 @@ int crypto_sign_verify_internal(const uint8_t *sig, size_t siglen, const uint8_t
 }
 
 # undef polyvec_matrix_expand_row
+# undef pointwise_acc_avx

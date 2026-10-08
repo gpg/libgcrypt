@@ -402,7 +402,6 @@ void ntt_avx(__m256i *a, const __m256i *qdata);
 void invntt_avx(__m256i *a, const __m256i *qdata);
 void nttunpack_avx(__m256i *a);
 void pointwise_avx(__m256i *c, const __m256i *a, const __m256i *b, const __m256i *qdata);
-void pointwise_acc_avx(__m256i *c, const __m256i *a, const __m256i *b, const __m256i *qdata);
 
 /*************** dilithium/avx2/poly.h */
 typedef ALIGNED_INT32(N) poly;
@@ -682,6 +681,7 @@ static void shake128_close (keccak_state *state) { (void)state; }
 # define polyvec_matrix_pointwise_montgomery VARIANT2(polyvec_matrix_pointwise_montgomery)
 # define polyvecl_ntt VARIANT2(polyvecl_ntt)
 # define polyvecl_pointwise_acc_montgomery VARIANT2(polyvecl_pointwise_acc_montgomery)
+# define pointwise_acc_avx VARIANT2(pointwise_acc_avx)
 # define polyveck_caddq VARIANT2(polyveck_caddq)
 # define polyveck_decompose VARIANT2(polyveck_decompose)
 # define polyveck_invntt_tomont VARIANT2(polyveck_invntt_tomont)
@@ -739,6 +739,7 @@ static void shake128_close (keccak_state *state) { (void)state; }
 # define polyvec_matrix_pointwise_montgomery VARIANT3(polyvec_matrix_pointwise_montgomery)
 # define polyvecl_ntt VARIANT3(polyvecl_ntt)
 # define polyvecl_pointwise_acc_montgomery VARIANT3(polyvecl_pointwise_acc_montgomery)
+# define pointwise_acc_avx VARIANT3(pointwise_acc_avx)
 # define polyveck_caddq VARIANT3(polyveck_caddq)
 # define polyveck_decompose VARIANT3(polyveck_decompose)
 # define polyveck_invntt_tomont VARIANT3(polyveck_invntt_tomont)
@@ -796,6 +797,7 @@ static void shake128_close (keccak_state *state) { (void)state; }
 # define polyvec_matrix_pointwise_montgomery VARIANT5(polyvec_matrix_pointwise_montgomery)
 # define polyvecl_ntt VARIANT5(polyvecl_ntt)
 # define polyvecl_pointwise_acc_montgomery VARIANT5(polyvecl_pointwise_acc_montgomery)
+# define pointwise_acc_avx VARIANT5(pointwise_acc_avx)
 # define polyveck_caddq VARIANT5(polyveck_caddq)
 # define polyveck_decompose VARIANT5(polyveck_decompose)
 # define polyveck_invntt_tomont VARIANT5(polyveck_invntt_tomont)
