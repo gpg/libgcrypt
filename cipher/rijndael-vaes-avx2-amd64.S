@@ -1418,10 +1418,10 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	vmovdqu (%r14), %xmm15; /* Load offset. */
 	movq L_ARRAY_PTR_L, %r14; /* L-array ptr. */
 	vmovdqa (0 * 16)(%rdi), %xmm0; /* first key */
+	vpxor %xmm0, %xmm15, %xmm15; /* offset ^ first key */
 	vpxor %xmm14, %xmm14, %xmm14;
 	vpxor %xmm13, %xmm13, %xmm13;
 	vpxor (%rdi, %rax, 4), %xmm0, %xmm0; /* first key ^ last key */
-	vpxor (0 * 16)(%rdi), %xmm15, %xmm15; /* offset ^ first key */
 	vmovdqa %xmm0, (14 * 16)(%rsp);
 	vmovdqa %xmm0, (15 * 16)(%rsp);
 
@@ -2005,37 +2005,29 @@ _gcry_vaes_avx2_ocb_crypt_amd64:
 	 *  - block15 = ntz{0} = offset ^ L[3]
 	 *  - block16 = ntz{x} = offset ^ L[3] ^ L[ntz{x}]
 	 */
-	vmovdqu (0 * 16)(%r14), %xmm0;
-	vmovdqu (1 * 16)(%r14), %xmm1;
-	vmovdqu (2 * 16)(%r14), %xmm2;
-	vmovdqu (3 * 16)(%r14), %xmm3;
+	vbroadcasti128 (0 * 16)(%r14), %ymm0; /* L[0] */
+	vbroadcasti128 (1 * 16)(%r14), %ymm1; /* L[1] */
+	vbroadcasti128 (2 * 16)(%r14), %ymm2; /* L[2] */
+	vbroadcasti128 (3 * 16)(%r14), %ymm3; /* L[3] */
 	vpxor %ymm13, %ymm14, %ymm14;
 	vmovdqa %ymm14, (20 * 16)(%rsp);
-	vpxor %xmm0, %xmm1, %xmm4; /* L[0] ^ L[1] */
-	vpxor %xmm0, %xmm2, %xmm5; /* L[0] ^ L[2] */
-	vpxor %xmm0, %xmm3, %xmm6; /* L[0] ^ L[3] */
-	vpxor %xmm1, %xmm2, %xmm7; /* L[1] ^ L[2] */
-	vpxor %xmm1, %xmm3, %xmm8; /* L[1] ^ L[3] */
-	vpxor %xmm2, %xmm3, %xmm9; /* L[2] ^ L[3] */
-	vpxor %xmm4, %xmm2, %xmm10; /* L[0] ^ L[1] ^ L[2] */
-	vpxor %xmm5, %xmm3, %xmm11; /* L[0] ^ L[2] ^ L[3] */
-	vpxor %xmm7, %xmm3, %xmm12; /* L[1] ^ L[2] ^ L[3] */
-	vpxor %xmm0, %xmm8, %xmm13; /* L[0] ^ L[1] ^ L[3] */
-	vpxor %xmm4, %xmm9, %xmm14; /* L[0] ^ L[1] ^ L[2] ^ L[3] */
-	vinserti128 $1, %xmm4, %ymm0, %ymm0;
-	vinserti128 $1, %xmm7, %ymm1, %ymm1;
-	vinserti128 $1, %xmm5, %ymm10, %ymm10;
-	vinserti128 $1, %xmm9, %ymm2, %ymm2;
-	vinserti128 $1, %xmm14, %ymm11, %ymm11;
-	vinserti128 $1, %xmm8, %ymm12, %ymm12;
-	vinserti128 $1, %xmm6, %ymm13, %ymm13;
+	vpxor %ymm0, %ymm1, %ymm4; /* L[0] ^ L[1] */
+	vpxor %ymm1, %ymm2, %ymm5; /* L[1] ^ L[2] */
+	vpxor %ymm2, %ymm3, %ymm6; /* L[2] ^ L[3] */
+	vpblendd $0xf0, %ymm4, %ymm0, %ymm0; /* blocks 1-2 */
+	vpblendd $0xf0, %ymm5, %ymm1, %ymm1; /* blocks 3-4 */
+	vpblendd $0xf0, %ymm6, %ymm2, %ymm2; /* blocks 7-8 */
+	vpxor %ymm5, %ymm0, %ymm7; /* blocks 5-6 */
+	vpxor %ymm6, %ymm0, %ymm8; /* blocks 9-10 */
+	vpxor %ymm6, %ymm1, %ymm9; /* blocks 11-12 */
+	vpxor %ymm6, %ymm7, %ymm10; /* blocks 13-14 */
 	vmovdqa %ymm0,  (0 * 16)(%rsp);
 	vmovdqa %ymm1,  (2 * 16)(%rsp);
-	vmovdqa %ymm10, (4 * 16)(%rsp);
+	vmovdqa %ymm7,  (4 * 16)(%rsp);
 	vmovdqa %ymm2,  (6 * 16)(%rsp);
-	vmovdqa %ymm11, (8 * 16)(%rsp);
-	vmovdqa %ymm12, (10 * 16)(%rsp);
-	vmovdqa %ymm13, (12 * 16)(%rsp);
+	vmovdqa %ymm8,  (8 * 16)(%rsp);
+	vmovdqa %ymm9,  (10 * 16)(%rsp);
+	vmovdqa %ymm10, (12 * 16)(%rsp);
 
 	/* Aligned: Process 16 blocks per loop. */
 .align 8

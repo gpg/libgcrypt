@@ -1062,8 +1062,8 @@ _gcry_vaes_avx512_ocb_aligned_crypt_amd64:
 	leal (, %r9d, 4), %eax;
 	vmovdqu (%r13), %xmm15; /* Load offset. */
 	vmovdqa (0 * 16)(%rdi), %xmm0; /* first key */
+	vpxor %xmm0, %xmm15, %xmm15; /* offset ^ first key */
 	vpxor (%rdi, %rax, 4), %xmm0, %xmm0; /* first key ^ last key */
-	vpxor (0 * 16)(%rdi), %xmm15, %xmm15; /* offset ^ first key */
 	vshufi32x4 $0, %zmm0, %zmm0, %zmm30;
 	vpxord %ymm29, %ymm29, %ymm29;
 
@@ -1096,35 +1096,23 @@ _gcry_vaes_avx512_ocb_aligned_crypt_amd64:
 	 *  - block16 = ntz{4} = offset ^ L[3] ^ L[4]
 	 *  => zmm23
 	 */
-	vmovdqu (0 * 16)(%r14), %xmm0; /* L[0] */
-	vmovdqu (1 * 16)(%r14), %xmm1; /* L[1] */
-	vmovdqu (2 * 16)(%r14), %xmm2; /* L[2] */
-	vmovdqu (3 * 16)(%r14), %xmm3; /* L[3] */
-	vmovdqu32 (4 * 16)(%r14), %xmm16; /* L[4] */
-	vpxor %xmm0, %xmm1, %xmm4; /* L[0] ^ L[1] */
-	vpxor %xmm0, %xmm2, %xmm5; /* L[0] ^ L[2] */
-	vpxor %xmm0, %xmm3, %xmm6; /* L[0] ^ L[3] */
-	vpxor %xmm1, %xmm2, %xmm7; /* L[1] ^ L[2] */
-	vpxor %xmm1, %xmm3, %xmm8; /* L[1] ^ L[3] */
-	vpxor %xmm2, %xmm3, %xmm9; /* L[2] ^ L[3] */
-	vpxord %xmm16, %xmm3, %xmm17; /* L[3] ^ L[4] */
-	vpxor %xmm4, %xmm2, %xmm10; /* L[0] ^ L[1] ^ L[2] */
-	vpxor %xmm5, %xmm3, %xmm11; /* L[0] ^ L[2] ^ L[3] */
-	vpxor %xmm7, %xmm3, %xmm12; /* L[1] ^ L[2] ^ L[3] */
-	vpxor %xmm0, %xmm8, %xmm13; /* L[0] ^ L[1] ^ L[3] */
-	vpxor %xmm4, %xmm9, %xmm14; /* L[0] ^ L[1] ^ L[2] ^ L[3] */
-	vinserti128 $1, %xmm4, %ymm0, %ymm0;
-	vinserti128 $1, %xmm7, %ymm1, %ymm1;
+	vbroadcasti32x4 (0 * 16)(%r14), %zmm0; /* L[0] */
+	vbroadcasti32x4 (1 * 16)(%r14), %zmm1; /* L[1] */
+	vbroadcasti32x4 (2 * 16)(%r14), %zmm2; /* L[2] */
+	vbroadcasti32x4 (3 * 16)(%r14), %zmm3; /* L[3] */
+	vbroadcasti32x4 (4 * 16)(%r14), %zmm7; /* L[4] */
+	vpxord %zmm0, %zmm1, %zmm4; /* L[0] ^ L[1] */
+	vpxord %zmm1, %zmm2, %zmm5; /* L[1] ^ L[2] */
+	vpxord %zmm2, %zmm3, %zmm6; /* L[2] ^ L[3] */
+	vpxord %zmm3, %zmm7, %zmm7; /* L[3] ^ L[4] */
+	vpblendd $0xf0, %ymm4, %ymm0, %ymm0; /* blocks 1-2 */
+	vpblendd $0xf0, %ymm5, %ymm1, %ymm1; /* blocks 3-4 */
 	vinserti32x8 $1, %ymm1, %zmm0, %zmm20;
-	vinserti128 $1, %xmm5, %ymm10, %ymm10;
-	vinserti128 $1, %xmm9, %ymm2, %ymm2;
-	vinserti32x8 $1, %ymm2, %zmm10, %zmm21;
-	vinserti128 $1, %xmm14, %ymm11, %ymm11;
-	vinserti128 $1, %xmm8, %ymm12, %ymm12;
-	vinserti32x8 $1, %ymm12, %zmm11, %zmm22;
-	vinserti128 $1, %xmm6, %ymm13, %ymm13;
-	vinserti32x4 $1, %xmm17, %ymm3, %ymm23;
-	vinserti32x8 $1, %ymm23, %zmm13, %zmm23;
+	vpxord %zmm5, %zmm20, %zmm21; /* blocks 5-8, lane 3 zero */
+	vinserti32x4 $3, %xmm6, %zmm21, %zmm21; /* block 8 */
+	vpxord %zmm6, %zmm20, %zmm22; /* blocks 9-12 */
+	vpxord %zmm6, %zmm21, %zmm23; /* blocks 13-16, lane 3 zero */
+	vinserti32x4 $3, %xmm7, %zmm23, %zmm23; /* block 16 */
 
 	/*
 	 *  - block17 = ntz{0} = offset ^ L[0] ^ L[3] ^ L[4]
@@ -1151,31 +1139,10 @@ _gcry_vaes_avx512_ocb_aligned_crypt_amd64:
 	 *  - block32 = 0 (later filled with ntz{x} = offset ^ L[4] ^ L[ntz{x}])
 	 *  => zmm16
 	 */
-	vpxord %xmm16, %xmm0, %xmm0; /* L[0] ^ L[4] */
-	vpxord %xmm16, %xmm1, %xmm1; /* L[1] ^ L[4] */
-	vpxord %xmm16, %xmm2, %xmm2; /* L[2] ^ L[4] */
-	vpxord %xmm16, %xmm4, %xmm4; /* L[0] ^ L[1] ^ L[4] */
-	vpxord %xmm16, %xmm5, %xmm5; /* L[0] ^ L[2] ^ L[4] */
-	vpxord %xmm16, %xmm6, %xmm6; /* L[0] ^ L[3] ^ L[4] */
-	vpxord %xmm16, %xmm7, %xmm7; /* L[1] ^ L[2] ^ L[4] */
-	vpxord %xmm16, %xmm8, %xmm8; /* L[1] ^ L[3] ^ L[4] */
-	vpxord %xmm16, %xmm9, %xmm9; /* L[2] ^ L[3] ^ L[4] */
-	vpxord %xmm16, %xmm10, %xmm10; /* L[0] ^ L[1] ^ L[2] ^ L[4] */
-	vpxord %xmm16, %xmm11, %xmm11; /* L[0] ^ L[2] ^ L[3] ^ L[4] */
-	vpxord %xmm16, %xmm12, %xmm12; /* L[1] ^ L[2] ^ L[3] ^ L[4] */
-	vpxord %xmm16, %xmm13, %xmm13; /* L[0] ^ L[1] ^ L[3] ^ L[4] */
-	vpxord %xmm16, %xmm14, %xmm14; /* L[0] ^ L[1] ^ L[2] ^ L[3] ^ L[4] */
-	vinserti128 $1, %xmm13, %ymm6, %ymm6;
-	vinserti32x4 $1, %xmm12, %ymm8, %ymm24;
-	vinserti32x8 $1, %ymm24, %zmm6, %zmm24;
-	vinserti128 $1, %xmm11, %ymm14, %ymm14;
-	vinserti32x4 $1, %xmm2, %ymm9, %ymm25;
-	vinserti32x8 $1, %ymm25, %zmm14, %zmm25;
-	vinserti128 $1, %xmm10, %ymm5, %ymm5;
-	vinserti32x4 $1, %xmm1, %ymm7, %ymm26;
-	vinserti32x8 $1, %ymm26, %zmm5, %zmm26;
-	vinserti128 $1, %xmm0, %ymm4, %ymm4;
-	vinserti32x8 $1, %ymm16, %zmm4, %zmm16;
+	vpxord %zmm7, %zmm20, %zmm24; /* blocks 17-20 */
+	vpxord %zmm7, %zmm21, %zmm25; /* blocks 21-24 */
+	vpxord %zmm7, %zmm22, %zmm26; /* blocks 25-28 */
+	vpxord %zmm7, %zmm23, %zmm16; /* blocks 29-32, lane 3 zero */
 
 	/* Aligned: Process 32 blocks per loop. */
 .align 16
