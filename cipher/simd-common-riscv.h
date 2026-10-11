@@ -38,14 +38,11 @@
 
 #define memory_barrier_with_vec(a) __asm__("" : "+vr"(a) :: "memory")
 
-#define clear_vec_regs() __asm__ volatile("vsetvli zero, %0, e8, m1, ta, ma;\n" \
+#define clear_vec_regs() __asm__ volatile("vsetvli zero, %0, e32, m8, ta, ma;\n" \
 					  "vmv.v.i v0, 0;\n" \
-					  "vmv.v.i v1, 0;\n" \
-					  "vmv2r.v v2, v0;\n" \
-					  "vmv4r.v v4, v0;\n" \
-					  "vmv8r.v v8, v0;\n" \
-					  "vmv8r.v v16, v0;\n" \
-					  "vmv8r.v v24, v0;\n" \
+					  "vmv.v.i v8, 0;\n" \
+					  "vmv.v.i v16, 0;\n" \
+					  "vmv.v.i v24, 0;\n" \
 					  : \
 					  : "r" (~0) \
 					  : "memory", "vl", "vtype", \
