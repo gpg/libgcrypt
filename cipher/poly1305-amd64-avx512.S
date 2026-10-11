@@ -882,8 +882,7 @@ ELF(.size _gcry_poly1305_avx512_consts,.-_gcry_poly1305_avx512_consts)
 	and     A0, [.Lmask_44 ADD_RIP]; /* ;; Second limb (A[77:52]) */ \
 	vmovq   xmm6, A0; \
 	\
-	shrd    A1, A2, 24; \
-	and     A1, [.Lmask_42 ADD_RIP]; /* ;; Third limb (A[129:88]) */ \
+	shrd    A1, A2, 24; /* ;; Third limb (A[151:88], A can be >= 2^130) */ \
 	vmovq   xmm7, A1; \
 	\
 	/* ; Load first block of data (128 bytes) */ \
@@ -1008,8 +1007,7 @@ ELF(.size _gcry_poly1305_avx512_consts,.-_gcry_poly1305_avx512_consts)
 	and     A0, [.Lmask_44 ADD_RIP]; /* ;; Second limb (R^4[87:44]) */ \
 	vpbroadcastq zmm23, A0; \
 	\
-	shrd    A1, A2, 24; \
-	and     A1, [.Lmask_42 ADD_RIP]; /* ;; Third limb (R^4[129:88]) */ \
+	shrd    A1, A2, 24; /* ;; Third limb (R^4[151:88], R^4 can be >= 2^130) */ \
 	vpbroadcastq zmm24, A1; \
 	\
 	/* ; Generate 4*5*R^4 */ \
@@ -1401,12 +1399,12 @@ ELF(.size _gcry_poly1305_avx512_consts,.-_gcry_poly1305_avx512_consts)
 	vpaddq  xmm13, xmm13, xmm0; \
 	\
 	/* ; Put together A */ \
+	/* ; First limb can exceed 44 bits after reduction, add with carry */ \
 	vmovq   A0, xmm13; \
 	\
 	vmovq   T0, xmm14; \
 	mov     T1, T0; \
 	shl     T1, 44; \
-	or      A0, T1; \
 	\
 	shr     T0, 20; \
 	vmovq   A2, xmm15; \
@@ -1414,6 +1412,10 @@ ELF(.size _gcry_poly1305_avx512_consts,.-_gcry_poly1305_avx512_consts)
 	shl     A1, 24; \
 	or      A1, T0; \
 	shr     A2, 40; \
+	\
+	add     A0, T1; \
+	adc     A1, 0; \
+	adc     A2, 0; \
 	\
 	/* ; Clear powers of R */ \
 	vpxorq  zmm0, zmm0, zmm0; \
