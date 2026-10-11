@@ -758,6 +758,17 @@ loop_4blocks:
 	vaddudm	5, 5, 10
 	vaddudm	8, 8, 11
 
+	# carry v5..v7 so that only v8 can exceed 26 bits
+	vsrd	10, 5, 31
+	vand	5, 5, 25
+	vaddudm	6, 6, 10
+	vsrd	10, 6, 31
+	vand	6, 6, 25
+	vaddudm	7, 7, 10
+	vsrd	10, 7, 31
+	vand	7, 7, 25
+	vaddudm	8, 8, 10
+
 	b	do_final_update
 
 do_final_update:
