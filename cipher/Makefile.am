@@ -147,7 +147,8 @@ EXTRA_libcipher_la_SOURCES = \
 	sm4-ppc.c sm4-riscv-zvksed-zvkb.c sm4-riscv-zvksed-zvkb.h \
 	sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
 	sha1-avx2-bmi2-amd64.S sha1-armv7-neon.S sha1-armv8-aarch32-ce.S \
-	sha1-armv8-aarch64-ce.S sha1-intel-shaext.c \
+	sha1-armv8-aarch64-ce.S sha1-intel-shaext.c sha1-riscv-zvkb.c \
+	sha1-riscv-zvkb.h \
 	sha256.c sha256-ssse3-amd64.S sha256-avx-amd64.S \
 	sha256-avx2-bmi2-amd64.S \
 	sha256-armv8-aarch32-ce.S sha256-armv8-aarch64-ce.S \
@@ -536,6 +537,14 @@ rijndael-riscv-zvkned.o: $(srcdir)/rijndael-riscv-zvkned.c Makefile
 
 rijndael-riscv-zvkned.lo: $(srcdir)/rijndael-riscv-zvkned.c Makefile
 	`echo $(LTCOMPILE) $(riscv_vector_crypto_aes_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_lo)
+
+sha1-riscv-zvkb.o: $(srcdir)/sha1-riscv-zvkb.c Makefile
+	`echo $(COMPILE) $(riscv_vector_crypto_zvkb_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
+	$(custom_depfile_o)
+
+sha1-riscv-zvkb.lo: $(srcdir)/sha1-riscv-zvkb.c Makefile
+	`echo $(LTCOMPILE) $(riscv_vector_crypto_zvkb_cflags) $(custom_depflags) -c $< | $(instrumentation_munging) `
 	$(custom_depfile_lo)
 
 sha256-riscv-zvknha-zvkb.o: $(srcdir)/sha256-riscv-zvknha-zvkb.c Makefile

@@ -4383,6 +4383,10 @@ case "${host}" in
     # Build with the assembly implementation
     GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha1-armv8-aarch64-ce.lo"
   ;;
+  riscv64-*-*)
+    # Build with the RISC-V vector implementation
+    GCRYPT_ASM_DIGESTS="$GCRYPT_ASM_DIGESTS sha1-riscv-zvkb.lo"
+  ;;
 esac
 
 case "$mpi_cpu_arch" in

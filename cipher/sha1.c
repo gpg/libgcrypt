@@ -107,6 +107,15 @@
 # endif
 #endif
 
+/* USE_RISCV_V_CRYPTO indicates whether to enable RISC-V vector cryptography
+ * extension code. */
+#undef USE_RISCV_V_CRYPTO
+#if defined (__riscv) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS) && \
+    defined(HAVE_COMPATIBLE_CC_RISCV_VECTOR_CRYPTO_INTRINSICS)
+# define USE_RISCV_V_CRYPTO 1
+#endif
+
 
 /* A macro to test whether P is properly aligned for an u32 type.
    Note that config.h provides a suitable replacement for uintptr_t if
@@ -253,6 +262,22 @@ do_sha1_transform_armv8_ce (void *ctx, const unsigned char *data,
 }
 #endif
 
+#ifdef USE_RISCV_V_CRYPTO
+unsigned int _gcry_sha1_riscv_v_check_hw (void);
+
+unsigned int
+_gcry_sha1_transform_riscv_zvkb (void *state, const unsigned char *data,
+                                 size_t nblks);
+
+static unsigned int
+do_sha1_transform_riscv_zvkb (void *ctx, const unsigned char *data,
+                              size_t nblks)
+{
+  SHA1_CONTEXT *hd = ctx;
+  return _gcry_sha1_transform_riscv_zvkb (&hd->h0, data, nblks);
+}
+#endif
+
 #ifdef SHA1_USE_S390X_CRYPTO
 #include "asm-inline-s390x.h"
 
@@ -346,6 +371,14 @@ sha1_init (void *context, unsigned int flags)
 #ifdef USE_ARM_CE
   if ((features & HWF_ARM_SHA1) != 0)
     hd->bctx.bwrite = do_sha1_transform_armv8_ce;
+#endif
+#ifdef USE_RISCV_V_CRYPTO
+  if ((features & HWF_RISCV_IMAFDC)
+      && (features & HWF_RISCV_B)      /* Mandatory in RVA23U64 */
+      && (features & HWF_RISCV_V)      /* Mandatory in RVA23U64 */
+      && (features & HWF_RISCV_ZVKB)   /* Mandatory in RVA23U64 (Zvbb) */
+      && _gcry_sha1_riscv_v_check_hw ())
+    hd->bctx.bwrite = do_sha1_transform_riscv_zvkb;
 #endif
 #ifdef SHA1_USE_S390X_CRYPTO
   hd->use_s390x_crypto = 0;
