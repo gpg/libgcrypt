@@ -202,8 +202,10 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   struct pk_encoding_ctx ctx;
   gcry_mpi_t sk_mpi = NULL;
   gcry_mpi_t data_mpi = NULL;
+  int sk_buffer_used = 0;
   unsigned char sig[MAX_SIG_LEN];
   unsigned char rnd[RNDBYTES];
+  unsigned char sk_buffer[MAX_SECKEY_LEN];
   const unsigned char *data;
   size_t data_len;
   const unsigned char *sk;
@@ -224,9 +226,31 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
    * Extract the secret key.
    */
   rc = sexp_extract_param (keyparms, NULL, "/s", &sk_mpi, NULL);
+  if (rc == GPG_ERR_NO_OBJ
+      && !sexp_extract_param (keyparms, NULL, "/S", &sk_mpi, NULL))
+    {
+      unsigned char pk_buffer[MAX_PUBKEY_LEN];
+      const unsigned char *seedp;
+
+      seedp = mpi_get_opaque (sk_mpi, &n);
+      if (!seedp || SEEDBYTES != (n + 7) / 8)
+        rc = GPG_ERR_BAD_SECKEY;
+      else
+        {
+          rc = dilithium_keypair (info->algo, pk_buffer, sk_buffer, seedp);
+          _gcry_burn_stack (DILITHIUM_KEYPAIR_STACK_BURN);
+          sk_buffer_used = 1;
+        }
+    }
   if (rc)
     goto leave;
-  sk = mpi_get_opaque (sk_mpi, &n);
+  if (sk_buffer_used)
+    {
+      sk = sk_buffer;
+      n = info->seckey_len * 8;
+    }
+  else
+    sk = mpi_get_opaque (sk_mpi, &n);
   if (!sk || info->seckey_len != (n + 7) / 8)
     {
       rc = GPG_ERR_BAD_SECKEY;
@@ -280,6 +304,8 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_pk_util_free_encoding_ctx (&ctx);
   _gcry_mpi_release (sk_mpi);
   _gcry_mpi_release (data_mpi);
+  if (sk_buffer_used)
+    wipememory (sk_buffer, sizeof sk_buffer);
   wipememory (rnd, RNDBYTES);
   if (DBG_CIPHER)
     log_debug ("mldsa_sign    => %s\n", gpg_strerror (rc));
