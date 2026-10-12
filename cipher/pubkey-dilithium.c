@@ -276,7 +276,7 @@ mldsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (rc)
     goto leave;
 
-leave:
+ leave:
   _gcry_pk_util_free_encoding_ctx (&ctx);
   _gcry_mpi_release (sk_mpi);
   _gcry_mpi_release (data_mpi);
@@ -359,7 +359,7 @@ mldsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (rc)
     goto leave;
 
-leave:
+ leave:
   _gcry_pk_util_free_encoding_ctx (&ctx);
   _gcry_mpi_release (pk_mpi);
   _gcry_mpi_release (data_mpi);

@@ -225,7 +225,16 @@ dilithium_verify (int algo, const uint8_t *sig, size_t siglen,
   size_t prelen;
   int r;
 
-  if (ctx == NULL)
+  if (ctx == NULL && ctxlen == 0)
+    {
+      /* We always get here even if we specify an empty string as
+       * label.  The reason is the way we parse the "label" parameter
+       * from the s-expression. */
+      pre[0] = 0;
+      pre[1] = 0;
+      prelen = 2;
+    }
+  else if (ctx == NULL)
     {
       if (ctxlen == -1)
         prelen = 0;
