@@ -90,15 +90,15 @@ online: gcrypt.html gcrypt.pdf gcrypt.info
 	echo "Uploading current manuals to www.gnupg.org ..."; \
 	cp libgcrypt-modules.png gcrypt.html/; \
 	cp fips-fsm.png gcrypt.html/; \
-        user=werner ; dashdevel="" ; \
+        dashdevel="" ; \
         if echo "@PACKAGE_VERSION@" | grep -- "-svn" >/dev/null; then \
 	  dashdevel="-devel" ; \
 	  cp gcrypt.pdf gcrypt.html/; \
 	  cp gcrypt.info gcrypt.html/; \
 	else \
           rsync -v gcrypt.pdf gcrypt.info \
-               $${user}@trithemius.gnupg.org:webspace/manuals/ ; \
+               $${USER}@www.gnupg.org:webspace/documentation/manuals/ ; \
         fi ; \
 	cd gcrypt.html ; \
         rsync -vr --exclude='.svn' .  \
-	  $${user}@trithemius.gnupg.org:webspace/manuals/gcrypt$${dashdevel}/
+	  $${user}@trithemius.gnupg.org:webspace/documentation/manuals/gcrypt$${dashdevel}/

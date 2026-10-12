@@ -552,7 +552,7 @@ AC_ARG_ENABLE(large-data-tests,
 AC_MSG_RESULT($large_data_tests)
 AC_SUBST(RUN_LARGE_DATA_TESTS, $large_data_tests)
 
-# Implementation of --enable-force-soft-hwfeatures
+# Implementation of --enable-forgce-soft-hwfeatures
 AC_MSG_CHECKING([whether 'soft' HW feature bits are forced on])
 AC_ARG_ENABLE([force-soft-hwfeatures],
               AS_HELP_STRING([--enable-force-soft-hwfeatures],
