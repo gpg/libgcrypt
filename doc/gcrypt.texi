@@ -618,6 +618,7 @@ are
 @item riscv-v
 @item riscv-zbb
 @item riscv-zbc
+@item riscv-zvbc
 @item riscv-zvkb
 @item riscv-zvkg
 @item riscv-zvkned

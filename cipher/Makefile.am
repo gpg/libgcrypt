@@ -495,7 +495,7 @@ rijndael-vp-riscv-mf8.lo: $(srcdir)/rijndael-vp-riscv-mf8.c Makefile
 
 if ENABLE_RISCV_VECTOR_CRYPTO_INTRINSICS_EXTRA_CFLAGS
 riscv_vector_crypto_zvkb_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkb
-riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned_zvkb
+riscv_vector_crypto_aes_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvkned_zvkb_zvbc
 riscv_vector_crypto_sha256_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknha_zvkb
 riscv_vector_crypto_sha512_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknhb_zvkb
 riscv_vector_crypto_sha512_m1_cflags = -O2 -march=@MARCH_RVA23U64_BASE@_zvknhb_zvkb_zvl256b

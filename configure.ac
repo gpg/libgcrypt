@@ -3038,6 +3038,14 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	vuint32m1_t d = __riscv_vghsh_vv_u32m1(a, b, c, vl);
 	__riscv_vse32_v_u32m1(ptr + 0 * vl, d, vl);
       }
+      void test_clmul(unsigned int *ptr)
+      {
+	int vl = __riscv_vsetvl_e64m1 (2);
+	vuint64m1_t a = __riscv_vle64_v_u64m1((void *)(ptr + 0 * vl), vl);
+	vuint64m1_t b = __riscv_vle64_v_u64m1((void *)(ptr + 2 * vl), vl);
+	vuint64m1_t c = __riscv_vclmul_vv_u64m1(a, b, vl);
+	__riscv_vse64_v_u64m1((void *)(ptr + 0 * vl), c, vl);
+      }
       void test_sm3(unsigned int *ptr)
       {
 	int vl = __riscv_vsetvl_e32m2 (8);
@@ -3101,6 +3109,7 @@ m4_define([GCRY_RISCV_VECTOR_CRYPTO_INTRINSICS_TEST],
 	test_aes_key(buf);
 	test_aes_crypt(buf);
 	test_ghash(buf);
+	test_clmul(buf);
 	test_sm3(buf);
 	test_sm4(buf);
 	test_rev8(buf);

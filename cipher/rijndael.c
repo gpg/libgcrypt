@@ -287,6 +287,10 @@ extern void
 _gcry_aes_riscv_zvkned_xts_crypt (void *context, unsigned char *tweak,
 				  void *outbuf_arg, const void *inbuf_arg,
 				  size_t nblocks, int encrypt);
+extern void
+_gcry_aes_riscv_zvkned_zvbc_xts_crypt (void *context, unsigned char *tweak,
+				       void *outbuf_arg, const void *inbuf_arg,
+				       size_t nblocks, int encrypt);
 #endif
 
 #ifdef USE_PADLOCK
@@ -816,6 +820,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen,
       bulk_ops->ocb_auth = _gcry_aes_riscv_zvkned_ocb_auth;
       bulk_ops->ecb_crypt = _gcry_aes_riscv_zvkned_ecb_crypt;
       bulk_ops->xts_crypt = _gcry_aes_riscv_zvkned_xts_crypt;
+      if (hwfeatures & HWF_RISCV_ZVBC)
+	bulk_ops->xts_crypt = _gcry_aes_riscv_zvkned_zvbc_xts_crypt;
     }
 #endif
 #ifdef USE_VP_RISCV

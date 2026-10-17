@@ -1984,8 +1984,8 @@ _gcry_aes_riscv_zvkned_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 /* Multiply each 128-bit lane pair by alpha^S. */
 #define DEFINE_XTS_GFMUL_POW(MX, BOOL) \
   static ASM_FUNC_ATTR_INLINE vuint64##MX##_t \
-  xts_gfmul_pow1_##MX (vuint64##MX##_t vec_in, vbool##BOOL##_t even, size_t s, \
-		       size_t vl) \
+  xts_gfmul_pow1_##MX (vuint64##MX##_t vec_in, vbool##BOOL##_t even, \
+		       size_t s, size_t vl, int use_zvbc) \
   { \
     vuint64##MX##_t hi = __riscv_vsrl_vx_u64##MX(vec_in, 64 - s, vl); \
     vuint64##MX##_t lo = __riscv_vsll_vx_u64##MX(vec_in, s, vl); \
@@ -1993,28 +1993,37 @@ _gcry_aes_riscv_zvkned_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     vuint64##MX##_t acc; \
     \
     sw = __riscv_vslidedown_vx_u64##MX##_mu(even, sw, hi, 1, vl); \
-    acc = __riscv_vsll_vx_u64##MX(sw, 5, vl); \
-    acc = __riscv_vxor_vv_u64##MX(acc, sw, vl); \
-    acc = __riscv_vsll_vx_u64##MX(acc, 1, vl); \
-    acc = __riscv_vxor_vv_u64##MX(acc, sw, vl); \
-    acc = __riscv_vsll_vx_u64##MX(acc, 1, vl); \
-    sw = __riscv_vxor_vv_u64##MX##_mu(even, sw, sw, acc, vl); \
+    if (use_zvbc) \
+      { \
+	sw = __riscv_vclmul_vx_u64##MX##_mu(even, sw, sw, 0x87, vl); \
+      } \
+    else \
+      { \
+	acc = __riscv_vsll_vx_u64##MX(sw, 5, vl); \
+	acc = __riscv_vxor_vv_u64##MX(acc, sw, vl); \
+	acc = __riscv_vsll_vx_u64##MX(acc, 1, vl); \
+	acc = __riscv_vxor_vv_u64##MX(acc, sw, vl); \
+	acc = __riscv_vsll_vx_u64##MX(acc, 1, vl); \
+	sw = __riscv_vxor_vv_u64##MX##_mu(even, sw, sw, acc, vl); \
+      } \
     return __riscv_vxor_vv_u64##MX(lo, sw, vl); \
   } \
   \
   static ASM_FUNC_ATTR_INLINE vuint32##MX##_t \
-  xts_gfmul_pow_##MX (vuint32##MX##_t vec_in, vbool##BOOL##_t even, size_t s, \
-		      size_t vl_u32) \
+  xts_gfmul_pow_##MX (vuint32##MX##_t vec_in, vbool##BOOL##_t even, \
+		      size_t s, size_t vl_u32, int use_zvbc) \
   { \
     vuint64##MX##_t vec = cast_u32##MX##_u64##MX(vec_in); \
     size_t vl = vl_u32 / 2; \
     \
     while (UNLIKELY(s > XTS_GFMUL_POW_MAX_SHIFT)) \
       { \
-	vec = xts_gfmul_pow1_##MX(vec, even, XTS_GFMUL_POW_MAX_SHIFT, vl); \
+	vec = xts_gfmul_pow1_##MX(vec, even, XTS_GFMUL_POW_MAX_SHIFT, vl, \
+				  use_zvbc); \
 	s -= XTS_GFMUL_POW_MAX_SHIFT; \
       } \
-    return cast_u64##MX##_u32##MX(xts_gfmul_pow1_##MX(vec, even, s, vl)); \
+    return cast_u64##MX##_u32##MX(xts_gfmul_pow1_##MX(vec, even, s, vl, \
+						      use_zvbc)); \
   }
 
 DEFINE_XTS_GFMUL_POW(m1, 64)
@@ -2023,7 +2032,8 @@ DEFINE_XTS_GFMUL_POW(m4, 16)
 
 static ASM_FUNC_ATTR_INLINE FUNC_ATTR_OPT_O2 void
 aes_riscv_xts_crypt (void *context, unsigned char *tweak_arg, void *outbuf_arg,
-		     const void *inbuf_arg, size_t nblocks, int encrypt)
+		     const void *inbuf_arg, size_t nblocks, int encrypt,
+		     int use_zvbc)
 {
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -2060,7 +2070,8 @@ aes_riscv_xts_crypt (void *context, unsigned char *tweak_arg, void *outbuf_arg,
   /* Double the tweak run until m1 is full. */
   for (k = 1; k < max_blocks_m1; k *= 2)
     {
-      vuint32m1_t next = xts_gfmul_pow_m1(tweak, even_m1, k, k * blk_vl32);
+      vuint32m1_t next = xts_gfmul_pow_m1(tweak, even_m1, k, k * blk_vl32,
+					  use_zvbc);
 
       tweak = __riscv_vslideup_vx_u32m1(tweak, next, k * blk_vl32,
 					2 * k * blk_vl32);
@@ -2079,7 +2090,7 @@ aes_riscv_xts_crypt (void *context, unsigned char *tweak_arg, void *outbuf_arg,
       tweaks_m2 = __riscv_vset_v_u32m1_u32m2(__riscv_vundefined_u32m2(), 0,
 					     tweak);
       tweaks_m2 = __riscv_vset_v_u32m1_u32m2(tweaks_m2, 1,
-	xts_gfmul_pow_m1(tweak, even_m1, max_blocks_m1, vl_m1));
+	xts_gfmul_pow_m1(tweak, even_m1, max_blocks_m1, vl_m1, use_zvbc));
 
       if (nblocks >= max_blocks_m4)
 	{
@@ -2094,7 +2105,8 @@ aes_riscv_xts_crypt (void *context, unsigned char *tweak_arg, void *outbuf_arg,
 	  tweaks_m4 = __riscv_vset_v_u32m2_u32m4(
 	    __riscv_vundefined_u32m4(), 0, tweaks_m2);
 	  tweaks_m4 = __riscv_vset_v_u32m2_u32m4(tweaks_m4, 1,
-	    xts_gfmul_pow_m2(tweaks_m2, even_m2, max_blocks_m2, vl_m2));
+	    xts_gfmul_pow_m2(tweaks_m2, even_m2, max_blocks_m2, vl_m2,
+			     use_zvbc));
 
 	  do
 	    {
@@ -2112,7 +2124,7 @@ aes_riscv_xts_crypt (void *context, unsigned char *tweak_arg, void *outbuf_arg,
 	      unaligned_store_u32m4(outbuf, data_blks, vl_m4);
 
 	      tweaks_m4 = xts_gfmul_pow_m4(tweaks_m4, even_m4, max_blocks_m4,
-					   vl_m4);
+					   vl_m4, use_zvbc);
 
 	      inbuf += max_blocks_m4 * BLOCKSIZE;
 	      outbuf += max_blocks_m4 * BLOCKSIZE;
@@ -2142,7 +2154,7 @@ aes_riscv_xts_crypt (void *context, unsigned char *tweak_arg, void *outbuf_arg,
 	  unaligned_store_u32m2(outbuf, data_blks, vl_m2);
 
 	  tweaks_m2 = xts_gfmul_pow_m2(tweaks_m2, even_m2, max_blocks_m2,
-				       vl_m2);
+				       vl_m2, use_zvbc);
 
 	  inbuf += max_blocks_m2 * BLOCKSIZE;
 	  outbuf += max_blocks_m2 * BLOCKSIZE;
@@ -2174,7 +2186,7 @@ aes_riscv_xts_crypt (void *context, unsigned char *tweak_arg, void *outbuf_arg,
 
       unaligned_store_u32m1(outbuf, data_blks, vl_m1);
 
-      tweak = xts_gfmul_pow_m1(tweak, even_m1, curr_nblks, vl_m1);
+      tweak = xts_gfmul_pow_m1(tweak, even_m1, curr_nblks, vl_m1, use_zvbc);
 
       inbuf += curr_nblks * BLOCKSIZE;
       outbuf += curr_nblks * BLOCKSIZE;
@@ -2192,9 +2204,24 @@ _gcry_aes_riscv_zvkned_xts_crypt (void *context, unsigned char *tweak_arg,
 				  size_t nblocks, int encrypt)
 {
   if (encrypt)
-    aes_riscv_xts_crypt(context, tweak_arg, outbuf_arg, inbuf_arg, nblocks, 1);
+    aes_riscv_xts_crypt(context, tweak_arg, outbuf_arg, inbuf_arg, nblocks, 1,
+			0);
   else
-    aes_riscv_xts_crypt(context, tweak_arg, outbuf_arg, inbuf_arg, nblocks, 0);
+    aes_riscv_xts_crypt(context, tweak_arg, outbuf_arg, inbuf_arg, nblocks, 0,
+			0);
+}
+
+ASM_FUNC_ATTR_NOINLINE FUNC_ATTR_OPT_O2 void
+_gcry_aes_riscv_zvkned_zvbc_xts_crypt (void *context, unsigned char *tweak_arg,
+				       void *outbuf_arg, const void *inbuf_arg,
+				       size_t nblocks, int encrypt)
+{
+  if (encrypt)
+    aes_riscv_xts_crypt(context, tweak_arg, outbuf_arg, inbuf_arg, nblocks, 1,
+			1);
+  else
+    aes_riscv_xts_crypt(context, tweak_arg, outbuf_arg, inbuf_arg, nblocks, 0,
+			1);
 }
 
 #endif /* HAVE_COMPATIBLE_CC_RISCV_VECTOR_INTRINSICS */
