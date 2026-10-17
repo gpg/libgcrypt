@@ -87,6 +87,8 @@ load_and_swap (const byte * p, size_t vl)
 }
 
 
+/* LMUL=1/2 variant for VLEN>=256 would be faster on SpacemiT K3, but QEMU
+ * before v11.1 raises illegal instruction for vsha2* with fractional LMUL. */
 static ASM_FUNC_ATTR_INLINE void
 sha256_transform_zvknha_zvkb (u32 state[8], const uint8_t * data,
 			      size_t nblocks)

@@ -56,6 +56,9 @@ _gcry_sha512_transform_riscv_zvknhb_zvkb_m1(u64 state[8],
 					    size_t num_blks,
 					    const u64 k[80]);
 
+/* Fractional LMUL for VLEN>=512 would be faster on SpacemiT K3 A100, but
+ * SEW=64 with LMUL<1 is optional (X100 does not support it) and QEMU before
+ * v11.1 raises illegal instruction for vsha2* with fractional LMUL. */
 unsigned int
 _gcry_sha512_transform_riscv_zvknhb_zvkb(u64 state[8],
 					 const unsigned char *input_data,
