@@ -852,23 +852,35 @@ _gcry_aes_riscv_zvkned_cfb_enc (void *context, unsigned char *iv_arg,
   if (nblocks)
     {
       vuint32m1_t data = unaligned_load_u32m1(inbuf, vl);
+      vuint32m1_t kx = __riscv_vxor_vv_u32m1(rk0, rk_last, vl);
+      vuint32m1_t out = __riscv_vundefined_u32m1();
+
+      iv = __riscv_vxor_vv_u32m1(iv, rk0, vl);
 
       while (--nblocks)
 	{
-	  AES_CRYPT(e, m1, GET_PRELOADED_KEY, rk, rounds, iv, vl);
+	  /* Merge first round key and next input block to last round key.  */
+	  rk_last = __riscv_vxor_vv_u32m1(data, kx, vl);
+	  memory_barrier_with_vec(rk_last);
+	  memory_barrier_with_vec(out);
 
-	  iv = __riscv_vxor_vv_u32m1(iv, data, vl);
-
+	  /* Load early to hide load latency on in-order cores.  */
 	  inbuf += BLOCKSIZE;
 	  data = unaligned_load_u32m1(inbuf, vl);
+	  memory_barrier_with_vec(data);
 
-	  unaligned_store_u32m1(outbuf, iv, vl);
+	  AES_CRYPT_NO_RK0(e, m1, GET_PRELOADED_KEY, rk, rounds, iv, vl);
+
+	  out = __riscv_vxor_vv_u32m1(iv, rk0, vl);
+	  unaligned_store_u32m1(outbuf, out, vl);
 	  outbuf += BLOCKSIZE;
 	}
 
-      AES_CRYPT(e, m1, GET_PRELOADED_KEY, rk, rounds, iv, vl);
+      rk_last = __riscv_vxor_vv_u32m1(data, kx, vl);
 
-      iv = __riscv_vxor_vv_u32m1(iv, data, vl);
+      AES_CRYPT_NO_RK0(e, m1, GET_PRELOADED_KEY, rk, rounds, iv, vl);
+
+      iv = __riscv_vxor_vv_u32m1(iv, rk0, vl);
 
       unaligned_store_u32m1(outbuf, iv, vl);
     }
@@ -901,24 +913,48 @@ _gcry_aes_riscv_zvkned_cbc_enc (void *context, unsigned char *iv_arg,
 
   if (nblocks)
     {
+      vuint32m1_t kx = __riscv_vxor_vv_u32m1(rk0, rk_last, vl);
+      vuint32m1_t rk_final = rk_last;
       vuint32m1_t data = unaligned_load_u32m1(inbuf, vl);
+      vuint32m1_t data_rk0;
+      vuint32m1_t out = __riscv_vundefined_u32m1();
+
+      iv = __riscv_vxor_vv_u32m1(iv, rk0, vl);
+      iv = __riscv_vxor_vv_u32m1(iv, data, vl);
+
+      if (nblocks > 1)
+	{
+	  inbuf += BLOCKSIZE;
+	  data = unaligned_load_u32m1(inbuf, vl);
+	}
 
       while (--nblocks)
 	{
-	  iv = __riscv_vxor_vv_u32m1(data, iv, vl);
+	  /* Merge first round key and next input block to last round key.  */
+	  data_rk0 = __riscv_vxor_vv_u32m1(data, rk0, vl);
+	  rk_last = __riscv_vxor_vv_u32m1(data, kx, vl);
+	  memory_barrier_with_vec(data_rk0);
+	  memory_barrier_with_vec(rk_last);
+	  memory_barrier_with_vec(out);
 
-	  inbuf += BLOCKSIZE;
-	  data = unaligned_load_u32m1(inbuf, vl);
+	  /* Load early to hide load latency on in-order cores.  */
+	  if (nblocks > 1)
+	    {
+	      inbuf += BLOCKSIZE;
+	      data = unaligned_load_u32m1(inbuf, vl);
+	      memory_barrier_with_vec(data);
+	    }
 
-	  AES_CRYPT(e, m1, GET_PRELOADED_KEY, rk, rounds, iv, vl);
+	  AES_CRYPT_NO_RK0(e, m1, GET_PRELOADED_KEY, rk, rounds, iv, vl);
 
-	  unaligned_store_u32m1(outbuf, iv, vl);
+	  out = __riscv_vxor_vv_u32m1(iv, data_rk0, vl);
+	  unaligned_store_u32m1(outbuf, out, vl);
 	  outbuf += outbuf_add;
 	}
 
-      iv = __riscv_vxor_vv_u32m1(data, iv, vl);
+      rk_last = rk_final;
 
-      AES_CRYPT(e, m1, GET_PRELOADED_KEY, rk, rounds, iv, vl);
+      AES_CRYPT_NO_RK0(e, m1, GET_PRELOADED_KEY, rk, rounds, iv, vl);
 
       unaligned_store_u32m1(outbuf, iv, vl);
     }
