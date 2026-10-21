@@ -104,6 +104,9 @@ static size_t _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 static void _gcry_twofish_xts_crypt (void *context, unsigned char *tweak,
 				     void *outbuf_arg, const void *inbuf_arg,
 				     size_t nblocks, int encrypt);
+static void _gcry_twofish_ctr32le_enc (void *context, unsigned char *ctr,
+				       void *outbuf_arg, const void *inbuf_arg,
+				       size_t nblocks);
 static void _gcry_twofish_ecb_crypt (void *context, void *outbuf_arg,
 				     const void *inbuf_arg, size_t nblocks,
 				     int encrypt);
@@ -778,6 +781,7 @@ twofish_setkey (void *context, const byte *key, unsigned int keylen,
   bulk_ops->ocb_crypt = _gcry_twofish_ocb_crypt;
   bulk_ops->ocb_auth = _gcry_twofish_ocb_auth;
   bulk_ops->xts_crypt = _gcry_twofish_xts_crypt;
+  bulk_ops->ctr32le_enc = _gcry_twofish_ctr32le_enc;
   bulk_ops->ecb_crypt = _gcry_twofish_ecb_crypt;
 
   (void)hwfeatures;
@@ -1629,6 +1633,42 @@ _gcry_twofish_xts_crypt (void *context, unsigned char *tweak, void *outbuf_arg,
 
   if (burn_stack_depth)
     _gcry_burn_stack(burn_stack_depth);
+}
+
+/* Bulk encryption of complete blocks in CTR32LE mode (for GCM-SIV). */
+static void
+_gcry_twofish_ctr32le_enc(void *context, unsigned char *ctr,
+			  void *outbuf_arg, const void *inbuf_arg,
+			  size_t nblocks)
+{
+  TWOFISH_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = 0;
+
+  /* Process remaining blocks. */
+  if (nblocks)
+    {
+      unsigned char tmpbuf[16 * 16];
+      unsigned int tmp_used = 16;
+      size_t tmpbufsize = 15 * 16;
+      size_t nburn;
+
+#ifdef USE_AVX2
+      if (ctx->use_avx2)
+	tmpbufsize = 16 * 16;
+#endif
+
+      nburn = bulk_ctr32le_enc_128 (ctx, twofish_encrypt_blk1_16, outbuf, inbuf,
+				    nblocks, ctr, tmpbuf, tmpbufsize / 16,
+				    &tmp_used);
+      burn_stack_depth = nburn > burn_stack_depth ? nburn : burn_stack_depth;
+
+      wipememory (tmpbuf, tmp_used);
+    }
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth);
 }
 
 
