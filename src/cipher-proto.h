@@ -178,6 +178,7 @@ typedef struct gcry_cipher_spec
   struct {
     unsigned int disabled:1;
     unsigned int fips:1;
+    unsigned int restore_ctx_on_reset:1;
   } flags;
   const char *name;
   const char **aliases;

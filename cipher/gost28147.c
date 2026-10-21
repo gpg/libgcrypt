@@ -305,7 +305,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_gost28147 =
  * it afterwards would be meaningless. */
 gcry_cipher_spec_t _gcry_cipher_spec_gost28147_mesh =
   {
-    GCRY_CIPHER_GOST28147_MESH, {0, 0},
+    GCRY_CIPHER_GOST28147_MESH, {0, 0, 1},
     "GOST28147_MESH", NULL, oids_gost28147_mesh, 8, 256,
     sizeof (GOST28147_context),
     gost_setkey,

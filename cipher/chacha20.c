@@ -1549,7 +1549,7 @@ selftest (void)
 
 gcry_cipher_spec_t _gcry_cipher_spec_chacha20 = {
   GCRY_CIPHER_CHACHA20,
-  {0, 0},                       /* flags */
+  {0, 0, 1},                    /* flags */
   "CHACHA20",                   /* name */
   NULL,                         /* aliases */
   NULL,                         /* oids */

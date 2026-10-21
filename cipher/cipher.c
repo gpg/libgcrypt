@@ -709,8 +709,10 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 
   if (! err)
     {
+      /* Second copy of context is kept for restoring on reset. */
+      size_t nctx = spec->flags.restore_ctx_on_reset ? 2 : 1;
       size_t size = (sizeof (*h)
-                     + 2 * spec->contextsize
+                     + nctx * spec->contextsize
                      - sizeof (cipher_context_alignment_t)
 #ifdef NEED_16BYTE_ALIGNED_CONTEXT
                      + 15  /* Space for leading alignment gap.  */
@@ -723,7 +725,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 	case GCRY_CIPHER_MODE_XTS:
 	case GCRY_CIPHER_MODE_SIV:
 	  /* Additional cipher context for tweak. */
-	  size += 2 * spec->contextsize + 15;
+	  size += nctx * spec->contextsize + 15;
 	  break;
 
 	default:
@@ -771,13 +773,13 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
               break;
 
 	    case GCRY_CIPHER_MODE_XTS:
-	      tc = h->context.c + spec->contextsize * 2;
+	      tc = h->context.c + spec->contextsize * nctx;
 	      tc += (16 - (uintptr_t)tc % 16) % 16;
 	      h->u_mode.xts.tweak_context = tc;
 	      break;
 
 	    case GCRY_CIPHER_MODE_SIV:
-	      tc = h->context.c + spec->contextsize * 2;
+	      tc = h->context.c + spec->contextsize * nctx;
 	      tc += (16 - (uintptr_t)tc % 16) % 16;
 	      h->u_mode.siv.ctr_context = tc;
 	      break;
@@ -868,9 +870,10 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
       int is_weak_key = (rc == GPG_ERR_WEAK_KEY);
 
       /* Duplicate initial context.  */
-      memcpy ((void *) ((char *) &c->context.c + c->spec->contextsize),
-              (void *) &c->context.c,
-              c->spec->contextsize);
+      if (c->spec->flags.restore_ctx_on_reset)
+        memcpy ((void *) ((char *) &c->context.c + c->spec->contextsize),
+                (void *) &c->context.c,
+                c->spec->contextsize);
       c->marks.key = 1;
 
       switch (c->mode)
@@ -908,8 +911,9 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	  if (!rc || (c->marks.allow_weak_key && rc == GPG_ERR_WEAK_KEY))
 	    {
 	      /* Duplicate initial tweak context.  */
-	      memcpy (c->u_mode.xts.tweak_context + c->spec->contextsize,
-		      c->u_mode.xts.tweak_context, c->spec->contextsize);
+	      if (c->spec->flags.restore_ctx_on_reset)
+		memcpy (c->u_mode.xts.tweak_context + c->spec->contextsize,
+			c->u_mode.xts.tweak_context, c->spec->contextsize);
 	    }
 	  else
 	    c->marks.key = 0;
@@ -921,8 +925,9 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 	  if (!rc || (c->marks.allow_weak_key && rc == GPG_ERR_WEAK_KEY))
 	    {
 	      /* Duplicate initial CTR context.  */
-	      memcpy (c->u_mode.siv.ctr_context + c->spec->contextsize,
-		      c->u_mode.siv.ctr_context, c->spec->contextsize);
+	      if (c->spec->flags.restore_ctx_on_reset)
+		memcpy (c->u_mode.siv.ctr_context + c->spec->contextsize,
+			c->u_mode.siv.ctr_context, c->spec->contextsize);
 	    }
 	  else
 	    c->marks.key = 0;
@@ -989,9 +994,10 @@ cipher_reset (gcry_cipher_hd_t c)
   marks_key = c->marks.key;
   marks_allow_weak_key = c->marks.allow_weak_key;
 
-  memcpy (&c->context.c,
-	  (char *) &c->context.c + c->spec->contextsize,
-	  c->spec->contextsize);
+  if (c->spec->flags.restore_ctx_on_reset)
+    memcpy (&c->context.c,
+	    (char *) &c->context.c + c->spec->contextsize,
+	    c->spec->contextsize);
   memset (&c->marks, 0, sizeof c->marks);
   memset (c->u_iv.iv, 0, c->spec->blocksize);
   memset (c->lastiv, 0, c->spec->blocksize);
@@ -1059,9 +1065,10 @@ cipher_reset (gcry_cipher_hd_t c)
       break;
 
     case GCRY_CIPHER_MODE_XTS:
-      memcpy (c->u_mode.xts.tweak_context,
-	      c->u_mode.xts.tweak_context + c->spec->contextsize,
-	      c->spec->contextsize);
+      if (c->spec->flags.restore_ctx_on_reset)
+	memcpy (c->u_mode.xts.tweak_context,
+		c->u_mode.xts.tweak_context + c->spec->contextsize,
+		c->spec->contextsize);
       break;
 
     case GCRY_CIPHER_MODE_SIV:
@@ -1073,9 +1080,10 @@ cipher_reset (gcry_cipher_hd_t c)
 
         memset (&c->u_mode, 0, u_mode_head_length);
 
-	memcpy (c->u_mode.siv.ctr_context,
-		c->u_mode.siv.ctr_context + c->spec->contextsize,
-		c->spec->contextsize);
+	if (c->spec->flags.restore_ctx_on_reset)
+	  memcpy (c->u_mode.siv.ctr_context,
+		  c->u_mode.siv.ctr_context + c->spec->contextsize,
+		  c->spec->contextsize);
 
 	memcpy (c->u_mode.siv.s2v_d, c->u_mode.siv.s2v_zero_block,
 		GCRY_SIV_BLOCK_LEN);

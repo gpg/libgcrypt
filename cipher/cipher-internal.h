@@ -490,11 +490,11 @@ struct gcry_cipher_handle
     } wrap;
   } u_mode;
 
-  /* What follows are two contexts of the cipher in use.  The first
-     one needs to be aligned well enough for the cipher operation
-     whereas the second one is a copy created by cipher_setkey and
-     used by cipher_reset.  That second copy has no need for proper
-     aligment because it is only accessed by memcpy.  */
+  /* What follows is the context of the cipher in use, aligned well
+     enough for the cipher operation.  For ciphers with
+     'restore_ctx_on_reset' flag, it is followed by a copy created by
+     cipher_setkey and used by cipher_reset.  That second copy has no
+     need for proper aligment because it is only accessed by memcpy.  */
   cipher_context_alignment_t context;
 };
 

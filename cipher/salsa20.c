@@ -562,7 +562,7 @@ selftest (void)
 gcry_cipher_spec_t _gcry_cipher_spec_salsa20 =
   {
     GCRY_CIPHER_SALSA20,
-    {0, 0},     /* flags */
+    {0, 0, 1},  /* flags */
     "SALSA20",  /* name */
     NULL,       /* aliases */
     NULL,       /* oids */
@@ -582,7 +582,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_salsa20 =
 gcry_cipher_spec_t _gcry_cipher_spec_salsa20r12 =
   {
     GCRY_CIPHER_SALSA20R12,
-    {0, 0},     /* flags */
+    {0, 0, 1},  /* flags */
     "SALSA20R12",  /* name */
     NULL,       /* aliases */
     NULL,       /* oids */
