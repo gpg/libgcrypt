@@ -13667,6 +13667,163 @@ cipher_ctr_bulk_test (int cipher_algo)
 }
 
 
+/* Check GCM-SIV encryption of 128-bit block cipher against keystream
+   generated with ECB.  Message encryption key is derived with ECB and
+   keystream counter is taken from the tag. */
+static void
+cipher_gcm_siv_bulk_test (int cipher_algo)
+{
+  static const unsigned char key[32] = {
+      0x06,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21,
+      0x3E,0x1D,0x58,0x22,0x69,0x0C,0xB1,0x4A,
+      0x77,0xE5,0x0B,0x93,0xC4,0x2F,0x8D,0x61
+    };
+  static const unsigned int nblks[] = {
+      0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65,
+      127, 128, 129
+    };
+  static const unsigned int tails[] = { 0, 1, 15 };
+  const size_t maxlen = 129 * 16 + 15;
+  gcry_cipher_hd_t hd_ecb = NULL;
+  gcry_cipher_hd_t hd_siv = NULL;
+  unsigned char *plain, *ciphertext, *expect;
+  unsigned char nonce[12], tag[16], ctr[16], ks[16], blk[16];
+  unsigned char enc_key[32];
+  const char *cipher;
+  unsigned int keylen;
+  size_t i, j, k, t, len;
+  gcry_error_t err;
+
+  if (gcry_cipher_test_algo (cipher_algo))
+    return;
+  if (gcry_cipher_get_algo_blklen (cipher_algo) != 16)
+    return;
+  keylen = gcry_cipher_get_algo_keylen (cipher_algo);
+  if (keylen != 16 && keylen != 32)
+    return;
+  cipher = gcry_cipher_algo_name (cipher_algo);
+
+  if (verbose)
+    fprintf (stderr, "    checking GCM-SIV bulk encryption for %s [%i]\n",
+             cipher, cipher_algo);
+
+  plain = xmalloc (maxlen);
+  ciphertext = xmalloc (maxlen);
+  expect = xmalloc (maxlen);
+
+  for (i = 0; i < maxlen; i++)
+    plain[i] = i * 7 + 1;
+
+  err = gcry_cipher_open (&hd_ecb, cipher_algo, GCRY_CIPHER_MODE_ECB, 0);
+  if (!err)
+    err = gcry_cipher_open (&hd_siv, cipher_algo, GCRY_CIPHER_MODE_GCM_SIV, 0);
+  if (err)
+    {
+      fail ("%s-GCM-SIV bulk test, gcry_cipher_open failed: %s\n",
+            cipher, gpg_strerror (err));
+      goto out;
+    }
+
+  for (i = 0; i < DIM (nblks); i++)
+    for (t = 0; t < DIM (tails); t++)
+      {
+        len = nblks[i] * 16 + tails[t];
+        memset (nonce, 0x5a, sizeof (nonce));
+        nonce[0] = i;
+        nonce[1] = t;
+
+        err = gcry_cipher_setkey (hd_siv, key, keylen);
+        if (!err)
+          err = gcry_cipher_setiv (hd_siv, nonce, sizeof (nonce));
+        if (!err)
+          err = gcry_cipher_authenticate (hd_siv, key, i);
+        if (!err)
+          err = gcry_cipher_encrypt (hd_siv, ciphertext, len, plain, len);
+        if (!err)
+          err = gcry_cipher_gettag (hd_siv, tag, sizeof (tag));
+        if (err)
+          {
+            fail ("%s-GCM-SIV bulk test, encryption failed (len %u): %s\n",
+                  cipher, (unsigned int)len, gpg_strerror (err));
+            goto out;
+          }
+
+        /* Message encryption key from master key and nonce. */
+        err = gcry_cipher_setkey (hd_ecb, key, keylen);
+        for (k = 0; !err && k < keylen / 8; k++)
+          {
+            blk[0] = 2 + k;
+            blk[1] = blk[2] = blk[3] = 0;
+            memcpy (blk + 4, nonce, sizeof (nonce));
+            err = gcry_cipher_encrypt (hd_ecb, blk, sizeof (blk), NULL, 0);
+            memcpy (enc_key + k * 8, blk, 8);
+          }
+        if (!err)
+          err = gcry_cipher_setkey (hd_ecb, enc_key, keylen);
+
+        /* Keystream from tag, with low 32 bits as little-endian counter. */
+        memcpy (ctr, tag, sizeof (ctr));
+        ctr[15] |= 0x80;
+        for (j = 0; !err && j < len; j += 16)
+          {
+            err = gcry_cipher_encrypt (hd_ecb, ks, sizeof (ks),
+                                       ctr, sizeof (ctr));
+            for (k = 0; k < 16 && j + k < len; k++)
+              expect[j + k] = plain[j + k] ^ ks[k];
+            for (k = 0; k < 4; k++)
+              if (++ctr[k])
+                break;
+          }
+        if (err)
+          {
+            fail ("%s-GCM-SIV bulk test, ECB encryption failed: %s\n",
+                  cipher, gpg_strerror (err));
+            goto out;
+          }
+
+        if (memcmp (ciphertext, expect, len))
+          {
+            fail ("%s-GCM-SIV bulk test, ciphertext mismatch (len %u)\n",
+                  cipher, (unsigned int)len);
+            goto out;
+          }
+
+        err = gcry_cipher_setkey (hd_siv, key, keylen);
+        if (!err)
+          err = gcry_cipher_setiv (hd_siv, nonce, sizeof (nonce));
+        if (!err)
+          err = gcry_cipher_authenticate (hd_siv, key, i);
+        if (!err)
+          err = gcry_cipher_set_decryption_tag (hd_siv, tag, sizeof (tag));
+        if (!err)
+          err = gcry_cipher_decrypt (hd_siv, expect, len, ciphertext, len);
+        if (!err)
+          err = gcry_cipher_checktag (hd_siv, tag, sizeof (tag));
+        if (err)
+          {
+            fail ("%s-GCM-SIV bulk test, decryption failed (len %u): %s\n",
+                  cipher, (unsigned int)len, gpg_strerror (err));
+            goto out;
+          }
+
+        if (memcmp (expect, plain, len))
+          {
+            fail ("%s-GCM-SIV bulk test, plaintext mismatch (len %u)\n",
+                  cipher, (unsigned int)len);
+            goto out;
+          }
+      }
+
+out:
+  gcry_cipher_close (hd_ecb);
+  gcry_cipher_close (hd_siv);
+  xfree (plain);
+  xfree (ciphertext);
+  xfree (expect);
+}
+
+
 /* Regression test for the 16-bit-overflow split in bulk CTR encryption: a
    single call spanning >= 0x10000 blocks must not reuse keystream nor drop the
    counter carry.  Reference keystream is built from ECB with a full-width
@@ -13918,6 +14075,7 @@ check_ciphers (void)
           cipher_cfb_bulk_test (algos[i]);
           cipher_ctr_bulk_test (algos[i]);
         }
+      cipher_gcm_siv_bulk_test (algos[i]);
     }
 
   for (i = 0; algos2[i]; i++)
