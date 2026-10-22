@@ -530,7 +530,7 @@ my_spawn (const char *pgmname, char **argv, char **envp, MYPID_T *pid)
     while (argv[i])
       i++;
   arg_list = xcalloc (i+2, sizeof *arg_list);
-  arg_list[0] = strrchr (pgmname, '/');
+  arg_list[0] = (char*)strrchr (pgmname, '/');
   if (arg_list[0])
     arg_list[0]++;
   else
