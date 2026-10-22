@@ -595,6 +595,8 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
  * "ψ₁"/"ψ₂"/"ψ₃".
  */
 
+.align 16
+.Lpre_s123_s4:
 /* Bit-matrix from "θ₁(x)" function: */
 .Lpre_filter_bitmatrix_s123:
 	.quad BM8X8(BV8(1, 1, 1, 0, 1, 1, 0, 1),
@@ -691,19 +693,112 @@ ELF(.type   _gcry_camellia_gfni_avx512__constants,@object;)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16
 
 .align 16
-/* Shuffling constants for AVX512+GFNI 1-way variant. */
-.Lsp1mask_swap32_gfni:
-	.byte 0xff, 0x04, 0x04, 0x04, 0xff, 0x04, 0x04, 0x04
+/* Constants for AVX512+GFNI 1-way variant. */
+
+/* P-function shuffles, first ('a') and second ('b') byte from each sbox. */
+.Lsp1mask_a_gfni:
+	.byte 0xff, 0x04, 0x04, 0x04, 0xff, 0x0c, 0x04, 0x04
+	.byte 0xff, 0x04, 0x04, 0x04, 0xff, 0x0c, 0x04, 0x04
+.Lsp1mask_b_gfni:
 	.byte 0xff, 0x03, 0x03, 0x03, 0x03, 0xff, 0xff, 0x03
-.Lsp2mask_swap32_gfni:
-	.byte 0x07, 0x07, 0x07, 0xff, 0x07, 0x07, 0x07, 0xff
-	.byte 0x02, 0x02, 0x02, 0xff, 0xff, 0xff, 0x02, 0x02
-.Lsp3mask_swap32_gfni:
-	.byte 0x06, 0x06, 0xff, 0x06, 0x06, 0x06, 0xff, 0x06
-	.byte 0x01, 0x01, 0xff, 0x01, 0xff, 0x01, 0x01, 0xff
-.Lsp4mask_swap32_gfni:
-	.byte 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff
-	.byte 0x05, 0xff, 0x05, 0x05, 0x05, 0xff, 0x05, 0x05
+	.byte 0xff, 0x03, 0x03, 0x03, 0x03, 0xff, 0xff, 0x03
+.Lsp2mask_a_gfni:
+	.byte 0x0f, 0x07, 0x07, 0xff, 0x07, 0x0f, 0x07, 0xff
+	.byte 0x0f, 0x07, 0x07, 0xff, 0x07, 0x0f, 0x07, 0xff
+.Lsp2mask_b_gfni:
+	.byte 0x0a, 0x02, 0x02, 0xff, 0xff, 0xff, 0x02, 0x02
+	.byte 0x0a, 0x02, 0x02, 0xff, 0xff, 0xff, 0x02, 0x02
+.Lsp3mask_a_gfni:
+	.byte 0x0e, 0x06, 0xff, 0x06, 0x06, 0x0e, 0xff, 0x06
+	.byte 0x0e, 0x06, 0xff, 0x06, 0x06, 0x0e, 0xff, 0x06
+.Lsp3mask_b_gfni:
+	.byte 0x09, 0x01, 0xff, 0x01, 0xff, 0x09, 0x01, 0xff
+	.byte 0x09, 0x01, 0xff, 0x01, 0xff, 0x09, 0x01, 0xff
+.Lsp4mask_a_gfni:
+	.byte 0x08, 0xff, 0x00, 0x00, 0x00, 0x08, 0xff, 0xff
+	.byte 0x08, 0xff, 0x00, 0x00, 0x00, 0x08, 0xff, 0xff
+.Lsp4mask_b_gfni:
+	.byte 0x0d, 0xff, 0x05, 0x05, 0x05, 0xff, 0x05, 0x05
+	.byte 0x0d, 0xff, 0x05, 0x05, 0x05, 0xff, 0x05, 0x05
+
+/* Bytes 0 and 5 from high quadword, others from low quadword. */
+.Lsel_s4_hi:
+	.byte 0x08, 0x01, 0x02, 0x03, 0x04, 0x0d, 0x06, 0x07
+	.byte 0x08, 0x01, 0x02, 0x03, 0x04, 0x0d, 0x06, 0x07
+
+/* Byte-swap 32-bit words of low quadword to both quadwords. */
+.Lbswap32_dup:
+	.byte 3, 2, 1, 0, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4
+
+/* Inverse pre-filters of s1/s2/s3 and s4, inverses of "θ₁(x)" and "θ₄(x)"
+ * bit-matrixes, and their constants. */
+.Lpre_inv_s123_s4:
+	.quad BM8X8(BV8(1, 0, 1, 1, 0, 1, 1, 1),
+		    BV8(1, 1, 0, 1, 0, 0, 1, 0),
+		    BV8(0, 0, 0, 0, 1, 0, 1, 0),
+		    BV8(0, 1, 0, 0, 0, 1, 0, 1),
+		    BV8(1, 0, 1, 1, 0, 0, 0, 1),
+		    BV8(1, 0, 1, 1, 1, 0, 0, 1),
+		    BV8(0, 0, 0, 0, 1, 1, 1, 1),
+		    BV8(1, 1, 1, 0, 0, 1, 1, 1))
+	.quad BM8X8(BV8(1, 1, 0, 1, 0, 0, 1, 0),
+		    BV8(0, 0, 0, 0, 1, 0, 1, 0),
+		    BV8(0, 1, 0, 0, 0, 1, 0, 1),
+		    BV8(1, 0, 1, 1, 0, 0, 0, 1),
+		    BV8(1, 0, 1, 1, 1, 0, 0, 1),
+		    BV8(0, 0, 0, 0, 1, 1, 1, 1),
+		    BV8(1, 1, 1, 0, 0, 1, 1, 1),
+		    BV8(1, 0, 1, 1, 0, 1, 1, 1))
+.Lpre_inv_const:
+	.byte 0xe2, 0xc5, 0xc5, 0xc5, 0xc5, 0xe2, 0xc5, 0xc5
+	.byte 0xe2, 0xc5, 0xc5, 0xc5, 0xc5, 0xe2, 0xc5, 0xc5
+
+.align 16
+/* Post-filters composed with pre-filters of s1/s2/s3 and s4. */
+.Lcm_s3:
+/* Bit-matrix from "θ₁(ψ₃(A(x)))" function: */
+	.quad BM8X8(BV8(1, 1, 1, 0, 0, 0, 1, 1),
+		    BV8(1, 0, 0, 0, 1, 0, 0, 1),
+		    BV8(0, 1, 0, 1, 0, 1, 1, 0),
+		    BV8(1, 1, 1, 0, 1, 1, 1, 0),
+		    BV8(0, 0, 1, 0, 0, 0, 0, 1),
+		    BV8(0, 0, 0, 0, 0, 0, 1, 0),
+		    BV8(0, 0, 1, 1, 1, 0, 1, 0),
+		    BV8(0, 0, 0, 0, 0, 1, 0, 1))
+.Lcm_s14:
+/* Bit-matrix from "θ₄(ψ₃(A(x)))" and "θ₁(ψ₁(A(x)))" functions: */
+	.quad BM8X8(BV8(0, 0, 0, 1, 0, 1, 0, 1),
+		    BV8(1, 1, 0, 1, 1, 0, 1, 0),
+		    BV8(0, 1, 1, 1, 1, 1, 0, 0),
+		    BV8(1, 1, 0, 0, 0, 1, 1, 1),
+		    BV8(1, 1, 0, 1, 0, 0, 0, 0),
+		    BV8(1, 1, 1, 0, 0, 0, 0, 1),
+		    BV8(0, 1, 1, 0, 1, 1, 1, 0),
+		    BV8(0, 0, 1, 0, 0, 0, 0, 0))
+.Lcm_s2:
+/* Bit-matrix from "θ₄(ψ₁(A(x)))" and "θ₁(ψ₂(A(x)))" functions: */
+	.quad BM8X8(BV8(1, 0, 0, 1, 0, 0, 0, 1),
+		    BV8(1, 0, 0, 0, 0, 1, 1, 0),
+		    BV8(1, 0, 1, 0, 0, 0, 1, 1),
+		    BV8(1, 1, 1, 0, 0, 1, 0, 1),
+		    BV8(1, 0, 0, 1, 0, 1, 0, 1),
+		    BV8(1, 1, 1, 1, 0, 1, 0, 0),
+		    BV8(1, 1, 1, 1, 0, 0, 1, 1),
+		    BV8(1, 1, 0, 0, 1, 1, 0, 0))
+/* Bit-matrix from "θ₄(ψ₂(A(x)))" function: */
+	.quad BM8X8(BV8(1, 0, 0, 1, 1, 0, 0, 1),
+		    BV8(1, 1, 1, 0, 1, 0, 0, 1),
+		    BV8(0, 0, 0, 0, 0, 1, 0, 1),
+		    BV8(1, 1, 0, 0, 1, 0, 0, 0),
+		    BV8(1, 0, 1, 0, 0, 1, 0, 1),
+		    BV8(0, 1, 1, 0, 0, 1, 0, 1),
+		    BV8(1, 0, 1, 0, 0, 1, 0, 0),
+		    BV8(1, 1, 1, 0, 1, 0, 1, 0))
+
+/* Post-filter constants through P-function and pre-filters. */
+.Lpost_const:
+	.byte 0x00, 0x00, 0x00, 0x00, 0xcf, 0x0a, 0x63, 0xcf
+	.byte 0x00, 0x00, 0x00, 0x00, 0xcf, 0x0a, 0x63, 0xcf
 
 ELF(.size _gcry_camellia_gfni_avx512__constants,.-_gcry_camellia_gfni_avx512__constants;)
 
@@ -1590,116 +1685,177 @@ ELF(.size _gcry_camellia_gfni_avx512_dec_blk64,.-_gcry_camellia_gfni_avx512_dec_
   1-block non-parallel camellia
  **********************************************************************/
 
-/* Camellia F function, AVX512+GFNI version */
-#define camellia_f_gfni(ab, cd, x1, x2, x3, x4, \
-			pre_filter_bitmatrix_s123, pre_filter_bitmatrix_s4, \
-			post_filter_bitmatrix_s14, post_filter_bitmatrix_s2, \
-			post_filter_bitmatrix_s3, sp1mask, sp2mask, sp3mask, \
-			sp4mask) \
-	/* camellia sboxes s1, s2, s3, s4 */ \
-	vgf2p8affineqb $(pre_filter_constant_s1234), \
-		       pre_filter_bitmatrix_s4, ab, x4; \
-	vgf2p8affineinvqb $(post_filter_constant_s14), \
-			  post_filter_bitmatrix_s14, x4, x4; \
-	vgf2p8affineqb $(pre_filter_constant_s1234), \
-		       pre_filter_bitmatrix_s123, ab, x1; \
-	vgf2p8affineinvqb $(post_filter_constant_s2), \
-			  post_filter_bitmatrix_s2, x1, x2; \
-	vgf2p8affineinvqb $(post_filter_constant_s3), \
-			  post_filter_bitmatrix_s3, x1, x3; \
-	vgf2p8affineinvqb $(post_filter_constant_s14), \
-			  post_filter_bitmatrix_s14, x1, x1; \
+#define RPOST14	%xmm10
+#define RPOST2	%xmm11
+#define RPOST3	%xmm12
+#define RBSWAP	%xmm15
+#define RCM14	%xmm16
+#define RCM2	%xmm17
+#define RCM3	%xmm18
+#define RM1A	%xmm19
+#define RM1B	%xmm20
+#define RM2A	%xmm21
+#define RM2B	%xmm22
+#define RM3A	%xmm23
+#define RM3B	%xmm24
+#define RM4A	%xmm25
+#define RM4B	%xmm26
+#define RPRE	%xmm27
+#define RPINV	%xmm28
+#define RSEL	%xmm29
+#define RCX	%xmm30
+#define RKC	%xmm31
+
+#define preload_blk1_consts() \
+	movl $0x5, %eax; \
+	vpbroadcastq .Lpost_filter_bitmatrix_s14 rRIP, RPOST14; \
+	vpbroadcastq .Lpost_filter_bitmatrix_s2 rRIP, RPOST2; \
+	vpbroadcastq .Lpost_filter_bitmatrix_s3 rRIP, RPOST3; \
+	vmovdqa .Lbswap32_dup rRIP, RBSWAP; \
+	vmovdqu64 .Lcm_s14 rRIP, RCM14; \
+	vmovdqu64 .Lcm_s2 rRIP, RCM2; \
+	vmovdqa64 .Lcm_s3 rRIP, RCM3; \
+	kmovd %eax, %k1; \
+	vmovdqa64 .Lsp1mask_a_gfni rRIP, RM1A; \
+	vmovdqa64 .Lsp1mask_b_gfni rRIP, RM1B; \
+	vmovdqa64 .Lsp2mask_a_gfni rRIP, RM2A; \
+	vmovdqa64 .Lsp2mask_b_gfni rRIP, RM2B; \
+	vmovdqa64 .Lsp3mask_a_gfni rRIP, RM3A; \
+	vmovdqa64 .Lsp3mask_b_gfni rRIP, RM3B; \
+	vmovdqa64 .Lsp4mask_a_gfni rRIP, RM4A; \
+	vmovdqa64 .Lsp4mask_b_gfni rRIP, RM4B; \
+	vmovdqa64 .Lpre_s123_s4 rRIP, RPRE; \
+	vmovdqa64 .Lpre_inv_s123_s4 rRIP, RPINV; \
+	vmovdqa64 .Lsel_s4_hi rRIP, RSEL; \
+	vmovdqa64 .Lpre_inv_const rRIP, RCX; \
+	vmovdqa64 .Lpost_const rRIP, RKC; \
+	kshiftld $1, %k1, %k2;
+
+/* Normal form to pre-filtered form. */
+#define to_prefiltered(x) \
+	vgf2p8affineqb $(pre_filter_constant_s1234), RPRE, x, x; \
+	vpshufb RSEL, x, x;
+
+/* Pre-filtered form to normal form. */
+#define from_prefiltered(x) \
+	vgf2p8affineqb $0, RPINV, x, x; \
+	vpshufb RSEL, x, x; \
+	vpxorq RCX, x, x;
+
+/* P-function on sbox outputs in 'z1' (s1), 'z4' (s4), %xmm3 (s2) and %xmm4
+ * (s3), xored to 'cd'. */
+#define p_xor_blk1(z1, z4, cd) \
+	vpshufb RM1A, z1, %xmm5; \
+	vpshufb RM1B, z1, %xmm6; \
+	vpshufb RM4A, z4, %xmm7; \
+	vpshufb RM4B, z4, %xmm2; \
+	vpshufb RM2A, %xmm3, %xmm8; \
+	vpshufb RM2B, %xmm3, %xmm3; \
+	vpshufb RM3A, %xmm4, %xmm9; \
+	vpshufb RM3B, %xmm4, %xmm4; \
+	vpternlogq $0x96, %xmm7, %xmm6, %xmm5; \
+	vpternlogq $0x96, %xmm8, %xmm3, %xmm2; \
+	vpternlogq $0x96, %xmm9, %xmm4, cd; \
+	vpternlogq $0x96, %xmm5, %xmm2, cd;
+
+/* cd ^= F(ab, key), with 'cd' and 'ab' in pre-filtered form. */
+#define roundsm_blk1(ab, cd, key) \
+	vpbroadcastq key, %xmm9; \
+	vgf2p8affineqb $0, RPRE, %xmm9, %xmm9; \
+	vpshufb RSEL, %xmm9, %xmm9; \
+	vpternlogq $0x96, RKC, %xmm9, cd; \
 	\
-	/* permutation */ \
-	vpshufb sp4mask, x4, x4; \
-	vpshufb sp2mask, x2, x2; \
-	vpshufb sp3mask, x3, x3; \
-	vpshufb sp1mask, x1, x1; \
-	vpxor x4, x2, x2; \
-	vpternlogd $0x96, x3, x1, x2; \
-	vpsrldq $8, x2, x1; \
+	vgf2p8affineinvqb $0, RCM14, ab, %xmm2; \
+	vgf2p8affineinvqb $0, RCM2, ab, %xmm3; \
+	vgf2p8affineinvqb $0, RCM3, ab, %xmm4; \
+	p_xor_blk1(%xmm2, %xmm2, cd);
+
+/* As roundsm_blk1, but 'cd' and 'ab' are converted from normal form. */
+#define roundsm_blk1_first(ab, cd, key) \
+	vgf2p8affineqb $(pre_filter_constant_s1234), \
+		       .Lpre_filter_bitmatrix_s123 rRIP {1to2}, ab, %xmm13; \
+	vgf2p8affineqb $(pre_filter_constant_s1234), \
+		       .Lpre_filter_bitmatrix_s4 rRIP {1to2}, ab, %xmm14; \
+	to_prefiltered(ab); \
+	to_prefiltered(cd); \
+	vpbroadcastq key, %xmm9; \
+	vgf2p8affineqb $0, RPRE, %xmm9, %xmm9; \
+	vpshufb RSEL, %xmm9, %xmm9; \
+	vpternlogq $0x96, RKC, %xmm9, cd; \
 	\
-	/* output xor */ \
-	vpternlogd $0x96, x2, x1, cd;
+	vgf2p8affineinvqb $0, RCM14, %xmm13, %xmm2; \
+	vgf2p8affineinvqb $0, RCM14, %xmm14, %xmm14; \
+	vgf2p8affineinvqb $0, RCM2, %xmm13, %xmm3; \
+	vgf2p8affineinvqb $0, RCM3, %xmm13, %xmm4; \
+	p_xor_blk1(%xmm2, %xmm14, cd);
 
-#define preload_camellia_f_consts() \
-	vmovq .Lpre_filter_bitmatrix_s123 rRIP, %xmm14; \
-	vmovq .Lpre_filter_bitmatrix_s4 rRIP, %xmm13; \
-	vmovq .Lpost_filter_bitmatrix_s14 rRIP, %xmm12; \
-	vmovq .Lpost_filter_bitmatrix_s2 rRIP, %xmm11; \
-	vmovq .Lpost_filter_bitmatrix_s3 rRIP, %xmm10; \
-	vmovdqa .Lsp1mask_swap32_gfni rRIP, %xmm9; \
-	vmovdqa .Lsp2mask_swap32_gfni rRIP, %xmm8; \
-	vmovdqa .Lsp3mask_swap32_gfni rRIP, %xmm7; \
-	vmovdqa .Lsp4mask_swap32_gfni rRIP, %xmm6;
+/* As roundsm_blk1, but 'cd' and 'ab' are converted to normal form. */
+#define roundsm_blk1_last(ab, cd, key) \
+	vgf2p8affineqb $0, RPINV, cd, cd; \
+	vpshufb RSEL, cd, cd; \
+	vpternlogq $0x96, key{1to2}, RCX, cd; \
+	\
+	vgf2p8affineinvqb $(post_filter_constant_s14), RPOST14, ab, %xmm2; \
+	vgf2p8affineinvqb $(post_filter_constant_s2), RPOST2, ab, %xmm3; \
+	vgf2p8affineinvqb $(post_filter_constant_s3), RPOST3, ab, %xmm4; \
+	from_prefiltered(ab); \
+	p_xor_blk1(%xmm2, %xmm2, cd);
 
-#define do_camellia_f(ab, cd, t0, t1, t2, t3) \
-	camellia_f_gfni(ab, cd, t0, t1, t2, t3, \
-			%xmm14, %xmm13, %xmm12, %xmm11, %xmm10, \
-			%xmm9, %xmm8, %xmm7, %xmm6);
+#define two_roundsm_blk1(ab, cd, i, dir, ctx) \
+	roundsm_blk1(ab, cd, (key_table + (i) * 8)(ctx)); \
+	roundsm_blk1(cd, ab, (key_table + ((i) + (dir)) * 8)(ctx));
 
-#define preload_camellia_key_consts() \
-	kxnorb %k1, %k1, %k1; \
-	vmovdqa .Lpack_bswap rRIP, %xmm15; \
-	kshiftrb $7, %k1, %k1;
+#define enc_rounds_blk1(ab, cd, i, ctx) \
+	roundsm_blk1_first(ab, cd, (key_table + ((i) + 2) * 8)(ctx)); \
+	roundsm_blk1(cd, ab, (key_table + ((i) + 3) * 8)(ctx)); \
+	two_roundsm_blk1(ab, cd, (i) + 4, 1, ctx); \
+	roundsm_blk1(ab, cd, (key_table + ((i) + 6) * 8)(ctx)); \
+	roundsm_blk1_last(cd, ab, (key_table + ((i) + 7) * 8)(ctx));
 
-#define add_roundkey_blk1(cd, key) \
-	vpxorq key, cd, cd{%k1}{z};
+#define dec_rounds_blk1(ab, cd, i, ctx) \
+	roundsm_blk1_first(ab, cd, (key_table + ((i) + 7) * 8)(ctx)); \
+	roundsm_blk1(cd, ab, (key_table + ((i) + 6) * 8)(ctx)); \
+	two_roundsm_blk1(ab, cd, (i) + 5, -1, ctx); \
+	roundsm_blk1(ab, cd, (key_table + ((i) + 3) * 8)(ctx)); \
+	roundsm_blk1_last(cd, ab, (key_table + ((i) + 2) * 8)(ctx));
 
-#define do_fls_blk1(ll, lr, rl, rr, t0, t1, kll, klr, krl, krr) \
-	  vpternlogd $0x1E, krr, rr, rl{%k1}{z}; \
-	vpandd kll, ll, t0{%k1}{z}; \
-	  vpandd krl, rl, t1{%k1}{z}; \
-	vprold $1, t0, t0; \
-	  vprold $1, t1, t1; \
-	vpxor t0, lr, lr; \
-	  vpxor t1, rr, rr; \
-	vpternlogd $0x1E, klr, lr, ll{%k1}{z};
-
-#define clear_regs_blk1() \
-	kxorq %k1, %k1, %k1; \
-	vzeroall;
-
-#define roundsm_blk1(ab, cd, t0, t1, t2, t3, key) \
-	add_roundkey_blk1(cd, key); \
-	do_camellia_f(ab, cd, t0, t1, t2, t3);
-
-#define two_roundsm_blk1(ab, cd, t0, t1, t2, t3, i, dir, ctx) \
-	roundsm_blk1(ab, cd, t0, t1, t2, t3, \
-		     (key_table + (i) * 8)(ctx)); \
-	roundsm_blk1(cd, ab, t0, t1, t2, t3, \
-		     (key_table + ((i) + (dir)) * 8)(ctx));
-
-#define enc_rounds_blk1(ab, cd, t0, t1, t2, t3, i, ctx) \
-	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 2, 1, ctx); \
-	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 4, 1, ctx); \
-	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 6, 1, ctx);
-
-#define dec_rounds_blk1(ab, cd, t0, t1, t2, t3, i, ctx) \
-	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 7, -1, ctx); \
-	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 5, -1, ctx); \
-	two_roundsm_blk1(ab, cd, t0, t1, t2, t3, (i) + 3, -1, ctx);
-
-#define fls_blk1(ll_lr, rl_rr, tmp_lr, tmp_rr, t0, t1, kll, klr, krl, krr) \
-	vpsrlq $32, rl_rr, tmp_rr; \
-	vpsrlq $32, ll_lr, tmp_lr; \
-	do_fls_blk1(ll_lr, tmp_lr, rl_rr, tmp_rr, t0, t1, kll, klr, krl, krr); \
-	vpunpckldq tmp_lr, ll_lr, ll_lr; \
-	vpunpckldq tmp_rr, rl_rr, rl_rr;
+/* FL on 'll_lr' and FL^-1 on 'rl_rr', on 32-bit halves of each
+ * quadword. */
+#define fls_blk1(ll_lr, rl_rr, kll, klr, krl, krr) \
+	vprold $1, kll{1to4}, %xmm7; \
+	vprold $1, krl{1to4}, %xmm8; \
+	vprold $1, ll_lr, %xmm3; \
+	vpsrlq $32, ll_lr, %xmm2; \
+	vpsllq $32, rl_rr, %xmm5; \
+	vpsrlq $32, rl_rr, %xmm6; \
+	vpsllq $32, %xmm3, %xmm4; \
+	vpternlogd $0x78, %xmm7, %xmm3, %xmm2; \
+	vpternlogd $0x1e, krr{1to4}, rl_rr, %xmm5; \
+	vpternlogd $0x1e, krr{1to4}, %xmm6, rl_rr{%k1}; \
+	vpternlogd $0x78, %xmm7, %xmm4, ll_lr; \
+	vprold $1, %xmm5, %xmm5; \
+	vpternlogd $0x1e, klr{1to4}, %xmm2, ll_lr{%k1}; \
+	vpternlogd $0x78, %xmm8, %xmm5, rl_rr{%k2};
 
 #define inpack_blk1(ab, cd, src, key) \
 	vmovq 0(src), ab; \
 	vmovq 8(src), cd; \
-	vpshufb %xmm15, ab, ab; \
-	vpshufb %xmm15, cd, cd; \
-	add_roundkey_blk1(ab, key);
+	vpshufb RBSWAP, ab, ab; \
+	vpshufb RBSWAP, cd, cd; \
+	vpxorq key{1to2}, ab, ab;
 
 #define outunpack_blk1(ab, cd, dst, key) \
-	add_roundkey_blk1(cd, key); \
-	vpshufb %xmm15, ab, ab; \
-	vpshufb %xmm15, cd, cd; \
+	vpxorq key{1to2}, cd, cd; \
+	vpshufb RBSWAP, ab, ab; \
+	vpshufb RBSWAP, cd, cd; \
 	vmovq ab, 8(dst); \
 	vmovq cd, 0(dst);
+
+#define clear_regs_blk1() \
+	kxorq %k1, %k1, %k1; \
+	kxorq %k2, %k2, %k2; \
+	vzeroall; \
+	clear_zmm16_zmm31()
 
 .align 16
 .globl _gcry_camellia_gfni_avx512_enc_blk1
@@ -1714,7 +1870,7 @@ _gcry_camellia_gfni_avx512_enc_blk1:
 	CFI_STARTPROC();
 	spec_stop_avx512;
 
-	preload_camellia_key_consts();
+	preload_blk1_consts();
 
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
@@ -1723,23 +1879,21 @@ _gcry_camellia_gfni_avx512_enc_blk1:
 
 	inpack_blk1(%xmm0, %xmm1, %rdx, (key_table)(CTX));
 
-	preload_camellia_f_consts();
-
 	leaq (-8 * 8)(CTX, %r8, 8), %r8;
 
 .align 16
 .Lenc_loop_blk1:
-	enc_rounds_blk1(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, 0, CTX);
+	enc_rounds_blk1(%xmm0, %xmm1, 0, CTX);
 
 	cmpq %r8, CTX;
 	je .Lenc_done_blk1;
 	leaq (8 * 8)(CTX), CTX;
 
-	fls_blk1(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5,
+	fls_blk1(%xmm0, %xmm1,
 		 ((key_table) + 0)(CTX),
-	         ((key_table) + 4)(CTX),
-	         ((key_table) + 8)(CTX),
-	         ((key_table) + 12)(CTX));
+		 ((key_table) + 4)(CTX),
+		 ((key_table) + 8)(CTX),
+		 ((key_table) + 12)(CTX));
 
 	jmp .Lenc_loop_blk1;
 
@@ -1766,7 +1920,7 @@ _gcry_camellia_gfni_avx512_dec_blk1:
 	CFI_STARTPROC();
 	spec_stop_avx512;
 
-	preload_camellia_key_consts();
+	preload_blk1_consts();
 
 	cmpl $128, key_bitlength(CTX);
 	movl $32, %r8d;
@@ -1775,22 +1929,20 @@ _gcry_camellia_gfni_avx512_dec_blk1:
 
 	inpack_blk1(%xmm0, %xmm1, %rdx, (key_table)(CTX, %r8, 8));
 
-	preload_camellia_f_consts();
-
 	leaq (-8 * 8)(CTX, %r8, 8), %rax;
 
 .align 16
 .Ldec_loop_blk1:
-	dec_rounds_blk1(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, 0, %rax);
+	dec_rounds_blk1(%xmm0, %xmm1, 0, %rax);
 
 	cmpq CTX, %rax;
 	je .Ldec_done_blk1;
 
-	fls_blk1(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5,
+	fls_blk1(%xmm0, %xmm1,
 		 ((key_table) + 8)(%rax),
-	         ((key_table) + 12)(%rax),
-	         ((key_table) + 0)(%rax),
-	         ((key_table) + 4)(%rax));
+		 ((key_table) + 12)(%rax),
+		 ((key_table) + 0)(%rax),
+		 ((key_table) + 4)(%rax));
 
 	leaq (-8 * 8)(%rax), %rax;
 	jmp .Ldec_loop_blk1;
