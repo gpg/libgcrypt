@@ -308,37 +308,37 @@
 		       y4, y5, y6, y7,			\
 		       t0, rk, round)			\
 	/* AddRoundKey */                               \
-	vpbroadcastb ((round * 16) + 3)(rk), t0;	\
-	vpxorq t0, x0, x0;				\
-	vpbroadcastb ((round * 16) + 2)(rk), t0;	\
-	vpxorq t0, x1, x1;				\
-	vpbroadcastb ((round * 16) + 1)(rk), t0;	\
-	vpxorq t0, x2, x2;				\
 	vpbroadcastb ((round * 16) + 0)(rk), t0;	\
+	vpxorq t0, x0, x0;				\
+	vpbroadcastb ((round * 16) + 1)(rk), t0;	\
+	vpxorq t0, x1, x1;				\
+	vpbroadcastb ((round * 16) + 2)(rk), t0;	\
+	vpxorq t0, x2, x2;				\
+	vpbroadcastb ((round * 16) + 3)(rk), t0;	\
 	vpxorq t0, x3, x3;				\
-	vpbroadcastb ((round * 16) + 7)(rk), t0;	\
-	vpxorq t0, x4, x4;				\
-	vpbroadcastb ((round * 16) + 6)(rk), t0;	\
-	vpxorq t0, x5, x5;				\
-	vpbroadcastb ((round * 16) + 5)(rk), t0;	\
-	vpxorq t0, x6, x6;				\
 	vpbroadcastb ((round * 16) + 4)(rk), t0;	\
+	vpxorq t0, x4, x4;				\
+	vpbroadcastb ((round * 16) + 5)(rk), t0;	\
+	vpxorq t0, x5, x5;				\
+	vpbroadcastb ((round * 16) + 6)(rk), t0;	\
+	vpxorq t0, x6, x6;				\
+	vpbroadcastb ((round * 16) + 7)(rk), t0;	\
 	vpxorq t0, x7, x7;				\
-	vpbroadcastb ((round * 16) + 11)(rk), t0;	\
-	vpxorq t0, y0, y0;				\
-	vpbroadcastb ((round * 16) + 10)(rk), t0;	\
-	vpxorq t0, y1, y1;				\
-	vpbroadcastb ((round * 16) + 9)(rk), t0;	\
-	vpxorq t0, y2, y2;				\
 	vpbroadcastb ((round * 16) + 8)(rk), t0;	\
+	vpxorq t0, y0, y0;				\
+	vpbroadcastb ((round * 16) + 9)(rk), t0;	\
+	vpxorq t0, y1, y1;				\
+	vpbroadcastb ((round * 16) + 10)(rk), t0;	\
+	vpxorq t0, y2, y2;				\
+	vpbroadcastb ((round * 16) + 11)(rk), t0;	\
 	vpxorq t0, y3, y3;				\
-	vpbroadcastb ((round * 16) + 15)(rk), t0;	\
-	vpxorq t0, y4, y4;				\
-	vpbroadcastb ((round * 16) + 14)(rk), t0;	\
-	vpxorq t0, y5, y5;				\
-	vpbroadcastb ((round * 16) + 13)(rk), t0;	\
-	vpxorq t0, y6, y6;				\
 	vpbroadcastb ((round * 16) + 12)(rk), t0;	\
+	vpxorq t0, y4, y4;				\
+	vpbroadcastb ((round * 16) + 13)(rk), t0;	\
+	vpxorq t0, y5, y5;				\
+	vpbroadcastb ((round * 16) + 14)(rk), t0;	\
+	vpxorq t0, y6, y6;				\
+	vpbroadcastb ((round * 16) + 15)(rk), t0;	\
 	vpxorq t0, y7, y7;
 
 #define aria_sbox_8way_gfni(x0, x1, x2, x3,		\

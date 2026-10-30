@@ -314,21 +314,21 @@
 		      x4, x5, x6, x7,			\
 		      t0, rk, idx, round)		\
 	/* AddRoundKey */                               \
-	vpbroadcastb ((round * 16) + idx + 3)(rk), t0;	\
-	vpxor t0, x0, x0;				\
-	vpbroadcastb ((round * 16) + idx + 2)(rk), t0;	\
-	vpxor t0, x1, x1;				\
-	vpbroadcastb ((round * 16) + idx + 1)(rk), t0;	\
-	vpxor t0, x2, x2;				\
 	vpbroadcastb ((round * 16) + idx + 0)(rk), t0;	\
+	vpxor t0, x0, x0;				\
+	vpbroadcastb ((round * 16) + idx + 1)(rk), t0;	\
+	vpxor t0, x1, x1;				\
+	vpbroadcastb ((round * 16) + idx + 2)(rk), t0;	\
+	vpxor t0, x2, x2;				\
+	vpbroadcastb ((round * 16) + idx + 3)(rk), t0;	\
 	vpxor t0, x3, x3;				\
-	vpbroadcastb ((round * 16) + idx + 7)(rk), t0;	\
-	vpxor t0, x4, x4;				\
-	vpbroadcastb ((round * 16) + idx + 6)(rk), t0;	\
-	vpxor t0, x5, x5;				\
-	vpbroadcastb ((round * 16) + idx + 5)(rk), t0;	\
-	vpxor t0, x6, x6;				\
 	vpbroadcastb ((round * 16) + idx + 4)(rk), t0;	\
+	vpxor t0, x4, x4;				\
+	vpbroadcastb ((round * 16) + idx + 5)(rk), t0;	\
+	vpxor t0, x5, x5;				\
+	vpbroadcastb ((round * 16) + idx + 6)(rk), t0;	\
+	vpxor t0, x6, x6;				\
+	vpbroadcastb ((round * 16) + idx + 7)(rk), t0;	\
 	vpxor t0, x7, x7;
 
 #ifdef CONFIG_AS_GFNI

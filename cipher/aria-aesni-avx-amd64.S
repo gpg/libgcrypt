@@ -352,22 +352,22 @@
 		      idx, round)			\
 	/* AddRoundKey */                               \
 	vmovd ((round * 16) + idx + 0)(rk), t0;		\
-	vpshufb .Lthree_x16 rRIP, t0, t2;		\
-	vpxor t2, x0, x0;				\
-	vpshufb .Ltwo_x16 rRIP, t0, t2;			\
-	vpxor t2, x1, x1;				\
-	vpshufb .Lone_x16 rRIP, t0, t2;			\
-	vpxor t2, x2, x2;				\
 	vpshufb t1, t0, t2;				\
+	vpxor t2, x0, x0;				\
+	vpshufb .Lone_x16 rRIP, t0, t2;			\
+	vpxor t2, x1, x1;				\
+	vpshufb .Ltwo_x16 rRIP, t0, t2;			\
+	vpxor t2, x2, x2;				\
+	vpshufb .Lthree_x16 rRIP, t0, t2;		\
 	vpxor t2, x3, x3;				\
 	vmovd ((round * 16) + idx + 4)(rk), t0;		\
-	vpshufb .Lthree_x16 rRIP, t0, t2;		\
-	vpxor t2, x4, x4;				\
-	vpshufb .Ltwo_x16 rRIP, t0, t2;			\
-	vpxor t2, x5, x5;				\
-	vpshufb .Lone_x16 rRIP, t0, t2;			\
-	vpxor t2, x6, x6;				\
 	vpshufb t1, t0, t2;				\
+	vpxor t2, x4, x4;				\
+	vpshufb .Lone_x16 rRIP, t0, t2;			\
+	vpxor t2, x5, x5;				\
+	vpshufb .Ltwo_x16 rRIP, t0, t2;			\
+	vpxor t2, x6, x6;				\
+	vpshufb .Lthree_x16 rRIP, t0, t2;		\
 	vpxor t2, x7, x7;
 
 #ifdef CONFIG_AS_GFNI
