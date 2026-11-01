@@ -1,7 +1,7 @@
 /* aria.c  -  ARIA Cipher Algorithm
  *
  * Copyright (C) 2022-2023 Taehee Yoo <ap420073@gmail.com>
- * Copyright (C) 2023 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2023,2026 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -449,6 +449,9 @@ static struct
   };
 
 #ifdef USE_AESNI_AVX
+extern void
+_gcry_aria_aesni_avx_crypt_blk1(const void *ctx, byte *out, const byte *in,
+				const void *key) ASM_FUNC_ABI;
 extern unsigned int
 _gcry_aria_aesni_avx_ecb_crypt_blk1_16(const void *ctx, byte *out,
 				       const byte *in, const void *key,
@@ -991,6 +994,18 @@ aria_set_decrypt_key(ARIA_context *ctx)
     }
 }
 
+/* Returns true if aria_crypt uses sbox tables. */
+static inline int
+aria_crypt_uses_sboxes(ARIA_context *ctx)
+{
+#ifdef USE_AESNI_AVX
+  if (ctx->use_aesni_avx)
+    return 0;
+#endif
+  (void)ctx;
+  return 1;
+}
+
 static NO_INLINE unsigned int
 aria_crypt(ARIA_context *ctx, byte *out, const byte *in,
 	   u32 key[][ARIA_RD_KEY_WORDS])
@@ -998,6 +1013,14 @@ aria_crypt(ARIA_context *ctx, byte *out, const byte *in,
   u32 reg0, reg1, reg2, reg3;
   int rounds = ctx->rounds;
   int rkidx = 0;
+
+#ifdef USE_AESNI_AVX
+  if (ctx->use_aesni_avx)
+    {
+      _gcry_aria_aesni_avx_crypt_blk1(ctx, out, in, key);
+      return ASM_EXTRA_STACK;
+    }
+#endif
 
   reg0 = buf_get_le32(in + 0);
   reg1 = buf_get_le32(in + 4);
@@ -1037,7 +1060,8 @@ aria_encrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   ARIA_context *ctx = (ARIA_context *)c;
 
-  prefetch_sboxes ();
+  if (aria_crypt_uses_sboxes (ctx))
+    prefetch_sboxes ();
 
   return aria_crypt (ctx, outbuf, inbuf, ctx->enc_key);
 }
@@ -1053,7 +1077,8 @@ aria_decrypt(void *c, byte *outbuf, const byte *inbuf)
       ctx->decryption_prepared = 1;
     }
 
-  prefetch_sboxes ();
+  if (aria_crypt_uses_sboxes (ctx))
+    prefetch_sboxes ();
 
   return aria_crypt (ctx, outbuf, inbuf, ctx->dec_key);
 }
@@ -1323,7 +1348,8 @@ _gcry_aria_cbc_enc (void *context, unsigned char *iv,
   unsigned char *last_iv;
   unsigned int burn_depth = 0;
 
-  prefetch_sboxes();
+  if (aria_crypt_uses_sboxes (ctx))
+    prefetch_sboxes();
 
   last_iv = iv;
 
@@ -1396,7 +1422,8 @@ _gcry_aria_cfb_enc (void *context, unsigned char *iv,
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
 
-  prefetch_sboxes();
+  if (aria_crypt_uses_sboxes (ctx))
+    prefetch_sboxes();
 
   for (; nblocks; nblocks--)
     {
