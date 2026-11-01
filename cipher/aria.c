@@ -461,6 +461,9 @@ _gcry_aria_aesni_avx_ctr_crypt_blk16(const void *ctx, byte *out,
 				     const byte *in, byte *iv) ASM_FUNC_ABI;
 
 #ifdef USE_GFNI_AVX
+extern void
+_gcry_aria_gfni_avx_crypt_blk1(const void *ctx, byte *out, const byte *in,
+			       const void *key) ASM_FUNC_ABI;
 extern unsigned int
 _gcry_aria_gfni_avx_ecb_crypt_blk1_16(const void *ctx, byte *out,
 				      const byte *in, const void *key,
@@ -998,6 +1001,10 @@ aria_set_decrypt_key(ARIA_context *ctx)
 static inline int
 aria_crypt_uses_sboxes(ARIA_context *ctx)
 {
+#ifdef USE_GFNI_AVX
+  if (ctx->use_gfni_avx)
+    return 0;
+#endif
 #ifdef USE_AESNI_AVX
   if (ctx->use_aesni_avx)
     return 0;
@@ -1014,6 +1021,13 @@ aria_crypt(ARIA_context *ctx, byte *out, const byte *in,
   int rounds = ctx->rounds;
   int rkidx = 0;
 
+#ifdef USE_GFNI_AVX
+  if (ctx->use_gfni_avx)
+    {
+      _gcry_aria_gfni_avx_crypt_blk1(ctx, out, in, key);
+      return ASM_EXTRA_STACK;
+    }
+#endif
 #ifdef USE_AESNI_AVX
   if (ctx->use_aesni_avx)
     {

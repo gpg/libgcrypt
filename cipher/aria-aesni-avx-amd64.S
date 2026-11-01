@@ -989,6 +989,37 @@ SECTION_RODATA
 		    BV8(0, 0, 0, 0, 0, 1, 0, 0),
 		    BV8(0, 0, 0, 0, 0, 0, 1, 0),
 		    BV8(0, 0, 0, 0, 0, 0, 0, 1))
+
+.align 16
+/* 1-block diffusion layer for GFNI without shift rows.  Odd rounds use same
+ * tables with S and X outputs swapped. */
+.Lshuf_even_odd_gfni_blk1:
+	.byte 0x06, 0x02, 0x06, 0x0a, 0x02, 0x0a, 0x02, 0x06
+	.byte 0x0a, 0x06, 0x02, 0x02, 0x02, 0x06, 0x0e, 0x02
+	.byte 0x03, 0x07, 0x0b, 0x07, 0x0b, 0x03, 0x07, 0x03
+	.byte 0x07, 0x0b, 0x03, 0x03, 0x07, 0x03, 0x03, 0x0f
+	.byte 0x04, 0x08, 0x04, 0x00, 0x00, 0x04, 0x00, 0x08
+	.byte 0x00, 0x00, 0x08, 0x04, 0x0c, 0x00, 0x00, 0x04
+	.byte 0x09, 0x05, 0x01, 0x05, 0x05, 0x01, 0x09, 0x01
+	.byte 0x01, 0x01, 0x05, 0x09, 0x01, 0x0d, 0x05, 0x01
+	.byte 0x0e, 0x80, 0x0a, 0x0e, 0x0e, 0x0e, 0x0a, 0x80
+	.byte 0x80, 0x0e, 0x06, 0x0e, 0x06, 0x0a, 0x80, 0x0a
+	.byte 0x80, 0x0f, 0x0f, 0x0b, 0x0f, 0x0f, 0x80, 0x0b
+	.byte 0x0f, 0x80, 0x0f, 0x07, 0x0b, 0x07, 0x0b, 0x80
+	.byte 0x08, 0x0c, 0x0c, 0x80, 0x08, 0x80, 0x0c, 0x0c
+	.byte 0x04, 0x0c, 0x80, 0x0c, 0x80, 0x08, 0x04, 0x08
+	.byte 0x0d, 0x09, 0x80, 0x0d, 0x80, 0x09, 0x0d, 0x0d
+	.byte 0x0d, 0x05, 0x0d, 0x80, 0x09, 0x80, 0x09, 0x05
+/* 1-block last round for GFNI. */
+.Lshuf_final_gfni_blk1:
+	.byte 0x80, 0x80, 0x02, 0x80, 0x80, 0x80, 0x06, 0x80
+	.byte 0x80, 0x80, 0x0a, 0x80, 0x80, 0x80, 0x0e, 0x80
+	.byte 0x80, 0x80, 0x80, 0x03, 0x80, 0x80, 0x80, 0x07
+	.byte 0x80, 0x80, 0x80, 0x0b, 0x80, 0x80, 0x80, 0x0f
+	.byte 0x00, 0x80, 0x80, 0x80, 0x04, 0x80, 0x80, 0x80
+	.byte 0x08, 0x80, 0x80, 0x80, 0x0c, 0x80, 0x80, 0x80
+	.byte 0x80, 0x01, 0x80, 0x80, 0x80, 0x05, 0x80, 0x80
+	.byte 0x80, 0x09, 0x80, 0x80, 0x80, 0x0d, 0x80, 0x80
 #endif /* CONFIG_AS_GFNI */
 
 /* 4-bit mask */
@@ -1628,6 +1659,138 @@ ELF(.size _gcry_aria_aesni_avx_crypt_blk1,.-_gcry_aria_aesni_avx_crypt_blk1;)
 #undef SHUF_ODD_5
 #undef SHUF_ODD_6
 #undef SHUF_ODD_7
+
+#ifdef CONFIG_AS_GFNI
+/**********************************************************************
+  1-block non-parallel ARIA (GFNI/AVX)
+ **********************************************************************/
+
+#define RAFF %xmm11
+#define RS2 %xmm12
+#define RINV %xmm13
+#define RX2 %xmm14
+#define RID %xmm15
+
+#define SHUF_EVEN_0 %xmm8
+#define SHUF_EVEN_1 .Lshuf_even_odd_gfni_blk1 + 1 * 16 rRIP
+#define SHUF_EVEN_2 %xmm9
+#define SHUF_EVEN_3 .Lshuf_even_odd_gfni_blk1 + 3 * 16 rRIP
+#define SHUF_EVEN_4 %xmm10
+#define SHUF_EVEN_5 .Lshuf_even_odd_gfni_blk1 + 5 * 16 rRIP
+#define SHUF_EVEN_6 .Lshuf_even_odd_gfni_blk1 + 6 * 16 rRIP
+#define SHUF_EVEN_7 .Lshuf_even_odd_gfni_blk1 + 7 * 16 rRIP
+#define SHUF_ODD_0 SHUF_EVEN_2
+#define SHUF_ODD_1 SHUF_EVEN_3
+#define SHUF_ODD_2 SHUF_EVEN_0
+#define SHUF_ODD_3 SHUF_EVEN_1
+#define SHUF_ODD_4 SHUF_EVEN_6
+#define SHUF_ODD_5 SHUF_EVEN_7
+#define SHUF_ODD_6 SHUF_EVEN_4
+#define SHUF_ODD_7 SHUF_EVEN_5
+
+#define preload_blk1_consts_gfni() \
+	vmovddup .Ltf_aff_bitmatrix rRIP, RAFF;		\
+	vmovddup .Ltf_s2_bitmatrix rRIP, RS2;		\
+	vmovddup .Ltf_inv_bitmatrix rRIP, RINV;		\
+	vmovddup .Ltf_x2_bitmatrix rRIP, RX2;		\
+	vmovddup .Ltf_id_bitmatrix rRIP, RID;		\
+	vmovdqa .Lshuf_even_odd_gfni_blk1 + 0 * 16 rRIP, SHUF_EVEN_0; \
+	vmovdqa .Lshuf_even_odd_gfni_blk1 + 2 * 16 rRIP, SHUF_EVEN_2; \
+	vmovdqa .Lshuf_even_odd_gfni_blk1 + 4 * 16 rRIP, SHUF_EVEN_4;
+
+#define aria_sbox_blk1_gfni(x, s1, s2, x1, x2) \
+	vgf2p8affineqb $(tf_inv_const), RINV, x, x1;		\
+	vgf2p8affineqb $(tf_x2_const), RX2, x, x2;		\
+	vgf2p8affineinvqb $(tf_aff_const), RAFF, x, s1;		\
+	vgf2p8affineinvqb $(tf_s2_const), RS2, x, s2;		\
+	vgf2p8affineinvqb $0, RID, x1, x1;			\
+	vgf2p8affineinvqb $0, RID, x2, x2;
+
+#define aria_diff_blk1_gfni(x, s1, s2, x1, x2, t0, t1, t2, \
+			    shuf, rk, next_round) \
+	vpshufb shuf ## _0, s1, x; \
+	vpshufb shuf ## _4, s1, s1; \
+	vpshufb shuf ## _1, s2, t0; \
+	vpshufb shuf ## _5, s2, s2; \
+	vpshufb shuf ## _2, x1, t1; \
+	vpshufb shuf ## _6, x1, x1; \
+	vpshufb shuf ## _3, x2, t2; \
+	vpshufb shuf ## _7, x2, x2; \
+	vpxor s1, x, x; \
+	vpxor t0, s2, s2; \
+	vpxor ((next_round) * 16)(rk), x, x; \
+	vpxor s2, x, x; \
+	vpxor t1, x1, x1; \
+	vpxor t2, x2, x2; \
+	vpxor x1, x, x; \
+	vpxor x2, x, x;
+
+#define aria_diff_final_blk1_gfni(x, s1, s2, x1, x2, rk, last_round) \
+	vpshufb .Lshuf_final_gfni_blk1 + 0 * 16 rRIP, s1, s1; \
+	vpshufb .Lshuf_final_gfni_blk1 + 1 * 16 rRIP, s2, s2; \
+	vpshufb .Lshuf_final_gfni_blk1 + 2 * 16 rRIP, x1, x1; \
+	vpshufb .Lshuf_final_gfni_blk1 + 3 * 16 rRIP, x2, x2; \
+	vpxor ((last_round) * 16)(rk), s1, x; \
+	vpxor s2, x, x; \
+	vpxor x1, x, x; \
+	vpxor x2, x, x;
+
+#define aria_fe_blk1_gfni(x, rk, next_round) \
+	aria_sbox_blk1_gfni(x, %xmm1, %xmm2, %xmm3, %xmm4); \
+	aria_diff_blk1_gfni(x, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, \
+			    %xmm7, SHUF_EVEN, rk, next_round);
+
+#define aria_fo_blk1_gfni(x, rk, next_round) \
+	aria_sbox_blk1_gfni(x, %xmm1, %xmm2, %xmm3, %xmm4); \
+	aria_diff_blk1_gfni(x, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, \
+			    %xmm7, SHUF_ODD, rk, next_round);
+
+#define aria_ff_blk1_gfni(x, rk, last_round) \
+	aria_sbox_blk1_gfni(x, %xmm1, %xmm2, %xmm3, %xmm4); \
+	aria_diff_final_blk1_gfni(x, %xmm1, %xmm2, %xmm3, %xmm4, rk, \
+				  last_round);
+
+.align 16
+.globl _gcry_aria_gfni_avx_crypt_blk1
+ELF(.type _gcry_aria_gfni_avx_crypt_blk1,@function;)
+_gcry_aria_gfni_avx_crypt_blk1:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst
+	 *	%rdx: src
+	 *	%rcx: round keys
+	 */
+	CFI_STARTPROC();
+
+	vmovdqu (%rdx), %xmm0;
+
+	preload_blk1_consts_gfni();
+
+	aria_ark_blk1(%xmm0, %rcx, 0);
+
+	movl ARIA_CTX_rounds(CTX), %r9d;
+	subl $2, %r9d;
+
+	aria_fo_blk1_gfni(%xmm0, %rcx, 1);
+	leaq 2*16(%rcx), %rcx;
+
+.align 16
+.Loop_gfni_blk1:
+	aria_fe_blk1_gfni(%xmm0, %rcx, 0);
+	aria_fo_blk1_gfni(%xmm0, %rcx, 1);
+	leaq 2*16(%rcx), %rcx;
+	subl $2, %r9d;
+	jnz .Loop_gfni_blk1;
+
+	aria_ff_blk1_gfni(%xmm0, %rcx, 0);
+
+	vmovdqu %xmm0, (%rsi);
+
+	vzeroall;
+	ret_spec_stop;
+	CFI_ENDPROC();
+ELF(.size _gcry_aria_gfni_avx_crypt_blk1,.-_gcry_aria_gfni_avx_crypt_blk1;)
+#endif /* CONFIG_AS_GFNI */
 
 #endif /* ENABLE_AVX_SUPPORT && ENABLE_AESNI_SUPPORT */
 #endif /* __x86_64 */
