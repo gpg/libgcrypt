@@ -63,7 +63,8 @@ static struct
    generation.  */
 GPGRT_LOCK_DEFINE (nonce_buffer_lock);
 
-
+/* Finish the use of the nonce buffer.  */
+static void finalize_nonce_buffer (void);
 
 /* ---  Functions  --- */
 
@@ -267,6 +268,8 @@ _gcry_random_close_fds (void)
     _gcry_rngsystem_close_fds ();
   else
     _gcry_rngcsprng_close_fds ();
+
+  finalize_nonce_buffer ();
 }
 
 
@@ -479,13 +482,15 @@ _gcry_fast_random_poll (void)
 }
 
 
+/* This variable is to see the nonce buffer is initialized and in use.
+   Protected by NONCE_BUFFER_LOCK.  */
+static int nonce_buffer_initialized = 0;
 
 /* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
 void
 _gcry_create_nonce (void *buffer, size_t length)
 {
   static unsigned char nonce_buffer[20+8];
-  static int nonce_buffer_initialized = 0;
   static volatile pid_t my_pid; /* The volatile is there to make sure the
                                    compiler does not optimize the code away
                                    in case the getpid function is badly
@@ -562,6 +567,30 @@ _gcry_create_nonce (void *buffer, size_t length)
       n = length > 20? 20 : length;
       memcpy (p, nonce_buffer, n);
     }
+
+  /* Release the nonce buffer lock. */
+  err = gpgrt_lock_unlock (&nonce_buffer_lock);
+  if (err)
+    log_fatal ("failed to release the nonce buffer lock: %s\n",
+               gpg_strerror (err));
+}
+
+
+/* Finish the use of the nonce buffer.  Clear the variable, so that
+   the nonce buffer will be initialized again when it will be
+   re-opened.  */
+static void
+finalize_nonce_buffer (void)
+{
+  int err;
+
+  /* Acquire the nonce buffer lock. */
+  err = gpgrt_lock_lock (&nonce_buffer_lock);
+  if (err)
+    log_fatal ("failed to acquire the nonce buffer lock: %s\n",
+               gpg_strerror (err));
+
+  nonce_buffer_initialized = 0;
 
   /* Release the nonce buffer lock. */
   err = gpgrt_lock_unlock (&nonce_buffer_lock);
