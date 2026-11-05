@@ -2157,8 +2157,12 @@ static const gcry_cipher_oid_spec_t rijndael_oids[] =
     { "2.16.840.1.101.3.4.1.2", GCRY_CIPHER_MODE_CBC },
     { "2.16.840.1.101.3.4.1.3", GCRY_CIPHER_MODE_OFB },
     { "2.16.840.1.101.3.4.1.4", GCRY_CIPHER_MODE_CFB },
+    { "2.16.840.1.101.3.4.1.5", GCRY_CIPHER_MODE_AESWRAP },
     { "2.16.840.1.101.3.4.1.6", GCRY_CIPHER_MODE_GCM },
     { "2.16.840.1.101.3.4.1.7", GCRY_CIPHER_MODE_CCM },
+    /* The next value would reqire the use of the GCRY_CIPHER_EXTENDED
+     * flag.  To keep the bijective mapping we do not add it.
+     * { "2.16.840.1.101.3.4.1.8", GCRY_CIPHER_MODE_AESWRAP }, */
     { NULL }
   };
 
@@ -2186,8 +2190,11 @@ static const gcry_cipher_oid_spec_t rijndael192_oids[] =
     { "2.16.840.1.101.3.4.1.22", GCRY_CIPHER_MODE_CBC },
     { "2.16.840.1.101.3.4.1.23", GCRY_CIPHER_MODE_OFB },
     { "2.16.840.1.101.3.4.1.24", GCRY_CIPHER_MODE_CFB },
+    { "2.16.840.1.101.3.4.1.25", GCRY_CIPHER_MODE_AESWRAP },
     { "2.16.840.1.101.3.4.1.26", GCRY_CIPHER_MODE_GCM },
     { "2.16.840.1.101.3.4.1.27", GCRY_CIPHER_MODE_CCM },
+    /* See comment at rijndael_oids.
+     * { "2.16.840.1.101.3.4.1.28", GCRY_CIPHER_MODE_AESWRAP }, */
     { NULL }
   };
 
@@ -2215,8 +2222,11 @@ static const gcry_cipher_oid_spec_t rijndael256_oids[] =
     { "2.16.840.1.101.3.4.1.42", GCRY_CIPHER_MODE_CBC },
     { "2.16.840.1.101.3.4.1.43", GCRY_CIPHER_MODE_OFB },
     { "2.16.840.1.101.3.4.1.44", GCRY_CIPHER_MODE_CFB },
+    { "2.16.840.1.101.3.4.1.45", GCRY_CIPHER_MODE_AESWRAP },
     { "2.16.840.1.101.3.4.1.46", GCRY_CIPHER_MODE_GCM },
     { "2.16.840.1.101.3.4.1.47", GCRY_CIPHER_MODE_CCM },
+    /* See comment at rijndael_oids.
+     * { "2.16.840.1.101.3.4.1.48", GCRY_CIPHER_MODE_AESWRAPPAD }, */
     { NULL }
   };
 
