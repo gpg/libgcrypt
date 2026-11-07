@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Stub out external dependencies so that including implementation does
+/* Redirect internal dependencies so that including implementation does
    not require linking them.  */
 #define _gcry_md_hash_buffer   t_sntrup761_md_hash_buffer
 #define _gcry_ct_not_memequal  t_sntrup761_ct_not_memequal
@@ -56,36 +56,29 @@ t_sntrup761_ct_memmov_cond (void *dst, const void *src, size_t len,
 #include "../cipher/sntrup761.c"
 
 #define PGM "t-sntrup761"
+#define NEED_HEX2BUFFER
+#define NEED_MISMATCH
 #include "t-common.h"
 
 static void
 t_sntrup761_md_hash_buffer (int algo, void *digest, const void *buf,
 			    size_t len)
 {
-  (void)buf;
-  (void)len;
-
-  if (algo == GCRY_MD_SHA512)
-    memset(digest, 0, 64);
+  gcry_md_hash_buffer (algo, digest, buf, len);
 }
 
 static unsigned int
 t_sntrup761_ct_not_memequal (const void *b1, const void *b2, size_t len)
 {
-  (void)b1;
-  (void)b2;
-  (void)len;
-  return 0;
+  return memcmp (b1, b2, len) != 0;
 }
 
 static void
 t_sntrup761_ct_memmov_cond (void *dst, const void *src, size_t len,
 			    unsigned long op_enable)
 {
-  (void)dst;
-  (void)src;
-  (void)len;
-  (void)op_enable;
+  if (op_enable)
+    memmove (dst, src, len);
 }
 
 static uint32_t rng_counter;
@@ -363,6 +356,200 @@ test_mult (void)
     }
 }
 
+/* Inputs and checksums of libntruprime test suite.  */
+
+#define CHECKSUM_RNG_BYTES 736
+#define CHECKSUM_CT_BYTES (Ciphertexts_bytes + Confirm_bytes)
+
+static unsigned char checksum_state[64];
+static unsigned char known_random_key[32];
+static unsigned char known_random_buf[CHECKSUM_RNG_BYTES];
+static size_t known_random_pos;
+static gcry_cipher_hd_t known_random_hd;
+static gcry_cipher_hd_t salsa20_hd;
+static uint64_t vector_random_ctr;
+
+static void
+salsa20_block (unsigned char *out, const unsigned char *in,
+	       const unsigned char *key)
+{
+  gcry_error_t err;
+
+  err = gcry_cipher_setkey (salsa20_hd, key, 32);
+  if (!err)
+    err = gcry_cipher_setiv (salsa20_hd, in, 16);
+  memset (out, 0, 64);
+  if (!err)
+    err = gcry_cipher_encrypt (salsa20_hd, out, 64, NULL, 0);
+  if (err)
+    die ("Salsa20 failed: %s\n", gpg_strerror (err));
+}
+
+static void
+checksum_clear (void)
+{
+  memset (checksum_state, 0, sizeof (checksum_state));
+  memset (known_random_key, 0, sizeof (known_random_key));
+  known_random_pos = CHECKSUM_RNG_BYTES;
+  vector_random_ctr = 0;
+}
+
+static void
+checksum_update (const unsigned char *x, size_t xlen)
+{
+  unsigned char block[16];
+
+  while (xlen >= 16)
+    {
+      salsa20_block (checksum_state, x, checksum_state);
+      x += 16;
+      xlen -= 16;
+    }
+
+  memset (block, 0, sizeof (block));
+  memcpy (block, x, xlen);
+  block[xlen] = 1;
+  checksum_state[0] ^= 1;
+  salsa20_block (checksum_state, block, checksum_state);
+}
+
+static void
+known_random (void *ctx, size_t length, uint8_t *dst)
+{
+  unsigned char block[32 + CHECKSUM_RNG_BYTES];
+  gcry_error_t err;
+
+  (void)ctx;
+
+  while (length)
+    {
+      if (known_random_pos == CHECKSUM_RNG_BYTES)
+	{
+	  memset (block, 0, sizeof (block));
+	  err = gcry_cipher_setkey (known_random_hd, known_random_key,
+				    sizeof (known_random_key));
+	  if (!err)
+	    err = gcry_cipher_encrypt (known_random_hd, block, sizeof (block),
+				       NULL, 0);
+	  if (err)
+	    die ("ChaCha20 failed: %s\n", gpg_strerror (err));
+	  memcpy (known_random_key, block, sizeof (known_random_key));
+	  memcpy (known_random_buf, block + 32, CHECKSUM_RNG_BYTES);
+	  known_random_pos = 0;
+	}
+      *dst++ = known_random_buf[known_random_pos++];
+      length--;
+    }
+}
+
+static uint64_t
+vector_random (void)
+{
+  static const unsigned char key[33] = "generate inputs for test vectors";
+  unsigned char in[16], out[64];
+  uint64_t v = le_bswap64 (vector_random_ctr++);
+
+  memset (in, 0, sizeof (in));
+  memcpy (in, &v, sizeof (v));
+
+  salsa20_block (out, in, key);
+
+  memcpy (&v, out, sizeof (v));
+  return le_bswap64 (v);
+}
+
+static void
+corrupt_ciphertext (unsigned char *ct)
+{
+  /* Expected checksums depend on value being drawn before position.  */
+  uint64_t value = vector_random ();
+  uint64_t pos = vector_random ();
+
+  ct[pos % CHECKSUM_CT_BYTES] += 1 + (value % 255);
+}
+
+static void
+test_checksums (void)
+{
+  static const struct
+  {
+    int loops;
+    const char *checksum;
+  } tv[] =
+    {
+      { 8, "4081ab3f61bac9aae91bff7f9b212855177591ec4427dff2a501be124c5bb97d" },
+      { 64, "730a572b64fa05a42bce7b1573edc04b70ef75909db309c012aa27f53f1f2f41" }
+    };
+  static unsigned char pk[PublicKeys_bytes];
+  static unsigned char sk[SecretKeys_bytes + PublicKeys_bytes
+			  + Inputs_bytes + Hash_bytes];
+  static unsigned char ct[CHECKSUM_CT_BYTES];
+  unsigned char key1[32], key2[32];
+  unsigned char *want;
+  size_t wantlen;
+  gcry_error_t err;
+  unsigned int n;
+  int i, loop;
+
+  if (gcry_cipher_test_algo (GCRY_CIPHER_CHACHA20)
+      || gcry_cipher_test_algo (GCRY_CIPHER_SALSA20)
+      || gcry_md_test_algo (GCRY_MD_SHA512))
+    {
+      if (verbose)
+	info ("ChaCha20, Salsa20 or SHA-512 not available, skipping checksums\n");
+      return;
+    }
+
+  err = gcry_cipher_open (&known_random_hd, GCRY_CIPHER_CHACHA20,
+			  GCRY_CIPHER_MODE_STREAM, 0);
+  if (!err)
+    err = gcry_cipher_open (&salsa20_hd, GCRY_CIPHER_SALSA20,
+			    GCRY_CIPHER_MODE_STREAM, 0);
+  if (err)
+    die ("gcry_cipher_open failed: %s\n", gpg_strerror (err));
+
+  for (n = 0; n < DIM (tv); n++)
+    {
+      checksum_clear ();
+
+      for (loop = 0; loop < tv[n].loops; loop++)
+	{
+	  sntrup761_keypair (pk, sk, NULL, known_random);
+	  checksum_update (pk, sizeof (pk));
+	  checksum_update (sk, sizeof (sk));
+
+	  sntrup761_enc (ct, key1, pk, NULL, known_random);
+	  checksum_update (ct, sizeof (ct));
+	  checksum_update (key1, sizeof (key1));
+
+	  sntrup761_dec (key2, ct, sk);
+	  if (memcmp (key1, key2, sizeof (key1)))
+	    fail ("decapsulation mismatch, loop %d", loop);
+	  checksum_update (key2, sizeof (key2));
+
+	  for (i = 0; i < 3; i++)
+	    {
+	      corrupt_ciphertext (ct);
+	      sntrup761_dec (key2, ct, sk);
+	      checksum_update (key2, sizeof (key2));
+	    }
+	}
+
+      want = hex2buffer (tv[n].checksum, &wantlen);
+      if (!want)
+	die ("invalid checksum string\n");
+      if (memcmp (checksum_state, want, wantlen))
+	{
+	  mismatch (want, wantlen, checksum_state, wantlen);
+	  fail ("checksum of %d loops mismatch", tv[n].loops);
+	}
+      xfree (want);
+    }
+
+  gcry_cipher_close (known_random_hd);
+  gcry_cipher_close (salsa20_hd);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -412,6 +599,7 @@ main (int argc, char **argv)
 
   test_freeze_helpers ();
   test_mult ();
+  test_checksums ();
 
   if (verbose)
     fprintf (stderr, PGM ": %d error(s)\n", error_count);

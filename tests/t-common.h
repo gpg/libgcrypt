@@ -309,6 +309,23 @@ copy_data (char **buffer, const char *line, int lineno)
 }
 #endif
 
+#ifdef NEED_MISMATCH
+static void
+mismatch (const void *expected, size_t expectedlen,
+          const void *computed, size_t computedlen)
+{
+  const unsigned char *ptr;
+
+  fprintf (stderr, "expected:");
+  for (ptr = expected; expectedlen; ptr++, expectedlen--)
+    fprintf (stderr, " %02x", *ptr);
+  fprintf (stderr, "\ncomputed:");
+  for (ptr = computed; computedlen; ptr++, computedlen--)
+    fprintf (stderr, " %02x", *ptr);
+  fprintf (stderr, "\n");
+}
+#endif
+
 #ifdef NEED_HEX2BUFFER
 /* Convert STRING consisting of hex characters into its binary
    representation and return it as an allocated buffer. The valid

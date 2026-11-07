@@ -39,6 +39,7 @@
 #include "../src/gcrypt-testapi.h"
 
 #define PGM "basic"
+#define NEED_MISMATCH
 #include "t-common.h"
 
 #if __GNUC__ >= 4
@@ -73,22 +74,6 @@ test_spec_pubkey_t;
 static int in_fips_mode;
 
 #define MAX_DATA_LEN 1040
-
-
-static void
-mismatch (const void *expected, size_t expectedlen,
-          const void *computed, size_t computedlen)
-{
-  const unsigned char *p;
-
-  fprintf (stderr, "expected:");
-  for (p = expected; expectedlen; p++, expectedlen--)
-    fprintf (stderr, " %02x", *p);
-  fprintf (stderr, "\ncomputed:");
-  for (p = computed; computedlen; p++, computedlen--)
-    fprintf (stderr, " %02x", *p);
-  fprintf (stderr, "\n");
-}
 
 
 /* Convert STRING consisting of hex characters into its binary
