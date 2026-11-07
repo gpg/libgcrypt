@@ -11258,6 +11258,107 @@ check_stream_cipher (void)
 }
 
 
+#if USE_SALSA20
+static void
+check_salsa20_block_counter (void)
+{
+  static const struct
+  {
+    int algo;
+    const char *iv;
+    const char *out;
+  } tv[] =
+    {
+      { GCRY_CIPHER_SALSA20,
+        "0102030405060708feffffff00000000",
+        "29f8daaf88e94b8803eebdd7c6529f503a270cbcea797681c3a8419c7e69ec8f"
+        "34bb34fbadbc78d54699b24bd6ccdbb9ea3c81295198ed85338dac20c6888bb2"
+        "03556063cd90830e614a97c43b4278e3eb6b6a3e91f837e0622c0791679377b8"
+        "4fc9b35f4794df0edfa202618b304dd8eb1e89c66e2d8dbcb9c46dc0246eb666"
+        "7553d5b2ebb0245f13b23383e89d7959603772aeeaecdefd07983e2589b60376"
+        "6ea9c940313ab9447b182d6bc81adc33e6c2d6ad7b065d7ff46b29b47839a5c8"
+        "e6f3bff8a32d5b94fadfaab81d81d22f30570ef5ddaa066bc9678226c4432cc0"
+        "bfcc4e52d9604afe2e93b4bd864879ad4c7f862c5422dba9476e955fafbd6cc0"
+        "03ed0e7f0e5c872a87dc97ee0fb47f45b62dcdcaba5c267d3efe479f97c18e4f"
+        "35f195f475c64977fb108b6bef5608de7d7d869e252e82f1591b9ac89a42b411"
+      },
+      { GCRY_CIPHER_SALSA20,
+        "0102030405060708ffffffffffffffff",
+        "fd719c60c32e5d32097e9fdf3628ac56716f1bb49f4e00315cf639b9508141e8"
+        "ba1428b9ba29e3ab38036426a9ca9e16482eb254ce5ce2d2b8392dfac1664a29"
+        "67d3c3a70cf9352b1b35f4babe33ef661658105cad7e18a42496bc51119accd4"
+        "0953038a9573de32922d9b34660c044637dfdc77037b62c8ca4576ef4c08f650"
+      },
+      { GCRY_CIPHER_SALSA20R12,
+        "0102030405060708ffffffff00000000",
+        "b0e67dd1433028591322fbd6ffd2bebbee241181f30a8924fa5972d1c42dafd6"
+        "a2ffa7e8146837878ec41764e0ff06480b046c9f251e4dce6d84517e0eca3a0d"
+        "49bc1f43faaad6d5c3adeb1fdaecc0c932825b6febedb8857d15032b873d47a2"
+        "5df47100b21ac6d525d52a471555b43c335bd952de91a501fd882fe2da14e0c0"
+      }
+    };
+  static const unsigned char key[33] =
+    "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"
+    "\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20";
+  unsigned char buf[320];
+  gcry_cipher_hd_t hd;
+  gcry_error_t err;
+  unsigned int i;
+
+  if (verbose)
+    fprintf (stderr, "  Starting Salsa20 block counter checks.\n");
+
+  for (i = 0; i < DIM (tv); i++)
+    {
+      unsigned char *iv, *out;
+      size_t ivlen, outlen;
+
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                     tv[i].algo);
+          continue;
+        }
+
+      iv = hex2buffer (tv[i].iv, &ivlen);
+      out = hex2buffer (tv[i].out, &outlen);
+
+      err = gcry_cipher_open (&hd, tv[i].algo, GCRY_CIPHER_MODE_STREAM, 0);
+      if (err)
+        {
+          fail ("salsa20 counter, gcry_cipher_open failed: %s\n",
+                gpg_strerror (err));
+          xfree (iv);
+          xfree (out);
+          continue;
+        }
+
+      memset (buf, 0, outlen);
+      err = gcry_cipher_setkey (hd, key, 32);
+      if (!err)
+        err = gcry_cipher_setiv (hd, iv, ivlen);
+      if (!err)
+        err = gcry_cipher_encrypt (hd, buf, outlen, NULL, 0);
+      if (err)
+        fail ("salsa20 counter, test %u failed: %s\n", i, gpg_strerror (err));
+      else if (memcmp (buf, out, outlen))
+        {
+          mismatch (out, outlen, buf, outlen);
+          fail ("salsa20 counter, test %u: mismatch\n", i);
+        }
+
+      gcry_cipher_close (hd);
+      xfree (iv);
+      xfree (out);
+    }
+
+  if (verbose)
+    fprintf (stderr, "  Completed Salsa20 block counter checks.\n");
+}
+#endif /*USE_SALSA20*/
+
+
 static void
 check_stream_cipher_large_block (void)
 {
@@ -14157,6 +14258,9 @@ check_cipher_modes(void)
   check_gcm_siv_cipher ();
   check_gost28147_cipher ();
   check_stream_cipher ();
+#if USE_SALSA20
+  check_salsa20_block_counter ();
+#endif
   check_stream_cipher_large_block ();
 
   if (verbose)

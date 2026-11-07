@@ -94,9 +94,9 @@ ELF(.type  _gcry_salsa20_amd64_ivsetup,@function;)
 _gcry_salsa20_amd64_ivsetup:
 	CFI_STARTPROC();
 	movl   0(%rsi),%r8d
+	movl   8(%rsi),%r9d
+	movl   12(%rsi),%eax
 	movl   4(%rsi),%esi
-	mov  $0,%r9
-	mov  $0,%rax
 	movl   %r8d,24(%rdi)
 	movl   %esi,44(%rdi)
 	movl   %r9d,32(%rdi)

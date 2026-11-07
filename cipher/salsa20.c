@@ -64,6 +64,7 @@
 #define SALSA20_MAX_KEY_SIZE 32  /* Bytes.  */
 #define SALSA20_BLOCK_SIZE   64  /* Bytes.  */
 #define SALSA20_IV_SIZE       8  /* Bytes.  */
+#define SALSA20_CTR_SIZE     16  /* Bytes, IV and block counter.  */
 #define SALSA20_INPUT_LENGTH 16  /* Bytes.  */
 
 /* Number of rounds.  The standard uses 20 rounds.  In any case the
@@ -270,9 +271,8 @@ static void salsa20_ivsetup(SALSA20_context_t *ctx, const byte *iv)
 {
   ctx->input[6] = LE_READ_UINT32(iv + 0);
   ctx->input[7] = LE_READ_UINT32(iv + 4);
-  /* Reset the block counter.  */
-  ctx->input[8] = 0;
-  ctx->input[9] = 0;
+  ctx->input[8] = LE_READ_UINT32(iv + 8);
+  ctx->input[9] = LE_READ_UINT32(iv + 12);
 }
 
 #endif /*!USE_AMD64*/
@@ -292,9 +292,7 @@ salsa20_core_neon (u32 *dst, SALSA20_context_t *ctx, unsigned int rounds)
 
 static void salsa20_ivsetup_neon(SALSA20_context_t *ctx, const byte *iv)
 {
-  memcpy(ctx->input + 8, iv, 8);
-  /* Reset the block counter.  */
-  memset(ctx->input + 10, 0, 8);
+  memcpy(ctx->input + 8, iv, SALSA20_CTR_SIZE);
 }
 
 static void
@@ -382,15 +380,14 @@ static void
 salsa20_setiv (void *context, const byte *iv, size_t ivlen)
 {
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
-  byte tmp[SALSA20_IV_SIZE];
+  byte tmp[SALSA20_CTR_SIZE];
 
-  if (iv && ivlen != SALSA20_IV_SIZE)
+  if (iv && ivlen != SALSA20_IV_SIZE && ivlen != SALSA20_CTR_SIZE)
     log_info ("WARNING: salsa20_setiv: bad ivlen=%u\n", (u32)ivlen);
 
-  if (!iv || ivlen != SALSA20_IV_SIZE)
-    memset (tmp, 0, sizeof(tmp));
-  else
-    memcpy (tmp, iv, SALSA20_IV_SIZE);
+  memset (tmp, 0, sizeof(tmp));
+  if (iv && (ivlen == SALSA20_IV_SIZE || ivlen == SALSA20_CTR_SIZE))
+    memcpy (tmp, iv, ivlen);
 
   ctx->ivsetup (ctx, tmp);
 
