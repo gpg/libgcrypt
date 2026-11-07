@@ -1027,16 +1027,12 @@ sntrup761_dec (unsigned char *k, const unsigned char *c, const unsigned char *sk
   const unsigned char *cache = rho + Inputs_bytes;
   Inputs r;
   unsigned char r_enc[Inputs_bytes];
-  unsigned char tmp[Inputs_bytes];
   unsigned char cnew[Ciphertexts_bytes + Confirm_bytes];
   int mask;
-  int i;
 
   ZDecrypt (r, c, sk);
   Hide (cnew, r_enc, r, pk, cache);
   mask = Ciphertexts_diff_mask (c, cnew);
-  for (i = 0; i < Inputs_bytes; ++i)
-    tmp[i] = r_enc[i] ^ rho[i];
-  _gcry_ct_memmov_cond (r_enc, tmp, Inputs_bytes, mask & 1);
+  _gcry_ct_memmov_cond (r_enc, rho, Inputs_bytes, mask & 1);
   HashSession (k, 1 + mask, r_enc, c);
 }

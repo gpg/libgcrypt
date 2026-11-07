@@ -33,6 +33,49 @@
 
 static int in_fips_mode;
 
+#define SNTRUP761_RHO_LEN   191
+#define SNTRUP761_CACHE_LEN 32
+#define SNTRUP761_HASH_LEN  32
+
+static void
+test_kem_sntrup761_reject (int testno, const uint8_t *seckey,
+                           uint8_t *ciphertext)
+{
+  gcry_error_t err;
+  const uint8_t *rho = seckey + GCRY_KEM_SNTRUP761_SECKEY_LEN
+                       - SNTRUP761_CACHE_LEN - SNTRUP761_RHO_LEN;
+  uint8_t buf[1 + SNTRUP761_HASH_LEN + GCRY_KEM_SNTRUP761_ENCAPS_LEN];
+  uint8_t digest[64];
+  uint8_t key[GCRY_KEM_SNTRUP761_SHARED_LEN];
+
+  ciphertext[GCRY_KEM_SNTRUP761_ENCAPS_LEN - 1] ^= 1 << (testno % 8);
+
+  err = gcry_kem_decap (GCRY_KEM_SNTRUP761,
+                        seckey, GCRY_KEM_SNTRUP761_SECKEY_LEN,
+                        ciphertext, GCRY_KEM_SNTRUP761_ENCAPS_LEN,
+                        key, GCRY_KEM_SNTRUP761_SHARED_LEN,
+                        NULL, 0);
+  if (err)
+    {
+      fail ("gcry_kem_decap reject %d: %s", testno, gpg_strerror (err));
+      return;
+    }
+
+  buf[0] = 3;
+  memcpy (buf + 1, rho, SNTRUP761_RHO_LEN);
+  gcry_md_hash_buffer (GCRY_MD_SHA512, digest, buf, 1 + SNTRUP761_RHO_LEN);
+
+  buf[0] = 0;
+  memcpy (buf + 1, digest, SNTRUP761_HASH_LEN);
+  memcpy (buf + 1 + SNTRUP761_HASH_LEN, ciphertext,
+          GCRY_KEM_SNTRUP761_ENCAPS_LEN);
+  gcry_md_hash_buffer (GCRY_MD_SHA512, digest, buf, sizeof buf);
+
+  if (memcmp (key, digest, GCRY_KEM_SNTRUP761_SHARED_LEN) != 0)
+    fail ("sntrup761 test %d failed: rejection key mismatch\n", testno);
+}
+
+
 static void
 test_kem_sntrup761 (int testno)
 {
@@ -89,6 +132,8 @@ test_kem_sntrup761 (int testno)
         fprintf (stderr, " %02x", key2[i]);
       putc ('\n', stderr);
     }
+
+  test_kem_sntrup761_reject (testno, seckey, ciphertext);
 }
 
 
