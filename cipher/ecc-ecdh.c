@@ -37,10 +37,10 @@
 static gpg_err_code_t
 prepare_ec (mpi_ec_t *r_ec, const char *name)
 {
-  int flags = 0;
+  int flags = GCRYECC_FLAG_LEAST_LEAK;
 
   if (!strcmp (name, "Curve25519"))
-    flags = PUBKEY_FLAG_DJB_TWEAK;
+    flags |= PUBKEY_FLAG_DJB_TWEAK;
 
   return _gcry_mpi_ec_internal_new (r_ec, &flags, "ecc_mul_point", NULL, name);
 }
