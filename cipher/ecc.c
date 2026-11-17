@@ -1792,7 +1792,11 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
      the compressed version.  Because we don't support any non-eddsa
      compression, the only thing we need to do is to compress
      EdDSA.  */
-  if ((flags & PUBKEY_FLAG_EDDSA) && dialect == ECC_DIALECT_ED25519)
+  if (dialect == ECC_DIALECT_SAFECURVE)
+    {
+      maybe_uncompress = 0;
+    }
+  else if ((flags & PUBKEY_FLAG_EDDSA) && dialect == ECC_DIALECT_ED25519)
     {
       const unsigned int pbits = mpi_get_nbits (values[0]);
 

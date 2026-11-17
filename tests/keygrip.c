@@ -254,6 +254,17 @@ static struct
       "\x33\x23\x98\xF5\xD4\x80\x67\x7D\xF4\x9C",
       1
     },
+    { /* X25519 (RFC 9580) */
+      GCRY_PK_ECC,
+      "(public-key"
+      " (ecc"
+      " (curve ietf25)"
+      " (q #02F682704BF3DAEB87ECC31430DA17D783CCBD6A5B587A0EA1C6DEDBC020592F#)"
+      " ))",
+      "\x96\x8E\x51\xF9\xF0\x72\x6B\x29\xDD\x61"
+      "\xD6\xBA\x8D\xF1\x0A\x39\x58\x8C\x76\xAD",
+      1
+    },
     { /* Random key  */
       GCRY_PK_RSA,
       "(shadowed-private-key"
