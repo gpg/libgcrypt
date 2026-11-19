@@ -1070,7 +1070,7 @@ read_pool (byte *buffer, size_t length, int level)
     pool_balance = 0;
 
   /* Clear the keypool. */
-  memset (keypool, 0, POOLSIZE);
+  memset (keypool, 0, POOLSIZE + BLOCKLEN);
 
   /* We need to detect whether a fork has happened.  A fork might have
      an identical pool and thus the child and the parent could emit
