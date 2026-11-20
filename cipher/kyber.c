@@ -101,10 +101,13 @@
 #include "const-time.h"
 #include "kyber.h"
 
+NOINLINE_FUNC
 static int crypto_kem_keypair_derand_2(uint8_t *pk, uint8_t *sk,
                                        const uint8_t *coins);
+NOINLINE_FUNC
 static int crypto_kem_keypair_derand_3(uint8_t *pk, uint8_t *sk,
                                        const uint8_t *coins);
+NOINLINE_FUNC
 static int crypto_kem_keypair_derand_4(uint8_t *pk, uint8_t *sk,
                                        const uint8_t *coins);
 
