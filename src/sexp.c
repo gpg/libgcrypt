@@ -85,8 +85,11 @@ typedef unsigned short DATALEN;
 
 struct gcry_sexp
 {
-  byte d[1];
+  DATALEN len;
+  byte d[1];  /* In future, we may use flexible array member.  */
 };
+
+#define HSIZE_SEXP (offsetof (struct gcry_sexp, d))
 
 #define ST_STOP  0
 #define ST_DATA  1  /* datalen follows */
@@ -483,13 +486,14 @@ _gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
 		}
               n = p - head;
 
-              newlist = xtrymalloc ( sizeof *newlist + n );
+              newlist = xtrymalloc ( HSIZE_SEXP + 1 + n );
               if (!newlist)
                 {
                   /* No way to return an error code, so we can only
                      return Not Found. */
                   return NULL;
                 }
+              newlist->len = n;
               d = newlist->d;
               memcpy ( d, head, n ); d += n;
               *d++ = ST_STOP;
@@ -637,9 +641,10 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
   if (*p == ST_DATA)
     {
       memcpy (&n, p+1, sizeof n);
-      newlist = xtrymalloc (sizeof *newlist + 1 + 1 + sizeof n + n + 1);
+      newlist = xtrymalloc (HSIZE_SEXP + 1 + 1 + 1 + sizeof n + n + 1);
       if (!newlist)
         return NULL;
+      newlist->len = 1 + 1 + 1 + sizeof n + n;
       d = newlist->d;
       *d++ = ST_OPEN;
       memcpy (d, p, 1 + sizeof n + n);
@@ -675,9 +680,10 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
       } while (level);
       n = p + 1 - head;
 
-      newlist = xtrymalloc (sizeof *newlist + n);
+      newlist = xtrymalloc (HSIZE_SEXP + 1 + n);
       if (!newlist)
         return NULL;
+      newlist->len = n;
       d = newlist->d;
       memcpy (d, head, n);
       d += n;
@@ -923,9 +929,10 @@ _gcry_sexp_cdr(const gcry_sexp_t list)
   } while (level);
   n = p - head;
 
-  newlist = xtrymalloc (sizeof *newlist + n + 2);
+  newlist = xtrymalloc (HSIZE_SEXP + n + 3);
   if (!newlist)
     return NULL;
+  newlist->len = n + 2;
   d = newlist->d;
   *d++ = ST_OPEN;
   memcpy (d, head, n);
@@ -985,7 +992,7 @@ make_space ( struct make_space_ctx *c, size_t n )
       newsize = c->allocated + 2*(n+sizeof(DATALEN)+1);
       if (newsize <= c->allocated)
         return GPG_ERR_TOO_LARGE;
-      newsexp = xtryrealloc ( c->sexp, sizeof *newsexp + newsize - 1);
+      newsexp = xtryrealloc ( c->sexp, HSIZE_SEXP + newsize);
       if (!newsexp)
         return gpg_err_code_from_errno (errno);
       c->allocated = newsize;
@@ -1169,9 +1176,9 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
      that the code which does the ST_CLOSE can use MAKE_SPACE */
   c.allocated = length + sizeof(DATALEN);
   if (length && _gcry_is_secure (buffer))
-    c.sexp = xtrymalloc_secure (sizeof *c.sexp + c.allocated - 1);
+    c.sexp = xtrymalloc_secure (HSIZE_SEXP + c.allocated);
   else
-    c.sexp = xtrymalloc (sizeof *c.sexp + c.allocated - 1);
+    c.sexp = xtrymalloc (HSIZE_SEXP + c.allocated);
   if (!c.sexp)
     {
       err = gpg_err_code_from_errno (errno);
@@ -1501,8 +1508,8 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                           gcry_sexp_t newsexp;
                           byte *newhead;
 
-                          newsexp = xtrymalloc_secure (sizeof *newsexp
-                                                       + c.allocated - 1);
+                          newsexp = xtrymalloc_secure (HSIZE_SEXP
+                                                       + c.allocated);
                           if (!newsexp)
                             {
                               err = gpg_err_code_from_errno (errno);
@@ -1548,8 +1555,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                       gcry_sexp_t newsexp;
                       byte *newhead;
 
-                      newsexp = xtrymalloc_secure (sizeof *newsexp
-                                                   + c.allocated - 1);
+                      newsexp = xtrymalloc_secure (HSIZE_SEXP + c.allocated);
                       if (!newsexp)
                         {
                           err = gpg_err_code_from_errno (errno);
@@ -1617,8 +1623,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  gcry_sexp_t newsexp;
 		  byte *newhead;
 
-		  newsexp = xtrymalloc_secure (sizeof *newsexp
-                                               + c.allocated - 1);
+		  newsexp = xtrymalloc_secure (HSIZE_SEXP + c.allocated);
                   if (!newsexp)
                     {
                       err = gpg_err_code_from_errno (errno);
@@ -1806,6 +1811,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	}
     }
   MAKE_SPACE (0);
+  c.sexp->len = c.pos - c.sexp->d;
   *c.pos++ = ST_STOP;
 
   if (level && !err)
@@ -1819,7 +1825,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
         {
           /* Extra paranoid wipe on error. */
           if (_gcry_is_secure (c.sexp))
-            wipememory (c.sexp, sizeof (struct gcry_sexp) + c.allocated - 1);
+            wipememory (c.sexp, HSIZE_SEXP + c.allocated);
           xfree (c.sexp);
         }
     }
