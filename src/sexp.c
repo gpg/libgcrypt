@@ -187,8 +187,9 @@ _gcry_sexp_dump (const gcry_sexp_t a)
     }
 
   p = a->d;
-  while ( (type = *p) != ST_STOP )
+  while ( (p - a->d) < a->len )
     {
+      type = *p;
       p++;
       switch ( type )
         {
@@ -231,7 +232,7 @@ normalize ( gcry_sexp_t list )
   if ( !list )
     return NULL;
   p = list->d;
-  if ( *p == ST_STOP )
+  if ( list->len == 0 )
     {
       /* this is "" */
       sexp_release ( list );
@@ -327,8 +328,9 @@ _gcry_sexp_release( gcry_sexp_t sexp )
           const byte *p = sexp->d;
           int type;
 
-          while ( (type = *p) != ST_STOP )
+          while ( (p - sexp->d) < sexp->len )
             {
+              type = *p;
               p++;
               switch ( type )
                 {
@@ -447,7 +449,7 @@ _gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
     toklen = strlen(tok);
 
   p = list->d;
-  while ( *p != ST_STOP )
+  while ( (p - list->d) < list->len )
     {
       if ( *p == ST_OPEN && p[1] == ST_DATA )
         {
@@ -465,6 +467,10 @@ _gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
               /* Look for the end of the list.  */
               for ( p += n; level; p++ )
                 {
+                  if (p - list->d >= list->len)
+                    {
+                      BUG ();
+		    }
                   if ( *p == ST_DATA )
                     {
 			memcpy ( &n, ++p, sizeof n );
@@ -478,10 +484,6 @@ _gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
                   else if ( *p == ST_CLOSE )
                     {
                       level--;
-		    }
-                  else if ( *p == ST_STOP )
-                    {
-                      BUG ();
 		    }
 		}
               n = p - head;
@@ -528,8 +530,9 @@ _gcry_sexp_length (const gcry_sexp_t list)
     return 0;
 
   p = list->d;
-  while ((type=*p) != ST_STOP)
+  while ((p - list->d) < list->len)
     {
+      type = *p;
       p++;
       if (type == ST_DATA)
         {
@@ -568,8 +571,9 @@ get_internal_buffer (const gcry_sexp_t list, size_t *r_off)
   if (list)
     {
       p = list->d;
-      while ( (type=*p) != ST_STOP )
+      while ( (p - list->d) < list->len )
         {
+          type = *p;
           p++;
           if (type == ST_DATA)
             {
@@ -613,6 +617,9 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
   while (number > 0)
     {
       p++;
+      if (p - list->d >= list->len)
+        return NULL;
+
       if (*p == ST_DATA)
         {
           memcpy (&n, ++p, sizeof n);
@@ -630,10 +637,6 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
           level--;
           if ( !level )
             number--;
-	}
-      else if (*p == ST_STOP)
-        {
-          return NULL;
 	}
     }
   p++;
@@ -659,6 +662,10 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
       level = 1;
       do {
         p++;
+        if (p - list->d >= list->len)
+          {
+            BUG ();
+          }
         if (*p == ST_DATA)
           {
             memcpy (&n, ++p, sizeof n);
@@ -672,10 +679,6 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
         else if (*p == ST_CLOSE)
           {
             level--;
-          }
-        else if (*p == ST_STOP)
-          {
-            BUG ();
           }
       } while (level);
       n = p + 1 - head;
@@ -725,6 +728,8 @@ do_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
   /* Skip over N elements. */
   while (number > 0)
     {
+      if (p - list->d >= list->len)
+        return NULL;
       if (*p == ST_DATA)
         {
           memcpy ( &n, ++p, sizeof n );
@@ -742,10 +747,6 @@ do_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
           level--;
           if ( !level )
             number--;
-	}
-      else if (*p == ST_STOP)
-        {
-          return NULL;
 	}
       p++;
     }
@@ -879,6 +880,8 @@ _gcry_sexp_cdr(const gcry_sexp_t list)
   while (skip > 0)
     {
       p++;
+      if (p - list->d >= list->len)
+        return NULL;
       if (*p == ST_DATA)
         {
           memcpy ( &n, ++p, sizeof n );
@@ -897,16 +900,14 @@ _gcry_sexp_cdr(const gcry_sexp_t list)
           if ( !level )
             skip--;
 	}
-      else if (*p == ST_STOP)
-        {
-          return NULL;
-	}
     }
   p++;
 
   head = p;
   level = 0;
   do {
+    if (p - list->d >= list->len)
+      return NULL;
     if (*p == ST_DATA)
       {
         memcpy ( &n, ++p, sizeof n );
@@ -920,10 +921,6 @@ _gcry_sexp_cdr(const gcry_sexp_t list)
     else if (*p == ST_CLOSE)
       {
         level--;
-      }
-    else if (*p == ST_STOP)
-      {
-        return NULL;
       }
     p++;
   } while (level);
@@ -2029,7 +2026,6 @@ size_t
 _gcry_sexp_sprint (const gcry_sexp_t list, int mode,
                    void *buffer, size_t maxlength )
 {
-  static unsigned char empty[3] = { ST_OPEN, ST_CLOSE, ST_STOP };
   const unsigned char *s;
   char *d;
   DATALEN n;
@@ -2037,9 +2033,30 @@ _gcry_sexp_sprint (const gcry_sexp_t list, int mode,
   size_t len = 0;
   int i, indent = 0;
 
-  s = list? list->d : empty;
   d = buffer;
-  while ( *s != ST_STOP )
+
+  if (list == NULL)
+    {
+      /* If it's empty.  */
+      len++;
+      if (d)
+        {
+          if (len >= maxlength)
+            return 0;
+          *d++ = '(';
+        }
+      len++;
+      if (d)
+        {
+          if (len >= maxlength)
+            return 0;
+          *d++ = ')';
+        }
+      goto final;
+    }
+
+  s = list->d;
+  while ( s - list->d < list->len )
     {
       switch ( *s )
         {
@@ -2077,7 +2094,7 @@ _gcry_sexp_sprint (const gcry_sexp_t list, int mode,
               *d++ = ')';
 	    }
           indent--;
-          if (*s != ST_OPEN && *s != ST_STOP && mode != GCRYSEXP_FMT_CANON)
+          if (*s != ST_OPEN && (s - list->d < list->len) && mode != GCRYSEXP_FMT_CANON)
             {
               len++;
               len += indent;
@@ -2147,6 +2164,7 @@ _gcry_sexp_sprint (const gcry_sexp_t list, int mode,
           BUG ();
 	}
     }
+ final:
   if ( mode != GCRYSEXP_FMT_CANON )
     {
       len++;
