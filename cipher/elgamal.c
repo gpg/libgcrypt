@@ -1098,8 +1098,12 @@ elg_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
       log_mpidump ("elg_verify    y", pk.y);
     }
 
+  if (mpi_cmp_ui (pk.g, 1) <= 0 || mpi_cmp (pk.g, pk.p) >= 0)
+    rc = GPG_ERR_BROKEN_PUBKEY;
+  else if (mpi_cmp_ui (pk.y, 1) <= 0 || mpi_cmp (pk.y, pk.p) >= 0)
+    rc = GPG_ERR_BROKEN_PUBKEY;
   /* Verify the signature.  */
-  if (!verify (sig_r, sig_s, data, &pk))
+  else if (!verify (sig_r, sig_s, data, &pk))
     rc = GPG_ERR_BAD_SIGNATURE;
 
  leave:
