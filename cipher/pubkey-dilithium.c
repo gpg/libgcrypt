@@ -150,7 +150,7 @@ mldsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
    * Extract the seed (if any).
    */
   rc = sexp_extract_param (genparms, NULL, "/S", &seed_mpi, NULL);
-  if (rc == GPG_ERR_NOT_FOUND)
+  if (rc == GPG_ERR_NO_OBJ)
     {
       /* Long term key material. */
       randombytes (seed, SEEDBYTES, GCRY_VERY_STRONG_RANDOM);

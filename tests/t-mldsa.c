@@ -626,6 +626,47 @@ check_mldsa_kat (const char *fname)
 }
 
 
+/* Check the key generation without a seed.  */
+static void
+check_mldsa_genkey (void)
+{
+  gpg_error_t err;
+  gcry_sexp_t keyparm, key, l;
+  int i;
+
+  for (i = 0; mldsa_infos[i].name; i++)
+    {
+      keyparm = key = NULL;
+      err = gcry_sexp_build (&keyparm, NULL, "(genkey(%s))",
+                             mldsa_infos[i].name);
+      if (err)
+        die ("error building s-exp for genkey of %s: %s",
+             mldsa_infos[i].name, gpg_strerror (err));
+
+      err = gcry_pk_genkey (&key, keyparm);
+      if (err)
+        fail ("gcry_pk_genkey without seed failed for %s: %s",
+              mldsa_infos[i].name, gpg_strerror (err));
+      else
+        {
+          l = gcry_sexp_find_token (key, "public-key", 0);
+          if (!l)
+            fail ("gcry_pk_genkey returns no pubkey for %s",
+                  mldsa_infos[i].name);
+          gcry_sexp_release (l);
+          l = gcry_sexp_find_token (key, "private-key", 0);
+          if (!l)
+            fail ("gcry_pk_genkey returns no seckey for %s",
+                  mldsa_infos[i].name);
+          gcry_sexp_release (l);
+        }
+
+      gcry_sexp_release (key);
+      gcry_sexp_release (keyparm);
+    }
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -693,6 +734,8 @@ main (int argc, char **argv)
 
   start_timer ();
   check_mldsa_kat (fname);
+  if (!custom_data_file)
+    check_mldsa_genkey ();
   stop_timer ();
 
   xfree (fname);
