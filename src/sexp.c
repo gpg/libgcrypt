@@ -38,23 +38,20 @@
    We store an S-expression as one memory buffer with tags, length and
    value.  The simplest list would thus be:
 
-   /----------+----------+---------+------+-----------+----------\
-   | open_tag | data_tag | datalen | data | close_tag | stop_tag |
-   \----------+----------+---------+------+-----------+----------/
+   /----------+----------+---------+------+-----------\
+   | open_tag | data_tag | datalen | data | close_tag |
+   \----------+----------+---------+------+-----------/
 
    Expressed more compact and with an example:
 
-   /----+----+----+---+----+----\
-   | OT | DT | DL | D | CT | ST |  "(foo)"
-   \----+----+----+---+----+----/
+   /----+----+----+---+----\
+   | OT | DT | DL | D | CT |  "(foo)"
+   \----+----+----+---+----/
 
    The open tag must always be the first tag of a list as requires by
    the S-expression specs.  At least data element (data_tag, datalen,
    data) is required as well.  The close_tag finishes the list and
-   would actually be sufficient.  For fail-safe reasons a final stop
-   tag is always the last byte in a buffer; it has a value of 0 so
-   that string function accidentally applied to an S-expression will
-   never access unallocated data.  We do not support display hints and
+   would actually be sufficient.  We do not support display hints and
    thus don't need to represent them.  A list may have more an
    arbitrary number of data elements but at least one is required.
    The length of each data must be greater than 0 and has a current
@@ -62,22 +59,22 @@
 
    A list with two data elements:
 
-   /----+----+----+---+----+----+---+----+----\
-   | OT | DT | DL | D | DT | DL | D | CT | ST |  "(foo bar)"
-   \----+----+----+---+----+----+---+----+----/
+   /----+----+----+---+----+----+---+----\
+   | OT | DT | DL | D | DT | DL | D | CT |  "(foo bar)"
+   \----+----+----+---+----+----+---+----/
 
    In the above example both DL fields have a value of 3.
    A list of a list with one data element:
 
-   /----+----+----+----+---+----+----+----\
-   | OT | OT | DT | DL | D | CT | CT | ST |  "((foo))"
-   \----+----+----+----+---+----+----+----/
+   /----+----+----+----+---+----+----\
+   | OT | OT | DT | DL | D | CT | CT |  "((foo))"
+   \----+----+----+----+---+----+----/
 
    A list with one element followed by another list:
 
-   /----+----+----+---+----+----+----+---+----+----+----\
-   | OT | DT | DL | D | OT | DT | DL | D | CT | CT | ST |  "(foo (bar))"
-   \----+----+----+---+----+----+----+---+----+----+----/
+   /----+----+----+---+----+----+----+---+----+----\
+   | OT | DT | DL | D | OT | DT | DL | D | CT | CT |  "(foo (bar))"
+   \----+----+----+---+----+----+----+---+----+----/
 
  */
 
@@ -488,7 +485,7 @@ _gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
 		}
               n = p - head;
 
-              newlist = xtrymalloc ( HSIZE_SEXP + 1 + n );
+              newlist = xtrymalloc ( HSIZE_SEXP + n );
               if (!newlist)
                 {
                   /* No way to return an error code, so we can only
@@ -498,7 +495,6 @@ _gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
               newlist->len = n;
               d = newlist->d;
               memcpy ( d, head, n ); d += n;
-              *d++ = ST_STOP;
               return normalize ( newlist );
 	    }
           p += n;
@@ -644,7 +640,7 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
   if (*p == ST_DATA)
     {
       memcpy (&n, p+1, sizeof n);
-      newlist = xtrymalloc (HSIZE_SEXP + 1 + 1 + 1 + sizeof n + n + 1);
+      newlist = xtrymalloc (HSIZE_SEXP + 1 + 1 + 1 + sizeof n + n);
       if (!newlist)
         return NULL;
       newlist->len = 1 + 1 + 1 + sizeof n + n;
@@ -653,7 +649,6 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
       memcpy (d, p, 1 + sizeof n + n);
       d += 1 + sizeof n + n;
       *d++ = ST_CLOSE;
-      *d = ST_STOP;
     }
   else if (*p == ST_OPEN)
     {
@@ -683,14 +678,13 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
       } while (level);
       n = p + 1 - head;
 
-      newlist = xtrymalloc (HSIZE_SEXP + 1 + n);
+      newlist = xtrymalloc (HSIZE_SEXP + n);
       if (!newlist)
         return NULL;
       newlist->len = n;
       d = newlist->d;
       memcpy (d, head, n);
       d += n;
-      *d++ = ST_STOP;
     }
   else
     newlist = NULL;
@@ -926,7 +920,7 @@ _gcry_sexp_cdr(const gcry_sexp_t list)
   } while (level);
   n = p - head;
 
-  newlist = xtrymalloc (HSIZE_SEXP + n + 3);
+  newlist = xtrymalloc (HSIZE_SEXP + n + 2);
   if (!newlist)
     return NULL;
   newlist->len = n + 2;
@@ -935,7 +929,6 @@ _gcry_sexp_cdr(const gcry_sexp_t list)
   memcpy (d, head, n);
   d += n;
   *d++ = ST_CLOSE;
-  *d++ = ST_STOP;
 
   return normalize (newlist);
 }
@@ -1807,9 +1800,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
           goto leave;
 	}
     }
-  MAKE_SPACE (0);
   c.sexp->len = c.pos - c.sexp->d;
-  *c.pos++ = ST_STOP;
 
   if (level && !err)
     err = GPG_ERR_SEXP_UNMATCHED_PAREN;
