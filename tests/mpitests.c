@@ -774,6 +774,16 @@ test_invm_cmpui(void)
       gcry_mpi_release(C);
     }
 
+  /* A zero without any allocated limb has no inverse.  */
+  A = gcry_mpi_new(0);
+  B = gcry_mpi_set_ui(NULL, 7);
+  C = gcry_mpi_new(0);
+  if (gcry_mpi_invm(C, A, B))
+    die ("test_invm_cmpui failed at %d\n", __LINE__);
+  gcry_mpi_release(A);
+  gcry_mpi_release(B);
+  gcry_mpi_release(C);
+
   return 1;
 }
 
